@@ -1,5 +1,7 @@
 # Actions CLI
 
+[![Build Status](https://dev.azure.com/azure-octo/Actions/_apis/build/status/builds/cli%20build?branchName=master)](https://dev.azure.com/azure-octo/Actions/_build/latest?definitionId=6&branchName=master)
+
 The Actions CLI allows you to setup Actions on your local dev machine or on a Kubernetes cluster, provides debugging suppors, launches and manages Actions instances.
 
 ## Setup
