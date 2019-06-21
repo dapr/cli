@@ -11,13 +11,41 @@ variables:
 jobs:
 - template: 'build-template.yml'
   parameters:
-    pool: macOS
+    poolImage: macOS-latest
     targetOS: darwin
 - template: 'build-template.yml'
   parameters:
-    pool: ubuntu
+    poolImage: ubuntu-latest
     targetOS: linux
 - template: 'build-template.yml'
   parameters:
-    pool: macOS
+    poolImage: 'windows-2019'
     targetOS: windows
+- job: 'publish_edge_binaries'
+  pool:
+    vmImage: 'windows-2019'
+  dependsOn:
+  - build_actions_darwin
+  - build_actions_linux
+  - build_actions_windows
+  condition: |
+    and
+    (
+      eq(variables['Build.SourceBranch'], 'refs/heads/master'),
+      eq(dependencies.build_actions_darwin.result, 'Succeeded'),
+      eq(dependencies.build_actions_linux.result, 'Succeeded'),
+      eq(dependencies.build_actions_windows.result, 'Succeeded')
+    )
+  steps:
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        itemPattern: '**/*.zip'
+        targetPath: '$(Pipeline.Workspace)'
+    - task: AzureFileCopy@3
+      inputs:
+          SourcePath: '$(Pipeline.Workspace)/drop'
+          azureSubscription: 'Actions Releases'
+          Destination: 'AzureBlob'
+          storage: 'actionsreleases'
+          ContainerName: 'bin'

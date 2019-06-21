@@ -1,5 +1,5 @@
 parameters:
-  pool: 'macOS'
+  poolImage: 'macOS-latest'
   targetOS: 'darwin'
 
 jobs:
@@ -8,18 +8,21 @@ jobs:
     GOOS: ${{ parameters.targetOS }}
     GOARCH: amd64
   pool:
-    vmImage: '${{ parameters.pool }}-latest'
+    vmImage: '${{ parameters.poolImage }}'
   steps:
     - task: GoTool@0
       inputs:
         version: '1.12'
-    - script: |
-        mkdir -p '$(GOPATH)/pkg'
-        mkdir -p '$(modulePath)'
-        shopt -s extglob
-        mv !(gopath) '$(modulePath)'
-        echo '##vso[task.prependpath]$(GOBIN)'
+    - task: Bash@3
       displayName: 'Set up the Go workspace'
+      inputs:
+        targetType: 'inline'
+        script: |
+          mkdir -p '$(GOPATH)/pkg'
+          mkdir -p '$(modulePath)'
+          shopt -s extglob
+          mv !(gopath) '$(modulePath)'
+          echo '##vso[task.prependpath]$(GOBIN)'
     - task: Go@0
       inputs:
         command: 'get'
