@@ -25,16 +25,16 @@ jobs:
   pool:
     vmImage: 'windows-2019'
   dependsOn:
-  - build_actions_darwin
-  - build_actions_linux
-  - build_actions_windows
+  - build_actions_darwin_amd64
+  - build_actions_linux_amd64
+  - build_actions_windows_amd64
   condition: |
     and
     (
       eq(variables['Build.SourceBranch'], 'refs/heads/master'),
-      eq(dependencies.build_actions_darwin.result, 'Succeeded'),
-      eq(dependencies.build_actions_linux.result, 'Succeeded'),
-      eq(dependencies.build_actions_windows.result, 'Succeeded')
+      eq(dependencies.build_actions_darwin_amd64.result, 'Succeeded'),
+      eq(dependencies.build_actions_linux_amd64.result, 'Succeeded'),
+      eq(dependencies.build_actions_windows_amd64.result, 'Succeeded')
     )
   steps:
     - task: DownloadPipelineArtifact@2

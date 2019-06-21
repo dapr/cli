@@ -8,7 +8,7 @@ jobs:
     GOOS: ${{ parameters.targetOS }}
     GOARCH: amd64
   pool:
-    vmImage: '${{ parameters.poolImage }}'
+    vmImage: '${{ parameters.poolImage }}'
   steps:
     - task: GoTool@0
       inputs:
