@@ -3,7 +3,10 @@ parameters:
   targetOS: 'darwin'
 
 jobs:
-- job: build_actions_${{ parameters.targetOS }}
+- job: build_actions_${{ parameters.targetOS }}_amd64
+  variables:
+    GOOS: ${{ parameters.targetOS }}
+    GOARCH: amd64
   pool:
     vmImage: '${{ parameters.pool }}-latest'
   steps:

@@ -17,3 +17,7 @@ jobs:
   parameters:
     pool: ubuntu
     targetOS: linux
+- template: 'build-template.yml'
+  parameters:
+    pool: macOS
+    targetOS: windows
