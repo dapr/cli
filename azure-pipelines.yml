@@ -1,0 +1,23 @@
+# actionscore/cli build pipeline
+
+trigger:
+- master
+
+variables:
+  GOPATH: '$(system.defaultWorkingDirectory)/gopath'
+  GOBIN:  '$(GOPATH)/bin'
+  modulePath: '$(GOPATH)/src/github.com/$(build.repository.name)'
+
+jobs:
+- template: 'build-template.yml'
+  parameters:
+    pool: macOS
+    targetOS: darwin
+- template: 'build-template.yml'
+  parameters:
+    pool: ubuntu
+    targetOS: linux
+- template: 'build-template.yml'
+  parameters:
+    pool: macOS
+    targetOS: windows

@@ -1,0 +1,47 @@
+parameters:
+  pool: 'macOS'
+  targetOS: 'darwin'
+
+jobs:
+- job: build_actions_${{ parameters.targetOS }}_amd64
+  variables:
+    GOOS: ${{ parameters.targetOS }}
+    GOARCH: amd64
+  pool:
+    vmImage: '${{ parameters.pool }}-latest'
+  steps:
+    - task: GoTool@0
+      inputs:
+        version: '1.12'
+    - script: |
+        mkdir -p '$(GOPATH)/pkg'
+        mkdir -p '$(modulePath)'
+        shopt -s extglob
+        mv !(gopath) '$(modulePath)'
+        echo '##vso[task.prependpath]$(GOBIN)'
+      displayName: 'Set up the Go workspace'
+    - task: Go@0
+      inputs:
+        command: 'get'
+        arguments: '-v -t -d ./...'
+        workingDirectory: '$(modulePath)'
+        displayName: 'Run go get'
+    - task: Go@0
+      inputs:
+        command: 'build'
+        arguments: '-v -o $(Build.BinariesDirectory)/${{ parameters.targetOS }}/actions'
+        workingDirectory: '$(modulePath)'
+        displayName: 'Run go build'
+    - task: ArchiveFiles@2
+      inputs:
+        rootFolderOrFile: '$(Build.BinariesDirectory)/${{ parameters.targetOS }}'
+        includeRootFolder: false
+        archiveType: 'zip'
+        archiveFile: '$(Build.ArtifactStagingDirectory)/${{ parameters.targetOS }}/actions_${{ parameters.targetOS }}.zip'
+        replaceExistingArchive: true
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)/${{ parameters.targetOS }}'
+        ArtifactName: 'drop'
+        publishLocation: 'Container'
+        displayName: 'Publish build artifacts'
