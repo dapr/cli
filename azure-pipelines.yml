@@ -9,11 +9,11 @@ variables:
   modulePath: '$(GOPATH)/src/github.com/$(build.repository.name)'
 
 jobs:
-- template: 'build-binary-template.yml'
+- template: 'build-template.yml'
   parameters:
     pool: macOS
     targetOS: darwin
-- template: 'build-binary-template.yml'
+- template: 'build-template.yml'
   parameters:
     pool: ubuntu
     targetOS: linux
