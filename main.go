@@ -2,10 +2,11 @@ package main
 
 import "github.com/actionscore/cli/cmd"
 
+// Value for version is injected by the build
 var (
-	VERSION = "0.0.1"
+	version = "edge"
 )
 
 func main() {
-	cmd.Execute(VERSION)
+	cmd.Execute(version)
 }

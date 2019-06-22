@@ -7,11 +7,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	// VERSION is set during build
-	VERSION string
-)
-
 var RootCmd = &cobra.Command{
 	Use:   "actions",
 	Short: "Actions CLI",
@@ -26,7 +21,6 @@ A serverless runtime for hyperscale, distributed systems`,
 
 // Execute adds all child commands to the root command
 func Execute(version string) {
-	VERSION = version
 	RootCmd.Version = version
 
 	if err := RootCmd.Execute(); err != nil {
