@@ -3,7 +3,7 @@
 ################################################################################
 
 GIT_VERSION = $(shell git describe --always --abbrev=7 --dirty)
-TARGETS		?= darwin linux windows
+TARGETS		?= darwin
 ARCH		?= amd64
 CGO			?= 0
 
@@ -34,7 +34,7 @@ deps: dep
 	dep ensure -v
 
 ################################################################################
-# Build																           #
+# Build and release															   #
 ################################################################################
 
 .PHONY: build
@@ -44,6 +44,15 @@ build:
 						-ldflags "-X $(BASE_PACKAGE_NAME)/pkg/version.version=$(CLI_VERSION)" \
 						-o dist/"$$t"_$(ARCH)/actions; \
 	  done;
+
+
+.PHONY: release
+release: build
+release: test
+		cd dist; \
+		for t in $(TARGETS); do \
+				tar -zcf "$$t"_$(ARCH)/actions-v${CLI_VERSION}-$$t-$(ARCH).tar.gz "$$t"_$(ARCH)/* ; \
+		done;
 
 ################################################################################
 # Tests																           #
