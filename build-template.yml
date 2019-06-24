@@ -51,12 +51,12 @@ jobs:
         workingDirectory: '$(modulePath)'
         failOnStderr: true
     - task: ArchiveFiles@2
-      displayName: 'Build $(GOARCH)/${{ parameters.binaryName }}_${{ parameters.targetOS }}.zip'
+      displayName: 'Build $(GOARCH)/actions_${{ parameters.targetOS }}.zip'
       inputs:
         rootFolderOrFile: '$(modulePath)/dist/${{ parameters.targetOS }}_$(GOARCH)'
         includeRootFolder: false
         archiveType: 'zip'
-        archiveFile: '$(Build.ArtifactStagingDirectory)/${{ parameters.targetOS }}_$(GOARCH)/${{ parameters.binaryName }}_${{ parameters.targetOS }}_$(GOARCH).zip'
+        archiveFile: '$(Build.ArtifactStagingDirectory)/${{ parameters.targetOS }}_$(GOARCH)/actions_${{ parameters.targetOS }}_$(GOARCH).zip'
         replaceExistingArchive: true
     - task: PublishBuildArtifacts@1
       displayName: 'Publish build artifacts'
