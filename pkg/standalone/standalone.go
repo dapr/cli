@@ -105,7 +105,7 @@ func installAssignerBinary(wg *sync.WaitGroup, errorChan chan<- error, dir strin
 func installActionsBinary(wg *sync.WaitGroup, errorChan chan<- error, dir string) {
 	defer wg.Done()
 
-	actionsURL := fmt.Sprintf("%s/action_%s.zip", baseDownloadURL, runtime.GOOS)
+	actionsURL := fmt.Sprintf("%s/action_%s_%s.zip", baseDownloadURL, runtime.GOOS, runtime.GOARCH)
 	filepath, err := downloadFile(dir, actionsURL)
 	if err != nil {
 		errorChan <- fmt.Errorf("Error downloading actions binary: %s", err)
