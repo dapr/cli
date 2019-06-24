@@ -13,28 +13,38 @@ jobs:
   parameters:
     poolImage: macOS-latest
     targetOS: darwin
+    targetArch: amd64
 - template: 'build-template.yml'
   parameters:
     poolImage: ubuntu-latest
     targetOS: linux
+    targetArch: amd64
 - template: 'build-template.yml'
   parameters:
     poolImage: 'windows-2019'
     targetOS: windows
+    targetArch: amd64
+- template: 'build-template.yml'
+  parameters:
+    poolImage: macOS-latest
+    targetOS: linux
+    targetArch: arm
 - job: 'publish_edge_binaries'
   pool:
     vmImage: 'windows-2019'
   dependsOn:
-  - build_actions_darwin_amd64
-  - build_actions_linux_amd64
-  - build_actions_windows_amd64
+  - build_darwin_amd64_actions
+  - build_linux_amd64_actions
+  - build_windows_amd64_actions
+  - build_linux_arm_actions
   condition: |
     and
     (
       eq(variables['Build.SourceBranch'], 'refs/heads/master'),
-      eq(dependencies.build_actions_darwin_amd64.result, 'Succeeded'),
-      eq(dependencies.build_actions_linux_amd64.result, 'Succeeded'),
-      eq(dependencies.build_actions_windows_amd64.result, 'Succeeded')
+      eq(dependencies.build_darwin_amd64_actions.result, 'Succeeded'),
+      eq(dependencies.build_linux_amd64_actions.result, 'Succeeded'),
+      eq(dependencies.build_windows_amd64_actions.result, 'Succeeded'),
+      eq(dependencies.build_linux_arm_actions.result, 'Succeeded')
     )
   steps:
     - task: DownloadPipelineArtifact@2
