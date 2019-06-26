@@ -2,6 +2,7 @@
 
 trigger:
 - master
+- release-*
 
 variables:
   GOPATH: '$(system.defaultWorkingDirectory)/gopath'
@@ -29,6 +30,11 @@ jobs:
     poolImage: macOS-latest
     targetOS: linux
     targetArch: arm
+- template: 'build-template.yml'
+  parameters:
+    poolImage: macOS-latest
+    targetOS: linux
+    targetArch: arm64
 - job: 'publish_edge_binaries'
   pool:
     vmImage: 'windows-2019'
@@ -37,6 +43,7 @@ jobs:
   - build_linux_amd64_actions
   - build_windows_amd64_actions
   - build_linux_arm_actions
+  - build_linux_arm64_actions
   condition: |
     and
     (
@@ -44,7 +51,8 @@ jobs:
       eq(dependencies.build_darwin_amd64_actions.result, 'Succeeded'),
       eq(dependencies.build_linux_amd64_actions.result, 'Succeeded'),
       eq(dependencies.build_windows_amd64_actions.result, 'Succeeded'),
-      eq(dependencies.build_linux_arm_actions.result, 'Succeeded')
+      eq(dependencies.build_linux_arm_actions.result, 'Succeeded'),
+      eq(dependencies.build_linux_arm64_actions.result, 'Succeeded')
     )
   steps:
     - task: DownloadPipelineArtifact@2
