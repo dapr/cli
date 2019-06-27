@@ -202,7 +202,8 @@ func moveFileToPath(filepath string) (string, error) {
 		if !strings.Contains(strings.ToLower(string(p)), strings.ToLower("c:\\actions")) {
 			runCmd("SETX", "PATH", p+";c:\\actions")
 		}
-		return path.Join(path_filepath.FromSlash("c:/actions"), fileName), nil
+		runCmd("rename", "c:\\actions\\action", "c:\\actions\\action.exe")
+		return "c:\\actions\\action.exe", nil
 	}
 
 	destFilePath = path.Join("/usr/local/bin", fileName)
