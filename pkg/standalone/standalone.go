@@ -80,12 +80,23 @@ func installStateStore(wg *sync.WaitGroup, errorChan chan<- error, dir string) {
 	defer wg.Done()
 	err := runCmd("docker", "run", "--restart", "always", "-d", "-p", "6379:6379", "redis")
 	if err != nil {
-		errorChan <- err
+		errorChan <- parseDockerError("Redis state store", err)
 		return
 	}
 	errorChan <- nil
 }
-
+func parseDockerError(component string, err error) error {
+	if exitError, ok := err.(*exec.ExitError); ok {
+		exitCode := exitError.ExitCode()
+		if exitCode == 125 { //see https://github.com/moby/moby/pull/14012
+			return fmt.Errorf("Faled to launch %s. Is it already running?", component)
+		}
+		if exitCode == 127 {
+			return fmt.Errorf("Faled to launch %s. Is Docker running?", component)
+		}
+	}
+	return err
+}
 func installAssignerBinary(wg *sync.WaitGroup, errorChan chan<- error, dir string) {
 	defer wg.Done()
 
@@ -96,7 +107,7 @@ func installAssignerBinary(wg *sync.WaitGroup, errorChan chan<- error, dir strin
 
 	err := runCmd("docker", "run", "--restart", "always", "-d", "-p", fmt.Sprintf("%v:50005", osPort), "--entrypoint", "./assigner", actionsImageURL)
 	if err != nil {
-		errorChan <- err
+		errorChan <- parseDockerError("placement service", err)
 		return
 	}
 	errorChan <- nil
@@ -146,7 +157,7 @@ func makeExecutable(filepath string) error {
 
 func runCmd(name string, arg ...string) error {
 	cmd := exec.Command(name, arg...)
-	err := cmd.Start()
+	err := cmd.Run()
 	if err != nil {
 		return err
 	}
