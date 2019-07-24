@@ -33,7 +33,7 @@ var RunCmd = &cobra.Command{
 			return
 		}
 
-		actionsRunId := uuid.String()
+		actionsRunID := uuid.String()
 
 		if kubernetesMode {
 			output, err := kubernetes.Run(&kubernetes.RunConfig{
@@ -148,7 +148,7 @@ var RunCmd = &cobra.Command{
 			<-appRunning
 
 			rundata.AppendRunData(&rundata.RunData{
-				ActionsRunId: actionsRunId,
+				ActionsRunId: actionsRunID,
 				AppId:        output.AppID,
 				ActionsPort:  output.ActionsPort,
 				AppPort:      appPort,
@@ -161,7 +161,7 @@ var RunCmd = &cobra.Command{
 			<-sigCh
 			print.InfoStatusEvent(os.Stdout, "\nterminated signal recieved: shutting down")
 
-			rundata.ClearRunData(actionsRunId)
+			rundata.ClearRunData(actionsRunID)
 
 			err = output.ActionsCMD.Process.Kill()
 			if err != nil {
