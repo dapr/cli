@@ -17,7 +17,7 @@ import (
 )
 
 const baseDownloadURL = "https://actionsreleases.blob.core.windows.net/bin"
-const actionsImageURL = "actionscore.azurecr.io/actions:merge"
+const actionsImageURL = "actionscore.azurecr.io/actions:latest"
 
 func Init() error {
 	dir, err := getActionsDir()
