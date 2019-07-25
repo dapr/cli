@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/actionscore/cli/pkg/api"
+
 	"github.com/actionscore/cli/pkg/standalone"
 )
 
@@ -17,7 +19,7 @@ func InvokeApp(appID, method, payload string) (string, error) {
 
 	for _, lo := range list {
 		if lo.AppID == appID {
-			r, err := http.Post(fmt.Sprintf("http://localhost:%s/invoke/%s", fmt.Sprintf("%v", lo.ActionsPort), method), "application/json", bytes.NewBuffer([]byte(payload)))
+			r, err := http.Post(fmt.Sprintf("http://localhost:%s/v%s/invoke/%s", fmt.Sprintf("%v", lo.ActionsPort), api.RuntimeAPIVersion, method), "application/json", bytes.NewBuffer([]byte(payload)))
 			if err != nil {
 				return "", err
 			}
@@ -35,5 +37,5 @@ func InvokeApp(appID, method, payload string) (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("App id %s not found", appID)
+	return "", fmt.Errorf("App ID %s not found", appID)
 }
