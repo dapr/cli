@@ -33,7 +33,7 @@ func List() ([]ListOutput, error) {
 					if a == "--app-port" {
 						port := c.Args[i+1]
 						lo.AppPort = port
-					} else if a == "--action-id" {
+					} else if a == "--actions-id" {
 						id := c.Args[i+1]
 						lo.AppID = id
 					}
