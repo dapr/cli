@@ -2,20 +2,13 @@ package publish
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
-	"time"
 
+	"github.com/actionscore/cli/pkg/api"
 	"github.com/actionscore/cli/pkg/standalone"
 )
-
-type messageEnvelope struct {
-	Topic     string      `json:"topic,omitempty"`
-	Data      interface{} `json:"data,omitempty"`
-	CreatedAt string      `json:"createdAt"`
-}
 
 func PublishTopic(appID, topic, payload string) error {
 	if topic == "" {
@@ -31,26 +24,14 @@ func PublishTopic(appID, topic, payload string) error {
 
 	for _, lo := range l {
 		if lo.AppID == appID {
-			m := messageEnvelope{
-				CreatedAt: time.Now().Format(time.RFC3339),
-			}
+			b := []byte{}
 
 			if payload != "" {
-				var data interface{}
-				err := json.Unmarshal([]byte(payload), &data)
-				if err != nil {
-					return err
-				}
-
-				m.Data = data
+				b = []byte(payload)
 			}
 
-			b, err := json.Marshal(&m)
-			if err != nil {
-				return err
-			}
-
-			_, err = http.Post(fmt.Sprintf("http://localhost:%s/invoke/%s", fmt.Sprintf("%v", lo.ActionsPort), topic), "application/json", bytes.NewBuffer(b))
+			url := fmt.Sprintf("http://localhost:%s/v%s/publish/%s", fmt.Sprintf("%v", lo.ActionsPort), api.RuntimeAPIVersion, topic)
+			_, err = http.Post(url, "application/json", bytes.NewBuffer(b))
 			if err != nil {
 				return err
 			}

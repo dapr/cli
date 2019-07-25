@@ -30,18 +30,15 @@ type RunOutput struct {
 	AppCMD      *exec.Cmd
 }
 
-type eventSource struct {
+type component struct {
 	APIVersion string `json:"apiVersion"`
 	Kind       string `json:"kind"`
 	Metadata   struct {
 		Name string `json:"name"`
 	} `json:"metadata"`
 	Spec struct {
-		Type           string `json:"type"`
-		ConnectionInfo struct {
-			RedisHost     string `json:"redisHost"`
-			RedisPassword string `json:"redisPassword"`
-		} `json:"connectionInfo"`
+		Type           string            `json:"type"`
+		ConnectionInfo map[string]string `json:"connectionInfo"`
 	} `json:"spec"`
 }
 
@@ -55,22 +52,22 @@ func getActionsCommand(appID string, actionsPort int, appPort int) (*exec.Cmd, i
 		actionsPort = port
 	}
 
-	actionsCMD := "action"
+	actionsCMD := "actionsrt"
 	if runtime.GOOS == "windows" {
-		actionsCMD = actionsCMD + ".exe"
+		actionsCMD = fmt.Sprintf("%s.exe", actionsCMD)
 	}
 
-	args := []string{"--action-id", appID, "--action-http-port", fmt.Sprintf("%v", actionsPort)}
+	args := []string{"--actions-id", appID, "--actions-http-port", fmt.Sprintf("%v", actionsPort)}
 	if appPort > -1 {
 		args = append(args, "--app-port")
 		args = append(args, fmt.Sprintf("%v", appPort))
 	}
 
-	args = append(args, "--assigner-address")
+	args = append(args, "--placement-address")
 
 	if runtime.GOOS == "windows" {
 		args = append(args, "localhost:6050")
-		args = append(args, "--action-grpc-port", "6051")
+		args = append(args, "--actions-grpc-port", "6051")
 	} else {
 		args = append(args, "localhost:50005")
 	}
@@ -87,30 +84,61 @@ func getAppCommand(actionsPort int, command string, args []string) (*exec.Cmd, e
 	return cmd, nil
 }
 
-func createStateEventSource() error {
+func createRedisStateStore() error {
 	wd, err := os.Getwd()
 	if err != nil {
 		return err
 	}
 
-	es := eventSource{
+	redisStore := component{
 		APIVersion: "actions.io/v1alpha1",
-		Kind:       "EventSource",
+		Kind:       "Component",
 	}
 
-	es.Metadata.Name = "statestore"
-	es.Spec.Type = "actions.state.redis"
-	es.Spec.ConnectionInfo.RedisHost = "localhost:6379"
-	es.Spec.ConnectionInfo.RedisPassword = ""
+	redisStore.Metadata.Name = "statestore"
+	redisStore.Spec.Type = "state.redis"
+	redisStore.Spec.ConnectionInfo = map[string]string{}
+	redisStore.Spec.ConnectionInfo["redisHost"] = "localhost:6379"
+	redisStore.Spec.ConnectionInfo["redisPassword"] = ""
 
-	b, err := yaml.Marshal(&es)
+	b, err := yaml.Marshal(&redisStore)
 	if err != nil {
 		return err
 	}
 
-	os.Mkdir(path.Join(wd, "eventsources"), 0777)
+	os.Mkdir(path.Join(wd, "components"), 0777)
+	err = ioutil.WriteFile(path.Join(path.Join(wd, "components"), "redis.yaml"), b, 0644)
+	if err != nil {
+		return err
+	}
 
-	err = ioutil.WriteFile(path.Join(path.Join(wd, "eventsources"), "redis.yaml"), b, 0644)
+	return nil
+}
+
+func createRedisPubSub() error {
+	wd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	redisMessageBus := component{
+		APIVersion: "actions.io/v1alpha1",
+		Kind:       "Component",
+	}
+
+	redisMessageBus.Metadata.Name = "messagebus"
+	redisMessageBus.Spec.Type = "pubsub.redis"
+	redisMessageBus.Spec.ConnectionInfo = map[string]string{}
+	redisMessageBus.Spec.ConnectionInfo["redisHost"] = "localhost:6379"
+	redisMessageBus.Spec.ConnectionInfo["password"] = ""
+
+	b, err := yaml.Marshal(&redisMessageBus)
+	if err != nil {
+		return err
+	}
+
+	os.Mkdir(path.Join(wd, "components"), 0777)
+	err = ioutil.WriteFile(path.Join(path.Join(wd, "components"), "redis_messagebus.yaml"), b, 0644)
 	if err != nil {
 		return err
 	}
@@ -124,7 +152,12 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		appID = strings.Replace(sillyname.GenerateStupidName(), " ", "-", -1)
 	}
 
-	err := createStateEventSource()
+	err := createRedisStateStore()
+	if err != nil {
+		return nil, err
+	}
+
+	err = createRedisPubSub()
 	if err != nil {
 		return nil, err
 	}

@@ -17,9 +17,7 @@ import (
 )
 
 const baseDownloadURL = "https://actionsreleases.blob.core.windows.net/bin"
-
-// this should be configurable by versioning
-const actionsImageURL = "yaron2/actionsedge:v2"
+const actionsImageURL = "actionscore.azurecr.io/actions:latest"
 
 func Init() error {
 	dir, err := getActionsDir()
@@ -105,7 +103,7 @@ func installAssignerBinary(wg *sync.WaitGroup, errorChan chan<- error, dir strin
 		osPort = 6050
 	}
 
-	err := runCmd("docker", "run", "--restart", "always", "-d", "-p", fmt.Sprintf("%v:50005", osPort), "--entrypoint", "./assigner", actionsImageURL)
+	err := runCmd("docker", "run", "--restart", "always", "-d", "-p", fmt.Sprintf("%v:50005", osPort), "--entrypoint", "./placement", actionsImageURL)
 	if err != nil {
 		errorChan <- parseDockerError("placement service", err)
 		return
@@ -116,7 +114,7 @@ func installAssignerBinary(wg *sync.WaitGroup, errorChan chan<- error, dir strin
 func installActionsBinary(wg *sync.WaitGroup, errorChan chan<- error, dir string) {
 	defer wg.Done()
 
-	actionsURL := fmt.Sprintf("%s/action_%s_%s.zip", baseDownloadURL, runtime.GOOS, runtime.GOARCH)
+	actionsURL := fmt.Sprintf("%s/actionsrt_%s_%s.zip", baseDownloadURL, runtime.GOOS, runtime.GOARCH)
 	filepath, err := downloadFile(dir, actionsURL)
 	if err != nil {
 		errorChan <- fmt.Errorf("Error downloading actions binary: %s", err)
@@ -211,10 +209,12 @@ func moveFileToPath(filepath string) (string, error) {
 	if runtime.GOOS == "windows" {
 		p := os.Getenv("PATH")
 		if !strings.Contains(strings.ToLower(string(p)), strings.ToLower("c:\\actions")) {
-			runCmd("SETX", "PATH", p+";c:\\actions")
+			err := runCmd("SETX", "PATH", p+";c:\\actions")
+			if err != nil {
+				return "", err
+			}
 		}
-		runCmd("rename", "c:\\actions\\action", "c:\\actions\\action.exe")
-		return "c:\\actions\\action.exe", nil
+		return "c:\\actions\\actionsrt.exe", nil
 	}
 
 	destFilePath = path.Join("/usr/local/bin", fileName)

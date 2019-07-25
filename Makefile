@@ -3,7 +3,7 @@
 ################################################################################
 
 GIT_VERSION = $(shell git describe --always --abbrev=7 --dirty)
-TARGETS		?= darwin
+TARGETS		?= darwin windows linux
 ARCH		?= amd64
 CGO			?= 0
 
@@ -13,11 +13,11 @@ else
 	CLI_VERSION := edge
 endif
 
-################################################################################
-# Go build details                                                             #
-################################################################################
-
-BASE_PACKAGE_NAME := github.com/actionscore/cli
+ifdef API_VERSION
+	RUNTIME_API_VERSION = $(API_VERSION)
+else
+	RUNTIME_API_VERSION = 1.0
+endif
 
 ################################################################################
 # Dependencies																   #
@@ -41,7 +41,7 @@ deps: dep
 build:
 	  for t in $(TARGETS); do \
 				CGO_ENABLED=$(CGO) GOOS=$$t GOARCH=$(ARCH) go build \
-						-ldflags "-X $(BASE_PACKAGE_NAME)/pkg/version.version=$(CLI_VERSION)" \
+						-ldflags "-X main.version=$(CLI_VERSION) -X main.apiVersion=$(RUNTIME_API_VERSION)" \
 						-o dist/"$$t"_$(ARCH)/actions; \
 	  done;
 
