@@ -13,6 +13,12 @@ else
 	CLI_VERSION := edge
 endif
 
+ifdef API_VERSION
+	RUNTIME_API_VERSION = $(API_VERSION)
+else
+	RUNTIME_API_VERSION = 1.0
+endif
+
 ################################################################################
 # Dependencies																   #
 ################################################################################
@@ -35,7 +41,7 @@ deps: dep
 build:
 	  for t in $(TARGETS); do \
 				CGO_ENABLED=$(CGO) GOOS=$$t GOARCH=$(ARCH) go build \
-						-ldflags "-X main.version=$(CLI_VERSION)" \
+						-ldflags "-X main.version=$(CLI_VERSION) -X main.apiVersion=$(RUNTIME_API_VERSION)" \
 						-o dist/"$$t"_$(ARCH)/actions; \
 	  done;
 

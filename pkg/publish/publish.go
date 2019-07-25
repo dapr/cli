@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/actionscore/cli/pkg/api"
 	"github.com/actionscore/cli/pkg/standalone"
 )
 
@@ -29,7 +30,7 @@ func PublishTopic(appID, topic, payload string) error {
 				b = []byte(payload)
 			}
 
-			url := fmt.Sprintf("http://localhost:%s/v1.0/publish/%s", fmt.Sprintf("%v", lo.ActionsPort), topic)
+			url := fmt.Sprintf("http://localhost:%s/v%s/publish/%s", fmt.Sprintf("%v", lo.ActionsPort), api.RuntimeAPIVersion, topic)
 			_, err = http.Post(url, "application/json", bytes.NewBuffer(b))
 			if err != nil {
 				return err
