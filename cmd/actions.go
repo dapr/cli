@@ -25,8 +25,6 @@ func Execute(version, apiVersion string) {
 	RootCmd.Version = version
 	api.RuntimeAPIVersion = apiVersion
 
-	fmt.Println(api.RuntimeAPIVersion)
-
 	if err := RootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(-1)
