@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/actionscore/cli/pkg/api"
 	"github.com/spf13/cobra"
 )
 
@@ -20,8 +21,9 @@ A serverless runtime for hyperscale, distributed systems`,
 }
 
 // Execute adds all child commands to the root command
-func Execute(version string) {
+func Execute(version, apiVersion string) {
 	RootCmd.Version = version
+	api.RuntimeAPIVersion = apiVersion
 
 	if err := RootCmd.Execute(); err != nil {
 		fmt.Println(err)
