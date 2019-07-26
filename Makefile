@@ -40,9 +40,10 @@ deps: dep
 .PHONY: build
 build:
 	  for t in $(TARGETS); do \
+	  			if test "windows" = $$t; then EXT=".exe"; else EXT=""; fi; \
 				CGO_ENABLED=$(CGO) GOOS=$$t GOARCH=$(ARCH) go build \
 						-ldflags "-X main.version=$(CLI_VERSION) -X main.apiVersion=$(RUNTIME_API_VERSION)" \
-						-o dist/"$$t"_$(ARCH)/actions; \
+						-o dist/"$$t"_$(ARCH)/actions$$EXT; \
 	  done;
 
 
