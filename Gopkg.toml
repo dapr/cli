@@ -45,11 +45,6 @@
   version = "kubernetes-1.14.1"
   name = "k8s.io/client-go"
 
-[[override]]
-  name = "github.com/docker/docker"
-  source = "https://github.com/moby/moby.git"
-  branch = "master"
-
 [prune]
   go-tests = true
   unused-packages = true
