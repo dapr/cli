@@ -103,34 +103,6 @@
   version = "v2.7.1"
 
 [[projects]]
-  branch = "master"
-  digest = "1:346f5512f5d23f84ea0446c423c4b1bd119e05fb091a4148df5a9abb41dbd759"
-  name = "github.com/docker/docker"
-  packages = [
-    "api",
-    "api/types",
-    "api/types/blkiodev",
-    "api/types/container",
-    "api/types/events",
-    "api/types/filters",
-    "api/types/image",
-    "api/types/mount",
-    "api/types/network",
-    "api/types/registry",
-    "api/types/strslice",
-    "api/types/swarm",
-    "api/types/swarm/runtime",
-    "api/types/time",
-    "api/types/versions",
-    "api/types/volume",
-    "client",
-    "errdefs",
-  ]
-  pruneopts = "UT"
-  revision = "928381b2215c9608692e663e6ddfa9e609bc2d6f"
-  source = "https://github.com/moby/moby.git"
-
-[[projects]]
   digest = "1:811c86996b1ca46729bad2724d4499014c4b9effd05ef8c71b852aad90deb0ce"
   name = "github.com/docker/go-connections"
   packages = [
