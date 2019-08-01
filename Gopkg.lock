@@ -33,6 +33,17 @@
   version = "v12.1.0"
 
 [[projects]]
+  digest = "1:d5e752c67b445baa5b6cb6f8aa706775c2aa8e41aca95a0c651520ff2c80361a"
+  name = "github.com/Microsoft/go-winio"
+  packages = [
+    ".",
+    "pkg/guid",
+  ]
+  pruneopts = "UT"
+  revision = "a969fb018bd3439cc50861ce06796c40430e3a65"
+  version = "v0.4.13"
+
+[[projects]]
   branch = "master"
   digest = "1:174cfc45f3f3e0f24f4bc3d2c80d8bcd4c02e274f9a0c4e7fcb6ff3273c0eeee"
   name = "github.com/Pallinder/sillyname-go"
@@ -56,6 +67,14 @@
   version = "v0.2.0"
 
 [[projects]]
+  digest = "1:eb0414b9f841f10af66f6bec6074c5a26ebca71f374c12f187feca7554bad408"
+  name = "github.com/containerd/containerd"
+  packages = ["errdefs"]
+  pruneopts = "UT"
+  revision = "85f6aa58b8a3170aec9824568f7a31832878b603"
+  version = "v1.2.7"
+
+[[projects]]
   digest = "1:ffe9824d294da03b391f44e1ae8281281b4afc1bdaa9588c9097785e3af10cec"
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
@@ -70,6 +89,66 @@
   pruneopts = "UT"
   revision = "06ea1031745cb8b3dab3f6a236daf2b0aa468b7e"
   version = "v3.2.0"
+
+[[projects]]
+  digest = "1:5d7f88f9487f370e3ae52155465156370fc5798102d811d2d4448d2385ccaf67"
+  name = "github.com/docker/distribution"
+  packages = [
+    "digestset",
+    "reference",
+    "registry/api/errcode",
+  ]
+  pruneopts = "UT"
+  revision = "2461543d988979529609e8cb6fca9ca190dc48da"
+  version = "v2.7.1"
+
+[[projects]]
+  branch = "master"
+  digest = "1:346f5512f5d23f84ea0446c423c4b1bd119e05fb091a4148df5a9abb41dbd759"
+  name = "github.com/docker/docker"
+  packages = [
+    "api",
+    "api/types",
+    "api/types/blkiodev",
+    "api/types/container",
+    "api/types/events",
+    "api/types/filters",
+    "api/types/image",
+    "api/types/mount",
+    "api/types/network",
+    "api/types/registry",
+    "api/types/strslice",
+    "api/types/swarm",
+    "api/types/swarm/runtime",
+    "api/types/time",
+    "api/types/versions",
+    "api/types/volume",
+    "client",
+    "errdefs",
+  ]
+  pruneopts = "UT"
+  revision = "928381b2215c9608692e663e6ddfa9e609bc2d6f"
+  source = "https://github.com/moby/moby.git"
+
+[[projects]]
+  digest = "1:811c86996b1ca46729bad2724d4499014c4b9effd05ef8c71b852aad90deb0ce"
+  name = "github.com/docker/go-connections"
+  packages = [
+    "nat",
+    "sockets",
+    "tlsconfig",
+  ]
+  pruneopts = "UT"
+  revision = "7395e3f8aa162843a74ed6d48e79627d9792ac55"
+  version = "v0.4.0"
+
+[[projects]]
+  digest = "1:e95ef557dc3120984bb66b385ae01b4bb8ff56bcde28e7b0d1beed0cccc4d69f"
+  name = "github.com/docker/go-units"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "519db1ee28dcc9fd2474ae59fca29a810482bfb1"
+  version = "v0.4.0"
 
 [[projects]]
   digest = "1:865079840386857c809b72ce300be7580cb50d3d3129ce11bf9aa6ca2bc1934a"
@@ -208,6 +287,14 @@
   version = "v1.1.6"
 
 [[projects]]
+  digest = "1:31e761d97c76151dde79e9d28964a812c46efc5baee4085b86f68f0c654450de"
+  name = "github.com/konsorten/go-windows-terminal-sequences"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "f55edac94c9bbba5d6182a4be46d86a2c9b5b50e"
+  version = "v1.0.2"
+
+[[projects]]
   digest = "1:c658e84ad3916da105a761660dcaeb01e63416c8ec7bc62256a9b411a05fcd67"
   name = "github.com/mattn/go-colorable"
   packages = ["."]
@@ -264,12 +351,47 @@
   version = "v0.0.1"
 
 [[projects]]
+  digest = "1:ee4d4af67d93cc7644157882329023ce9a7bcfce956a079069a9405521c7cc8d"
+  name = "github.com/opencontainers/go-digest"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "279bed98673dd5bef374d3b6e4b09e2af76183bf"
+  version = "v1.0.0-rc1"
+
+[[projects]]
+  digest = "1:11db38d694c130c800d0aefb502fb02519e514dc53d9804ce51d1ad25ec27db6"
+  name = "github.com/opencontainers/image-spec"
+  packages = [
+    "specs-go",
+    "specs-go/v1",
+  ]
+  pruneopts = "UT"
+  revision = "d60099175f88c47cd379c4738d158884749ed235"
+  version = "v1.0.1"
+
+[[projects]]
   digest = "1:7413525ee648f20b4181be7fe8103d0cb98be9e141926a03ee082dc207061e4e"
   name = "github.com/phayes/freeport"
   packages = ["."]
   pruneopts = "UT"
   revision = "b8543db493a5ed890c5499e935e2cad7504f3a04"
   version = "1.0.2"
+
+[[projects]]
+  digest = "1:cf31692c14422fa27c83a05292eb5cbe0fb2775972e8f1f8446a71549bd8980b"
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "ba968bfe8b2f7e042a574c888954fccecfa385b4"
+  version = "v0.8.1"
+
+[[projects]]
+  digest = "1:04457f9f6f3ffc5fea48e71d62f2ca256637dee0a04d710288e27e05c8b41976"
+  name = "github.com/sirupsen/logrus"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "839c75faf7f98a33d445d181f3018b5c3409a45e"
+  version = "v1.4.2"
 
 [[projects]]
   digest = "1:645cabccbb4fa8aab25a956cbcbdf6a6845ca736b2c64e197ca7cbb9d210b939"
@@ -324,7 +446,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:f04f91f699638081f3d9659950764321bc0602076fc5fd8177c18b185ad3fdd8"
+  digest = "1:01a2f697724170f98739b5261ec830eafc626f56b6786c730578dabcce47649c"
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -333,7 +455,9 @@
     "http2",
     "http2/hpack",
     "idna",
+    "internal/socks",
     "internal/timeseries",
+    "proxy",
     "trace",
   ]
   pruneopts = "UT"
@@ -694,6 +818,8 @@
   analyzer-version = 1
   input-imports = [
     "github.com/Pallinder/sillyname-go",
+    "github.com/docker/docker/api/types",
+    "github.com/docker/docker/client",
     "github.com/fatih/color",
     "github.com/gocarina/gocsv",
     "github.com/google/uuid",
