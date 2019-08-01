@@ -22,7 +22,7 @@ import (
 )
 
 const baseDownloadURL = "https://actionsreleases.blob.core.windows.net/bin"
-const actionsImageURL = "actionscore.azurecr.io/actions:latest"
+const actionsImageURL = "actionscore.azurecr.io/actions:merge"
 const redisImageURL = "redis"
 
 func Init() error {
@@ -87,7 +87,7 @@ func getActionsDir() (string, error) {
 
 func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir string, dockerClient *client.Client) {
 	defer wg.Done()
-	exists, err := containerExists(actionsImageURL, dockerClient)
+	exists, err := containerExists("redis", dockerClient)
 	if err != nil {
 		errorChan <- fmt.Errorf("Docker error: %s", err)
 		return
@@ -119,8 +119,6 @@ func containerExists(image string, client *client.Client) (bool, error) {
 	}
 
 	for _, c := range containers {
-		fmt.Println(c.Names)
-		fmt.Println(c.Image)
 		if c.Image == actionsImageURL {
 			return true, nil
 		}
