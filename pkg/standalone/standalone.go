@@ -2,6 +2,7 @@ package standalone
 
 import (
 	"archive/zip"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -14,12 +15,19 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+
+	docker "github.com/fsouza/go-dockerclient"
 )
 
 const baseDownloadURL = "https://actionsreleases.blob.core.windows.net/bin"
 const actionsImageURL = "actionscore.azurecr.io/actions:latest"
 
 func Init() error {
+	client, err := getDockerClient()
+	if err != nil {
+		return errors.New("Error from Docker Daemon: make sure Docker is installed and running")
+	}
+
 	dir, err := getActionsDir()
 	if err != nil {
 		return err
@@ -28,15 +36,15 @@ func Init() error {
 	var wg sync.WaitGroup
 	errorChan := make(chan error)
 
-	initSteps := []func(*sync.WaitGroup, chan<- error, string){}
+	initSteps := []func(*sync.WaitGroup, chan<- error, string, *docker.Client){}
 	initSteps = append(initSteps, installActionsBinary)
-	initSteps = append(initSteps, installAssignerBinary)
-	initSteps = append(initSteps, installStateStore)
+	initSteps = append(initSteps, runPlacementService)
+	initSteps = append(initSteps, runRedis)
 
 	wg.Add(len(initSteps))
 
 	for _, step := range initSteps {
-		go step(&wg, errorChan, dir)
+		go step(&wg, errorChan, dir, client)
 	}
 
 	go func() {
@@ -51,6 +59,10 @@ func Init() error {
 	}
 
 	return nil
+}
+
+func getDockerClient() (*docker.Client, error) {
+	return docker.NewClientFromEnv()
 }
 
 func getActionsDir() (string, error) {
@@ -74,44 +86,65 @@ func getActionsDir() (string, error) {
 	return p, nil
 }
 
-func installStateStore(wg *sync.WaitGroup, errorChan chan<- error, dir string) {
-	defer wg.Done()
-	err := runCmd("docker", "run", "--restart", "always", "-d", "-p", "6379:6379", "redis")
+func isContainerRunning(image string, client *docker.Client) (bool, error) {
+	conts, err := client.ListContainers(docker.ListContainersOptions{})
 	if err != nil {
-		errorChan <- parseDockerError("Redis state store", err)
-		return
-	}
-	errorChan <- nil
-}
-func parseDockerError(component string, err error) error {
-	if exitError, ok := err.(*exec.ExitError); ok {
-		exitCode := exitError.ExitCode()
-		if exitCode == 125 { //see https://github.com/moby/moby/pull/14012
-			return fmt.Errorf("Faled to launch %s. Is it already running?", component)
-		}
-		if exitCode == 127 {
-			return fmt.Errorf("Faled to launch %s. Is Docker running?", component)
-		}
-	}
-	return err
-}
-func installAssignerBinary(wg *sync.WaitGroup, errorChan chan<- error, dir string) {
-	defer wg.Done()
-
-	osPort := 50005
-	if runtime.GOOS == "windows" {
-		osPort = 6050
+		return false, err
 	}
 
-	err := runCmd("docker", "run", "--restart", "always", "-d", "-p", fmt.Sprintf("%v:50005", osPort), "--entrypoint", "./placement", actionsImageURL)
+	for _, c := range conts {
+		if c.Image == image {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir string, client *docker.Client) {
+	defer wg.Done()
+	running, err := isContainerRunning("redis", client)
 	if err != nil {
-		errorChan <- parseDockerError("placement service", err)
+		errorChan <- fmt.Errorf("Docker error: %s", err)
 		return
 	}
+
+	if !running {
+		err = runCmd("docker", "run", "--restart", "always", "-d", "-p", "6379:6379", "redis")
+		if err != nil {
+			errorChan <- fmt.Errorf("Docker error: %s", err)
+			return
+		}
+	}
+
 	errorChan <- nil
 }
 
-func installActionsBinary(wg *sync.WaitGroup, errorChan chan<- error, dir string) {
+func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir string, client *docker.Client) {
+	defer wg.Done()
+	running, err := isContainerRunning(actionsImageURL, client)
+	if err != nil {
+		errorChan <- fmt.Errorf("Docker error: %s", err)
+		return
+	}
+
+	if !running {
+		osPort := 50005
+		if runtime.GOOS == "windows" {
+			osPort = 6050
+		}
+
+		err := runCmd("docker", "run", "--restart", "always", "-d", "-p", fmt.Sprintf("%v:50005", osPort), "--entrypoint", "./placement", actionsImageURL)
+		if err != nil {
+			errorChan <- fmt.Errorf("Docker error: %s", err)
+			return
+		}
+	}
+
+	errorChan <- nil
+}
+
+func installActionsBinary(wg *sync.WaitGroup, errorChan chan<- error, dir string, client *docker.Client) {
 	defer wg.Done()
 
 	actionsURL := fmt.Sprintf("%s/actionsrt_%s_%s.zip", baseDownloadURL, runtime.GOOS, runtime.GOARCH)
