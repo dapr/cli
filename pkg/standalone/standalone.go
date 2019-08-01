@@ -14,6 +14,8 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+
+	"github.com/actionscore/cli/pkg/print"
 )
 
 const baseDownloadURL = "https://actionsreleases.blob.core.windows.net/bin"
@@ -30,8 +32,8 @@ func Init() error {
 
 	initSteps := []func(*sync.WaitGroup, chan<- error, string){}
 	initSteps = append(initSteps, installActionsBinary)
-	initSteps = append(initSteps, installAssignerBinary)
-	initSteps = append(initSteps, installStateStore)
+	initSteps = append(initSteps, runPlacementService)
+	initSteps = append(initSteps, runRedis)
 
 	wg.Add(len(initSteps))
 
@@ -74,28 +76,43 @@ func getActionsDir() (string, error) {
 	return p, nil
 }
 
-func installStateStore(wg *sync.WaitGroup, errorChan chan<- error, dir string) {
+func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir string) {
 	defer wg.Done()
 	err := runCmd("docker", "run", "--restart", "always", "-d", "-p", "6379:6379", "redis")
 	if err != nil {
-		errorChan <- parseDockerError("Redis state store", err)
-		return
+		runError := isContainerRunError(err)
+		if !runError {
+			errorChan <- parseDockerError("Redis state store", err)
+			return
+		}
+
+		print.InfoStatusEvent(os.Stdout, "Redis installation skipped due to Docker run error")
 	}
 	errorChan <- nil
 }
+
 func parseDockerError(component string, err error) error {
 	if exitError, ok := err.(*exec.ExitError); ok {
 		exitCode := exitError.ExitCode()
 		if exitCode == 125 { //see https://github.com/moby/moby/pull/14012
-			return fmt.Errorf("Faled to launch %s. Is it already running?", component)
+			return fmt.Errorf("Failed to launch %s. Is it already running?", component)
 		}
 		if exitCode == 127 {
-			return fmt.Errorf("Faled to launch %s. Is Docker running?", component)
+			return fmt.Errorf("Failed to launch %s. Make sure Docker is installed and running", component)
 		}
 	}
 	return err
 }
-func installAssignerBinary(wg *sync.WaitGroup, errorChan chan<- error, dir string) {
+
+func isContainerRunError(err error) bool {
+	if exitError, ok := err.(*exec.ExitError); ok {
+		exitCode := exitError.ExitCode()
+		return exitCode == 125
+	}
+	return false
+}
+
+func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir string) {
 	defer wg.Done()
 
 	osPort := 50005
@@ -105,8 +122,13 @@ func installAssignerBinary(wg *sync.WaitGroup, errorChan chan<- error, dir strin
 
 	err := runCmd("docker", "run", "--restart", "always", "-d", "-p", fmt.Sprintf("%v:50005", osPort), "--entrypoint", "./placement", actionsImageURL)
 	if err != nil {
-		errorChan <- parseDockerError("placement service", err)
-		return
+		runError := isContainerRunError(err)
+		if !runError {
+			errorChan <- parseDockerError("placement service", err)
+			return
+		}
+
+		print.InfoStatusEvent(os.Stdout, "Placement Service installation skipped due to Docker run error")
 	}
 	errorChan <- nil
 }
