@@ -105,7 +105,7 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir string, dockerClie
 }
 
 func getDockerClient() (*client.Client, error) {
-	return client.NewClientWithOpts(client.FromEnv)
+	return client.NewClientWithOpts(client.FromEnv, client.WithVersion("1.39"))
 }
 
 func getContainersList(client *client.Client) ([]types.Container, error) {
