@@ -45,7 +45,11 @@
   version = "kubernetes-1.14.1"
   name = "k8s.io/client-go"
 
-[[constraint]]
+[[override]]
+  name = "github.com/docker/docker"
+  branch = "master"
+
+[[override]]
   name = "github.com/fsouza/go-dockerclient"
   branch = "master"
 
