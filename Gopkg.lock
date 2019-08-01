@@ -126,35 +126,6 @@
   version = "v2.7.1"
 
 [[projects]]
-  branch = "master"
-  digest = "1:05ce3dafff1ac1bfbd565914a8fb558c8f257413ccb9adc7132644167e3c7da2"
-  name = "github.com/docker/docker"
-  packages = [
-    "api/types/blkiodev",
-    "api/types/container",
-    "api/types/filters",
-    "api/types/mount",
-    "api/types/network",
-    "api/types/registry",
-    "api/types/strslice",
-    "api/types/swarm",
-    "api/types/swarm/runtime",
-    "api/types/versions",
-    "errdefs",
-    "pkg/fileutils",
-    "pkg/homedir",
-    "pkg/idtools",
-    "pkg/ioutils",
-    "pkg/longpath",
-    "pkg/mount",
-    "pkg/pools",
-    "pkg/stdcopy",
-    "pkg/system",
-  ]
-  pruneopts = "UT"
-  revision = "928381b2215c9608692e663e6ddfa9e609bc2d6f"
-
-[[projects]]
   digest = "1:ade935c55cd6d0367c843b109b09c9d748b1982952031414740750fdf94747eb"
   name = "github.com/docker/go-connections"
   packages = ["nat"]
