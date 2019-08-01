@@ -32,6 +32,8 @@ $ actions init --kubernetes
 ✅  Success! Get ready to rumble
 ```
 
+*Note: The init command will install the latest stable version of Actions on your cluster. For more advanced use cases, plese use our [Helm Chart](https://github.com/actionscore/actions/tree/master/charts/actions-operator).*
+
 #### Launch Actions and your app
 
 The Actions CLI lets you debug easily by launching both Actions and your app.
