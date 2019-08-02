@@ -2,7 +2,7 @@ package kubernetes
 
 import "os/exec"
 
-const actionsManifestPath = "https://raw.githubusercontent.com/actions-org/actions/master/deploy/actions.yaml?token=AD4KK473CQJX24LS2MENQBS5CQTRQ"
+const actionsManifestPath = "https://raw.githubusercontent.com/actionscore/actions/master/deploy/actions.yaml?token=ALEQ47FIM7Z7T5VOJMYXM5C5JXQGM"
 
 func Init() error {
 	err := runCmdAndWait("kubectl", "apply", "-f", actionsManifestPath)
