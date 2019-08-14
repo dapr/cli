@@ -32,7 +32,7 @@ __*Note: For Windows users, run the cmd terminal in administrator mode*__
 ```
 $ actions init
 ⌛  Making the jump to hyperspace...
-✅  Success! Get ready to rumble
+✅  Success! Actions is up and running
 ```
 
 To setup Actions on Kubernetes:
@@ -40,7 +40,7 @@ To setup Actions on Kubernetes:
 ```
 $ actions init --kubernetes
 ⌛  Making the jump to hyperspace...
-✅  Success! Get ready to rumble
+✅  Success! Actions is up and running
 ```
 
 *Note: The init command will install the latest stable version of Actions on your cluster. For more advanced use cases, please use our [Helm Chart](https://github.com/actionscore/actions/tree/master/charts/actions-operator).*

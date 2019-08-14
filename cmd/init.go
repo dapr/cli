@@ -31,7 +31,7 @@ var InitCmd = &cobra.Command{
 			}
 		}
 
-		print.SuccessStatusEvent(os.Stdout, "Success! Get ready to rumble")
+		print.SuccessStatusEvent(os.Stdout, "Success! Actions is up and running")
 	},
 }
 
