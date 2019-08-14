@@ -1,51 +1,9 @@
 # Actions CLI
 
-[![Build Status](https://dev.azure.com/azure-octo/Actions/_apis/build/status/builds/cli%20build?branchName=master)](https://dev.azure.com/azure-octo/Actions/_build/latest?definitionId=6&branchName=master)
-
 The Actions CLI allows you to setup Actions on your local dev machine or on a Kubernetes cluster, provides debugging support, launches and manages Actions instances.
 
-## Setup
 
-* Download the [release](https://github.com/actionscore/cli/releases) for your OS
-* Unpack it
-* Move it to your desired location (for Mac/Linux - ```mv actions /usr/local/bin```. For Windows, add the executable to your System PATH.)
-* **Temporary**: Run the following command to login to Docker with read-only credentials:
-
-```bash
-Docker login actionscore.azurecr.io --username 390401a7-d7a6-46da-b10f-3ceff7a1cdd5 --password 485b3522-59bb-4152-8938-ca8b90108af6
-```
-
-__*Note: For Windows users, run the cmd terminal in administrator mode*__
-
-__*Note: For Linux users, if you run docker cmds with sudo, yuu need to use "sudo actions init*__
-
-
-
-### Usage
-
-#### Install Actions
-
-To setup Actions on your local machine:
-
-__*Note: For Windows users, run the cmd terminal in administrator mode*__
-
-```
-$ actions init
-⌛  Making the jump to hyperspace...
-✅  Success! Get ready to rumble
-```
-
-To setup Actions on Kubernetes:
-
-```
-$ actions init --kubernetes
-⌛  Making the jump to hyperspace...
-✅  Success! Get ready to rumble
-```
-
-*Note: The init command will install the latest stable version of Actions on your cluster. For more advanced use cases, please use our [Helm Chart](https://github.com/actionscore/actions/tree/master/charts/actions-operator).*
-
-#### Launch Actions and your app
+## Launch Actions and your app
 
 The Actions CLI lets you debug easily by launching both Actions and your app.
 Logs from both the Actions Runtime and your app will be displayed in real time!
@@ -68,7 +26,8 @@ Example of launching Actions on port 6000:
 $ actions run --app-id nodeapp --app-port 3000 --port 6000 node app.js
 ```
 
-#### Publish/Subscribe
+
+## Publish/Subscribe
 
 To use pub-sub with your app, make sure that your app has a ```POST``` HTTP endpoint with some name, say ```myevent```.
 This sample assumes your app is listening on port 3000.
@@ -91,7 +50,8 @@ Publish a message with a payload:
 $ actions publish --app-id nodeapp --topic myevent --payload '{ "name": "yoda" }'
 ```
 
-#### Invoking
+
+## Invoking
 
 To test your endpoints with Actions, simply expose any ```POST``` HTTP endpoint.
 For this sample, we'll assume a node app listening on port 300 with a ```/mymethod``` endpoint.
@@ -108,7 +68,8 @@ Invoke your app:
 $ actions send --app-id nodeapp --method mymethod
 ```
 
-#### List
+
+## List
 
 To list all Actions instances running on your machine:
 
