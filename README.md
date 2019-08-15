@@ -32,6 +32,7 @@ __*Note: For Windows users, run the cmd terminal in administrator mode*__
 ```
 $ actions init
 ⌛  Making the jump to hyperspace...
+▇   Downloading binaries and setting up components...
 ✅  Success! Actions is up and running
 ```
 
@@ -40,6 +41,7 @@ To setup Actions on Kubernetes:
 ```
 $ actions init --kubernetes
 ⌛  Making the jump to hyperspace...
+▇   Deploying the Actions Operator to your cluster...
 ✅  Success! Actions is up and running
 ```
 
