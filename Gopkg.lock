@@ -41,6 +41,14 @@
   revision = "97aeae9e6ba11ec62a40cf8b6b4bc42116c0a303"
 
 [[projects]]
+  digest = "1:937ce6e0cd5ccfec205f444a0d9c74f5680cbb68cd0a992b000559bf964ea20b"
+  name = "github.com/briandowns/spinner"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "e3fb08e7443c496a847cb2eef48e3883f3e12c38"
+  version = "v1.6.1"
+
+[[projects]]
   digest = "1:fdb4ed936abeecb46a8c27dcac83f75c05c87a46d9ec7711411eb785c213fa02"
   name = "github.com/census-instrumentation/opencensus-proto"
   packages = [
@@ -694,6 +702,7 @@
   analyzer-version = 1
   input-imports = [
     "github.com/Pallinder/sillyname-go",
+    "github.com/briandowns/spinner",
     "github.com/fatih/color",
     "github.com/gocarina/gocsv",
     "github.com/google/uuid",
