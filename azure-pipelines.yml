@@ -78,8 +78,4 @@ jobs:
   - build_linux_arm64_actions
   condition: contains(variables['Build.SourceBranch'], 'tag')
   steps:
-    - task: CmdLine@2
-      displayName: 'Add release tag if build is from release branch'
-      inputs:
-        script: 'echo "##vso[build.addbuildtag]release"'
-        failOnStderr: true
+    - bash: 'echo "##vso[build.addbuildtag]release"'
