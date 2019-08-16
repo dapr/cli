@@ -14,8 +14,11 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/actionscore/cli/pkg/print"
+
+	"github.com/briandowns/spinner"
 )
 
 const baseDownloadURL = "https://actionsreleases.blob.core.windows.net/bin"
@@ -37,6 +40,12 @@ func Init() error {
 
 	wg.Add(len(initSteps))
 
+	s := spinner.New(spinner.CharSets[1], 100*time.Millisecond)
+	s.Writer = os.Stdout
+	s.Color("blue")
+	s.Suffix = "  Downloading binaries and setting up components... "
+	s.Start()
+
 	for _, step := range initSteps {
 		go step(&wg, errorChan, dir)
 	}
@@ -48,10 +57,13 @@ func Init() error {
 
 	for err := range errorChan {
 		if err != nil {
+			s.Stop()
 			return err
 		}
 	}
 
+	s.Stop()
+	print.SuccessStatusEvent(os.Stdout, "Downloading binaries and setting up components...")
 	return nil
 }
 
@@ -85,8 +97,6 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir string) {
 			errorChan <- parseDockerError("Redis state store", err)
 			return
 		}
-
-		print.InfoStatusEvent(os.Stdout, "Redis installation skipped due to Docker run error")
 	}
 	errorChan <- nil
 }
@@ -127,8 +137,6 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir string)
 			errorChan <- parseDockerError("placement service", err)
 			return
 		}
-
-		print.InfoStatusEvent(os.Stdout, "Placement Service installation skipped due to Docker run error")
 	}
 	errorChan <- nil
 }

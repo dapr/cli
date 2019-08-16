@@ -9,11 +9,6 @@ The Actions CLI allows you to setup Actions on your local dev machine or on a Ku
 * Download the [release](https://github.com/actionscore/cli/releases) for your OS
 * Unpack it
 * Move it to your desired location (for Mac/Linux - ```mv actions /usr/local/bin```. For Windows, add the executable to your System PATH.)
-* **Temporary**: Run the following command to login to Docker with read-only credentials:
-
-```bash
-Docker login actionscore.azurecr.io --username 390401a7-d7a6-46da-b10f-3ceff7a1cdd5 --password 485b3522-59bb-4152-8938-ca8b90108af6
-```
 
 __*Note: For Windows users, run the cmd terminal in administrator mode*__
 
@@ -32,7 +27,8 @@ __*Note: For Windows users, run the cmd terminal in administrator mode*__
 ```
 $ actions init
 ⌛  Making the jump to hyperspace...
-✅  Success! Get ready to rumble
+▇   Downloading binaries and setting up components...
+✅  Success! Actions is up and running
 ```
 
 To setup Actions on Kubernetes:
@@ -40,7 +36,8 @@ To setup Actions on Kubernetes:
 ```
 $ actions init --kubernetes
 ⌛  Making the jump to hyperspace...
-✅  Success! Get ready to rumble
+▇   Deploying the Actions Operator to your cluster...
+✅  Success! Actions is up and running
 ```
 
 *Note: The init command will install the latest stable version of Actions on your cluster. For more advanced use cases, please use our [Helm Chart](https://github.com/actionscore/actions/tree/master/charts/actions-operator).*
