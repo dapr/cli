@@ -82,5 +82,4 @@ jobs:
       displayName: 'Add release tag if build is from release branch'
       inputs:
         script: 'echo "##vso[build.addbuildtag]release"'
-        workingDirectory: '$(modulePath)'
         failOnStderr: true
