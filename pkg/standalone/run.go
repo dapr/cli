@@ -67,10 +67,17 @@ func getActionsCommand(appID string, actionsPort int, appPort int) (*exec.Cmd, i
 
 	if runtime.GOOS == "windows" {
 		args = append(args, "localhost:6050")
-		args = append(args, "--actions-grpc-port", "6051")
 	} else {
 		args = append(args, "localhost:50005")
 	}
+
+	args = append(args, "--actions-grpc-port")
+	grpcPort, err := freeport.GetFreePort()
+	if err != nil {
+		return nil, -1, err
+	}
+
+	args = append(args, fmt.Sprintf("%v", grpcPort))
 
 	cmd := exec.Command(actionsCMD, args...)
 	return cmd, actionsPort, nil
@@ -152,7 +159,18 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		appID = strings.Replace(sillyname.GenerateStupidName(), " ", "-", -1)
 	}
 
-	err := createRedisStateStore()
+	actions, err := List()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, a := range actions {
+		if appID == a.AppID {
+			return nil, fmt.Errorf("actions with ID %s is already running", appID)
+		}
+	}
+
+	err = createRedisStateStore()
 	if err != nil {
 		return nil, err
 	}
@@ -165,6 +183,12 @@ func Run(config *RunConfig) (*RunOutput, error) {
 	actionsCMD, actionsPort, err := getActionsCommand(appID, config.Port, config.AppPort)
 	if err != nil {
 		return nil, err
+	}
+
+	for _, a := range actions {
+		if actionsPort == a.ActionsPort {
+			return nil, fmt.Errorf("there's already an actions instance running with port %v", actionsPort)
+		}
 	}
 
 	runArgs := []string{}
