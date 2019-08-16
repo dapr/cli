@@ -50,13 +50,6 @@ jobs:
         script: 'make build TARGETS=${{ parameters.targetOS }} ARCH=$(GOARCH)'
         workingDirectory: '$(modulePath)'
         failOnStderr: true
-    - task: CmdLine@2
-      displayName: 'Add release tag if build is from release branch'
-      condition: contains(variables['Build.SourceBranch'], 'release-')
-      inputs:
-        script: 'echo "##vso[build.addbuildtag]release"'
-        workingDirectory: '$(modulePath)'
-        failOnStderr: true
     - task: ArchiveFiles@2
       displayName: 'Build $(GOARCH)/actions_${{ parameters.targetOS }}.zip'
       inputs:

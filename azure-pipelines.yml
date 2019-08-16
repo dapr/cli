@@ -67,3 +67,20 @@ jobs:
           Destination: 'AzureBlob'
           storage: 'actionsreleases'
           ContainerName: 'bin'
+- job: 'Add Release tag'
+  pool:
+    vmImage: 'ubuntu-latest'
+  dependsOn:
+  - build_darwin_amd64_actions
+  - build_linux_amd64_actions
+  - build_windows_amd64_actions
+  - build_linux_arm_actions
+  - build_linux_arm64_actions
+  condition: contains(variables['Build.SourceBranch'], 'tag')
+  steps:
+    - task: CmdLine@2
+      displayName: 'Add release tag if build is from release branch'
+      inputs:
+        script: 'echo "##vso[build.addbuildtag]release"'
+        workingDirectory: '$(modulePath)'
+        failOnStderr: true
