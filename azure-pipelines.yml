@@ -67,7 +67,7 @@ jobs:
           Destination: 'AzureBlob'
           storage: 'actionsreleases'
           ContainerName: 'bin'
-- job: 'Add Release tag'
+- job: 'add_release_tag'
   pool:
     vmImage: 'ubuntu-latest'
   dependsOn:
