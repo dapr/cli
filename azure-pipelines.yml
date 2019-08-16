@@ -76,6 +76,6 @@ jobs:
   - build_windows_amd64_actions
   - build_linux_arm_actions
   - build_linux_arm64_actions
-  condition: contains(variables['Build.SourceBranch'], 'tag')
+  condition: contains(variables['Build.SourceBranch'], 'release-')
   steps:
     - bash: 'echo "##vso[build.addbuildtag]release"'
