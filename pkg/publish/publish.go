@@ -10,11 +10,9 @@ import (
 	"github.com/actionscore/cli/pkg/standalone"
 )
 
-func PublishTopic(appID, topic, payload string) error {
+func PublishTopic(topic, payload string) error {
 	if topic == "" {
 		return errors.New("topic is missing")
-	} else if appID == "" {
-		return errors.New("app id is missing")
 	}
 
 	l, err := standalone.List()
@@ -22,23 +20,22 @@ func PublishTopic(appID, topic, payload string) error {
 		return err
 	}
 
-	for _, lo := range l {
-		if lo.AppID == appID {
-			b := []byte{}
-
-			if payload != "" {
-				b = []byte(payload)
-			}
-
-			url := fmt.Sprintf("http://localhost:%s/v%s/publish/%s", fmt.Sprintf("%v", lo.ActionsPort), api.RuntimeAPIVersion, topic)
-			_, err = http.Post(url, "application/json", bytes.NewBuffer(b))
-			if err != nil {
-				return err
-			}
-
-			return nil
-		}
+	if len(l) == 0 {
+		return errors.New("couldn't find a running Actions instance")
 	}
 
-	return fmt.Errorf("App id %s not found", appID)
+	app := l[0]
+	b := []byte{}
+
+	if payload != "" {
+		b = []byte(payload)
+	}
+
+	url := fmt.Sprintf("http://localhost:%s/v%s/publish/%s", fmt.Sprintf("%v", app.ActionsPort), api.RuntimeAPIVersion, topic)
+	_, err = http.Post(url, "application/json", bytes.NewBuffer(b))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
