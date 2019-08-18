@@ -79,13 +79,13 @@ $ actions run --app-id nodeapp --app-port 3000 node app.js
 Publish a message:
 
 ```
-$ actions publish --app-id nodeapp --topic myevent
+$ actions publish --topic myevent
 ```
 
 Publish a message with a payload:
 
 ```
-$ actions publish --app-id nodeapp --topic myevent --payload '{ "name": "yoda" }'
+$ actions publish --topic myevent --payload '{ "name": "yoda" }'
 ```
 
 #### Invoking
