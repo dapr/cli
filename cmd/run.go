@@ -154,6 +154,7 @@ var RunCmd = &cobra.Command{
 				AppPort:      appPort,
 				Command:      strings.Join(args, " "),
 				Created:      actionsRunCreatedTime,
+				PID:          os.Getpid(),
 			})
 
 			print.SuccessStatusEvent(os.Stdout, "You're up and running! Both Actions and your app logs will appear here.\n")

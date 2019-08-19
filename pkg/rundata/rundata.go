@@ -30,6 +30,7 @@ type RunData struct {
 	AppPort      int
 	Command      string
 	Created      time.Time
+	PID          int
 }
 
 func AppendRunData(runData *RunData) error {

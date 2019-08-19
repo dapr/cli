@@ -13,6 +13,7 @@ type ListOutput struct {
 	Command     string `csv:"COMMAND"`
 	Age         string `csv:"AGE"`
 	Created     string `csv:"CREATED"`
+	PID         int
 }
 
 func List() ([]ListOutput, error) {
@@ -30,6 +31,7 @@ func List() ([]ListOutput, error) {
 			ActionsPort: runtimeLine.ActionsPort,
 			Command:     utils.TruncateString(runtimeLine.Command, 20),
 			Created:     runtimeLine.Created.Format("2006-01-02 15:04.05"),
+			PID:         runtimeLine.PID,
 		}
 		if runtimeLine.AppPort > 0 {
 			listRow.AppPort = runtimeLine.AppPort
