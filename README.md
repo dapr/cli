@@ -118,3 +118,12 @@ To list all Actions instances running in a Kubernetes cluster:
 ```
 $ actions list --kubernetes
 ```
+
+#### Stop
+
+Use ```actions list``` to get a list of all running instances.
+To stop an actions app on your machine:
+
+```
+$ actions stop --app-id myAppID
+```
