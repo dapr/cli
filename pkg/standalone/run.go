@@ -17,10 +17,11 @@ import (
 )
 
 type RunConfig struct {
-	AppID     string
-	AppPort   int
-	Port      int
-	Arguments []string
+	AppID      string
+	AppPort    int
+	Port       int
+	ConfigFile string
+	Arguments  []string
 }
 
 type RunOutput struct {
@@ -42,7 +43,7 @@ type component struct {
 	} `json:"spec"`
 }
 
-func getActionsCommand(appID string, actionsPort int, appPort int) (*exec.Cmd, int, error) {
+func getActionsCommand(appID string, actionsPort int, appPort int, configFile string) (*exec.Cmd, int, error) {
 	if actionsPort < 0 {
 		port, err := freeport.GetFreePort()
 		if err != nil {
@@ -78,6 +79,11 @@ func getActionsCommand(appID string, actionsPort int, appPort int) (*exec.Cmd, i
 	}
 
 	args = append(args, fmt.Sprintf("%v", grpcPort))
+
+	if configFile != "" {
+		args = append(args, "--config")
+		args = append(args, configFile)
+	}
 
 	cmd := exec.Command(actionsCMD, args...)
 	return cmd, actionsPort, nil
@@ -180,7 +186,7 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		return nil, err
 	}
 
-	actionsCMD, actionsPort, err := getActionsCommand(appID, config.Port, config.AppPort)
+	actionsCMD, actionsPort, err := getActionsCommand(appID, config.Port, config.AppPort, config.ConfigFile)
 	if err != nil {
 		return nil, err
 	}
