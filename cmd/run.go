@@ -19,6 +19,7 @@ import (
 
 var appPort int
 var appID string
+var configFile string
 var port int
 var image string
 
@@ -55,6 +56,7 @@ var RunCmd = &cobra.Command{
 				AppID:     appID,
 				AppPort:   appPort,
 				Port:      port,
+				ConfigFile: configFile,
 				Arguments: args,
 			})
 			if err != nil {
@@ -184,6 +186,7 @@ var RunCmd = &cobra.Command{
 func init() {
 	RunCmd.Flags().IntVarP(&appPort, "app-port", "", -1, "the port your application is listening on")
 	RunCmd.Flags().StringVarP(&appID, "app-id", "", "", "an id for your application, used for service discovery")
+	RunCmd.Flags().StringVarP(&configFile, "config", "", "", "Actions configuration file")
 	RunCmd.Flags().IntVarP(&port, "port", "p", -1, "the port for Actions to listen on")
 	RunCmd.Flags().StringVarP(&image, "image", "", "", "the image to build the code in. input is repository/image")
 	RunCmd.Flags().BoolVar(&kubernetesMode, "kubernetes", false, "Build and deploy your app and Actions to a Kubernetes cluster")
