@@ -32,15 +32,15 @@ type RunOutput struct {
 }
 
 type component struct {
-	APIVersion string `json:"apiVersion"`
-	Kind       string `json:"kind"`
+	APIVersion string `yaml:"apiVersion"`
+	Kind       string `yaml:"kind"`
 	Metadata   struct {
-		Name string `json:"name"`
-	} `json:"metadata"`
+		Name string `yaml:"name"`
+	} `yaml:"metadata"`
 	Spec struct {
-		Type           string            `json:"type"`
-		ConnectionInfo map[string]string `json:"connectionInfo"`
-	} `json:"spec"`
+		Type           string            `yaml:"type"`
+		ConnectionInfo map[string]string `yaml:"connectionInfo"`
+	} `yaml:"spec"`
 }
 
 func getActionsCommand(appID string, actionsPort int, appPort int, configFile string) (*exec.Cmd, int, error) {
