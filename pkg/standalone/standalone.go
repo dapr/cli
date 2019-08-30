@@ -40,11 +40,17 @@ func Init() error {
 
 	wg.Add(len(initSteps))
 
-	s := spinner.New(spinner.CharSets[1], 100*time.Millisecond)
-	s.Writer = os.Stdout
-	s.Color("blue")
-	s.Suffix = "  Downloading binaries and setting up components... "
-	s.Start()
+	msg := "Downloading binaries and setting up components..."
+	var s *spinner.Spinner
+	if runtime.GOOS == "windows" {
+		print.InfoStatusEvent(os.Stdout, msg)
+	} else {
+		s = spinner.New(spinner.CharSets[1], 100*time.Millisecond)
+		s.Writer = os.Stdout
+		s.Color("blue")
+		s.Suffix = fmt.Sprintf("  %s", msg)
+		s.Start()
+	}
 
 	for _, step := range initSteps {
 		go step(&wg, errorChan, dir)
@@ -57,13 +63,18 @@ func Init() error {
 
 	for err := range errorChan {
 		if err != nil {
-			s.Stop()
+			if s != nil {
+				s.Stop()
+			}
 			return err
 		}
 	}
 
-	s.Stop()
-	print.SuccessStatusEvent(os.Stdout, "Downloading binaries and setting up components...")
+	if s != nil {
+		s.Stop()
+		print.SuccessStatusEvent(os.Stdout, msg)
+	}
+
 	return nil
 }
 
