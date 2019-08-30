@@ -23,15 +23,15 @@ var InitCmd = &cobra.Command{
 				print.FailureStatusEvent(os.Stdout, err.Error())
 				return
 			}
+			print.SuccessStatusEvent(os.Stdout, "Success! Actions is up and running. To verify, run 'kubectl get pods -n actions-system' in your terminal")
 		} else {
 			err := standalone.Init()
 			if err != nil {
 				print.FailureStatusEvent(os.Stdout, err.Error())
 				return
 			}
+			print.SuccessStatusEvent(os.Stdout, "Success! Actions is up and running")
 		}
-
-		print.SuccessStatusEvent(os.Stdout, "Success! Actions is up and running")
 	},
 }
 
