@@ -12,7 +12,7 @@ The Actions CLI allows you to setup Actions on your local dev machine or on a Ku
 
 __*Note: For Windows users, run the cmd terminal in administrator mode*__
 
-__*Note: For Linux users, if you run docker cmds with sudo, yuu need to use ```sudo actions init```*__
+__*Note: For Linux users, if you run docker cmds with sudo, you need to use ```sudo actions init```*__
 
 
 
