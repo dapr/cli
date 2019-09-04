@@ -45,6 +45,7 @@ jobs:
           echo "##vso[build.addbuildtag]release"
         else
           echo Skip releasing release note. this is not final release.
+          echo "##vso[build.addbuildtag]release"
         fi
       name: env_var_step
     - task: PublishBuildArtifacts@1
