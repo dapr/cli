@@ -44,16 +44,7 @@ jobs:
   - build_windows_amd64_actions
   - build_linux_arm_actions
   - build_linux_arm64_actions
-  condition: |
-    and
-    (
-      eq(variables['Build.SourceBranch'], 'refs/heads/master'),
-      eq(dependencies.build_darwin_amd64_actions.result, 'Succeeded'),
-      eq(dependencies.build_linux_amd64_actions.result, 'Succeeded'),
-      eq(dependencies.build_windows_amd64_actions.result, 'Succeeded'),
-      eq(dependencies.build_linux_arm_actions.result, 'Succeeded'),
-      eq(dependencies.build_linux_arm64_actions.result, 'Succeeded')
-    )
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
   steps:
     - task: DownloadPipelineArtifact@2
       inputs:
