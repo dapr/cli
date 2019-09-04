@@ -92,6 +92,13 @@ jobs:
 - job: 'publish_edge_binaries'
   pool:
     vmImage: 'windows-2019'
+  dependsOn:	
+    - build_darwin_amd64_actions	
+    - build_linux_amd64_actions	
+    - build_windows_amd64_actions	
+    - build_linux_arm_actions	
+    - build_linux_arm64_actions
+    - release_environment
   condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
   steps:
     - task: DownloadPipelineArtifact@2
