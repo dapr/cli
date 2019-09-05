@@ -2,7 +2,6 @@
 
 The Actions CLI allows you to setup Actions on your local dev machine or on a Kubernetes cluster, provides debugging support, launches and manages Actions instances.
 
-
 ## Launch Actions and your app
 
 The Actions CLI lets you debug easily by launching both Actions and your app.
@@ -26,7 +25,6 @@ Example of launching Actions on port 6000:
 $ actions run --app-id nodeapp --app-port 3000 --port 6000 node app.js
 ```
 
-
 ## Publish/Subscribe
 
 To use pub-sub with your app, make sure that your app has a ```POST``` HTTP endpoint with some name, say ```myevent```.
@@ -41,15 +39,14 @@ $ actions run --app-id nodeapp --app-port 3000 node app.js
 Publish a message:
 
 ```
-$ actions publish --app-id nodeapp --topic myevent
+$ actions publish --topic myevent
 ```
 
 Publish a message with a payload:
 
 ```
-$ actions publish --app-id nodeapp --topic myevent --payload '{ "name": "yoda" }'
+$ actions publish --topic myevent --payload '{ "name": "yoda" }'
 ```
-
 
 ## Invoking
 
@@ -68,7 +65,6 @@ Invoke your app:
 $ actions send --app-id nodeapp --method mymethod
 ```
 
-
 ## List
 
 To list all Actions instances running on your machine:
@@ -81,4 +77,13 @@ To list all Actions instances running in a Kubernetes cluster:
 
 ```
 $ actions list --kubernetes
+```
+
+## Stop
+
+Use ```actions list``` to get a list of all running instances.
+To stop an actions app on your machine:
+
+```
+$ actions stop --app-id myAppID
 ```
