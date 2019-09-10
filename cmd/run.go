@@ -18,10 +18,12 @@ import (
 )
 
 var appPort int
+var profilePort int
 var appID string
 var configFile string
 var port int
 var image string
+var enableProfiling bool
 
 var RunCmd = &cobra.Command{
 	Use:   "run",
@@ -53,11 +55,13 @@ var RunCmd = &cobra.Command{
 			print.InfoStatusEvent(os.Stdout, output.Message)
 		} else {
 			output, err := standalone.Run(&standalone.RunConfig{
-				AppID:     appID,
-				AppPort:   appPort,
-				Port:      port,
-				ConfigFile: configFile,
-				Arguments: args,
+				AppID:           appID,
+				AppPort:         appPort,
+				Port:            port,
+				ConfigFile:      configFile,
+				Arguments:       args,
+				EnableProfiling: enableProfiling,
+				ProfilePort:     profilePort,
 			})
 			if err != nil {
 				print.FailureStatusEvent(os.Stdout, err.Error())
@@ -189,6 +193,9 @@ func init() {
 	RunCmd.Flags().StringVarP(&configFile, "config", "", "", "Actions configuration file")
 	RunCmd.Flags().IntVarP(&port, "port", "p", -1, "the port for Actions to listen on")
 	RunCmd.Flags().StringVarP(&image, "image", "", "", "the image to build the code in. input is repository/image")
+	RunCmd.Flags().BoolVar(&enableProfiling, "enable-profiling", false, "Enable pprof profiling via an HTTP endpoint")
+	RunCmd.Flags().IntVarP(&profilePort, "profile-port", "", -1, "the port for the profile server to listen on")
 	RunCmd.Flags().BoolVar(&kubernetesMode, "kubernetes", false, "Build and deploy your app and Actions to a Kubernetes cluster")
+
 	RootCmd.AddCommand(RunCmd)
 }
