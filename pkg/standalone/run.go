@@ -17,11 +17,13 @@ import (
 )
 
 type RunConfig struct {
-	AppID      string
-	AppPort    int
-	Port       int
-	ConfigFile string
-	Arguments  []string
+	AppID           string
+	AppPort         int
+	Port            int
+	ConfigFile      string
+	Arguments       []string
+	EnableProfiling bool
+	ProfilePort     int
 }
 
 type RunOutput struct {
@@ -43,7 +45,7 @@ type component struct {
 	} `yaml:"spec"`
 }
 
-func getActionsCommand(appID string, actionsPort int, appPort int, configFile string) (*exec.Cmd, int, error) {
+func getActionsCommand(appID string, actionsPort int, appPort int, configFile string, enableProfiling bool, profilePort int) (*exec.Cmd, int, error) {
 	if actionsPort < 0 {
 		port, err := freeport.GetFreePort()
 		if err != nil {
@@ -83,6 +85,20 @@ func getActionsCommand(appID string, actionsPort int, appPort int, configFile st
 	if configFile != "" {
 		args = append(args, "--config")
 		args = append(args, configFile)
+	}
+
+	if enableProfiling {
+		if profilePort == -1 {
+			profilePort, err = freeport.GetFreePort()
+			if err != nil {
+				return nil, -1, err
+			}
+		}
+
+		args = append(args, "--enable-profiling")
+		args = append(args, "true")
+		args = append(args, "--profile-port")
+		args = append(args, fmt.Sprintf("%v", profilePort))
 	}
 
 	cmd := exec.Command(actionsCMD, args...)
@@ -186,7 +202,7 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		return nil, err
 	}
 
-	actionsCMD, actionsPort, err := getActionsCommand(appID, config.Port, config.AppPort, config.ConfigFile)
+	actionsCMD, actionsPort, err := getActionsCommand(appID, config.Port, config.AppPort, config.ConfigFile, config.EnableProfiling, config.ProfilePort)
 	if err != nil {
 		return nil, err
 	}
