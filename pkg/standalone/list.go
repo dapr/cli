@@ -4,6 +4,7 @@ import (
 	"github.com/actionscore/cli/pkg/age"
 	"github.com/actionscore/cli/pkg/rundata"
 	"github.com/actionscore/cli/utils"
+	ps "github.com/mitchellh/go-ps"
 )
 
 type ListOutput struct {
@@ -25,6 +26,11 @@ func List() ([]ListOutput, error) {
 	}
 
 	for _, runtimeLine := range *runtimeData {
+		proc, err := ps.FindProcess(runtimeLine.PID)
+		if proc == nil && err == nil {
+			continue
+		}
+
 		// TODO: Call to /metadata and validate the runtime data
 		var listRow = ListOutput{
 			AppID:       runtimeLine.AppId,

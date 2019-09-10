@@ -240,6 +240,14 @@
   version = "v0.0.4"
 
 [[projects]]
+  branch = "master"
+  digest = "1:56aff9bb73896906956fee6927207393212bfaa732c1aab4feaf29de4b1418e9"
+  name = "github.com/mitchellh/go-ps"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "621e5597135b1d14a7d9c2bfc7bc312e7c58463c"
+
+[[projects]]
   digest = "1:33422d238f147d247752996a26574ac48dcf472976eda7f5134015f06bf16563"
   name = "github.com/modern-go/concurrent"
   packages = ["."]
@@ -706,6 +714,7 @@
     "github.com/fatih/color",
     "github.com/gocarina/gocsv",
     "github.com/google/uuid",
+    "github.com/mitchellh/go-ps",
     "github.com/nightlyone/lockfile",
     "github.com/olekukonko/tablewriter",
     "github.com/phayes/freeport",
