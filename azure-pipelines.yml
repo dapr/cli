@@ -86,7 +86,7 @@ jobs:
     targetArch: arm64
     dependStep: release_environment
     relVersion: $[ dependencies.release_environment.outputs['env_var_step.REL_VERSION'] ]
-- job: 'Publish Binaries to GitHub'
+- job: 'release_to_github'
   pool:
     vmImage: ubuntu-latest
   dependsOn:	
