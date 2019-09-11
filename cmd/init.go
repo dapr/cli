@@ -10,6 +10,7 @@ import (
 )
 
 var kubernetesMode bool
+var runtimeVersion string
 
 var InitCmd = &cobra.Command{
 	Use:   "init",
@@ -25,7 +26,7 @@ var InitCmd = &cobra.Command{
 			}
 			print.SuccessStatusEvent(os.Stdout, "Success! Actions is up and running. To verify, run 'kubectl get pods -n actions-system' in your terminal")
 		} else {
-			err := standalone.Init()
+			err := standalone.Init(runtimeVersion)
 			if err != nil {
 				print.FailureStatusEvent(os.Stdout, err.Error())
 				return
@@ -37,5 +38,7 @@ var InitCmd = &cobra.Command{
 
 func init() {
 	InitCmd.Flags().BoolVar(&kubernetesMode, "kubernetes", false, "Deploy Actions to a Kubernetes cluster")
+	InitCmd.Flags().StringVarP(&runtimeVersion, "runtime-version", "", "latest", "The version of the Actions runtime to install. for example: v0.1.0-alpha")
+
 	RootCmd.AddCommand(InitCmd)
 }

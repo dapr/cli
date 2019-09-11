@@ -17,14 +17,13 @@ import (
 	"time"
 
 	"github.com/actionscore/cli/pkg/print"
-
 	"github.com/briandowns/spinner"
 )
 
-const baseDownloadURL = "https://actionsreleases.blob.core.windows.net/bin"
-const actionsImageURL = "actionscore.azurecr.io/actions:latest"
+const baseDownloadURL = "https://actionsreleases.blob.core.windows.net/release"
+const actionsImageURL = "actionscore.azurecr.io/actions"
 
-func Init() error {
+func Init(runtimeVersion string) error {
 	dir, err := getActionsDir()
 	if err != nil {
 		return err
@@ -33,7 +32,7 @@ func Init() error {
 	var wg sync.WaitGroup
 	errorChan := make(chan error)
 
-	initSteps := []func(*sync.WaitGroup, chan<- error, string){}
+	initSteps := []func(*sync.WaitGroup, chan<- error, string, string){}
 	initSteps = append(initSteps, installActionsBinary)
 	initSteps = append(initSteps, runPlacementService)
 	initSteps = append(initSteps, runRedis)
@@ -53,7 +52,7 @@ func Init() error {
 	}
 
 	for _, step := range initSteps {
-		go step(&wg, errorChan, dir)
+		go step(&wg, errorChan, dir, runtimeVersion)
 	}
 
 	go func() {
@@ -99,7 +98,7 @@ func getActionsDir() (string, error) {
 	return p, nil
 }
 
-func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir string) {
+func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string) {
 	defer wg.Done()
 	err := runCmd("docker", "run", "--restart", "always", "-d", "-p", "6379:6379", "redis")
 	if err != nil {
@@ -133,7 +132,7 @@ func isContainerRunError(err error) bool {
 	return false
 }
 
-func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir string) {
+func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, version string) {
 	defer wg.Done()
 
 	osPort := 50005
@@ -141,7 +140,8 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir string)
 		osPort = 6050
 	}
 
-	err := runCmd("docker", "run", "--restart", "always", "-d", "-p", fmt.Sprintf("%v:50005", osPort), "--entrypoint", "./placement", actionsImageURL)
+	image := fmt.Sprintf("%s:%s", actionsImageURL, version)
+	err := runCmd("docker", "run", "--restart", "always", "-d", "-p", fmt.Sprintf("%v:50005", osPort), "--entrypoint", "./placement", image)
 	if err != nil {
 		runError := isContainerRunError(err)
 		if !runError {
@@ -152,10 +152,10 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir string)
 	errorChan <- nil
 }
 
-func installActionsBinary(wg *sync.WaitGroup, errorChan chan<- error, dir string) {
+func installActionsBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version string) {
 	defer wg.Done()
 
-	actionsURL := fmt.Sprintf("%s/actionsrt_%s_%s.zip", baseDownloadURL, runtime.GOOS, runtime.GOARCH)
+	actionsURL := fmt.Sprintf("%s/%s/actionsrt_%s_%s.zip", baseDownloadURL, version, runtime.GOOS, runtime.GOARCH)
 	filepath, err := downloadFile(dir, actionsURL)
 	if err != nil {
 		errorChan <- fmt.Errorf("Error downloading actions binary: %s", err)
