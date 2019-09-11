@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/actionscore/cli/pkg/api"
+	"github.com/actionscore/cli/pkg/version"
 	"github.com/spf13/cobra"
 )
 
@@ -25,8 +26,15 @@ func Execute(version, apiVersion string) {
 	RootCmd.Version = version
 	api.RuntimeAPIVersion = apiVersion
 
+	setVersion()
+
 	if err := RootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(-1)
 	}
+}
+
+func setVersion() {
+	template := fmt.Sprintf("cli version: %s \nruntime version: %s", RootCmd.Version, version.GetRuntimeVersion())
+	RootCmd.SetVersionTemplate(template)
 }
