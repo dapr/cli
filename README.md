@@ -37,7 +37,7 @@ To setup Actions on Kubernetes:
 $ actions init --kubernetes
 ⌛  Making the jump to hyperspace...
 ▇   Deploying the Actions Operator to your cluster...
-✅  Success! Actions is up and running. To verify, run 'kubectl get pods -n actions-system' in your terminal
+✅  Success! Actions is up and running. To verify, run 'kubectl get pods' in your terminal
 ```
 
 *Note: The init command will install the latest stable version of Actions on your cluster. For more advanced use cases, please use our [Helm Chart](https://github.com/actionscore/actions/tree/master/charts/actions-operator).*
