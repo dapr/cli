@@ -9,19 +9,19 @@ Logs from both the Actions Runtime and your app will be displayed in real time!
 
 Example of launching Actions with a node app:
 
-```
+```bash
 $ actions run --app-id nodeapp node app.js
 ```
 
 Example of launching Actions with a node app listening on port 3000:
 
-```
+```bash
 $ actions run --app-id nodeapp --app-port 3000 node app.js
 ```
 
 Example of launching Actions on port 6000:
 
-```
+```bash
 $ actions run --app-id nodeapp --app-port 3000 --port 6000 node app.js
 ```
 
@@ -32,20 +32,25 @@ This sample assumes your app is listening on port 3000.
 
 Launch Actions and your app:
 
-```
+```bash
 $ actions run --app-id nodeapp --app-port 3000 node app.js
 ```
 
 Publish a message:
 
-```
+```bash
 $ actions publish --topic myevent
 ```
 
 Publish a message with a payload:
 
-```
+* Linux/Mac
+```bash
 $ actions publish --topic myevent --payload '{ "name": "yoda" }'
+```
+* Windows
+```bash
+C:> actions publish --topic myevent --payload "{ \"name\": \"yoda\" }"
 ```
 
 ## Invoking
@@ -55,13 +60,13 @@ For this sample, we'll assume a node app listening on port 300 with a ```/mymeth
 
 Launch Actions and your app:
 
-```
+```bash
 $ actions run --app-id nodeapp --app-port 3000 node app.js
 ```
 
 Invoke your app:
 
-```
+```bash
 $ actions send --app-id nodeapp --method mymethod
 ```
 
@@ -69,13 +74,13 @@ $ actions send --app-id nodeapp --method mymethod
 
 To list all Actions instances running on your machine:
 
-```
+```bash
 $ actions list
 ```
 
 To list all Actions instances running in a Kubernetes cluster:
 
-```
+```bash
 $ actions list --kubernetes
 ```
 
@@ -84,6 +89,6 @@ $ actions list --kubernetes
 Use ```actions list``` to get a list of all running instances.
 To stop an actions app on your machine:
 
-```
+```bash
 $ actions stop --app-id myAppID
 ```
