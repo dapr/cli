@@ -18,7 +18,7 @@ To setup Actions on your local machine:
 
 __*Note: For Windows users, run the cmd terminal in administrator mode*__
 
-```
+```bash
 $ actions init
 ⌛  Making the jump to hyperspace...
 ✅  Success! Get ready to rumble
@@ -26,7 +26,7 @@ $ actions init
 
 To setup Actions on Kubernetes:
 
-```
+```bash
 $ actions init --kubernetes
 ⌛  Making the jump to hyperspace...
 ✅  Success! Get ready to rumble
@@ -39,19 +39,19 @@ Logs from both the Actions Runtime and your app will be displayed in real time!
 
 Example of launching Actions with a node app:
 
-```
+```bash
 $ actions run --app-id nodeapp node app.js
 ```
 
 Example of launching Actions with a node app listening on port 3000:
 
-```
+```bash
 $ actions run --app-id nodeapp --app-port 3000 node app.js
 ```
 
 Example of launching Actions on port 6000:
 
-```
+```bash
 $ actions run --app-id nodeapp --app-port 3000 --port 6000 node app.js
 ```
 
@@ -62,22 +62,26 @@ This sample assumes your app is listening on port 3000.
 
 Launch Actions and your app:
 
-```
+```bash
 $ actions run --app-id nodeapp --app-port 3000 node app.js
 ```
 
 Publish a message:
 
-```
+```bash
 $ actions publish --app-id nodeapp --topic myevent
 ```
 
 Publish a message with a payload:
 
-```
+* Linux/Mac:
+```bash
 $ actions publish --app-id nodeapp --topic myevent --payload '{ "name": "yoda" }'
 ```
-
+* Windows:
+```bash
+C:> actions publish --app-id nodeapp --topic myevent --payload "{ \"name\": \"yoda\" }"
+```
 #### Invoking
 
 To test your endpoints with Actions, simply expose any ```POST``` HTTP endpoint.
@@ -85,13 +89,13 @@ For this sample, we'll assume a node app listening on port 300 with a ```/mymeth
 
 Launch Actions and your app:
 
-```
+```bash
 $ actions run --app-id nodeapp --app-port 3000 node app.js
 ```
 
 Invoke your app:
 
-```
+```bash
 $ actions send --app-id nodeapp --method mymethod
 ```
 
@@ -99,12 +103,12 @@ $ actions send --app-id nodeapp --method mymethod
 
 To list all Actions instances running on your machine:
 
-```
+```bash
 $ actions list
 ```
 
 To list all Actions instances running in a Kubernetes cluster:
 
-```
+```bash
 $ actions list --kubernetes
 ```
