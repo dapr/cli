@@ -40,7 +40,7 @@ $ actions init --kubernetes
 ✅  Success! Actions is up and running. To verify, run 'kubectl get pods' in your terminal
 ```
 
-#### Installing a specific version
+#### Installing a specific version (Standalone)
 
 Using `actions init` will download and install the latest version of Actions.
 In order to specify the version of the Actions runtime, use the `runtime-version` flag: 
