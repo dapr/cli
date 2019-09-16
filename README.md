@@ -43,7 +43,7 @@ $ actions init --kubernetes
 #### Installing a specific version (Standalone)
 
 Using `actions init` will download and install the latest version of Actions.
-In order to specify the version of the Actions runtime, use the `runtime-version` flag: 
+In order to specify a specific version of the Actions runtime, use the `runtime-version` flag: 
 
 ```
 $ actions init --runtime-version v0.3.0-alpha
@@ -52,7 +52,7 @@ $ actions init --runtime-version v0.3.0-alpha
 ✅  Success! Actions is up and running
 ```
 
-*Note: The init command will install the latest stable version of Actions on your cluster. For more advanced use cases, please use our [Helm Chart](https://github.com/actionscore/actions/tree/master/charts/actions-operator).*
+*Note: The init command will install the latest stable version of Actions on your cluster. For more advanced use cases, use our [Helm Chart](https://github.com/actionscore/actions/tree/master/charts/actions-operator).*
 
 #### Launch Actions and your app
 
@@ -159,7 +159,7 @@ $ actions run --app-id nodeapp --app-port 3000 node app.js --enable-profiling --
 
 To remove Actions from your Kubernetes cluster, use the `uninstall` command.
 
-*Please note this won't remove Actions installations that were deployed using Helm.*
+*Note this won't remove Actions installations that were deployed using Helm.*
 
 ```
 $ actions uninstall --kubernetes
