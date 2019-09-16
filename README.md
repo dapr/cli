@@ -40,6 +40,18 @@ $ actions init --kubernetes
 ✅  Success! Actions is up and running. To verify, run 'kubectl get pods' in your terminal
 ```
 
+#### Installing a specific version
+
+Using `actions init` will download and install the latest version of Actions.
+In order to specify the version of the Actions runtime, use the `runtime-version` flag: 
+
+```
+$ actions init --runtime-version v0.3.0-alpha
+⌛  Making the jump to hyperspace...
+▇   Downloading binaries and setting up components...
+✅  Success! Actions is up and running
+```
+
 *Note: The init command will install the latest stable version of Actions on your cluster. For more advanced use cases, please use our [Helm Chart](https://github.com/actionscore/actions/tree/master/charts/actions-operator).*
 
 #### Launch Actions and your app
@@ -126,4 +138,19 @@ To stop an actions app on your machine:
 
 ```
 $ actions stop --app-id myAppID
+```
+
+#### Enable profiling
+
+In order to enable profiling, use the `enable-profiling` flag:
+
+```
+$ actions run --app-id nodeapp --app-port 3000 node app.js --enable-profiling=true
+```
+
+Actions will automatically assign a profile port for you.
+If you want to manually assign a profiling port, use the `profile-port` flag:
+
+```
+$ actions run --app-id nodeapp --app-port 3000 node app.js --enable-profiling=true --profile-port 7777
 ```
