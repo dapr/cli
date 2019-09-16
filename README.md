@@ -157,10 +157,10 @@ $ actions run --app-id nodeapp --app-port 3000 node app.js --enable-profiling --
 
 #### Uninstall (Kubernetes)
 
-To remove Actions from your Kubernetes cluster, use the `uninstall` flag.
+To remove Actions from your Kubernetes cluster, use the `uninstall` command.
 
 *Please note this won't remove Actions installations that were deployed using Helm.*
 
 ```
-$ actions uninstall
+$ actions uninstall --kubernetes
 ```
