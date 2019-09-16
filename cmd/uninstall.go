@@ -9,10 +9,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// UninstallCmd is a command from removing Actions from a Kubernetes cluster
+var uninstallKubernetes bool
+
+// UninstallCmd is a command from removing an Actions installation
 var UninstallCmd = &cobra.Command{
 	Use:   "uninstall",
-	Short: "removes Actions from a Kubernetes cluster",
+	Short: "removes an Actions installation",
 	Run: func(cmd *cobra.Command, args []string) {
 		print.InfoStatusEvent(os.Stdout, "Removing Actions from your cluster...")
 		err := kubernetes.Uninstall()
@@ -26,5 +28,7 @@ var UninstallCmd = &cobra.Command{
 }
 
 func init() {
+	UninstallCmd.Flags().BoolVar(&uninstallKubernetes, "kubernetes", false, "Uninstall Actions from a Kubernetes cluster (required)")
+	UninstallCmd.MarkFlagRequired("kubernetes")
 	RootCmd.AddCommand(UninstallCmd)
 }
