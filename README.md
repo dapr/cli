@@ -145,14 +145,14 @@ $ actions stop --app-id myAppID
 In order to enable profiling, use the `enable-profiling` flag:
 
 ```
-$ actions run --app-id nodeapp --app-port 3000 node app.js --enable-profiling=true
+$ actions run --app-id nodeapp --app-port 3000 node app.js --enable-profiling
 ```
 
 Actions will automatically assign a profile port for you.
 If you want to manually assign a profiling port, use the `profile-port` flag:
 
 ```
-$ actions run --app-id nodeapp --app-port 3000 node app.js --enable-profiling=true --profile-port 7777
+$ actions run --app-id nodeapp --app-port 3000 node app.js --enable-profiling --profile-port 7777
 ```
 
 #### Uninstall (Kubernetes)
