@@ -1,4 +1,12 @@
-# Actions CLI
+## Prerequisites
+
+* Download the [release](https://github.com/actionscore/cli/releases) for your OS
+* Unpack it
+* Move it to your desired location (for Mac/Linux - ```mv actions /usr/local/bin```. For Windows, add the executable to your System PATH.)
+
+__*Note: For Windows users, run the cmd terminal in administrator mode*__
+
+__*Note: For Linux users, if you run docker cmds with sudo, you need to use ```sudo actions init```*__
 
 The Actions CLI allows you to setup Actions on your local dev machine or on a Kubernetes cluster, provides debugging support, launches and manages Actions instances.
 
