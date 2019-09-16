@@ -154,3 +154,13 @@ If you want to manually assign a profiling port, use the `profile-port` flag:
 ```
 $ actions run --app-id nodeapp --app-port 3000 node app.js --enable-profiling=true --profile-port 7777
 ```
+
+#### Uninstall (Kubernetes)
+
+To remove Actions from your Kubernetes cluster, use the `uninstall` flag.
+
+*Please note this won't remove Actions installations that were deployed using Helm.*
+
+```
+$ actions uninstall
+```
