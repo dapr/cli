@@ -24,6 +24,7 @@ var configFile string
 var port int
 var image string
 var enableProfiling bool
+var logLevel string
 
 var RunCmd = &cobra.Command{
 	Use:   "run",
@@ -62,6 +63,7 @@ var RunCmd = &cobra.Command{
 				Arguments:       args,
 				EnableProfiling: enableProfiling,
 				ProfilePort:     profilePort,
+				LogLevel:        logLevel,
 			})
 			if err != nil {
 				print.FailureStatusEvent(os.Stdout, err.Error())
@@ -196,6 +198,7 @@ func init() {
 	RunCmd.Flags().BoolVar(&enableProfiling, "enable-profiling", false, "Enable pprof profiling via an HTTP endpoint")
 	RunCmd.Flags().IntVarP(&profilePort, "profile-port", "", -1, "the port for the profile server to listen on")
 	RunCmd.Flags().BoolVar(&kubernetesMode, "kubernetes", false, "Build and deploy your app and Actions to a Kubernetes cluster")
+	RunCmd.Flags().StringVarP(&logLevel, "log-level", "", "info", "Sets the log verbosity. Valid values are: debug, info, warning, error, fatal, or panic. Default is info")
 
 	RootCmd.AddCommand(RunCmd)
 }
