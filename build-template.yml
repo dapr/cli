@@ -3,6 +3,7 @@ parameters:
   targetOS: 'darwin'
   targetArch: 'amd64'
   dependStep: 'release_environment'
+  archiveExtension: 'tar.gz'
   relVersion: ''
 jobs:
 - job: build_${{ parameters.targetOS }}_${{ parameters.targetArch }}_actions
@@ -55,12 +56,12 @@ jobs:
         workingDirectory: '$(modulePath)'
         failOnStderr: true
     - task: ArchiveFiles@2
-      displayName: 'Build $(GOARCH)/actions_${{ parameters.targetOS }}.zip'
+      displayName: 'Build $(GOARCH)/actions_${{ parameters.targetOS }}.${{ parameters.archiveExtension }}'
       inputs:
         rootFolderOrFile: '$(modulePath)/dist/${{ parameters.targetOS }}_$(GOARCH)'
         includeRootFolder: false
-        archiveType: 'zip'
-        archiveFile: '$(Build.ArtifactStagingDirectory)/${{ parameters.targetOS }}_$(GOARCH)/actions_${{ parameters.targetOS }}_$(GOARCH).zip'
+        archiveType: ${{ parameters.archiveExtension }}
+        archiveFile: '$(Build.ArtifactStagingDirectory)/${{ parameters.targetOS }}_$(GOARCH)/actions_${{ parameters.targetOS }}_$(GOARCH).${{ parameters.archiveExtension }}'
         replaceExistingArchive: true
     - task: PublishBuildArtifacts@1
       displayName: 'Publish build artifacts'

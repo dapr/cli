@@ -56,6 +56,7 @@ jobs:
     poolImage: macOS-latest
     targetOS: darwin
     targetArch: amd64
+    archiveExtension: 'tar.gz'
     dependStep: release_environment
     relVersion: $[ dependencies.release_environment.outputs['env_var_step.REL_VERSION'] ]
 - template: 'build-template.yml'
@@ -63,6 +64,7 @@ jobs:
     poolImage: ubuntu-latest
     targetOS: linux
     targetArch: amd64
+    archiveExtension: 'tar.gz'
     dependStep: release_environment
     relVersion: $[ dependencies.release_environment.outputs['env_var_step.REL_VERSION'] ]
 - template: 'build-template.yml'
@@ -70,6 +72,7 @@ jobs:
     poolImage: 'windows-2019'
     targetOS: windows
     targetArch: amd64
+    archiveExtension: 'zip'
     dependStep: release_environment
     relVersion: $[ dependencies.release_environment.outputs['env_var_step.REL_VERSION'] ]
 - template: 'build-template.yml'
@@ -77,6 +80,7 @@ jobs:
     poolImage: ubuntu-latest
     targetOS: linux
     targetArch: arm
+    archiveExtension: 'tar.gz'
     dependStep: release_environment
     relVersion: $[ dependencies.release_environment.outputs['env_var_step.REL_VERSION'] ]
 - template: 'build-template.yml'
@@ -84,6 +88,7 @@ jobs:
     poolImage: ubuntu-latest
     targetOS: linux
     targetArch: arm64
+    archiveExtension: 'tar.gz'
     dependStep: release_environment
     relVersion: $[ dependencies.release_environment.outputs['env_var_step.REL_VERSION'] ]
 - job: 'release_to_github'
