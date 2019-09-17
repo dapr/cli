@@ -97,9 +97,8 @@ $(CLI_BINARY):
 # Target: archive                                                              #
 ################################################################################
 ARCHIVE_OUT_DIR ?= $(BINS_OUT_DIR)
-ARCHIVE_FILE_EXTS:=archive-$(CLI_BINARY)$(ARCHIVE_EXT))
 
-archive: $(ARCHIVE_FILE_EXTS)
+archive: archive-$(CLI_BINARY)$(ARCHIVE_EXT)
 
 ifeq ($(GOOS),windows)
 archive-$(CLI_BINARY).zip:
