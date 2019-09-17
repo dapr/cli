@@ -103,7 +103,7 @@ jobs:
     - task: DownloadPipelineArtifact@2
       inputs:
         buildType: 'current'
-        itemPattern: '**/*.zip'
+        itemPattern: '**'
         targetPath: '$(Pipeline.Workspace)'
     - task: GitHubRelease@0
       displayName: 'Upload Actions binaries to GitHub Release'

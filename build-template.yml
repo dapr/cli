@@ -49,22 +49,14 @@ jobs:
         workingDirectory: '$(modulePath)'
         failOnStderr: true
     - task: CmdLine@2
-      displayName: 'Run make build'
+      displayName: 'Run make release to build and archive cli'
       inputs:
-        script: 'make build TARGETS=${{ parameters.targetOS }} ARCH=$(GOARCH)'
+        script: 'make release GOOS=${{ parameters.targetOS }} GOARCH=${{ parameters.targetArch }} ARCHIVE_OUT_DIR=$(Build.ArtifactStagingDirectory)'
         workingDirectory: '$(modulePath)'
         failOnStderr: true
-    - task: ArchiveFiles@2
-      displayName: 'Build $(GOARCH)/actions_${{ parameters.targetOS }}.zip'
-      inputs:
-        rootFolderOrFile: '$(modulePath)/dist/${{ parameters.targetOS }}_$(GOARCH)'
-        includeRootFolder: false
-        archiveType: 'zip'
-        archiveFile: '$(Build.ArtifactStagingDirectory)/${{ parameters.targetOS }}_$(GOARCH)/actions_${{ parameters.targetOS }}_$(GOARCH).zip'
-        replaceExistingArchive: true
     - task: PublishBuildArtifacts@1
       displayName: 'Publish build artifacts'
       inputs:
-        PathtoPublish: '$(Build.ArtifactStagingDirectory)/${{ parameters.targetOS }}_$(GOARCH)'
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
         ArtifactName: 'drop'
         publishLocation: 'Container'
