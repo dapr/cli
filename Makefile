@@ -2,10 +2,6 @@
 # Variables																       #
 ################################################################################
 
-export GO111MODULE ?= on
-export GOPROXY ?= https://proxy.golang.org
-export GOSUMDB ?= sum.golang.org
-
 GIT_COMMIT  = $(shell git rev-list -1 HEAD)
 GIT_VERSION = $(shell git describe --always --abbrev=7 --dirty)
 CGO			?= 0
