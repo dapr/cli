@@ -44,9 +44,9 @@ func Init(runtimeVersion string) error {
 	if runtime.GOOS == "windows" {
 		print.InfoStatusEvent(os.Stdout, msg)
 	} else {
-		s = spinner.New(spinner.CharSets[1], 100*time.Millisecond)
+		s = spinner.New(spinner.CharSets[0], 100*time.Millisecond)
 		s.Writer = os.Stdout
-		s.Color("blue")
+		s.Color("cyan")
 		s.Suffix = fmt.Sprintf("  %s", msg)
 		s.Start()
 	}
