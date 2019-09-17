@@ -24,6 +24,7 @@ type RunConfig struct {
 	Arguments       []string
 	EnableProfiling bool
 	ProfilePort     int
+	LogLevel        string
 }
 
 type RunOutput struct {
@@ -45,7 +46,7 @@ type component struct {
 	} `yaml:"spec"`
 }
 
-func getActionsCommand(appID string, actionsPort int, appPort int, configFile string, enableProfiling bool, profilePort int) (*exec.Cmd, int, error) {
+func getActionsCommand(appID string, actionsPort int, appPort int, configFile string, enableProfiling bool, profilePort int, logLevel string) (*exec.Cmd, int, error) {
 	if actionsPort < 0 {
 		port, err := freeport.GetFreePort()
 		if err != nil {
@@ -60,7 +61,7 @@ func getActionsCommand(appID string, actionsPort int, appPort int, configFile st
 		actionsCMD = fmt.Sprintf("%s.exe", actionsCMD)
 	}
 
-	args := []string{"--actions-id", appID, "--actions-http-port", fmt.Sprintf("%v", actionsPort)}
+	args := []string{"--actions-id", appID, "--actions-http-port", fmt.Sprintf("%v", actionsPort), "--log-level", logLevel}
 	if appPort > -1 {
 		args = append(args, "--app-port")
 		args = append(args, fmt.Sprintf("%v", appPort))
@@ -202,7 +203,7 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		return nil, err
 	}
 
-	actionsCMD, actionsPort, err := getActionsCommand(appID, config.Port, config.AppPort, config.ConfigFile, config.EnableProfiling, config.ProfilePort)
+	actionsCMD, actionsPort, err := getActionsCommand(appID, config.Port, config.AppPort, config.ConfigFile, config.EnableProfiling, config.ProfilePort, config.LogLevel)
 	if err != nil {
 		return nil, err
 	}

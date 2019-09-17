@@ -152,6 +152,17 @@ If you want to manually assign a profiling port, use the `profile-port` flag:
 $ actions run --app-id nodeapp --app-port 3000 node app.js --enable-profiling --profile-port 7777
 ```
 
+### Set log level
+
+In order to set the Actions runtime log verbosity level, use the `log-level` flag:
+
+```
+$ actions run --app-id nodeapp --app-port 3000 node app.js --log-level debug
+```
+
+This sets the Actions log level to `debug`.
+The default is `info`.
+
 ### Uninstall (Kubernetes)
 
 To remove Actions from your Kubernetes cluster, use the `uninstall` command.
