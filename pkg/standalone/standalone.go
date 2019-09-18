@@ -157,7 +157,13 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 func installActionsBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version string) {
 	defer wg.Done()
 
-	actionsURL := fmt.Sprintf("%s/%s/actionsrt_%s_%s.zip", baseDownloadURL, version, runtime.GOOS, runtime.GOARCH)
+	archiveExt := "tar.gz"
+	// TODO: Remove version comparision once we complete September Iteration 1
+	if runtime.GOOS == "windows" || version != "edge" {
+		archiveExt = "zip"
+	}
+
+	actionsURL := fmt.Sprintf("%s/%s/actionsrt_%s_%s.%s", baseDownloadURL, version, runtime.GOOS, runtime.GOARCH, archiveExt)
 	filepath, err := downloadFile(dir, actionsURL)
 	if err != nil {
 		errorChan <- fmt.Errorf("Error downloading actions binary: %s", err)
