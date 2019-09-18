@@ -105,6 +105,7 @@ archive-$(CLI_BINARY).zip:
 	7z.exe a -tzip "$(ARCHIVE_OUT_DIR)\\$(CLI_BINARY)_$(GOOS)_$(GOARCH)$(ARCHIVE_EXT)" "$(BINS_OUT_DIR)\\$(CLI_BINARY)$(BINARY_EXT)"
 else
 archive-$(CLI_BINARY).tar.gz:
+	chmod +x $(BINS_OUT_DIR)/$(CLI_BINARY)$(BINARY_EXT)
 	tar czf "$(ARCHIVE_OUT_DIR)/$(CLI_BINARY)_$(GOOS)_$(GOARCH)$(ARCHIVE_EXT)" -C "$(BINS_OUT_DIR)" "$(CLI_BINARY)$(BINARY_EXT)"
 endif
 
