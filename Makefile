@@ -90,8 +90,7 @@ build: $(CLI_BINARY)
 
 $(CLI_BINARY):
 	CGO_ENABLED=$(CGO) GOOS=$(GOOS) GOARCH=$(GOARCH) go build $(GCFLAGS) -ldflags $(LDFLAGS) \
-	-o $(BINS_OUT_DIR)/$(CLI_BINARY)$(BINARY_EXT) \
-	./cmd/$(CLI_BINARY).go;
+	-o $(BINS_OUT_DIR)/$(CLI_BINARY)$(BINARY_EXT);
 
 ################################################################################
 # Target: archive                                                              #
