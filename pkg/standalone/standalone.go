@@ -1,7 +1,9 @@
 package standalone
 
 import (
+	"archive/tar"
 	"archive/zip"
+	"compress/gzip"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -162,7 +164,16 @@ func installActionsBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, versi
 		return
 	}
 
-	extractedFilePath, err := extractFile(filepath, dir)
+	extractedFilePath := ""
+	err = nil
+
+	// TODO: Remove version comparision once we complete September Iteration 1
+	if runtime.GOOS == "windows" || version != "edge" {
+		extractedFilePath, err = unzip(filepath, dir)
+	} else {
+		extractedFilePath, err = untar(filepath, dir)
+	}
+
 	if err != nil {
 		errorChan <- fmt.Errorf("Error extracting actions binary: %s", err)
 		return
@@ -204,7 +215,7 @@ func runCmd(name string, arg ...string) error {
 	return nil
 }
 
-func extractFile(filepath, targetDir string) (string, error) {
+func unzip(filepath, targetDir string) (string, error) {
 	zipReader, err := zip.OpenReader(filepath)
 	if err != nil {
 		return "", err
@@ -241,6 +252,57 @@ func extractFile(filepath, targetDir string) (string, error) {
 	}
 
 	return "", nil
+}
+
+func untar(filepath, targetDir string) (string, error) {
+	tarFile, err := os.Open(filepath)
+	if err != nil {
+		return "", err
+	}
+	defer tarFile.Close()
+
+	gzr, err := gzip.NewReader(tarFile)
+	if err != nil {
+		return "", err
+	}
+	defer gzr.Close()
+
+	tr := tar.NewReader(gzr)
+
+	for {
+		header, err := tr.Next()
+
+		switch {
+		case err == io.EOF:
+			return "", fmt.Errorf("file is empty")
+		case err != nil:
+			return "", err
+		case header == nil:
+			continue
+		}
+
+		extractedFilePath := path.Join(targetDir, header.Name)
+
+		switch header.Typeflag {
+		case tar.TypeReg:
+			// Extract only actionsrt
+			if header.Name != "actionsrt" {
+				continue
+			}
+
+			f, err := os.OpenFile(extractedFilePath, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
+			if err != nil {
+				return "", err
+			}
+
+			if _, err := io.Copy(f, tr); err != nil {
+				return "", err
+			}
+			f.Close()
+
+			return extractedFilePath, nil
+		}
+	}
 }
 
 func moveFileToPath(filepath string) (string, error) {
