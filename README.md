@@ -178,13 +178,19 @@ $ actions uninstall --kubernetes
 
 ### Prerequisites
 
-1. The Go language environment [(instructions)]( https://golang.org/doc/install).
-
-    Make sure you've already configured your GOPATH and GOROOT environment variables.
+1. The Go language environment [(instructions)](https://golang.org/doc/install).
+   * Make sure that your GOPATH and PATH are configured correctly
+   ```bash
+   export GOPATH=~/go
+   export PATH=$PATH:$GOPATH/bin
+   ```
+1. [Delve](https://github.com/go-delve/delve/tree/master/Documentation/installation) for Debugging
+1. *(for windows)* [MinGW](http://www.mingw.org/) to install gcc and make
+   * Recommend to use [chocolatey mingw package](https://chocolatey.org/packages/mingw) and ensure that MinGW bin directory is in PATH environment variable
 
 ### Clone the repo
 
-```
+```bash
 cd $GOPATH/src
 mkdir -p github.com/actionscore/cli
 git clone https://github.com/actionscore/cli.git github.com/actionscore/cli
@@ -192,9 +198,49 @@ git clone https://github.com/actionscore/cli.git github.com/actionscore/cli
 
 ### Build
 
-```
-cd $GOPATH/src/actions/cli
+You can build actions binaries via `make` tool and find the binaries in `./dist/{os}_{arch}/release/`.
+
+> Note : for windows environment with MinGW, use `mingw32-make.exe` instead of `make`.
+
+* Build for your current local environment
+
+```bash
+cd $GOPATH/src/github.com/actionscore/cli/
 make build
 ```
 
-**Windows Users**: Actions currently takes a dependency on gcc. If building throws an error containing: `"gcc": executable file not found in %PATH%`, you'll need to install gcc through the [Cygwin Project](https://sourceware.org/cygwin/) or the [MinGW Project](http://mingw-w64.org/doku.php).
+* Cross compile for multi platforms
+
+```bash
+make build GOOS=linux GOARCH=amd64
+```
+
+### Run unit-test
+
+```bash
+make test
+```
+
+### Debug Actions CLI
+
+We highly recommend to use [VSCode with Go plugin](https://marketplace.visualstudio.com/items?itemName=ms-vscode.Go) for your productivity. If you want to use the different editors, you can find the [list of editor plugins](https://github.com/go-delve/delve/blob/master/Documentation/EditorIntegration.md) for Delve.
+
+This section introduces how to start debugging with Delve CLI. Please see [Delve documentation](https://github.com/go-delve/delve/tree/master/Documentation) for the detail usage.
+
+#### Start with debugger
+
+```bash
+$ cd $GOPATH/src/github.com/actionscore/cli
+$ dlv debug .
+Type 'help' for list of commands.
+(dlv) break main.main
+(dlv) continue
+```
+
+#### Debug unit-tests
+
+```bash
+# Specify the package that you want to test
+# e.g. debuggin ./pkg/actors
+$ dlv test ./pkg/actors
+```
