@@ -41,9 +41,14 @@ type component struct {
 		Name string `yaml:"name"`
 	} `yaml:"metadata"`
 	Spec struct {
-		Type           string            `yaml:"type"`
-		ConnectionInfo map[string]string `yaml:"connectionInfo"`
+		Type     string                  `yaml:"type"`
+		Metadata []componentMetadataItem `yaml:"metadata"`
 	} `yaml:"spec"`
+}
+
+type componentMetadataItem struct {
+	Name  string `yaml:"name"`
+	Value string `yaml:"value"`
 }
 
 func getActionsCommand(appID string, actionsPort int, appPort int, configFile string, enableProfiling bool, profilePort int, logLevel string) (*exec.Cmd, int, error) {
@@ -127,9 +132,15 @@ func createRedisStateStore() error {
 
 	redisStore.Metadata.Name = "statestore"
 	redisStore.Spec.Type = "state.redis"
-	redisStore.Spec.ConnectionInfo = map[string]string{}
-	redisStore.Spec.ConnectionInfo["redisHost"] = "localhost:6379"
-	redisStore.Spec.ConnectionInfo["redisPassword"] = ""
+	redisStore.Spec.Metadata = []componentMetadataItem{}
+	redisStore.Spec.Metadata = append(redisStore.Spec.Metadata, componentMetadataItem{
+		Name:  "redisHost",
+		Value: "localhost:6379",
+	})
+	redisStore.Spec.Metadata = append(redisStore.Spec.Metadata, componentMetadataItem{
+		Name:  "redisPassword",
+		Value: "",
+	})
 
 	b, err := yaml.Marshal(&redisStore)
 	if err != nil {
@@ -158,9 +169,15 @@ func createRedisPubSub() error {
 
 	redisMessageBus.Metadata.Name = "messagebus"
 	redisMessageBus.Spec.Type = "pubsub.redis"
-	redisMessageBus.Spec.ConnectionInfo = map[string]string{}
-	redisMessageBus.Spec.ConnectionInfo["redisHost"] = "localhost:6379"
-	redisMessageBus.Spec.ConnectionInfo["password"] = ""
+	redisMessageBus.Spec.Metadata = []componentMetadataItem{}
+	redisMessageBus.Spec.Metadata = append(redisMessageBus.Spec.Metadata, componentMetadataItem{
+		Name:  "redisHost",
+		Value: "localhost:6379",
+	})
+	redisMessageBus.Spec.Metadata = append(redisMessageBus.Spec.Metadata, componentMetadataItem{
+		Name:  "redisPassword",
+		Value: "",
+	})
 
 	b, err := yaml.Marshal(&redisMessageBus)
 	if err != nil {
