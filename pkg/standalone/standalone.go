@@ -158,8 +158,7 @@ func installActionsBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, versi
 	defer wg.Done()
 
 	archiveExt := "tar.gz"
-	// TODO: Remove  version != "edge" once we complete September Iteration 1
-	if runtime.GOOS == "windows" || strings.Contains(version, "v0.1.4") /* backward compat */ || version != "edge" {
+	if runtime.GOOS == "windows" || strings.Contains(version, "v0.1.4") /* only v0.1.4-alpha uses zip for all OSs */ {
 		archiveExt = "zip"
 	}
 
