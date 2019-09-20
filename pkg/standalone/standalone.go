@@ -158,7 +158,7 @@ func installActionsBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, versi
 	defer wg.Done()
 
 	archiveExt := "tar.gz"
-	if runtime.GOOS == "windows" || strings.Contains(version, "v0.1.4") /* only v0.1.4-alpha uses zip for all OSs */ {
+	if runtime.GOOS == "windows" || strings.Contains(version, "0.3.0-alpha") /* only 0.3.0-alpha uses zip for all OSs */ {
 		archiveExt = "zip"
 	}
 
