@@ -106,7 +106,7 @@ jobs:
         itemPattern: '**'
         targetPath: '$(Pipeline.Workspace)'
     - task: GitHubRelease@0
-      displayName: 'Upload Actions binaries to GitHub Release'
+      displayName: 'Upload Actions CLI binaries to GitHub Release'
       inputs:
         gitHubConnection: 'GitHub'
         repositoryName: '$(Build.Repository.Name)'
@@ -114,8 +114,10 @@ jobs:
         target: '$(Build.SourceVersion)'
         tagSource: 'manual'
         tag: 'v$(REL_VERSION)'
-        title: 'Actions Runtime $(REL_VERSION) Release'
-        assets: '$(Pipeline.Workspace)/**'
+        title: 'Actions CLI $(REL_VERSION)'
+        assets: |
+          $(Pipeline.Workspace)/drop/*.zip
+          $(Pipeline.Workspace)/drop/*.tar.gz
         releaseNotesFile: './docs/release_notes/v$(REL_VERSION).md'
         isPreRelease: true
         addChangeLog: false
