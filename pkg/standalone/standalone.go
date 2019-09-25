@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"archive/zip"
 	"compress/gzip"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -354,6 +355,12 @@ func downloadFile(dir string, url string) (string, error) {
 		return "", err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode == 404 {
+		return "", errors.New("runtime version not found")
+	} else if resp.StatusCode != 200 {
+		return "", fmt.Errorf("download failed with %d", resp.StatusCode)
+	}
 
 	out, err := os.Create(filepath)
 	if err != nil {
