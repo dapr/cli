@@ -356,11 +356,9 @@ func downloadFile(dir string, url string) (string, error) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
-		if resp.StatusCode == 404 {
-			return "", errors.New("runtime version not found")
-		}
-
+	if resp.StatusCode == 404 {
+		return "", errors.New("runtime version not found")
+	} else if resp.StatusCode != 200 {
 		return "", fmt.Errorf("download failed with %d", resp.StatusCode)
 	}
 
