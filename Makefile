@@ -108,4 +108,4 @@ release: build archive
 ################################################################################
 .PHONY: test
 test:
-	go test ./pkg/...
+	go test ./pkg/... -mod=vendor

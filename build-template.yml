@@ -12,6 +12,7 @@ jobs:
     GOOS: ${{ parameters.targetOS }}
     GOARCH: ${{ parameters.targetArch }}
     REL_VERSION: ${{ parameters.relVersion }}
+    GOPROXY: https://proxy.golang.org
   pool:
     vmImage: '${{ parameters.poolImage }}'
   steps:
