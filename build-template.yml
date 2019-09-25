@@ -12,6 +12,7 @@ jobs:
     GOOS: ${{ parameters.targetOS }}
     GOARCH: ${{ parameters.targetArch }}
     REL_VERSION: ${{ parameters.relVersion }}
+    GOPROXY: https://proxy.golang.org
   pool:
     vmImage: '${{ parameters.poolImage }}'
   steps:
@@ -28,19 +29,7 @@ jobs:
           mkdir -p '$(modulePath)'
           shopt -s extglob
           mv !(gopath) '$(modulePath)'
-          echo '##vso[task.prependpath]$(GOBIN)'
-    - task: Bash@3
-      displayName: 'Install dep'
-      inputs:
-        targetType: 'inline'
-        script: |
-          curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh  
-    - task: CmdLine@2
-      displayName: 'Run make deps'
-      inputs:
-        script: 'make deps'
-        workingDirectory: '$(modulePath)'
-        failOnStderr: true
+          echo '##vso[task.prependpath]$(GOBIN)' 
     - task: CmdLine@2
       displayName: 'Run make test'
       condition: ne('${{ parameters.targetArch }}', 'arm')
