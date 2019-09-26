@@ -19,7 +19,7 @@ import (
 const (
 	componentsDirName           = "components"
 	redisMessageBusYamlFileName = "redis_messagebus.yaml"
-	redisYamlFileName           = "redis.yaml"
+	redisStateStoreYamlFileName = "redis.yaml"
 )
 
 type RunConfig struct {
@@ -125,22 +125,21 @@ func getAppCommand(actionsPort int, command string, args []string) (*exec.Cmd, e
 	return cmd, nil
 }
 
-func isNotExists(elem ...string) bool {
+func directoryOrFileExists(directoryOrFilePath string) bool {
+	_, err := os.Stat(directoryOrFilePath)
+	return !os.IsNotExist(err)
+}
+
+func absoluteComponentsDir() (string, error) {
 	wd, err := os.Getwd()
 	if err != nil {
-		return false
+		return "", err
 	}
 
-	_, err = os.Stat(path.Join(append([]string{wd}, elem...)...))
-	return os.IsNotExist(err)
+	return path.Join(wd, componentsDirName), nil
 }
 
 func createRedisStateStore() error {
-	wd, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-
 	redisStore := component{
 		APIVersion: "actions.io/v1alpha1",
 		Kind:       "Component",
@@ -163,8 +162,13 @@ func createRedisStateStore() error {
 		return err
 	}
 
-	os.Mkdir(path.Join(wd, componentsDirName), 0777)
-	err = ioutil.WriteFile(path.Join(path.Join(wd, componentsDirName), redisYamlFileName), b, 0644)
+	componentsDir, err := absoluteComponentsDir()
+	if err != nil {
+		return err
+	}
+
+	os.Mkdir(componentsDir, 0777)
+	err = ioutil.WriteFile(path.Join(componentsDir, redisStateStoreYamlFileName), b, 0644)
 	if err != nil {
 		return err
 	}
@@ -173,11 +177,6 @@ func createRedisStateStore() error {
 }
 
 func createRedisPubSub() error {
-	wd, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-
 	redisMessageBus := component{
 		APIVersion: "actions.io/v1alpha1",
 		Kind:       "Component",
@@ -200,8 +199,13 @@ func createRedisPubSub() error {
 		return err
 	}
 
-	os.Mkdir(path.Join(wd, componentsDirName), 0777)
-	err = ioutil.WriteFile(path.Join(path.Join(wd, componentsDirName), redisMessageBusYamlFileName), b, 0644)
+	componentsDir, err := absoluteComponentsDir()
+	if err != nil {
+		return err
+	}
+
+	os.Mkdir(componentsDir, 0777)
+	err = ioutil.WriteFile(path.Join(componentsDir, redisMessageBusYamlFileName), b, 0644)
 	if err != nil {
 		return err
 	}
@@ -226,14 +230,19 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		}
 	}
 
-	if isNotExists(componentsDirName, redisYamlFileName) {
+	componentsDir, err := absoluteComponentsDir()
+	if err != nil {
+		return nil, err
+	}
+
+	if !directoryOrFileExists(path.Join(componentsDir, redisStateStoreYamlFileName)) {
 		err = createRedisStateStore()
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	if isNotExists(componentsDirName, redisMessageBusYamlFileName) {
+	if !directoryOrFileExists(path.Join(componentsDir, redisMessageBusYamlFileName)) {
 		err = createRedisPubSub()
 		if err != nil {
 			return nil, err
