@@ -16,6 +16,12 @@ import (
 	"github.com/phayes/freeport"
 )
 
+const (
+	componentsDirName           = "components"
+	redisMessageBusYamlFileName = "redis_messagebus.yaml"
+	redisYamlFileName           = "redis.yaml"
+)
+
 type RunConfig struct {
 	AppID           string
 	AppPort         int
@@ -119,6 +125,16 @@ func getAppCommand(actionsPort int, command string, args []string) (*exec.Cmd, e
 	return cmd, nil
 }
 
+func isNotExists(elem ...string) bool {
+	wd, err := os.Getwd()
+	if err != nil {
+		return false
+	}
+
+	_, err = os.Stat(path.Join(append([]string{wd}, elem...)...))
+	return os.IsNotExist(err)
+}
+
 func createRedisStateStore() error {
 	wd, err := os.Getwd()
 	if err != nil {
@@ -147,8 +163,8 @@ func createRedisStateStore() error {
 		return err
 	}
 
-	os.Mkdir(path.Join(wd, "components"), 0777)
-	err = ioutil.WriteFile(path.Join(path.Join(wd, "components"), "redis.yaml"), b, 0644)
+	os.Mkdir(path.Join(wd, componentsDirName), 0777)
+	err = ioutil.WriteFile(path.Join(path.Join(wd, componentsDirName), redisYamlFileName), b, 0644)
 	if err != nil {
 		return err
 	}
@@ -184,8 +200,8 @@ func createRedisPubSub() error {
 		return err
 	}
 
-	os.Mkdir(path.Join(wd, "components"), 0777)
-	err = ioutil.WriteFile(path.Join(path.Join(wd, "components"), "redis_messagebus.yaml"), b, 0644)
+	os.Mkdir(path.Join(wd, componentsDirName), 0777)
+	err = ioutil.WriteFile(path.Join(path.Join(wd, componentsDirName), redisMessageBusYamlFileName), b, 0644)
 	if err != nil {
 		return err
 	}
@@ -210,14 +226,18 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		}
 	}
 
-	err = createRedisStateStore()
-	if err != nil {
-		return nil, err
+	if isNotExists(componentsDirName, redisYamlFileName) {
+		err = createRedisStateStore()
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	err = createRedisPubSub()
-	if err != nil {
-		return nil, err
+	if isNotExists(componentsDirName, redisMessageBusYamlFileName) {
+		err = createRedisPubSub()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	actionsCMD, actionsPort, err := getActionsCommand(appID, config.Port, config.AppPort, config.ConfigFile, config.EnableProfiling, config.ProfilePort, config.LogLevel)
