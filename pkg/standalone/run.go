@@ -125,8 +125,8 @@ func getAppCommand(actionsPort int, command string, args []string) (*exec.Cmd, e
 	return cmd, nil
 }
 
-func directoryOrFileExists(directoryOrFilePath string) bool {
-	_, err := os.Stat(directoryOrFilePath)
+func dirOrFileExists(dirOrFilePath string) bool {
+	_, err := os.Stat(dirOrFilePath)
 	return !os.IsNotExist(err)
 }
 
@@ -235,14 +235,14 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		return nil, err
 	}
 
-	if !directoryOrFileExists(path.Join(componentsDir, redisStateStoreYamlFileName)) {
+	if !dirOrFileExists(path.Join(componentsDir, redisStateStoreYamlFileName)) {
 		err = createRedisStateStore()
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	if !directoryOrFileExists(path.Join(componentsDir, redisMessageBusYamlFileName)) {
+	if !dirOrFileExists(path.Join(componentsDir, redisMessageBusYamlFileName)) {
 		err = createRedisPubSub()
 		if err != nil {
 			return nil, err
