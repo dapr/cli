@@ -22,6 +22,7 @@ var profilePort int
 var appID string
 var configFile string
 var port int
+var maxConcurrency int
 var image string
 var enableProfiling bool
 var logLevel string
@@ -64,6 +65,7 @@ var RunCmd = &cobra.Command{
 				EnableProfiling: enableProfiling,
 				ProfilePort:     profilePort,
 				LogLevel:        logLevel,
+				MaxConcurrency:  maxConcurrency,
 			})
 			if err != nil {
 				print.FailureStatusEvent(os.Stdout, err.Error())
@@ -199,6 +201,7 @@ func init() {
 	RunCmd.Flags().IntVarP(&profilePort, "profile-port", "", -1, "the port for the profile server to listen on")
 	RunCmd.Flags().BoolVar(&kubernetesMode, "kubernetes", false, "Build and deploy your app and Actions to a Kubernetes cluster")
 	RunCmd.Flags().StringVarP(&logLevel, "log-level", "", "info", "Sets the log verbosity. Valid values are: debug, info, warning, error, fatal, or panic. Default is info")
+	RunCmd.Flags().IntVarP(&maxConcurrency, "max-concurrency", "", -1, "controls the concurrency level of the app. Default is unlimited")
 
 	RootCmd.AddCommand(RunCmd)
 }

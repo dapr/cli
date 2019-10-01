@@ -31,6 +31,7 @@ type RunConfig struct {
 	EnableProfiling bool
 	ProfilePort     int
 	LogLevel        string
+	MaxConcurrency  int
 }
 
 type RunOutput struct {
@@ -57,7 +58,7 @@ type componentMetadataItem struct {
 	Value string `yaml:"value"`
 }
 
-func getActionsCommand(appID string, actionsPort int, appPort int, configFile string, enableProfiling bool, profilePort int, logLevel string) (*exec.Cmd, int, error) {
+func getActionsCommand(appID string, actionsPort int, appPort int, configFile string, enableProfiling bool, profilePort int, logLevel string, maxConcurrency int) (*exec.Cmd, int, error) {
 	if actionsPort < 0 {
 		port, err := freeport.GetFreePort()
 		if err != nil {
@@ -67,12 +68,16 @@ func getActionsCommand(appID string, actionsPort int, appPort int, configFile st
 		actionsPort = port
 	}
 
+	if maxConcurrency < 1 {
+		maxConcurrency = -1
+	}
+
 	actionsCMD := "actionsrt"
 	if runtime.GOOS == "windows" {
 		actionsCMD = fmt.Sprintf("%s.exe", actionsCMD)
 	}
 
-	args := []string{"--actions-id", appID, "--actions-http-port", fmt.Sprintf("%v", actionsPort), "--log-level", logLevel}
+	args := []string{"--actions-id", appID, "--actions-http-port", fmt.Sprintf("%v", actionsPort), "--log-level", logLevel, "--max-concurrency", fmt.Sprintf("%v", maxConcurrency)}
 	if appPort > -1 {
 		args = append(args, "--app-port")
 		args = append(args, fmt.Sprintf("%v", appPort))
@@ -249,7 +254,7 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		}
 	}
 
-	actionsCMD, actionsPort, err := getActionsCommand(appID, config.Port, config.AppPort, config.ConfigFile, config.EnableProfiling, config.ProfilePort, config.LogLevel)
+	actionsCMD, actionsPort, err := getActionsCommand(appID, config.Port, config.AppPort, config.ConfigFile, config.EnableProfiling, config.ProfilePort, config.LogLevel, config.MaxConcurrency)
 	if err != nil {
 		return nil, err
 	}
