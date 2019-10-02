@@ -1,15 +1,15 @@
 package standalone
 
 import (
-	"github.com/actionscore/cli/pkg/age"
-	"github.com/actionscore/cli/pkg/rundata"
-	"github.com/actionscore/cli/utils"
+	"github.com/dapr/cli/pkg/age"
+	"github.com/dapr/cli/pkg/rundata"
+	"github.com/dapr/cli/utils"
 	ps "github.com/mitchellh/go-ps"
 )
 
 type ListOutput struct {
 	AppID       string `csv:"APP ID"`
-	ActionsPort int    `csv:"ACTIONS PORT"`
+	DaprPort int    `csv:"DAPR PORT"`
 	AppPort     int    `csv:"APP PORT"`
 	Command     string `csv:"COMMAND"`
 	Age         string `csv:"AGE"`
@@ -34,7 +34,7 @@ func List() ([]ListOutput, error) {
 		// TODO: Call to /metadata and validate the runtime data
 		var listRow = ListOutput{
 			AppID:       runtimeLine.AppId,
-			ActionsPort: runtimeLine.ActionsPort,
+			DaprPort: runtimeLine.DaprPort,
 			Command:     utils.TruncateString(runtimeLine.Command, 20),
 			Created:     runtimeLine.Created.Format("2006-01-02 15:04.05"),
 			PID:         runtimeLine.PID,

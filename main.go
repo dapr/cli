@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/actionscore/cli/cmd"
+	"github.com/dapr/cli/cmd"
 )
 
 // Values for version and apiVersion are injected by the build

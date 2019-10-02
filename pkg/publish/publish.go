@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/actionscore/cli/pkg/api"
-	"github.com/actionscore/cli/pkg/standalone"
+	"github.com/dapr/cli/pkg/api"
+	"github.com/dapr/cli/pkg/standalone"
 )
 
 func PublishTopic(topic, payload string) error {
@@ -21,7 +21,7 @@ func PublishTopic(topic, payload string) error {
 	}
 
 	if len(l) == 0 {
-		return errors.New("couldn't find a running Actions instance")
+		return errors.New("couldn't find a running Dapr instance")
 	}
 
 	app := l[0]
@@ -31,7 +31,7 @@ func PublishTopic(topic, payload string) error {
 		b = []byte(payload)
 	}
 
-	url := fmt.Sprintf("http://localhost:%s/v%s/publish/%s", fmt.Sprintf("%v", app.ActionsPort), api.RuntimeAPIVersion, topic)
+	url := fmt.Sprintf("http://localhost:%s/v%s/publish/%s", fmt.Sprintf("%v", app.DaprPort), api.RuntimeAPIVersion, topic)
 	_, err = http.Post(url, "application/json", bytes.NewBuffer(b))
 	if err != nil {
 		return err

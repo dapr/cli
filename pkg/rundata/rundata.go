@@ -19,13 +19,13 @@ import (
 )
 
 var (
-	RUN_DATA_FILE      string = "actions-run-data.ldj"
-	RUN_DATA_LOCK_FILE string = "actions-run-data.lock"
+	RUN_DATA_FILE      string = "dapr-run-data.ldj"
+	RUN_DATA_LOCK_FILE string = "dapr-run-data.lock"
 )
 
 type RunData struct {
-	ActionsRunId string
-	ActionsPort  int
+	DaprRunId string
+	DaprPort  int
 	AppId        string
 	AppPort      int
 	Command      string
@@ -88,7 +88,7 @@ func ReadAllRunData() (*[]RunData, error) {
 	return &runData, nil
 }
 
-func ClearRunData(actionsRunId string) error {
+func ClearRunData(daprRunId string) error {
 	lockFile, err := tryGetRunDataLock()
 	if err != nil {
 		return err
@@ -118,7 +118,7 @@ func ClearRunData(actionsRunId string) error {
 			// Ignore broken lines for now
 			continue
 		}
-		if line.ActionsRunId != actionsRunId {
+		if line.DaprRunId != daprRunId {
 			appendRunDataEntry(runFile, &line)
 			// Ignore errors for now
 		}

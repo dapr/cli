@@ -1,7 +1,7 @@
 package kubernetes
 
 import (
-	"github.com/actionscore/cli/pkg/age"
+	"github.com/dapr/cli/pkg/age"
 	core_v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -27,13 +27,13 @@ func List() ([]ListOutput, error) {
 	l := []ListOutput{}
 	for _, p := range podList.Items {
 		for _, c := range p.Spec.Containers {
-			if c.Name == "actionsrt" {
+			if c.Name == "daprd" {
 				lo := ListOutput{}
 				for i, a := range c.Args {
 					if a == "--app-port" {
 						port := c.Args[i+1]
 						lo.AppPort = port
-					} else if a == "--actions-id" {
+					} else if a == "--dapr-id" {
 						id := c.Args[i+1]
 						lo.AppID = id
 					}

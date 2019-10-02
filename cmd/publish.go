@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/actionscore/cli/pkg/print"
-	"github.com/actionscore/cli/pkg/publish"
+	"github.com/dapr/cli/pkg/print"
+	"github.com/dapr/cli/pkg/publish"
 	"github.com/spf13/cobra"
 )
 

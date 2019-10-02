@@ -5,13 +5,13 @@ import (
 	"runtime"
 )
 
-// GetRuntimeVersion returns the version for the local Actions runtime
+// GetRuntimeVersion returns the version for the local Dapr runtime
 func GetRuntimeVersion() string {
 	runtimeName := ""
 	if runtime.GOOS == "windows" {
-		runtimeName = "actionsrt.exe"
+		runtimeName = "daprd.exe"
 	} else {
-		runtimeName = "actionsrt"
+		runtimeName = "daprd"
 	}
 
 	out, err := exec.Command(runtimeName, "--version").Output()

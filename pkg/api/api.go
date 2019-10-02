@@ -1,6 +1,6 @@
 package api
 
-// RuntimeAPIVersion represents the version for the Actions runtime API
+// RuntimeAPIVersion represents the version for the Dapr runtime API
 var (
 	RuntimeAPIVersion = "1.0"
 )

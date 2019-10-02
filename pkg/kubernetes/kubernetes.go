@@ -7,15 +7,15 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/actionscore/cli/pkg/print"
+	"github.com/dapr/cli/pkg/print"
 
 	"github.com/briandowns/spinner"
 )
 
-const actionsManifestPath = "https://actionsreleases.blob.core.windows.net/manifest/actions-operator.yaml"
+const daprManifestPath = "https://actionsreleases.blob.core.windows.net/manifest/dapr-operator.yaml"
 
 func Init() error {
-	msg := "Deploying the Actions Operator to your cluster..."
+	msg := "Deploying the Dapr Operator to your cluster..."
 	var s *spinner.Spinner
 
 	if runtime.GOOS == "windows" {
@@ -28,7 +28,7 @@ func Init() error {
 		s.Start()
 	}
 
-	err := runCmdAndWait("kubectl", "apply", "-f", actionsManifestPath)
+	err := runCmdAndWait("kubectl", "apply", "-f", daprManifestPath)
 	if err != nil {
 		if s != nil {
 			s.Stop()

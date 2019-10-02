@@ -1,4 +1,4 @@
-module github.com/actionscore/cli
+module github.com/dapr/cli
 
 go 1.12
 
