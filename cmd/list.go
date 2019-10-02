@@ -3,17 +3,17 @@ package cmd
 import (
 	"os"
 
-	"github.com/actionscore/cli/pkg/kubernetes"
-	"github.com/actionscore/cli/pkg/print"
-	"github.com/actionscore/cli/pkg/standalone"
-	"github.com/actionscore/cli/utils"
+	"github.com/dapr/cli/pkg/kubernetes"
+	"github.com/dapr/cli/pkg/print"
+	"github.com/dapr/cli/pkg/standalone"
+	"github.com/dapr/cli/utils"
 	"github.com/gocarina/gocsv"
 	"github.com/spf13/cobra"
 )
 
 var ListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "List all Actions",
+	Short: "List all dapr instances",
 	Run: func(cmd *cobra.Command, args []string) {
 		if kubernetesMode {
 			list, err := kubernetes.List()
@@ -37,7 +37,7 @@ var ListCmd = &cobra.Command{
 			}
 
 			if len(list) == 0 {
-				println("No Actions found.")
+				println("No Dapr found.")
 				return
 			}
 
@@ -53,6 +53,6 @@ var ListCmd = &cobra.Command{
 }
 
 func init() {
-	ListCmd.Flags().BoolVar(&kubernetesMode, "kubernetes", false, "List all Actions pods in a k8s cluster")
+	ListCmd.Flags().BoolVar(&kubernetesMode, "kubernetes", false, "List all Dapr pods in a k8s cluster")
 	RootCmd.AddCommand(ListCmd)
 }

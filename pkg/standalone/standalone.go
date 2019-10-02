@@ -19,15 +19,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/actionscore/cli/pkg/print"
+	"github.com/dapr/cli/pkg/print"
 	"github.com/briandowns/spinner"
 )
 
-const baseDownloadURL = "https://actionsreleases.blob.core.windows.net/release"
-const actionsImageURL = "actionscore.azurecr.io/actions"
+const baseDownloadURL = "https://daprreleases.blob.core.windows.net/release"
+const daprImageURL = "dapr.azurecr.io/dapr"
 
 func Init(runtimeVersion string) error {
-	dir, err := getActionsDir()
+	dir, err := getDaprDir()
 	if err != nil {
 		return err
 	}
@@ -36,7 +36,7 @@ func Init(runtimeVersion string) error {
 	errorChan := make(chan error)
 
 	initSteps := []func(*sync.WaitGroup, chan<- error, string, string){}
-	initSteps = append(initSteps, installActionsBinary)
+	initSteps = append(initSteps, installDaprBinary)
 	initSteps = append(initSteps, runPlacementService)
 	initSteps = append(initSteps, runRedis)
 
@@ -80,17 +80,17 @@ func Init(runtimeVersion string) error {
 	return nil
 }
 
-func getActionsDir() (string, error) {
+func getDaprDir() (string, error) {
 	p := ""
 
 	if runtime.GOOS == "windows" {
-		p = path_filepath.FromSlash("c:/actions")
+		p = path_filepath.FromSlash("c:/dapr")
 	} else {
 		usr, err := user.Current()
 		if err != nil {
 			return "", err
 		}
-		p = path.Join(usr.HomeDir, ".actions")
+		p = path.Join(usr.HomeDir, ".dapr")
 	}
 
 	err := os.MkdirAll(p, 0700)
@@ -143,7 +143,7 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 		osPort = 6050
 	}
 
-	image := fmt.Sprintf("%s:%s", actionsImageURL, version)
+	image := fmt.Sprintf("%s:%s", daprImageURL, version)
 	err := runCmd("docker", "run", "--restart", "always", "-d", "-p", fmt.Sprintf("%v:50005", osPort), "--entrypoint", "./placement", image)
 	if err != nil {
 		runError := isContainerRunError(err)
@@ -155,7 +155,7 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 	errorChan <- nil
 }
 
-func installActionsBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version string) {
+func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version string) {
 	defer wg.Done()
 
 	archiveExt := "tar.gz"
@@ -163,10 +163,10 @@ func installActionsBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, versi
 		archiveExt = "zip"
 	}
 
-	actionsURL := fmt.Sprintf("%s/%s/actionsrt_%s_%s.%s", baseDownloadURL, version, runtime.GOOS, runtime.GOARCH, archiveExt)
-	filepath, err := downloadFile(dir, actionsURL)
+	daprURL := fmt.Sprintf("%s/%s/daprd_%s_%s.%s", baseDownloadURL, version, runtime.GOOS, runtime.GOARCH, archiveExt)
+	filepath, err := downloadFile(dir, daprURL)
 	if err != nil {
-		errorChan <- fmt.Errorf("Error downloading actions binary: %s", err)
+		errorChan <- fmt.Errorf("Error downloading dapr binary: %s", err)
 		return
 	}
 
@@ -180,19 +180,19 @@ func installActionsBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, versi
 	}
 
 	if err != nil {
-		errorChan <- fmt.Errorf("Error extracting actions binary: %s", err)
+		errorChan <- fmt.Errorf("Error extracting dapr binary: %s", err)
 		return
 	}
 
-	actionsPath, err := moveFileToPath(extractedFilePath)
+	daprPath, err := moveFileToPath(extractedFilePath)
 	if err != nil {
-		errorChan <- fmt.Errorf("Error moving actions binary to path: %s", err)
+		errorChan <- fmt.Errorf("Error moving dapr binary to path: %s", err)
 		return
 	}
 
-	err = makeExecutable(actionsPath)
+	err = makeExecutable(daprPath)
 	if err != nil {
-		errorChan <- fmt.Errorf("Error making actions binary executable: %s", err)
+		errorChan <- fmt.Errorf("Error making dapr binary executable: %s", err)
 		return
 	}
 
@@ -290,8 +290,8 @@ func untar(filepath, targetDir string) (string, error) {
 
 		switch header.Typeflag {
 		case tar.TypeReg:
-			// Extract only actionsrt
-			if header.Name != "actionsrt" {
+			// Extract only daprd
+			if header.Name != "daprd" {
 				continue
 			}
 
@@ -316,13 +316,13 @@ func moveFileToPath(filepath string) (string, error) {
 
 	if runtime.GOOS == "windows" {
 		p := os.Getenv("PATH")
-		if !strings.Contains(strings.ToLower(string(p)), strings.ToLower("c:\\actions")) {
-			err := runCmd("SETX", "PATH", p+";c:\\actions")
+		if !strings.Contains(strings.ToLower(string(p)), strings.ToLower("c:\\dapr")) {
+			err := runCmd("SETX", "PATH", p+";c:\\dapr")
 			if err != nil {
 				return "", err
 			}
 		}
-		return "c:\\actions\\actionsrt.exe", nil
+		return "c:\\dapr\\daprd.exe", nil
 	}
 
 	destFilePath = path.Join("/usr/local/bin", fileName)

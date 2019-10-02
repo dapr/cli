@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/actionscore/cli/pkg/print"
-	"github.com/actionscore/cli/pkg/send"
+	"github.com/dapr/cli/pkg/print"
+	"github.com/dapr/cli/pkg/send"
 	"github.com/spf13/cobra"
 )
 
@@ -15,7 +15,7 @@ var sendPayload string
 
 var SendCmd = &cobra.Command{
 	Use:   "send",
-	Short: "invoke an Actions app or actor with an optional payload",
+	Short: "invoke a dapr app with an optional payload",
 	Run: func(cmd *cobra.Command, args []string) {
 		response, err := send.InvokeApp(sendAppID, sendAppMethod, sendPayload)
 		if err != nil {

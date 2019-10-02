@@ -35,8 +35,8 @@ type RunConfig struct {
 }
 
 type RunOutput struct {
-	ActionsCMD  *exec.Cmd
-	ActionsPort int
+	DaprCMD  *exec.Cmd
+	DaprPort int
 	AppID       string
 	AppCMD      *exec.Cmd
 }
@@ -58,26 +58,26 @@ type componentMetadataItem struct {
 	Value string `yaml:"value"`
 }
 
-func getActionsCommand(appID string, actionsPort int, appPort int, configFile string, enableProfiling bool, profilePort int, logLevel string, maxConcurrency int) (*exec.Cmd, int, error) {
-	if actionsPort < 0 {
+func getDaprCommand(appID string, daprPort int, appPort int, configFile string, enableProfiling bool, profilePort int, logLevel string, maxConcurrency int) (*exec.Cmd, int, error) {
+	if daprPort < 0 {
 		port, err := freeport.GetFreePort()
 		if err != nil {
 			return nil, -1, err
 		}
 
-		actionsPort = port
+		daprPort = port
 	}
 
 	if maxConcurrency < 1 {
 		maxConcurrency = -1
 	}
 
-	actionsCMD := "actionsrt"
+	daprCMD := "daprd"
 	if runtime.GOOS == "windows" {
-		actionsCMD = fmt.Sprintf("%s.exe", actionsCMD)
+		daprCMD = fmt.Sprintf("%s.exe", daprCMD)
 	}
 
-	args := []string{"--actions-id", appID, "--actions-http-port", fmt.Sprintf("%v", actionsPort), "--log-level", logLevel, "--max-concurrency", fmt.Sprintf("%v", maxConcurrency)}
+	args := []string{"--dapr-id", appID, "--dapr-http-port", fmt.Sprintf("%v", daprPort), "--log-level", logLevel, "--max-concurrency", fmt.Sprintf("%v", maxConcurrency)}
 	if appPort > -1 {
 		args = append(args, "--app-port")
 		args = append(args, fmt.Sprintf("%v", appPort))
@@ -91,7 +91,7 @@ func getActionsCommand(appID string, actionsPort int, appPort int, configFile st
 		args = append(args, "localhost:50005")
 	}
 
-	args = append(args, "--actions-grpc-port")
+	args = append(args, "--dapr-grpc-port")
 	grpcPort, err := freeport.GetFreePort()
 	if err != nil {
 		return nil, -1, err
@@ -118,14 +118,14 @@ func getActionsCommand(appID string, actionsPort int, appPort int, configFile st
 		args = append(args, fmt.Sprintf("%v", profilePort))
 	}
 
-	cmd := exec.Command(actionsCMD, args...)
-	return cmd, actionsPort, nil
+	cmd := exec.Command(daprCMD, args...)
+	return cmd, daprPort, nil
 }
 
-func getAppCommand(actionsPort int, command string, args []string) (*exec.Cmd, error) {
+func getAppCommand(daprPort int, command string, args []string) (*exec.Cmd, error) {
 	cmd := exec.Command(command, args...)
 	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, fmt.Sprintf("ACTIONS_PORT=%v", actionsPort))
+	cmd.Env = append(cmd.Env, fmt.Sprintf("DAPR_PORT=%v", daprPort))
 
 	return cmd, nil
 }
@@ -146,7 +146,7 @@ func absoluteComponentsDir() (string, error) {
 
 func createRedisStateStore() error {
 	redisStore := component{
-		APIVersion: "actions.io/v1alpha1",
+		APIVersion: "dapr.io/v1alpha1",
 		Kind:       "Component",
 	}
 
@@ -183,7 +183,7 @@ func createRedisStateStore() error {
 
 func createRedisPubSub() error {
 	redisMessageBus := component{
-		APIVersion: "actions.io/v1alpha1",
+		APIVersion: "dapr.io/v1alpha1",
 		Kind:       "Component",
 	}
 
@@ -224,14 +224,14 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		appID = strings.Replace(sillyname.GenerateStupidName(), " ", "-", -1)
 	}
 
-	actions, err := List()
+	dapr, err := List()
 	if err != nil {
 		return nil, err
 	}
 
-	for _, a := range actions {
+	for _, a := range dapr {
 		if appID == a.AppID {
-			return nil, fmt.Errorf("actions with ID %s is already running", appID)
+			return nil, fmt.Errorf("dapr with ID %s is already running", appID)
 		}
 	}
 
@@ -254,14 +254,14 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		}
 	}
 
-	actionsCMD, actionsPort, err := getActionsCommand(appID, config.Port, config.AppPort, config.ConfigFile, config.EnableProfiling, config.ProfilePort, config.LogLevel, config.MaxConcurrency)
+	daprCMD, daprPort, err := getDaprCommand(appID, config.Port, config.AppPort, config.ConfigFile, config.EnableProfiling, config.ProfilePort, config.LogLevel, config.MaxConcurrency)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, a := range actions {
-		if actionsPort == a.ActionsPort {
-			return nil, fmt.Errorf("there's already an actions instance running with port %v", actionsPort)
+	for _, a := range dapr {
+		if daprPort == a.DaprPort {
+			return nil, fmt.Errorf("there's already an dapr instance running with port %v", daprPort)
 		}
 	}
 
@@ -277,15 +277,15 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		runArgs = config.Arguments[1:]
 	}
 
-	appCMD, err := getAppCommand(actionsPort, cmd, runArgs)
+	appCMD, err := getAppCommand(daprPort, cmd, runArgs)
 	if err != nil {
 		return nil, err
 	}
 
 	return &RunOutput{
-		ActionsCMD:  actionsCMD,
+		DaprCMD:  daprCMD,
 		AppCMD:      appCMD,
 		AppID:       appID,
-		ActionsPort: actionsPort,
+		DaprPort: daprPort,
 	}, nil
 }

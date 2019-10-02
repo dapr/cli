@@ -9,10 +9,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/actionscore/cli/pkg/kubernetes"
-	"github.com/actionscore/cli/pkg/print"
-	"github.com/actionscore/cli/pkg/rundata"
-	"github.com/actionscore/cli/pkg/standalone"
+	"github.com/dapr/cli/pkg/kubernetes"
+	"github.com/dapr/cli/pkg/print"
+	"github.com/dapr/cli/pkg/rundata"
+	"github.com/dapr/cli/pkg/standalone"
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
@@ -29,7 +29,7 @@ var logLevel string
 
 var RunCmd = &cobra.Command{
 	Use:   "run",
-	Short: "Launches Actions and your app side by side",
+	Short: "Launches dapr and your app side by side",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		uuid, err := uuid.NewRandom()
@@ -38,7 +38,7 @@ var RunCmd = &cobra.Command{
 			return
 		}
 
-		actionsRunID := uuid.String()
+		daprRunID := uuid.String()
 
 		if kubernetesMode {
 			output, err := kubernetes.Run(&kubernetes.RunConfig{
@@ -75,22 +75,22 @@ var RunCmd = &cobra.Command{
 			var sigCh = make(chan os.Signal)
 			signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
 
-			actionsRunning := make(chan bool, 1)
+			daprRunning := make(chan bool, 1)
 			appRunning := make(chan bool, 1)
-			actionsRunCreatedTime := time.Now()
+			daprRunCreatedTime := time.Now()
 
 			go func() {
-				print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Starting Actions with id %s on port %v", output.AppID, output.ActionsPort))
+				print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Starting Dapr with id %s on port %v", output.AppID, output.DaprPort))
 
-				stdErrPipe, err := output.ActionsCMD.StderrPipe()
+				stdErrPipe, err := output.DaprCMD.StderrPipe()
 				if err != nil {
-					print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error creating stderr for Actions: %s", err.Error()))
+					print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error creating stderr for Dapr: %s", err.Error()))
 					os.Exit(1)
 				}
 
-				stdOutPipe, err := output.ActionsCMD.StdoutPipe()
+				stdOutPipe, err := output.DaprCMD.StdoutPipe()
 				if err != nil {
-					print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error creating stdout for Actions: %s", err.Error()))
+					print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error creating stdout for Dapr: %s", err.Error()))
 					os.Exit(1)
 				}
 
@@ -98,26 +98,26 @@ var RunCmd = &cobra.Command{
 				outScanner := bufio.NewScanner(stdOutPipe)
 				go func() {
 					for errScanner.Scan() {
-						fmt.Printf(print.Yellow(fmt.Sprintf("== ACTIONS == %s\n", errScanner.Text())))
+						fmt.Printf(print.Yellow(fmt.Sprintf("== DAPR == %s\n", errScanner.Text())))
 					}
 				}()
 
 				go func() {
 					for outScanner.Scan() {
-						fmt.Printf(print.Yellow(fmt.Sprintf("== ACTIONS == %s\n", outScanner.Text())))
+						fmt.Printf(print.Yellow(fmt.Sprintf("== DAPR == %s\n", outScanner.Text())))
 					}
 				}()
 
-				err = output.ActionsCMD.Start()
+				err = output.DaprCMD.Start()
 				if err != nil {
 					print.FailureStatusEvent(os.Stdout, err.Error())
 					os.Exit(1)
 				}
 
-				actionsRunning <- true
+				daprRunning <- true
 			}()
 
-			<-actionsRunning
+			<-daprRunning
 
 			go func() {
 				stdErrPipe, err := output.AppCMD.StderrPipe()
@@ -158,27 +158,27 @@ var RunCmd = &cobra.Command{
 			<-appRunning
 
 			rundata.AppendRunData(&rundata.RunData{
-				ActionsRunId: actionsRunID,
-				AppId:        output.AppID,
-				ActionsPort:  output.ActionsPort,
-				AppPort:      appPort,
-				Command:      strings.Join(args, " "),
-				Created:      actionsRunCreatedTime,
-				PID:          os.Getpid(),
+				DaprRunId: daprRunID,
+				AppId:     output.AppID,
+				DaprPort:  output.DaprPort,
+				AppPort:   appPort,
+				Command:   strings.Join(args, " "),
+				Created:   daprRunCreatedTime,
+				PID:       os.Getpid(),
 			})
 
-			print.SuccessStatusEvent(os.Stdout, "You're up and running! Both Actions and your app logs will appear here.\n")
+			print.SuccessStatusEvent(os.Stdout, "You're up and running! Both Dapr and your app logs will appear here.\n")
 
 			<-sigCh
 			print.InfoStatusEvent(os.Stdout, "\nterminated signal recieved: shutting down")
 
-			rundata.ClearRunData(actionsRunID)
+			rundata.ClearRunData(daprRunID)
 
-			err = output.ActionsCMD.Process.Kill()
+			err = output.DaprCMD.Process.Kill()
 			if err != nil {
-				print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error exiting Actions: %s", err))
+				print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error exiting Dapr: %s", err))
 			} else {
-				print.SuccessStatusEvent(os.Stdout, "Exited Actions successfully")
+				print.SuccessStatusEvent(os.Stdout, "Exited Dapr successfully")
 			}
 
 			err = output.AppCMD.Process.Kill()
@@ -194,12 +194,12 @@ var RunCmd = &cobra.Command{
 func init() {
 	RunCmd.Flags().IntVarP(&appPort, "app-port", "", -1, "the port your application is listening on")
 	RunCmd.Flags().StringVarP(&appID, "app-id", "", "", "an id for your application, used for service discovery")
-	RunCmd.Flags().StringVarP(&configFile, "config", "", "", "Actions configuration file")
-	RunCmd.Flags().IntVarP(&port, "port", "p", -1, "the port for Actions to listen on")
+	RunCmd.Flags().StringVarP(&configFile, "config", "", "", "Dapr configuration file")
+	RunCmd.Flags().IntVarP(&port, "port", "p", -1, "the port for Dapr to listen on")
 	RunCmd.Flags().StringVarP(&image, "image", "", "", "the image to build the code in. input is repository/image")
 	RunCmd.Flags().BoolVar(&enableProfiling, "enable-profiling", false, "Enable pprof profiling via an HTTP endpoint")
 	RunCmd.Flags().IntVarP(&profilePort, "profile-port", "", -1, "the port for the profile server to listen on")
-	RunCmd.Flags().BoolVar(&kubernetesMode, "kubernetes", false, "Build and deploy your app and Actions to a Kubernetes cluster")
+	RunCmd.Flags().BoolVar(&kubernetesMode, "kubernetes", false, "Build and deploy your app and Dapr to a Kubernetes cluster")
 	RunCmd.Flags().StringVarP(&logLevel, "log-level", "", "info", "Sets the log verbosity. Valid values are: debug, info, warning, error, fatal, or panic. Default is info")
 	RunCmd.Flags().IntVarP(&maxConcurrency, "max-concurrency", "", -1, "controls the concurrency level of the app. Default is unlimited")
 

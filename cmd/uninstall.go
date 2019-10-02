@@ -4,31 +4,31 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/actionscore/cli/pkg/kubernetes"
-	"github.com/actionscore/cli/pkg/print"
+	"github.com/dapr/cli/pkg/kubernetes"
+	"github.com/dapr/cli/pkg/print"
 	"github.com/spf13/cobra"
 )
 
 var uninstallKubernetes bool
 
-// UninstallCmd is a command from removing an Actions installation
+// UninstallCmd is a command from removing an Dapr installation
 var UninstallCmd = &cobra.Command{
 	Use:   "uninstall",
-	Short: "removes an Actions installation",
+	Short: "removes a dapr installation",
 	Run: func(cmd *cobra.Command, args []string) {
-		print.InfoStatusEvent(os.Stdout, "Removing Actions from your cluster...")
+		print.InfoStatusEvent(os.Stdout, "Removing Dapr from your cluster...")
 		err := kubernetes.Uninstall()
 		if err != nil {
-			print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error removing Actions: %s", err))
+			print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error removing Dapr: %s", err))
 			return
 		}
 
-		print.SuccessStatusEvent(os.Stdout, "Actions has been removed successfully")
+		print.SuccessStatusEvent(os.Stdout, "Dapr has been removed successfully")
 	},
 }
 
 func init() {
-	UninstallCmd.Flags().BoolVar(&uninstallKubernetes, "kubernetes", false, "Uninstall Actions from a Kubernetes cluster (required)")
+	UninstallCmd.Flags().BoolVar(&uninstallKubernetes, "kubernetes", false, "Uninstall Dapr from a Kubernetes cluster (required)")
 	UninstallCmd.MarkFlagRequired("kubernetes")
 	RootCmd.AddCommand(UninstallCmd)
 }

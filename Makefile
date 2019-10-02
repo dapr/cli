@@ -8,7 +8,7 @@ export GOSUMDB ?= sum.golang.org
 GIT_COMMIT  = $(shell git rev-list -1 HEAD)
 GIT_VERSION = $(shell git describe --always --abbrev=7 --dirty)
 CGO			?= 0
-CLI_BINARY  = actions
+CLI_BINARY  = dapr
 
 ifdef REL_VERSION
 	CLI_VERSION := $(REL_VERSION)
@@ -65,7 +65,7 @@ endif
 ################################################################################
 # Go build details                                                             #
 ################################################################################
-BASE_PACKAGE_NAME := github.com/actionscore/cli
+BASE_PACKAGE_NAME := github.com/dapr/cli
 OUT_DIR := ./dist
 
 BINS_OUT_DIR := $(OUT_DIR)/$(GOOS)_$(GOARCH)/$(BUILDTYPE_DIR)
