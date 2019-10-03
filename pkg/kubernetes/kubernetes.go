@@ -12,7 +12,7 @@ import (
 	"github.com/briandowns/spinner"
 )
 
-const daprManifestPath = "https://actionsreleases.blob.core.windows.net/manifest/dapr-operator.yaml"
+const daprManifestPath = "https://daprreleases.blob.core.windows.net/manifest/dapr-operator.yaml"
 
 func Init() error {
 	msg := "Deploying the Dapr Operator to your cluster..."

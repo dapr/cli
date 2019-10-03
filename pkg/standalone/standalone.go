@@ -19,12 +19,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dapr/cli/pkg/print"
 	"github.com/briandowns/spinner"
+	"github.com/dapr/cli/pkg/print"
 )
 
 const baseDownloadURL = "https://daprreleases.blob.core.windows.net/release"
-const daprImageURL = "dapr.azurecr.io/dapr"
+const daprImageURL = "actionscore.azurecr.io/dapr"
 
 func Init(runtimeVersion string) error {
 	dir, err := getDaprDir()
