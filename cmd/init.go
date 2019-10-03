@@ -24,7 +24,7 @@ var InitCmd = &cobra.Command{
 				print.FailureStatusEvent(os.Stdout, err.Error())
 				return
 			}
-			print.SuccessStatusEvent(os.Stdout, "Success! Dapr is up and running. To verify, run 'kubectl get pods' in your terminal")
+			print.SuccessStatusEvent(os.Stdout, "Success! Dapr has been installed. To verify, run 'kubectl get pods' in your terminal")
 		} else {
 			err := standalone.Init(runtimeVersion)
 			if err != nil {
