@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"archive/zip"
 	"compress/gzip"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -19,6 +20,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/docker/docker/client"
+
 	"github.com/briandowns/spinner"
 	"github.com/dapr/cli/pkg/print"
 )
@@ -27,6 +30,11 @@ const baseDownloadURL = "https://daprreleases.blob.core.windows.net/release"
 const daprImageURL = "actionscore.azurecr.io/dapr"
 
 func Init(runtimeVersion string) error {
+	dockerInstalled := isDockerInstalled()
+	if !dockerInstalled {
+		return errors.New("Docker was not detected on your machine. Please install Docker")
+	}
+
 	dir, err := getDaprDir()
 	if err != nil {
 		return err
@@ -78,6 +86,15 @@ func Init(runtimeVersion string) error {
 	}
 
 	return nil
+}
+
+func isDockerInstalled() bool {
+	cli, err := client.NewEnvClient()
+	if err != nil {
+		return false
+	}
+	_, err = cli.Ping(context.Background())
+	return err == nil
 }
 
 func getDaprDir() (string, error) {
