@@ -31,7 +31,7 @@ func PublishTopic(topic, payload string) error {
 		b = []byte(payload)
 	}
 
-	url := fmt.Sprintf("http://localhost:%s/v%s/publish/%s", fmt.Sprintf("%v", app.DaprPort), api.RuntimeAPIVersion, topic)
+	url := fmt.Sprintf("http://localhost:%s/v%s/publish/%s", fmt.Sprintf("%v", app.HTTPPort), api.RuntimeAPIVersion, topic)
 	_, err = http.Post(url, "application/json", bytes.NewBuffer(b))
 	if err != nil {
 		return err

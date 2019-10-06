@@ -25,8 +25,10 @@ const (
 type RunConfig struct {
 	AppID           string
 	AppPort         int
-	Port            int
+	HTTPPort        int
+	GRPCPort        int
 	ConfigFile      string
+	Protocol        string
 	Arguments       []string
 	EnableProfiling bool
 	ProfilePort     int
@@ -35,10 +37,11 @@ type RunConfig struct {
 }
 
 type RunOutput struct {
-	DaprCMD  *exec.Cmd
-	DaprPort int
-	AppID       string
-	AppCMD      *exec.Cmd
+	DaprCMD      *exec.Cmd
+	DaprHTTPPort int
+	DaprGRPCPort int
+	AppID        string
+	AppCMD       *exec.Cmd
 }
 
 type component struct {
@@ -58,14 +61,23 @@ type componentMetadataItem struct {
 	Value string `yaml:"value"`
 }
 
-func getDaprCommand(appID string, daprPort int, appPort int, configFile string, enableProfiling bool, profilePort int, logLevel string, maxConcurrency int) (*exec.Cmd, int, error) {
-	if daprPort < 0 {
+func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort int, configFile, protocol string, enableProfiling bool, profilePort int, logLevel string, maxConcurrency int) (*exec.Cmd, int, int, error) {
+	if daprHTTPPort < 0 {
 		port, err := freeport.GetFreePort()
 		if err != nil {
-			return nil, -1, err
+			return nil, -1, -1, err
 		}
 
-		daprPort = port
+		daprHTTPPort = port
+	}
+
+	if daprGRPCPort < 0 {
+		grpcPort, err := freeport.GetFreePort()
+		if err != nil {
+			return nil, -1, -1, err
+		}
+
+		daprGRPCPort = grpcPort
 	}
 
 	if maxConcurrency < 1 {
@@ -77,7 +89,7 @@ func getDaprCommand(appID string, daprPort int, appPort int, configFile string, 
 		daprCMD = fmt.Sprintf("%s.exe", daprCMD)
 	}
 
-	args := []string{"--dapr-id", appID, "--dapr-http-port", fmt.Sprintf("%v", daprPort), "--log-level", logLevel, "--max-concurrency", fmt.Sprintf("%v", maxConcurrency)}
+	args := []string{"--dapr-id", appID, "--dapr-http-port", fmt.Sprintf("%v", daprHTTPPort), "--dapr-grpc-port", fmt.Sprintf("%v", daprGRPCPort), "--log-level", logLevel, "--max-concurrency", fmt.Sprintf("%v", maxConcurrency), "--protocol", protocol}
 	if appPort > -1 {
 		args = append(args, "--app-port")
 		args = append(args, fmt.Sprintf("%v", appPort))
@@ -91,14 +103,6 @@ func getDaprCommand(appID string, daprPort int, appPort int, configFile string, 
 		args = append(args, "localhost:50005")
 	}
 
-	args = append(args, "--dapr-grpc-port")
-	grpcPort, err := freeport.GetFreePort()
-	if err != nil {
-		return nil, -1, err
-	}
-
-	args = append(args, fmt.Sprintf("%v", grpcPort))
-
 	if configFile != "" {
 		args = append(args, "--config")
 		args = append(args, configFile)
@@ -106,10 +110,11 @@ func getDaprCommand(appID string, daprPort int, appPort int, configFile string, 
 
 	if enableProfiling {
 		if profilePort == -1 {
-			profilePort, err = freeport.GetFreePort()
+			pp, err := freeport.GetFreePort()
 			if err != nil {
-				return nil, -1, err
+				return nil, -1, -1, err
 			}
+			profilePort = pp
 		}
 
 		args = append(args, "--enable-profiling")
@@ -119,13 +124,14 @@ func getDaprCommand(appID string, daprPort int, appPort int, configFile string, 
 	}
 
 	cmd := exec.Command(daprCMD, args...)
-	return cmd, daprPort, nil
+	return cmd, daprHTTPPort, daprGRPCPort, nil
 }
 
-func getAppCommand(daprPort int, command string, args []string) (*exec.Cmd, error) {
+func getAppCommand(httpPort, grpcPort int, command string, args []string) (*exec.Cmd, error) {
 	cmd := exec.Command(command, args...)
 	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, fmt.Sprintf("DAPR_PORT=%v", daprPort))
+	cmd.Env = append(cmd.Env, fmt.Sprintf("DAPR_HTTP_PORT=%v", httpPort))
+	cmd.Env = append(cmd.Env, fmt.Sprintf("DAPR_GRPC_PORT=%v", grpcPort))
 
 	return cmd, nil
 }
@@ -254,14 +260,16 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		}
 	}
 
-	daprCMD, daprPort, err := getDaprCommand(appID, config.Port, config.AppPort, config.ConfigFile, config.EnableProfiling, config.ProfilePort, config.LogLevel, config.MaxConcurrency)
+	daprCMD, daprHTTPPort, daprGRPCPort, err := getDaprCommand(appID, config.HTTPPort, config.GRPCPort, config.AppPort, config.ConfigFile, config.Protocol, config.EnableProfiling, config.ProfilePort, config.LogLevel, config.MaxConcurrency)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, a := range dapr {
-		if daprPort == a.DaprPort {
-			return nil, fmt.Errorf("there's already an dapr instance running with port %v", daprPort)
+		if daprHTTPPort == a.HTTPPort {
+			return nil, fmt.Errorf("there's already a dapr instance running with http port %v", daprHTTPPort)
+		} else if daprGRPCPort == a.GRPCPort {
+			return nil, fmt.Errorf("there's already a dapr instance running with gRPC port %v", daprGRPCPort)
 		}
 	}
 
@@ -277,15 +285,16 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		runArgs = config.Arguments[1:]
 	}
 
-	appCMD, err := getAppCommand(daprPort, cmd, runArgs)
+	appCMD, err := getAppCommand(daprHTTPPort, daprGRPCPort, cmd, runArgs)
 	if err != nil {
 		return nil, err
 	}
 
 	return &RunOutput{
-		DaprCMD:  daprCMD,
-		AppCMD:      appCMD,
-		AppID:       appID,
-		DaprPort: daprPort,
+		DaprCMD:      daprCMD,
+		AppCMD:       appCMD,
+		AppID:        appID,
+		DaprHTTPPort: daprHTTPPort,
+		DaprGRPCPort: daprGRPCPort,
 	}, nil
 }

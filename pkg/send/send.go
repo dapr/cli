@@ -19,7 +19,7 @@ func InvokeApp(appID, method, payload string) (string, error) {
 
 	for _, lo := range list {
 		if lo.AppID == appID {
-			r, err := http.Post(fmt.Sprintf("http://localhost:%s/v%s/invoke/%s/method/%s", fmt.Sprintf("%v", lo.DaprPort), api.RuntimeAPIVersion, lo.AppID, method), "application/json", bytes.NewBuffer([]byte(payload)))
+			r, err := http.Post(fmt.Sprintf("http://localhost:%s/v%s/invoke/%s/method/%s", fmt.Sprintf("%v", lo.HTTPPort), api.RuntimeAPIVersion, lo.AppID, method), "application/json", bytes.NewBuffer([]byte(payload)))
 			if err != nil {
 				return "", err
 			}
