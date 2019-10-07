@@ -24,8 +24,9 @@ var (
 )
 
 type RunData struct {
-	DaprRunId string
-	DaprPort  int
+	DaprRunId    string
+	DaprHTTPPort int
+	DaprGRPCPort int
 	AppId        string
 	AppPort      int
 	Command      string

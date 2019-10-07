@@ -22,10 +22,12 @@ var profilePort int
 var appID string
 var configFile string
 var port int
+var grpcPort int
 var maxConcurrency int
 var image string
 var enableProfiling bool
 var logLevel string
+var protocol string
 
 var RunCmd = &cobra.Command{
 	Use:   "run",
@@ -44,7 +46,8 @@ var RunCmd = &cobra.Command{
 			output, err := kubernetes.Run(&kubernetes.RunConfig{
 				AppID:         appID,
 				AppPort:       appPort,
-				Port:          port,
+				GRPCPort:      grpcPort,
+				HTTPPort:      port,
 				Arguments:     args,
 				Image:         image,
 				CodeDirectory: args[0],
@@ -59,13 +62,15 @@ var RunCmd = &cobra.Command{
 			output, err := standalone.Run(&standalone.RunConfig{
 				AppID:           appID,
 				AppPort:         appPort,
-				Port:            port,
+				HTTPPort:        port,
+				GRPCPort:        grpcPort,
 				ConfigFile:      configFile,
 				Arguments:       args,
 				EnableProfiling: enableProfiling,
 				ProfilePort:     profilePort,
 				LogLevel:        logLevel,
 				MaxConcurrency:  maxConcurrency,
+				Protocol:        protocol,
 			})
 			if err != nil {
 				print.FailureStatusEvent(os.Stdout, err.Error())
@@ -80,7 +85,7 @@ var RunCmd = &cobra.Command{
 			daprRunCreatedTime := time.Now()
 
 			go func() {
-				print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Starting Dapr with id %s on port %v", output.AppID, output.DaprPort))
+				print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Starting Dapr with id %s. HTTP Port: %v. gRPC Port: %v", output.AppID, output.DaprHTTPPort, output.DaprGRPCPort))
 
 				stdErrPipe, err := output.DaprCMD.StderrPipe()
 				if err != nil {
@@ -158,13 +163,14 @@ var RunCmd = &cobra.Command{
 			<-appRunning
 
 			rundata.AppendRunData(&rundata.RunData{
-				DaprRunId: daprRunID,
-				AppId:     output.AppID,
-				DaprPort:  output.DaprPort,
-				AppPort:   appPort,
-				Command:   strings.Join(args, " "),
-				Created:   daprRunCreatedTime,
-				PID:       os.Getpid(),
+				DaprRunId:    daprRunID,
+				AppId:        output.AppID,
+				DaprHTTPPort: output.DaprHTTPPort,
+				DaprGRPCPort: output.DaprGRPCPort,
+				AppPort:      appPort,
+				Command:      strings.Join(args, " "),
+				Created:      daprRunCreatedTime,
+				PID:          os.Getpid(),
 			})
 
 			print.SuccessStatusEvent(os.Stdout, "You're up and running! Both Dapr and your app logs will appear here.\n")
@@ -195,13 +201,15 @@ func init() {
 	RunCmd.Flags().IntVarP(&appPort, "app-port", "", -1, "the port your application is listening on")
 	RunCmd.Flags().StringVarP(&appID, "app-id", "", "", "an id for your application, used for service discovery")
 	RunCmd.Flags().StringVarP(&configFile, "config", "", "", "Dapr configuration file")
-	RunCmd.Flags().IntVarP(&port, "port", "p", -1, "the port for Dapr to listen on")
+	RunCmd.Flags().IntVarP(&port, "port", "p", -1, "the HTTP port for Dapr to listen on")
+	RunCmd.Flags().IntVarP(&grpcPort, "grpc-port", "", -1, "the gRPC port for Dapr to listen on")
 	RunCmd.Flags().StringVarP(&image, "image", "", "", "the image to build the code in. input is repository/image")
 	RunCmd.Flags().BoolVar(&enableProfiling, "enable-profiling", false, "Enable pprof profiling via an HTTP endpoint")
 	RunCmd.Flags().IntVarP(&profilePort, "profile-port", "", -1, "the port for the profile server to listen on")
-	RunCmd.Flags().BoolVar(&kubernetesMode, "kubernetes", false, "Build and deploy your app and Dapr to a Kubernetes cluster")
+	RunCmd.Flags().BoolVar(&kubernetesMode, "kubernetes", false, "build and deploy your app and Dapr to a Kubernetes cluster")
 	RunCmd.Flags().StringVarP(&logLevel, "log-level", "", "info", "Sets the log verbosity. Valid values are: debug, info, warning, error, fatal, or panic. Default is info")
 	RunCmd.Flags().IntVarP(&maxConcurrency, "max-concurrency", "", -1, "controls the concurrency level of the app. Default is unlimited")
+	RunCmd.Flags().StringVarP(&protocol, "protocol", "", "http", "tells Dapr to use HTTP or gRPC to talk to the app. Default is http")
 
 	RootCmd.AddCommand(RunCmd)
 }

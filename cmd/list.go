@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/dapr/cli/pkg/kubernetes"
@@ -37,7 +38,7 @@ var ListCmd = &cobra.Command{
 			}
 
 			if len(list) == 0 {
-				println("No Dapr found.")
+				fmt.Println("No dapr instances found.")
 				return
 			}
 

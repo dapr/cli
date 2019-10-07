@@ -3,7 +3,8 @@ package kubernetes
 type RunConfig struct {
 	AppID         string
 	AppPort       int
-	Port          int
+	HTTPPort      int
+	GRPCPort      int
 	CodeDirectory string
 	Arguments     []string
 	Image         string

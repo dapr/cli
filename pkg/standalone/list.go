@@ -8,13 +8,14 @@ import (
 )
 
 type ListOutput struct {
-	AppID       string `csv:"APP ID"`
-	DaprPort int    `csv:"DAPR PORT"`
-	AppPort     int    `csv:"APP PORT"`
-	Command     string `csv:"COMMAND"`
-	Age         string `csv:"AGE"`
-	Created     string `csv:"CREATED"`
-	PID         int
+	AppID    string `csv:"APP ID"`
+	HTTPPort int    `csv:"HTTP PORT"`
+	GRPCPort int    `csv:"GRPC PORT"`
+	AppPort  int    `csv:"APP PORT"`
+	Command  string `csv:"COMMAND"`
+	Age      string `csv:"AGE"`
+	Created  string `csv:"CREATED"`
+	PID      int
 }
 
 func List() ([]ListOutput, error) {
@@ -33,11 +34,12 @@ func List() ([]ListOutput, error) {
 
 		// TODO: Call to /metadata and validate the runtime data
 		var listRow = ListOutput{
-			AppID:       runtimeLine.AppId,
-			DaprPort: runtimeLine.DaprPort,
-			Command:     utils.TruncateString(runtimeLine.Command, 20),
-			Created:     runtimeLine.Created.Format("2006-01-02 15:04.05"),
-			PID:         runtimeLine.PID,
+			AppID:    runtimeLine.AppId,
+			HTTPPort: runtimeLine.DaprHTTPPort,
+			GRPCPort: runtimeLine.DaprGRPCPort,
+			Command:  utils.TruncateString(runtimeLine.Command, 20),
+			Created:  runtimeLine.Created.Format("2006-01-02 15:04.05"),
+			PID:      runtimeLine.PID,
 		}
 		if runtimeLine.AppPort > 0 {
 			listRow.AppPort = runtimeLine.AppPort
