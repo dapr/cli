@@ -7,7 +7,7 @@ The Dapr CLI allows you to setup Dapr on your local dev machine or on a Kubernet
 ## Getting started
 
 ### Prerequisites
-* Download the [release](https://github.com/dapr/cli/releases) for your OS
+* Download the compressed, archived Dapr CLI [release](https://github.com/dapr/cli/releases) for your OS
 * Unpack it
 * Move it to your desired location (for Mac/Linux - ```mv dapr /usr/local/bin```. For Windows, add the executable to your System PATH.)
 
