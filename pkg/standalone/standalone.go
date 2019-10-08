@@ -32,7 +32,7 @@ const daprImageURL = "actionscore.azurecr.io/dapr"
 func Init(runtimeVersion string) error {
 	dockerInstalled := isDockerInstalled()
 	if !dockerInstalled {
-		return errors.New("Could not connect to Docker.  Is Docker is installed and running?")
+		return errors.New("Could not connect to Docker.  Is Docker installed and running?")
 	}
 
 	dir, err := getDaprDir()
