@@ -104,8 +104,14 @@ $ dapr publish --topic myevent
 
 Publish a message with a payload:
 
-```
+* Linux/Mac
+```bash
 $ dapr publish --topic myevent --payload '{ "name": "yoda" }'
+```
+
+* Windows
+```bash
+C:> dapr publish --topic myevent --payload "{ \"name\": \"yoda\" }"
 ```
 
 ## Invoking
