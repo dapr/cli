@@ -109,8 +109,14 @@ $ dapr publish --topic myevent
 
 Publish a message with a payload:
 
-```
+* Linux/Mac
+```bash
 $ dapr publish --topic myevent --payload '{ "name": "yoda" }'
+```
+
+* Windows
+```bash
+C:> dapr publish --topic myevent --payload "{ \"name\": \"yoda\" }"
 ```
 
 ### Invoking
@@ -179,9 +185,19 @@ $ dapr run --app-id nodeapp --app-port 3000 node app.js --log-level debug
 This sets the Dapr log level to `debug`.
 The default is `info`.
 
-### Uninstall (Kubernetes)
+### Uninstall
 
-To remove Dapr from your Kubernetes cluster, use the `uninstall` command.
+#### Standalone
+
+To remove Dapr placement container, use the `uninstall` command
+
+```
+$ dapr uninstall
+```
+
+#### Kubernetes
+
+To remove Dapr from your Kubernetes cluster, use the `uninstall` command with `--kubernetes`
 
 *Note this won't remove Dapr installations that were deployed using Helm.*
 
