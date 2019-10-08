@@ -12,7 +12,7 @@ func Uninstall() error {
 		"--force",
 		DaprPlacementContainerName)
 	if err != nil {
-		return errors.New("Dapr Placement Container may not exist.")
+		return errors.New("Dapr Placement Container may not exist")
 	}
 	return nil
 }
