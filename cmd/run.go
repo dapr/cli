@@ -176,7 +176,7 @@ var RunCmd = &cobra.Command{
 			print.SuccessStatusEvent(os.Stdout, "You're up and running! Both Dapr and your app logs will appear here.\n")
 
 			<-sigCh
-			print.InfoStatusEvent(os.Stdout, "\nterminated signal recieved: shutting down")
+			print.InfoStatusEvent(os.Stdout, "\nterminated signal received: shutting down")
 
 			rundata.ClearRunData(daprRunID)
 
