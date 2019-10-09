@@ -206,73 +206,11 @@ $ dapr uninstall --kubernetes
 ```
 
 
-## Developing Dapr CLI
+## Contributing to Dapr CLI
 
-### Prerequisites
+See the [Development Guide](cli/docs/development/development.md) to get started with building and developing.
 
-1. The Go language environment [(instructions)](https://golang.org/doc/install).
-   * Make sure that your GOPATH and PATH are configured correctly
-   ```bash
-   export GOPATH=~/go
-   export PATH=$PATH:$GOPATH/bin
-   ```
-1. [Delve](https://github.com/go-delve/delve/tree/master/Documentation/installation) for Debugging
-1. *(for windows)* [MinGW](http://www.mingw.org/) to install gcc and make
-   * Recommend to use [chocolatey mingw package](https://chocolatey.org/packages/mingw) and ensure that MinGW bin directory is in PATH environment variable
+## Code of Conduct
 
-### Clone the repo
-
-```bash
-cd $GOPATH/src
-mkdir -p github.com/dapr/cli
-git clone https://github.com/dapr/cli.git github.com/dapr/cli
-```
-
-### Build
-
-You can build dapr binaries via `make` tool and find the binaries in `./dist/{os}_{arch}/release/`.
-
-> Note : for windows environment with MinGW, use `mingw32-make.exe` instead of `make`.
-
-* Build for your current local environment
-
-```bash
-cd $GOPATH/src/github.com/dapr/cli/
-make build
-```
-
-* Cross compile for multi platforms
-
-```bash
-make build GOOS=linux GOARCH=amd64
-```
-
-### Run unit-test
-
-```bash
-make test
-```
-
-### Debug Dapr CLI
-
-We highly recommend to use [VSCode with Go plugin](https://marketplace.visualstudio.com/items?itemName=ms-vscode.Go) for your productivity. If you want to use the different editors, you can find the [list of editor plugins](https://github.com/go-delve/delve/blob/master/Documentation/EditorIntegration.md) for Delve.
-
-This section introduces how to start debugging with Delve CLI. Please see [Delve documentation](https://github.com/go-delve/delve/tree/master/Documentation) for the detail usage.
-
-#### Start with debugger
-
-```bash
-$ cd $GOPATH/src/github.com/dapr/cli
-$ dlv debug .
-Type 'help' for list of commands.
-(dlv) break main.main
-(dlv) continue
-```
-
-#### Debug unit-tests
-
-```bash
-# Specify the package that you want to test
-# e.g. debuggin ./pkg/actors
-$ dlv test ./pkg/actors
-```
+ This project has adopted the [Microsoft Open Source Code of conduct](https://opensource.microsoft.com/codeofconduct/).
+ For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
