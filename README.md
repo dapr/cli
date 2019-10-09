@@ -208,7 +208,7 @@ $ dapr uninstall --kubernetes
 
 ## Contributing to Dapr CLI
 
-See the [Development Guide](cli/docs/development/development.md) to get started with building and developing.
+See the [Development Guide](https://github.com/dapr/cli/blob/master/development/development.md) to get started with building and developing.
 
 ## Code of Conduct
 
