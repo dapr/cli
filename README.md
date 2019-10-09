@@ -273,6 +273,6 @@ Type 'help' for list of commands.
 
 ```bash
 # Specify the package that you want to test
-# e.g. debuggin ./pkg/actors
+# e.g. debugging ./pkg/actors
 $ dlv test ./pkg/actors
 ```
