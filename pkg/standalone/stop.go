@@ -10,6 +10,7 @@ import (
 	"runtime"
 )
 
+// Terminate the application process
 func Stop(appID string) error {
 	apps, err := List()
 	if err != nil {
