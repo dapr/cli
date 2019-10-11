@@ -8,6 +8,7 @@ package utils
 import (
 	"bufio"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/olekukonko/tablewriter"
@@ -50,4 +51,19 @@ func TruncateString(str string, maxLength int) string {
 	}
 
 	return str[0:maxLength-3] + "..."
+}
+
+func RunCmdAndWait(name string, args ...string) error {
+	cmd := exec.Command(name, args...)
+	err := cmd.Start()
+	if err != nil {
+		return err
+	}
+
+	err = cmd.Wait()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
