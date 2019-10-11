@@ -29,10 +29,12 @@ import (
 
 	"github.com/briandowns/spinner"
 	"github.com/dapr/cli/pkg/print"
+	"github.com/dapr/cli/utils"
 )
 
 const baseDownloadURL = "https://daprreleases.blob.core.windows.net/release"
 const daprImageURL = "actionscore.azurecr.io/dapr"
+const DaprPlacementContainerName = "dapr_placement"
 
 // Initialize to install the Dapr
 func Init(runtimeVersion string) error {
@@ -126,7 +128,7 @@ func getDaprDir() (string, error) {
 
 func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string) {
 	defer wg.Done()
-	err := runCmd("docker", "run", "--restart", "always", "-d", "-p", "6379:6379", "redis")
+	err := utils.RunCmdAndWait("docker", "run", "--restart", "always", "-d", "-p", "6379:6379", "redis")
 	if err != nil {
 		runError := isContainerRunError(err)
 		if !runError {
@@ -167,7 +169,16 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 	}
 
 	image := fmt.Sprintf("%s:%s", daprImageURL, version)
-	err := runCmd("docker", "run", "--restart", "always", "-d", "-p", fmt.Sprintf("%v:50005", osPort), "--entrypoint", "./placement", image)
+
+	err := utils.RunCmdAndWait(
+		"docker", "run",
+		"--name", DaprPlacementContainerName,
+		"--restart", "always",
+		"-d",
+		"-p", fmt.Sprintf("%v:50005", osPort),
+		"--entrypoint", "./placement",
+		image)
+
 	if err != nil {
 		runError := isContainerRunError(err)
 		if !runError {
@@ -228,16 +239,6 @@ func makeExecutable(filepath string) error {
 		if err != nil {
 			return err
 		}
-	}
-
-	return nil
-}
-
-func runCmd(name string, arg ...string) error {
-	cmd := exec.Command(name, arg...)
-	err := cmd.Run()
-	if err != nil {
-		return err
 	}
 
 	return nil
@@ -340,7 +341,7 @@ func moveFileToPath(filepath string) (string, error) {
 	if runtime.GOOS == "windows" {
 		p := os.Getenv("PATH")
 		if !strings.Contains(strings.ToLower(string(p)), strings.ToLower("c:\\dapr")) {
-			err := runCmd("SETX", "PATH", p+";c:\\dapr")
+			err := utils.RunCmdAndWait("SETX", "PATH", p+";c:\\dapr")
 			if err != nil {
 				return "", err
 			}

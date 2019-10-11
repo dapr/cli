@@ -9,11 +9,11 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"runtime"
 	"time"
 
 	"github.com/dapr/cli/pkg/print"
+	"github.com/dapr/cli/utils"
 
 	"github.com/briandowns/spinner"
 )
@@ -40,7 +40,7 @@ func Init() error {
 		s.Start()
 	}
 
-	err := runCmdAndWait("kubectl", "apply", "-f", daprManifestPath)
+	err := utils.RunCmdAndWait("kubectl", "apply", "-f", daprManifestPath)
 	if err != nil {
 		if s != nil {
 			s.Stop()
@@ -58,19 +58,4 @@ func Init() error {
 func kubeconfigExists() bool {
 	_, err := Client()
 	return err == nil
-}
-
-func runCmdAndWait(name string, args ...string) error {
-	cmd := exec.Command(name, args...)
-	err := cmd.Start()
-	if err != nil {
-		return err
-	}
-
-	err = cmd.Wait()
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
