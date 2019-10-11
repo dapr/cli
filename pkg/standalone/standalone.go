@@ -1,3 +1,8 @@
+// ------------------------------------------------------------
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+// ------------------------------------------------------------
+
 package standalone
 
 import (
@@ -29,6 +34,7 @@ import (
 const baseDownloadURL = "https://daprreleases.blob.core.windows.net/release"
 const daprImageURL = "actionscore.azurecr.io/dapr"
 
+// Initialize to install the Dapr
 func Init(runtimeVersion string) error {
 	dockerInstalled := isDockerInstalled()
 	if !dockerInstalled {

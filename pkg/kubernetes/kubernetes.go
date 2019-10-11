@@ -1,3 +1,8 @@
+// ------------------------------------------------------------
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+// ------------------------------------------------------------
+
 package kubernetes
 
 import (
@@ -15,6 +20,7 @@ import (
 
 const daprManifestPath = "https://daprreleases.blob.core.windows.net/manifest/dapr-operator.yaml"
 
+// Initialize to deploy the Dapr operator
 func Init() error {
 	kubeExists := kubeconfigExists()
 	if !kubeExists {

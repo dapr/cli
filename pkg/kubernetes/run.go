@@ -1,5 +1,11 @@
+// ------------------------------------------------------------
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+// ------------------------------------------------------------
+
 package kubernetes
 
+// RunConfig to represent application configuration parameters
 type RunConfig struct {
 	AppID         string
 	AppPort       int
@@ -10,10 +16,12 @@ type RunConfig struct {
 	Image         string
 }
 
+// RunOutput to represent the run output
 type RunOutput struct {
 	Message string
 }
 
+// Run based on run configuration
 func Run(config *RunConfig) (*RunOutput, error) {
 	return nil, nil
 }

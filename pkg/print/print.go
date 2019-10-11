@@ -1,3 +1,8 @@
+// ------------------------------------------------------------
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+// ------------------------------------------------------------
+
 package print
 
 import (
@@ -18,6 +23,7 @@ var (
 	WhiteBold = color.New(color.FgWhite, color.Bold).SprintFunc()
 )
 
+// SuccessStatusEvent to report on success event
 func SuccessStatusEvent(w io.Writer, fmtstr string, a ...interface{}) {
 	if runtime.GOOS == "windows" {
 		fmt.Fprintf(w, "%s\n", fmt.Sprintf(fmtstr, a...))
@@ -26,6 +32,7 @@ func SuccessStatusEvent(w io.Writer, fmtstr string, a ...interface{}) {
 	}
 }
 
+// FailureStatusEvent to report on failure event
 func FailureStatusEvent(w io.Writer, fmtstr string, a ...interface{}) {
 	if runtime.GOOS == "windows" {
 		fmt.Fprintf(w, "%s\n", fmt.Sprintf(fmtstr, a...))
@@ -34,6 +41,7 @@ func FailureStatusEvent(w io.Writer, fmtstr string, a ...interface{}) {
 	}
 }
 
+// PendingStatusEvent to report on pending event
 func PendingStatusEvent(w io.Writer, fmtstr string, a ...interface{}) {
 	if runtime.GOOS == "windows" {
 		fmt.Fprintf(w, "%s\n", fmt.Sprintf(fmtstr, a...))
@@ -42,6 +50,7 @@ func PendingStatusEvent(w io.Writer, fmtstr string, a ...interface{}) {
 	}
 }
 
+// InfoStatusEvent for status information on event
 func InfoStatusEvent(w io.Writer, fmtstr string, a ...interface{}) {
 	if runtime.GOOS == "windows" {
 		fmt.Fprintf(w, "%s\n", fmt.Sprintf(fmtstr, a...))

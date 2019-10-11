@@ -1,3 +1,8 @@
+// ------------------------------------------------------------
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+// ------------------------------------------------------------
+
 package standalone
 
 import (
@@ -22,6 +27,7 @@ const (
 	redisStateStoreYamlFileName = "redis.yaml"
 )
 
+// RunConfig to represent application configuration parameters
 type RunConfig struct {
 	AppID           string
 	AppPort         int
@@ -36,6 +42,7 @@ type RunConfig struct {
 	MaxConcurrency  int
 }
 
+// RunOutput to represent the run output
 type RunOutput struct {
 	DaprCMD      *exec.Cmd
 	DaprHTTPPort int

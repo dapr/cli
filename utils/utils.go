@@ -1,3 +1,8 @@
+// ------------------------------------------------------------
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+// ------------------------------------------------------------
+
 package utils
 
 import (
@@ -10,6 +15,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
+// PrintTable to print in the table format
 func PrintTable(csvContent string) {
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)

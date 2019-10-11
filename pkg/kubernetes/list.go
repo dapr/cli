@@ -1,3 +1,8 @@
+// ------------------------------------------------------------
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+// ------------------------------------------------------------
+
 package kubernetes
 
 import (
@@ -6,6 +11,7 @@ import (
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// ListOutput to represent the application id, application port and creation time
 type ListOutput struct {
 	AppID   string `csv:"APP ID"`
 	AppPort string `csv:"APP PORT"`
@@ -13,6 +19,7 @@ type ListOutput struct {
 	Created string `csv:"CREATED"`
 }
 
+// List to output all the the applications
 func List() ([]ListOutput, error) {
 	client, err := Client()
 	if err != nil {
