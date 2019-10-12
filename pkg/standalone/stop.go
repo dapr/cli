@@ -8,6 +8,8 @@ package standalone
 import (
 	"fmt"
 	"runtime"
+
+	"github.com/dapr/cli/utils"
 )
 
 // Terminate the application process
@@ -21,10 +23,10 @@ func Stop(appID string) error {
 		if a.AppID == appID {
 			pid := fmt.Sprintf("%v", a.PID)
 			if runtime.GOOS == "windows" {
-				err := runCmd("taskkill", "/F", "/PID", pid)
+				err := utils.RunCmdAndWait("taskkill", "/F", "/PID", pid)
 				return err
 			} else {
-				err := runCmd("kill", pid)
+				err := utils.RunCmdAndWait("kill", pid)
 				return err
 			}
 		}
