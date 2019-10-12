@@ -11,7 +11,7 @@ powershell -Command "iwr -useb https://raw.githubusercontent.com/dapr/cli/master
 Note: Until the repo is public, please use the below command.
 
 ```
-powershell -Command "$Env:GITHUB_USER='your_github_id'; $Env:GITHUB_TOKEN='your_github_pat_token'; iwr -useb https://raw.githubusercontent.com/dapr/cli/master/install/install.ps1?token=AC2QIRCKXC5TWOYUZLHFMWC5VJ6FI | iex"
+powershell -Command "$Env:GITHUB_USER='your_github_id'; $Env:GITHUB_TOKEN='your_github_pat_token'; iwr -useb https://raw.githubusercontent.com/dapr/cli/master/install/install.ps1?token=AC2QIRDUTKTPEPOE5W7HOH25VJ72W | iex"
 ```
 
 ### Linux/MacOS
