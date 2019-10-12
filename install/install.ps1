@@ -18,7 +18,7 @@ if ($GitHubUsername -eq "") {
 }
 
 if((Get-ExecutionPolicy) -gt 'RemoteSigned' -or (Get-ExecutionPolicy) -eq 'ByPass') {
-    Write-Output "PowerShell requires an execution policy of 'RemoteSigned' to run Scoop."
+    Write-Output "PowerShell requires an execution policy of 'RemoteSigned'."
     Write-Output "To make this change please run:"
     Write-Output "'Set-ExecutionPolicy RemoteSigned -scope CurrentUser'"
     break
@@ -52,7 +52,7 @@ if (!(Test-Path $zipFilePath -PathType Leaf)) {
     throw "Failed to download Dapr Cli binary - $zipFilePath"
 }
 
-# Extract Dapr Runtime to c:\dapr
+# Extract Dapr CLI to c:\dapr
 Write-Output "Extracting $zipFilePath..."
 Expand-Archive -Path $zipFilePath -DestinationPath $DaprRoot
 if (!(Test-Path $DaprRuntimePath -PathType Leaf)) {
