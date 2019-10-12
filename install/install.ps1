@@ -1,9 +1,21 @@
+ param (
+    [string]$GitHubUsername = "",
+    [string]$GitHubToken = ""
+ )
+
 $ErrorActionPreference = 'stop'
 
+# Constants
 $DaprRoot="c:\dapr"
+$DaprRuntimeFileName = "dapr.exe"
+$DaprRuntimePath = "$DaprRoot\$DaprRuntimeFileName"
 
-$basic = [System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes("youngubpark:2b9381bbaa27bf76a285570e71fbc65d35a47bc0"));
-$authHeader = @{"Authorization"="Basic $basic"}
+if ($GitHubUsername -eq "") {
+    $githubHeader = @{}
+} else {
+    $basic = [System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes($GitHubUsername + ":" + $GitHubToken));
+    $githubHeader = @{"Authorization"="Basic $basic"}
+}
 
 if((Get-ExecutionPolicy) -gt 'RemoteSigned' -or (Get-ExecutionPolicy) -eq 'ByPass') {
     Write-Output "PowerShell requires an execution policy of 'RemoteSigned' to run Scoop."
@@ -14,13 +26,13 @@ if((Get-ExecutionPolicy) -gt 'RemoteSigned' -or (Get-ExecutionPolicy) -eq 'ByPas
 
 # Create Dapr Directory
 Write-Output "Creating $DaprRoot directory"
-New-Item -ErrorAction Ignore -Name $DaprRoot -ItemType directory
-if (!(Test-Path $DaprRoot)) {
+New-Item -ErrorAction Ignore -Path $DaprRoot -ItemType "directory"
+if (!(Test-Path $DaprRoot -PathType Container)) {
     throw "Cannot create $DaprRoot"
 }
 
 # Get the list of release from GitHub
-$releases = Invoke-RestMethod -Headers $authHeader -Uri "https://api.github.com/repos/dapr/cli/releases" -Method Get
+$releases = Invoke-RestMethod -Headers $githubHeader -Uri "https://api.github.com/repos/dapr/cli/releases" -Method Get
 if ($releases.Count -eq 0) {
     throw "No releases from github.com/dapr/cli repo"
 }
@@ -30,20 +42,20 @@ $windowsAsset = $releases[0].assets | where-object { $_.name -Like "*windows_amd
 if (!$windowsAsset) {
     throw "Cannot find the windows dapr cli binary"
 }
-$zipFilePath = $DaprRoot$windowsAsset.name
 
-Write-Output "Downloading $windowsAsset.name to $zipFilePath..."
-Invoke-WebRequest -Headers $authHeader -Uri $windowsAsset.url -OutFile $zipFilePath
-if (!(Test-Path $zipFilePath)) {
-    throw "Failed to download Dapr Cli archieve - $zipFilePath"
+$zipFilePath = $DaprRoot + "\" + $windowsAsset.name
+Write-Output "Downloading $zipFilePath ..."
+
+$githubHeader.Accept = "application/octet-stream"
+Invoke-WebRequest -Headers $githubHeader -Uri $windowsAsset.url -OutFile $zipFilePath
+if (!(Test-Path $zipFilePath -PathType Leaf)) {
+    throw "Failed to download Dapr Cli binary - $zipFilePath"
 }
 
 # Extract Dapr Runtime to c:\dapr
-$DaprRuntimeFileName = "dapr.exe"
-$DaprRuntimePath = $DaprRoot\$DaprRuntimeFileName
 Write-Output "Extracting $zipFilePath..."
 Expand-Archive -Path $zipFilePath -DestinationPath $DaprRoot
-if (!(Test-Path $DaprRuntimePath)) {
+if (!(Test-Path $DaprRuntimePath -PathType Leaf)) {
     throw "Failed to download Dapr Cli archieve - $zipFilePath"
 }
 
@@ -60,5 +72,6 @@ if($UserPathEnvionmentVar -notlike '*dapr*') {
     Write-Output "Added $DaprRoot to User Path - $UserPathEnvionmentVar"
 }
 
+Write-Output "-----------------------------------"
 Write-Output "Dapr CLI is installed successfully."
 Write-Output "Visit https://github.com/dapr/docs/blob/master/getting-started/environment-setup.md to start Dapr."
