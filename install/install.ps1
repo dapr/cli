@@ -1,8 +1,3 @@
- param (
-    [string]$GitHubUsername = "",
-    [string]$GitHubToken = ""
- )
-
 $ErrorActionPreference = 'stop'
 
 # Constants
@@ -10,11 +5,12 @@ $DaprRoot="c:\dapr"
 $DaprRuntimeFileName = "dapr.exe"
 $DaprRuntimePath = "$DaprRoot\$DaprRuntimeFileName"
 
-if ($GitHubUsername -eq "") {
-    $githubHeader = @{}
+# Set Github request authentication for basic authentication.
+if ($Env:GITHUB_USER) {
+    $basicAuth = [System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes($Env:GITHUB_USER + ":" + $Env:GITHUB_TOKEN));
+    $githubHeader = @{"Authorization"="Basic $basicAuth"}
 } else {
-    $basic = [System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes($GitHubUsername + ":" + $GitHubToken));
-    $githubHeader = @{"Authorization"="Basic $basic"}
+    $githubHeader = @{}
 }
 
 if((Get-ExecutionPolicy) -gt 'RemoteSigned' -or (Get-ExecutionPolicy) -eq 'ByPass') {
