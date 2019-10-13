@@ -124,13 +124,23 @@ downloadFile() {
 
 installFile() {
     tar xf "$ARTIFACT_TMP_FILE" -C "$DAPR_TMP_ROOT"
-    chmod o+x "$DAPR_TMP_ROOT/$DAPR_CLI_FILENAME"
-    runAsRoot cp "$DAPR_TMP_ROOT/$DAPR_CLI_FILENAME" "$DAPR_INSTALL_DIR"
+    local tmp_root_dapr_cli="$DAPR_TMP_ROOT/$DAPR_CLI_FILENAME"
+
+    if [ ! -f "$tmp_root_dapr_cli" ]; then
+        echo "Failed to unpack Dapr cli executable."
+        exit 1
+    fi
+
+    chmod o+x $tmp_root_dapr_cli
+    runAsRoot cp "$tmp_root_dapr_cli" "$DAPR_INSTALL_DIR"
 
     if [ -f "$DAPR_CLI_FILE" ]; then
         echo "$DAPR_CLI_FILENAME installed into $DAPR_INSTALL_DIR successfully."
 
         $DAPR_CLI_FILE --version
+    else 
+        echo "Failed to install $DAPR_CLI_FILENAME"
+        exit 1
     fi
 }
 
