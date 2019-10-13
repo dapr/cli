@@ -3,12 +3,16 @@
 # Dapr CLI location
 : ${DAPR_INSTALL_DIR:="/usr/local/bin"}
 
+# sudo is required to copy binary to DAPR_INSTALL_DIR for linux
+: ${USE_SUDO:="false"}
+
 # Http request CLI
 DAPR_HTTP_REQUEST_CLI=curl
 
 # Dapr CLI filename
 DAPR_CLI_FILENAME=dapr
 
+# GitHub Organization and repo name to download release
 GITHUB_ORG=dapr
 GITHUB_REPO=cli
 
@@ -22,6 +26,11 @@ getSystemInfo() {
     esac
 
     OS=$(echo `uname`|tr '[:upper:]' '[:lower:]')
+
+    # Most linux distro needs root permission to copy the file to /usr/local/bin
+    if [ "$OS" == "linux" ] && [ "$DAPR_INSTALL_DIR" == "/usr/local/bin" ]; then
+        USE_SUDO="true"
+    fi
 }
 
 
