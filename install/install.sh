@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+# ------------------------------------------------------------
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+# ------------------------------------------------------------
+
 # Dapr CLI location
 : ${DAPR_INSTALL_DIR:="/usr/local/bin"}
 
