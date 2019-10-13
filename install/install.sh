@@ -23,7 +23,6 @@ DAPR_CLI_FILENAME=dapr
 
 DAPR_CLI_FILE="${DAPR_INSTALL_DIR}/${DAPR_CLI_FILENAME}"
 
-# getSystemInfo discovers the architecture and OS for this system.
 getSystemInfo() {
     ARCH=$(uname -m)
     case $ARCH in
@@ -40,9 +39,6 @@ getSystemInfo() {
     fi
 }
 
-
-# verifySupported checks that the os/arch combination is supported for
-# binary builds.
 verifySupported() {
     local supported=(darwin-amd64 linux-amd64 linux-arm linux-arm64)
     local current_osarch="${OS}-${ARCH}"
@@ -58,7 +54,6 @@ verifySupported() {
     exit 1
 }
 
-# runs the given command as root (detects if we are root already)
 runAsRoot() {
     local CMD="$*"
 
@@ -103,7 +98,6 @@ getLatestRelease() {
     ret_val=$latest_release
 }
 
-# downloadFile downloads the latest binary
 downloadFile() {
     LATEST_RELEASE_TAG=$1
 
@@ -128,7 +122,6 @@ downloadFile() {
     fi
 }
 
-# installFile unpacks and installs CLI.
 installFile() {
     tar xf "$ARTIFACT_TMP_FILE" -C "$DAPR_TMP_ROOT"
     chmod o+x "$DAPR_TMP_ROOT/$DAPR_CLI_FILENAME"
@@ -141,7 +134,6 @@ installFile() {
     fi
 }
 
-# fail_trap is executed if an error occurs.
 fail_trap() {
     result=$?
     if [ "$result" != "0" ]; then

@@ -1,19 +1,19 @@
 # Dapr CLI Installer
 
-## Install Dapr CLI
-
-### Windows
+## Windows
 
 ```
 powershell -Command "iwr -useb https://raw.githubusercontent.com/dapr/cli/master/install/install.ps1 | iex"
 ```
 
-Note: Until the repo is public, please use the below command.
+## MacOS
 
 ```
-powershell -Command "$Env:GITHUB_USER='your_github_id'; $Env:GITHUB_TOKEN='your_github_pat_token'; iwr -useb https://raw.githubusercontent.com/dapr/cli/master/install/install.ps1?token=AC2QIRDUTKTPEPOE5W7HOH25VJ72W | iex"
+curl -fsSL https://raw.githubusercontent.com/dapr/cli/master/install/install.sh | /bin/bash
 ```
 
-### Linux/MacOS
+## Linux
 
-WIP.
+```
+wget -q https://raw.githubusercontent.com/dapr/cli/master/install/install.sh -O - | /bin/bash
+```
