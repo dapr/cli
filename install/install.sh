@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Dapr CLI location
 : ${DAPR_INSTALL_DIR:="/usr/local/bin"}
@@ -9,12 +9,14 @@
 # Http request CLI
 DAPR_HTTP_REQUEST_CLI=curl
 
-# Dapr CLI filename
-DAPR_CLI_FILENAME=dapr
-
 # GitHub Organization and repo name to download release
 GITHUB_ORG=dapr
 GITHUB_REPO=cli
+
+# Dapr CLI filename
+DAPR_CLI_FILENAME=dapr
+
+DAPR_CLI_FILE="${DAPR_INSTALL_DIR}/${DAPR_CLI_FILENAME}"
 
 # getSystemInfo discovers the architecture and OS for this system.
 getSystemInfo() {
@@ -42,7 +44,7 @@ verifySupported() {
 
     for osarch in "${supported[@]}"; do
         if [ "$osarch" == "$current_osarch" ]; then
-            echo "Detected system: ${OS}_${ARCH}"
+            echo "Your system is ${OS}_${ARCH}"
             return
         fi
     done
@@ -71,7 +73,16 @@ checkHttpRequestCLI() {
         echo "Either curl or wget is required"
         exit 1
     fi
-    echo "Found $DAPR_HTTP_REQUEST_CLI."
+}
+
+checkExistingDapr() {
+    if [ -f "$DAPR_CLI_FILE" ]; then
+        echo -e "\nDapr CLI is detected:"
+        $DAPR_CLI_FILE --version
+        echo -e "Reinstalling Dapr CLI - ${DAPR_CLI_FILE}...\n"
+    else
+        echo -e "Installing Dapr CLI...\n"
+    fi
 }
 
 getLatestRelease() {
@@ -118,7 +129,11 @@ installFile() {
     chmod o+x "$DAPR_TMP_ROOT/$DAPR_CLI_FILENAME"
     runAsRoot cp "$DAPR_TMP_ROOT/$DAPR_CLI_FILENAME" "$DAPR_INSTALL_DIR"
 
-    echo "$DAPR_CLI_FILENAME installed into $DAPR_INSTALL_DIR"
+    if [ -f "$DAPR_CLI_FILE" ]; then
+        echo "$DAPR_CLI_FILENAME installed into $DAPR_INSTALL_DIR successfully."
+
+        $DAPR_CLI_FILE --version
+    fi
 }
 
 # fail_trap is executed if an error occurs.
@@ -138,6 +153,10 @@ cleanup() {
     fi
 }
 
+installCompleted() {
+    echo -e "\nTo get started with Dapr, please visit https://github.com/dapr/docs/tree/master/getting-started"
+}
+
 # -----------------------------------------------------------------------------
 # main
 # -----------------------------------------------------------------------------
@@ -145,8 +164,12 @@ trap "fail_trap" EXIT
 
 getSystemInfo
 verifySupported
-
+checkExistingDapr
 checkHttpRequestCLI
+
 getLatestRelease
 downloadFile $ret_val
 installFile
+cleanup
+
+installCompleted
