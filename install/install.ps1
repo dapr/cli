@@ -1,9 +1,18 @@
+# ------------------------------------------------------------
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+# ------------------------------------------------------------
+
 $ErrorActionPreference = 'stop'
 
 # Constants
 $DaprRoot="c:\dapr"
-$DaprRuntimeFileName = "dapr.exe"
-$DaprRuntimePath = "$DaprRoot\$DaprRuntimeFileName"
+$DaprCliFileName = "dapr.exe"
+$DaprCliFilePath = "${DaprRoot}\${DaprCliFileName}"
+
+# GitHub Org and repo hosting Dapr cli
+$GitHubOrg="dapr"
+$GitHubRepo="cli"
 
 # Set Github request authentication for basic authentication.
 if ($Env:GITHUB_USER) {
@@ -20,6 +29,15 @@ if((Get-ExecutionPolicy) -gt 'RemoteSigned' -or (Get-ExecutionPolicy) -eq 'ByPas
     break
 }
 
+# Check if Dapr cli is installed.
+if (Test-Path $DaprCliFilePath -PathType Leaf) {
+    Write-Warning "Dapr is detected - $DaprCliFilePath"
+    Invoke-Expression "$DaprCliFilePath --version"
+    Write-Output "Reinstalling Dapr..."
+} else {
+    Write-Output "Installing Dapr..."
+}
+
 # Create Dapr Directory
 Write-Output "Creating $DaprRoot directory"
 New-Item -ErrorAction Ignore -Path $DaprRoot -ItemType "directory"
@@ -28,7 +46,7 @@ if (!(Test-Path $DaprRoot -PathType Container)) {
 }
 
 # Get the list of release from GitHub
-$releases = Invoke-RestMethod -Headers $githubHeader -Uri "https://api.github.com/repos/dapr/cli/releases" -Method Get
+$releases = Invoke-RestMethod -Headers $githubHeader -Uri "https://api.github.com/repos/${GitHubOrg}/${GitHubRepo}/releases" -Method Get
 if ($releases.Count -eq 0) {
     throw "No releases from github.com/dapr/cli repo"
 }
@@ -50,17 +68,22 @@ if (!(Test-Path $zipFilePath -PathType Leaf)) {
 
 # Extract Dapr CLI to c:\dapr
 Write-Output "Extracting $zipFilePath..."
-Expand-Archive -Path $zipFilePath -DestinationPath $DaprRoot
-if (!(Test-Path $DaprRuntimePath -PathType Leaf)) {
+Expand-Archive -Force -Path $zipFilePath -DestinationPath $DaprRoot
+if (!(Test-Path $DaprCliFilePath -PathType Leaf)) {
     throw "Failed to download Dapr Cli archieve - $zipFilePath"
 }
 
+# Check the dapr cli version
+Invoke-Expression "$DaprCliFilePath --version"
+
+# Clean up zipfile
 Write-Output "Clean up $zipFilePath..."
 Remove-Item $zipFilePath -Force
 
+# Add DaprRoot directory to User Path environment variable
 Write-Output "Try to add $DaprRoot to User Path Environment variable..."
 $UserPathEnvionmentVar = [Environment]::GetEnvironmentVariable("PATH", "User")
-if($UserPathEnvionmentVar -notlike '*dapr*') {
+if($UserPathEnvionmentVar -like '*dapr*') {
     Write-Output "Skipping to add $DaprRoot to User Path - $UserPathEnvionmentVar"
 } else {
     [System.Environment]::SetEnvironmentVariable("PATH", $UserPathEnvionmentVar + ";$DaprRoot", "User")
@@ -68,6 +91,5 @@ if($UserPathEnvionmentVar -notlike '*dapr*') {
     Write-Output "Added $DaprRoot to User Path - $UserPathEnvionmentVar"
 }
 
-Write-Output "-----------------------------------"
-Write-Output "Dapr CLI is installed successfully."
-Write-Output "Visit https://github.com/dapr/docs/blob/master/getting-started/environment-setup.md to start Dapr."
+Write-Output "`r`nDapr CLI is installed successfully."
+Write-Output "To get started with Dapr, please visit https://github.com/dapr/docs/tree/master/getting-started"
