@@ -36,7 +36,7 @@ import (
 const (
 	daprGitHubOrg              = "dapr"
 	daprGitHubRepo             = "dapr"
-	daprDockerImageName        = "docker.io/daprio/dapr"
+	daprDockerImageName        = "daprio/dapr"
 	daprRuntimeFilePrefix      = "daprd"
 	daprWindowsOS              = "windows"
 	daprLatestVersion          = "latest"
