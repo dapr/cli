@@ -10,6 +10,7 @@ import (
 	"archive/zip"
 	"compress/gzip"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -32,9 +33,15 @@ import (
 	"github.com/dapr/cli/utils"
 )
 
-const baseDownloadURL = "https://daprreleases.blob.core.windows.net/release"
-const daprImageURL = "actionscore.azurecr.io/dapr"
-const DaprPlacementContainerName = "dapr_placement"
+const (
+	daprGitHubOrg              = "dapr"
+	daprGitHubRepo             = "dapr"
+	daprDockerImageName        = "daprio/dapr"
+	daprRuntimeFilePrefix      = "daprd"
+	daprWindowsOS              = "windows"
+	daprLatestVersion          = "latest"
+	DaprPlacementContainerName = "dapr_placement"
+)
 
 // Initialize to install the Dapr
 func Init(runtimeVersion string) error {
@@ -60,7 +67,7 @@ func Init(runtimeVersion string) error {
 
 	msg := "Downloading binaries and setting up components..."
 	var s *spinner.Spinner
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == daprWindowsOS {
 		print.InfoStatusEvent(os.Stdout, msg)
 	} else {
 		s = spinner.New(spinner.CharSets[0], 100*time.Millisecond)
@@ -108,7 +115,7 @@ func isDockerInstalled() bool {
 func getDaprDir() (string, error) {
 	p := ""
 
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == daprWindowsOS {
 		p = path_filepath.FromSlash("c:/dapr")
 	} else {
 		usr, err := user.Current()
@@ -164,11 +171,16 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 	defer wg.Done()
 
 	osPort := 50005
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == daprWindowsOS {
 		osPort = 6050
 	}
 
-	image := fmt.Sprintf("%s:%s", daprImageURL, version)
+	// Without tag, docker will pull the latest version of image from the registry
+	if version == daprLatestVersion {
+		version = ""
+	}
+
+	image := fmt.Sprintf("%s:%s", daprDockerImageName, version)
 
 	err := utils.RunCmdAndWait(
 		"docker", "run",
@@ -193,11 +205,30 @@ func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version 
 	defer wg.Done()
 
 	archiveExt := "tar.gz"
-	if runtime.GOOS == "windows" || strings.Contains(version, "0.3.0-alpha") /* only 0.3.0-alpha uses zip for all OSs */ {
+	if runtime.GOOS == daprWindowsOS {
 		archiveExt = "zip"
 	}
 
-	daprURL := fmt.Sprintf("%s/%s/daprd_%s_%s.%s", baseDownloadURL, version, runtime.GOOS, runtime.GOARCH, archiveExt)
+	latestVersion, err := getLatestRelease(daprGitHubOrg, daprGitHubRepo)
+	if err != nil {
+		errorChan <- fmt.Errorf("Cannot get the latest release version: %s", err)
+		return
+	}
+
+	if version == daprLatestVersion {
+		version = latestVersion
+	}
+
+	daprURL := fmt.Sprintf(
+		"https://github.com/%s/%s/releases/download/%s/%s_%s_%s.%s",
+		daprGitHubOrg,
+		daprGitHubRepo,
+		version,
+		daprRuntimeFilePrefix,
+		runtime.GOOS,
+		runtime.GOARCH,
+		archiveExt)
+
 	filepath, err := downloadFile(dir, daprURL)
 	if err != nil {
 		errorChan <- fmt.Errorf("Error downloading dapr binary: %s", err)
@@ -234,7 +265,7 @@ func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version 
 }
 
 func makeExecutable(filepath string) error {
-	if runtime.GOOS != "windows" {
+	if runtime.GOOS != daprWindowsOS {
 		err := os.Chmod(filepath, 0777)
 		if err != nil {
 			return err
@@ -338,7 +369,7 @@ func moveFileToPath(filepath string) (string, error) {
 	fileName := path_filepath.Base(filepath)
 	destFilePath := ""
 
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == daprWindowsOS {
 		p := os.Getenv("PATH")
 		if !strings.Contains(strings.ToLower(string(p)), strings.ToLower("c:\\dapr")) {
 			err := utils.RunCmdAndWait("SETX", "PATH", p+";c:\\dapr")
@@ -362,6 +393,43 @@ func moveFileToPath(filepath string) (string, error) {
 	}
 
 	return destFilePath, nil
+}
+
+type githubRepoReleaseItem struct {
+	Url      string `json:"url"`
+	Tag_name string `json:"tag_name"`
+	Name     string `json:"name"`
+	Draft    bool   `json:"draft"`
+}
+
+func getLatestRelease(gitHubOrg, gitHubRepo string) (string, error) {
+	releaseUrl := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases", gitHubOrg, gitHubRepo)
+	resp, err := http.Get(releaseUrl)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return "", fmt.Errorf("%s - %s", releaseUrl, resp.Status)
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	var githubRepoReleases []githubRepoReleaseItem
+	err = json.Unmarshal(body, &githubRepoReleases)
+	if err != nil {
+		return "", err
+	}
+
+	if len(githubRepoReleases) == 0 {
+		return "", fmt.Errorf("No releases")
+	}
+
+	return githubRepoReleases[0].Tag_name, nil
 }
 
 func downloadFile(dir string, url string) (string, error) {
