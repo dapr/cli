@@ -175,12 +175,12 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 		osPort = 6050
 	}
 
-	// Without tag, docker will pull the latest version of image from the registry
-	if version == daprLatestVersion {
-		version = ""
-	}
-
 	image := fmt.Sprintf("%s:%s", daprDockerImageName, version)
+
+	// Use only image for latest version
+	if version == daprLatestVersion {
+		image = daprDockerImageName
+	}
 
 	err := utils.RunCmdAndWait(
 		"docker", "run",
