@@ -25,6 +25,10 @@ func Client() (*k8s.Clientset, error) {
 	}
 	flag.Parse()
 
+	if kubeConfigEnv := os.Getenv("KUBECONFIG"); len(kubeConfigEnv) != 0 {
+		kubeconfig = &kubeConfigEnv
+	}
+
 	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
 	if err != nil {
 		return nil, err
