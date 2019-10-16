@@ -43,7 +43,7 @@ Using `dapr init` will download and install the latest version of Dapr.
 In order to specify a specific version of the Dapr runtime, use the `runtime-version` flag: 
 
 ```
-$ dapr init --runtime-version v0.3.0-alpha
+$ dapr init --runtime-version 0.1.0
 ⌛  Making the jump to hyperspace...
 ↗   Downloading binaries and setting up components...
 ✅  Success! Dapr is up and running
