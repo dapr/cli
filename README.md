@@ -83,7 +83,7 @@ $ dapr uninstall
 
 ### Install Dapr on Kubernetes
 
-The init command will install the latest stable version of Dapr on your cluster. For more advanced use cases, use our [Helm Chart](https://github.com/dapr/dapr/tree/master/charts/dapr-operator).
+The init command will install the latest stable version of Dapr on your cluster. For more advanced use cases, use our [Helm Chart](https://github.com/dapr/dapr/tree/master/charts/dapr).
 
 ```
 $ dapr init --kubernetes
