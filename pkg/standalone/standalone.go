@@ -43,7 +43,7 @@ const (
 	DaprPlacementContainerName = "dapr_placement"
 )
 
-// Initialize to install the Dapr
+// Init installs Dapr on a local machine using the supplied runtimeVersion
 func Init(runtimeVersion string) error {
 	dockerInstalled := isDockerInstalled()
 	if !dockerInstalled {
@@ -209,18 +209,18 @@ func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version 
 		archiveExt = "zip"
 	}
 
-	latestVersion, err := getLatestRelease(daprGitHubOrg, daprGitHubRepo)
-	if err != nil {
-		errorChan <- fmt.Errorf("Cannot get the latest release version: %s", err)
-		return
-	}
-
 	if version == daprLatestVersion {
-		version = latestVersion
+		var err error
+		version, err = getLatestRelease(daprGitHubOrg, daprGitHubRepo)
+		if err != nil {
+			errorChan <- fmt.Errorf("Cannot get the latest release version: %s", err)
+			return
+		}
+		version = version[1:]
 	}
 
 	daprURL := fmt.Sprintf(
-		"https://github.com/%s/%s/releases/download/%s/%s_%s_%s.%s",
+		"https://github.com/%s/%s/releases/download/v%s/%s_%s_%s.%s",
 		daprGitHubOrg,
 		daprGitHubRepo,
 		version,

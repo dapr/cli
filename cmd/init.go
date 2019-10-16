@@ -21,11 +21,10 @@ var InitCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Setup dapr in Kubernetes or Standalone modes",
 	Run: func(cmd *cobra.Command, args []string) {
-		print.InfoStatusEvent(os.Stdout, "Note: this installation is recommended for testing purposes. For production environments, please use Helm \n")
-
 		print.PendingStatusEvent(os.Stdout, "Making the jump to hyperspace...")
 
 		if kubernetesMode {
+			print.InfoStatusEvent(os.Stdout, "Note: this installation is recommended for testing purposes. For production environments, please use Helm \n")
 			err := kubernetes.Init()
 			if err != nil {
 				print.FailureStatusEvent(os.Stdout, err.Error())
