@@ -88,8 +88,10 @@ The init command will install the latest stable version of Dapr on your cluster.
 ```
 $ dapr init --kubernetes
 ⌛  Making the jump to hyperspace...
-↗   Deploying the Dapr Operator to your cluster...
-✅  Success! Dapr is up and running. To verify, run 'kubectl get pods' in your terminal
+ℹ️  Note: this installation is recommended for testing purposes. For production environments, please use Helm
+
+✅  Deploying the Dapr Operator to your cluster...
+✅  Success! Dapr has been installed. To verify, run 'kubectl get pods -w' in your terminal
 ```
 
 #### Uninstall Dapr on Kubernetes
