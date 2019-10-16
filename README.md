@@ -7,19 +7,48 @@ The Dapr CLI allows you to setup Dapr on your local dev machine or on a Kubernet
 ## Getting started
 
 ### Prerequisites
-* Download the compressed, archived Dapr CLI [release](https://github.com/dapr/cli/releases) for your OS
-* Unpack it
-* Move it to your desired location (for Mac/Linux - ```mv dapr /usr/local/bin```. For Windows, add the executable to your System PATH.)
 
-__*Note: For Windows users, run the cmd terminal in administrator mode*__
+* Install [Docker](https://docs.docker.com/install/)
 
-__*Note: For Linux users, if you run docker cmds with sudo, you need to use ```sudo dapr init```*__
+### Installing Dapr CLI
 
-### Install Dapr
+#### Using script to install the latest release
 
-To setup Dapr on your local machine:
+**Windows**
 
-__*Note: For Windows users, run the cmd terminal in administrator mode*__
+Install the latest windows Dapr cli to `c:\dapr` and add this directory to User PATH environment variable.
+
+```powershell
+powershell -Command "iwr -useb https://raw.githubusercontent.com/dapr/cli/master/install/install.ps1 | iex"
+```
+
+**Linux**
+
+Install the latest linux Dapr CLI to `/usr/local/bin`
+
+```bash
+wget -q https://raw.githubusercontent.com/dapr/cli/master/install/install.sh -O - | /bin/bash
+```
+
+**MacOS**
+
+Install the latest darwin Dapr CLI to `/usr/local/bin`
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/dapr/cli/master/install/install.sh | /bin/bash
+```
+
+#### From the Binary Releases
+
+Each release of Dapr CLI includes various OSes and architectures. These binary versions can be manually downloaded and installed.
+
+1. Download the [Dapr CLI](https://github.com/dapr/cli/releases)
+2. Unpack it (e.g. dapr_linux_amd64.tar.gz, dapr_windows_amd64.zip)
+3. Move it to your desired location.
+   * For Linux/MacOS - `/usr/local/bin`
+   * For Windows, create a directory and add this to your System PATH. For example create a directory called `c:\dapr` and add this directory to your path, by editing your system environment variable.
+
+### Install Dapr on your local machine (standalone)
 
 ```
 $ dapr init
@@ -28,7 +57,33 @@ $ dapr init
 ✅  Success! Dapr is up and running
 ```
 
-To setup Dapr on Kubernetes:
+> Note: To see that Dapr has been installed successful, from a command prompt run the `docker ps` command and check that the `daprio/dapr:latest` and `redis` container images are both running.
+
+#### Install a specific runtime version
+
+You can install or upgrade to a specific version of the Dapr runtime using `dapr init --runtime-version`. You can find the list of versions in [Dapr Release](https://github.com/dapr/dapr/releases).
+
+```bash
+# Install v0.1.0 runtime
+$ dapr init --runtime-version 0.1.0
+
+# Check the versions of cli and runtime
+$ dapr --version
+cli version: v0.1.0
+runtime version: v0.1.0
+```
+
+#### Uninstall Dapr in a standalone mode
+
+To remove placement docker container.
+
+```bash
+$ dapr uninstall
+```
+
+### Install Dapr on Kubernetes
+
+The init command will install the latest stable version of Dapr on your cluster. For more advanced use cases, use our [Helm Chart](https://github.com/dapr/dapr/tree/master/charts/dapr-operator).
 
 ```
 $ dapr init --kubernetes
@@ -37,19 +92,15 @@ $ dapr init --kubernetes
 ✅  Success! Dapr is up and running. To verify, run 'kubectl get pods' in your terminal
 ```
 
-#### Installing a specific version (Standalone)
+#### Uninstall Dapr on Kubernetes
 
-Using `dapr init` will download and install the latest version of Dapr.
-In order to specify a specific version of the Dapr runtime, use the `runtime-version` flag: 
+To remove Dapr from your Kubernetes cluster, use the `uninstall` command with `--kubernetes`
+
+> Note: this won't remove Dapr installations that were deployed using Helm.
 
 ```
-$ dapr init --runtime-version 0.1.0
-⌛  Making the jump to hyperspace...
-↗   Downloading binaries and setting up components...
-✅  Success! Dapr is up and running
+$ dapr uninstall --kubernetes
 ```
-
-*Note: The init command will install the latest stable version of Dapr on your cluster. For more advanced use cases, use our [Helm Chart](https://github.com/dapr/dapr/tree/master/charts/dapr-operator).*
 
 ### Launch Dapr and your app
 
@@ -184,26 +235,6 @@ $ dapr run --app-id nodeapp --app-port 3000 node app.js --log-level debug
 
 This sets the Dapr log level to `debug`.
 The default is `info`.
-
-### Uninstall
-
-#### Standalone
-
-To remove Dapr placement container, use the `uninstall` command
-
-```
-$ dapr uninstall
-```
-
-#### Kubernetes
-
-To remove Dapr from your Kubernetes cluster, use the `uninstall` command with `--kubernetes`
-
-*Note this won't remove Dapr installations that were deployed using Helm.*
-
-```
-$ dapr uninstall --kubernetes
-```
 
 
 ## Contributing to Dapr CLI
