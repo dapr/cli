@@ -29,6 +29,9 @@ if((Get-ExecutionPolicy) -gt 'RemoteSigned' -or (Get-ExecutionPolicy) -eq 'ByPas
     break
 }
 
+# Change security protocol to support TLS 1.2 / 1.1 / 1.0 - old powershell uses TLS 1.0 as a default protocol
+[Net.ServicePointManager]::SecurityProtocol = "tls12, tls11, tls"
+
 # Check if Dapr cli is installed.
 if (Test-Path $DaprCliFilePath -PathType Leaf) {
     Write-Warning "Dapr is detected - $DaprCliFilePath"
