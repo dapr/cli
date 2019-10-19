@@ -176,7 +176,7 @@ C:> dapr publish --topic myevent --payload "{ \"name\": \"yoda\" }"
 ### Invoking
 
 To test your endpoints with Dapr, simply expose any ```POST``` HTTP endpoint.
-For this sample, we'll assume a node app listening on port 300 with a ```/mymethod``` endpoint.
+For this sample, we'll assume a node app listening on port 3000 with a ```/mymethod``` endpoint.
 
 Launch Dapr and your app:
 
