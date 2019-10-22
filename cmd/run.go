@@ -107,8 +107,19 @@ var RunCmd = &cobra.Command{
 				errScanner := bufio.NewScanner(stdErrPipe)
 				outScanner := bufio.NewScanner(stdOutPipe)
 				go func() {
+					//pure client app wait till daprd ready for conn
+					start_app := false
+					ready_msg := "dapr initialized. Status: Running"
 					for errScanner.Scan() {
-						fmt.Printf(print.Yellow(fmt.Sprintf("== DAPR == %s\n", errScanner.Text())))
+						text := errScanner.Text()
+						fmt.Printf(print.Yellow(fmt.Sprintf("== DAPR == %s\n", text)))
+						//stop searching after app started
+						if appPort == -1 && !start_app &&
+							strings.Index(text, ready_msg) != -1 {
+							//daprd is ready, start appCmd
+							start_app = true
+							daprRunning <- true
+						}
 					}
 				}()
 
@@ -124,7 +135,11 @@ var RunCmd = &cobra.Command{
 					os.Exit(1)
 				}
 
-				daprRunning <- true
+				//if app exposes service, don't wait for daprd
+				if appPort != -1 {
+					daprRunning <- true
+				}
+
 			}()
 
 			<-daprRunning
