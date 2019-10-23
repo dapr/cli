@@ -93,10 +93,10 @@ jobs:
           OWNER_NAME="${GITHUB_REPOSITORY%%/*}"
           REPO_NAME="${GITHUB_REPOSITORY#*/}"
           export GITHUB_TOKEN=${{ secrets.RELEASE_USER_TOKEN }}
-          echo "Uploading Dapr Runtime Binaries to GitHub Release"
+          echo "Uploading Dapr CLI Binaries to GitHub Release"
           github-release upload \
             --owner $OWNER_NAME --repo $REPO_NAME \
             --tag "v${REL_VERSION}" \
-            --name "Dapr Runtime v${REL_VERSION}" \
+            --name "Dapr CLI v${REL_VERSION}" \
             --prerelease true \
             ${RELEASE_ARTIFACT[*]}
