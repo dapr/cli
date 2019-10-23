@@ -1,7 +1,7 @@
 # Dapr CLI
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/dapr/cli)](https://goreportcard.com/report/github.com/dapr/cli)
-[![Build Status](https://dev.azure.com/azure-octo/Dapr/_apis/build/status/builds/cli%20build?branchName=master)](https://dev.azure.com/azure-octo/Dapr/_build/latest?definitionId=6&branchName=master)
+[![Build Status](https://github.com/dapr/cli/workflows/dapr_cli/badge.svg)](https://github.com/dapr/cli/actions?workflow=dapr_cli)
 
 The Dapr CLI allows you to setup Dapr on your local dev machine or on a Kubernetes cluster, provides debugging support, launches and manages Dapr instances.
 
