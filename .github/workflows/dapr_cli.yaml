@@ -86,8 +86,10 @@ jobs:
           path: ${{ env.ARTIFACT_DIR }}
       - name: Set Release Version
         run: |
-          REL_VER=`cat ${{ env.ARTIFACT_DIR }}/release_version.txt`
+          REL_VERSION_FILE="${{ env.ARTIFACT_DIR }}/release_version.txt"
+          REL_VER=`cat ${REL_VERSION_FILE}`
           echo "##[set-env name=REL_VERSION;]${REL_VER}"
+          rm -f ${REL_VERSION_FILE}
       - name: publish binaries to github
         if: startswith(github.ref, 'refs/tags/v')
         run: |
