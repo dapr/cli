@@ -65,5 +65,5 @@ jobs:
       - name: upload artifacts
         uses: actions/upload-artifact@master
         with:
-          name: dapr_${{ matrix.target_os }}_${{ matrix.target_arch }}
+          name: cli_${{ matrix.target_os }}_${{ matrix.target_arch }}
           path: ${{ env.ARCHIVE_OUTDIR }}
