@@ -95,4 +95,5 @@ if($UserPathEnvionmentVar -like '*dapr*') {
 }
 
 Write-Output "`r`nDapr CLI is installed successfully."
-Write-Output "To get started with Dapr, please visit https://github.com/dapr/docs/tree/master/getting-started"
+Write-Output "To get started with Dapr, please visit https://github.com/dapr/docs/tree/master/getting-started ."
+Write-Output "Ensure that Docker Desktop use Linux containers mode when you run Dapr as a standalone mode."
