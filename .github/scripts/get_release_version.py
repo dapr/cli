@@ -4,8 +4,7 @@
 # ------------------------------------------------------------
 
 # This script parses release version from Git tag and set the parsed version to
-# environment variable, REL_VERSION. If the tag is the final version, it sets 
-# LATEST_RELEASE to true to add 'latest' tag to docker image.
+# environment variable, REL_VERSION.
 
 import os
 import sys
@@ -24,14 +23,8 @@ releaseNotePath="docs/release_notes/v{}.md".format(releaseVersion)
 if gitRef.find("-rc.") > 0:
     print ("Release Candidate build from {}...".format(gitRef))
 else:
-    print ("Checking if {} exists".format(releaseNotePath))
-    if os.path.exists(releaseNotePath):
-        print ("Found {}".format(releaseNotePath))
-        # Set LATEST_RELEASE to true
-        print ("##[set-env name=LATEST_RELEASE;]true")
-    else:
-        print ("{} is not found".format(releaseNotePath))
-        sys.exit(1)
+    # Set LATEST_RELEASE to true
+    print ("##[set-env name=LATEST_RELEASE;]true")
     print ("Release build from {}...".format(gitRef))
 
 print ("##[set-env name=REL_VERSION;]{}".format(releaseVersion))
