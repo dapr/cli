@@ -62,6 +62,7 @@ jobs:
         run: |
           mkdir -p $ARCHIVE_OUTDIR
           make release GOOS=${{ matrix.target_os }} GOARCH=${{ matrix.target_arch }} ARCHIVE_OUT_DIR=${{ env.ARCHIVE_OUTDIR }}
+          [ ! -z "$REL_VERSION" ] && echo "$REL_VERSION" > "${{ env.ARCHIVE_OUTDIR }}/release_version.txt"
       - name: upload artifacts
         uses: actions/upload-artifact@master
         with:
@@ -75,13 +76,15 @@ jobs:
       ARTIFACT_DIR: ./release
     runs-on: ubuntu-latest
     steps:
-      - name: Parse release version and set REL_VERSION
-        run: python ./.github/scripts/get_release_version.py
       - name: download artifacts
         uses: actions/download-artifact@master
         with:
           name: cli_drop
           path: ${{ env.ARTIFACT_DIR }}
+      - name: Set Release Version
+        run: |
+          REL_VER=`cat ${{ env.ARTIFACT_DIR }}/release_version.txt`
+          echo "##[set-env name=REL_VERSION;]${REL_VER}"
       - name: publish binaries to github
         if: startswith(github.ref, 'refs/tags/v')
         run: |
