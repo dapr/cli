@@ -65,5 +65,44 @@ jobs:
       - name: upload artifacts
         uses: actions/upload-artifact@master
         with:
-          name: cli_${{ matrix.target_os }}_${{ matrix.target_arch }}
+          name: cli_drop
           path: ${{ env.ARCHIVE_OUTDIR }}
+  publish:
+    name: Publish binaries
+    needs: build
+    if: startswith(github.ref, 'refs/tags/v')
+    env:
+      ARTIFACT_DIR: ./release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Parse release version and set REL_VERSION
+        run: python ./.github/scripts/get_release_version.py
+      - name: download artifacts
+        uses: actions/download-artifact@master
+        with:
+          name: cli_drop
+          path: ${{ env.ARTIFACT_DIR }}
+      - name: publish binaries to github
+        if: startswith(github.ref, 'refs/tags/v')
+        run: |
+          echo "installing github-release-cli..."
+          sudo npm install --slient --no-progress -g github-release-cli
+          if [ "$LATEST_RELEASE" = "true" ]; then
+            export RELEASE_BODY=`cat ./docs/release_notes/v${REL_VERSION}.md`
+          else
+            export RELEASE_BODY="This is the release candidate ${REL_VERSION}"
+          fi
+          # Get the list of files
+          RELEASE_ARTIFACT=(${ARTIFACT_DIR}/*)
+          # Parse repository to get owner and repo names
+          OWNER_NAME="${GITHUB_REPOSITORY%%/*}"
+          REPO_NAME="${GITHUB_REPOSITORY#*/}"
+          export GITHUB_TOKEN=${{ secrets.RELEASE_USER_TOKEN }}
+          echo "Uploading Dapr Runtime Binaries to GitHub Release"
+          github-release upload \
+            --owner $OWNER_NAME --repo $REPO_NAME \
+            --tag "v${REL_VERSION}" \
+            --name "Dapr Runtime v${REL_VERSION}" \
+            --body "${RELEASE_BODY}" \
+            --prerelease true \
+            ${RELEASE_ARTIFACT[*]}
