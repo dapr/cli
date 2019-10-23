@@ -41,6 +41,7 @@ const (
 	daprWindowsOS              = "windows"
 	daprLatestVersion          = "latest"
 	DaprPlacementContainerName = "dapr_placement"
+	DaprRedisContainerName     = "dapr_redis"
 )
 
 // Init installs Dapr on a local machine using the supplied runtimeVersion
@@ -135,7 +136,13 @@ func getDaprDir() (string, error) {
 
 func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string) {
 	defer wg.Done()
-	err := utils.RunCmdAndWait("docker", "run", "--restart", "always", "-d", "-p", "6379:6379", "redis")
+	err := utils.RunCmdAndWait(
+		"docker", "run",
+		"--name", DaprRedisContainerName,
+		"--restart", "always",
+		"-d",
+		"-p", "6379:6379",
+		"redis")
 	if err != nil {
 		runError := isContainerRunError(err)
 		if !runError {
