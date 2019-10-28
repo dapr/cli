@@ -74,13 +74,24 @@ cli version: v0.1.0
 runtime version: v0.1.0
 ```
 
-#### Uninstall Dapr in a standalone mode
+### Uninstall Dapr in a standalone mode
 
-To remove placement docker container.
+
+Uninstalling will remove the placement container.  
+
 
 ```bash
 $ dapr uninstall
 ```
+
+
+The command above won't remove the redis container by default in case you were using it for other purposes.  To remove both the placement and redis container:
+
+```bash
+$ dapr uninstall --all
+```
+
+You should always run a `dapr uninstall` before running another `dapr init`.	
 
 ### Install Dapr on Kubernetes
 
