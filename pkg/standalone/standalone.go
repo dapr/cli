@@ -146,7 +146,7 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, d
 	};
 
 	if (dockerNetwork != "") {
-		args = append(args, "--network", dockerNetwork)
+		args = append(args, "--network", dockerNetwork, "--network-alias", DaprRedisContainerName)
 	}
 
 	args = append(args, "redis");
@@ -208,7 +208,7 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 	};
 
 	if (dockerNetwork != "") {
-		args = append(args, "--network", dockerNetwork)
+		args = append(args, "--network", dockerNetwork, "--network-alias", DaprPlacementContainerName)
 	}
 	
 	args = append(args, image);

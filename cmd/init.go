@@ -46,7 +46,7 @@ var InitCmd = &cobra.Command{
 func init() {
 	InitCmd.Flags().BoolVar(&kubernetesMode, "kubernetes", false, "Deploy Dapr to a Kubernetes cluster")
 	InitCmd.Flags().StringVarP(&runtimeVersion, "runtime-version", "", "latest", "The version of the Dapr runtime to install. for example: v0.1.0-alpha")
-	InitCmd.Flags().StringVarP(&dockerNetwork, "network", "", "", "The Docker network on which to deploy the Dapr runtime.")
+	InitCmd.Flags().StringVarP(&dockerNetwork, "network", "", "", "The Docker network on which to deploy the Dapr runtime")
 
 	RootCmd.AddCommand(InitCmd)
 }
