@@ -40,6 +40,8 @@ type RunConfig struct {
 	ProfilePort     int
 	LogLevel        string
 	MaxConcurrency  int
+	RedisHost       string
+	PlacementHost   string
 }
 
 // RunOutput to represent the run output
@@ -68,7 +70,7 @@ type componentMetadataItem struct {
 	Value string `yaml:"value"`
 }
 
-func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort int, configFile, protocol string, enableProfiling bool, profilePort int, logLevel string, maxConcurrency int) (*exec.Cmd, int, int, error) {
+func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort int, configFile, protocol string, enableProfiling bool, profilePort int, logLevel string, maxConcurrency int, placementHost string) (*exec.Cmd, int, int, error) {
 	if daprHTTPPort < 0 {
 		port, err := freeport.GetFreePort()
 		if err != nil {
@@ -105,9 +107,9 @@ func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort in
 	args = append(args, "--placement-address")
 
 	if runtime.GOOS == "windows" {
-		args = append(args, "localhost:6050")
+		args = append(args, fmt.Sprintf("%s:6050", placementHost))
 	} else {
-		args = append(args, "localhost:50005")
+		args = append(args, fmt.Sprintf("%s:50005", placementHost))
 	}
 
 	if configFile != "" {
@@ -157,7 +159,7 @@ func absoluteComponentsDir() (string, error) {
 	return path.Join(wd, componentsDirName), nil
 }
 
-func createRedisStateStore() error {
+func createRedisStateStore(redisHost string) error {
 	redisStore := component{
 		APIVersion: "dapr.io/v1alpha1",
 		Kind:       "Component",
@@ -168,7 +170,7 @@ func createRedisStateStore() error {
 	redisStore.Spec.Metadata = []componentMetadataItem{}
 	redisStore.Spec.Metadata = append(redisStore.Spec.Metadata, componentMetadataItem{
 		Name:  "redisHost",
-		Value: "localhost:6379",
+		Value: fmt.Sprintf("%s:6379", redisHost),
 	})
 	redisStore.Spec.Metadata = append(redisStore.Spec.Metadata, componentMetadataItem{
 		Name:  "redisPassword",
@@ -194,7 +196,7 @@ func createRedisStateStore() error {
 	return nil
 }
 
-func createRedisPubSub() error {
+func createRedisPubSub(redisHost string) error {
 	redisMessageBus := component{
 		APIVersion: "dapr.io/v1alpha1",
 		Kind:       "Component",
@@ -205,7 +207,7 @@ func createRedisPubSub() error {
 	redisMessageBus.Spec.Metadata = []componentMetadataItem{}
 	redisMessageBus.Spec.Metadata = append(redisMessageBus.Spec.Metadata, componentMetadataItem{
 		Name:  "redisHost",
-		Value: "localhost:6379",
+		Value: fmt.Sprintf("%s:6379", redisHost),
 	})
 	redisMessageBus.Spec.Metadata = append(redisMessageBus.Spec.Metadata, componentMetadataItem{
 		Name:  "redisPassword",
@@ -254,20 +256,20 @@ func Run(config *RunConfig) (*RunOutput, error) {
 	}
 
 	if !dirOrFileExists(path.Join(componentsDir, redisStateStoreYamlFileName)) {
-		err = createRedisStateStore()
+		err = createRedisStateStore(config.RedisHost)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	if !dirOrFileExists(path.Join(componentsDir, redisMessageBusYamlFileName)) {
-		err = createRedisPubSub()
+		err = createRedisPubSub(config.RedisHost)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	daprCMD, daprHTTPPort, daprGRPCPort, err := getDaprCommand(appID, config.HTTPPort, config.GRPCPort, config.AppPort, config.ConfigFile, config.Protocol, config.EnableProfiling, config.ProfilePort, config.LogLevel, config.MaxConcurrency)
+	daprCMD, daprHTTPPort, daprGRPCPort, err := getDaprCommand(appID, config.HTTPPort, config.GRPCPort, config.AppPort, config.ConfigFile, config.Protocol, config.EnableProfiling, config.ProfilePort, config.LogLevel, config.MaxConcurrency, config.PlacementHost)
 	if err != nil {
 		return nil, err
 	}
