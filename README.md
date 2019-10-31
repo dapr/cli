@@ -74,6 +74,20 @@ cli version: v0.1.0
 runtime version: v0.1.0
 ```
 
+#### Install to a specific Docker network
+
+You can install the Dapr runtime to a specific Docker network in order to isolate it from the local machine (e.g. to use Dapr from *within* a Docker container).
+
+```bash
+# Create Docker network
+$ docker network create dapr-network
+
+# Install Dapr to the network
+$ dapr init --network dapr-network
+```
+
+> Note: When installed to a specific Docker network, you will need to add the `--redis-host` and `--placement-host` arguments to `dapr run` commands run in any containers within that network.
+
 ### Uninstall Dapr in a standalone mode
 
 
@@ -92,6 +106,14 @@ $ dapr uninstall --all
 ```
 
 You should always run a `dapr uninstall` before running another `dapr init`.	
+
+#### Uninstall Dapr from a specific Docker network
+
+If previously installed to a specific Docker network, Dapr can be uninstalled with the `--network` argument:
+
+```bash
+$ dapr uninstall --network dapr-network
+```
 
 ### Install Dapr on Kubernetes
 
@@ -144,6 +166,14 @@ Example of launching Dapr on gRPC port 50002:
 ```
 $ dapr run --app-id nodeapp --app-port 3000 --grpc-port 50002 node app.js
 ```
+
+Example of launching Dapr within a specific Docker network:
+
+```bash
+$ dapr run --app-id nodeapp --redis-host dapr_redis --placement-host dapr_placement node app.js
+```
+
+> Note: When in a specific Docker network, the Redis and placement service containers are given specific network aliases, `dapr_redis` and `dapr_placement`, respectively.
 
 ### Use gRPC
 
