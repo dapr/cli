@@ -139,15 +139,20 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, d
 
 	args := []string {
 		"run",
-		"--name", DaprRedisContainerName,
+		"--name", utils.CreateContainerName(DaprRedisContainerName, dockerNetwork),
 		"--restart", "always",
 		"-d",
 	}
 
 	if (dockerNetwork != "") {
-		args = append(args, "--network", dockerNetwork, "--network-alias", DaprRedisContainerName)
+		args = append(
+			args,
+			"--network", dockerNetwork,
+			"--network-alias", DaprRedisContainerName)
 	} else {
-		args = append(args, "-p", "6379:6379")
+		args = append(
+			args,
+			"-p", "6379:6379")
 	}
 
 	args = append(args, "redis")
@@ -196,23 +201,27 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 
 	args := []string{
 		"run",
-		"--name", DaprPlacementContainerName,
+		"--name", utils.CreateContainerName(DaprPlacementContainerName, dockerNetwork),
 		"--restart", "always",
 		"-d",
+		"--entrypoint", "./placement",
 	}
 
 	if (dockerNetwork != "") {
-		args = append(args, "--network", dockerNetwork, "--network-alias", DaprPlacementContainerName)
+		args = append(args,
+			"--network", dockerNetwork,
+			"--network-alias", DaprPlacementContainerName)
 	} else {
 		osPort := 50005
 		if runtime.GOOS == daprWindowsOS {
 			osPort = 6050
 		}
 
-		args = append(args, "-p", fmt.Sprintf("%v:50005", osPort))
+		args = append(args,
+			"-p", fmt.Sprintf("%v:50005", osPort))
 	}
 	
-	args = append(args, "--entrypoint", "./placement", image)
+	args = append(args, image)
 	
 	err := utils.RunCmdAndWait("docker", args...)
 
