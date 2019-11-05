@@ -1,7 +1,7 @@
 # Dapr CLI
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/dapr/cli)](https://goreportcard.com/report/github.com/dapr/cli)
-[![Build Status](https://dev.azure.com/azure-octo/Dapr/_apis/build/status/builds/cli%20build?branchName=master)](https://dev.azure.com/azure-octo/Dapr/_build/latest?definitionId=6&branchName=master)
+[![Build Status](https://github.com/dapr/cli/workflows/dapr_cli/badge.svg)](https://github.com/dapr/cli/actions?workflow=dapr_cli)
 
 The Dapr CLI allows you to setup Dapr on your local dev machine or on a Kubernetes cluster, provides debugging support, launches and manages Dapr instances.
 
@@ -74,13 +74,24 @@ cli version: v0.1.0
 runtime version: v0.1.0
 ```
 
-#### Uninstall Dapr in a standalone mode
+### Uninstall Dapr in a standalone mode
 
-To remove placement docker container.
+
+Uninstalling will remove the placement container.  
+
 
 ```bash
 $ dapr uninstall
 ```
+
+
+The command above won't remove the redis container by default in case you were using it for other purposes.  To remove both the placement and redis container:
+
+```bash
+$ dapr uninstall --all
+```
+
+You should always run a `dapr uninstall` before running another `dapr init`.	
 
 ### Install Dapr on Kubernetes
 
