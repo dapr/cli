@@ -185,13 +185,19 @@ func createRedisStateStore(redisHost string) error {
 		return err
 	}
 
-	os.Mkdir(componentsDir, 0777)
 	err = ioutil.WriteFile(path.Join(componentsDir, redisStateStoreYamlFileName), b, 0644)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func createDirectory(dir string) error {
+	if _, err := os.Stat(dir); !os.IsNotExist(err) {
+		return nil
+	}
+	return os.Mkdir(dir, 0777)
 }
 
 func createRedisPubSub(redisHost string) error {
@@ -222,7 +228,6 @@ func createRedisPubSub(redisHost string) error {
 		return err
 	}
 
-	os.Mkdir(componentsDir, 0777)
 	err = ioutil.WriteFile(path.Join(componentsDir, redisMessageBusYamlFileName), b, 0644)
 	if err != nil {
 		return err
@@ -249,6 +254,10 @@ func Run(config *RunConfig) (*RunOutput, error) {
 	}
 
 	componentsDir, err := absoluteComponentsDir()
+	if err != nil {
+		return nil, err
+	}
+	err = createDirectory(componentsDir)
 	if err != nil {
 		return nil, err
 	}
