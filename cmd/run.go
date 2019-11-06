@@ -36,7 +36,7 @@ var protocol string
 
 var RunCmd = &cobra.Command{
 	Use:   "run",
-	Short: "Launches dapr and your app side by side.  For deploying to Kubernetes, use the Helm charts.",
+	Short: "Launches dapr and your app side by side",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		uuid, err := uuid.NewRandom()
