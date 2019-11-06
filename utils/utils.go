@@ -72,7 +72,7 @@ func RunCmdAndWait(name string, args ...string) error {
 func CreateContainerName(serviceContainerName string, dockerNetwork string) string {
 	if (dockerNetwork != "") {
 		return fmt.Sprintf("%s_%s", serviceContainerName, dockerNetwork)
-	} else {
-		return serviceContainerName
 	}
+
+	return serviceContainerName
 }
