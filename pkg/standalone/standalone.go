@@ -45,7 +45,7 @@ const (
 )
 
 // Init installs Dapr on a local machine using the supplied runtimeVersion
-func Init(runtimeVersion string) error {
+func Init(runtimeVersion string, dockerNetwork string) error {
 	dockerInstalled := isDockerInstalled()
 	if !dockerInstalled {
 		return errors.New("Could not connect to Docker.  Is Docker installed and running?")
@@ -59,7 +59,7 @@ func Init(runtimeVersion string) error {
 	var wg sync.WaitGroup
 	errorChan := make(chan error)
 
-	initSteps := []func(*sync.WaitGroup, chan<- error, string, string){}
+	initSteps := []func(*sync.WaitGroup, chan<- error, string, string, string){}
 	initSteps = append(initSteps, installDaprBinary)
 	initSteps = append(initSteps, runPlacementService)
 	initSteps = append(initSteps, runRedis)
@@ -79,7 +79,7 @@ func Init(runtimeVersion string) error {
 	}
 
 	for _, step := range initSteps {
-		go step(&wg, errorChan, dir, runtimeVersion)
+		go step(&wg, errorChan, dir, runtimeVersion, dockerNetwork)
 	}
 
 	go func() {
@@ -134,15 +134,30 @@ func getDaprDir() (string, error) {
 	return p, nil
 }
 
-func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string) {
+func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string) {
 	defer wg.Done()
-	err := utils.RunCmdAndWait(
-		"docker", "run",
-		"--name", DaprRedisContainerName,
+
+	args := []string {
+		"run",
+		"--name", utils.CreateContainerName(DaprRedisContainerName, dockerNetwork),
 		"--restart", "always",
 		"-d",
-		"-p", "6379:6379",
-		"redis")
+	}
+
+	if (dockerNetwork != "") {
+		args = append(
+			args,
+			"--network", dockerNetwork,
+			"--network-alias", DaprRedisContainerName)
+	} else {
+		args = append(
+			args,
+			"-p", "6379:6379")
+	}
+
+	args = append(args, "redis")
+
+	err := utils.RunCmdAndWait("docker", args...)
 	if err != nil {
 		runError := isContainerRunError(err)
 		if !runError {
@@ -174,13 +189,8 @@ func isContainerRunError(err error) bool {
 	return false
 }
 
-func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, version string) {
+func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string) {
 	defer wg.Done()
-
-	osPort := 50005
-	if runtime.GOOS == daprWindowsOS {
-		osPort = 6050
-	}
 
 	image := fmt.Sprintf("%s:%s", daprDockerImageName, version)
 
@@ -189,14 +199,31 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 		image = daprDockerImageName
 	}
 
-	err := utils.RunCmdAndWait(
-		"docker", "run",
-		"--name", DaprPlacementContainerName,
+	args := []string{
+		"run",
+		"--name", utils.CreateContainerName(DaprPlacementContainerName, dockerNetwork),
 		"--restart", "always",
 		"-d",
-		"-p", fmt.Sprintf("%v:50005", osPort),
 		"--entrypoint", "./placement",
-		image)
+	}
+
+	if (dockerNetwork != "") {
+		args = append(args,
+			"--network", dockerNetwork,
+			"--network-alias", DaprPlacementContainerName)
+	} else {
+		osPort := 50005
+		if runtime.GOOS == daprWindowsOS {
+			osPort = 6050
+		}
+
+		args = append(args,
+			"-p", fmt.Sprintf("%v:50005", osPort))
+	}
+	
+	args = append(args, image)
+	
+	err := utils.RunCmdAndWait("docker", args...)
 
 	if err != nil {
 		runError := isContainerRunError(err)
@@ -208,7 +235,7 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 	errorChan <- nil
 }
 
-func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version string) {
+func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string) {
 	defer wg.Done()
 
 	archiveExt := "tar.gz"

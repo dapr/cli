@@ -33,6 +33,8 @@ var image string
 var enableProfiling bool
 var logLevel string
 var protocol string
+var redisHost string
+var placementHost string
 
 var RunCmd = &cobra.Command{
 	Use:   "run",
@@ -76,6 +78,8 @@ var RunCmd = &cobra.Command{
 				LogLevel:        logLevel,
 				MaxConcurrency:  maxConcurrency,
 				Protocol:        protocol,
+				RedisHost:       redisHost,
+				PlacementHost:   placementHost,
 			})
 			if err != nil {
 				print.FailureStatusEvent(os.Stdout, err.Error())
@@ -214,6 +218,8 @@ func init() {
 	RunCmd.Flags().StringVarP(&logLevel, "log-level", "", "info", "Sets the log verbosity. Valid values are: debug, info, warning, error, fatal, or panic. Default is info")
 	RunCmd.Flags().IntVarP(&maxConcurrency, "max-concurrency", "", -1, "controls the concurrency level of the app. Default is unlimited")
 	RunCmd.Flags().StringVarP(&protocol, "protocol", "", "http", "tells Dapr to use HTTP or gRPC to talk to the app. Default is http")
+	RunCmd.Flags().StringVarP(&redisHost, "redis-host", "", "localhost", "the host on which the Redis service resides")
+	RunCmd.Flags().StringVarP(&placementHost, "placement-host", "", "localhost", "the host on which the placement service resides")
 
 	RootCmd.AddCommand(RunCmd)
 }

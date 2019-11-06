@@ -16,6 +16,7 @@ import (
 
 var kubernetesMode bool
 var runtimeVersion string
+var dockerNetwork string
 
 var InitCmd = &cobra.Command{
 	Use:   "init",
@@ -32,7 +33,7 @@ var InitCmd = &cobra.Command{
 			}
 			print.SuccessStatusEvent(os.Stdout, "Success! Dapr has been installed. To verify, run 'kubectl get pods -w' in your terminal")
 		} else {
-			err := standalone.Init(runtimeVersion)
+			err := standalone.Init(runtimeVersion, dockerNetwork)
 			if err != nil {
 				print.FailureStatusEvent(os.Stdout, err.Error())
 				return
@@ -45,6 +46,7 @@ var InitCmd = &cobra.Command{
 func init() {
 	InitCmd.Flags().BoolVar(&kubernetesMode, "kubernetes", false, "Deploy Dapr to a Kubernetes cluster")
 	InitCmd.Flags().StringVarP(&runtimeVersion, "runtime-version", "", "latest", "The version of the Dapr runtime to install. for example: v0.1.0-alpha")
+	InitCmd.Flags().StringVarP(&dockerNetwork, "network", "", "", "The Docker network on which to deploy the Dapr runtime")
 
 	RootCmd.AddCommand(InitCmd)
 }

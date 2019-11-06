@@ -6,11 +6,11 @@ import (
 	"github.com/dapr/cli/utils"
 )
 
-func Uninstall(uninstallAll bool) error {
+func Uninstall(uninstallAll bool, dockerNetwork string) error {
 	err := utils.RunCmdAndWait(
 		"docker", "rm",
 		"--force",
-		DaprPlacementContainerName)
+		utils.CreateContainerName(DaprPlacementContainerName, dockerNetwork))
 
 	errorMessage := ""
 	if err != nil {
@@ -21,7 +21,7 @@ func Uninstall(uninstallAll bool) error {
 		err = utils.RunCmdAndWait(
 			"docker", "rm",
 			"--force",
-			DaprRedisContainerName)
+			utils.CreateContainerName(DaprRedisContainerName, dockerNetwork))
 		if err != nil {
 			errorMessage += "Could not delete Redis Container - it may not have been running"
 		}

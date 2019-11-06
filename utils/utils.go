@@ -7,6 +7,7 @@ package utils
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
@@ -66,4 +67,12 @@ func RunCmdAndWait(name string, args ...string) error {
 	}
 
 	return nil
+}
+
+func CreateContainerName(serviceContainerName string, dockerNetwork string) string {
+	if (dockerNetwork != "") {
+		return fmt.Sprintf("%s_%s", serviceContainerName, dockerNetwork)
+	}
+
+	return serviceContainerName
 }
