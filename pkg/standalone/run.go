@@ -19,6 +19,9 @@ import (
 
 	"github.com/Pallinder/sillyname-go"
 	"github.com/phayes/freeport"
+
+	"github.com/dapr/dapr/pkg/components"
+	modes "github.com/dapr/dapr/pkg/config/modes"
 )
 
 const (
@@ -145,11 +148,6 @@ func getAppCommand(httpPort, grpcPort int, command string, args []string) (*exec
 	return cmd, nil
 }
 
-func dirOrFileExists(dirOrFilePath string) bool {
-	_, err := os.Stat(dirOrFilePath)
-	return !os.IsNotExist(err)
-}
-
 func absoluteComponentsDir() (string, error) {
 	wd, err := os.Getwd()
 	if err != nil {
@@ -255,14 +253,31 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		return nil, err
 	}
 
-	if !dirOrFileExists(path.Join(componentsDir, redisStateStoreYamlFileName)) {
+	componentsLoader := components.NewStandaloneComponents(modes.StandaloneConfig{ComponentsPath: componentsDir})
+	components, err := componentsLoader.LoadComponents()
+	if err != nil {
+		return nil, err
+	}
+
+	var stateStore, pubSub string
+
+	for _, component := range components {
+		if strings.HasPrefix(component.Spec.Type, "state") {
+			stateStore = component.Spec.Type
+		}
+		if strings.HasPrefix(component.Spec.Type, "pubsub") {
+			pubSub = component.Spec.Type
+		}
+	}
+
+	if stateStore == "" {
 		err = createRedisStateStore(config.RedisHost)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	if !dirOrFileExists(path.Join(componentsDir, redisMessageBusYamlFileName)) {
+	if pubSub == "" {
 		err = createRedisPubSub(config.RedisHost)
 		if err != nil {
 			return nil, err
