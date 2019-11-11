@@ -3,6 +3,36 @@
 
 This document helps you get started developing Dapr CLI. If you find any problem while following this guide, please create a Pull Request to update this document.
 
+# Developing in a VS Code Dev Container
+
+If using [VS Code](https://code.visualstudio.com/), you can build and debug the Dapr CLI from a [Dev Container](https://code.visualstudio.com/docs/remote/containers) with very little initial setup on your machine.
+
+## Prerequisites
+
+ - [Docker](https://www.docker.com/products/developer-tools)
+ - [Remote - Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) VS Code extension
+
+## Setup
+
+1. Clone the repository:
+
+    ```bash
+    $ git clone https://github.com/dapr/cli.git
+    ```
+
+1. Open the repository in VS Code
+1. Open the workspace in the remote container (either when prompted or via the command palette and the `Remote-Containers: Reopen in Container` command)
+
+## Building
+
+The Dev Container has two build tasks: `build-debug` and `build-release` for building the debug and release flavors, respectively, of the Dapr CLI. You can run the tasks via the command palette with the `task build-debug` and `task build-release` commands.
+
+## Debugging
+
+To debug, select the Debug tab, select the `Launch in Dev Container` configuration, and then press <kbd>F5</kbd> or press the "start debugging" button.
+
+# Developing on the local machine
+
 ## Prerequisites
 
 ### Linux and MacOS
