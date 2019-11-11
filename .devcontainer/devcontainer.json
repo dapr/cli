@@ -9,7 +9,8 @@
 		// and USER_GID in .devcontainer/Dockerfile to match your user if not 1000.
 		// "-u", "vscode",
 
-		"--cap-add=SYS_PTRACE", "--security-opt", "seccomp=unconfined"
+		"--cap-add=SYS_PTRACE", "--security-opt", "seccomp=unconfined",
+		"-v", "/var/run/docker.sock:/var/run/docker.sock"
 	],
 
 	// Use 'settings' to set *default* container specific settings.json values on container create. 
