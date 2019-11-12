@@ -44,7 +44,7 @@ var UninstallCmd = &cobra.Command{
 
 func init() {
 	UninstallCmd.Flags().BoolVar(&uninstallKubernetes, "kubernetes", false, "Uninstall Dapr from a Kubernetes cluster")
-	UninstallCmd.Flags().BoolVar(&uninstallAll, "all", false, "Remove the redis container as well")
+	UninstallCmd.Flags().BoolVar(&uninstallAll, "all", false, "Remove Redis container in addition to actor placement container")
 	UninstallCmd.Flags().StringVarP(&uninstallDockerNetwork, "network", "", "", "The Docker network from which to remove the Dapr runtime")
 	RootCmd.AddCommand(UninstallCmd)
 }

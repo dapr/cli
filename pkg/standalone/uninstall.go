@@ -2,6 +2,7 @@ package standalone
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/dapr/cli/utils"
 )
@@ -15,6 +16,16 @@ func Uninstall(uninstallAll bool, dockerNetwork string) error {
 	errorMessage := ""
 	if err != nil {
 		errorMessage += "Could not delete Dapr Placement Container - it may not have been running "
+	}
+
+	err = utils.RunCmdAndWait(
+		"docker", "rmi",
+		"--force",
+		daprDockerImageName)
+
+	errorMessage = ""
+	if err != nil {
+		errorMessage += fmt.Sprintf("Could not delete image %s - it may not be present on the host", daprDockerImageName)
 	}
 
 	if uninstallAll {
