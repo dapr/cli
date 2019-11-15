@@ -33,7 +33,7 @@ var InitCmd = &cobra.Command{
 			}
 			print.SuccessStatusEvent(os.Stdout, "Success! Dapr has been installed. To verify, run 'kubectl get pods -w' in your terminal")
 		} else {
-			standalone.Uninstall(false, dockerNetwork)
+			standalone.Uninstall(true, dockerNetwork)
 			err := standalone.Init(runtimeVersion, dockerNetwork)
 			if err != nil {
 				print.FailureStatusEvent(os.Stdout, err.Error())
