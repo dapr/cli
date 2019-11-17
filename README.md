@@ -11,6 +11,8 @@ The Dapr CLI allows you to setup Dapr on your local dev machine or on a Kubernet
 
 * Install [Docker](https://docs.docker.com/install/)
 
+*__Note: On Windows, Docker must be running in Linux Containers mode__*
+
 ### Installing Dapr CLI
 
 #### Using script to install the latest release
