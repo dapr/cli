@@ -23,7 +23,8 @@ require (
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/phayes/freeport v0.0.0-20171002181615-b8543db493a5
 	github.com/spf13/cobra v0.0.3
-	gopkg.in/yaml.v2 v2.2.2
+	github.com/spf13/viper v1.5.0
+	gopkg.in/yaml.v2 v2.2.4
 	k8s.io/api v0.0.0-20190819141258-3544db3b9e44
 	k8s.io/apimachinery v0.0.0-20190817020851-f2f3a405f61d
 	k8s.io/client-go v0.0.0-20190620085101-78d2af792bab
