@@ -162,10 +162,10 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, d
 		runError := isContainerRunError(err)
 		if !runError {
 			errorChan <- parseDockerError("Redis state store", err)
-			return
 		} else {
 			errorChan <- fmt.Errorf("docker %s failed with: %v", args, err)
 		}
+		return
 	}
 	errorChan <- nil
 }
@@ -231,10 +231,10 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 		runError := isContainerRunError(err)
 		if !runError {
 			errorChan <- parseDockerError("placement service", err)
-			return
 		} else {
 			errorChan <- fmt.Errorf("docker %s failed with: %v", args, err)
 		}
+		return
 	}
 	errorChan <- nil
 }
