@@ -14,6 +14,7 @@ dapr init [flags]
 
 | Name | Environment Variable | Default | Description
 | --- | --- | --- | --- |
-| --kubernetes | N/A | `false` | Deploy Dapr to a Kubernetes cluster |
-| --network | `DAPR_NETWORK` | None | The Docker network on which to deploy the Dapr runtime |
-| --runtime-version | N/A | `latest` | The version of the Dapr runtime to install, for example: `v0.1.0-alpha` |
+| `--kubernetes` | | `false` | Deploy Dapr to a Kubernetes cluster |
+| `--help`, `-h` | | | Help for init |
+| `--network` | `DAPR_NETWORK` | | The Docker network on which to deploy the Dapr runtime |
+| `--runtime-version` | | `latest` | The version of the Dapr runtime to install, for example: `v0.1.0-alpha` |
