@@ -45,3 +45,7 @@ You can learn more about each Dapr command from the links below.
  - [`dapr send`](dapr-send.md)
  - [`dapr stop`](dapr-stop.md)
  - [`dapr uninstall`](dapr-uninstall.md)
+
+## Environment Variables
+
+Some Dapr flags can be set via environment variables (e.g. `DAPR_NETWORK` for the `--network` flag of the `dapr init` command). Note that specifying the flag on the command line overrides any set environment variable.
