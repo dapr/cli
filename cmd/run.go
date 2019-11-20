@@ -20,6 +20,7 @@ import (
 	"github.com/dapr/cli/pkg/standalone"
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var appPort int
@@ -33,13 +34,15 @@ var image string
 var enableProfiling bool
 var logLevel string
 var protocol string
-var redisHost string
-var placementHost string
 
 var RunCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Launches dapr and your app side by side",
 	Args:  cobra.MinimumNArgs(1),
+	PreRun: func(cmd *cobra.Command, args []string) {
+		viper.BindPFlag("placement-host", cmd.Flags().Lookup("placement-host"))
+		viper.BindPFlag("redis-host", cmd.Flags().Lookup("redis-host"))
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		uuid, err := uuid.NewRandom()
 		if err != nil {
@@ -78,8 +81,8 @@ var RunCmd = &cobra.Command{
 				LogLevel:        logLevel,
 				MaxConcurrency:  maxConcurrency,
 				Protocol:        protocol,
-				RedisHost:       redisHost,
-				PlacementHost:   placementHost,
+				RedisHost:       viper.GetString("redis-host"),
+				PlacementHost:   viper.GetString("placement-host"),
 			})
 			if err != nil {
 				print.FailureStatusEvent(os.Stdout, err.Error())
@@ -218,8 +221,8 @@ func init() {
 	RunCmd.Flags().StringVarP(&logLevel, "log-level", "", "info", "Sets the log verbosity. Valid values are: debug, info, warning, error, fatal, or panic. Default is info")
 	RunCmd.Flags().IntVarP(&maxConcurrency, "max-concurrency", "", -1, "controls the concurrency level of the app. Default is unlimited")
 	RunCmd.Flags().StringVarP(&protocol, "protocol", "", "http", "tells Dapr to use HTTP or gRPC to talk to the app. Default is http")
-	RunCmd.Flags().StringVarP(&redisHost, "redis-host", "", "localhost", "the host on which the Redis service resides")
-	RunCmd.Flags().StringVarP(&placementHost, "placement-host", "", "localhost", "the host on which the placement service resides")
+	RunCmd.Flags().String("redis-host", "localhost", "the host on which the Redis service resides")
+	RunCmd.Flags().String("placement-host", "localhost", "the host on which the placement service resides")
 
 	RootCmd.AddCommand(RunCmd)
 }
