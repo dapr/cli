@@ -1,13 +1,28 @@
 package fasthttp
 
 import (
+	"sync/atomic"
 	"time"
 )
 
 // CoarseTimeNow returns the current time truncated to the nearest second.
 //
-// Deprecated: This is slower than calling time.Now() directly.
-// This is now time.Now().Truncate(time.Second) shortcut.
+// This is a faster alternative to time.Now().
 func CoarseTimeNow() time.Time {
-	return time.Now().Truncate(time.Second)
+	tp := coarseTime.Load().(*time.Time)
+	return *tp
 }
+
+func init() {
+	t := time.Now().Truncate(time.Second)
+	coarseTime.Store(&t)
+	go func() {
+		for {
+			time.Sleep(time.Second)
+			t := time.Now().Truncate(time.Second)
+			coarseTime.Store(&t)
+		}
+	}()
+}
+
+var coarseTime atomic.Value

@@ -3,5 +3,6 @@
 package fasthttp
 
 const (
+	maxIntChars    = 9
 	maxHexIntChars = 7
 )
