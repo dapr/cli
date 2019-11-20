@@ -137,14 +137,14 @@ func getDaprDir() (string, error) {
 func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string) {
 	defer wg.Done()
 
-	args := []string {
+	args := []string{
 		"run",
 		"--name", utils.CreateContainerName(DaprRedisContainerName, dockerNetwork),
 		"--restart", "always",
 		"-d",
 	}
 
-	if (dockerNetwork != "") {
+	if dockerNetwork != "" {
 		args = append(
 			args,
 			"--network", dockerNetwork,
@@ -156,13 +156,15 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, d
 	}
 
 	args = append(args, "redis")
-
 	err := utils.RunCmdAndWait("docker", args...)
+
 	if err != nil {
 		runError := isContainerRunError(err)
 		if !runError {
 			errorChan <- parseDockerError("Redis state store", err)
 			return
+		} else {
+			errorChan <- fmt.Errorf("docker %s failed with: %v", args, err)
 		}
 	}
 	errorChan <- nil
@@ -207,7 +209,7 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 		"--entrypoint", "./placement",
 	}
 
-	if (dockerNetwork != "") {
+	if dockerNetwork != "" {
 		args = append(args,
 			"--network", dockerNetwork,
 			"--network-alias", DaprPlacementContainerName)
@@ -220,9 +222,9 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 		args = append(args,
 			"-p", fmt.Sprintf("%v:50005", osPort))
 	}
-	
+
 	args = append(args, image)
-	
+
 	err := utils.RunCmdAndWait("docker", args...)
 
 	if err != nil {
@@ -230,6 +232,8 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 		if !runError {
 			errorChan <- parseDockerError("placement service", err)
 			return
+		} else {
+			errorChan <- fmt.Errorf("docker %s failed with: %v", args, err)
 		}
 	}
 	errorChan <- nil
