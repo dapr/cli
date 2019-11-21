@@ -230,7 +230,7 @@ $ dapr run --app-id nodeapp --app-port 3000 node app.js
 Invoke your app:
 
 ```
-$ dapr send --app-id nodeapp --method mymethod
+$ dapr invoke --app-id nodeapp --method mymethod
 ```
 
 ### List

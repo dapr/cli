@@ -1,4 +1,4 @@
-# dapr send
+# dapr invoke
 
 ## Description
 
@@ -7,7 +7,7 @@ Invoke a Dapr app with an optional payload
 ## Usage
 
 ```bash
-dapr send [flags]
+dapr invoke [flags]
 ```
 
 ## Flags
@@ -15,6 +15,6 @@ dapr send [flags]
 | Name | Environment Variable | Default | Description
 | --- | --- | --- | --- |
 | `--app-id`, `-a` | | | The app ID to invoke |
-| `--help`, `-h` | | | Help for send |
+| `--help`, `-h` | | | Help for invoke |
 | `--method`, `-m` | | | The method to invoke |
 | `--payload`, `-p` | | | A JSON payload |
