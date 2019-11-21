@@ -20,11 +20,11 @@ Available Commands:
   help        Help about any command
   init        Setup dapr in Kubernetes or Standalone modes
   list        List all dapr instances
-  publish     publish an event to multiple consumers
+  publish     Publish an event to multiple consumers
   run         Launches dapr and your app side by side
-  send        invoke a dapr app with an optional payload
+  invoke      Invoke a dapr app with an optional payload
   stop        Stops a running dapr instance and its associated app
-  uninstall   removes a dapr installation
+  uninstall   Removes a dapr installation
 
 Flags:
   -h, --help      help for dapr
@@ -42,7 +42,7 @@ You can learn more about each Dapr command from the links below.
  - [`dapr list`](dapr-list.md)
  - [`dapr publish`](dapr-publish.md)
  - [`dapr run`](dapr-run.md)
- - [`dapr send`](dapr-send.md)
+ - [`dapr invoke`](dapr-invoke.md)
  - [`dapr stop`](dapr-stop.md)
  - [`dapr uninstall`](dapr-uninstall.md)
 
