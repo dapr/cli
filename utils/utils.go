@@ -76,3 +76,10 @@ func CreateContainerName(serviceContainerName string, dockerNetwork string) stri
 
 	return serviceContainerName
 }
+
+func CreateDirectory(dir string) error {
+	if _, err := os.Stat(dir); !os.IsNotExist(err) {
+		return nil
+	}
+	return os.Mkdir(dir, 0777)
+}
