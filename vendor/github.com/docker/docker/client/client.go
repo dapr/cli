@@ -222,7 +222,6 @@ func (cli *Client) UpdateClientVersion(v string) {
 	if !cli.manualOverride {
 		cli.version = v
 	}
-
 }
 
 // ParseHost verifies that the given host strings is valid.

@@ -47,7 +47,7 @@ func Execute(version, apiVersion string) {
 }
 
 func setVersion() {
-	template := fmt.Sprintf("cli version: %s \nruntime version: %s", RootCmd.Version, version.GetRuntimeVersion())
+	template := fmt.Sprintf("CLI version: %s \nRuntime version: %s", RootCmd.Version, version.GetRuntimeVersion())
 	RootCmd.SetVersionTemplate(template)
 }
 
