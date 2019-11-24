@@ -19,7 +19,7 @@ import (
 var uninstallKubernetes bool
 var uninstallAll bool
 
-// UninstallCmd is a command from removing an Dapr installation
+// UninstallCmd is a command from removing a Dapr installation
 var UninstallCmd = &cobra.Command{
 	Use:   "uninstall",
 	Short: "removes a dapr installation",
