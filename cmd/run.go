@@ -37,7 +37,7 @@ var protocol string
 
 var RunCmd = &cobra.Command{
 	Use:   "run",
-	Short: "Launches dapr and your app side by side",
+	Short: "Launches Dapr and your app side by side",
 	Args:  cobra.MinimumNArgs(1),
 	PreRun: func(cmd *cobra.Command, args []string) {
 		viper.BindPFlag("placement-host", cmd.Flags().Lookup("placement-host"))

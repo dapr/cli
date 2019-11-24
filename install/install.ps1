@@ -57,7 +57,7 @@ if ($releases.Count -eq 0) {
 # Filter windows binary and download archive
 $windowsAsset = $releases[0].assets | where-object { $_.name -Like "*windows_amd64.zip" }
 if (!$windowsAsset) {
-    throw "Cannot find the windows dapr cli binary"
+    throw "Cannot find the windows Dapr CLI binary"
 }
 
 $zipFilePath = $DaprRoot + "\" + $windowsAsset.name
@@ -76,7 +76,7 @@ if (!(Test-Path $DaprCliFilePath -PathType Leaf)) {
     throw "Failed to download Dapr Cli archieve - $zipFilePath"
 }
 
-# Check the dapr cli version
+# Check the Dapr CLI version
 Invoke-Expression "$DaprCliFilePath --version"
 
 # Clean up zipfile

@@ -250,7 +250,7 @@ $ dapr list --kubernetes
 ### Stop
 
 Use ```dapr list``` to get a list of all running instances.
-To stop an dapr app on your machine:
+To stop an Dapr app on your machine:
 
 ```
 $ dapr stop --app-id myAppID
