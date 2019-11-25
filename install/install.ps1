@@ -10,7 +10,7 @@ $DaprRoot="c:\dapr"
 $DaprCliFileName = "dapr.exe"
 $DaprCliFilePath = "${DaprRoot}\${DaprCliFileName}"
 
-# GitHub Org and repo hosting Dapr cli
+# GitHub Org and repo hosting Dapr CLI
 $GitHubOrg="dapr"
 $GitHubRepo="cli"
 
@@ -32,7 +32,7 @@ if((Get-ExecutionPolicy) -gt 'RemoteSigned' -or (Get-ExecutionPolicy) -eq 'ByPas
 # Change security protocol to support TLS 1.2 / 1.1 / 1.0 - old powershell uses TLS 1.0 as a default protocol
 [Net.ServicePointManager]::SecurityProtocol = "tls12, tls11, tls"
 
-# Check if Dapr cli is installed.
+# Check if Dapr CLI is installed.
 if (Test-Path $DaprCliFilePath -PathType Leaf) {
     Write-Warning "Dapr is detected - $DaprCliFilePath"
     Invoke-Expression "$DaprCliFilePath --version"
@@ -57,7 +57,7 @@ if ($releases.Count -eq 0) {
 # Filter windows binary and download archive
 $windowsAsset = $releases[0].assets | where-object { $_.name -Like "*windows_amd64.zip" }
 if (!$windowsAsset) {
-    throw "Cannot find the windows dapr cli binary"
+    throw "Cannot find the windows Dapr CLI binary"
 }
 
 $zipFilePath = $DaprRoot + "\" + $windowsAsset.name
@@ -76,7 +76,7 @@ if (!(Test-Path $DaprCliFilePath -PathType Leaf)) {
     throw "Failed to download Dapr Cli archieve - $zipFilePath"
 }
 
-# Check the dapr cli version
+# Check the Dapr CLI version
 Invoke-Expression "$DaprCliFilePath --version"
 
 # Clean up zipfile

@@ -18,17 +18,17 @@ Usage:
 
 Available Commands:
   help        Help about any command
-  init        Setup dapr in Kubernetes or Standalone modes
-  list        List all dapr instances
+  init        Setup Dapr in Kubernetes or Standalone modes
+  list        List all Dapr instances
   publish     Publish an event to multiple consumers
-  run         Launches dapr and your app side by side
-  invoke      Invoke a dapr app with an optional payload
-  stop        Stops a running dapr instance and its associated app
-  uninstall   Removes a dapr installation
+  run         Launches Dapr and your app side by side
+  invoke      Invokes a Dapr app with an optional payload
+  stop        Stops a running Dapr instance and its associated app
+  uninstall   Removes a Dapr installation
 
 Flags:
-  -h, --help      help for dapr
-      --version   version for dapr
+  -h, --help      help for Dapr
+      --version   version for Dapr
 
 Use "dapr [command] --help" for more information about a command.
 ```

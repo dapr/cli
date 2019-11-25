@@ -20,7 +20,7 @@ var invokePayload string
 
 var InvokeCmd = &cobra.Command{
 	Use:   "invoke",
-	Short: "invoke a dapr app with an optional payload",
+	Short: "Invokes a Dapr app with an optional payload",
 	Run: func(cmd *cobra.Command, args []string) {
 		response, err := invoke.InvokeApp(invokeAppID, invokeAppMethod, invokePayload)
 		if err != nil {
