@@ -2,7 +2,7 @@
 
 ## Description
 
-Setup dapr in Kubernetes or Standalone modes
+Setup Dapr in Kubernetes or Standalone modes
 
 ## Usage
 

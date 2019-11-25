@@ -272,7 +272,7 @@ func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version 
 
 	filepath, err := downloadFile(dir, daprURL)
 	if err != nil {
-		errorChan <- fmt.Errorf("Error downloading dapr binary: %s", err)
+		errorChan <- fmt.Errorf("Error downloading Dapr binary: %s", err)
 		return
 	}
 
@@ -286,19 +286,19 @@ func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version 
 	}
 
 	if err != nil {
-		errorChan <- fmt.Errorf("Error extracting dapr binary: %s", err)
+		errorChan <- fmt.Errorf("Error extracting Dapr binary: %s", err)
 		return
 	}
 
 	daprPath, err := moveFileToPath(extractedFilePath, installLocation)
 	if err != nil {
-		errorChan <- fmt.Errorf("Error moving dapr binary to path: %s", err)
+		errorChan <- fmt.Errorf("Error moving Dapr binary to path: %s", err)
 		return
 	}
 
 	err = makeExecutable(daprPath)
 	if err != nil {
-		errorChan <- fmt.Errorf("Error making dapr binary executable: %s", err)
+		errorChan <- fmt.Errorf("Error making Dapr binary executable: %s", err)
 		return
 	}
 

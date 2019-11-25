@@ -2,7 +2,7 @@
 
 ## Description
 
-Launches dapr and your app side-by-side
+Launches Dapr and your app side-by-side
 
 ## Usage
 

@@ -243,7 +243,7 @@ func Run(config *RunConfig) (*RunOutput, error) {
 
 	for _, a := range dapr {
 		if appID == a.AppID {
-			return nil, fmt.Errorf("dapr with ID %s is already running", appID)
+			return nil, fmt.Errorf("Dapr with ID %s is already running", appID)
 		}
 	}
 
@@ -294,9 +294,9 @@ func Run(config *RunConfig) (*RunOutput, error) {
 
 	for _, a := range dapr {
 		if daprHTTPPort == a.HTTPPort {
-			return nil, fmt.Errorf("there's already a dapr instance running with http port %v", daprHTTPPort)
+			return nil, fmt.Errorf("there's already a Dapr instance running with http port %v", daprHTTPPort)
 		} else if daprGRPCPort == a.GRPCPort {
-			return nil, fmt.Errorf("there's already a dapr instance running with gRPC port %v", daprGRPCPort)
+			return nil, fmt.Errorf("there's already a Dapr instance running with gRPC port %v", daprGRPCPort)
 		}
 	}
 

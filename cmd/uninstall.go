@@ -19,10 +19,10 @@ import (
 var uninstallKubernetes bool
 var uninstallAll bool
 
-// UninstallCmd is a command from removing an Dapr installation
+// UninstallCmd is a command from removing a Dapr installation
 var UninstallCmd = &cobra.Command{
 	Use:   "uninstall",
-	Short: "removes a dapr installation",
+	Short: "Removes a Dapr installation",
 	PreRun: func(cmd *cobra.Command, args []string) {
 		viper.BindPFlag("network", cmd.Flags().Lookup("network"))
 	},
