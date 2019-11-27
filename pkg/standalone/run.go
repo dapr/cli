@@ -20,6 +20,7 @@ import (
 	"github.com/Pallinder/sillyname-go"
 	"github.com/phayes/freeport"
 
+	"github.com/dapr/cli/utils"
 	"github.com/dapr/dapr/pkg/components"
 	modes "github.com/dapr/dapr/pkg/config/modes"
 )
@@ -193,13 +194,6 @@ func createRedisStateStore(redisHost string) error {
 	return nil
 }
 
-func createDirectory(dir string) error {
-	if _, err := os.Stat(dir); !os.IsNotExist(err) {
-		return nil
-	}
-	return os.Mkdir(dir, 0777)
-}
-
 func createRedisPubSub(redisHost string) error {
 	redisMessageBus := component{
 		APIVersion: "dapr.io/v1alpha1",
@@ -257,7 +251,7 @@ func Run(config *RunConfig) (*RunOutput, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = createDirectory(componentsDir)
+	err = utils.CreateDirectory(componentsDir)
 	if err != nil {
 		return nil, err
 	}
