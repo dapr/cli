@@ -19,7 +19,7 @@ The Dapr CLI allows you to setup Dapr on your local dev machine or on a Kubernet
 
 **Windows**
 
-Install the latest windows Dapr cli to `c:\dapr` and add this directory to User PATH environment variable.
+Install the latest windows Dapr CLI to `c:\dapr` and add this directory to User PATH environment variable.
 
 ```powershell
 powershell -Command "iwr -useb https://raw.githubusercontent.com/dapr/cli/master/install/install.ps1 | iex"
@@ -70,10 +70,10 @@ You can install or upgrade to a specific version of the Dapr runtime using `dapr
 # Install v0.1.0 runtime
 $ dapr init --runtime-version 0.1.0
 
-# Check the versions of cli and runtime
+# Check the versions of CLI and runtime
 $ dapr --version
-cli version: v0.1.0
-runtime version: v0.1.0
+CLI version: v0.1.0
+Runtime version: v0.1.0
 ```
 
 #### Install to a specific Docker network
@@ -250,7 +250,7 @@ $ dapr list --kubernetes
 ### Stop
 
 Use ```dapr list``` to get a list of all running instances.
-To stop an dapr app on your machine:
+To stop a Dapr app on your machine:
 
 ```
 $ dapr stop --app-id myAppID

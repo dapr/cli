@@ -15,7 +15,7 @@ import (
 	"github.com/dapr/cli/pkg/standalone"
 )
 
-// PublishTopic is used to publish topic
+// PublishTopic publishes the topic.
 func PublishTopic(topic, payload string) error {
 	if topic == "" {
 		return errors.New("topic is missing")

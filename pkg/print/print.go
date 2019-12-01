@@ -23,7 +23,7 @@ var (
 	WhiteBold = color.New(color.FgWhite, color.Bold).SprintFunc()
 )
 
-// SuccessStatusEvent to report on success event
+// SuccessStatusEvent reports on a success event.
 func SuccessStatusEvent(w io.Writer, fmtstr string, a ...interface{}) {
 	if runtime.GOOS == "windows" {
 		fmt.Fprintf(w, "%s\n", fmt.Sprintf(fmtstr, a...))
@@ -32,7 +32,7 @@ func SuccessStatusEvent(w io.Writer, fmtstr string, a ...interface{}) {
 	}
 }
 
-// FailureStatusEvent to report on failure event
+// FailureStatusEvent reports on a failure event.
 func FailureStatusEvent(w io.Writer, fmtstr string, a ...interface{}) {
 	if runtime.GOOS == "windows" {
 		fmt.Fprintf(w, "%s\n", fmt.Sprintf(fmtstr, a...))
@@ -41,7 +41,7 @@ func FailureStatusEvent(w io.Writer, fmtstr string, a ...interface{}) {
 	}
 }
 
-// PendingStatusEvent to report on pending event
+// PendingStatusEvent reports on a pending event.
 func PendingStatusEvent(w io.Writer, fmtstr string, a ...interface{}) {
 	if runtime.GOOS == "windows" {
 		fmt.Fprintf(w, "%s\n", fmt.Sprintf(fmtstr, a...))
@@ -50,7 +50,7 @@ func PendingStatusEvent(w io.Writer, fmtstr string, a ...interface{}) {
 	}
 }
 
-// InfoStatusEvent for status information on event
+// InfoStatusEvent reports status information on an event.
 func InfoStatusEvent(w io.Writer, fmtstr string, a ...interface{}) {
 	if runtime.GOOS == "windows" {
 		fmt.Fprintf(w, "%s\n", fmt.Sprintf(fmtstr, a...))

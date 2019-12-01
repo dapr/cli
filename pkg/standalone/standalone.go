@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/docker/docker/client"
+	"github.com/fatih/color"
 
 	"github.com/briandowns/spinner"
 	"github.com/dapr/cli/pkg/print"
@@ -34,18 +35,20 @@ import (
 )
 
 const (
-	daprGitHubOrg              = "dapr"
-	daprGitHubRepo             = "dapr"
-	daprDockerImageName        = "daprio/dapr"
-	daprRuntimeFilePrefix      = "daprd"
-	daprWindowsOS              = "windows"
-	daprLatestVersion          = "latest"
-	DaprPlacementContainerName = "dapr_placement"
-	DaprRedisContainerName     = "dapr_redis"
+	daprGitHubOrg                     = "dapr"
+	daprGitHubRepo                    = "dapr"
+	daprDockerImageName               = "daprio/dapr"
+	daprRuntimeFilePrefix             = "daprd"
+	daprWindowsOS                     = "windows"
+	daprLatestVersion                 = "latest"
+	DaprPlacementContainerName        = "dapr_placement"
+	DaprRedisContainerName            = "dapr_redis"
+	daprDefaultLinuxAndMacInstallPath = "/usr/local/bin"
+	daprDefaultWindowsInstallPath     = "c:\\dapr"
 )
 
-// Init installs Dapr on a local machine using the supplied runtimeVersion
-func Init(runtimeVersion string, dockerNetwork string) error {
+// Init installs Dapr on a local machine using the supplied runtimeVersion.
+func Init(runtimeVersion string, dockerNetwork string, installLocation string) error {
 	dockerInstalled := isDockerInstalled()
 	if !dockerInstalled {
 		return errors.New("Could not connect to Docker.  Is Docker installed and running?")
@@ -59,7 +62,7 @@ func Init(runtimeVersion string, dockerNetwork string) error {
 	var wg sync.WaitGroup
 	errorChan := make(chan error)
 
-	initSteps := []func(*sync.WaitGroup, chan<- error, string, string, string){}
+	initSteps := []func(*sync.WaitGroup, chan<- error, string, string, string, string){}
 	initSteps = append(initSteps, installDaprBinary)
 	initSteps = append(initSteps, runPlacementService)
 	initSteps = append(initSteps, runRedis)
@@ -79,7 +82,7 @@ func Init(runtimeVersion string, dockerNetwork string) error {
 	}
 
 	for _, step := range initSteps {
-		go step(&wg, errorChan, dir, runtimeVersion, dockerNetwork)
+		go step(&wg, errorChan, dir, runtimeVersion, dockerNetwork, installLocation)
 	}
 
 	go func() {
@@ -134,7 +137,9 @@ func getDaprDir() (string, error) {
 	return p, nil
 }
 
-func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string) {
+// installLocation is not used, but it is present because it's required to fit the initSteps func above.
+// If the number of args increases more, we may consider passing in a struct instead of individual args.
+func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string) {
 	defer wg.Done()
 
 	args := []string{
@@ -191,7 +196,7 @@ func isContainerRunError(err error) bool {
 	return false
 }
 
-func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string) {
+func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string) {
 	defer wg.Done()
 
 	image := fmt.Sprintf("%s:%s", daprDockerImageName, version)
@@ -239,7 +244,7 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 	errorChan <- nil
 }
 
-func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string) {
+func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string) {
 	defer wg.Done()
 
 	archiveExt := "tar.gz"
@@ -269,7 +274,7 @@ func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version 
 
 	filepath, err := downloadFile(dir, daprURL)
 	if err != nil {
-		errorChan <- fmt.Errorf("Error downloading dapr binary: %s", err)
+		errorChan <- fmt.Errorf("Error downloading Dapr binary: %s", err)
 		return
 	}
 
@@ -283,19 +288,19 @@ func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version 
 	}
 
 	if err != nil {
-		errorChan <- fmt.Errorf("Error extracting dapr binary: %s", err)
+		errorChan <- fmt.Errorf("Error extracting Dapr binary: %s", err)
 		return
 	}
 
-	daprPath, err := moveFileToPath(extractedFilePath)
+	daprPath, err := moveFileToPath(extractedFilePath, installLocation)
 	if err != nil {
-		errorChan <- fmt.Errorf("Error moving dapr binary to path: %s", err)
+		errorChan <- fmt.Errorf("Error moving Dapr binary to path: %s", err)
 		return
 	}
 
 	err = makeExecutable(daprPath)
 	if err != nil {
-		errorChan <- fmt.Errorf("Error making dapr binary executable: %s", err)
+		errorChan <- fmt.Errorf("Error making Dapr binary executable: %s", err)
 		return
 	}
 
@@ -403,31 +408,59 @@ func untar(filepath, targetDir string) (string, error) {
 	}
 }
 
-func moveFileToPath(filepath string) (string, error) {
+func moveFileToPath(filepath string, installLocation string) (string, error) {
+	destDir := daprDefaultLinuxAndMacInstallPath
+	if runtime.GOOS == daprWindowsOS {
+		destDir = daprDefaultWindowsInstallPath
+		filepath = strings.Replace(filepath, "/", "\\", -1)
+	}
+
 	fileName := path_filepath.Base(filepath)
 	destFilePath := ""
 
-	if runtime.GOOS == daprWindowsOS {
-		p := os.Getenv("PATH")
-		if !strings.Contains(strings.ToLower(string(p)), strings.ToLower("c:\\dapr")) {
-			err := utils.RunCmdAndWait("SETX", "PATH", p+";c:\\dapr")
-			if err != nil {
-				return "", err
-			}
-		}
-		return "c:\\dapr\\daprd.exe", nil
+	// if user specified --install-path, use that
+	if installLocation != "" {
+		destDir = installLocation
 	}
 
-	destFilePath = path.Join("/usr/local/bin", fileName)
+	destFilePath = path.Join(destDir, fileName)
 
 	input, err := ioutil.ReadFile(filepath)
 	if err != nil {
 		return "", err
 	}
 
-	err = ioutil.WriteFile(destFilePath, input, 0644)
+	fmt.Printf("Installing Dapr to %s\n", destDir)
+	err = utils.CreateDirectory(destDir)
 	if err != nil {
 		return "", err
+	}
+
+	if err = ioutil.WriteFile(destFilePath, input, 0644); err != nil {
+		if runtime.GOOS != daprWindowsOS && strings.Contains(err.Error(), "permission denied") {
+			err = errors.New(err.Error() + " - please run with sudo")
+		}
+		return "", err
+	}
+
+	if runtime.GOOS == daprWindowsOS {
+		p := os.Getenv("PATH")
+
+		if !strings.Contains(strings.ToLower(string(p)), strings.ToLower(destDir)) {
+			err := utils.RunCmdAndWait("SETX", "PATH", p+fmt.Sprintf(";%s", destDir))
+			if err != nil {
+				return "", err
+			}
+		}
+
+		return fmt.Sprintf("%s\\daprd.exe", destDir), nil
+	}
+
+	if installLocation != "" {
+		color.Set(color.FgYellow)
+		fmt.Printf("\nDapr installed to %s, please run the following to add it to your path:\n", destDir)
+		fmt.Printf("    export PATH=$PATH:%s\n", destDir)
+		color.Unset()
 	}
 
 	return destFilePath, nil

@@ -13,7 +13,7 @@ import (
 // +genclient:noStatus
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// Component describes an Dapr component type
+// Component describes a Dapr component type
 type Component struct {
 	metav1.TypeMeta `json:",inline"`
 	// +optional

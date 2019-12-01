@@ -46,7 +46,7 @@ git clone https://github.com/dapr/cli.git github.com/dapr/cli
 
 ### Build the Dapr CLI
 
-You can build dapr CLI binaries via `make` tool and find the binaries in `./dist/{os}_{arch}/release/`.
+You can build Dapr CLI binaries via `make` tool and find the binaries in `./dist/{os}_{arch}/release/`.
 
 > Note : for windows environment with MinGW, use `mingw32-make.exe` instead of `make`.
 

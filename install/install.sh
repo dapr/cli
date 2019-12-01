@@ -127,7 +127,7 @@ installFile() {
     local tmp_root_dapr_cli="$DAPR_TMP_ROOT/$DAPR_CLI_FILENAME"
 
     if [ ! -f "$tmp_root_dapr_cli" ]; then
-        echo "Failed to unpack Dapr cli executable."
+        echo "Failed to unpack Dapr CLI executable."
         exit 1
     fi
 

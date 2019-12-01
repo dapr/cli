@@ -20,6 +20,7 @@ import (
 	"github.com/Pallinder/sillyname-go"
 	"github.com/phayes/freeport"
 
+	"github.com/dapr/cli/utils"
 	"github.com/dapr/dapr/pkg/components"
 	modes "github.com/dapr/dapr/pkg/config/modes"
 )
@@ -30,7 +31,7 @@ const (
 	redisStateStoreYamlFileName = "redis.yaml"
 )
 
-// RunConfig to represent application configuration parameters
+// RunConfig represents the application configuration parameters.
 type RunConfig struct {
 	AppID           string
 	AppPort         int
@@ -47,7 +48,7 @@ type RunConfig struct {
 	PlacementHost   string
 }
 
-// RunOutput to represent the run output
+// RunOutput represents the run output.
 type RunOutput struct {
 	DaprCMD      *exec.Cmd
 	DaprHTTPPort int
@@ -193,13 +194,6 @@ func createRedisStateStore(redisHost string) error {
 	return nil
 }
 
-func createDirectory(dir string) error {
-	if _, err := os.Stat(dir); !os.IsNotExist(err) {
-		return nil
-	}
-	return os.Mkdir(dir, 0777)
-}
-
 func createRedisPubSub(redisHost string) error {
 	redisMessageBus := component{
 		APIVersion: "dapr.io/v1alpha1",
@@ -249,7 +243,7 @@ func Run(config *RunConfig) (*RunOutput, error) {
 
 	for _, a := range dapr {
 		if appID == a.AppID {
-			return nil, fmt.Errorf("dapr with ID %s is already running", appID)
+			return nil, fmt.Errorf("Dapr with ID %s is already running", appID)
 		}
 	}
 
@@ -257,7 +251,7 @@ func Run(config *RunConfig) (*RunOutput, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = createDirectory(componentsDir)
+	err = utils.CreateDirectory(componentsDir)
 	if err != nil {
 		return nil, err
 	}
@@ -300,9 +294,9 @@ func Run(config *RunConfig) (*RunOutput, error) {
 
 	for _, a := range dapr {
 		if daprHTTPPort == a.HTTPPort {
-			return nil, fmt.Errorf("there's already a dapr instance running with http port %v", daprHTTPPort)
+			return nil, fmt.Errorf("there's already a Dapr instance running with http port %v", daprHTTPPort)
 		} else if daprGRPCPort == a.GRPCPort {
-			return nil, fmt.Errorf("there's already a dapr instance running with gRPC port %v", daprGRPCPort)
+			return nil, fmt.Errorf("there's already a Dapr instance running with gRPC port %v", daprGRPCPort)
 		}
 	}
 

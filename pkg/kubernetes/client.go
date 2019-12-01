@@ -15,7 +15,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-// Client returns a new Kubernetes client
+// Client returns a new Kubernetes client.
 func Client() (*k8s.Clientset, error) {
 	var kubeconfig *string
 	if home := homeDir(); home != "" {
