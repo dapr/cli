@@ -16,7 +16,7 @@ import (
 	"github.com/dapr/cli/pkg/standalone"
 )
 
-// InvokeApp is used to invoke the application
+// InvokeApp invokes the application.
 func InvokeApp(appID, method, payload string) (string, error) {
 	list, err := standalone.List()
 	if err != nil {
@@ -43,5 +43,5 @@ func InvokeApp(appID, method, payload string) (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("App ID %s not found", appID)
+	return "", fmt.Errorf("App ID %s not found.", appID)
 }

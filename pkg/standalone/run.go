@@ -31,7 +31,7 @@ const (
 	redisStateStoreYamlFileName = "redis.yaml"
 )
 
-// RunConfig to represent application configuration parameters
+// RunConfig represents the application configuration parameters.
 type RunConfig struct {
 	AppID           string
 	AppPort         int
@@ -48,7 +48,7 @@ type RunConfig struct {
 	PlacementHost   string
 }
 
-// RunOutput to represent the run output
+// RunOutput represents the run output.
 type RunOutput struct {
 	DaprCMD      *exec.Cmd
 	DaprHTTPPort int

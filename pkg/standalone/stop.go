@@ -12,7 +12,7 @@ import (
 	"github.com/dapr/cli/utils"
 )
 
-// Terminate the application process
+// Stop terminates the application process.
 func Stop(appID string) error {
 	apps, err := List()
 	if err != nil {

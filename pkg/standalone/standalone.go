@@ -47,7 +47,7 @@ const (
 	daprDefaultWindowsInstallPath     = "c:\\dapr"
 )
 
-// Init installs Dapr on a local machine using the supplied runtimeVersion
+// Init installs Dapr on a local machine using the supplied runtimeVersion.
 func Init(runtimeVersion string, dockerNetwork string, installLocation string) error {
 	dockerInstalled := isDockerInstalled()
 	if !dockerInstalled {
@@ -137,8 +137,8 @@ func getDaprDir() (string, error) {
 	return p, nil
 }
 
-// installLocation is not used, but it is present because it's required to fit the initSteps func above.  If the number of args
-// increases more, we may consider passing in a struct instead of individual args.
+// installLocation is not used, but it is present because it's required to fit the initSteps func above.
+// If the number of args increases more, we may consider passing in a struct instead of individual args.
 func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string) {
 	defer wg.Done()
 
