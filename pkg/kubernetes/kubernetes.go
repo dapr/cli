@@ -20,11 +20,11 @@ import (
 
 const daprManifestPath = "https://daprreleases.blob.core.windows.net/manifest/dapr-operator.yaml"
 
-// Initialize to deploy the Dapr operator
+// Initialize deploys the Dapr operator.
 func Init() error {
 	kubeExists := kubeconfigExists()
 	if !kubeExists {
-		return errors.New("Can't connect to a Kubernetes cluster. Make sure you have the Kubernetes config file on your machine")
+		return errors.New("Can't connect to a Kubernetes cluster.  Make sure you have the Kubernetes config file on your machine.")
 	}
 
 	msg := "Deploying the Dapr Operator to your cluster..."

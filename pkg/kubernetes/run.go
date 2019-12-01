@@ -5,7 +5,7 @@
 
 package kubernetes
 
-// RunConfig to represent application configuration parameters
+// RunConfig represents the application configuration parameters.
 type RunConfig struct {
 	AppID         string
 	AppPort       int
@@ -16,12 +16,12 @@ type RunConfig struct {
 	Image         string
 }
 
-// RunOutput to represent the run output
+// RunOutput represents the run output.
 type RunOutput struct {
 	Message string
 }
 
-// Run based on run configuration
+// Run executes the application based on the run configuration.
 func Run(config *RunConfig) (*RunOutput, error) {
 	return nil, nil
 }
