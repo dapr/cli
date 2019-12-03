@@ -27,8 +27,8 @@ import (
 
 const (
 	componentsDirName           = "components"
-	redisMessageBusYamlFileName = "redis_messagebus.yaml"
-	redisStateStoreYamlFileName = "redis.yaml"
+	messageBusYamlFileName = "messagebus.yaml"
+	stateStoreYamlFileName = "statestore.yaml"
 )
 
 // RunConfig represents the application configuration parameters.
@@ -186,7 +186,7 @@ func createRedisStateStore(redisHost string) error {
 		return err
 	}
 
-	err = ioutil.WriteFile(path.Join(componentsDir, redisStateStoreYamlFileName), b, 0644)
+	err = ioutil.WriteFile(path.Join(componentsDir, stateStoreYamlFileName), b, 0644)
 	if err != nil {
 		return err
 	}
@@ -222,7 +222,7 @@ func createRedisPubSub(redisHost string) error {
 		return err
 	}
 
-	err = ioutil.WriteFile(path.Join(componentsDir, redisMessageBusYamlFileName), b, 0644)
+	err = ioutil.WriteFile(path.Join(componentsDir, messageBusYamlFileName), b, 0644)
 	if err != nil {
 		return err
 	}
