@@ -19,9 +19,8 @@ const daprIDContainerArgName = "--dapr-id"
 const logsForDaprOption = "dapr"
 const logsForAppOption = "app"
 
-// Logs fetches Dapr app logs from Kubernetes.
-func Logs(appID, _for, namespace string) error {
-
+// Logs fetches Dapr sidecar logs from Kubernetes.
+func Logs(appID, podName, namespace string) error {
 	client, err := Client()
 	if err != nil {
 		return err
@@ -35,57 +34,39 @@ func Logs(appID, _for, namespace string) error {
 	if err != nil {
 		return fmt.Errorf("Could not get logs %v", err)
 	}
-	var podName string
-	var foundDaprPod bool
-	for _, pod := range pods.Items {
-		if foundDaprPod {
-			break
-		}
-		for _, container := range pod.Spec.Containers {
-			if container.Name == daprdContainerName {
-				//find app ID
-				for i, arg := range container.Args {
-					if arg == daprIDContainerArgName {
-						id := container.Args[i+1]
-						if id == appID {
-							podName = pod.Name
-							foundDaprPod = true
-							break
+
+	if podName == "" {
+		//no pod name specified. in case of multiple pods, the first one will be selected
+		var foundDaprPod bool
+		for _, pod := range pods.Items {
+			if foundDaprPod {
+				break
+			}
+			for _, container := range pod.Spec.Containers {
+				if container.Name == daprdContainerName {
+					//find app ID
+					for i, arg := range container.Args {
+						if arg == daprIDContainerArgName {
+							id := container.Args[i+1]
+							if id == appID {
+								podName = pod.Name
+								foundDaprPod = true
+								break
+							}
 						}
 					}
 				}
 			}
 		}
-	}
-	if !foundDaprPod {
-		return fmt.Errorf("Could not get logs. Please check app-id (%s) and namespace (%s)", appID, namespace)
-	}
-	var containerName string
-
-	if _for == logsForDaprOption {
-		containerName = daprdContainerName
-	} else if _for == logsForAppOption { //app logs are needed
-		pod, err := client.CoreV1().Pods(namespace).Get(podName, metav1.GetOptions{})
-		if err != nil {
-			return fmt.Errorf("Could not get logs %v", err)
-		}
-		for _, container := range pod.Spec.Containers {
-			if container.Name != daprdContainerName {
-				containerName = container.Name
-				break
-			}
+		if !foundDaprPod {
+			return fmt.Errorf("Could not get logs. Please check app-id (%s) and namespace (%s)", appID, namespace)
 		}
 	}
-	if containerName == "" {
-		return fmt.Errorf("Could not get logs. Please check the command")
-	}
 
-	//fmt.Printf("Getting logs for container %s in pod %s\n", containerName, podName)
-
-	getLogsRequest := client.CoreV1().Pods(namespace).GetLogs(podName, &corev1.PodLogOptions{Container: containerName, Follow: false})
+	getLogsRequest := client.CoreV1().Pods(namespace).GetLogs(podName, &corev1.PodLogOptions{Container: daprdContainerName, Follow: false})
 	logStream, err := getLogsRequest.Stream()
 	if err != nil {
-		return fmt.Errorf("Could not get logs %v", err)
+		return fmt.Errorf("Could not get logs. Please check pod-name (%s). Error - %v", podName, err)
 	}
 	defer logStream.Close()
 	_, err = io.Copy(os.Stdout, logStream)
