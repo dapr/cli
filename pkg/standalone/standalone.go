@@ -101,15 +101,14 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string) e
 
 	if s != nil {
 		s.Stop()
-		//check whether redis and placement containers are running before declaring success!
 		err = confirmContainerIsRunning(DaprRedisContainerName)
 		if err != nil {
 			return err
 		}
-		err = confirmContainerIsRunning(DaprPlacementContainerName)
+		/*err = confirmContainerIsRunning(DaprPlacementContainerName)
 		if err != nil {
 			return err
-		}
+		}*/
 		print.SuccessStatusEvent(os.Stdout, msg)
 	}
 
