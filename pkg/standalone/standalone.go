@@ -101,6 +101,15 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string) e
 
 	if s != nil {
 		s.Stop()
+		//check whether redis and placement containers are running before declaring success!
+		err = confirmContainerIsRunning(DaprRedisContainerName)
+		if err != nil {
+			return err
+		}
+		err = confirmContainerIsRunning(DaprPlacementContainerName)
+		if err != nil {
+			return err
+		}
 		print.SuccessStatusEvent(os.Stdout, msg)
 	}
 
@@ -173,6 +182,25 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, d
 		return
 	}
 	errorChan <- nil
+}
+
+func confirmContainerIsRunning(containerName string) error {
+
+	//docker ps --filter name=dapr_redis --filter status=running --format {{.Names}}
+	//https://docs.docker.com/engine/reference/commandline/ps/
+
+	args := []string{"ps", "--filter", "name=" + containerName, "--filter", "status=running", "--format", "{{.Names}}"}
+	response, err := utils.RunCmd("docker", args...)
+	//If 'docker ps' failed due to some reason
+	if err != nil {
+		return fmt.Errorf("Unable to confirm whether %s is running. Error\n%v", containerName, err.Error())
+	}
+	//'docker ps' worked fine, but the response did not have the container name
+	if response == "" || response != containerName {
+		return fmt.Errorf("Container %s is not running", containerName)
+	}
+
+	return nil
 }
 
 func parseDockerError(component string, err error) error {

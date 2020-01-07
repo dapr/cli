@@ -7,7 +7,9 @@ package utils
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -54,6 +56,43 @@ func TruncateString(str string, maxLength int) string {
 	return str[0:maxLength-3] + "..."
 }
 
+//RunCmd executes a command and returns the response as a string or the error which occurred
+func RunCmd(name string, args ...string) (string, error) {
+	cmd := exec.Command("docker", args...)
+
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return "", err
+	}
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return "", err
+	}
+
+	err = cmd.Start()
+	if err != nil {
+		return "", err
+	}
+
+	resp, err := ioutil.ReadAll(stdout)
+	if err != nil {
+		return "", err
+	}
+	errB, err := ioutil.ReadAll(stderr)
+	if err != nil {
+		return "", nil
+	}
+
+	err = cmd.Wait()
+	if err != nil {
+		if len(errB) > 0 {
+			return "", errors.New(string(errB))
+		}
+		return "", err
+	}
+
+	return string(resp), nil
+}
 func RunCmdAndWait(name string, args ...string) error {
 	cmd := exec.Command(name, args...)
 	err := cmd.Start()
