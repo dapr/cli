@@ -55,8 +55,6 @@ func TruncateString(str string, maxLength int) string {
 
 	return str[0:maxLength-3] + "..."
 }
-
-//RunCmd executes a command and returns the response as a string or the error which occurred
 func RunCmd(name string, args ...string) (string, error) {
 	cmd := exec.Command("docker", args...)
 
@@ -90,8 +88,7 @@ func RunCmd(name string, args ...string) (string, error) {
 		}
 		return "", err
 	}
-
-	return string(resp), nil
+	return strings.TrimSuffix(string(resp), "\n"), nil
 }
 func RunCmdAndWait(name string, args ...string) error {
 	cmd := exec.Command(name, args...)
