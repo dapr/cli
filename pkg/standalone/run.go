@@ -26,7 +26,7 @@ import (
 )
 
 const (
-	componentsDirName           = "components"
+	componentsDirName      = "components"
 	messageBusYamlFileName = "messagebus.yaml"
 	stateStoreYamlFileName = "statestore.yaml"
 )
@@ -174,6 +174,11 @@ func createRedisStateStore(redisHost string) error {
 	redisStore.Spec.Metadata = append(redisStore.Spec.Metadata, componentMetadataItem{
 		Name:  "redisPassword",
 		Value: "",
+	})
+
+	redisStore.Spec.Metadata = append(redisStore.Spec.Metadata, componentMetadataItem{
+		Name:  "actorStateStore",
+		Value: "true",
 	})
 
 	b, err := yaml.Marshal(&redisStore)
