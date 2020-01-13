@@ -23,7 +23,7 @@ func Get(appID, method string) (string, error) {
 	}
 	for _, lo := range list {
 		if lo.AppID == appID {
-			url := makeEndpoint(lo, method)
+			url := makeEndpoint(lo, method, "")
 			r, err := http.Get(url)
 			if err != nil {
 				return "", err
@@ -46,7 +46,7 @@ func Post(appID, method, payload string) (string, error) {
 
 	for _, lo := range list {
 		if lo.AppID == appID {
-			url := makeEndpoint(lo, method)
+			url := makeEndpoint(lo, method, "")
 			r, err := http.Post(url, "application/json", bytes.NewBuffer([]byte(payload)))
 			if err != nil {
 				return "", err
@@ -60,8 +60,42 @@ func Post(appID, method, payload string) (string, error) {
 	return "", fmt.Errorf("App ID %s not found", appID)
 }
 
-func makeEndpoint(lo standalone.ListOutput, method string) string {
-	return fmt.Sprintf("http://localhost:%s/v%s/invoke/%s/method/%s", fmt.Sprintf("%v", lo.HTTPPort), api.RuntimeAPIVersion, lo.AppID, method)
+// Delete invokes the application via HTTP DELETE.
+func Delete(appID, method, resourceID string) error {
+	list, err := standalone.List()
+	if err != nil {
+		return err
+	}
+
+	for _, lo := range list {
+		if lo.AppID == appID {
+			client := &http.Client{}
+			url := makeEndpoint(lo, method, resourceID)
+			request, err := http.NewRequest("DELETE", url, http.NoBody)
+			if err != nil {
+				return err
+			}
+
+			r, err := client.Do(request)
+			if err != nil {
+				return err
+			}
+
+			defer r.Body.Close()
+			_, err = handleResponse(r)
+			return err
+		}
+	}
+
+	return fmt.Errorf("App ID %s not found", appID)
+}
+
+func makeEndpoint(lo standalone.ListOutput, method, resourceID string) string {
+	url := fmt.Sprintf("http://localhost:%s/v%s/invoke/%s/method/%s", fmt.Sprintf("%v", lo.HTTPPort), api.RuntimeAPIVersion, lo.AppID, method)
+	if resourceID != "" {
+		url = url + "/" + resourceID
+	}
+	return url
 }
 
 func handleResponse(response *http.Response) (string, error) {
