@@ -71,7 +71,7 @@ if (!(Test-Path $zipFilePath -PathType Leaf)) {
 
 # Extract Dapr CLI to c:\dapr
 Write-Output "Extracting $zipFilePath..."
-Expand-Archive -Force -Path $zipFilePath -DestinationPath $DaprRoot
+Microsoft.Powershell.Archive\Expand-Archive -Force -Path $zipFilePath -DestinationPath $DaprRoot
 if (!(Test-Path $DaprCliFilePath -PathType Leaf)) {
     throw "Failed to download Dapr Cli archieve - $zipFilePath"
 }
