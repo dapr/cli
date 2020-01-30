@@ -27,7 +27,7 @@ func NewStandaloneComponents(configuration config.StandaloneConfig) *StandaloneC
 	}
 }
 
-// LoadComponents loads Dapr components from a given directory
+// LoadComponents loads dapr components from a given directory
 func (s *StandaloneComponents) LoadComponents() ([]components_v1alpha1.Component, error) {
 	dir := s.config.ComponentsPath
 	files, err := ioutil.ReadDir(dir)
