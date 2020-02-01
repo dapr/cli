@@ -41,17 +41,20 @@ const (
 	daprRuntimeFilePrefix             = "daprd"
 	daprWindowsOS                     = "windows"
 	daprLatestVersion                 = "latest"
-	DaprPlacementContainerName        = "dapr_placement"
-	DaprRedisContainerName            = "dapr_redis"
 	daprDefaultLinuxAndMacInstallPath = "/usr/local/bin"
 	daprDefaultWindowsInstallPath     = "c:\\dapr"
+
+	// DaprPlacementContainerName is the container name of placement service
+	DaprPlacementContainerName = "dapr_placement"
+	// DaprRedisContainerName is the container name of redis
+	DaprRedisContainerName = "dapr_redis"
 )
 
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
 func Init(runtimeVersion string, dockerNetwork string, installLocation string) error {
 	dockerInstalled := isDockerInstalled()
 	if !dockerInstalled {
-		return errors.New("could not connect to Docker.  Is Docker installed and running?")
+		return errors.New("could not connect to Docker. Docker may not be installed or running")
 	}
 
 	dir, err := getDaprDir()

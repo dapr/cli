@@ -1,30 +1,31 @@
 package standalone
 
 import (
-	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/dapr/cli/utils"
 )
 
+// Uninstall deletes all installed containers
 func Uninstall(uninstallAll bool, dockerNetwork string) error {
+	var failedContainers []string
+
 	err := utils.RunCmdAndWait(
 		"docker", "rm",
 		"--force",
 		utils.CreateContainerName(DaprPlacementContainerName, dockerNetwork))
 
-	errorMessage := ""
 	if err != nil {
-		errorMessage = "Could not delete Dapr Placement Container - it may not have been running "
+		failedContainers = append(failedContainers, DaprPlacementContainerName)
 	}
 
 	err = utils.RunCmdAndWait(
-		"docker", "rmi",
-		"--force",
+		"docker", "rmi", "--force",
 		daprDockerImageName)
 
 	if err != nil {
-		errorMessage += fmt.Sprintf("Could not delete image %s - it may not be present on the host", daprDockerImageName)
+		failedContainers = append(failedContainers, daprDockerImageName)
 	}
 
 	if uninstallAll {
@@ -32,13 +33,13 @@ func Uninstall(uninstallAll bool, dockerNetwork string) error {
 			"docker", "rm", "--force",
 			utils.CreateContainerName(DaprRedisContainerName, dockerNetwork))
 		if err != nil {
-			errorMessage += "Could not delete Redis Container - it may not have been running"
+			failedContainers = append(failedContainers, DaprRedisContainerName)
 		}
 	}
 
-	if errorMessage == "" {
+	if len(failedContainers) == 0 {
 		return nil
 	}
 
-	return errors.New(errorMessage)
+	return fmt.Errorf("could not delete (%s)", strings.Join(failedContainers, ","))
 }

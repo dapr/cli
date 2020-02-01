@@ -20,7 +20,7 @@ import (
 
 const daprManifestPath = "https://daprreleases.blob.core.windows.net/manifest/dapr-operator.yaml"
 
-// Init initializes deploys the Dapr operator.
+// Init deploys the Dapr operator
 func Init() error {
 	kubeExists := kubeconfigExists()
 	if !kubeExists {

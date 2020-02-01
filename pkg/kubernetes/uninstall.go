@@ -11,11 +11,11 @@ import (
 	"github.com/dapr/cli/utils"
 )
 
-// Uninstall removes Dapr.
+// Uninstall removes Dapr
 func Uninstall() error {
 	err := utils.RunCmdAndWait("kubectl", "delete", "-f", daprManifestPath)
 	if err != nil {
-		return errors.New("is Dapr running? please note uninstall does not remove Dapr when installed via Helm")
+		return errors.New("is Dapr running? uninstall does not remove Dapr when installed via Helm")
 	}
 	return nil
 }
