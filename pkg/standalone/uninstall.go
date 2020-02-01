@@ -15,7 +15,7 @@ func Uninstall(uninstallAll bool, dockerNetwork string) error {
 
 	errorMessage := ""
 	if err != nil {
-		errorMessage += "Could not delete Dapr Placement Container - it may not have been running "
+		errorMessage = "Could not delete Dapr Placement Container - it may not have been running "
 	}
 
 	err = utils.RunCmdAndWait(
@@ -23,23 +23,22 @@ func Uninstall(uninstallAll bool, dockerNetwork string) error {
 		"--force",
 		daprDockerImageName)
 
-	errorMessage = ""
 	if err != nil {
 		errorMessage += fmt.Sprintf("Could not delete image %s - it may not be present on the host", daprDockerImageName)
 	}
 
 	if uninstallAll {
 		err = utils.RunCmdAndWait(
-			"docker", "rm",
-			"--force",
+			"docker", "rm", "--force",
 			utils.CreateContainerName(DaprRedisContainerName, dockerNetwork))
 		if err != nil {
 			errorMessage += "Could not delete Redis Container - it may not have been running"
 		}
 	}
 
-	if errorMessage != "" {
-		return errors.New(errorMessage)
+	if errorMessage == "" {
+		return nil
 	}
-	return nil
+
+	return errors.New(errorMessage)
 }

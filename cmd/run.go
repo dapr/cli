@@ -89,7 +89,7 @@ var RunCmd = &cobra.Command{
 				return
 			}
 
-			var sigCh = make(chan os.Signal)
+			var sigCh = make(chan os.Signal, 1)
 			signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
 
 			daprRunning := make(chan bool, 1)
@@ -97,16 +97,22 @@ var RunCmd = &cobra.Command{
 			daprRunCreatedTime := time.Now()
 
 			go func() {
-				print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Starting Dapr with id %s. HTTP Port: %v. gRPC Port: %v", output.AppID, output.DaprHTTPPort, output.DaprGRPCPort))
+				print.InfoStatusEvent(
+					os.Stdout,
+					fmt.Sprintf(
+						"Starting Dapr with id %s. HTTP Port: %v. gRPC Port: %v",
+						output.AppID,
+						output.DaprHTTPPort,
+						output.DaprGRPCPort))
 
-				stdErrPipe, err := output.DaprCMD.StderrPipe()
-				if err != nil {
+				stdErrPipe, pipeErr := output.DaprCMD.StderrPipe()
+				if pipeErr != nil {
 					print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error creating stderr for Dapr: %s", err.Error()))
 					os.Exit(1)
 				}
 
-				stdOutPipe, err := output.DaprCMD.StdoutPipe()
-				if err != nil {
+				stdOutPipe, pipeErr := output.DaprCMD.StdoutPipe()
+				if pipeErr != nil {
 					print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error creating stdout for Dapr: %s", err.Error()))
 					os.Exit(1)
 				}
@@ -115,13 +121,13 @@ var RunCmd = &cobra.Command{
 				outScanner := bufio.NewScanner(stdOutPipe)
 				go func() {
 					for errScanner.Scan() {
-						fmt.Printf(print.Yellow(fmt.Sprintf("== DAPR == %s\n", errScanner.Text())))
+						fmt.Println(print.Yellow(fmt.Sprintf("== DAPR == %s\n", errScanner.Text())))
 					}
 				}()
 
 				go func() {
 					for outScanner.Scan() {
-						fmt.Printf(print.Yellow(fmt.Sprintf("== DAPR == %s\n", outScanner.Text())))
+						fmt.Println(print.Yellow(fmt.Sprintf("== DAPR == %s\n", outScanner.Text())))
 					}
 				}()
 
@@ -137,14 +143,14 @@ var RunCmd = &cobra.Command{
 			<-daprRunning
 
 			go func() {
-				stdErrPipe, err := output.AppCMD.StderrPipe()
-				if err != nil {
+				stdErrPipe, pipeErr := output.AppCMD.StderrPipe()
+				if pipeErr != nil {
 					print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error creating stderr for App: %s", err.Error()))
 					os.Exit(1)
 				}
 
-				stdOutPipe, err := output.AppCMD.StdoutPipe()
-				if err != nil {
+				stdOutPipe, pipeErr := output.AppCMD.StdoutPipe()
+				if pipeErr != nil {
 					print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error creating stdout for App: %s", err.Error()))
 					os.Exit(1)
 				}
@@ -153,13 +159,13 @@ var RunCmd = &cobra.Command{
 				outScanner := bufio.NewScanner(stdOutPipe)
 				go func() {
 					for errScanner.Scan() {
-						fmt.Printf(print.Blue(fmt.Sprintf("== APP == %s\n", errScanner.Text())))
+						fmt.Println(print.Blue(fmt.Sprintf("== APP == %s\n", errScanner.Text())))
 					}
 				}()
 
 				go func() {
 					for outScanner.Scan() {
-						fmt.Printf(print.Blue(fmt.Sprintf("== APP == %s\n", outScanner.Text())))
+						fmt.Println(print.Blue(fmt.Sprintf("== APP == %s\n", outScanner.Text())))
 					}
 				}()
 
@@ -175,8 +181,8 @@ var RunCmd = &cobra.Command{
 			<-appRunning
 
 			rundata.AppendRunData(&rundata.RunData{
-				DaprRunId:    daprRunID,
-				AppId:        output.AppID,
+				DaprRunID:    daprRunID,
+				AppID:        output.AppID,
 				DaprHTTPPort: output.DaprHTTPPort,
 				DaprGRPCPort: output.DaprGRPCPort,
 				AppPort:      appPort,

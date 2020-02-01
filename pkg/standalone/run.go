@@ -104,8 +104,7 @@ func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort in
 
 	args := []string{"--dapr-id", appID, "--dapr-http-port", fmt.Sprintf("%v", daprHTTPPort), "--dapr-grpc-port", fmt.Sprintf("%v", daprGRPCPort), "--log-level", logLevel, "--max-concurrency", fmt.Sprintf("%v", maxConcurrency), "--protocol", protocol}
 	if appPort > -1 {
-		args = append(args, "--app-port")
-		args = append(args, fmt.Sprintf("%v", appPort))
+		args = append(args, "--app-port", fmt.Sprintf("%v", appPort))
 	}
 
 	args = append(args, "--placement-address")
@@ -117,8 +116,7 @@ func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort in
 	}
 
 	if configFile != "" {
-		args = append(args, "--config")
-		args = append(args, configFile)
+		args = append(args, "--config", configFile)
 	}
 
 	if enableProfiling {
@@ -130,10 +128,10 @@ func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort in
 			profilePort = pp
 		}
 
-		args = append(args, "--enable-profiling")
-		args = append(args, "true")
-		args = append(args, "--profile-port")
-		args = append(args, fmt.Sprintf("%v", profilePort))
+		args = append(
+			args,
+			"--enable-profiling", "true",
+			"--profile-port", fmt.Sprintf("%v", profilePort))
 	}
 
 	cmd := exec.Command(daprCMD, args...)
@@ -143,8 +141,10 @@ func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort in
 func getAppCommand(httpPort, grpcPort int, command string, args []string) (*exec.Cmd, error) {
 	cmd := exec.Command(command, args...)
 	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, fmt.Sprintf("DAPR_HTTP_PORT=%v", httpPort))
-	cmd.Env = append(cmd.Env, fmt.Sprintf("DAPR_GRPC_PORT=%v", grpcPort))
+	cmd.Env = append(
+		cmd.Env,
+		fmt.Sprintf("DAPR_HTTP_PORT=%v", httpPort),
+		fmt.Sprintf("DAPR_GRPC_PORT=%v", grpcPort))
 
 	return cmd, nil
 }
@@ -166,20 +166,20 @@ func createRedisStateStore(redisHost string) error {
 
 	redisStore.Metadata.Name = "statestore"
 	redisStore.Spec.Type = "state.redis"
-	redisStore.Spec.Metadata = []componentMetadataItem{}
-	redisStore.Spec.Metadata = append(redisStore.Spec.Metadata, componentMetadataItem{
-		Name:  "redisHost",
-		Value: fmt.Sprintf("%s:6379", redisHost),
-	})
-	redisStore.Spec.Metadata = append(redisStore.Spec.Metadata, componentMetadataItem{
-		Name:  "redisPassword",
-		Value: "",
-	})
-
-	redisStore.Spec.Metadata = append(redisStore.Spec.Metadata, componentMetadataItem{
-		Name:  "actorStateStore",
-		Value: "true",
-	})
+	redisStore.Spec.Metadata = []componentMetadataItem{
+		{
+			Name:  "redisHost",
+			Value: fmt.Sprintf("%s:6379", redisHost),
+		},
+		{
+			Name:  "redisPassword",
+			Value: "",
+		},
+		{
+			Name:  "actorStateStore",
+			Value: "true",
+		},
+	}
 
 	b, err := yaml.Marshal(&redisStore)
 	if err != nil {
@@ -207,15 +207,16 @@ func createRedisPubSub(redisHost string) error {
 
 	redisMessageBus.Metadata.Name = "messagebus"
 	redisMessageBus.Spec.Type = "pubsub.redis"
-	redisMessageBus.Spec.Metadata = []componentMetadataItem{}
-	redisMessageBus.Spec.Metadata = append(redisMessageBus.Spec.Metadata, componentMetadataItem{
-		Name:  "redisHost",
-		Value: fmt.Sprintf("%s:6379", redisHost),
-	})
-	redisMessageBus.Spec.Metadata = append(redisMessageBus.Spec.Metadata, componentMetadataItem{
-		Name:  "redisPassword",
-		Value: "",
-	})
+	redisMessageBus.Spec.Metadata = []componentMetadataItem{
+		{
+			Name:  "redisHost",
+			Value: fmt.Sprintf("%s:6379", redisHost),
+		},
+		{
+			Name:  "redisPassword",
+			Value: "",
+		},
+	}
 
 	b, err := yaml.Marshal(&redisMessageBus)
 	if err != nil {
@@ -248,7 +249,7 @@ func Run(config *RunConfig) (*RunOutput, error) {
 
 	for _, a := range dapr {
 		if appID == a.AppID {
-			return nil, fmt.Errorf("Dapr with ID %s is already running", appID)
+			return nil, fmt.Errorf("dapr with ID %s is already running", appID)
 		}
 	}
 
@@ -309,7 +310,7 @@ func Run(config *RunConfig) (*RunOutput, error) {
 	argCount := len(config.Arguments)
 
 	if argCount == 0 {
-		return nil, errors.New("No app entrypoint given")
+		return nil, errors.New("no app entrypoint given")
 	}
 
 	cmd := config.Arguments[0]

@@ -51,7 +51,7 @@ const (
 func Init(runtimeVersion string, dockerNetwork string, installLocation string) error {
 	dockerInstalled := isDockerInstalled()
 	if !dockerInstalled {
-		return errors.New("Could not connect to Docker.  Is Docker installed and running?")
+		return errors.New("could not connect to Docker.  Is Docker installed and running?")
 	}
 
 	dir, err := getDaprDir()
@@ -63,9 +63,7 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string) e
 	errorChan := make(chan error)
 
 	initSteps := []func(*sync.WaitGroup, chan<- error, string, string, string, string){}
-	initSteps = append(initSteps, installDaprBinary)
-	initSteps = append(initSteps, runPlacementService)
-	initSteps = append(initSteps, runRedis)
+	initSteps = append(initSteps, installDaprBinary, runPlacementService, runRedis)
 
 	wg.Add(len(initSteps))
 
@@ -179,10 +177,10 @@ func parseDockerError(component string, err error) error {
 	if exitError, ok := err.(*exec.ExitError); ok {
 		exitCode := exitError.ExitCode()
 		if exitCode == 125 { //see https://github.com/moby/moby/pull/14012
-			return fmt.Errorf("Failed to launch %s. Is it already running?", component)
+			return fmt.Errorf("failed to launch %s. Is it already running?", component)
 		}
 		if exitCode == 127 {
-			return fmt.Errorf("Failed to launch %s. Make sure Docker is installed and running", component)
+			return fmt.Errorf("failed to launch %s. Make sure Docker is installed and running", component)
 		}
 	}
 	return err
@@ -256,7 +254,7 @@ func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version 
 		var err error
 		version, err = getLatestRelease(daprGitHubOrg, daprGitHubRepo)
 		if err != nil {
-			errorChan <- fmt.Errorf("Cannot get the latest release version: %s", err)
+			errorChan <- fmt.Errorf("cannot get the latest release version: %s", err)
 			return
 		}
 		version = version[1:]
@@ -274,12 +272,11 @@ func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version 
 
 	filepath, err := downloadFile(dir, daprURL)
 	if err != nil {
-		errorChan <- fmt.Errorf("Error downloading Dapr binary: %s", err)
+		errorChan <- fmt.Errorf("error downloading Dapr binary: %s", err)
 		return
 	}
 
 	extractedFilePath := ""
-	err = nil
 
 	if archiveExt == "zip" {
 		extractedFilePath, err = unzip(filepath, dir)
@@ -288,19 +285,19 @@ func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version 
 	}
 
 	if err != nil {
-		errorChan <- fmt.Errorf("Error extracting Dapr binary: %s", err)
+		errorChan <- fmt.Errorf("error extracting Dapr binary: %s", err)
 		return
 	}
 
 	daprPath, err := moveFileToPath(extractedFilePath, installLocation)
 	if err != nil {
-		errorChan <- fmt.Errorf("Error moving Dapr binary to path: %s", err)
+		errorChan <- fmt.Errorf("error moving Dapr binary to path: %s", err)
 		return
 	}
 
 	err = makeExecutable(daprPath)
 	if err != nil {
-		errorChan <- fmt.Errorf("Error making Dapr binary executable: %s", err)
+		errorChan <- fmt.Errorf("error making Dapr binary executable: %s", err)
 		return
 	}
 
@@ -324,7 +321,9 @@ func unzip(filepath, targetDir string) (string, error) {
 		return "", err
 	}
 
-	for _, file := range zipReader.Reader.File {
+	if len(zipReader.Reader.File) > 0 {
+		file := zipReader.Reader.File[0]
+
 		zippedFile, err := file.Open()
 		if err != nil {
 			return "", err
@@ -446,7 +445,7 @@ func moveFileToPath(filepath string, installLocation string) (string, error) {
 	if runtime.GOOS == daprWindowsOS {
 		p := os.Getenv("PATH")
 
-		if !strings.Contains(strings.ToLower(string(p)), strings.ToLower(destDir)) {
+		if !strings.Contains(strings.ToLower(p), strings.ToLower(destDir)) {
 			err := utils.RunCmdAndWait("SETX", "PATH", p+fmt.Sprintf(";%s", destDir))
 			if err != nil {
 				return "", err
@@ -467,22 +466,23 @@ func moveFileToPath(filepath string, installLocation string) (string, error) {
 }
 
 type githubRepoReleaseItem struct {
-	Url      string `json:"url"`
-	Tag_name string `json:"tag_name"`
-	Name     string `json:"name"`
-	Draft    bool   `json:"draft"`
+	URL     string `json:"url"`
+	TagName string `json:"tag_name"`
+	Name    string `json:"name"`
+	Draft   bool   `json:"draft"`
 }
 
+// nolint:gosec
 func getLatestRelease(gitHubOrg, gitHubRepo string) (string, error) {
-	releaseUrl := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases", gitHubOrg, gitHubRepo)
-	resp, err := http.Get(releaseUrl)
+	releaseURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases", gitHubOrg, gitHubRepo)
+	resp, err := http.Get(releaseURL)
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return "", fmt.Errorf("%s - %s", releaseUrl, resp.Status)
+		return "", fmt.Errorf("%s - %s", releaseURL, resp.Status)
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
@@ -497,12 +497,13 @@ func getLatestRelease(gitHubOrg, gitHubRepo string) (string, error) {
 	}
 
 	if len(githubRepoReleases) == 0 {
-		return "", fmt.Errorf("No releases")
+		return "", fmt.Errorf("no releases")
 	}
 
-	return githubRepoReleases[0].Tag_name, nil
+	return githubRepoReleases[0].TagName, nil
 }
 
+// nolint:gosec
 func downloadFile(dir string, url string) (string, error) {
 	tokens := strings.Split(url, "/")
 	fileName := tokens[len(tokens)-1]
