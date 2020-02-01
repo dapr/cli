@@ -232,4 +232,3 @@ linters:
     - scopelint
     - unparam
     - wsl
-    - gomnd
