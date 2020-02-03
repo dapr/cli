@@ -105,10 +105,6 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string) e
 		if err != nil {
 			return err
 		}
-		/*err = confirmContainerIsRunning(DaprPlacementContainerName)
-		if err != nil {
-			return err
-		}*/
 		print.SuccessStatusEvent(os.Stdout, msg)
 	}
 
@@ -169,7 +165,7 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, d
 	}
 
 	args = append(args, "redis")
-	err := utils.RunCmdAndWait("docker", args...)
+	_, err := utils.RunCmdAndWait("docker", args...)
 
 	if err != nil {
 		runError := isContainerRunError(err)
@@ -185,16 +181,17 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, d
 
 func confirmContainerIsRunning(containerName string) error {
 
-	//docker ps --filter name=dapr_redis --filter status=running --format {{.Names}}
-	//https://docs.docker.com/engine/reference/commandline/ps/
+	// e.g. docker ps --filter name=dapr_redis --filter status=running --format {{.Names}}
 
 	args := []string{"ps", "--filter", "name=" + containerName, "--filter", "status=running", "--format", "{{.Names}}"}
-	response, err := utils.RunCmd("docker", args...)
-	//If 'docker ps' failed due to some reason
+	response, err := utils.RunCmdAndWait("docker", args...)
+	response = strings.TrimSuffix(string(response), "\n")
+
+	// If 'docker ps' failed due to some reason
 	if err != nil {
 		return fmt.Errorf("Unable to confirm whether %s is running. Error\n%v", containerName, err.Error())
 	}
-	//'docker ps' worked fine, but the response did not have the container name
+	// 'docker ps' worked fine, but the response did not have the container name
 	if response == "" || response != containerName {
 		return fmt.Errorf("Container %s is not running", containerName)
 	}
@@ -257,7 +254,7 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 
 	args = append(args, image)
 
-	err := utils.RunCmdAndWait("docker", args...)
+	_, err := utils.RunCmdAndWait("docker", args...)
 
 	if err != nil {
 		runError := isContainerRunError(err)
@@ -474,7 +471,7 @@ func moveFileToPath(filepath string, installLocation string) (string, error) {
 		p := os.Getenv("PATH")
 
 		if !strings.Contains(strings.ToLower(string(p)), strings.ToLower(destDir)) {
-			err := utils.RunCmdAndWait("SETX", "PATH", p+fmt.Sprintf(";%s", destDir))
+			_, err := utils.RunCmdAndWait("SETX", "PATH", p+fmt.Sprintf(";%s", destDir))
 			if err != nil {
 				return "", err
 			}

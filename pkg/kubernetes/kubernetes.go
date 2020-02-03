@@ -40,7 +40,7 @@ func Init() error {
 		s.Start()
 	}
 
-	err := utils.RunCmdAndWait("kubectl", "apply", "-f", daprManifestPath)
+	_, err := utils.RunCmdAndWait("kubectl", "apply", "-f", daprManifestPath)
 	if err != nil {
 		if s != nil {
 			s.Stop()

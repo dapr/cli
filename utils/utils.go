@@ -55,8 +55,9 @@ func TruncateString(str string, maxLength int) string {
 
 	return str[0:maxLength-3] + "..."
 }
-func RunCmd(name string, args ...string) (string, error) {
-	cmd := exec.Command("docker", args...)
+
+func RunCmdAndWait(name string, args ...string) (string, error) {
+	cmd := exec.Command(name, args...)
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -83,26 +84,14 @@ func RunCmd(name string, args ...string) (string, error) {
 
 	err = cmd.Wait()
 	if err != nil {
+		// in case of error, capture the exact message
 		if len(errB) > 0 {
 			return "", errors.New(string(errB))
 		}
 		return "", err
 	}
-	return strings.TrimSuffix(string(resp), "\n"), nil
-}
-func RunCmdAndWait(name string, args ...string) error {
-	cmd := exec.Command(name, args...)
-	err := cmd.Start()
-	if err != nil {
-		return err
-	}
 
-	err = cmd.Wait()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return string(resp), nil
 }
 
 func CreateContainerName(serviceContainerName string, dockerNetwork string) string {

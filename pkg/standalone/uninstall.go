@@ -8,7 +8,7 @@ import (
 )
 
 func Uninstall(uninstallAll bool, dockerNetwork string) error {
-	err := utils.RunCmdAndWait(
+	_, err := utils.RunCmdAndWait(
 		"docker", "rm",
 		"--force",
 		utils.CreateContainerName(DaprPlacementContainerName, dockerNetwork))
@@ -18,7 +18,7 @@ func Uninstall(uninstallAll bool, dockerNetwork string) error {
 		errorMessage += "Could not delete Dapr Placement Container - it may not have been running "
 	}
 
-	err = utils.RunCmdAndWait(
+	_, err = utils.RunCmdAndWait(
 		"docker", "rmi",
 		"--force",
 		daprDockerImageName)
@@ -29,7 +29,7 @@ func Uninstall(uninstallAll bool, dockerNetwork string) error {
 	}
 
 	if uninstallAll {
-		err = utils.RunCmdAndWait(
+		_, err = utils.RunCmdAndWait(
 			"docker", "rm",
 			"--force",
 			utils.CreateContainerName(DaprRedisContainerName, dockerNetwork))
