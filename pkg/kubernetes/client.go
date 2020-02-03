@@ -7,14 +7,18 @@ package kubernetes
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	scheme "github.com/dapr/dapr/pkg/client/clientset/versioned"
 	k8s "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
+
+const kubeConfigDelimiter = ":"
 
 func getConfig() (*rest.Config, error) {
 	var kubeconfig *string
@@ -25,8 +29,13 @@ func getConfig() (*rest.Config, error) {
 	}
 	flag.Parse()
 
-	if kubeConfigEnv := os.Getenv("KUBECONFIG"); len(kubeConfigEnv) != 0 {
-		kubeconfig = &kubeConfigEnv
+	kubeConfigEnv := os.Getenv("KUBECONFIG")
+	if len(kubeConfigEnv) != 0 {
+		kubeConfigs := strings.Split(kubeConfigEnv, kubeConfigDelimiter)
+		if len(kubeConfigs) > 1 {
+			return nil, fmt.Errorf("cannot support multiple kubeconfigs: %s", kubeConfigEnv)
+		}
+		kubeconfig = &kubeConfigs[0]
 	}
 
 	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
