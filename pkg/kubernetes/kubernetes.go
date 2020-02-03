@@ -24,7 +24,7 @@ const daprManifestPath = "https://daprreleases.blob.core.windows.net/manifest/da
 func Init() error {
 	kubeExists := kubeconfigExists()
 	if !kubeExists {
-		return errors.New("can't connect to a Kubernetes cluste. make sure you have the Kubernetes config file on your machine")
+		return errors.New("can't connect to a Kubernetes cluster. make sure you have the Kubernetes config file on your machine")
 	}
 
 	msg := "Deploying the Dapr Operator to your cluster..."
