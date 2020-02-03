@@ -15,8 +15,8 @@ import (
 	"github.com/dapr/cli/pkg/standalone"
 )
 
-// PublishTopic publishes the topic.
-func PublishTopic(topic, payload string) error {
+// SendPayloadToTopic publishes the topic
+func SendPayloadToTopic(topic, payload string) error {
 	if topic == "" {
 		return errors.New("topic is missing")
 	}
@@ -38,7 +38,13 @@ func PublishTopic(topic, payload string) error {
 	}
 
 	url := fmt.Sprintf("http://localhost:%s/v%s/publish/%s", fmt.Sprintf("%v", app.HTTPPort), api.RuntimeAPIVersion, topic)
-	_, err = http.Post(url, "application/json", bytes.NewBuffer(b))
+	// nolint: gosec
+	r, err := http.Post(url, "application/json", bytes.NewBuffer(b))
+
+	if r != nil {
+		defer r.Body.Close()
+	}
+
 	if err != nil {
 		return err
 	}

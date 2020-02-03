@@ -41,7 +41,7 @@ func List() ([]ListOutput, error) {
 
 		// TODO: Call to /metadata and validate the runtime data
 		var listRow = ListOutput{
-			AppID:    runtimeLine.AppId,
+			AppID:    runtimeLine.AppID,
 			HTTPPort: runtimeLine.DaprHTTPPort,
 			GRPCPort: runtimeLine.DaprGRPCPort,
 			Command:  utils.TruncateString(runtimeLine.Command, 20),

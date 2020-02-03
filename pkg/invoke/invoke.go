@@ -24,6 +24,7 @@ func Get(appID, method string) (string, error) {
 	for _, lo := range list {
 		if lo.AppID == appID {
 			url := makeEndpoint(lo, method)
+			// nolint:gosec
 			r, err := http.Get(url)
 			if err != nil {
 				return "", err
@@ -34,7 +35,7 @@ func Get(appID, method string) (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("App ID %s not found", appID)
+	return "", fmt.Errorf("app ID %s not found", appID)
 }
 
 // Post invokes the application via HTTP POST.
@@ -47,6 +48,7 @@ func Post(appID, method, payload string) (string, error) {
 	for _, lo := range list {
 		if lo.AppID == appID {
 			url := makeEndpoint(lo, method)
+			// nolint: gosec
 			r, err := http.Post(url, "application/json", bytes.NewBuffer([]byte(payload)))
 			if err != nil {
 				return "", err
@@ -57,7 +59,7 @@ func Post(appID, method, payload string) (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("App ID %s not found", appID)
+	return "", fmt.Errorf("app ID %s not found", appID)
 }
 
 func makeEndpoint(lo standalone.ListOutput, method string) string {

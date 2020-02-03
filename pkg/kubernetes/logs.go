@@ -14,10 +14,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const daprdContainerName = "daprd"
-const daprIDContainerArgName = "--dapr-id"
-const logsForDaprOption = "dapr"
-const logsForAppOption = "app"
+const (
+	daprdContainerName     = "daprd"
+	daprIDContainerArgName = "--dapr-id"
+)
 
 // Logs fetches Dapr sidecar logs from Kubernetes.
 func Logs(appID, podName, namespace string) error {
@@ -32,7 +32,7 @@ func Logs(appID, podName, namespace string) error {
 
 	pods, err := client.CoreV1().Pods(namespace).List(metav1.ListOptions{})
 	if err != nil {
-		return fmt.Errorf("Could not get logs %v", err)
+		return fmt.Errorf("could not get logs %v", err)
 	}
 
 	if podName == "" {
@@ -59,19 +59,19 @@ func Logs(appID, podName, namespace string) error {
 			}
 		}
 		if !foundDaprPod {
-			return fmt.Errorf("Could not get logs. Please check app-id (%s) and namespace (%s)", appID, namespace)
+			return fmt.Errorf("could not get logs. Please check app-id (%s) and namespace (%s)", appID, namespace)
 		}
 	}
 
 	getLogsRequest := client.CoreV1().Pods(namespace).GetLogs(podName, &corev1.PodLogOptions{Container: daprdContainerName, Follow: false})
 	logStream, err := getLogsRequest.Stream()
 	if err != nil {
-		return fmt.Errorf("Could not get logs. Please check pod-name (%s). Error - %v", podName, err)
+		return fmt.Errorf("could not get logs. Please check pod-name (%s). Error - %v", podName, err)
 	}
 	defer logStream.Close()
 	_, err = io.Copy(os.Stdout, logStream)
 	if err != nil {
-		return fmt.Errorf("Could not get logs %v", err)
+		return fmt.Errorf("could not get logs %v", err)
 	}
 
 	return nil
