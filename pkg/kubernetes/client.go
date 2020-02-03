@@ -33,7 +33,7 @@ func getConfig() (*rest.Config, error) {
 	if len(kubeConfigEnv) != 0 {
 		kubeConfigs := strings.Split(kubeConfigEnv, kubeConfigDelimiter)
 		if len(kubeConfigs) > 1 {
-			return nil, fmt.Errorf("cannot support multiple kubeconfigs: %s", kubeConfigEnv)
+			return nil, fmt.Errorf("multiple kubeconfigs in KUBECONFIG environment variable - %s", kubeConfigEnv)
 		}
 		kubeconfig = &kubeConfigs[0]
 	}
