@@ -15,8 +15,6 @@ import (
 	"strings"
 
 	"github.com/olekukonko/tablewriter"
-
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
 // PrintTable to print in the table format

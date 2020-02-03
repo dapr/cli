@@ -24,15 +24,15 @@ import (
 )
 
 var (
-	RUN_DATA_FILE      string = "dapr-run-data.ldj"
-	RUN_DATA_LOCK_FILE string = "dapr-run-data.lock"
+	runDataFile     string = "dapr-run-data.ldj"
+	runDataLockFile string = "dapr-run-data.lock"
 )
 
 type RunData struct {
-	DaprRunId    string
+	DaprRunID    string
 	DaprHTTPPort int
 	DaprGRPCPort int
-	AppId        string
+	AppID        string
 	AppPort      int
 	Command      string
 	Created      time.Time
@@ -47,7 +47,7 @@ func AppendRunData(runData *RunData) error {
 
 	defer lockFile.Unlock()
 
-	runDataFilePath := filepath.Join(os.TempDir(), RUN_DATA_FILE)
+	runDataFilePath := filepath.Join(os.TempDir(), runDataFile)
 	runDataFile, err := os.OpenFile(runDataFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
@@ -73,17 +73,17 @@ func ReadAllRunData() (*[]RunData, error) {
 
 	runData := []RunData{}
 
-	runFilePath := filepath.Join(os.TempDir(), RUN_DATA_FILE)
+	runFilePath := filepath.Join(os.TempDir(), runDataFile)
 	runFileData, err := ioutil.ReadFile(runFilePath)
 	if err != nil {
 		return &runData, nil
 	}
 
-	runDataJson := strings.Split(string(runFileData), "\n")
+	runDataJSON := strings.Split(string(runFileData), "\n")
 
-	for _, lineJson := range runDataJson {
+	for _, lineJSON := range runDataJSON {
 		var line RunData
-		err = json.Unmarshal([]byte(lineJson), &line)
+		err = json.Unmarshal([]byte(lineJSON), &line)
 		if err != nil {
 			// Ignore broken lines for now
 			continue
@@ -94,7 +94,7 @@ func ReadAllRunData() (*[]RunData, error) {
 	return &runData, nil
 }
 
-func ClearRunData(daprRunId string) error {
+func ClearRunData(daprRunID string) error {
 	lockFile, err := tryGetRunDataLock()
 	if err != nil {
 		return err
@@ -102,13 +102,13 @@ func ClearRunData(daprRunId string) error {
 
 	defer lockFile.Unlock()
 
-	runFilePath := filepath.Join(os.TempDir(), RUN_DATA_FILE)
+	runFilePath := filepath.Join(os.TempDir(), runDataFile)
 	runFileData, err := ioutil.ReadFile(runFilePath)
 	if err != nil {
 		return err
 	}
 
-	runDataJson := strings.Split(string(runFileData), "\n")
+	runDataJSON := strings.Split(string(runFileData), "\n")
 
 	runFile, err := os.Create(runFilePath)
 	if err != nil {
@@ -117,14 +117,14 @@ func ClearRunData(daprRunId string) error {
 
 	defer runFile.Close()
 
-	for _, lineJson := range runDataJson {
+	for _, lineJSON := range runDataJSON {
 		var line RunData
-		err = json.Unmarshal([]byte(lineJson), &line)
+		err = json.Unmarshal([]byte(lineJSON), &line)
 		if err != nil {
 			// Ignore broken lines for now
 			continue
 		}
-		if line.DaprRunId != daprRunId {
+		if line.DaprRunID != daprRunID {
 			appendRunDataEntry(runFile, &line)
 			// Ignore errors for now
 		}
@@ -134,12 +134,12 @@ func ClearRunData(daprRunId string) error {
 }
 
 func appendRunDataEntry(runDataFile *os.File, runData *RunData) error {
-	runDataJson, err := json.Marshal(runData)
+	runDataJSON, err := json.Marshal(runData)
 	if err != nil {
 		return err
 	}
 
-	_, err = runDataFile.Write(runDataJson)
+	_, err = runDataFile.Write(runDataJSON)
 	if err != nil {
 		return err
 	}
@@ -153,7 +153,7 @@ func appendRunDataEntry(runDataFile *os.File, runData *RunData) error {
 }
 
 func tryGetRunDataLock() (*lockfile.Lockfile, error) {
-	lockFile, err := lockfile.New(filepath.Join(os.TempDir(), RUN_DATA_LOCK_FILE))
+	lockFile, err := lockfile.New(filepath.Join(os.TempDir(), runDataLockFile))
 	if err != nil {
 		// TODO: Log once we implement logging
 		return nil, err

@@ -22,13 +22,15 @@ func Stop(appID string) error {
 	for _, a := range apps {
 		if a.AppID == appID {
 			pid := fmt.Sprintf("%v", a.PID)
+
+			var err error
 			if runtime.GOOS == "windows" {
-				_, err := utils.RunCmdAndWait("taskkill", "/F", "/PID", pid)
-				return err
+				_, err = utils.RunCmdAndWait("taskkill", "/F", "/PID", pid)
 			} else {
-				_, err := utils.RunCmdAndWait("kill", pid)
-				return err
+				_, err = utils.RunCmdAndWait("kill", pid)
 			}
+
+			return err
 		}
 	}
 
