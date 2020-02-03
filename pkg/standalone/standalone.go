@@ -186,15 +186,15 @@ func confirmContainerIsRunning(containerName string) error {
 
 	args := []string{"ps", "--filter", "name=" + containerName, "--filter", "status=running", "--format", "{{.Names}}"}
 	response, err := utils.RunCmdAndWait("docker", args...)
-	response = strings.TrimSuffix(string(response), "\n")
+	response = strings.TrimSuffix(response, "\n")
 
 	// If 'docker ps' failed due to some reason
 	if err != nil {
-		return fmt.Errorf("Unable to confirm whether %s is running. Error\n%v", containerName, err.Error())
+		return fmt.Errorf("unable to confirm whether %s is running. error\n%v", containerName, err.Error())
 	}
 	// 'docker ps' worked fine, but the response did not have the container name
 	if response == "" || response != containerName {
-		return fmt.Errorf("Container %s is not running", containerName)
+		return fmt.Errorf("container %s is not running", containerName)
 	}
 
 	return nil
