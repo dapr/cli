@@ -13,8 +13,10 @@ import (
 // ComponentsOutput represent a Dapr component.
 type ConfigurtionsOutput struct {
 	Name            string `csv:"Name"`
-	TracingEnabled  bool   `csv:"TRACING ENABLED"`
-	TracingExporter string `csv:"TRACING EXPORTER"`
+	TracingEnabled  bool   `csv:"TRACING-ENABLED"`
+	MTLSEnabled     bool   `csv:"MTLS-ENABLED"`
+	WorkloadCertTTL string `csv:"MTLS-WORKLOAD-TTL"`
+	ClockSkew       string `csv:"MTLS-CLOCK-SKEW"`
 	Age             string `csv:"AGE"`
 	Created         string `csv:"CREATED"`
 }
@@ -36,7 +38,9 @@ func Configurations() ([]ConfigurtionsOutput, error) {
 		co = append(co, ConfigurtionsOutput{
 			Name:            c.GetName(),
 			TracingEnabled:  c.Spec.TracingSpec.Enabled,
-			TracingExporter: c.Spec.TracingSpec.ExporterType,
+			MTLSEnabled:     c.Spec.MTLSSpec.Enabled,
+			WorkloadCertTTL: c.Spec.MTLSSpec.WorkloadCertTTL,
+			ClockSkew:       c.Spec.MTLSSpec.AllowedClockSkew,
 			Created:         c.CreationTimestamp.Format("2006-01-02 15:04.05"),
 			Age:             age.GetAge(c.CreationTimestamp.Time),
 		})
