@@ -12,11 +12,10 @@ import (
 
 // ComponentsOutput represent a Dapr component.
 type ConfigurtionsOutput struct {
-	Name            string `csv:"Name"`
-	TracingEnabled  bool   `csv:"TRACING ENABLED"`
-	TracingExporter string `csv:"TRACING EXPORTER"`
-	Age             string `csv:"AGE"`
-	Created         string `csv:"CREATED"`
+	Name           string `csv:"Name"`
+	TracingEnabled bool   `csv:"TRACING ENABLED"`
+	Age            string `csv:"AGE"`
+	Created        string `csv:"CREATED"`
 }
 
 // List outputs all Dapr configurations.
@@ -34,11 +33,10 @@ func Configurations() ([]ConfigurtionsOutput, error) {
 	co := []ConfigurtionsOutput{}
 	for _, c := range confs.Items {
 		co = append(co, ConfigurtionsOutput{
-			Name:            c.GetName(),
-			TracingEnabled:  c.Spec.TracingSpec.Enabled,
-			TracingExporter: c.Spec.TracingSpec.ExporterType,
-			Created:         c.CreationTimestamp.Format("2006-01-02 15:04.05"),
-			Age:             age.GetAge(c.CreationTimestamp.Time),
+			Name:           c.GetName(),
+			TracingEnabled: c.Spec.TracingSpec.Enabled,
+			Created:        c.CreationTimestamp.Format("2006-01-02 15:04.05"),
+			Age:            age.GetAge(c.CreationTimestamp.Time),
 		})
 	}
 	return co, nil
