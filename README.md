@@ -247,6 +247,32 @@ To list all Dapr instances running in a Kubernetes cluster:
 $ dapr list --kubernetes
 ```
 
+
+### Check mTLS status
+
+To check if Mutual TLS is enabled in your Kubernetes cluster:
+
+```
+$ dapr mtls --kubernetes
+```
+
+### List Components
+
+To list all Dapr components on Kubernetes:
+
+```
+$ dapr components --kubernetes
+```
+
+
+### List Configurations
+
+To list all Dapr configurations on Kubernetes:
+
+```
+$ dapr configurations --kubernetes
+```
+
 ### Stop
 
 Use ```dapr list``` to get a list of all running instances.
