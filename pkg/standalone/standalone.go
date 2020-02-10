@@ -504,7 +504,7 @@ func getLatestRelease(gitHubOrg, gitHubRepo string) (string, error) {
 	}
 
 	for _, release := range githubRepoReleases {
-		if strings.Index(release.TagName, "-rc") < 0 {
+		if !strings.Contains(release.TagName, "-rc") {
 			return release.TagName, nil
 		}
 	}
