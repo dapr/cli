@@ -25,7 +25,7 @@ func Stop(appID string) error {
 
 			var err error
 			if runtime.GOOS == "windows" {
-				_, err = utils.RunCmdAndWait("taskkill", "/F", "/PID", pid)
+				_, err = utils.RunCmdAndWait("taskkill", "/F", "/T", "/PID", pid)
 			} else {
 				_, err = utils.RunCmdAndWait("kill", pid)
 			}
