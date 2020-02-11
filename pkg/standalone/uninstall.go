@@ -11,7 +11,7 @@ import (
 func Uninstall(uninstallAll bool, dockerNetwork string) error {
 	var failedContainers []string
 
-	err := utils.RunCmdAndWait(
+	_, err := utils.RunCmdAndWait(
 		"docker", "rm",
 		"--force",
 		utils.CreateContainerName(DaprPlacementContainerName, dockerNetwork))
@@ -20,8 +20,9 @@ func Uninstall(uninstallAll bool, dockerNetwork string) error {
 		failedContainers = append(failedContainers, DaprPlacementContainerName)
 	}
 
-	err = utils.RunCmdAndWait(
-		"docker", "rmi", "--force",
+	_, err = utils.RunCmdAndWait(
+		"docker", "rmi",
+		"--force",
 		daprDockerImageName)
 
 	if err != nil {
@@ -29,8 +30,9 @@ func Uninstall(uninstallAll bool, dockerNetwork string) error {
 	}
 
 	if uninstallAll {
-		err = utils.RunCmdAndWait(
-			"docker", "rm", "--force",
+		_, err = utils.RunCmdAndWait(
+			"docker", "rm",
+			"--force",
 			utils.CreateContainerName(DaprRedisContainerName, dockerNetwork))
 		if err != nil {
 			failedContainers = append(failedContainers, DaprRedisContainerName)

@@ -102,6 +102,10 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string) e
 
 	if s != nil {
 		s.Stop()
+		err = confirmContainerIsRunning(DaprRedisContainerName)
+		if err != nil {
+			return err
+		}
 		print.SuccessStatusEvent(os.Stdout, msg)
 	}
 
@@ -162,7 +166,7 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, d
 	}
 
 	args = append(args, "redis")
-	err := utils.RunCmdAndWait("docker", args...)
+	_, err := utils.RunCmdAndWait("docker", args...)
 
 	if err != nil {
 		runError := isContainerRunError(err)
@@ -174,6 +178,26 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, d
 		return
 	}
 	errorChan <- nil
+}
+
+func confirmContainerIsRunning(containerName string) error {
+
+	// e.g. docker ps --filter name=dapr_redis --filter status=running --format {{.Names}}
+
+	args := []string{"ps", "--filter", "name=" + containerName, "--filter", "status=running", "--format", "{{.Names}}"}
+	response, err := utils.RunCmdAndWait("docker", args...)
+	response = strings.TrimSuffix(response, "\n")
+
+	// If 'docker ps' failed due to some reason
+	if err != nil {
+		return fmt.Errorf("unable to confirm whether %s is running. error\n%v", containerName, err.Error())
+	}
+	// 'docker ps' worked fine, but the response did not have the container name
+	if response == "" || response != containerName {
+		return fmt.Errorf("container %s is not running", containerName)
+	}
+
+	return nil
 }
 
 func parseDockerError(component string, err error) error {
@@ -231,7 +255,7 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 
 	args = append(args, image)
 
-	err := utils.RunCmdAndWait("docker", args...)
+	_, err := utils.RunCmdAndWait("docker", args...)
 
 	if err != nil {
 		runError := isContainerRunError(err)
@@ -449,7 +473,7 @@ func moveFileToPath(filepath string, installLocation string) (string, error) {
 		p := os.Getenv("PATH")
 
 		if !strings.Contains(strings.ToLower(p), strings.ToLower(destDir)) {
-			err := utils.RunCmdAndWait("SETX", "PATH", p+fmt.Sprintf(";%s", destDir))
+			_, err := utils.RunCmdAndWait("SETX", "PATH", p+fmt.Sprintf(";%s", destDir))
 			if err != nil {
 				return "", err
 			}
