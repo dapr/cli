@@ -21,7 +21,7 @@ func GetRuntimeVersion() string {
 
 	out, err := exec.Command(runtimeName, "--version").Output()
 	if err != nil {
-		return "n/a"
+		return "n/a\n"
 	}
 	return string(out)
 }

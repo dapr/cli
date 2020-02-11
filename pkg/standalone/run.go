@@ -29,6 +29,7 @@ const (
 	componentsDirName      = "components"
 	messageBusYamlFileName = "messagebus.yaml"
 	stateStoreYamlFileName = "statestore.yaml"
+	sentryDefaultAddress   = "localhost:50001"
 )
 
 // RunConfig represents the application configuration parameters.
@@ -117,6 +118,11 @@ func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort in
 
 	if configFile != "" {
 		args = append(args, "--config", configFile)
+		sentryAddress := mtlsEndpoint(configFile)
+		if sentryAddress != "" {
+			// mTLS is enabled locally, set it up
+			args = append(args, "--enable-mtls", "--sentry-address", sentryAddress)
+		}
 	}
 
 	if enableProfiling {
@@ -136,6 +142,28 @@ func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort in
 
 	cmd := exec.Command(daprCMD, args...)
 	return cmd, daprHTTPPort, daprGRPCPort, nil
+}
+
+func mtlsEndpoint(configFile string) string {
+	if configFile == "" {
+		return ""
+	}
+
+	b, err := ioutil.ReadFile(configFile)
+	if err != nil {
+		return ""
+	}
+
+	var config mtlsConfig
+	err = yaml.Unmarshal(b, &config)
+	if err != nil {
+		return ""
+	}
+
+	if config.Spec.MTLS.Enabled {
+		return sentryDefaultAddress
+	}
+	return ""
 }
 
 func getAppCommand(httpPort, grpcPort int, command string, args []string) (*exec.Cmd, error) {

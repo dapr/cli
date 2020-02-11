@@ -527,7 +527,13 @@ func getLatestRelease(gitHubOrg, gitHubRepo string) (string, error) {
 		return "", fmt.Errorf("no releases")
 	}
 
-	return githubRepoReleases[0].TagName, nil
+	for _, release := range githubRepoReleases {
+		if !strings.Contains(release.TagName, "-rc") {
+			return release.TagName, nil
+		}
+	}
+
+	return "", fmt.Errorf("no releases")
 }
 
 // nolint:gosec
