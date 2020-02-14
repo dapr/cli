@@ -43,13 +43,14 @@ func Init() error {
 
 	err = utils.RunCmdAndWait("kubectl", "apply", "-f", daprManifestPath)
 	if err != nil {
-		if s != nil {
-			s.Stop()
+		err = ensureConfig(client)
+		if err != nil {
+			if s != nil {
+				s.Stop()
+			}
+			return err
 		}
-		return err
 	}
-
-	ensureConfig(client)
 
 	if s != nil {
 		s.Stop()
@@ -59,7 +60,8 @@ func Init() error {
 }
 
 // ensureConfig installs the configuration in cases where the CRDs are not registered fast enough in etcd
-func ensureConfig(client scheme.Interface) {
+func ensureConfig(client scheme.Interface) error {
 	config := GetDefaultConfiguration()
-	client.ConfigurationV1alpha1().Configurations(meta_v1.NamespaceDefault).Create(&config)
+	_, err := client.ConfigurationV1alpha1().Configurations(meta_v1.NamespaceDefault).Create(&config)
+	return err
 }
