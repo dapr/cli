@@ -14,9 +14,9 @@ import (
 
 	scheme "github.com/dapr/dapr/pkg/client/clientset/versioned"
 	k8s "k8s.io/client-go/kubernetes"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp" // gcp auth
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
 const kubeConfigDelimiter = ":"
