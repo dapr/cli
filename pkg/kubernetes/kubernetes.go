@@ -15,13 +15,15 @@ import (
 	"github.com/dapr/cli/utils"
 
 	"github.com/briandowns/spinner"
+	scheme "github.com/dapr/dapr/pkg/client/clientset/versioned"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const daprManifestPath = "https://daprreleases.blob.core.windows.net/manifest/dapr-operator.yaml"
 
 // Init deploys the Dapr operator
 func Init() error {
-	_, err := Client()
+	client, err := DaprClient()
 	if err != nil {
 		return fmt.Errorf("can't connect to a Kubernetes cluster: %v", err)
 	}
@@ -41,10 +43,13 @@ func Init() error {
 
 	_, err = utils.RunCmdAndWait("kubectl", "apply", "-f", daprManifestPath)
 	if err != nil {
-		if s != nil {
-			s.Stop()
+		err = ensureConfig(client)
+		if err != nil {
+			if s != nil {
+				s.Stop()
+			}
+			return err
 		}
-		return err
 	}
 
 	if s != nil {
@@ -52,4 +57,11 @@ func Init() error {
 		print.SuccessStatusEvent(os.Stdout, msg)
 	}
 	return nil
+}
+
+// ensureConfig installs the configuration in cases where the CRDs are not registered fast enough in etcd
+func ensureConfig(client scheme.Interface) error {
+	config := GetDefaultConfiguration()
+	_, err := client.ConfigurationV1alpha1().Configurations(meta_v1.NamespaceDefault).Create(&config)
+	return err
 }
