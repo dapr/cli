@@ -14,7 +14,7 @@ import (
 
 	scheme "github.com/dapr/dapr/pkg/client/clientset/versioned"
 	k8s "k8s.io/client-go/kubernetes"
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp" // gcp auth
+	_ "k8s.io/client-go/plugin/pkg/client/auth" // Add auth
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
