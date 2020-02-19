@@ -11,7 +11,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"path"
+	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -27,7 +27,7 @@ import (
 
 const (
 	componentsDirName      = "components"
-	messageBusYamlFileName = "messagebus.yaml"
+	messageBusYamlFileName = "pubsub.yaml"
 	stateStoreYamlFileName = "statestore.yaml"
 	sentryDefaultAddress   = "localhost:50001"
 )
@@ -183,7 +183,7 @@ func absoluteComponentsDir() (string, error) {
 		return "", err
 	}
 
-	return path.Join(wd, componentsDirName), nil
+	return filepath.Join(wd, componentsDirName), nil
 }
 
 func createRedisStateStore(redisHost string) error {
@@ -219,7 +219,9 @@ func createRedisStateStore(redisHost string) error {
 		return err
 	}
 
-	err = ioutil.WriteFile(path.Join(componentsDir, stateStoreYamlFileName), b, 0644)
+	filePath := filepath.Join(componentsDir, stateStoreYamlFileName)
+	fmt.Printf("WARNING: Redis State Store file is being overwritten: %s\n", filePath)
+	err = ioutil.WriteFile(filePath, b, 0644)
 	if err != nil {
 		return err
 	}
@@ -256,7 +258,9 @@ func createRedisPubSub(redisHost string) error {
 		return err
 	}
 
-	err = ioutil.WriteFile(path.Join(componentsDir, messageBusYamlFileName), b, 0644)
+	filePath := filepath.Join(componentsDir, messageBusYamlFileName)
+	fmt.Printf("WARNING: Redis PubSub file is being overwritten: %s\n", filePath)
+	err = ioutil.WriteFile(filePath, b, 0644)
 	if err != nil {
 		return err
 	}
@@ -285,6 +289,7 @@ func Run(config *RunConfig) (*RunOutput, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	err = utils.CreateDirectory(componentsDir)
 	if err != nil {
 		return nil, err
