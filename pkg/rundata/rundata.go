@@ -94,6 +94,23 @@ func ReadAllRunData() (*[]RunData, error) {
 	return &runData, nil
 }
 
+// Deletes the RunData file used in dapr list and other commands.
+func DeleteRunDataFile() error {
+	lockFile, err := tryGetRunDataLock()
+	if err != nil {
+		return err
+	}
+	defer lockFile.Unlock()
+
+	runFilePath := filepath.Join(os.TempDir(), runDataFile)
+	err = os.Remove(runFilePath)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func ClearRunData(daprRunID string) error {
 	lockFile, err := tryGetRunDataLock()
 	if err != nil {
