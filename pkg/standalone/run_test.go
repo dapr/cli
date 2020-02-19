@@ -72,10 +72,11 @@ func TestRun(t *testing.T) {
 
 	t.Run("run without app command", func(t *testing.T) {
 		output, err := Run(&RunConfig{
-			AppID:           "my app id",
+			AppID:           "MyID",
 			AppPort:         3000,
 			HTTPPort:        8000,
 			GRPCPort:        50001,
+			LogLevel:        "INFO",
 			EnableProfiling: false,
 			ProfilePort:     9090,
 			Protocol:        "http",
@@ -83,8 +84,27 @@ func TestRun(t *testing.T) {
 			PlacementHost:   "localhost",
 		})
 
-		assert.NotNil(t, err)
-		assert.Nil(t, output)
-		assert.EqualError(t, err, "no app entrypoint given")
+		assert.Nil(t, err)
+		assert.NotNil(t, output)
+
+		assert.Equal(t, "MyID", output.AppID)
+		assert.Equal(t, 8000, output.DaprHTTPPort)
+		assert.Equal(t, 50001, output.DaprGRPCPort)
+
+		assert.Contains(t, output.DaprCMD.Args[0], "daprd")
+		assertArgument(t, "dapr-id", "MyID", output.DaprCMD.Args)
+		assertArgument(t, "dapr-http-port", "8000", output.DaprCMD.Args)
+		assertArgument(t, "dapr-grpc-port", "50001", output.DaprCMD.Args)
+		assertArgument(t, "log-level", "INFO", output.DaprCMD.Args)
+		assertArgument(t, "max-concurrency", "-1", output.DaprCMD.Args)
+		assertArgument(t, "protocol", "http", output.DaprCMD.Args)
+		assertArgument(t, "app-port", "3000", output.DaprCMD.Args)
+		if runtime.GOOS == "windows" {
+			assertArgument(t, "placement-address", "localhost:6050", output.DaprCMD.Args)
+		} else {
+			assertArgument(t, "placement-address", "localhost:50005", output.DaprCMD.Args)
+		}
+
+		assert.Nil(t, output.AppCMD)
 	})
 }
