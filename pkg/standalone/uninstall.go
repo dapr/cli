@@ -40,13 +40,13 @@ func Uninstall(uninstallAll bool, dockerNetwork string) error {
 		}
 	}
 
-	if len(failedContainers) == 0 {
-		return nil
-	}
-
 	err = rundata.DeleteRunDataFile()
 	if err != nil {
 		fmt.Errorf("WARNING: could not delete run data file")
+	}
+
+	if len(failedContainers) == 0 {
+		return nil
 	}
 
 	return fmt.Errorf("could not delete (%s)", strings.Join(failedContainers, ","))
