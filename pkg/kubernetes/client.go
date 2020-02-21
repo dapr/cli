@@ -25,8 +25,8 @@ const kubeConfigDelimiter = ":"
 
 func getConfig() (*rest.Config, error) {
 	var kubeconfig *string
-	var home string
-	if home = homeDir(); home != "" {
+
+	if home := homeDir(); home != "" {
 		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
 	} else {
 		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
