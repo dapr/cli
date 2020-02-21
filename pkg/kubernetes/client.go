@@ -25,7 +25,8 @@ const kubeConfigDelimiter = ":"
 
 func getConfig() (*rest.Config, error) {
 	var kubeconfig *string
-	if home := homeDir(); home != "" {
+	var home string
+	if home = homeDir(); home != "" {
 		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
 	} else {
 		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
@@ -33,7 +34,9 @@ func getConfig() (*rest.Config, error) {
 	flag.Parse()
 
 	kubeConfigEnv := os.Getenv("KUBECONFIG")
-	if len(kubeConfigEnv) != 0 {
+	delimiterBelongsToPath := strings.Count(*kubeconfig, kubeConfigDelimiter) == 1 && strings.EqualFold(*kubeconfig, kubeConfigEnv)
+
+	if len(kubeConfigEnv) != 0 && !delimiterBelongsToPath {
 		kubeConfigs := strings.Split(kubeConfigEnv, kubeConfigDelimiter)
 		if len(kubeConfigs) > 1 {
 			return nil, fmt.Errorf("multiple kubeconfigs in KUBECONFIG environment variable - %s", kubeConfigEnv)
