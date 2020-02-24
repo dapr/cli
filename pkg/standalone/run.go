@@ -6,7 +6,6 @@
 package standalone
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -99,7 +98,7 @@ func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort in
 	}
 
 	daprCMD := "daprd"
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == daprWindowsOS {
 		daprCMD = fmt.Sprintf("%s.exe", daprCMD)
 	}
 
@@ -110,7 +109,7 @@ func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort in
 
 	args = append(args, "--placement-address")
 
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == daprWindowsOS {
 		args = append(args, fmt.Sprintf("%s:6050", placementHost))
 	} else {
 		args = append(args, fmt.Sprintf("%s:50005", placementHost))
@@ -341,19 +340,18 @@ func Run(config *RunConfig) (*RunOutput, error) {
 
 	runArgs := []string{}
 	argCount := len(config.Arguments)
+	var appCMD *exec.Cmd
 
-	if argCount == 0 {
-		return nil, errors.New("no app entrypoint given")
-	}
+	if argCount > 0 {
+		cmd := config.Arguments[0]
+		if len(config.Arguments) > 1 {
+			runArgs = config.Arguments[1:]
+		}
 
-	cmd := config.Arguments[0]
-	if len(config.Arguments) > 1 {
-		runArgs = config.Arguments[1:]
-	}
-
-	appCMD, err := getAppCommand(daprHTTPPort, daprGRPCPort, cmd, runArgs)
-	if err != nil {
-		return nil, err
+		appCMD, err = getAppCommand(daprHTTPPort, daprGRPCPort, cmd, runArgs)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &RunOutput{
