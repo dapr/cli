@@ -37,13 +37,28 @@ var protocol string
 
 var RunCmd = &cobra.Command{
 	Use:   "run",
-	Short: "Launches Dapr and your app side by side",
-	Args:  cobra.MinimumNArgs(1),
+	Short: "Launches Dapr and (optionally) your app side by side",
+	Long: `Runs Dapr's sidecar and (optionally) an application.
+
+Run a Java application:
+  dapr run --app-id myapp -- java -jar myapp.jar
+Run a NodeJs application that listens to port 3000:
+  dapr run --app-id myapp --app-port 3000 -- node myapp.js
+Run a Python application in the background (daemon):
+  dapr run --app-id myapp -d -- python myapp.py
+Run sidecar only:
+  dapr run --app-id myapp
+	`,
+	Args: cobra.MinimumNArgs(0),
 	PreRun: func(cmd *cobra.Command, args []string) {
 		viper.BindPFlag("placement-host", cmd.Flags().Lookup("placement-host"))
 		viper.BindPFlag("redis-host", cmd.Flags().Lookup("redis-host"))
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) == 0 {
+			fmt.Println(print.WhiteBold("WARNING: no application command found."))
+		}
+
 		uuid, err := uuid.NewRandom()
 		if err != nil {
 			print.FailureStatusEvent(os.Stdout, err.Error())
@@ -143,6 +158,11 @@ var RunCmd = &cobra.Command{
 			<-daprRunning
 
 			go func() {
+				if output.AppCMD == nil {
+					appRunning <- true
+					return
+				}
+
 				stdErrPipe, pipeErr := output.AppCMD.StderrPipe()
 				if pipeErr != nil {
 					print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error creating stderr for App: %s", err.Error()))
@@ -191,7 +211,11 @@ var RunCmd = &cobra.Command{
 				PID:          os.Getpid(),
 			})
 
-			print.SuccessStatusEvent(os.Stdout, "You're up and running! Both Dapr and your app logs will appear here.\n")
+			if output.AppCMD != nil {
+				print.SuccessStatusEvent(os.Stdout, "You're up and running! Both Dapr and your app logs will appear here.\n")
+			} else {
+				print.SuccessStatusEvent(os.Stdout, "You're up and running! Dapr logs will appear here.\n")
+			}
 
 			<-sigCh
 			print.InfoStatusEvent(os.Stdout, "\nterminated signal received: shutting down")
@@ -205,11 +229,13 @@ var RunCmd = &cobra.Command{
 				print.SuccessStatusEvent(os.Stdout, "Exited Dapr successfully")
 			}
 
-			err = output.AppCMD.Process.Kill()
-			if err != nil {
-				print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error exiting App: %s", err))
-			} else {
-				print.SuccessStatusEvent(os.Stdout, "Exited App successfully")
+			if output.AppCMD != nil {
+				err = output.AppCMD.Process.Kill()
+				if err != nil {
+					print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error exiting App: %s", err))
+				} else {
+					print.SuccessStatusEvent(os.Stdout, "Exited App successfully")
+				}
 			}
 		}
 	},

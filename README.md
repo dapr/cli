@@ -311,6 +311,15 @@ $ dapr run --app-id nodeapp --app-port 3000 node app.js --log-level debug
 This sets the Dapr log level to `debug`.
 The default is `info`.
 
+
+### Running sidecar only
+
+You can run Dapr's sidecar only (`daprd`) by omitting the application's command in the end:
+
+```
+$ dapr run --app-id myapp --port 3005 --grpc-port 50001
+```
+
 ## Reference for the Dapr CLI
 
 See the [Reference Guide](docs/reference/reference.md) for more information about individual Dapr commands.
