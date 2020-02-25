@@ -32,7 +32,7 @@ var LogsCmd = &cobra.Command{
 }
 
 func init() {
-	LogsCmd.Flags().BoolVar(&k8s, "kubernetes", true, "Only works with a Kubernetes cluster")
+	LogsCmd.Flags().BoolVarP(&k8s, "kubernetes", "k", true, "Only works with a Kubernetes cluster")
 	LogsCmd.Flags().StringVarP(&logsAppID, "app-id", "a", "", "The app id for which logs are needed")
 	LogsCmd.Flags().StringVarP(&podName, "pod-name", "p", "", "(optional) Name of the Pod. Use this in case you have multiple app instances (Pods)")
 	LogsCmd.Flags().StringVarP(&namespace, "namespace", "n", "", "(optional) Kubernetes namespace in which your application is deployed. default value is 'default'")

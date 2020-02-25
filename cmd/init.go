@@ -51,7 +51,7 @@ var InitCmd = &cobra.Command{
 }
 
 func init() {
-	InitCmd.Flags().BoolVar(&kubernetesMode, "kubernetes", false, "Deploy Dapr to a Kubernetes cluster")
+	InitCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Deploy Dapr to a Kubernetes cluster")
 	InitCmd.Flags().StringVarP(&runtimeVersion, "runtime-version", "", "latest", "The version of the Dapr runtime to install. for example: v0.1.0-alpha")
 	InitCmd.Flags().String("network", "", "The Docker network on which to deploy the Dapr runtime")
 	InitCmd.Flags().String("install-path", "", "The optional location to install Dapr to.  The default is /usr/local/bin for Linux/Mac and C:\\dapr for Windows")
