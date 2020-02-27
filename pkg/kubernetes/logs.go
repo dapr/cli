@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	daprdContainerName     = "daprd"
-	daprIDContainerArgName = "--dapr-id"
+	daprdContainerName    = "daprd"
+	appIDContainerArgName = "--app-id"
 )
 
 // Logs fetches Dapr sidecar logs from Kubernetes.
@@ -46,7 +46,7 @@ func Logs(appID, podName, namespace string) error {
 				if container.Name == daprdContainerName {
 					//find app ID
 					for i, arg := range container.Args {
-						if arg == daprIDContainerArgName {
+						if arg == appIDContainerArgName {
 							id := container.Args[i+1]
 							if id == appID {
 								podName = pod.Name
