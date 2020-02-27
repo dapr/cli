@@ -53,7 +53,7 @@ func TestRun(t *testing.T) {
 		assert.Equal(t, 50001, output.DaprGRPCPort)
 
 		assert.Contains(t, output.DaprCMD.Args[0], "daprd")
-		assertArgument(t, "dapr-id", "MyID", output.DaprCMD.Args)
+		assertArgument(t, "app-id", "MyID", output.DaprCMD.Args)
 		assertArgument(t, "dapr-http-port", "8000", output.DaprCMD.Args)
 		assertArgument(t, "dapr-grpc-port", "50001", output.DaprCMD.Args)
 		assertArgument(t, "log-level", "WARN", output.DaprCMD.Args)
@@ -92,7 +92,7 @@ func TestRun(t *testing.T) {
 		assert.Equal(t, 50001, output.DaprGRPCPort)
 
 		assert.Contains(t, output.DaprCMD.Args[0], "daprd")
-		assertArgument(t, "dapr-id", "MyID", output.DaprCMD.Args)
+		assertArgument(t, "app-id", "MyID", output.DaprCMD.Args)
 		assertArgument(t, "dapr-http-port", "8000", output.DaprCMD.Args)
 		assertArgument(t, "dapr-grpc-port", "50001", output.DaprCMD.Args)
 		assertArgument(t, "log-level", "INFO", output.DaprCMD.Args)
