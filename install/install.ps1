@@ -55,7 +55,7 @@ if ($releases.Count -eq 0) {
 }
 
 # Filter windows binary and download archive
-$windowsAsset = $releases[0].assets | where-object { $_.name -Like "*windows_amd64.zip" }
+$windowsAsset = $releases | Where-Object { $_.tag_name -notlike "*rc*"} | Select-Object -First 1 | Select-Object -ExpandProperty assets | Where-Object { $_.name -Like "*windows_amd64.zip" }
 if (!$windowsAsset) {
     throw "Cannot find the windows Dapr CLI binary"
 }
