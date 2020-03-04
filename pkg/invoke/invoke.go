@@ -63,7 +63,7 @@ func Post(appID, method, payload string) (string, error) {
 }
 
 func makeEndpoint(lo standalone.ListOutput, method string) string {
-	return fmt.Sprintf("http://localhost:%s/v%s/invoke/%s/method/%s", fmt.Sprintf("%v", lo.HTTPPort), api.RuntimeAPIVersion, lo.AppID, method)
+	return fmt.Sprintf("http://127.0.0.1:%s/v%s/invoke/%s/method/%s", fmt.Sprintf("%v", lo.HTTPPort), api.RuntimeAPIVersion, lo.AppID, method)
 }
 
 func handleResponse(response *http.Response) (string, error) {

@@ -12,13 +12,11 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
-	"time"
 
 	"github.com/dapr/cli/pkg/kubernetes"
+	"github.com/dapr/cli/pkg/metadata"
 	"github.com/dapr/cli/pkg/print"
-	"github.com/dapr/cli/pkg/rundata"
 	"github.com/dapr/cli/pkg/standalone"
-	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -44,8 +42,8 @@ Run a Java application:
   dapr run --app-id myapp -- java -jar myapp.jar
 Run a NodeJs application that listens to port 3000:
   dapr run --app-id myapp --app-port 3000 -- node myapp.js
-Run a Python application in the background (daemon):
-  dapr run --app-id myapp -d -- python myapp.py
+Run a Python application:
+  dapr run --app-id myapp -- python myapp.py
 Run sidecar only:
   dapr run --app-id myapp
 	`,
@@ -58,14 +56,6 @@ Run sidecar only:
 		if len(args) == 0 {
 			fmt.Println(print.WhiteBold("WARNING: no application command found."))
 		}
-
-		uuid, err := uuid.NewRandom()
-		if err != nil {
-			print.FailureStatusEvent(os.Stdout, err.Error())
-			return
-		}
-
-		daprRunID := uuid.String()
 
 		if kubernetesMode {
 			output, err := kubernetes.Run(&kubernetes.RunConfig{
@@ -109,7 +99,6 @@ Run sidecar only:
 
 			daprRunning := make(chan bool, 1)
 			appRunning := make(chan bool, 1)
-			daprRunCreatedTime := time.Now()
 
 			go func() {
 				print.InfoStatusEvent(
@@ -200,18 +189,14 @@ Run sidecar only:
 
 			<-appRunning
 
-			rundata.AppendRunData(&rundata.RunData{
-				DaprRunID:    daprRunID,
-				AppID:        output.AppID,
-				DaprHTTPPort: output.DaprHTTPPort,
-				DaprGRPCPort: output.DaprGRPCPort,
-				AppPort:      appPort,
-				Command:      strings.Join(args, " "),
-				Created:      daprRunCreatedTime,
-				PID:          os.Getpid(),
-			})
-
 			if output.AppCMD != nil {
+				appCommand := strings.Join(args, " ")
+				print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Updating metadata for app command: %s", appCommand))
+				err = metadata.Put(output.DaprHTTPPort, "appCommand", appCommand)
+				if err != nil {
+					print.WarningStatusEvent(os.Stdout, "Could not update sidecar metadata: %s", err.Error())
+				}
+
 				print.SuccessStatusEvent(os.Stdout, "You're up and running! Both Dapr and your app logs will appear here.\n")
 			} else {
 				print.SuccessStatusEvent(os.Stdout, "You're up and running! Dapr logs will appear here.\n")
@@ -219,8 +204,6 @@ Run sidecar only:
 
 			<-sigCh
 			print.InfoStatusEvent(os.Stdout, "\nterminated signal received: shutting down")
-
-			rundata.ClearRunData(daprRunID)
 
 			err = output.DaprCMD.Process.Kill()
 			if err != nil {

@@ -13,6 +13,10 @@ import (
 	"github.com/fatih/color"
 )
 
+const (
+	windowsOS = "windows"
+)
+
 var (
 	Yellow    = color.New(color.FgHiYellow, color.Bold).SprintFunc()
 	Green     = color.New(color.FgHiGreen, color.Bold).SprintFunc()
@@ -25,7 +29,7 @@ var (
 
 // SuccessStatusEvent reports on a success event.
 func SuccessStatusEvent(w io.Writer, fmtstr string, a ...interface{}) {
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == windowsOS {
 		fmt.Fprintf(w, "%s\n", fmt.Sprintf(fmtstr, a...))
 	} else {
 		fmt.Fprintf(w, "✅  %s\n", fmt.Sprintf(fmtstr, a...))
@@ -34,16 +38,25 @@ func SuccessStatusEvent(w io.Writer, fmtstr string, a ...interface{}) {
 
 // FailureStatusEvent reports on a failure event.
 func FailureStatusEvent(w io.Writer, fmtstr string, a ...interface{}) {
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == windowsOS {
 		fmt.Fprintf(w, "%s\n", fmt.Sprintf(fmtstr, a...))
 	} else {
 		fmt.Fprintf(w, "❌  %s\n", fmt.Sprintf(fmtstr, a...))
 	}
 }
 
+// WarningStatusEvent reports on a failure event.
+func WarningStatusEvent(w io.Writer, fmtstr string, a ...interface{}) {
+	if runtime.GOOS == windowsOS {
+		fmt.Fprintf(w, "%s\n", fmt.Sprintf(fmtstr, a...))
+	} else {
+		fmt.Fprintf(w, "⚠  %s\n", fmt.Sprintf(fmtstr, a...))
+	}
+}
+
 // PendingStatusEvent reports on a pending event.
 func PendingStatusEvent(w io.Writer, fmtstr string, a ...interface{}) {
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == windowsOS {
 		fmt.Fprintf(w, "%s\n", fmt.Sprintf(fmtstr, a...))
 	} else {
 		fmt.Fprintf(w, "⌛  %s\n", fmt.Sprintf(fmtstr, a...))
@@ -52,7 +65,7 @@ func PendingStatusEvent(w io.Writer, fmtstr string, a ...interface{}) {
 
 // InfoStatusEvent reports status information on an event.
 func InfoStatusEvent(w io.Writer, fmtstr string, a ...interface{}) {
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == windowsOS {
 		fmt.Fprintf(w, "%s\n", fmt.Sprintf(fmtstr, a...))
 	} else {
 		fmt.Fprintf(w, "ℹ️  %s\n", fmt.Sprintf(fmtstr, a...))
