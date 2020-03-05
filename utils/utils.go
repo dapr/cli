@@ -7,14 +7,14 @@ package utils
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
 
 	"github.com/olekukonko/tablewriter"
-
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
 // PrintTable to print in the table format
@@ -54,25 +54,55 @@ func TruncateString(str string, maxLength int) string {
 	return str[0:maxLength-3] + "..."
 }
 
-func RunCmdAndWait(name string, args ...string) error {
+func RunCmdAndWait(name string, args ...string) (string, error) {
 	cmd := exec.Command(name, args...)
-	err := cmd.Start()
+
+	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return err
+		return "", err
+	}
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return "", err
+	}
+
+	err = cmd.Start()
+	if err != nil {
+		return "", err
+	}
+
+	resp, err := ioutil.ReadAll(stdout)
+	if err != nil {
+		return "", err
+	}
+	errB, err := ioutil.ReadAll(stderr)
+	if err != nil {
+		return "", nil
 	}
 
 	err = cmd.Wait()
 	if err != nil {
-		return err
+		// in case of error, capture the exact message
+		if len(errB) > 0 {
+			return "", errors.New(string(errB))
+		}
+		return "", err
 	}
 
-	return nil
+	return string(resp), nil
 }
 
 func CreateContainerName(serviceContainerName string, dockerNetwork string) string {
-	if (dockerNetwork != "") {
+	if dockerNetwork != "" {
 		return fmt.Sprintf("%s_%s", serviceContainerName, dockerNetwork)
 	}
 
 	return serviceContainerName
+}
+
+func CreateDirectory(dir string) error {
+	if _, err := os.Stat(dir); !os.IsNotExist(err) {
+		return nil
+	}
+	return os.Mkdir(dir, 0777)
 }

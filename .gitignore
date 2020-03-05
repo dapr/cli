@@ -11,3 +11,11 @@
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+
+.vscode
+
+# Visual Studio 2015/2017/2019 cache/options directory
+.vs/
+
+# CLI's auto-generated components directory
+**/components

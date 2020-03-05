@@ -6,7 +6,6 @@
 package kubernetes
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"runtime"
@@ -20,11 +19,11 @@ import (
 
 const daprManifestPath = "https://daprreleases.blob.core.windows.net/manifest/dapr-operator.yaml"
 
-// Initialize to deploy the Dapr operator
+// Init deploys the Dapr operator
 func Init() error {
-	kubeExists := kubeconfigExists()
-	if !kubeExists {
-		return errors.New("Can't connect to a Kubernetes cluster. Make sure you have the Kubernetes config file on your machine")
+	_, err := Client()
+	if err != nil {
+		return fmt.Errorf("can't connect to a Kubernetes cluster: %v", err)
 	}
 
 	msg := "Deploying the Dapr Operator to your cluster..."
@@ -40,7 +39,7 @@ func Init() error {
 		s.Start()
 	}
 
-	err := utils.RunCmdAndWait("kubectl", "apply", "-f", daprManifestPath)
+	_, err = utils.RunCmdAndWait("kubectl", "apply", "-f", daprManifestPath)
 	if err != nil {
 		if s != nil {
 			s.Stop()
@@ -53,9 +52,4 @@ func Init() error {
 		print.SuccessStatusEvent(os.Stdout, msg)
 	}
 	return nil
-}
-
-func kubeconfigExists() bool {
-	_, err := Client()
-	return err == nil
 }

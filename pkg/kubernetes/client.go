@@ -7,17 +7,25 @@ package kubernetes
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
+	scheme "github.com/dapr/dapr/pkg/client/clientset/versioned"
 	k8s "k8s.io/client-go/kubernetes"
-	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"       // gcp auth
+	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"      // oidc auth
+	_ "k8s.io/client-go/plugin/pkg/client/auth/openstack" // openstack auth
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-// Client returns a new Kubernetes client
-func Client() (*k8s.Clientset, error) {
+const kubeConfigDelimiter = ":"
+
+func getConfig() (*rest.Config, error) {
 	var kubeconfig *string
+
 	if home := homeDir(); home != "" {
 		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
 	} else {
@@ -25,16 +33,40 @@ func Client() (*k8s.Clientset, error) {
 	}
 	flag.Parse()
 
-	if kubeConfigEnv := os.Getenv("KUBECONFIG"); len(kubeConfigEnv) != 0 {
-		kubeconfig = &kubeConfigEnv
+	kubeConfigEnv := os.Getenv("KUBECONFIG")
+	delimiterBelongsToPath := strings.Count(*kubeconfig, kubeConfigDelimiter) == 1 && strings.EqualFold(*kubeconfig, kubeConfigEnv)
+
+	if len(kubeConfigEnv) != 0 && !delimiterBelongsToPath {
+		kubeConfigs := strings.Split(kubeConfigEnv, kubeConfigDelimiter)
+		if len(kubeConfigs) > 1 {
+			return nil, fmt.Errorf("multiple kubeconfigs in KUBECONFIG environment variable - %s", kubeConfigEnv)
+		}
+		kubeconfig = &kubeConfigs[0]
 	}
 
 	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
 	if err != nil {
 		return nil, err
 	}
+	return config, nil
+}
 
+// Client returns a new Kubernetes client.
+func Client() (*k8s.Clientset, error) {
+	config, err := getConfig()
+	if err != nil {
+		return nil, err
+	}
 	return k8s.NewForConfig(config)
+}
+
+// DaprClient returns a new Kubernetes Dapr client
+func DaprClient() (scheme.Interface, error) {
+	config, err := getConfig()
+	if err != nil {
+		return nil, err
+	}
+	return scheme.NewForConfig(config)
 }
 
 func homeDir() string {

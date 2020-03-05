@@ -10,7 +10,7 @@ import (
 	"runtime"
 )
 
-// GetRuntimeVersion returns the version for the local Dapr runtime
+// GetRuntimeVersion returns the version for the local Dapr runtime.
 func GetRuntimeVersion() string {
 	runtimeName := ""
 	if runtime.GOOS == "windows" {
@@ -21,7 +21,7 @@ func GetRuntimeVersion() string {
 
 	out, err := exec.Command(runtimeName, "--version").Output()
 	if err != nil {
-		return "n/a"
+		return "n/a\n"
 	}
 	return string(out)
 }

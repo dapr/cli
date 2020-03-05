@@ -42,13 +42,16 @@ export GOARCH ?= $(TARGET_ARCH_LOCAL)
 LOCAL_OS := $(shell uname)
 ifeq ($(LOCAL_OS),Linux)
    TARGET_OS_LOCAL = linux
+   GOLANGCI_LINT:=golangci-lint
    export ARCHIVE_EXT = .tar.gz
 else ifeq ($(LOCAL_OS),Darwin)
    TARGET_OS_LOCAL = darwin
+   GOLANGCI_LINT:=golangci-lint
    export ARCHIVE_EXT = .tar.gz
 else
    TARGET_OS_LOCAL ?= windows
    BINARY_EXT_LOCAL = .exe
+   GOLANGCI_LINT:=golangci-lint.exe
    export ARCHIVE_EXT = .zip
 endif
 export GOOS ?= $(TARGET_OS_LOCAL)
@@ -83,8 +86,16 @@ LDFLAGS := "-X main.version=$(CLI_VERSION) -X main.apiVersion=$(RUNTIME_API_VERS
 build: $(CLI_BINARY)
 
 $(CLI_BINARY):
-	CGO_ENABLED=$(CGO) GOOS=$(GOOS) GOARCH=$(GOARCH) go build $(GCFLAGS) -ldflags $(LDFLAGS) -mod=vendor \
+	CGO_ENABLED=$(CGO) GOOS=$(GOOS) GOARCH=$(GOARCH) go build $(GCFLAGS) -ldflags $(LDFLAGS) \
 	-o $(BINS_OUT_DIR)/$(CLI_BINARY)$(BINARY_EXT);
+
+################################################################################
+# Target: lint                                                                 #
+################################################################################
+# Due to https://github.com/golangci/golangci-lint/issues/580, we need to add --fix for windows
+.PHONY: lint
+lint:
+	$(GOLANGCI_LINT) run --fix
 
 ################################################################################
 # Target: archive                                                              #
@@ -113,4 +124,4 @@ release: build archive
 ################################################################################
 .PHONY: test
 test:
-	go test ./pkg/... -mod=vendor
+	go test ./pkg/...

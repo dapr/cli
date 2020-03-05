@@ -20,6 +20,7 @@ import (
 	"github.com/dapr/cli/pkg/standalone"
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var appPort int
@@ -33,14 +34,31 @@ var image string
 var enableProfiling bool
 var logLevel string
 var protocol string
-var redisHost string
-var placementHost string
 
 var RunCmd = &cobra.Command{
 	Use:   "run",
-	Short: "Launches dapr and your app side by side",
-	Args:  cobra.MinimumNArgs(1),
+	Short: "Launches Dapr and (optionally) your app side by side",
+	Long: `Runs Dapr's sidecar and (optionally) an application.
+
+Run a Java application:
+  dapr run --app-id myapp -- java -jar myapp.jar
+Run a NodeJs application that listens to port 3000:
+  dapr run --app-id myapp --app-port 3000 -- node myapp.js
+Run a Python application in the background (daemon):
+  dapr run --app-id myapp -d -- python myapp.py
+Run sidecar only:
+  dapr run --app-id myapp
+	`,
+	Args: cobra.MinimumNArgs(0),
+	PreRun: func(cmd *cobra.Command, args []string) {
+		viper.BindPFlag("placement-host", cmd.Flags().Lookup("placement-host"))
+		viper.BindPFlag("redis-host", cmd.Flags().Lookup("redis-host"))
+	},
 	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) == 0 {
+			fmt.Println(print.WhiteBold("WARNING: no application command found."))
+		}
+
 		uuid, err := uuid.NewRandom()
 		if err != nil {
 			print.FailureStatusEvent(os.Stdout, err.Error())
@@ -78,15 +96,15 @@ var RunCmd = &cobra.Command{
 				LogLevel:        logLevel,
 				MaxConcurrency:  maxConcurrency,
 				Protocol:        protocol,
-				RedisHost:       redisHost,
-				PlacementHost:   placementHost,
+				RedisHost:       viper.GetString("redis-host"),
+				PlacementHost:   viper.GetString("placement-host"),
 			})
 			if err != nil {
 				print.FailureStatusEvent(os.Stdout, err.Error())
 				return
 			}
 
-			var sigCh = make(chan os.Signal)
+			var sigCh = make(chan os.Signal, 1)
 			signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
 
 			daprRunning := make(chan bool, 1)
@@ -94,16 +112,22 @@ var RunCmd = &cobra.Command{
 			daprRunCreatedTime := time.Now()
 
 			go func() {
-				print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Starting Dapr with id %s. HTTP Port: %v. gRPC Port: %v", output.AppID, output.DaprHTTPPort, output.DaprGRPCPort))
+				print.InfoStatusEvent(
+					os.Stdout,
+					fmt.Sprintf(
+						"Starting Dapr with id %s. HTTP Port: %v. gRPC Port: %v",
+						output.AppID,
+						output.DaprHTTPPort,
+						output.DaprGRPCPort))
 
-				stdErrPipe, err := output.DaprCMD.StderrPipe()
-				if err != nil {
+				stdErrPipe, pipeErr := output.DaprCMD.StderrPipe()
+				if pipeErr != nil {
 					print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error creating stderr for Dapr: %s", err.Error()))
 					os.Exit(1)
 				}
 
-				stdOutPipe, err := output.DaprCMD.StdoutPipe()
-				if err != nil {
+				stdOutPipe, pipeErr := output.DaprCMD.StdoutPipe()
+				if pipeErr != nil {
 					print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error creating stdout for Dapr: %s", err.Error()))
 					os.Exit(1)
 				}
@@ -112,13 +136,13 @@ var RunCmd = &cobra.Command{
 				outScanner := bufio.NewScanner(stdOutPipe)
 				go func() {
 					for errScanner.Scan() {
-						fmt.Printf(print.Yellow(fmt.Sprintf("== DAPR == %s\n", errScanner.Text())))
+						fmt.Println(print.Yellow(fmt.Sprintf("== DAPR == %s\n", errScanner.Text())))
 					}
 				}()
 
 				go func() {
 					for outScanner.Scan() {
-						fmt.Printf(print.Yellow(fmt.Sprintf("== DAPR == %s\n", outScanner.Text())))
+						fmt.Println(print.Yellow(fmt.Sprintf("== DAPR == %s\n", outScanner.Text())))
 					}
 				}()
 
@@ -134,14 +158,19 @@ var RunCmd = &cobra.Command{
 			<-daprRunning
 
 			go func() {
-				stdErrPipe, err := output.AppCMD.StderrPipe()
-				if err != nil {
+				if output.AppCMD == nil {
+					appRunning <- true
+					return
+				}
+
+				stdErrPipe, pipeErr := output.AppCMD.StderrPipe()
+				if pipeErr != nil {
 					print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error creating stderr for App: %s", err.Error()))
 					os.Exit(1)
 				}
 
-				stdOutPipe, err := output.AppCMD.StdoutPipe()
-				if err != nil {
+				stdOutPipe, pipeErr := output.AppCMD.StdoutPipe()
+				if pipeErr != nil {
 					print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error creating stdout for App: %s", err.Error()))
 					os.Exit(1)
 				}
@@ -150,13 +179,13 @@ var RunCmd = &cobra.Command{
 				outScanner := bufio.NewScanner(stdOutPipe)
 				go func() {
 					for errScanner.Scan() {
-						fmt.Printf(print.Blue(fmt.Sprintf("== APP == %s\n", errScanner.Text())))
+						fmt.Println(print.Blue(fmt.Sprintf("== APP == %s\n", errScanner.Text())))
 					}
 				}()
 
 				go func() {
 					for outScanner.Scan() {
-						fmt.Printf(print.Blue(fmt.Sprintf("== APP == %s\n", outScanner.Text())))
+						fmt.Println(print.Blue(fmt.Sprintf("== APP == %s\n", outScanner.Text())))
 					}
 				}()
 
@@ -172,8 +201,8 @@ var RunCmd = &cobra.Command{
 			<-appRunning
 
 			rundata.AppendRunData(&rundata.RunData{
-				DaprRunId:    daprRunID,
-				AppId:        output.AppID,
+				DaprRunID:    daprRunID,
+				AppID:        output.AppID,
 				DaprHTTPPort: output.DaprHTTPPort,
 				DaprGRPCPort: output.DaprGRPCPort,
 				AppPort:      appPort,
@@ -182,7 +211,11 @@ var RunCmd = &cobra.Command{
 				PID:          os.Getpid(),
 			})
 
-			print.SuccessStatusEvent(os.Stdout, "You're up and running! Both Dapr and your app logs will appear here.\n")
+			if output.AppCMD != nil {
+				print.SuccessStatusEvent(os.Stdout, "You're up and running! Both Dapr and your app logs will appear here.\n")
+			} else {
+				print.SuccessStatusEvent(os.Stdout, "You're up and running! Dapr logs will appear here.\n")
+			}
 
 			<-sigCh
 			print.InfoStatusEvent(os.Stdout, "\nterminated signal received: shutting down")
@@ -196,11 +229,13 @@ var RunCmd = &cobra.Command{
 				print.SuccessStatusEvent(os.Stdout, "Exited Dapr successfully")
 			}
 
-			err = output.AppCMD.Process.Kill()
-			if err != nil {
-				print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error exiting App: %s", err))
-			} else {
-				print.SuccessStatusEvent(os.Stdout, "Exited App successfully")
+			if output.AppCMD != nil {
+				err = output.AppCMD.Process.Kill()
+				if err != nil {
+					print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error exiting App: %s", err))
+				} else {
+					print.SuccessStatusEvent(os.Stdout, "Exited App successfully")
+				}
 			}
 		}
 	},
@@ -218,8 +253,8 @@ func init() {
 	RunCmd.Flags().StringVarP(&logLevel, "log-level", "", "info", "Sets the log verbosity. Valid values are: debug, info, warning, error, fatal, or panic. Default is info")
 	RunCmd.Flags().IntVarP(&maxConcurrency, "max-concurrency", "", -1, "controls the concurrency level of the app. Default is unlimited")
 	RunCmd.Flags().StringVarP(&protocol, "protocol", "", "http", "tells Dapr to use HTTP or gRPC to talk to the app. Default is http")
-	RunCmd.Flags().StringVarP(&redisHost, "redis-host", "", "localhost", "the host on which the Redis service resides")
-	RunCmd.Flags().StringVarP(&placementHost, "placement-host", "", "localhost", "the host on which the placement service resides")
+	RunCmd.Flags().String("redis-host", "localhost", "the host on which the Redis service resides")
+	RunCmd.Flags().String("placement-host", "localhost", "the host on which the placement service resides")
 
 	RootCmd.AddCommand(RunCmd)
 }

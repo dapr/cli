@@ -19,9 +19,9 @@ var publishPayload string
 
 var PublishCmd = &cobra.Command{
 	Use:   "publish",
-	Short: "publish an event to multiple consumers",
+	Short: "Publish an event to multiple consumers",
 	Run: func(cmd *cobra.Command, args []string) {
-		err := publish.PublishTopic(publishTopic, publishPayload)
+		err := publish.SendPayloadToTopic(publishTopic, publishPayload)
 		if err != nil {
 			print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error publishing topic %s: %s", publishTopic, err))
 			return

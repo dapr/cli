@@ -12,7 +12,7 @@ import (
 	"github.com/dapr/cli/utils"
 )
 
-// Terminate the application process
+// Stop terminates the application process.
 func Stop(appID string) error {
 	apps, err := List()
 	if err != nil {
@@ -22,13 +22,15 @@ func Stop(appID string) error {
 	for _, a := range apps {
 		if a.AppID == appID {
 			pid := fmt.Sprintf("%v", a.PID)
+
+			var err error
 			if runtime.GOOS == "windows" {
-				err := utils.RunCmdAndWait("taskkill", "/F", "/PID", pid)
-				return err
+				_, err = utils.RunCmdAndWait("taskkill", "/F", "/T", "/PID", pid)
 			} else {
-				err := utils.RunCmdAndWait("kill", pid)
-				return err
+				_, err = utils.RunCmdAndWait("kill", pid)
 			}
+
+			return err
 		}
 	}
 

@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/docker/docker/client"
+	"github.com/fatih/color"
 
 	"github.com/briandowns/spinner"
 	"github.com/dapr/cli/pkg/print"
@@ -34,21 +35,26 @@ import (
 )
 
 const (
-	daprGitHubOrg              = "dapr"
-	daprGitHubRepo             = "dapr"
-	daprDockerImageName        = "daprio/dapr"
-	daprRuntimeFilePrefix      = "daprd"
-	daprWindowsOS              = "windows"
-	daprLatestVersion          = "latest"
+	daprGitHubOrg                     = "dapr"
+	daprGitHubRepo                    = "dapr"
+	daprDockerImageName               = "daprio/dapr"
+	daprRuntimeFilePrefix             = "daprd"
+	daprWindowsOS                     = "windows"
+	daprLatestVersion                 = "latest"
+	daprDefaultLinuxAndMacInstallPath = "/usr/local/bin"
+	daprDefaultWindowsInstallPath     = "c:\\dapr"
+
+	// DaprPlacementContainerName is the container name of placement service
 	DaprPlacementContainerName = "dapr_placement"
-	DaprRedisContainerName     = "dapr_redis"
+	// DaprRedisContainerName is the container name of redis
+	DaprRedisContainerName = "dapr_redis"
 )
 
-// Init installs Dapr on a local machine using the supplied runtimeVersion
-func Init(runtimeVersion string, dockerNetwork string) error {
+// Init installs Dapr on a local machine using the supplied runtimeVersion.
+func Init(runtimeVersion string, dockerNetwork string, installLocation string) error {
 	dockerInstalled := isDockerInstalled()
 	if !dockerInstalled {
-		return errors.New("Could not connect to Docker.  Is Docker installed and running?")
+		return errors.New("could not connect to Docker. Docker may not be installed or running")
 	}
 
 	dir, err := getDaprDir()
@@ -59,10 +65,8 @@ func Init(runtimeVersion string, dockerNetwork string) error {
 	var wg sync.WaitGroup
 	errorChan := make(chan error)
 
-	initSteps := []func(*sync.WaitGroup, chan<- error, string, string, string){}
-	initSteps = append(initSteps, installDaprBinary)
-	initSteps = append(initSteps, runPlacementService)
-	initSteps = append(initSteps, runRedis)
+	initSteps := []func(*sync.WaitGroup, chan<- error, string, string, string, string){}
+	initSteps = append(initSteps, installDaprBinary, runPlacementService, runRedis)
 
 	wg.Add(len(initSteps))
 
@@ -79,7 +83,7 @@ func Init(runtimeVersion string, dockerNetwork string) error {
 	}
 
 	for _, step := range initSteps {
-		go step(&wg, errorChan, dir, runtimeVersion, dockerNetwork)
+		go step(&wg, errorChan, dir, runtimeVersion, dockerNetwork, installLocation)
 	}
 
 	go func() {
@@ -98,6 +102,10 @@ func Init(runtimeVersion string, dockerNetwork string) error {
 
 	if s != nil {
 		s.Stop()
+		err = confirmContainerIsRunning(DaprRedisContainerName)
+		if err != nil {
+			return err
+		}
 		print.SuccessStatusEvent(os.Stdout, msg)
 	}
 
@@ -134,17 +142,19 @@ func getDaprDir() (string, error) {
 	return p, nil
 }
 
-func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string) {
+// installLocation is not used, but it is present because it's required to fit the initSteps func above.
+// If the number of args increases more, we may consider passing in a struct instead of individual args.
+func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string) {
 	defer wg.Done()
 
-	args := []string {
+	args := []string{
 		"run",
 		"--name", utils.CreateContainerName(DaprRedisContainerName, dockerNetwork),
 		"--restart", "always",
 		"-d",
 	}
 
-	if (dockerNetwork != "") {
+	if dockerNetwork != "" {
 		args = append(
 			args,
 			"--network", dockerNetwork,
@@ -156,26 +166,48 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, d
 	}
 
 	args = append(args, "redis")
+	_, err := utils.RunCmdAndWait("docker", args...)
 
-	err := utils.RunCmdAndWait("docker", args...)
 	if err != nil {
 		runError := isContainerRunError(err)
 		if !runError {
 			errorChan <- parseDockerError("Redis state store", err)
-			return
+		} else {
+			errorChan <- fmt.Errorf("docker %s failed with: %v", args, err)
 		}
+		return
 	}
 	errorChan <- nil
+}
+
+func confirmContainerIsRunning(containerName string) error {
+
+	// e.g. docker ps --filter name=dapr_redis --filter status=running --format {{.Names}}
+
+	args := []string{"ps", "--filter", "name=" + containerName, "--filter", "status=running", "--format", "{{.Names}}"}
+	response, err := utils.RunCmdAndWait("docker", args...)
+	response = strings.TrimSuffix(response, "\n")
+
+	// If 'docker ps' failed due to some reason
+	if err != nil {
+		return fmt.Errorf("unable to confirm whether %s is running. error\n%v", containerName, err.Error())
+	}
+	// 'docker ps' worked fine, but the response did not have the container name
+	if response == "" || response != containerName {
+		return fmt.Errorf("container %s is not running", containerName)
+	}
+
+	return nil
 }
 
 func parseDockerError(component string, err error) error {
 	if exitError, ok := err.(*exec.ExitError); ok {
 		exitCode := exitError.ExitCode()
 		if exitCode == 125 { //see https://github.com/moby/moby/pull/14012
-			return fmt.Errorf("Failed to launch %s. Is it already running?", component)
+			return fmt.Errorf("failed to launch %s. Is it already running?", component)
 		}
 		if exitCode == 127 {
-			return fmt.Errorf("Failed to launch %s. Make sure Docker is installed and running", component)
+			return fmt.Errorf("failed to launch %s. Make sure Docker is installed and running", component)
 		}
 	}
 	return err
@@ -189,7 +221,7 @@ func isContainerRunError(err error) bool {
 	return false
 }
 
-func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string) {
+func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string) {
 	defer wg.Done()
 
 	image := fmt.Sprintf("%s:%s", daprDockerImageName, version)
@@ -207,7 +239,7 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 		"--entrypoint", "./placement",
 	}
 
-	if (dockerNetwork != "") {
+	if dockerNetwork != "" {
 		args = append(args,
 			"--network", dockerNetwork,
 			"--network-alias", DaprPlacementContainerName)
@@ -220,22 +252,24 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 		args = append(args,
 			"-p", fmt.Sprintf("%v:50005", osPort))
 	}
-	
+
 	args = append(args, image)
-	
-	err := utils.RunCmdAndWait("docker", args...)
+
+	_, err := utils.RunCmdAndWait("docker", args...)
 
 	if err != nil {
 		runError := isContainerRunError(err)
 		if !runError {
 			errorChan <- parseDockerError("placement service", err)
-			return
+		} else {
+			errorChan <- fmt.Errorf("docker %s failed with: %v", args, err)
 		}
+		return
 	}
 	errorChan <- nil
 }
 
-func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string) {
+func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string) {
 	defer wg.Done()
 
 	archiveExt := "tar.gz"
@@ -247,7 +281,7 @@ func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version 
 		var err error
 		version, err = getLatestRelease(daprGitHubOrg, daprGitHubRepo)
 		if err != nil {
-			errorChan <- fmt.Errorf("Cannot get the latest release version: %s", err)
+			errorChan <- fmt.Errorf("cannot get the latest release version: %s", err)
 			return
 		}
 		version = version[1:]
@@ -265,12 +299,11 @@ func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version 
 
 	filepath, err := downloadFile(dir, daprURL)
 	if err != nil {
-		errorChan <- fmt.Errorf("Error downloading dapr binary: %s", err)
+		errorChan <- fmt.Errorf("error downloading Dapr binary: %s", err)
 		return
 	}
 
 	extractedFilePath := ""
-	err = nil
 
 	if archiveExt == "zip" {
 		extractedFilePath, err = unzip(filepath, dir)
@@ -279,19 +312,19 @@ func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version 
 	}
 
 	if err != nil {
-		errorChan <- fmt.Errorf("Error extracting dapr binary: %s", err)
+		errorChan <- fmt.Errorf("error extracting Dapr binary: %s", err)
 		return
 	}
 
-	daprPath, err := moveFileToPath(extractedFilePath)
+	daprPath, err := moveFileToPath(extractedFilePath, installLocation)
 	if err != nil {
-		errorChan <- fmt.Errorf("Error moving dapr binary to path: %s", err)
+		errorChan <- fmt.Errorf("error moving Dapr binary to path: %s", err)
 		return
 	}
 
 	err = makeExecutable(daprPath)
 	if err != nil {
-		errorChan <- fmt.Errorf("Error making dapr binary executable: %s", err)
+		errorChan <- fmt.Errorf("error making Dapr binary executable: %s", err)
 		return
 	}
 
@@ -315,7 +348,9 @@ func unzip(filepath, targetDir string) (string, error) {
 		return "", err
 	}
 
-	for _, file := range zipReader.Reader.File {
+	if len(zipReader.Reader.File) > 0 {
+		file := zipReader.Reader.File[0]
+
 		zippedFile, err := file.Open()
 		if err != nil {
 			return "", err
@@ -399,53 +434,82 @@ func untar(filepath, targetDir string) (string, error) {
 	}
 }
 
-func moveFileToPath(filepath string) (string, error) {
+func moveFileToPath(filepath string, installLocation string) (string, error) {
+	destDir := daprDefaultLinuxAndMacInstallPath
+	if runtime.GOOS == daprWindowsOS {
+		destDir = daprDefaultWindowsInstallPath
+		filepath = strings.Replace(filepath, "/", "\\", -1)
+	}
+
 	fileName := path_filepath.Base(filepath)
 	destFilePath := ""
 
-	if runtime.GOOS == daprWindowsOS {
-		p := os.Getenv("PATH")
-		if !strings.Contains(strings.ToLower(string(p)), strings.ToLower("c:\\dapr")) {
-			err := utils.RunCmdAndWait("SETX", "PATH", p+";c:\\dapr")
-			if err != nil {
-				return "", err
-			}
-		}
-		return "c:\\dapr\\daprd.exe", nil
+	// if user specified --install-path, use that
+	if installLocation != "" {
+		destDir = installLocation
 	}
 
-	destFilePath = path.Join("/usr/local/bin", fileName)
+	destFilePath = path.Join(destDir, fileName)
 
 	input, err := ioutil.ReadFile(filepath)
 	if err != nil {
 		return "", err
 	}
 
-	err = ioutil.WriteFile(destFilePath, input, 0644)
+	fmt.Printf("Installing Dapr to %s\n", destDir)
+	err = utils.CreateDirectory(destDir)
 	if err != nil {
 		return "", err
+	}
+
+	if err = ioutil.WriteFile(destFilePath, input, 0644); err != nil {
+		if runtime.GOOS != daprWindowsOS && strings.Contains(err.Error(), "permission denied") {
+			err = errors.New(err.Error() + " - please run with sudo")
+		}
+		return "", err
+	}
+
+	if runtime.GOOS == daprWindowsOS {
+		p := os.Getenv("PATH")
+
+		if !strings.Contains(strings.ToLower(p), strings.ToLower(destDir)) {
+			_, err := utils.RunCmdAndWait("SETX", "PATH", p+fmt.Sprintf(";%s", destDir))
+			if err != nil {
+				return "", err
+			}
+		}
+
+		return fmt.Sprintf("%s\\daprd.exe", destDir), nil
+	}
+
+	if installLocation != "" {
+		color.Set(color.FgYellow)
+		fmt.Printf("\nDapr installed to %s, please run the following to add it to your path:\n", destDir)
+		fmt.Printf("    export PATH=$PATH:%s\n", destDir)
+		color.Unset()
 	}
 
 	return destFilePath, nil
 }
 
 type githubRepoReleaseItem struct {
-	Url      string `json:"url"`
-	Tag_name string `json:"tag_name"`
-	Name     string `json:"name"`
-	Draft    bool   `json:"draft"`
+	URL     string `json:"url"`
+	TagName string `json:"tag_name"`
+	Name    string `json:"name"`
+	Draft   bool   `json:"draft"`
 }
 
+// nolint:gosec
 func getLatestRelease(gitHubOrg, gitHubRepo string) (string, error) {
-	releaseUrl := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases", gitHubOrg, gitHubRepo)
-	resp, err := http.Get(releaseUrl)
+	releaseURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases", gitHubOrg, gitHubRepo)
+	resp, err := http.Get(releaseURL)
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return "", fmt.Errorf("%s - %s", releaseUrl, resp.Status)
+		return "", fmt.Errorf("%s - %s", releaseURL, resp.Status)
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
@@ -460,12 +524,19 @@ func getLatestRelease(gitHubOrg, gitHubRepo string) (string, error) {
 	}
 
 	if len(githubRepoReleases) == 0 {
-		return "", fmt.Errorf("No releases")
+		return "", fmt.Errorf("no releases")
 	}
 
-	return githubRepoReleases[0].Tag_name, nil
+	for _, release := range githubRepoReleases {
+		if !strings.Contains(release.TagName, "-rc") {
+			return release.TagName, nil
+		}
+	}
+
+	return "", fmt.Errorf("no releases")
 }
 
+// nolint:gosec
 func downloadFile(dir string, url string) (string, error) {
 	tokens := strings.Split(url, "/")
 	fileName := tokens[len(tokens)-1]

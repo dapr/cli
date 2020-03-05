@@ -11,7 +11,7 @@ import (
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ListOutput to represent the application id, application port and creation time
+// ListOutput represents the application ID, application port and creation time.
 type ListOutput struct {
 	AppID   string `csv:"APP ID"`
 	AppPort string `csv:"APP PORT"`
@@ -19,7 +19,7 @@ type ListOutput struct {
 	Created string `csv:"CREATED"`
 }
 
-// List to output all the the applications
+// List outputs all the applications.
 func List() ([]ListOutput, error) {
 	client, err := Client()
 	if err != nil {
@@ -40,7 +40,7 @@ func List() ([]ListOutput, error) {
 					if a == "--app-port" {
 						port := c.Args[i+1]
 						lo.AppPort = port
-					} else if a == "--dapr-id" {
+					} else if a == "--app-id" {
 						id := c.Args[i+1]
 						lo.AppID = id
 					}

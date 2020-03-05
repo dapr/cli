@@ -17,7 +17,7 @@ var stopAppID string
 
 var StopCmd = &cobra.Command{
 	Use:   "stop",
-	Short: "Stops a running dapr instance and its associated app",
+	Short: "Stops a running Dapr instance and its associated app",
 	Run: func(cmd *cobra.Command, args []string) {
 		err := standalone.Stop(stopAppID)
 		if err != nil {

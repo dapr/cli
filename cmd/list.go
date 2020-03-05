@@ -19,7 +19,7 @@ import (
 
 var ListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "List all dapr instances",
+	Short: "List all Dapr instances",
 	Run: func(cmd *cobra.Command, args []string) {
 		if kubernetesMode {
 			list, err := kubernetes.List()
@@ -43,7 +43,7 @@ var ListCmd = &cobra.Command{
 			}
 
 			if len(list) == 0 {
-				fmt.Println("No dapr instances found.")
+				fmt.Println("No Dapr instances found.")
 				return
 			}
 
@@ -59,6 +59,6 @@ var ListCmd = &cobra.Command{
 }
 
 func init() {
-	ListCmd.Flags().BoolVar(&kubernetesMode, "kubernetes", false, "List all Dapr pods in a k8s cluster")
+	ListCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "List all Dapr pods in a k8s cluster")
 	RootCmd.AddCommand(ListCmd)
 }

@@ -8,10 +8,12 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/dapr/cli/pkg/api"
 	"github.com/dapr/cli/pkg/version"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var RootCmd = &cobra.Command{
@@ -34,6 +36,8 @@ func Execute(version, apiVersion string) {
 	RootCmd.Version = version
 	api.RuntimeAPIVersion = apiVersion
 
+	cobra.OnInitialize(initConfig)
+
 	setVersion()
 
 	if err := RootCmd.Execute(); err != nil {
@@ -43,6 +47,12 @@ func Execute(version, apiVersion string) {
 }
 
 func setVersion() {
-	template := fmt.Sprintf("cli version: %s \nruntime version: %s", RootCmd.Version, version.GetRuntimeVersion())
+	template := fmt.Sprintf("CLI version: %s \nRuntime version: %s", RootCmd.Version, version.GetRuntimeVersion())
 	RootCmd.SetVersionTemplate(template)
+}
+
+func initConfig() {
+	viper.SetEnvPrefix("dapr")
+	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
+	viper.AutomaticEnv()
 }

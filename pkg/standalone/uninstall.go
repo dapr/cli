@@ -1,34 +1,53 @@
 package standalone
 
 import (
-	"errors"
+	"fmt"
+	"strings"
 
+	"github.com/dapr/cli/pkg/rundata"
 	"github.com/dapr/cli/utils"
 )
 
+// Uninstall deletes all installed containers
 func Uninstall(uninstallAll bool, dockerNetwork string) error {
-	err := utils.RunCmdAndWait(
+	var failedContainers []string
+
+	_, err := utils.RunCmdAndWait(
 		"docker", "rm",
 		"--force",
 		utils.CreateContainerName(DaprPlacementContainerName, dockerNetwork))
 
-	errorMessage := ""
 	if err != nil {
-		errorMessage += "Could not delete Dapr Placement Container - it may not have been running "
+		failedContainers = append(failedContainers, DaprPlacementContainerName)
+	}
+
+	_, err = utils.RunCmdAndWait(
+		"docker", "rmi",
+		"--force",
+		daprDockerImageName)
+
+	if err != nil {
+		failedContainers = append(failedContainers, daprDockerImageName)
 	}
 
 	if uninstallAll {
-		err = utils.RunCmdAndWait(
+		_, err = utils.RunCmdAndWait(
 			"docker", "rm",
 			"--force",
 			utils.CreateContainerName(DaprRedisContainerName, dockerNetwork))
 		if err != nil {
-			errorMessage += "Could not delete Redis Container - it may not have been running"
+			failedContainers = append(failedContainers, DaprRedisContainerName)
 		}
 	}
 
-	if errorMessage != "" {
-		return errors.New(errorMessage)
+	err = rundata.DeleteRunDataFile()
+	if err != nil {
+		fmt.Println("WARNING: could not delete run data file")
 	}
-	return nil
+
+	if len(failedContainers) == 0 {
+		return nil
+	}
+
+	return fmt.Errorf("could not delete (%s)", strings.Join(failedContainers, ","))
 }

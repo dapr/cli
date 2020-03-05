@@ -12,7 +12,7 @@ import (
 	ps "github.com/mitchellh/go-ps"
 )
 
-// ListOutput to represent the application id, application port and creation time
+// ListOutput represents the application ID, application port and creation time.
 type ListOutput struct {
 	AppID    string `csv:"APP ID"`
 	HTTPPort int    `csv:"HTTP PORT"`
@@ -24,7 +24,7 @@ type ListOutput struct {
 	PID      int
 }
 
-// List to output all the the applications
+// List outputs all the applications.
 func List() ([]ListOutput, error) {
 	list := []ListOutput{}
 
@@ -41,7 +41,7 @@ func List() ([]ListOutput, error) {
 
 		// TODO: Call to /metadata and validate the runtime data
 		var listRow = ListOutput{
-			AppID:    runtimeLine.AppId,
+			AppID:    runtimeLine.AppID,
 			HTTPPort: runtimeLine.DaprHTTPPort,
 			GRPCPort: runtimeLine.DaprGRPCPort,
 			Command:  utils.TruncateString(runtimeLine.Command, 20),

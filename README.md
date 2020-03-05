@@ -11,13 +11,15 @@ The Dapr CLI allows you to setup Dapr on your local dev machine or on a Kubernet
 
 * Install [Docker](https://docs.docker.com/install/)
 
+*__Note: On Windows, Docker must be running in Linux Containers mode__*
+
 ### Installing Dapr CLI
 
 #### Using script to install the latest release
 
 **Windows**
 
-Install the latest windows Dapr cli to `c:\dapr` and add this directory to User PATH environment variable.
+Install the latest windows Dapr CLI to `c:\dapr` and add this directory to User PATH environment variable.
 
 ```powershell
 powershell -Command "iwr -useb https://raw.githubusercontent.com/dapr/cli/master/install/install.ps1 | iex"
@@ -68,10 +70,10 @@ You can install or upgrade to a specific version of the Dapr runtime using `dapr
 # Install v0.1.0 runtime
 $ dapr init --runtime-version 0.1.0
 
-# Check the versions of cli and runtime
+# Check the versions of CLI and runtime
 $ dapr --version
-cli version: v0.1.0
-runtime version: v0.1.0
+CLI version: v0.1.0
+Runtime version: v0.1.0
 ```
 
 #### Install to a specific Docker network
@@ -118,6 +120,9 @@ $ dapr uninstall --network dapr-network
 ### Install Dapr on Kubernetes
 
 The init command will install the latest stable version of Dapr on your cluster. For more advanced use cases, use our [Helm Chart](https://github.com/dapr/dapr/tree/master/charts/dapr).
+
+> Please note, that using the CLI does not support non-default namespaces.  
+> If you need a non-default namespace, please use Helm.
 
 ```
 $ dapr init --kubernetes
@@ -228,7 +233,7 @@ $ dapr run --app-id nodeapp --app-port 3000 node app.js
 Invoke your app:
 
 ```
-$ dapr send --app-id nodeapp --method mymethod
+$ dapr invoke --app-id nodeapp --method mymethod
 ```
 
 ### List
@@ -245,10 +250,36 @@ To list all Dapr instances running in a Kubernetes cluster:
 $ dapr list --kubernetes
 ```
 
+
+### Check mTLS status
+
+To check if Mutual TLS is enabled in your Kubernetes cluster:
+
+```
+$ dapr mtls --kubernetes
+```
+
+### List Components
+
+To list all Dapr components on Kubernetes:
+
+```
+$ dapr components --kubernetes
+```
+
+
+### List Configurations
+
+To list all Dapr configurations on Kubernetes:
+
+```
+$ dapr configurations --kubernetes
+```
+
 ### Stop
 
 Use ```dapr list``` to get a list of all running instances.
-To stop an dapr app on your machine:
+To stop a Dapr app on your machine:
 
 ```
 $ dapr stop --app-id myAppID
@@ -280,6 +311,18 @@ $ dapr run --app-id nodeapp --app-port 3000 node app.js --log-level debug
 This sets the Dapr log level to `debug`.
 The default is `info`.
 
+
+### Running sidecar only
+
+You can run Dapr's sidecar only (`daprd`) by omitting the application's command in the end:
+
+```
+$ dapr run --app-id myapp --port 3005 --grpc-port 50001
+```
+
+## Reference for the Dapr CLI
+
+See the [Reference Guide](docs/reference/reference.md) for more information about individual Dapr commands.
 
 ## Contributing to Dapr CLI
 

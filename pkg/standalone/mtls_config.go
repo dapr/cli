@@ -3,9 +3,12 @@
 // Licensed under the MIT License.
 // ------------------------------------------------------------
 
-package api
+package standalone
 
-// RuntimeAPIVersion represents the version for the Dapr runtime API.
-var (
-	RuntimeAPIVersion = "1.0"
-)
+type mtlsConfig struct {
+	Spec struct {
+		MTLS struct {
+			Enabled bool `yaml:"enabled"`
+		} `yaml:"mtls"`
+	} `yaml:"spec"`
+}
