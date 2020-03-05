@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/dapr/cli/pkg/rundata"
 	"github.com/dapr/cli/utils"
 )
 
@@ -37,6 +38,11 @@ func Uninstall(uninstallAll bool, dockerNetwork string) error {
 		if err != nil {
 			failedContainers = append(failedContainers, DaprRedisContainerName)
 		}
+	}
+
+	err = rundata.DeleteRunDataFile()
+	if err != nil {
+		fmt.Println("WARNING: could not delete run data file")
 	}
 
 	if len(failedContainers) == 0 {

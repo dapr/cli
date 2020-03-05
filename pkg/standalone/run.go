@@ -6,12 +6,11 @@
 package standalone
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"path"
+	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -27,7 +26,7 @@ import (
 
 const (
 	componentsDirName      = "components"
-	messageBusYamlFileName = "messagebus.yaml"
+	messageBusYamlFileName = "pubsub.yaml"
 	stateStoreYamlFileName = "statestore.yaml"
 	sentryDefaultAddress   = "localhost:50001"
 )
@@ -75,11 +74,11 @@ type componentMetadataItem struct {
 	Value string `yaml:"value"`
 }
 
-func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort int, configFile, protocol string, enableProfiling bool, profilePort int, logLevel string, maxConcurrency int, placementHost string) (*exec.Cmd, int, int, error) {
+func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort int, configFile, protocol string, enableProfiling bool, profilePort int, logLevel string, maxConcurrency int, placementHost string) (*exec.Cmd, int, int, int, error) {
 	if daprHTTPPort < 0 {
 		port, err := freeport.GetFreePort()
 		if err != nil {
-			return nil, -1, -1, err
+			return nil, -1, -1, -1, err
 		}
 
 		daprHTTPPort = port
@@ -88,7 +87,7 @@ func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort in
 	if daprGRPCPort < 0 {
 		grpcPort, err := freeport.GetFreePort()
 		if err != nil {
-			return nil, -1, -1, err
+			return nil, -1, -1, -1, err
 		}
 
 		daprGRPCPort = grpcPort
@@ -99,18 +98,23 @@ func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort in
 	}
 
 	daprCMD := "daprd"
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == daprWindowsOS {
 		daprCMD = fmt.Sprintf("%s.exe", daprCMD)
 	}
 
-	args := []string{"--dapr-id", appID, "--dapr-http-port", fmt.Sprintf("%v", daprHTTPPort), "--dapr-grpc-port", fmt.Sprintf("%v", daprGRPCPort), "--log-level", logLevel, "--max-concurrency", fmt.Sprintf("%v", maxConcurrency), "--protocol", protocol}
+	metricsPort, err := freeport.GetFreePort()
+	if err != nil {
+		return nil, -1, -1, -1, err
+	}
+
+	args := []string{"--app-id", appID, "--dapr-http-port", fmt.Sprintf("%v", daprHTTPPort), "--dapr-grpc-port", fmt.Sprintf("%v", daprGRPCPort), "--log-level", logLevel, "--max-concurrency", fmt.Sprintf("%v", maxConcurrency), "--protocol", protocol, "-metrics-port", fmt.Sprintf("%v", metricsPort)}
 	if appPort > -1 {
 		args = append(args, "--app-port", fmt.Sprintf("%v", appPort))
 	}
 
 	args = append(args, "--placement-address")
 
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == daprWindowsOS {
 		args = append(args, fmt.Sprintf("%s:6050", placementHost))
 	} else {
 		args = append(args, fmt.Sprintf("%s:50005", placementHost))
@@ -129,7 +133,7 @@ func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort in
 		if profilePort == -1 {
 			pp, err := freeport.GetFreePort()
 			if err != nil {
-				return nil, -1, -1, err
+				return nil, -1, -1, -1, err
 			}
 			profilePort = pp
 		}
@@ -141,7 +145,7 @@ func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort in
 	}
 
 	cmd := exec.Command(daprCMD, args...)
-	return cmd, daprHTTPPort, daprGRPCPort, nil
+	return cmd, daprHTTPPort, daprGRPCPort, metricsPort, nil
 }
 
 func mtlsEndpoint(configFile string) string {
@@ -166,13 +170,14 @@ func mtlsEndpoint(configFile string) string {
 	return ""
 }
 
-func getAppCommand(httpPort, grpcPort int, command string, args []string) (*exec.Cmd, error) {
+func getAppCommand(httpPort, grpcPort, metricsPort int, command string, args []string) (*exec.Cmd, error) {
 	cmd := exec.Command(command, args...)
 	cmd.Env = os.Environ()
 	cmd.Env = append(
 		cmd.Env,
 		fmt.Sprintf("DAPR_HTTP_PORT=%v", httpPort),
-		fmt.Sprintf("DAPR_GRPC_PORT=%v", grpcPort))
+		fmt.Sprintf("DAPR_GRPC_PORT=%v", grpcPort),
+		fmt.Sprintf("DAPR_METRICS_PORT=%v", metricsPort))
 
 	return cmd, nil
 }
@@ -183,7 +188,7 @@ func absoluteComponentsDir() (string, error) {
 		return "", err
 	}
 
-	return path.Join(wd, componentsDirName), nil
+	return filepath.Join(wd, componentsDirName), nil
 }
 
 func createRedisStateStore(redisHost string) error {
@@ -219,7 +224,9 @@ func createRedisStateStore(redisHost string) error {
 		return err
 	}
 
-	err = ioutil.WriteFile(path.Join(componentsDir, stateStoreYamlFileName), b, 0644)
+	filePath := filepath.Join(componentsDir, stateStoreYamlFileName)
+	fmt.Printf("WARNING: Redis State Store file is being overwritten: %s\n", filePath)
+	err = ioutil.WriteFile(filePath, b, 0644)
 	if err != nil {
 		return err
 	}
@@ -256,7 +263,9 @@ func createRedisPubSub(redisHost string) error {
 		return err
 	}
 
-	err = ioutil.WriteFile(path.Join(componentsDir, messageBusYamlFileName), b, 0644)
+	filePath := filepath.Join(componentsDir, messageBusYamlFileName)
+	fmt.Printf("WARNING: Redis PubSub file is being overwritten: %s\n", filePath)
+	err = ioutil.WriteFile(filePath, b, 0644)
 	if err != nil {
 		return err
 	}
@@ -285,6 +294,7 @@ func Run(config *RunConfig) (*RunOutput, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	err = utils.CreateDirectory(componentsDir)
 	if err != nil {
 		return nil, err
@@ -321,7 +331,7 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		}
 	}
 
-	daprCMD, daprHTTPPort, daprGRPCPort, err := getDaprCommand(appID, config.HTTPPort, config.GRPCPort, config.AppPort, config.ConfigFile, config.Protocol, config.EnableProfiling, config.ProfilePort, config.LogLevel, config.MaxConcurrency, config.PlacementHost)
+	daprCMD, daprHTTPPort, daprGRPCPort, metricsPort, err := getDaprCommand(appID, config.HTTPPort, config.GRPCPort, config.AppPort, config.ConfigFile, config.Protocol, config.EnableProfiling, config.ProfilePort, config.LogLevel, config.MaxConcurrency, config.PlacementHost)
 	if err != nil {
 		return nil, err
 	}
@@ -336,19 +346,18 @@ func Run(config *RunConfig) (*RunOutput, error) {
 
 	runArgs := []string{}
 	argCount := len(config.Arguments)
+	var appCMD *exec.Cmd
 
-	if argCount == 0 {
-		return nil, errors.New("no app entrypoint given")
-	}
+	if argCount > 0 {
+		cmd := config.Arguments[0]
+		if len(config.Arguments) > 1 {
+			runArgs = config.Arguments[1:]
+		}
 
-	cmd := config.Arguments[0]
-	if len(config.Arguments) > 1 {
-		runArgs = config.Arguments[1:]
-	}
-
-	appCMD, err := getAppCommand(daprHTTPPort, daprGRPCPort, cmd, runArgs)
-	if err != nil {
-		return nil, err
+		appCMD, err = getAppCommand(daprHTTPPort, daprGRPCPort, metricsPort, cmd, runArgs)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &RunOutput{
