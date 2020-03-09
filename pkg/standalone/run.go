@@ -107,7 +107,7 @@ func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort in
 		return nil, -1, -1, -1, err
 	}
 
-	args := []string{"--app-id", appID, "--dapr-http-port", fmt.Sprintf("%v", daprHTTPPort), "--dapr-grpc-port", fmt.Sprintf("%v", daprGRPCPort), "--log-level", logLevel, "--max-concurrency", fmt.Sprintf("%v", maxConcurrency), "--protocol", protocol, "-metrics-port", fmt.Sprintf("%v", metricsPort)}
+	args := []string{"--app-id", appID, "--dapr-http-port", fmt.Sprintf("%v", daprHTTPPort), "--dapr-grpc-port", fmt.Sprintf("%v", daprGRPCPort), "--log-level", logLevel, "--max-concurrency", fmt.Sprintf("%v", maxConcurrency), "--protocol", protocol, "--metrics-port", fmt.Sprintf("%v", metricsPort)}
 	if appPort > -1 {
 		args = append(args, "--app-port", fmt.Sprintf("%v", appPort))
 	}
@@ -344,8 +344,8 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		}
 	}
 
-	runArgs := []string{}
 	argCount := len(config.Arguments)
+	runArgs := []string{}
 	var appCMD *exec.Cmd
 
 	if argCount > 0 {
