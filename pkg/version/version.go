@@ -7,7 +7,6 @@ package version
 
 import (
 	"os/exec"
-	"regexp"
 	"runtime"
 )
 
@@ -24,27 +23,6 @@ func GetRuntimeVersion() string {
 	if err != nil {
 		return "n/a\n"
 	}
-	return string(out)
-
-}
-
-// GetCLIVersion returns the version for the Dapr cli.
-func GetCLIVersion() string {
-	cliName := ""
-	if runtime.GOOS == "windows" {
-		cliName = "dapr.exe"
-	} else {
-		cliName = "dapr"
-	}
-
-	out, err := exec.Command(cliName, "--version").Output()
-	if err != nil {
-		return "n/a\n"
-	}
-
-	regex := regexp.MustCompile(`[0-9]+.[0-9]+.[0-9]+`)
-	out = regex.Find(out)
-
 	return string(out)
 
 }

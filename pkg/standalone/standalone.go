@@ -35,8 +35,6 @@ import (
 )
 
 const (
-	daprGitHubOrg                     = "dapr"
-	daprGitHubRepo                    = "dapr"
 	daprDockerImageName               = "daprio/dapr"
 	daprRuntimeFilePrefix             = "daprd"
 	daprWindowsOS                     = "windows"
@@ -44,6 +42,10 @@ const (
 	daprDefaultLinuxAndMacInstallPath = "/usr/local/bin"
 	daprDefaultWindowsInstallPath     = "c:\\dapr"
 
+	// DaprGitHubOrg is the org name of dapr on GitHub
+	DaprGitHubOrg = "dapr"
+	// DaprGitHubRepo is the repo name of dapr runtime on GitHub
+	DaprGitHubRepo = "dapr"
 	// DaprPlacementContainerName is the container name of placement service
 	DaprPlacementContainerName = "dapr_placement"
 	// DaprRedisContainerName is the container name of redis
@@ -110,6 +112,43 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string) e
 	}
 
 	return nil
+}
+
+// GetLatestRelease return the latest release version of dapr
+func GetLatestRelease(gitHubOrg, gitHubRepo string) (string, error) {
+	releaseURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases", gitHubOrg, gitHubRepo)
+	resp, err := http.Get(releaseURL)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return "", fmt.Errorf("%s - %s", releaseURL, resp.Status)
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	var githubRepoReleases []githubRepoReleaseItem
+	err = json.Unmarshal(body, &githubRepoReleases)
+	if err != nil {
+		return "", err
+	}
+
+	if len(githubRepoReleases) == 0 {
+		return "", fmt.Errorf("no releases")
+	}
+
+	for _, release := range githubRepoReleases {
+		if !strings.Contains(release.TagName, "-rc") {
+			return release.TagName, nil
+		}
+	}
+
+	return "", fmt.Errorf("no releases")
 }
 
 func isDockerInstalled() bool {
@@ -279,7 +318,7 @@ func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version 
 
 	if version == daprLatestVersion {
 		var err error
-		version, err = getLatestRelease(daprGitHubOrg, daprGitHubRepo)
+		version, err = GetLatestRelease(DaprGitHubOrg, DaprGitHubRepo)
 		if err != nil {
 			errorChan <- fmt.Errorf("cannot get the latest release version: %s", err)
 			return
@@ -289,8 +328,8 @@ func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version 
 
 	daprURL := fmt.Sprintf(
 		"https://github.com/%s/%s/releases/download/v%s/%s_%s_%s.%s",
-		daprGitHubOrg,
-		daprGitHubRepo,
+		DaprGitHubOrg,
+		DaprGitHubRepo,
 		version,
 		daprRuntimeFilePrefix,
 		runtime.GOOS,
@@ -497,43 +536,6 @@ type githubRepoReleaseItem struct {
 	TagName string `json:"tag_name"`
 	Name    string `json:"name"`
 	Draft   bool   `json:"draft"`
-}
-
-// nolint:gosec
-func getLatestRelease(gitHubOrg, gitHubRepo string) (string, error) {
-	releaseURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases", gitHubOrg, gitHubRepo)
-	resp, err := http.Get(releaseURL)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return "", fmt.Errorf("%s - %s", releaseURL, resp.Status)
-	}
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-
-	var githubRepoReleases []githubRepoReleaseItem
-	err = json.Unmarshal(body, &githubRepoReleases)
-	if err != nil {
-		return "", err
-	}
-
-	if len(githubRepoReleases) == 0 {
-		return "", fmt.Errorf("no releases")
-	}
-
-	for _, release := range githubRepoReleases {
-		if !strings.Contains(release.TagName, "-rc") {
-			return release.TagName, nil
-		}
-	}
-
-	return "", fmt.Errorf("no releases")
 }
 
 // nolint:gosec

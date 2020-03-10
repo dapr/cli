@@ -12,13 +12,11 @@ import (
 	"time"
 
 	"github.com/dapr/cli/pkg/print"
-	"github.com/dapr/cli/pkg/version"
+	"github.com/dapr/cli/pkg/standalone"
 	"github.com/dapr/cli/utils"
 
 	"github.com/briandowns/spinner"
 )
-
-var daprManifestPath string = "https://github.com/dapr/dapr/releases/download/v" + version.GetCLIVersion() + "/dapr-operator.yaml"
 
 // Init deploys the Dapr operator
 func Init() error {
@@ -26,6 +24,13 @@ func Init() error {
 	if err != nil {
 		return fmt.Errorf("can't connect to a Kubernetes cluster: %v", err)
 	}
+
+	version, err := standalone.GetLatestRelease(standalone.DaprGitHubOrg, standalone.DaprGitHubRepo)
+	if err != nil {
+		return fmt.Errorf("cannot get the manifest file: %s", err)
+	}
+
+	var daprManifestPath string = "https://github.com/dapr/dapr/releases/download/" + version + "/dapr-operator.yaml"
 
 	msg := "Deploying the Dapr Operator to your cluster..."
 	var s *spinner.Spinner
