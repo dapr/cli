@@ -12,12 +12,13 @@ import (
 	"time"
 
 	"github.com/dapr/cli/pkg/print"
+	"github.com/dapr/cli/pkg/version"
 	"github.com/dapr/cli/utils"
 
 	"github.com/briandowns/spinner"
 )
 
-const daprManifestPath = "https://daprreleases.blob.core.windows.net/manifest/dapr-operator.yaml"
+var daprManifestPath string = "https://github.com/dapr/dapr/releases/download/v" + version.GetCLIVersion() + "/dapr-operator.yaml"
 
 // Init deploys the Dapr operator
 func Init() error {
