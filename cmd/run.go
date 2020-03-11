@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -189,12 +190,18 @@ Run sidecar only:
 
 			<-appRunning
 
+			// Metadata API is only available if app has started listening to port, so wait for app to start before calling metadata API.
+			err = metadata.Put(output.DaprHTTPPort, "cliPID", strconv.Itoa(os.Getpid()))
+			if err != nil {
+				print.WarningStatusEvent(os.Stdout, "Could not update sidecar metadata for cliPID: %s", err.Error())
+			}
+
 			if output.AppCMD != nil {
 				appCommand := strings.Join(args, " ")
 				print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Updating metadata for app command: %s", appCommand))
 				err = metadata.Put(output.DaprHTTPPort, "appCommand", appCommand)
 				if err != nil {
-					print.WarningStatusEvent(os.Stdout, "Could not update sidecar metadata: %s", err.Error())
+					print.WarningStatusEvent(os.Stdout, "Could not update sidecar metadata for appCommand: %s", err.Error())
 				}
 
 				print.SuccessStatusEvent(os.Stdout, "You're up and running! Both Dapr and your app logs will appear here.\n")
