@@ -6,6 +6,7 @@
 package standalone
 
 import (
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -29,6 +30,17 @@ type ListOutput struct {
 	PID      int
 }
 
+// runData is a placeholder for collected information linking cli and sidecar.
+type runData struct {
+	cliPID     int
+	sidecarPID int
+	grpcPort   int
+	httpPort   int
+	appPort    int
+	appID      string
+	appCmd     string
+}
+
 // List outputs all the applications.
 func List() ([]ListOutput, error) {
 	list := []ListOutput{}
@@ -38,6 +50,10 @@ func List() ([]ListOutput, error) {
 		return nil, err
 	}
 
+	// Links a cli PID to the corresponding sidecar Process.
+	cliToSidecarMap := make(map[int]*runData)
+
+	// Populates the map if all data is available for the sidecar.
 	for _, proc := range processes {
 		executable := strings.ToLower(proc.Executable())
 		if (executable == "daprd") || (executable == "daprd.exe") {
@@ -50,12 +66,6 @@ func List() ([]ListOutput, error) {
 			if err != nil {
 				continue
 			}
-
-			createUnixTimeMilliseconds, err := procDetails.CreateTime()
-			if err != nil {
-				continue
-			}
-			createTime := time.Unix(createUnixTimeMilliseconds/1000, 0)
 
 			cmdLineItems := strings.Fields(cmdLine)
 			if len(cmdLineItems) <= 1 {
@@ -84,23 +94,70 @@ func List() ([]ListOutput, error) {
 
 			appID := argumentsMap["--app-id"]
 			appCmd := ""
+			cliPIDString := ""
 			appMetadata, err := metadata.Get(httpPort)
 			if err == nil {
 				appCmd = appMetadata.Extended["appCommand"]
+				cliPIDString = appMetadata.Extended["cliPID"]
 			}
+
+			// Parse functions return an error on bad input.
+			cliPID, err := strconv.Atoi(cliPIDString)
+			if err != nil {
+				continue
+			}
+
+			var run = runData{
+				cliPID:     cliPID,
+				sidecarPID: proc.Pid(),
+				grpcPort:   grpcPort,
+				httpPort:   httpPort,
+				appPort:    appPort,
+				appID:      appID,
+				appCmd:     appCmd,
+			}
+
+			cliToSidecarMap[cliPID] = &run
+		}
+	}
+
+	myPID := os.Getpid()
+	// The master list comes from cli processes, even if sidecar is not up.
+	for _, proc := range processes {
+		executable := strings.ToLower(proc.Executable())
+		if (executable == "dapr") || (executable == "dapr.exe") {
+			pID := proc.Pid()
+			if pID == myPID {
+				// Do not display current `dapr list` process.
+				continue
+			}
+
+			procDetails, err := process.NewProcess(int32(pID))
+			if err != nil {
+				continue
+			}
+
+			createUnixTimeMilliseconds, err := procDetails.CreateTime()
+			if err != nil {
+				continue
+			}
+
+			createTime := time.Unix(createUnixTimeMilliseconds/1000, 0)
 
 			var listRow = ListOutput{
-				AppID:    appID,
-				HTTPPort: httpPort,
-				GRPCPort: grpcPort,
-				Command:  utils.TruncateString(appCmd, 20),
-				Created:  createTime.Format("2006-01-22 15:04.05"),
-				Age:      age.GetAge(createTime),
-				PID:      proc.Pid(),
+				Created: createTime.Format("2006-01-02 15:04.05"),
+				Age:     age.GetAge(createTime),
+				PID:     proc.Pid(),
 			}
 
-			if appPort > 0 {
-				listRow.AppPort = appPort
+			// Now we use sidecar into to decorate with more info (empty, if sidecar is down).
+			run, ok := cliToSidecarMap[proc.Pid()]
+			if ok {
+				listRow.AppID = run.appID
+				listRow.HTTPPort = run.httpPort
+				listRow.GRPCPort = run.grpcPort
+				listRow.AppPort = run.appPort
+				listRow.Command = utils.TruncateString(run.appCmd, 20)
 			}
 
 			list = append(list, listRow)

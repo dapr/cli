@@ -15,7 +15,6 @@ import (
 
 // Uninstall removes Dapr
 func Uninstall() error {
-
 	version, err := standalone.GetLatestRelease(standalone.DaprGitHubOrg, standalone.DaprGitHubRepo)
 	if err != nil {
 		return fmt.Errorf("cannot get the manifest file: %s", err)
@@ -23,9 +22,10 @@ func Uninstall() error {
 
 	var daprManifestPath string = "https://github.com/dapr/dapr/releases/download/" + version + "/dapr-operator.yaml"
 
-	_, err := utils.RunCmdAndWait("kubectl", "delete", "-f", daprManifestPath)
+	_, err = utils.RunCmdAndWait("kubectl", "delete", "-f", daprManifestPath)
 	if err != nil {
 		return errors.New("is Dapr running? uninstall does not remove Dapr when installed via Helm")
 	}
+
 	return nil
 }
