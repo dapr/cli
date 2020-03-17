@@ -107,7 +107,7 @@ func isInstallationRequired(installLocation, requestedVersion string) bool {
 func Init(runtimeVersion string, dockerNetwork string, installLocation string) error {
 	//confirm if installation is needed
 	if !isInstallationRequired(installLocation, runtimeVersion) {
-		return errors.New("Installation will not proceed")
+		return errors.New("installation will not proceed")
 	}
 	dockerInstalled := isDockerInstalled()
 	if !dockerInstalled {
