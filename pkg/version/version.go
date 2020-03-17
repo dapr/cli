@@ -15,6 +15,13 @@ import (
 	"strings"
 )
 
+const (
+	// DaprGitHubOrg is the org name of dapr on GitHub
+	DaprGitHubOrg = "dapr"
+	// DaprGitHubRepo is the repo name of dapr runtime on GitHub
+	DaprGitHubRepo = "dapr"
+)
+
 // GetRuntimeVersion returns the version for the local Dapr runtime.
 func GetRuntimeVersion() string {
 	runtimeName := ""

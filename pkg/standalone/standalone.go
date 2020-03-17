@@ -42,10 +42,6 @@ const (
 	daprDefaultLinuxAndMacInstallPath = "/usr/local/bin"
 	daprDefaultWindowsInstallPath     = "c:\\dapr"
 
-	// DaprGitHubOrg is the org name of dapr on GitHub
-	DaprGitHubOrg = "dapr"
-	// DaprGitHubRepo is the repo name of dapr runtime on GitHub
-	DaprGitHubRepo = "dapr"
 	// DaprPlacementContainerName is the container name of placement service
 	DaprPlacementContainerName = "dapr_placement"
 	// DaprRedisContainerName is the container name of redis
@@ -281,7 +277,7 @@ func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version 
 
 	if version == daprLatestVersion {
 		var err error
-		version, err = pkg_version.GetLatestRelease()
+		version, err = pkg_version.GetLatestRelease(pkg_version.DaprGitHubOrg, pkg_version.DaprGitHubRepo)
 		if err != nil {
 			errorChan <- fmt.Errorf("cannot get the latest release version: %s", err)
 			return
@@ -291,8 +287,8 @@ func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version 
 
 	daprURL := fmt.Sprintf(
 		"https://github.com/%s/%s/releases/download/v%s/%s_%s_%s.%s",
-		DaprGitHubOrg,
-		DaprGitHubRepo,
+		pkg_version.DaprGitHubOrg,
+		pkg_version.DaprGitHubRepo,
 		version,
 		daprRuntimeFilePrefix,
 		runtime.GOOS,
