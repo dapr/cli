@@ -20,6 +20,7 @@ import (
 	"os/exec"
 	"os/user"
 	"path"
+	"path/filepath"
 	path_filepath "path/filepath"
 	"runtime"
 	"strings"
@@ -50,8 +51,64 @@ const (
 	DaprRedisContainerName = "dapr_redis"
 )
 
+func isInstallationRequired(installLocation, requestedVersion string) bool {
+	destDir := daprDefaultLinuxAndMacInstallPath
+	if installLocation == "" {
+		if runtime.GOOS == daprWindowsOS {
+			destDir = daprDefaultWindowsInstallPath
+		}
+	}
+
+	daprdBinaryPath := filepath.Join(destDir, daprRuntimeFilePrefix) //e.g. /usr/local/bin/daprd or c:\\daprd
+
+	//First time install?
+
+	_, err := os.Stat(daprdBinaryPath)
+	if os.IsNotExist(err) {
+		return true
+	}
+
+	var msg string
+
+	//what's the installed version?
+	v, err := utils.RunCmdAndWait(daprdBinaryPath, "--version")
+	if err != nil {
+		msg = fmt.Sprintf("unable to determine installed Dapr version at %s", daprdBinaryPath)
+		print.FailureStatusEvent(os.Stdout, msg)
+		return false
+	}
+	installedVersion := strings.TrimSpace(v)
+
+	//"latest" version requested. need to check the corresponding version
+	if requestedVersion == daprLatestVersion {
+		latestVersion, err := getLatestRelease(daprGitHubOrg, daprGitHubRepo)
+		if err != nil {
+			msg = fmt.Sprintf("latest Dapr version information could not be found - %s", err.Error())
+			print.FailureStatusEvent(os.Stdout, msg)
+			return false
+		}
+		latestVersion = latestVersion[1:]
+		if installedVersion == latestVersion {
+			requestedVersion = latestVersion
+		}
+	}
+
+	//if daprd exists, need to confirm if the intended version is same as the current one
+	if installedVersion == requestedVersion {
+		msg = fmt.Sprintf("required version %s is the same as installed version at - %s", requestedVersion, daprdBinaryPath)
+		print.InfoStatusEvent(os.Stdout, msg)
+		return false
+	}
+
+	return true
+}
+
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
 func Init(runtimeVersion string, dockerNetwork string, installLocation string) error {
+	//confirm if installation is needed
+	if !isInstallationRequired(installLocation, runtimeVersion) {
+		return errors.New("Installation will not proceed")
+	}
 	dockerInstalled := isDockerInstalled()
 	if !dockerInstalled {
 		return errors.New("could not connect to Docker. Docker may not be installed or running")
