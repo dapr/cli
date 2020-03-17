@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/dapr/cli/pkg/print"
-	pkg_version "github.com/dapr/cli/pkg/version"
+	cli_ver "github.com/dapr/cli/pkg/version"
 	"github.com/dapr/cli/utils"
 
 	"github.com/briandowns/spinner"
@@ -27,7 +27,7 @@ func Init() error {
 		return fmt.Errorf("can't connect to a Kubernetes cluster: %v", err)
 	}
 
-	version, err := pkg_version.GetLatestRelease(pkg_version.DaprGitHubOrg, pkg_version.DaprGitHubRepo)
+	version, err := cli_ver.GetLatestRelease(cli_ver.DaprGitHubOrg, cli_ver.DaprGitHubRepo)
 	if err != nil {
 		return fmt.Errorf("cannot get the manifest file: %s", err)
 	}

@@ -9,13 +9,13 @@ import (
 	"errors"
 	"fmt"
 
-	pkg_version "github.com/dapr/cli/pkg/version"
+	cli_ver "github.com/dapr/cli/pkg/version"
 	"github.com/dapr/cli/utils"
 )
 
 // Uninstall removes Dapr
 func Uninstall() error {
-	version, err := pkg_version.GetLatestRelease(pkg_version.DaprGitHubOrg, pkg_version.DaprGitHubRepo)
+	version, err := cli_ver.GetLatestRelease(cli_ver.DaprGitHubOrg, cli_ver.DaprGitHubRepo)
 	if err != nil {
 		return fmt.Errorf("cannot get the manifest file: %s", err)
 	}

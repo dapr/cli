@@ -30,7 +30,7 @@ import (
 
 	"github.com/briandowns/spinner"
 	"github.com/dapr/cli/pkg/print"
-	pkg_version "github.com/dapr/cli/pkg/version"
+	cli_ver "github.com/dapr/cli/pkg/version"
 	"github.com/dapr/cli/utils"
 )
 
@@ -277,7 +277,7 @@ func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version 
 
 	if version == daprLatestVersion {
 		var err error
-		version, err = pkg_version.GetLatestRelease(pkg_version.DaprGitHubOrg, pkg_version.DaprGitHubRepo)
+		version, err = cli_ver.GetLatestRelease(cli_ver.DaprGitHubOrg, cli_ver.DaprGitHubRepo)
 		if err != nil {
 			errorChan <- fmt.Errorf("cannot get the latest release version: %s", err)
 			return
@@ -287,8 +287,8 @@ func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version 
 
 	daprURL := fmt.Sprintf(
 		"https://github.com/%s/%s/releases/download/v%s/%s_%s_%s.%s",
-		pkg_version.DaprGitHubOrg,
-		pkg_version.DaprGitHubRepo,
+		cli_ver.DaprGitHubOrg,
+		cli_ver.DaprGitHubRepo,
 		version,
 		daprRuntimeFilePrefix,
 		runtime.GOOS,
