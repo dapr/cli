@@ -16,11 +16,13 @@ import (
 	"github.com/dapr/cli/utils"
 
 	"github.com/briandowns/spinner"
+	scheme "github.com/dapr/dapr/pkg/client/clientset/versioned"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Init deploys the Dapr operator
 func Init() error {
-	_, err := Client()
+	client, err := DaprClient()
 	if err != nil {
 		return fmt.Errorf("can't connect to a Kubernetes cluster: %v", err)
 	}
@@ -53,9 +55,24 @@ func Init() error {
 		return err
 	}
 
+	err = installConfig(client)
+	if err != nil {
+		if s != nil {
+			s.Stop()
+		}
+		return err
+	}
+
 	if s != nil {
 		s.Stop()
 		print.SuccessStatusEvent(os.Stdout, msg)
 	}
 	return nil
+}
+
+// installConfig installs a configuration resource of a custom CRD called configurations.dapr.io
+func installConfig(client scheme.Interface) error {
+	config := GetDefaultConfiguration()
+	_, err := client.ConfigurationV1alpha1().Configurations(meta_v1.NamespaceDefault).Create(&config)
+	return err
 }
