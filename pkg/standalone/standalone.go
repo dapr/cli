@@ -73,7 +73,7 @@ func isInstallationRequired(installLocation, requestedVersion string) bool {
 	//what's the installed version?
 	v, err := utils.RunCmdAndWait(daprdBinaryPath, "--version")
 	if err != nil {
-		msg = fmt.Sprintf("unable to determine installed Dapr version at %s", daprdBinaryPath)
+		msg = fmt.Sprintf("unable to determine installed Dapr version at %s", destDir)
 		print.FailureStatusEvent(os.Stdout, msg)
 		return false
 	}
@@ -95,7 +95,7 @@ func isInstallationRequired(installLocation, requestedVersion string) bool {
 
 	//if daprd exists, need to confirm if the intended version is same as the current one
 	if installedVersion == requestedVersion {
-		msg = fmt.Sprintf("required version %s is the same as installed version at - %s", requestedVersion, daprdBinaryPath)
+		msg = fmt.Sprintf("required version %s is the same as installed version at - %s", requestedVersion, destDir)
 		print.InfoStatusEvent(os.Stdout, msg)
 		return false
 	}
