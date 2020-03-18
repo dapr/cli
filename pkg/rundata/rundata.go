@@ -8,16 +8,14 @@ package rundata
 /*
  * WARNING: This is a basic and temporary file based implementation to handle local state
  * and currently does not yet support multiple process concurrency or the ability to clean
- * up stale data from processes that did not gracefully shutdown. It is expected an out-of
- * -process implementation will eventually replace this one.
+ * up stale data from processes that did not gracefully shutdown. The local state file is
+ * not used anymore. This code is still important to make sure that file is deleted on
+ * uninstall.
  */
 
 import (
-	"encoding/json"
-	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/nightlyone/lockfile"
@@ -39,62 +37,7 @@ type RunData struct {
 	PID          int
 }
 
-func AppendRunData(runData *RunData) error {
-	lockFile, err := tryGetRunDataLock()
-	if err != nil {
-		return err
-	}
-
-	defer lockFile.Unlock()
-
-	runDataFilePath := filepath.Join(os.TempDir(), runDataFile)
-	runDataFile, err := os.OpenFile(runDataFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
-	}
-
-	defer runDataFile.Close()
-
-	err = appendRunDataEntry(runDataFile, runData)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func ReadAllRunData() (*[]RunData, error) {
-	lockFile, err := tryGetRunDataLock()
-	if err != nil {
-		return nil, err
-	}
-
-	defer lockFile.Unlock()
-
-	runData := []RunData{}
-
-	runFilePath := filepath.Join(os.TempDir(), runDataFile)
-	runFileData, err := ioutil.ReadFile(runFilePath)
-	if err != nil {
-		return &runData, nil
-	}
-
-	runDataJSON := strings.Split(string(runFileData), "\n")
-
-	for _, lineJSON := range runDataJSON {
-		var line RunData
-		err = json.Unmarshal([]byte(lineJSON), &line)
-		if err != nil {
-			// Ignore broken lines for now
-			continue
-		}
-		runData = append(runData, line)
-	}
-
-	return &runData, nil
-}
-
-// Deletes the RunData file used in dapr list and other commands.
+// DeleteRunDataFile deletes the deprecated RunData file.
 func DeleteRunDataFile() error {
 	lockFile, err := tryGetRunDataLock()
 	if err != nil {
@@ -104,64 +47,6 @@ func DeleteRunDataFile() error {
 
 	runFilePath := filepath.Join(os.TempDir(), runDataFile)
 	err = os.Remove(runFilePath)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func ClearRunData(daprRunID string) error {
-	lockFile, err := tryGetRunDataLock()
-	if err != nil {
-		return err
-	}
-
-	defer lockFile.Unlock()
-
-	runFilePath := filepath.Join(os.TempDir(), runDataFile)
-	runFileData, err := ioutil.ReadFile(runFilePath)
-	if err != nil {
-		return err
-	}
-
-	runDataJSON := strings.Split(string(runFileData), "\n")
-
-	runFile, err := os.Create(runFilePath)
-	if err != nil {
-		return err
-	}
-
-	defer runFile.Close()
-
-	for _, lineJSON := range runDataJSON {
-		var line RunData
-		err = json.Unmarshal([]byte(lineJSON), &line)
-		if err != nil {
-			// Ignore broken lines for now
-			continue
-		}
-		if line.DaprRunID != daprRunID {
-			appendRunDataEntry(runFile, &line)
-			// Ignore errors for now
-		}
-	}
-
-	return nil
-}
-
-func appendRunDataEntry(runDataFile *os.File, runData *RunData) error {
-	runDataJSON, err := json.Marshal(runData)
-	if err != nil {
-		return err
-	}
-
-	_, err = runDataFile.Write(runDataJSON)
-	if err != nil {
-		return err
-	}
-
-	_, err = runDataFile.WriteString("\n")
 	if err != nil {
 		return err
 	}
