@@ -10,7 +10,6 @@ import (
 	"archive/zip"
 	"compress/gzip"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -32,12 +31,11 @@ import (
 
 	"github.com/briandowns/spinner"
 	"github.com/dapr/cli/pkg/print"
+	cli_ver "github.com/dapr/cli/pkg/version"
 	"github.com/dapr/cli/utils"
 )
 
 const (
-	daprGitHubOrg                     = "dapr"
-	daprGitHubRepo                    = "dapr"
 	daprDockerImageName               = "daprio/dapr"
 	daprRuntimeFilePrefix             = "daprd"
 	daprWindowsOS                     = "windows"
@@ -336,7 +334,7 @@ func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version 
 
 	if version == daprLatestVersion {
 		var err error
-		version, err = getLatestRelease(daprGitHubOrg, daprGitHubRepo)
+		version, err = cli_ver.GetLatestRelease(cli_ver.DaprGitHubOrg, cli_ver.DaprGitHubRepo)
 		if err != nil {
 			errorChan <- fmt.Errorf("cannot get the latest release version: %s", err)
 			return
@@ -346,8 +344,8 @@ func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version 
 
 	daprURL := fmt.Sprintf(
 		"https://github.com/%s/%s/releases/download/v%s/%s_%s_%s.%s",
-		daprGitHubOrg,
-		daprGitHubRepo,
+		cli_ver.DaprGitHubOrg,
+		cli_ver.DaprGitHubRepo,
 		version,
 		daprRuntimeFilePrefix,
 		runtime.GOOS,
@@ -547,50 +545,6 @@ func moveFileToPath(filepath string, installLocation string) (string, error) {
 	}
 
 	return destFilePath, nil
-}
-
-type githubRepoReleaseItem struct {
-	URL     string `json:"url"`
-	TagName string `json:"tag_name"`
-	Name    string `json:"name"`
-	Draft   bool   `json:"draft"`
-}
-
-// nolint:gosec
-func getLatestRelease(gitHubOrg, gitHubRepo string) (string, error) {
-	releaseURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases", gitHubOrg, gitHubRepo)
-	resp, err := http.Get(releaseURL)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return "", fmt.Errorf("%s - %s", releaseURL, resp.Status)
-	}
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-
-	var githubRepoReleases []githubRepoReleaseItem
-	err = json.Unmarshal(body, &githubRepoReleases)
-	if err != nil {
-		return "", err
-	}
-
-	if len(githubRepoReleases) == 0 {
-		return "", fmt.Errorf("no releases")
-	}
-
-	for _, release := range githubRepoReleases {
-		if !strings.Contains(release.TagName, "-rc") {
-			return release.TagName, nil
-		}
-	}
-
-	return "", fmt.Errorf("no releases")
 }
 
 // nolint:gosec
