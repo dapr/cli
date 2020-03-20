@@ -19,7 +19,6 @@ import (
 	"os/exec"
 	"os/user"
 	"path"
-	"path/filepath"
 	path_filepath "path/filepath"
 	"runtime"
 	"strings"
@@ -55,10 +54,9 @@ func isInstallationRequired(installLocation, requestedVersion string) bool {
 		destDir = daprDefaultWindowsInstallPath
 	}
 
-	daprdBinaryPath := filepath.Join(destDir, daprRuntimeFilePrefix) //e.g. /usr/local/bin/daprd or c:\\daprd
+	daprdBinaryPath := path_filepath.Join(destDir, daprRuntimeFilePrefix) //e.g. /usr/local/bin/daprd or c:\\daprd
 
-	//First time install?
-
+	// first time install?
 	_, err := os.Stat(daprdBinaryPath)
 	if os.IsNotExist(err) {
 		return true
@@ -66,18 +64,18 @@ func isInstallationRequired(installLocation, requestedVersion string) bool {
 
 	var msg string
 
-	//what's the installed version?
+	// what's the installed version?
 	v, err := utils.RunCmdAndWait(daprdBinaryPath, "--version")
 	if err != nil {
-		msg = fmt.Sprintf("unable to determine installed Dapr version at %s", destDir)
-		print.FailureStatusEvent(os.Stdout, msg)
-		return false
+		msg = fmt.Sprintf("unable to determine installed Dapr version at %s. installation will continue", destDir)
+		print.InfoStatusEvent(os.Stdout, msg)
+		return true
 	}
 	installedVersion := strings.TrimSpace(v)
 
-	//"latest" version requested. need to check the corresponding version
+	// "latest" version requested. need to check the corresponding version
 	if requestedVersion == daprLatestVersion {
-		latestVersion, err := getLatestRelease(daprGitHubOrg, daprGitHubRepo)
+		latestVersion, err := cli_ver.GetLatestRelease(cli_ver.DaprGitHubOrg, cli_ver.DaprGitHubRepo)
 		if err != nil {
 			msg = fmt.Sprintf("latest Dapr version information could not be found - %s", err.Error())
 			print.FailureStatusEvent(os.Stdout, msg)
@@ -85,15 +83,15 @@ func isInstallationRequired(installLocation, requestedVersion string) bool {
 		}
 		latestVersion = latestVersion[1:]
 		if installedVersion == latestVersion {
-			msg = fmt.Sprintf("required version %s is the same as installed version at - %s", requestedVersion, destDir)
+			msg = fmt.Sprintf("required version %s is the same as installed version at %s", latestVersion, destDir)
 			print.InfoStatusEvent(os.Stdout, msg)
 			return false
 		}
 	}
 
-	//if daprd exists, need to confirm if the intended version is same as the current one
+	// if daprd exists, need to confirm if the intended version is same as the current one
 	if installedVersion == requestedVersion {
-		msg = fmt.Sprintf("required version %s is the same as installed version at - %s", requestedVersion, destDir)
+		msg = fmt.Sprintf("required version %s is the same as installed version at %s", requestedVersion, destDir)
 		print.InfoStatusEvent(os.Stdout, msg)
 		return false
 	}
@@ -103,9 +101,8 @@ func isInstallationRequired(installLocation, requestedVersion string) bool {
 
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
 func Init(runtimeVersion string, dockerNetwork string, installLocation string) error {
-	//confirm if installation is needed
+	// confirm if installation is needed
 	if !isInstallationRequired(installLocation, runtimeVersion) {
-		//return errors.New("installation will not proceed")
 		return nil
 	}
 	dockerInstalled := isDockerInstalled()
