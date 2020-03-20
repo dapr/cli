@@ -53,10 +53,8 @@ const (
 
 func isInstallationRequired(installLocation, requestedVersion string) bool {
 	destDir := daprDefaultLinuxAndMacInstallPath
-	if installLocation == "" {
-		if runtime.GOOS == daprWindowsOS {
-			destDir = daprDefaultWindowsInstallPath
-		}
+	if installLocation == "" && runtime.GOOS == daprWindowsOS {
+		destDir = daprDefaultWindowsInstallPath
 	}
 
 	daprdBinaryPath := filepath.Join(destDir, daprRuntimeFilePrefix) //e.g. /usr/local/bin/daprd or c:\\daprd
@@ -89,7 +87,9 @@ func isInstallationRequired(installLocation, requestedVersion string) bool {
 		}
 		latestVersion = latestVersion[1:]
 		if installedVersion == latestVersion {
-			requestedVersion = latestVersion
+			msg = fmt.Sprintf("required version %s is the same as installed version at - %s", requestedVersion, destDir)
+			print.InfoStatusEvent(os.Stdout, msg)
+			return false
 		}
 	}
 
@@ -107,7 +107,8 @@ func isInstallationRequired(installLocation, requestedVersion string) bool {
 func Init(runtimeVersion string, dockerNetwork string, installLocation string) error {
 	//confirm if installation is needed
 	if !isInstallationRequired(installLocation, runtimeVersion) {
-		return errors.New("installation will not proceed")
+		//return errors.New("installation will not proceed")
+		return nil
 	}
 	dockerInstalled := isDockerInstalled()
 	if !dockerInstalled {
