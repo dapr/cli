@@ -155,7 +155,7 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string) e
 
 	if s != nil {
 		s.Stop()
-		err = confirmContainerIsRunning(DaprRedisContainerName)
+		err = confirmContainerIsRunning(utils.CreateContainerName(DaprRedisContainerName, dockerNetwork))
 		if err != nil {
 			return err
 		}
