@@ -112,9 +112,6 @@ archive-$(CLI_BINARY).tar.gz:
 	chmod +x $(BINS_OUT_DIR)/$(CLI_BINARY)$(BINARY_EXT)
 	tar czf "$(ARCHIVE_OUT_DIR)/$(CLI_BINARY)_$(GOOS)_$(GOARCH)$(ARCHIVE_EXT)" -C "$(BINS_OUT_DIR)" "$(CLI_BINARY)$(BINARY_EXT)"
 endif
-ifeq ($(GOOS),darwin)
-	cp "$(ARCHIVE_OUT_DIR)/$(CLI_BINARY)_$(GOOS)_$(GOARCH)$(ARCHIVE_EXT)" "$(ARCHIVE_OUT_DIR)/dapr-cli-$(CLI_VERSION).catalina.bottle.tar.gz"
-endif
 
 ################################################################################
 # Target: release                                                              #
