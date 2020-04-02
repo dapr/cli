@@ -75,7 +75,7 @@ func isInstallationRequired(installLocation, requestedVersion string) bool {
 	v, err := utils.RunCmdAndWait(daprdBinaryPath, "--version")
 	if err != nil {
 		msg = fmt.Sprintf("unable to determine installed Dapr version at %s. installation will continue", destDir)
-		print.InfoStatusEvent(os.Stdout, msg)
+		fmt.Println(msg)
 		return true
 	}
 	installedVersion := strings.TrimSpace(v)
@@ -85,13 +85,13 @@ func isInstallationRequired(installLocation, requestedVersion string) bool {
 		latestVersion, err := cli_ver.GetLatestRelease(cli_ver.DaprGitHubOrg, cli_ver.DaprGitHubRepo)
 		if err != nil {
 			msg = fmt.Sprintf("latest Dapr version information could not be found - %s", err.Error())
-			print.FailureStatusEvent(os.Stdout, msg)
+			fmt.Println(msg)
 			return false
 		}
 		latestVersion = latestVersion[1:]
 		if installedVersion == latestVersion {
 			msg = fmt.Sprintf("required version %s is the same as installed version at %s", latestVersion, destDir)
-			print.InfoStatusEvent(os.Stdout, msg)
+			fmt.Println(msg)
 			return false
 		}
 	}
@@ -99,7 +99,7 @@ func isInstallationRequired(installLocation, requestedVersion string) bool {
 	// if daprd exists, need to confirm if the intended version is same as the current one
 	if installedVersion == requestedVersion {
 		msg = fmt.Sprintf("required version %s is the same as installed version at %s", requestedVersion, destDir)
-		print.InfoStatusEvent(os.Stdout, msg)
+		fmt.Println(msg)
 		return false
 	}
 
@@ -108,10 +108,6 @@ func isInstallationRequired(installLocation, requestedVersion string) bool {
 
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
 func Init(runtimeVersion string, dockerNetwork string, installLocation string) error {
-	// confirm if installation is needed
-	if !isInstallationRequired(installLocation, runtimeVersion) {
-		return nil
-	}
 	dockerInstalled := isDockerInstalled()
 	if !dockerInstalled {
 		return errors.New("could not connect to Docker. Docker may not be installed or running")
@@ -331,6 +327,11 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 
 func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string) {
 	defer wg.Done()
+
+	// confirm if installation is required
+	if !isInstallationRequired(installLocation, version) {
+		return
+	}
 
 	archiveExt := "tar.gz"
 	if runtime.GOOS == daprWindowsOS {
