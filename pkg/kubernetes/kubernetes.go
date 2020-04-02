@@ -17,11 +17,10 @@ import (
 
 	"github.com/briandowns/spinner"
 	scheme "github.com/dapr/dapr/pkg/client/clientset/versioned"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Init deploys the Dapr operator
-func Init() error {
+func Init(namespace string) error {
 	client, err := DaprClient()
 	if err != nil {
 		return fmt.Errorf("can't connect to a Kubernetes cluster: %v", err)
@@ -34,7 +33,7 @@ func Init() error {
 
 	var daprManifestPath string = "https://github.com/dapr/dapr/releases/download/" + version + "/dapr-operator.yaml"
 
-	msg := "Deploying the Dapr Operator to your cluster..."
+	msg := fmt.Sprintf("Deploying the Dapr Operator to your cluster in namespace %s", namespace)
 	var s *spinner.Spinner
 
 	if runtime.GOOS == "windows" {
@@ -47,7 +46,7 @@ func Init() error {
 		s.Start()
 	}
 
-	_, err = utils.RunCmdAndWait("kubectl", "apply", "-f", daprManifestPath)
+	_, err = utils.RunCmdAndWait("kubectl", "apply", "-f", daprManifestPath, "--namespace="+namespace)
 	if err != nil {
 		if s != nil {
 			s.Stop()
@@ -55,7 +54,7 @@ func Init() error {
 		return err
 	}
 
-	err = installConfig(client)
+	err = installConfig(client, namespace)
 	if err != nil {
 		if s != nil {
 			s.Stop()
@@ -71,8 +70,8 @@ func Init() error {
 }
 
 // installConfig installs a configuration resource of a custom CRD called configurations.dapr.io
-func installConfig(client scheme.Interface) error {
+func installConfig(client scheme.Interface, namespace string) error {
 	config := GetDefaultConfiguration()
-	_, err := client.ConfigurationV1alpha1().Configurations(meta_v1.NamespaceDefault).Create(&config)
+	_, err := client.ConfigurationV1alpha1().Configurations(namespace).Create(&config)
 	return err
 }
