@@ -7,13 +7,14 @@ This document helps you get started developing Dapr CLI. If you find any problem
 
 ### Linux and MacOS
 
-1. The Go language environment [(instructions)](https://golang.org/doc/install#tarball).
+1. The Go language environment `1.14` [(instructions)](https://golang.org/doc/install#tarball).
    * Make sure that your GOPATH and PATH are configured correctly
    ```bash
    export GOPATH=~/go
    export PATH=$PATH:$GOPATH/bin
    ```
 2. [Delve](https://github.com/go-delve/delve/tree/master/Documentation/installation) for Debugging
+3. [GolangCI-Lint](https://github.com/golangci/golangci-lint)
 
 ### Windows
 
