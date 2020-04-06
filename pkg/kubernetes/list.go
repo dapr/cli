@@ -7,7 +7,6 @@ package kubernetes
 
 import (
 	"github.com/dapr/cli/pkg/age"
-	core_v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -26,7 +25,7 @@ func List() ([]ListOutput, error) {
 		return nil, err
 	}
 
-	podList, err := client.CoreV1().Pods(core_v1.NamespaceAll).List(meta_v1.ListOptions{})
+	podList, err := ListPods(client, meta_v1.NamespaceAll, nil)
 	if err != nil {
 		return nil, err
 	}

@@ -12,7 +12,6 @@ import (
 
 	"github.com/dapr/cli/pkg/age"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 )
 
 var (
@@ -45,12 +44,8 @@ func Status() ([]StatusOutput, error) {
 
 	for _, lbl := range controlPlaneLabels {
 		go func(label string) {
-			p, err := client.CoreV1().Pods(v1.NamespaceAll).List(v1.ListOptions{
-				LabelSelector: labels.FormatLabels(
-					map[string]string{
-						"app": label,
-					},
-				),
+			p, err := ListPods(client, v1.NamespaceAll, map[string]string{
+				"app": label,
 			})
 			if err == nil && len(p.Items) == 1 {
 				pod := p.Items[0]

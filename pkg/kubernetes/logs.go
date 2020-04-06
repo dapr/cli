@@ -11,7 +11,6 @@ import (
 	"os"
 
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -30,7 +29,7 @@ func Logs(appID, podName, namespace string) error {
 		namespace = corev1.NamespaceDefault
 	}
 
-	pods, err := client.CoreV1().Pods(namespace).List(metav1.ListOptions{})
+	pods, err := ListPods(client, namespace, nil)
 	if err != nil {
 		return fmt.Errorf("could not get logs %v", err)
 	}
