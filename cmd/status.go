@@ -35,7 +35,7 @@ var StatusCmd = &cobra.Command{
 }
 
 func init() {
-	StatusCmd.Flags().BoolVarP(&k8s, "kubernetes", "k", true, "Only works with a Kubernetes cluster")
+	StatusCmd.Flags().BoolVarP(&k8s, "kubernetes", "k", true, "only works with a Kubernetes cluster")
 	StatusCmd.MarkFlagRequired("kubernetes")
 	RootCmd.AddCommand(StatusCmd)
 }

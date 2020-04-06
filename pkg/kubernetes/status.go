@@ -19,7 +19,7 @@ var (
 	controlPlaneLabels = []string{"dapr-operator", "dapr-sentry", "dapr-placement", "dapr-sidecar-injector"}
 )
 
-// StatutOutput represents the status of a named Dapr resource.
+// StatusOutput represents the status of a named Dapr resource.
 type StatusOutput struct {
 	Name      string `csv:"NAME"`
 	Namespace string `csv:"NAMESPACE"`
