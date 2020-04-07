@@ -31,7 +31,7 @@ var InitCmd = &cobra.Command{
 		installLocation := viper.GetString("install-path")
 		if kubernetesMode {
 			print.InfoStatusEvent(os.Stdout, "Note: this installation is recommended for testing purposes. For production environments, please use Helm \n")
-			err := kubernetes.Init()
+			err := kubernetes.Init(runtimeVersion)
 			if err != nil {
 				print.FailureStatusEvent(os.Stdout, err.Error())
 				return

@@ -20,16 +20,24 @@ import (
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Init deploys the Dapr operator
-func Init() error {
+const (
+	daprLatestVersion = "latest"
+)
+
+// Init deploys the Dapr operator using the supplied runtime version.
+func Init(version string) error {
 	client, err := DaprClient()
 	if err != nil {
 		return fmt.Errorf("can't connect to a Kubernetes cluster: %v", err)
 	}
 
-	version, err := cli_ver.GetLatestRelease(cli_ver.DaprGitHubOrg, cli_ver.DaprGitHubRepo)
-	if err != nil {
-		return fmt.Errorf("cannot get the manifest file: %s", err)
+	if version == daprLatestVersion {
+		v, err := cli_ver.GetLatestRelease(cli_ver.DaprGitHubOrg, cli_ver.DaprGitHubRepo)
+		if err != nil {
+			return fmt.Errorf("cannot get the manifest file: %s", err)
+		}
+
+		version = v
 	}
 
 	var daprManifestPath string = "https://github.com/dapr/dapr/releases/download/" + version + "/dapr-operator.yaml"
