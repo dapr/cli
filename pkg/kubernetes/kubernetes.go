@@ -32,7 +32,8 @@ func Init(version string) error {
 	}
 
 	if version == daprLatestVersion {
-		v, err := cli_ver.GetLatestRelease(cli_ver.DaprGitHubOrg, cli_ver.DaprGitHubRepo)
+		var v string
+		v, err = cli_ver.GetLatestRelease(cli_ver.DaprGitHubOrg, cli_ver.DaprGitHubRepo)
 		if err != nil {
 			return fmt.Errorf("cannot get the manifest file: %s", err)
 		}
