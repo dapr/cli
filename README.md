@@ -250,9 +250,9 @@ To list all Dapr instances running in a Kubernetes cluster:
 $ dapr list --kubernetes
 ```
 
-### Check control plane status
+### Check system services (control plane) status
 
-Check Dapr's control plane health status in a Kubernetes cluster:
+Check Dapr's system services (control plane) health status in a Kubernetes cluster:
 
 ```
 $ dapr status --kubernetes
