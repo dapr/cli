@@ -36,7 +36,7 @@ var InitCmd = &cobra.Command{
 				print.FailureStatusEvent(os.Stdout, err.Error())
 				return
 			}
-			print.SuccessStatusEvent(os.Stdout, "Success! Dapr has been installed. To verify, run 'kubectl get pods -w' in your terminal. To get started, go here: https://aka.ms/dapr-getting-started")
+			print.SuccessStatusEvent(os.Stdout, "Success! Dapr has been installed. To verify, run 'kubectl get pods -w' or 'dapr status -k' in your terminal. To get started, go here: https://aka.ms/dapr-getting-started")
 		} else {
 			dockerNetwork := viper.GetString("network")
 			standalone.Uninstall(true, dockerNetwork)

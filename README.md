@@ -130,7 +130,7 @@ $ dapr init --kubernetes
 ℹ️  Note: this installation is recommended for testing purposes. For production environments, please use Helm
 
 ✅  Deploying the Dapr control plane to your cluster...
-✅  Success! Dapr has been installed. To verify, run 'kubectl get pods -w' in your terminal
+✅  Success! Dapr has been installed. To verify, run 'kubectl get pods -w' or 'dapr status -k' in your terminal. To get started, go here: https://aka.ms/dapr-getting-started
 ```
 
 #### Uninstall Dapr on Kubernetes
