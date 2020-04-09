@@ -34,7 +34,7 @@ func Init() error {
 
 	var daprManifestPath string = "https://github.com/dapr/dapr/releases/download/" + version + "/dapr-operator.yaml"
 
-	msg := "Deploying the Dapr Operator to your cluster..."
+	msg := "Deploying the Dapr control plane to your cluster..."
 	var s *spinner.Spinner
 
 	if runtime.GOOS == "windows" {
