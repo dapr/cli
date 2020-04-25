@@ -240,7 +240,7 @@ func init() {
 	RunCmd.Flags().StringVarP(&image, "image", "", "", "the image to build the code in. input is repository/image")
 	RunCmd.Flags().BoolVar(&enableProfiling, "enable-profiling", false, "Enable pprof profiling via an HTTP endpoint")
 	RunCmd.Flags().IntVarP(&profilePort, "profile-port", "", -1, "the port for the profile server to listen on")
-	RunCmd.Flags().StringVarP(&logLevel, "log-level", "", "info", "Sets the log verbosity. Valid values are: debug, info, warning, error, fatal, or panic. Default is info")
+	RunCmd.Flags().StringVarP(&logLevel, "log-level", "", "info", "Sets the log verbosity. Valid values are: debug, info, warn, error, fatal, or panic. Default is info")
 	RunCmd.Flags().IntVarP(&maxConcurrency, "max-concurrency", "", -1, "controls the concurrency level of the app. Default is unlimited")
 	RunCmd.Flags().StringVarP(&protocol, "protocol", "", "http", "tells Dapr to use HTTP or gRPC to talk to the app. Default is http")
 	RunCmd.Flags().String("redis-host", "localhost", "the host on which the Redis service resides")
