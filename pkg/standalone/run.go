@@ -235,14 +235,14 @@ func createRedisStateStore(redisHost string) error {
 }
 
 func createRedisPubSub(redisHost string) error {
-	redisMessageBus := component{
+	redisPubSub := component{
 		APIVersion: "dapr.io/v1alpha1",
 		Kind:       "Component",
 	}
 
-	redisMessageBus.Metadata.Name = "messagebus"
-	redisMessageBus.Spec.Type = "pubsub.redis"
-	redisMessageBus.Spec.Metadata = []componentMetadataItem{
+	redisPubSub.Metadata.Name = "pubsub"
+	redisPubSub.Spec.Type = "pubsub.redis"
+	redisPubSub.Spec.Metadata = []componentMetadataItem{
 		{
 			Name:  "redisHost",
 			Value: fmt.Sprintf("%s:6379", redisHost),
@@ -253,7 +253,7 @@ func createRedisPubSub(redisHost string) error {
 		},
 	}
 
-	b, err := yaml.Marshal(&redisMessageBus)
+	b, err := yaml.Marshal(&redisPubSub)
 	if err != nil {
 		return err
 	}
