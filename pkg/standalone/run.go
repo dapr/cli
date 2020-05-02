@@ -46,6 +46,7 @@ type RunConfig struct {
 	MaxConcurrency  int
 	RedisHost       string
 	PlacementHost   string
+	ComponentsPath  string
 }
 
 // RunOutput represents the run output.
@@ -191,7 +192,7 @@ func absoluteComponentsDir() (string, error) {
 	return filepath.Join(wd, componentsDirName), nil
 }
 
-func createRedisStateStore(redisHost string) error {
+func createRedisStateStore(redisHost string, componentsPath string) error {
 	redisStore := component{
 		APIVersion: "dapr.io/v1alpha1",
 		Kind:       "Component",
@@ -219,12 +220,7 @@ func createRedisStateStore(redisHost string) error {
 		return err
 	}
 
-	componentsDir, err := absoluteComponentsDir()
-	if err != nil {
-		return err
-	}
-
-	filePath := filepath.Join(componentsDir, stateStoreYamlFileName)
+	filePath := filepath.Join(componentsPath, stateStoreYamlFileName)
 	fmt.Printf("WARNING: Redis State Store file is being overwritten: %s\n", filePath)
 	err = ioutil.WriteFile(filePath, b, 0644)
 	if err != nil {
@@ -234,7 +230,7 @@ func createRedisStateStore(redisHost string) error {
 	return nil
 }
 
-func createRedisPubSub(redisHost string) error {
+func createRedisPubSub(redisHost string, componentsPath string) error {
 	redisPubSub := component{
 		APIVersion: "dapr.io/v1alpha1",
 		Kind:       "Component",
@@ -258,12 +254,7 @@ func createRedisPubSub(redisHost string) error {
 		return err
 	}
 
-	componentsDir, err := absoluteComponentsDir()
-	if err != nil {
-		return err
-	}
-
-	filePath := filepath.Join(componentsDir, messageBusYamlFileName)
+	filePath := filepath.Join(componentsPath, messageBusYamlFileName)
 	fmt.Printf("WARNING: Redis PubSub file is being overwritten: %s\n", filePath)
 	err = ioutil.WriteFile(filePath, b, 0644)
 	if err != nil {
@@ -290,17 +281,27 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		}
 	}
 
-	componentsDir, err := absoluteComponentsDir()
-	if err != nil {
-		return nil, err
+	var componentsPath string
+
+	if config.ComponentsPath == "" {
+		componentsPath, err = absoluteComponentsDir()
+		if err != nil {
+			return nil, err
+		}
+
+		err = utils.CreateDirectory(componentsPath)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		_, err = os.Stat(config.ComponentsPath)
+		if os.IsNotExist(err) {
+			return nil, err
+		}
+		componentsPath = config.ComponentsPath
 	}
 
-	err = utils.CreateDirectory(componentsDir)
-	if err != nil {
-		return nil, err
-	}
-
-	componentsLoader := components.NewStandaloneComponents(modes.StandaloneConfig{ComponentsPath: componentsDir})
+	componentsLoader := components.NewStandaloneComponents(modes.StandaloneConfig{ComponentsPath: componentsPath})
 	components, err := componentsLoader.LoadComponents()
 	if err != nil {
 		return nil, err
@@ -318,14 +319,14 @@ func Run(config *RunConfig) (*RunOutput, error) {
 	}
 
 	if stateStore == "" {
-		err = createRedisStateStore(config.RedisHost)
+		err = createRedisStateStore(config.RedisHost, componentsPath)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	if pubSub == "" {
-		err = createRedisPubSub(config.RedisHost)
+		err = createRedisPubSub(config.RedisHost, componentsPath)
 		if err != nil {
 			return nil, err
 		}
