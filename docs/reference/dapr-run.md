@@ -16,6 +16,7 @@ dapr run [flags] [command]
 | --- | --- | --- | --- |
 | `--app-id` | | | An ID for your application, used for service discovery |
 | `--app-port` | | `-1` | The port your application is listening on |
+| `--components-path` | | `./components` | Path for components directory |
 | `--config` | | | Dapr configuration file |
 | `--enable-profiling` | | | Enable `pprof` profiling via an HTTP endpoint |
 | `--grpc-port` | | `-1` | The gRPC port for Dapr to listen on |
