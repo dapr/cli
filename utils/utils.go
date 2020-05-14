@@ -109,6 +109,7 @@ func CreateDirectory(dir string) error {
 	return os.Mkdir(dir, 0777)
 }
 
+// IsDockerInstalled checks whether docker is installed/running
 func IsDockerInstalled() bool {
 	cli, err := client.NewEnvClient()
 	if err != nil {

@@ -12,7 +12,7 @@ import (
 func Uninstall(uninstallAll bool, dockerNetwork string) error {
 	dockerInstalled := utils.IsDockerInstalled()
 	if !dockerInstalled {
-		return errors.New("could not connect to Docker. Docker may not be installed or running")
+		return errors.New("could not connect to Docker. Docker may not be installed or running.")
 	}
 
 	var errs []error
