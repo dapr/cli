@@ -7,6 +7,7 @@ package utils
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -14,6 +15,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/docker/docker/client"
 	"github.com/olekukonko/tablewriter"
 )
 
@@ -105,4 +107,13 @@ func CreateDirectory(dir string) error {
 		return nil
 	}
 	return os.Mkdir(dir, 0777)
+}
+
+func IsDockerInstalled() bool {
+	cli, err := client.NewEnvClient()
+	if err != nil {
+		return false
+	}
+	_, err = cli.Ping(context.Background())
+	return err == nil
 }

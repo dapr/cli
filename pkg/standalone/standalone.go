@@ -9,7 +9,6 @@ import (
 	"archive/tar"
 	"archive/zip"
 	"compress/gzip"
-	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -25,7 +24,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/docker/docker/client"
 	"github.com/fatih/color"
 
 	"github.com/briandowns/spinner"
@@ -108,7 +106,7 @@ func isInstallationRequired(installLocation, requestedVersion string) bool {
 
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
 func Init(runtimeVersion string, dockerNetwork string, installLocation string) error {
-	dockerInstalled := isDockerInstalled()
+	dockerInstalled := utils.IsDockerInstalled()
 	if !dockerInstalled {
 		return errors.New("could not connect to Docker. Docker may not be installed or running")
 	}
@@ -166,15 +164,6 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string) e
 	}
 
 	return nil
-}
-
-func isDockerInstalled() bool {
-	cli, err := client.NewEnvClient()
-	if err != nil {
-		return false
-	}
-	_, err = cli.Ping(context.Background())
-	return err == nil
 }
 
 func getDaprDir() (string, error) {
