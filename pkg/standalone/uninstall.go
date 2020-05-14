@@ -18,7 +18,7 @@ func Uninstall(uninstallAll bool, dockerNetwork string) error {
 		utils.CreateContainerName(DaprPlacementContainerName, dockerNetwork))
 
 	if err != nil {
-		errs = append(errs, fmt.Errorf("could not remove %s: %s", DaprPlacementContainerName, err))
+		errs = append(errs, fmt.Errorf("could not remove %s container: %s", DaprPlacementContainerName, err))
 	}
 
 	_, err = utils.RunCmdAndWait(
@@ -27,7 +27,7 @@ func Uninstall(uninstallAll bool, dockerNetwork string) error {
 		daprDockerImageName)
 
 	if err != nil {
-		errs = append(errs, fmt.Errorf("could not remove %s: %s", daprDockerImageName, err))
+		errs = append(errs, fmt.Errorf("could not remove %s container: %s", daprDockerImageName, err))
 	}
 
 	if uninstallAll {
@@ -36,7 +36,7 @@ func Uninstall(uninstallAll bool, dockerNetwork string) error {
 			"--force",
 			utils.CreateContainerName(DaprRedisContainerName, dockerNetwork))
 		if err != nil {
-			errs = append(errs, fmt.Errorf("could not remove %s: %s", DaprRedisContainerName, err))
+			errs = append(errs, fmt.Errorf("could not remove %s container: %s", DaprRedisContainerName, err))
 		}
 	}
 
