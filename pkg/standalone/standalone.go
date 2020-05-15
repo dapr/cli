@@ -111,7 +111,7 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string) e
 		return errors.New("could not connect to Docker. Docker may not be installed or running")
 	}
 
-	dir, err := getDaprDir()
+	downloadDest, err := getDownloadDest(installLocation)
 	if err != nil {
 		return err
 	}
@@ -137,7 +137,7 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string) e
 	}
 
 	for _, step := range initSteps {
-		go step(&wg, errorChan, dir, runtimeVersion, dockerNetwork, installLocation)
+		go step(&wg, errorChan, downloadDest, runtimeVersion, dockerNetwork, installLocation)
 	}
 
 	go func() {
@@ -166,11 +166,26 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string) e
 	return nil
 }
 
-func getDaprDir() (string, error) {
+func isDockerInstalled() bool {
+	cli, err := client.NewEnvClient()
+	if err != nil {
+		return false
+	}
+	_, err = cli.Ping(context.Background())
+	return err == nil
+}
+
+func getDownloadDest(installLocation string) (string, error) {
 	p := ""
 
+	// use the install location passed in for Windows.  This can't
+	// be done for other environments because the install location default to a privileged dir: /usr/local/bin
 	if runtime.GOOS == daprWindowsOS {
-		p = path_filepath.FromSlash("c:/dapr")
+		if installLocation == "" {
+			p = daprDefaultWindowsInstallPath
+		} else {
+			p = installLocation
+		}
 	} else {
 		usr, err := user.Current()
 		if err != nil {
