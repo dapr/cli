@@ -8,9 +8,8 @@ import (
 	"github.com/dapr/cli/utils"
 )
 
-// Uninstall deletes all installed containers
-func Uninstall(uninstallAll bool, dockerNetwork string) error {
-	var errs []error
+func removeContainers(uninstallAll bool, dockerNetwork string) []error {
+	var containerErrs []error
 
 	_, err := utils.RunCmdAndWait(
 		"docker", "rm",
@@ -18,7 +17,9 @@ func Uninstall(uninstallAll bool, dockerNetwork string) error {
 		utils.CreateContainerName(DaprPlacementContainerName, dockerNetwork))
 
 	if err != nil {
-		errs = append(errs, fmt.Errorf("could not remove %s container: %s", DaprPlacementContainerName, err))
+		containerErrs = append(
+			containerErrs,
+			fmt.Errorf("could not remove %s container: %s", DaprPlacementContainerName, err))
 	}
 
 	_, err = utils.RunCmdAndWait(
@@ -27,7 +28,9 @@ func Uninstall(uninstallAll bool, dockerNetwork string) error {
 		daprDockerImageName)
 
 	if err != nil {
-		errs = append(errs, fmt.Errorf("could not remove %s container: %s", daprDockerImageName, err))
+		containerErrs = append(
+			containerErrs,
+			fmt.Errorf("could not remove %s image: %s", daprDockerImageName, err))
 	}
 
 	if uninstallAll {
@@ -36,21 +39,39 @@ func Uninstall(uninstallAll bool, dockerNetwork string) error {
 			"--force",
 			utils.CreateContainerName(DaprRedisContainerName, dockerNetwork))
 		if err != nil {
-			errs = append(errs, fmt.Errorf("could not remove %s container: %s", DaprRedisContainerName, err))
+			containerErrs = append(
+				containerErrs,
+				fmt.Errorf("could not remove %s container: %s", DaprRedisContainerName, err))
 		}
 	}
 
-	err = rundata.DeleteRunDataFile()
+	return containerErrs
+}
+
+// Uninstall deletes all installed containers
+func Uninstall(uninstallAll bool, dockerNetwork string) error {
+	var containerErrs []error
+
+	dockerInstalled := utils.IsDockerInstalled()
+	if dockerInstalled {
+		containerErrs = removeContainers(uninstallAll, dockerNetwork)
+	}
+
+	err := rundata.DeleteRunDataFile()
 	if err != nil {
 		fmt.Println("WARNING: could not delete run data file")
 	}
 
-	if len(errs) == 0 {
+	err = errors.New("uninstall failed")
+	if !dockerInstalled {
+		return fmt.Errorf("%w \n could not connect to Docker. Docker may not be installed or running", err)
+	}
+
+	if len(containerErrs) == 0 {
 		return nil
 	}
 
-	err = errors.New("uninstall failed")
-	for _, e := range errs {
+	for _, e := range containerErrs {
 		err = fmt.Errorf("%w \n %s", err, e)
 	}
 	return err
