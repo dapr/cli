@@ -166,15 +166,6 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string) e
 	return nil
 }
 
-func isDockerInstalled() bool {
-	cli, err := client.NewEnvClient()
-	if err != nil {
-		return false
-	}
-	_, err = cli.Ping(context.Background())
-	return err == nil
-}
-
 func getDownloadDest(installLocation string) (string, error) {
 	p := ""
 
