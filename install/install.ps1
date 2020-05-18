@@ -2,11 +2,13 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 # ------------------------------------------------------------
+param (
+    [string]$DaprRoot = "c:\dapr"
+)
 
 $ErrorActionPreference = 'stop'
 
 # Constants
-$DaprRoot="c:\dapr"
 $DaprCliFileName = "dapr.exe"
 $DaprCliFilePath = "${DaprRoot}\${DaprCliFileName}"
 
@@ -69,7 +71,7 @@ if (!(Test-Path $zipFilePath -PathType Leaf)) {
     throw "Failed to download Dapr Cli binary - $zipFilePath"
 }
 
-# Extract Dapr CLI to c:\dapr
+# Extract Dapr CLI to $DaprRoot
 Write-Output "Extracting $zipFilePath..."
 Microsoft.Powershell.Archive\Expand-Archive -Force -Path $zipFilePath -DestinationPath $DaprRoot
 if (!(Test-Path $DaprCliFilePath -PathType Leaf)) {
