@@ -59,7 +59,9 @@ func isInstallationRequired(installLocation, requestedVersion string) bool {
 			destDir = daprDefaultLinuxAndMacInstallPath
 		}
 	}
-	daprdBinaryPath := path_filepath.Join(destDir, daprRuntimeFilePrefix) //e.g. /usr/local/bin/daprd or c:\\daprd
+
+	// e.g. /usr/local/bin/daprd or c:\dapr, which are the defaults unless overridden by "installLocation"
+	daprdBinaryPath := path_filepath.Join(destDir, daprRuntimeFilePrefix)
 
 	// first time install?
 	_, err := os.Stat(daprdBinaryPath)
