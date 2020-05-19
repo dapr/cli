@@ -19,7 +19,7 @@ The Dapr CLI allows you to setup Dapr on your local dev machine or on a Kubernet
 
 **Windows**
 
-Install the latest windows Dapr CLI to `c:\dapr` and add this directory to User PATH environment variable.
+Install the latest windows Dapr CLI to `c:\dapr` and add this directory to User PATH environment variable. Use `-DaprRoot [path]` to change the default installation directory
 
 ```powershell
 powershell -Command "iwr -useb https://raw.githubusercontent.com/dapr/cli/master/install/install.ps1 | iex"
