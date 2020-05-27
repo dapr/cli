@@ -111,20 +111,20 @@ func TestRun(t *testing.T) {
 		assert.Nil(t, output.AppCMD)
 	})
 
-	t.Run("run enabling dev secret store", func(t *testing.T) {
+	t.Run("run enabling json secret store", func(t *testing.T) {
 		output, err := Run(&RunConfig{
-			AppID:                "MyID",
-			AppPort:              3000,
-			HTTPPort:             8000,
-			GRPCPort:             50001,
-			LogLevel:             "WARN",
-			Arguments:            []string{"MyCommand", "--my-arg"},
-			EnableProfiling:      false,
-			ProfilePort:          9090,
-			Protocol:             "http",
-			RedisHost:            "localhost",
-			PlacementHost:        "localhost",
-			EnableDevSecretStore: true,
+			AppID:                 "MyID",
+			AppPort:               3000,
+			HTTPPort:              8000,
+			GRPCPort:              50001,
+			LogLevel:              "WARN",
+			Arguments:             []string{"MyCommand", "--my-arg"},
+			EnableProfiling:       false,
+			ProfilePort:           9090,
+			Protocol:              "http",
+			RedisHost:             "localhost",
+			PlacementHost:         "localhost",
+			EnableJSONSecretStore: true,
 		})
 
 		assert.Nil(t, err)

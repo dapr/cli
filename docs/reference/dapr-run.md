@@ -29,4 +29,4 @@ dapr run [flags] [command]
 | `--profile-port` | | `-1` | The port for the profile server to listen on |
 | `--protocol` | | `http` | Tells Dapr to use HTTP or gRPC to talk to the app. Valid values are: `http` or `grpc` |
 | `--redis-host` | `DAPR_REDIS_HOST` | `localhost` | The host on which the Redis service resides |
-| `--enable-dev-secretstore` |  | false | Enable Developer Secret Store |
+| `--enable-json-secretstore` |  | false | Enable JSON Secret Store |
