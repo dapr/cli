@@ -25,7 +25,6 @@ import (
 )
 
 const (
-	componentsDirName      = "components"
 	messageBusYamlFileName = "pubsub.yaml"
 	stateStoreYamlFileName = "statestore.yaml"
 	sentryDefaultAddress   = "localhost:50001"
@@ -183,15 +182,6 @@ func getAppCommand(httpPort, grpcPort, metricsPort int, command string, args []s
 	return cmd, nil
 }
 
-func absoluteComponentsDir() (string, error) {
-	wd, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-
-	return filepath.Join(wd, componentsDirName), nil
-}
-
 func createRedisStateStore(redisHost string, componentsPath string) error {
 	redisStore := component{
 		APIVersion: "dapr.io/v1alpha1",
@@ -281,24 +271,9 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		}
 	}
 
-	var componentsPath string
-
-	if config.ComponentsPath == "" {
-		componentsPath, err = absoluteComponentsDir()
-		if err != nil {
-			return nil, err
-		}
-
-		err = utils.CreateDirectory(componentsPath)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		_, err = os.Stat(config.ComponentsPath)
-		if os.IsNotExist(err) {
-			return nil, err
-		}
-		componentsPath = config.ComponentsPath
+	componentsPath, err := getComponentsPath(config)
+	if err != nil {
+		return nil, err
 	}
 
 	componentsLoader := components.NewStandaloneComponents(modes.StandaloneConfig{ComponentsPath: componentsPath})
@@ -368,4 +343,15 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		DaprHTTPPort: daprHTTPPort,
 		DaprGRPCPort: daprGRPCPort,
 	}, nil
+}
+
+func getComponentsPath(config *RunConfig) (string, error) {
+	if config.ComponentsPath == "" {
+		componentsPath, err := utils.GetDefaultComponentsFolder()
+		fmt.Println("Read components env: ", componentsPath)
+		return componentsPath, err
+	}
+
+	_, err := os.Stat(config.ComponentsPath)
+	return config.ComponentsPath, err
 }

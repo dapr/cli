@@ -11,8 +11,9 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os/exec"
-	"runtime"
 	"strings"
+
+	"github.com/dapr/cli/utils"
 )
 
 const (
@@ -24,12 +25,7 @@ const (
 
 // GetRuntimeVersion returns the version for the local Dapr runtime.
 func GetRuntimeVersion() string {
-	runtimeName := ""
-	if runtime.GOOS == "windows" {
-		runtimeName = "daprd.exe"
-	} else {
-		runtimeName = "daprd"
-	}
+	runtimeName := utils.GetDaprRuntimeName()
 
 	out, err := exec.Command(runtimeName, "--version").Output()
 	if err != nil {

@@ -18,6 +18,7 @@ import (
 	"os/exec"
 	"os/user"
 	"path"
+	"path/filepath"
 	path_filepath "path/filepath"
 	"runtime"
 	"strings"
@@ -374,7 +375,10 @@ func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version 
 		return
 	}
 
-	daprPath, err := moveFileToPath(extractedFilePath, installLocation)
+	destDir := getDestDir(installLocation)
+	fmt.Println("destDir: ", destDir)
+
+	daprPath, err := moveFileToPath(extractedFilePath, installLocation, destDir)
 	if err != nil {
 		errorChan <- fmt.Errorf("error moving Dapr binary to path: %s", err)
 		return
@@ -386,7 +390,37 @@ func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version 
 		return
 	}
 
+	fmt.Println("Trying to create components folder with input dir: ", destDir)
+	err = createComponentsDir(destDir)
+	if err != nil {
+		errorChan <- fmt.Errorf("error creating default components folder: %s", err)
+		return
+	}
 	errorChan <- nil
+}
+
+func createComponentsDir(daprPath string) error {
+
+	// Make default components directory under install path
+	componentsDir := filepath.Join(daprPath, utils.ComponentsDirName)
+	fmt.Printf("default install location: %s\ncomponents folder location: %s\n", daprPath, componentsDir)
+	fmt.Println("Creating default components dir: ", componentsDir)
+	_, err := os.Stat(componentsDir)
+	if os.IsNotExist(err) {
+		errDir := os.MkdirAll(componentsDir, 0755)
+		if errDir != nil {
+			return errDir
+		}
+
+		if runtime.GOOS == daprWindowsOS {
+			_, err := utils.RunCmdAndWait("ATTRIB", "+s +h", componentsDir)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func makeExecutable(filepath string) error {
@@ -492,20 +526,23 @@ func untar(filepath, targetDir string) (string, error) {
 	}
 }
 
-func moveFileToPath(filepath string, installLocation string) (string, error) {
+func getDestDir(installLocation string) string {
 	destDir := daprDefaultLinuxAndMacInstallPath
 	if runtime.GOOS == daprWindowsOS {
 		destDir = daprDefaultWindowsInstallPath
-		filepath = strings.Replace(filepath, "/", "\\", -1)
 	}
-
-	fileName := path_filepath.Base(filepath)
-	destFilePath := ""
 
 	// if user specified --install-path, use that
 	if installLocation != "" {
 		destDir = installLocation
 	}
+
+	return destDir
+}
+
+func moveFileToPath(filepath string, installLocation string, destDir string) (string, error) {
+	fileName := path_filepath.Base(filepath)
+	destFilePath := ""
 
 	destFilePath = path.Join(destDir, fileName)
 
