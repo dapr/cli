@@ -15,5 +15,5 @@ dapr publish [flags]
 | Name | Environment Variable | Default | Description
 | --- | --- | --- | --- |
 | `--help`, `-h` | | | Help for publish |
-| `--payload`, `-p` | | | A JSON payload |
+| `--data`, `-p` | | | A JSON serialized string |
 | `--topic`, `-t` | | | The topic the app is listening on |
