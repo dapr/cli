@@ -347,7 +347,6 @@ func Run(config *RunConfig) (*RunOutput, error) {
 func getComponentsPath(config *RunConfig) (string, error) {
 	if config.ComponentsPath == "" {
 		componentsPath := getDefaultComponentsFolder()
-		fmt.Println("Read components: ", componentsPath)
 		return componentsPath, nil
 	}
 

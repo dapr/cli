@@ -125,3 +125,4 @@ release: build archive
 .PHONY: test
 test:
 	go test ./pkg/...
+	go test -timeout 120s ./pkg/... --tags=large_timeout
