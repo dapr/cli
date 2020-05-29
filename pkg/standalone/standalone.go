@@ -18,7 +18,6 @@ import (
 	"os/exec"
 	"os/user"
 	"path"
-	"path/filepath"
 	path_filepath "path/filepath"
 	"runtime"
 	"strings"
@@ -123,7 +122,7 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string) e
 	errorChan := make(chan error)
 
 	initSteps := []func(*sync.WaitGroup, chan<- error, string, string, string, string){}
-	initSteps = append(initSteps, installDaprBinary, runPlacementService, runRedis)
+	initSteps = append(initSteps, installDaprBinary, createComponentsDir, runPlacementService, runRedis)
 
 	wg.Add(len(initSteps))
 
@@ -375,10 +374,7 @@ func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version 
 		return
 	}
 
-	destDir := getDestDir(installLocation)
-	fmt.Println("destDir: ", destDir)
-
-	daprPath, err := moveFileToPath(extractedFilePath, installLocation, destDir)
+	daprPath, err := moveFileToPath(extractedFilePath, installLocation)
 	if err != nil {
 		errorChan <- fmt.Errorf("error moving Dapr binary to path: %s", err)
 		return
@@ -390,37 +386,25 @@ func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version 
 		return
 	}
 
-	fmt.Println("Trying to create components folder with input dir: ", destDir)
-	err = createComponentsDir(destDir)
-	if err != nil {
-		errorChan <- fmt.Errorf("error creating default components folder: %s", err)
-		return
-	}
 	errorChan <- nil
 }
 
-func createComponentsDir(daprPath string) error {
+func createComponentsDir(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string) {
+	defer wg.Done()
 
 	// Make default components directory under install path
-	componentsDir := filepath.Join(daprPath, utils.ComponentsDirName)
-	fmt.Printf("default install location: %s\ncomponents folder location: %s\n", daprPath, componentsDir)
+	componentsDir := utils.GetDefaultComponentsFolder()
 	fmt.Println("Creating default components dir: ", componentsDir)
 	_, err := os.Stat(componentsDir)
 	if os.IsNotExist(err) {
 		errDir := os.MkdirAll(componentsDir, 0755)
 		if errDir != nil {
-			return errDir
-		}
-
-		if runtime.GOOS == daprWindowsOS {
-			_, err := utils.RunCmdAndWait("ATTRIB", "+s +h", componentsDir)
-			if err != nil {
-				return err
-			}
+			errorChan <- fmt.Errorf("Error creating default components folder: %s", errDir)
+			return
 		}
 	}
 
-	return nil
+	return
 }
 
 func makeExecutable(filepath string) error {
@@ -540,9 +524,20 @@ func getDestDir(installLocation string) string {
 	return destDir
 }
 
-func moveFileToPath(filepath string, installLocation string, destDir string) (string, error) {
+func moveFileToPath(filepath string, installLocation string) (string, error) {
+	destDir := daprDefaultLinuxAndMacInstallPath
+	if runtime.GOOS == daprWindowsOS {
+		destDir = daprDefaultWindowsInstallPath
+		filepath = strings.Replace(filepath, "/", "\\", -1)
+	}
+
 	fileName := path_filepath.Base(filepath)
 	destFilePath := ""
+
+	// if user specified --install-path, use that
+	if installLocation != "" {
+		destDir = installLocation
+	}
 
 	destFilePath = path.Join(destDir, fileName)
 

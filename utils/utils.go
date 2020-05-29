@@ -14,7 +14,6 @@ import (
 	"os"
 	"os/exec"
 	path_filepath "path/filepath"
-	"runtime"
 	"strings"
 
 	"github.com/docker/docker/client"
@@ -124,26 +123,12 @@ func IsDockerInstalled() bool {
 	return err == nil
 }
 
-// GetDaprRuntimeName returns the name of the dapr runtime binary
-func GetDaprRuntimeName() string {
-	runtimeName := ""
-	if runtime.GOOS == "windows" {
-		runtimeName = "daprd.exe"
-	} else {
-		runtimeName = "daprd"
-	}
-
-	return runtimeName
-}
-
 // GetDefaultComponentsFolder returns the hidden .components folder created under install directory at init time
-func GetDefaultComponentsFolder() (string, error) {
-	daprBinaryName := GetDaprRuntimeName()
-	daprRuntimePath, err := RunCmdAndWait("which", daprBinaryName)
-	if err != nil {
-		return "", err
-	}
+func GetDefaultComponentsFolder() string {
+	const daprDirName = ".dapr"
+	const componentsDirName = "components"
+	daprDirPath := os.Getenv("HOME")
 
-	defaultComponentsPath := path_filepath.Join(daprRuntimePath[0:len(daprRuntimePath)-len(daprBinaryName)-1], ComponentsDirName)
-	return defaultComponentsPath, err
+	defaultComponentsPath := path_filepath.Join(daprDirPath, daprDirName, componentsDirName)
+	return defaultComponentsPath
 }
