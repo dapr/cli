@@ -398,12 +398,10 @@ func createComponentsDir(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 	if os.IsNotExist(err) {
 		errDir := os.MkdirAll(componentsDir, 0755)
 		if errDir != nil {
-			errorChan <- fmt.Errorf("Error creating default components folder: %s", errDir)
+			errorChan <- fmt.Errorf("error creating default components folder: %s", errDir)
 			return
 		}
 	}
-
-	return
 }
 
 func makeExecutable(filepath string) error {
@@ -507,20 +505,6 @@ func untar(filepath, targetDir string) (string, error) {
 			return extractedFilePath, nil
 		}
 	}
-}
-
-func getDestDir(installLocation string) string {
-	destDir := daprDefaultLinuxAndMacInstallPath
-	if runtime.GOOS == daprWindowsOS {
-		destDir = daprDefaultWindowsInstallPath
-	}
-
-	// if user specified --install-path, use that
-	if installLocation != "" {
-		destDir = installLocation
-	}
-
-	return destDir
 }
 
 func moveFileToPath(filepath string, installLocation string) (string, error) {
