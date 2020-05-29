@@ -19,7 +19,6 @@ import (
 	"github.com/Pallinder/sillyname-go"
 	"github.com/phayes/freeport"
 
-	"github.com/dapr/cli/utils"
 	"github.com/dapr/dapr/pkg/components"
 	modes "github.com/dapr/dapr/pkg/config/modes"
 )
@@ -347,7 +346,7 @@ func Run(config *RunConfig) (*RunOutput, error) {
 
 func getComponentsPath(config *RunConfig) (string, error) {
 	if config.ComponentsPath == "" {
-		componentsPath := utils.GetDefaultComponentsFolder()
+		componentsPath := getDefaultComponentsFolder()
 		fmt.Println("Read components: ", componentsPath)
 		return componentsPath, nil
 	}

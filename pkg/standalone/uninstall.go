@@ -50,7 +50,7 @@ func removeContainers(uninstallAll bool, dockerNetwork string) []error {
 }
 
 func removeDefaultComponentsFolder() error {
-	defaultComponentsPath := utils.GetDefaultComponentsFolder()
+	defaultComponentsPath := getDefaultComponentsFolder()
 	fmt.Println("Cleaning up default Components folder: ", defaultComponentsPath)
 	err := os.RemoveAll(defaultComponentsPath)
 

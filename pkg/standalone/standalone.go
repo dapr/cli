@@ -393,7 +393,7 @@ func createComponentsDir(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 	defer wg.Done()
 
 	// Make default components directory under install path
-	componentsDir := utils.GetDefaultComponentsFolder()
+	componentsDir := getDefaultComponentsFolder()
 	fmt.Println("Creating default components dir: ", componentsDir)
 	_, err := os.Stat(componentsDir)
 	if os.IsNotExist(err) {

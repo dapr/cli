@@ -13,7 +13,6 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	path_filepath "path/filepath"
 	"strings"
 
 	"github.com/docker/docker/client"
@@ -121,14 +120,4 @@ func IsDockerInstalled() bool {
 	}
 	_, err = cli.Ping(context.Background())
 	return err == nil
-}
-
-// GetDefaultComponentsFolder returns the hidden .components folder created under install directory at init time
-func GetDefaultComponentsFolder() string {
-	const daprDirName = ".dapr"
-	const componentsDirName = "components"
-	daprDirPath := os.Getenv("HOME")
-
-	defaultComponentsPath := path_filepath.Join(daprDirPath, daprDirName, componentsDirName)
-	return defaultComponentsPath
 }
