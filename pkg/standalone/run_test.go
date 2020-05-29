@@ -6,6 +6,7 @@
 package standalone
 
 import (
+	"os"
 	"runtime"
 	"strings"
 	"testing"
@@ -30,6 +31,11 @@ func assertArgument(t *testing.T, key string, expectedValue string, args []strin
 }
 
 func TestRun(t *testing.T) {
+	// Setup the components directory which is done at init time
+	componentsDir := getDefaultComponentsFolder()
+	err := os.MkdirAll(componentsDir, 0700)
+	assert.Equal(t, nil, err, "Unable to setup components dir before running test")
+
 	t.Run("run happy http", func(t *testing.T) {
 		output, err := Run(&RunConfig{
 			AppID:           "MyID",
