@@ -289,9 +289,12 @@ Use ```dapr list``` to get a list of all running instances.
 To stop a Dapr app on your machine:
 
 ```
-$ dapr stop --app-id myAppID
+$ dapr stop myAppID
 ```
-
+You can also stop multiple Dapr apps
+```
+$ dapr stop myAppID1 myAppID2
+```
 ### Enable profiling
 
 In order to enable profiling, use the `enable-profiling` flag:

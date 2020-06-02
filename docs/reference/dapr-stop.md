@@ -2,12 +2,12 @@
 
 ## Description
 
-Stops a running Dapr instance and its associated app
+Stops running Dapr instances and their associated apps
 
 ## Usage
 
 ```bash
-dapr stop [flags]
+dapr stop <appID1> <appID2> [flags]
 ```
 
 ## Flags
