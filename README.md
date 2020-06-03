@@ -207,16 +207,16 @@ Publish a message:
 $ dapr publish --topic myevent
 ```
 
-Publish a message with a payload:
+Publish a message:
 
 * Linux/Mac
 ```bash
-$ dapr publish --topic myevent --payload '{ "name": "yoda" }'
+$ dapr publish --topic myevent --data '{ "name": "yoda" }'
 ```
 
 * Windows
 ```bash
-C:> dapr publish --topic myevent --payload "{ \"name\": \"yoda\" }"
+C:> dapr publish --topic myevent --data "{ \"name\": \"yoda\" }"
 ```
 
 ### Invoking
@@ -299,9 +299,12 @@ Use ```dapr list``` to get a list of all running instances.
 To stop a Dapr app on your machine:
 
 ```
-$ dapr stop --app-id myAppID
+$ dapr stop myAppID
 ```
-
+You can also stop multiple Dapr apps
+```
+$ dapr stop myAppID1 myAppID2
+```
 ### Enable profiling
 
 In order to enable profiling, use the `enable-profiling` flag:
