@@ -49,11 +49,11 @@ func removeContainers(uninstallAll bool, dockerNetwork string) []error {
 	return containerErrs
 }
 
-func removeDefaultComponentsFolder() error {
+func removeDefaultComponentsFolder() (string, error) {
 	defaultComponentsPath := getDefaultComponentsFolder()
 	err := os.RemoveAll(defaultComponentsPath)
 
-	return err
+	return defaultComponentsPath, err
 }
 
 // Uninstall reverts all changes made by init. Deletes all installed containers, removes default components folder, unsets env variables
@@ -70,9 +70,9 @@ func Uninstall(uninstallAll bool, dockerNetwork string) error {
 		fmt.Println("WARNING: could not delete run data file")
 	}
 
-	err = removeDefaultComponentsFolder()
+	componentsPath, err := removeDefaultComponentsFolder()
 	if err != nil {
-		fmt.Println("WARNING: could not delete default components folder")
+		fmt.Println("WARNING: could not delete default components folder: ", componentsPath)
 	}
 
 	err = errors.New("uninstall failed")

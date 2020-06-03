@@ -60,7 +60,7 @@ $ dapr init
 ✅  Success! Dapr is up and running
 ```
 
-> Note: To see that Dapr has been installed successful, from a command prompt run the `docker ps` command and check that the `daprio/dapr:latest` and `redis` container images are both running. Also, this step creates a components folder under your home directory/.dapr/components which is later used at runtime
+> Note: To see that Dapr has been installed successfully, from a command prompt run the `docker ps` command and check that the `daprio/dapr:latest` and `redis` container images are both running. Also, this step creates a default components folder under your home directory/.dapr/components which is later used at runtime unless the --components-path option is provided
 
 #### Install a specific runtime version
 
@@ -230,7 +230,7 @@ Launch Dapr and your app:
 $ dapr run --app-id nodeapp --app-port 3000 node app.js
 ```
 
-Note: To choose a non-default components folder, use the --components-path option
+Note: To choose a non-default components folder, use the --components-path option.
 
 Invoke your app:
 

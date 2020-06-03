@@ -19,9 +19,6 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
-// ComponentsDirName is the default hidden components folder name created at init time
-const ComponentsDirName = ".components"
-
 // PrintTable to print in the table format
 func PrintTable(csvContent string) {
 	table := tablewriter.NewWriter(os.Stdout)

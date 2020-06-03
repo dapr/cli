@@ -392,7 +392,7 @@ func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version 
 func createComponentsDir(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string) {
 	defer wg.Done()
 
-	// Make default components directory under install path
+	// Make default components directory
 	componentsDir := getDefaultComponentsFolder()
 	_, err := os.Stat(componentsDir)
 	if os.IsNotExist(err) {
