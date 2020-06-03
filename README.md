@@ -276,6 +276,14 @@ To list all Dapr components on Kubernetes:
 $ dapr components --kubernetes
 ```
 
+### Use non-default Components Path
+
+To use a custom path for component definitions
+
+```
+$ dapr run --components-path [custom path]
+```
+
 
 ### List Configurations
 
