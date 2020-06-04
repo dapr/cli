@@ -31,21 +31,20 @@ const (
 
 // RunConfig represents the application configuration parameters.
 type RunConfig struct {
-	AppID                 string
-	AppPort               int
-	HTTPPort              int
-	GRPCPort              int
-	ConfigFile            string
-	Protocol              string
-	Arguments             []string
-	EnableProfiling       bool
-	ProfilePort           int
-	LogLevel              string
-	MaxConcurrency        int
-	RedisHost             string
-	PlacementHost         string
-	ComponentsPath        string
-	EnableJSONSecretStore bool
+	AppID           string
+	AppPort         int
+	HTTPPort        int
+	GRPCPort        int
+	ConfigFile      string
+	Protocol        string
+	Arguments       []string
+	EnableProfiling bool
+	ProfilePort     int
+	LogLevel        string
+	MaxConcurrency  int
+	RedisHost       string
+	PlacementHost   string
+	ComponentsPath  string
 }
 
 // RunOutput represents the run output.
@@ -305,10 +304,6 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		if err != nil {
 			return nil, err
 		}
-	}
-
-	if config.EnableJSONSecretStore {
-		os.Setenv("DAPR_ENABLE_JSON_SECRET_STORE", "1")
 	}
 
 	daprCMD, daprHTTPPort, daprGRPCPort, metricsPort, err := getDaprCommand(appID, config.HTTPPort, config.GRPCPort, config.AppPort, config.ConfigFile, config.Protocol, config.EnableProfiling, config.ProfilePort, config.LogLevel, config.MaxConcurrency, config.PlacementHost)

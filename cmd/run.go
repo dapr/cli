@@ -34,7 +34,6 @@ var enableProfiling bool
 var logLevel string
 var protocol string
 var componentsPath string
-var enableJSONSecretStore bool
 
 var RunCmd = &cobra.Command{
 	Use:   "run",
@@ -78,21 +77,20 @@ Run sidecar only:
 			print.InfoStatusEvent(os.Stdout, output.Message)
 		} else {
 			output, err := standalone.Run(&standalone.RunConfig{
-				AppID:                 appID,
-				AppPort:               appPort,
-				HTTPPort:              port,
-				GRPCPort:              grpcPort,
-				ConfigFile:            configFile,
-				Arguments:             args,
-				EnableProfiling:       enableProfiling,
-				ProfilePort:           profilePort,
-				LogLevel:              logLevel,
-				MaxConcurrency:        maxConcurrency,
-				Protocol:              protocol,
-				RedisHost:             viper.GetString("redis-host"),
-				PlacementHost:         viper.GetString("placement-host"),
-				ComponentsPath:        componentsPath,
-				EnableJSONSecretStore: enableJSONSecretStore,
+				AppID:           appID,
+				AppPort:         appPort,
+				HTTPPort:        port,
+				GRPCPort:        grpcPort,
+				ConfigFile:      configFile,
+				Arguments:       args,
+				EnableProfiling: enableProfiling,
+				ProfilePort:     profilePort,
+				LogLevel:        logLevel,
+				MaxConcurrency:  maxConcurrency,
+				Protocol:        protocol,
+				RedisHost:       viper.GetString("redis-host"),
+				PlacementHost:   viper.GetString("placement-host"),
+				ComponentsPath:  componentsPath,
 			})
 			if err != nil {
 				print.FailureStatusEvent(os.Stdout, err.Error())
@@ -250,7 +248,6 @@ func init() {
 	RunCmd.Flags().StringVarP(&componentsPath, "components-path", "", "", "Path for components directory. Default is ./components.")
 	RunCmd.Flags().String("redis-host", "localhost", "the host on which the Redis service resides")
 	RunCmd.Flags().String("placement-host", "localhost", "the host on which the placement service resides")
-	RunCmd.Flags().BoolVar(&enableJSONSecretStore, "enable-json-secretstore", false, "Enable JSON Secret Store")
 
 	RootCmd.AddCommand(RunCmd)
 }
