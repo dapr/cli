@@ -154,6 +154,12 @@ Example of launching Dapr with a node app:
 $ dapr run --app-id nodeapp node app.js
 ```
 
+Example of launching Dapr with a custom components dir:
+
+```
+$ dapr run --app-id nodeapp --components-path ./components node app.js
+```
+
 Example of launching Dapr with a node app listening on port 3000:
 
 ```
