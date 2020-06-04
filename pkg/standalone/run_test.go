@@ -6,6 +6,7 @@
 package standalone
 
 import (
+	"os"
 	"runtime"
 	"strings"
 	"testing"
