@@ -30,7 +30,25 @@ func assertArgument(t *testing.T, key string, expectedValue string, args []strin
 	assert.Equal(t, expectedValue, value)
 }
 
+func setupRun(t *testing.T) {
+	componentsDir := getDefaultComponentsFolder()
+	err := os.MkdirAll(componentsDir, 0700)
+	assert.Equal(t, nil, err, "Unable to setup components dir before running test")
+}
+
+func tearDownRun(t *testing.T) {
+	componentsDir := getDefaultComponentsFolder()
+	err := os.RemoveAll(componentsDir)
+	assert.Equal(t, nil, err, "Unable to delete components dir after running test")
+}
+
 func TestRun(t *testing.T) {
+	// Setup the components directory which is done at init time
+	setupRun(t)
+
+	// Setup the tearDown routine to run in the end
+	defer tearDownRun(t)
+
 	t.Run("run happy http", func(t *testing.T) {
 		output, err := Run(&RunConfig{
 			AppID:           "MyID",

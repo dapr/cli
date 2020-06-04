@@ -3,6 +3,7 @@ package standalone
 import (
 	"errors"
 	"fmt"
+	"os"
 
 	"github.com/dapr/cli/pkg/rundata"
 	"github.com/dapr/cli/utils"
@@ -48,7 +49,14 @@ func removeContainers(uninstallAll bool, dockerNetwork string) []error {
 	return containerErrs
 }
 
-// Uninstall deletes all installed containers
+func removeDefaultComponentsFolder() (string, error) {
+	defaultComponentsPath := getDefaultComponentsFolder()
+	err := os.RemoveAll(defaultComponentsPath)
+
+	return defaultComponentsPath, err
+}
+
+// Uninstall reverts all changes made by init. Deletes all installed containers, removes default components folder, unsets env variables
 func Uninstall(uninstallAll bool, dockerNetwork string) error {
 	var containerErrs []error
 
@@ -60,6 +68,11 @@ func Uninstall(uninstallAll bool, dockerNetwork string) error {
 	err := rundata.DeleteRunDataFile()
 	if err != nil {
 		fmt.Println("WARNING: could not delete run data file")
+	}
+
+	componentsPath, err := removeDefaultComponentsFolder()
+	if err != nil {
+		fmt.Println("WARNING: could not delete default components folder: ", componentsPath)
 	}
 
 	err = errors.New("uninstall failed")
