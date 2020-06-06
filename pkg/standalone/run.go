@@ -259,6 +259,11 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		appID = strings.Replace(sillyname.GenerateStupidName(), " ", "-", -1)
 	}
 
+	_, err := os.Stat(config.ComponentsPath)
+	if err != nil {
+		return nil, err
+	}
+
 	dapr, err := List()
 	if err != nil {
 		return nil, err
@@ -270,12 +275,7 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		}
 	}
 
-	componentsPath, err := getComponentsPath(config)
-	if err != nil {
-		return nil, err
-	}
-
-	componentsLoader := components.NewStandaloneComponents(modes.StandaloneConfig{ComponentsPath: componentsPath})
+	componentsLoader := components.NewStandaloneComponents(modes.StandaloneConfig{ComponentsPath: config.ComponentsPath})
 	components, err := componentsLoader.LoadComponents()
 	if err != nil {
 		return nil, err
@@ -293,20 +293,20 @@ func Run(config *RunConfig) (*RunOutput, error) {
 	}
 
 	if stateStore == "" {
-		err = createRedisStateStore(config.RedisHost, componentsPath)
+		err = createRedisStateStore(config.RedisHost, config.ComponentsPath)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	if pubSub == "" {
-		err = createRedisPubSub(config.RedisHost, componentsPath)
+		err = createRedisPubSub(config.RedisHost, config.ComponentsPath)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	daprCMD, daprHTTPPort, daprGRPCPort, metricsPort, err := getDaprCommand(appID, config.HTTPPort, config.GRPCPort, config.AppPort, config.ConfigFile, config.Protocol, config.EnableProfiling, config.ProfilePort, config.LogLevel, config.MaxConcurrency, config.PlacementHost, componentsPath)
+	daprCMD, daprHTTPPort, daprGRPCPort, metricsPort, err := getDaprCommand(appID, config.HTTPPort, config.GRPCPort, config.AppPort, config.ConfigFile, config.Protocol, config.EnableProfiling, config.ProfilePort, config.LogLevel, config.MaxConcurrency, config.PlacementHost, config.ComponentsPath)
 	if err != nil {
 		return nil, err
 	}
@@ -342,14 +342,4 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		DaprHTTPPort: daprHTTPPort,
 		DaprGRPCPort: daprGRPCPort,
 	}, nil
-}
-
-func getComponentsPath(config *RunConfig) (string, error) {
-	if config.ComponentsPath == "" {
-		componentsPath := getDefaultComponentsFolder()
-		return componentsPath, nil
-	}
-
-	_, err := os.Stat(config.ComponentsPath)
-	return config.ComponentsPath, err
 }
