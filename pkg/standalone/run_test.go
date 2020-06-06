@@ -79,7 +79,7 @@ func TestRun(t *testing.T) {
 		assertArgument(t, "max-concurrency", "-1", output.DaprCMD.Args)
 		assertArgument(t, "protocol", "http", output.DaprCMD.Args)
 		assertArgument(t, "app-port", "3000", output.DaprCMD.Args)
-		assertArgument(t, "components-path", getDefaultComponentsFolder(), output.DaprCMD.Args)
+		assertArgument(t, "components-path", GetDefaultComponentsFolder(), output.DaprCMD.Args)
 		if runtime.GOOS == "windows" {
 			assertArgument(t, "placement-address", "localhost:6050", output.DaprCMD.Args)
 		} else {
@@ -119,7 +119,7 @@ func TestRun(t *testing.T) {
 		assertArgument(t, "max-concurrency", "-1", output.DaprCMD.Args)
 		assertArgument(t, "protocol", "http", output.DaprCMD.Args)
 		assertArgument(t, "app-port", "3000", output.DaprCMD.Args)
-		assertArgument(t, "components-path", getDefaultComponentsFolder(), output.DaprCMD.Args)
+		assertArgument(t, "components-path", GetDefaultComponentsFolder(), output.DaprCMD.Args)
 		if runtime.GOOS == "windows" {
 			assertArgument(t, "placement-address", "localhost:6050", output.DaprCMD.Args)
 		} else {
