@@ -62,6 +62,7 @@ func TestRun(t *testing.T) {
 			Protocol:        "http",
 			RedisHost:       "localhost",
 			PlacementHost:   "localhost",
+			ComponentsPath:  GetDefaultComponentsFolder(),
 		})
 
 		assert.Nil(t, err)
@@ -102,6 +103,7 @@ func TestRun(t *testing.T) {
 			Protocol:        "http",
 			RedisHost:       "localhost",
 			PlacementHost:   "localhost",
+			ComponentsPath:  GetDefaultComponentsFolder(),
 		})
 
 		assert.Nil(t, err)
