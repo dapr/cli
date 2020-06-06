@@ -31,13 +31,13 @@ func assertArgument(t *testing.T, key string, expectedValue string, args []strin
 }
 
 func setupRun(t *testing.T) {
-	componentsDir := getDefaultComponentsFolder()
+	componentsDir := GetDefaultComponentsFolder()
 	err := os.MkdirAll(componentsDir, 0700)
 	assert.Equal(t, nil, err, "Unable to setup components dir before running test")
 }
 
 func tearDownRun(t *testing.T) {
-	componentsDir := getDefaultComponentsFolder()
+	componentsDir := GetDefaultComponentsFolder()
 	err := os.RemoveAll(componentsDir)
 	assert.Equal(t, nil, err, "Unable to delete components dir after running test")
 }
