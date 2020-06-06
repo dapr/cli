@@ -396,12 +396,13 @@ func createComponentsDir(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 	componentsDir := getDefaultComponentsFolder()
 	_, err := os.Stat(componentsDir)
 	if os.IsNotExist(err) {
-		errDir := os.MkdirAll(componentsDir, 0755)
+		errDir := os.MkdirAll(componentsDir, 0775)
 		if errDir != nil {
 			errorChan <- fmt.Errorf("error creating default components folder: %s", errDir)
 			return
 		}
 	}
+	os.Chmod(componentsDir, 0775)
 }
 
 func makeExecutable(filepath string) error {
