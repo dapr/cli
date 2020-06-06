@@ -7,7 +7,7 @@ import (
 )
 
 // getDefaultComponentsFolder returns the hidden .components folder created at init time
-func getDefaultComponentsFolder() string {
+func GetDefaultComponentsFolder() string {
 	const daprDirName = ".dapr"
 	const componentsDirName = "components"
 	daprDirPath := os.Getenv("HOME")

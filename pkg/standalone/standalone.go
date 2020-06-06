@@ -393,7 +393,7 @@ func createComponentsDir(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 	defer wg.Done()
 
 	// Make default components directory
-	componentsDir := getDefaultComponentsFolder()
+	componentsDir := GetDefaultComponentsFolder()
 	_, err := os.Stat(componentsDir)
 	if os.IsNotExist(err) {
 		errDir := os.MkdirAll(componentsDir, 0755)
