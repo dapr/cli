@@ -122,7 +122,7 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string) e
 	errorChan := make(chan error)
 
 	initSteps := []func(*sync.WaitGroup, chan<- error, string, string, string, string){}
-	initSteps = append(initSteps, installDaprBinary, runPlacementService, runRedis)
+	initSteps = append(initSteps, installDaprBinary, createComponentsDir, runPlacementService, runRedis)
 
 	wg.Add(len(initSteps))
 
@@ -387,6 +387,21 @@ func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version 
 	}
 
 	errorChan <- nil
+}
+
+func createComponentsDir(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string) {
+	defer wg.Done()
+
+	// Make default components directory
+	componentsDir := GetDefaultComponentsFolder()
+	_, err := os.Stat(componentsDir)
+	if os.IsNotExist(err) {
+		errDir := os.MkdirAll(componentsDir, 0755)
+		if errDir != nil {
+			errorChan <- fmt.Errorf("error creating default components folder: %s", errDir)
+			return
+		}
+	}
 }
 
 func makeExecutable(filepath string) error {

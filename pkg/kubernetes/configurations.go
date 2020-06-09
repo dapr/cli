@@ -6,7 +6,10 @@
 package kubernetes
 
 import (
+	"strconv"
+
 	"github.com/dapr/cli/pkg/age"
+	v1alpha1 "github.com/dapr/dapr/pkg/apis/configuration/v1alpha1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -36,8 +39,8 @@ func Configurations() ([]ConfigurtionsOutput, error) {
 	co := []ConfigurtionsOutput{}
 	for _, c := range confs.Items {
 		co = append(co, ConfigurtionsOutput{
+			TracingEnabled:  tracingEnabled(c.Spec.TracingSpec),
 			Name:            c.GetName(),
-			TracingEnabled:  c.Spec.TracingSpec.Enabled,
 			MTLSEnabled:     c.Spec.MTLSSpec.Enabled,
 			WorkloadCertTTL: c.Spec.MTLSSpec.WorkloadCertTTL,
 			ClockSkew:       c.Spec.MTLSSpec.AllowedClockSkew,
@@ -46,4 +49,12 @@ func Configurations() ([]ConfigurtionsOutput, error) {
 		})
 	}
 	return co, nil
+}
+
+func tracingEnabled(spec v1alpha1.TracingSpec) bool {
+	sr, err := strconv.ParseFloat(spec.SamplingRate, 32)
+	if err != nil {
+		return false
+	}
+	return sr > 0
 }
