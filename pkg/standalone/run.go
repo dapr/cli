@@ -10,7 +10,6 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -24,9 +23,7 @@ import (
 )
 
 const (
-	messageBusYamlFileName = "pubsub.yaml"
-	stateStoreYamlFileName = "statestore.yaml"
-	sentryDefaultAddress   = "localhost:50001"
+	sentryDefaultAddress = "localhost:50001"
 )
 
 // RunConfig represents the application configuration parameters.
@@ -42,7 +39,6 @@ type RunConfig struct {
 	ProfilePort     int
 	LogLevel        string
 	MaxConcurrency  int
-	RedisHost       string
 	PlacementHost   string
 	ComponentsPath  string
 }
@@ -181,78 +177,6 @@ func getAppCommand(httpPort, grpcPort, metricsPort int, command string, args []s
 	return cmd, nil
 }
 
-func createRedisStateStore(redisHost string, componentsPath string) error {
-	redisStore := component{
-		APIVersion: "dapr.io/v1alpha1",
-		Kind:       "Component",
-	}
-
-	redisStore.Metadata.Name = "statestore"
-	redisStore.Spec.Type = "state.redis"
-	redisStore.Spec.Metadata = []componentMetadataItem{
-		{
-			Name:  "redisHost",
-			Value: fmt.Sprintf("%s:6379", redisHost),
-		},
-		{
-			Name:  "redisPassword",
-			Value: "",
-		},
-		{
-			Name:  "actorStateStore",
-			Value: "true",
-		},
-	}
-
-	b, err := yaml.Marshal(&redisStore)
-	if err != nil {
-		return err
-	}
-
-	filePath := filepath.Join(componentsPath, stateStoreYamlFileName)
-	fmt.Printf("WARNING: Redis State Store file is being overwritten: %s\n", filePath)
-	err = ioutil.WriteFile(filePath, b, 0644)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func createRedisPubSub(redisHost string, componentsPath string) error {
-	redisPubSub := component{
-		APIVersion: "dapr.io/v1alpha1",
-		Kind:       "Component",
-	}
-
-	redisPubSub.Metadata.Name = "pubsub"
-	redisPubSub.Spec.Type = "pubsub.redis"
-	redisPubSub.Spec.Metadata = []componentMetadataItem{
-		{
-			Name:  "redisHost",
-			Value: fmt.Sprintf("%s:6379", redisHost),
-		},
-		{
-			Name:  "redisPassword",
-			Value: "",
-		},
-	}
-
-	b, err := yaml.Marshal(&redisPubSub)
-	if err != nil {
-		return err
-	}
-
-	filePath := filepath.Join(componentsPath, messageBusYamlFileName)
-	fmt.Printf("WARNING: Redis PubSub file is being overwritten: %s\n", filePath)
-	err = ioutil.WriteFile(filePath, b, 0644)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func Run(config *RunConfig) (*RunOutput, error) {
 	appID := config.AppID
 	if appID == "" {
@@ -276,34 +200,9 @@ func Run(config *RunConfig) (*RunOutput, error) {
 	}
 
 	componentsLoader := components.NewStandaloneComponents(modes.StandaloneConfig{ComponentsPath: config.ComponentsPath})
-	components, err := componentsLoader.LoadComponents()
+	_, err = componentsLoader.LoadComponents()
 	if err != nil {
 		return nil, err
-	}
-
-	var stateStore, pubSub string
-
-	for _, component := range components {
-		if strings.HasPrefix(component.Spec.Type, "state") {
-			stateStore = component.Spec.Type
-		}
-		if strings.HasPrefix(component.Spec.Type, "pubsub") {
-			pubSub = component.Spec.Type
-		}
-	}
-
-	if stateStore == "" {
-		err = createRedisStateStore(config.RedisHost, config.ComponentsPath)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if pubSub == "" {
-		err = createRedisPubSub(config.RedisHost, config.ComponentsPath)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	daprCMD, daprHTTPPort, daprGRPCPort, metricsPort, err := getDaprCommand(appID, config.HTTPPort, config.GRPCPort, config.AppPort, config.ConfigFile, config.Protocol, config.EnableProfiling, config.ProfilePort, config.LogLevel, config.MaxConcurrency, config.PlacementHost, config.ComponentsPath)
