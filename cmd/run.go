@@ -52,7 +52,6 @@ Run sidecar only:
 	Args: cobra.MinimumNArgs(0),
 	PreRun: func(cmd *cobra.Command, args []string) {
 		viper.BindPFlag("placement-host", cmd.Flags().Lookup("placement-host"))
-		viper.BindPFlag("redis-host", cmd.Flags().Lookup("redis-host"))
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
@@ -88,7 +87,6 @@ Run sidecar only:
 				LogLevel:        logLevel,
 				MaxConcurrency:  maxConcurrency,
 				Protocol:        protocol,
-				RedisHost:       viper.GetString("redis-host"),
 				PlacementHost:   viper.GetString("placement-host"),
 				ComponentsPath:  componentsPath,
 			})
@@ -246,7 +244,6 @@ func init() {
 	RunCmd.Flags().IntVarP(&maxConcurrency, "max-concurrency", "", -1, "controls the concurrency level of the app. Default is unlimited")
 	RunCmd.Flags().StringVarP(&protocol, "protocol", "", "http", "tells Dapr to use HTTP or gRPC to talk to the app. Default is http")
 	RunCmd.Flags().StringVarP(&componentsPath, "components-path", "", standalone.GetDefaultComponentsFolder(), "Path for components directory. Default is ~/.dapr/components or %USERPROFILE%\\.dapr\\components")
-	RunCmd.Flags().String("redis-host", "localhost", "the host on which the Redis service resides")
 	RunCmd.Flags().String("placement-host", "localhost", "the host on which the placement service resides")
 
 	RootCmd.AddCommand(RunCmd)
