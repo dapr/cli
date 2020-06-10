@@ -19,13 +19,11 @@ import (
 	"github.com/Pallinder/sillyname-go"
 	"github.com/phayes/freeport"
 
-	"github.com/dapr/cli/utils"
 	"github.com/dapr/dapr/pkg/components"
 	modes "github.com/dapr/dapr/pkg/config/modes"
 )
 
 const (
-	componentsDirName      = "components"
 	messageBusYamlFileName = "pubsub.yaml"
 	stateStoreYamlFileName = "statestore.yaml"
 	sentryDefaultAddress   = "localhost:50001"
@@ -33,21 +31,20 @@ const (
 
 // RunConfig represents the application configuration parameters.
 type RunConfig struct {
-	AppID                 string
-	AppPort               int
-	HTTPPort              int
-	GRPCPort              int
-	ConfigFile            string
-	Protocol              string
-	Arguments             []string
-	EnableProfiling       bool
-	ProfilePort           int
-	LogLevel              string
-	MaxConcurrency        int
-	RedisHost             string
-	PlacementHost         string
-	ComponentsPath        string
-	EnableJSONSecretStore bool
+	AppID           string
+	AppPort         int
+	HTTPPort        int
+	GRPCPort        int
+	ConfigFile      string
+	Protocol        string
+	Arguments       []string
+	EnableProfiling bool
+	ProfilePort     int
+	LogLevel        string
+	MaxConcurrency  int
+	RedisHost       string
+	PlacementHost   string
+	ComponentsPath  string
 }
 
 // RunOutput represents the run output.
@@ -76,7 +73,7 @@ type componentMetadataItem struct {
 	Value string `yaml:"value"`
 }
 
-func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort int, configFile, protocol string, enableProfiling bool, profilePort int, logLevel string, maxConcurrency int, placementHost string) (*exec.Cmd, int, int, int, error) {
+func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort int, configFile, protocol string, enableProfiling bool, profilePort int, logLevel string, maxConcurrency int, placementHost string, componentsPath string) (*exec.Cmd, int, int, int, error) {
 	if daprHTTPPort < 0 {
 		port, err := freeport.GetFreePort()
 		if err != nil {
@@ -109,7 +106,7 @@ func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort in
 		return nil, -1, -1, -1, err
 	}
 
-	args := []string{"--app-id", appID, "--dapr-http-port", fmt.Sprintf("%v", daprHTTPPort), "--dapr-grpc-port", fmt.Sprintf("%v", daprGRPCPort), "--log-level", logLevel, "--max-concurrency", fmt.Sprintf("%v", maxConcurrency), "--protocol", protocol, "--metrics-port", fmt.Sprintf("%v", metricsPort)}
+	args := []string{"--app-id", appID, "--dapr-http-port", fmt.Sprintf("%v", daprHTTPPort), "--dapr-grpc-port", fmt.Sprintf("%v", daprGRPCPort), "--log-level", logLevel, "--max-concurrency", fmt.Sprintf("%v", maxConcurrency), "--protocol", protocol, "--metrics-port", fmt.Sprintf("%v", metricsPort), "--components-path", componentsPath}
 	if appPort > -1 {
 		args = append(args, "--app-port", fmt.Sprintf("%v", appPort))
 	}
@@ -182,15 +179,6 @@ func getAppCommand(httpPort, grpcPort, metricsPort int, command string, args []s
 		fmt.Sprintf("DAPR_METRICS_PORT=%v", metricsPort))
 
 	return cmd, nil
-}
-
-func absoluteComponentsDir() (string, error) {
-	wd, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-
-	return filepath.Join(wd, componentsDirName), nil
 }
 
 func createRedisStateStore(redisHost string, componentsPath string) error {
@@ -271,6 +259,11 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		appID = strings.Replace(sillyname.GenerateStupidName(), " ", "-", -1)
 	}
 
+	_, err := os.Stat(config.ComponentsPath)
+	if err != nil {
+		return nil, err
+	}
+
 	dapr, err := List()
 	if err != nil {
 		return nil, err
@@ -282,27 +275,7 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		}
 	}
 
-	var componentsPath string
-
-	if config.ComponentsPath == "" {
-		componentsPath, err = absoluteComponentsDir()
-		if err != nil {
-			return nil, err
-		}
-
-		err = utils.CreateDirectory(componentsPath)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		_, err = os.Stat(config.ComponentsPath)
-		if os.IsNotExist(err) {
-			return nil, err
-		}
-		componentsPath = config.ComponentsPath
-	}
-
-	componentsLoader := components.NewStandaloneComponents(modes.StandaloneConfig{ComponentsPath: componentsPath})
+	componentsLoader := components.NewStandaloneComponents(modes.StandaloneConfig{ComponentsPath: config.ComponentsPath})
 	components, err := componentsLoader.LoadComponents()
 	if err != nil {
 		return nil, err
@@ -320,24 +293,20 @@ func Run(config *RunConfig) (*RunOutput, error) {
 	}
 
 	if stateStore == "" {
-		err = createRedisStateStore(config.RedisHost, componentsPath)
+		err = createRedisStateStore(config.RedisHost, config.ComponentsPath)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	if pubSub == "" {
-		err = createRedisPubSub(config.RedisHost, componentsPath)
+		err = createRedisPubSub(config.RedisHost, config.ComponentsPath)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	if config.EnableJSONSecretStore {
-		os.Setenv("DAPR_ENABLE_JSON_SECRET_STORE", "1")
-	}
-
-	daprCMD, daprHTTPPort, daprGRPCPort, metricsPort, err := getDaprCommand(appID, config.HTTPPort, config.GRPCPort, config.AppPort, config.ConfigFile, config.Protocol, config.EnableProfiling, config.ProfilePort, config.LogLevel, config.MaxConcurrency, config.PlacementHost)
+	daprCMD, daprHTTPPort, daprGRPCPort, metricsPort, err := getDaprCommand(appID, config.HTTPPort, config.GRPCPort, config.AppPort, config.ConfigFile, config.Protocol, config.EnableProfiling, config.ProfilePort, config.LogLevel, config.MaxConcurrency, config.PlacementHost, config.ComponentsPath)
 	if err != nil {
 		return nil, err
 	}

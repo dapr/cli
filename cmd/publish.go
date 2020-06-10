@@ -33,7 +33,7 @@ var PublishCmd = &cobra.Command{
 
 func init() {
 	PublishCmd.Flags().StringVarP(&publishTopic, "topic", "t", "", "the topic the app is listening on")
-	PublishCmd.Flags().StringVarP(&publishPayload, "payload", "p", "", "(optional) a json payload")
+	PublishCmd.Flags().StringVarP(&publishPayload, "data", "d", "", "(optional) a json serialized string")
 	PublishCmd.MarkFlagRequired("app-id")
 	PublishCmd.MarkFlagRequired("topic")
 	RootCmd.AddCommand(PublishCmd)

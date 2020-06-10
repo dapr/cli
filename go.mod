@@ -7,7 +7,7 @@ require (
 	github.com/Pallinder/sillyname-go v0.0.0-20130730142914-97aeae9e6ba1
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/briandowns/spinner v1.6.1
-	github.com/dapr/dapr v0.3.0-rc.0.0.20200203194726-e540a7166aea
+	github.com/dapr/dapr v0.7.1
 	github.com/docker/distribution v2.7.1+incompatible // indirect
 	github.com/docker/docker v1.13.1
 	github.com/docker/go-connections v0.4.0 // indirect
@@ -16,6 +16,7 @@ require (
 	github.com/go-ole/go-ole v1.2.4 // indirect
 	github.com/gocarina/gocsv v0.0.0-20190426105157-2fc85fcf0c07
 	github.com/hashicorp/go-retryablehttp v0.5.3
+	github.com/imdario/mergo v0.3.7 // indirect
 	github.com/mattn/go-colorable v0.1.6 // indirect
 	github.com/mattn/go-runewidth v0.0.8 // indirect
 	github.com/mitchellh/go-ps v0.0.0-20190716172923-621e5597135b
@@ -28,7 +29,7 @@ require (
 	github.com/spf13/cobra v0.0.6
 	github.com/spf13/viper v1.5.0
 	github.com/stretchr/testify v1.4.0
-	golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527 // indirect
+	golang.org/x/time v0.0.0-20190921001708-c4c64cad1fd0 // indirect
 	gopkg.in/yaml.v2 v2.2.8
 	k8s.io/api v0.17.0
 	k8s.io/apimachinery v0.17.0

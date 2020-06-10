@@ -122,7 +122,7 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string) e
 	errorChan := make(chan error)
 
 	initSteps := []func(*sync.WaitGroup, chan<- error, string, string, string, string){}
-	initSteps = append(initSteps, installDaprBinary, runPlacementService, runRedis)
+	initSteps = append(initSteps, installDaprBinary, createComponentsDir, runPlacementService, runRedis)
 
 	wg.Add(len(initSteps))
 
@@ -187,7 +187,12 @@ func getDownloadDest(installLocation string) (string, error) {
 		p = path.Join(usr.HomeDir, ".dapr")
 	}
 
-	err := os.MkdirAll(p, 0700)
+	err := os.MkdirAll(p, 0777)
+	if err != nil {
+		return "", err
+	}
+
+	err = os.Chmod(p, 0777)
 	if err != nil {
 		return "", err
 	}
@@ -389,6 +394,22 @@ func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version 
 	errorChan <- nil
 }
 
+func createComponentsDir(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string) {
+	defer wg.Done()
+
+	// Make default components directory
+	componentsDir := GetDefaultComponentsFolder()
+	_, err := os.Stat(componentsDir)
+	if os.IsNotExist(err) {
+		errDir := os.MkdirAll(componentsDir, 0777)
+		if errDir != nil {
+			errorChan <- fmt.Errorf("error creating default components folder: %s", errDir)
+			return
+		}
+	}
+	os.Chmod(componentsDir, 0777)
+}
+
 func makeExecutable(filepath string) error {
 	if runtime.GOOS != daprWindowsOS {
 		err := os.Chmod(filepath, 0777)
@@ -531,7 +552,8 @@ func moveFileToPath(filepath string, installLocation string) (string, error) {
 		p := os.Getenv("PATH")
 
 		if !strings.Contains(strings.ToLower(p), strings.ToLower(destDir)) {
-			_, err := utils.RunCmdAndWait("SETX", "PATH", p+fmt.Sprintf(";%s", destDir))
+			pathCmd := "[System.Environment]::SetEnvironmentVariable('Path',[System.Environment]::GetEnvironmentVariable('Path','user') + '" + fmt.Sprintf(";%s", destDir) + "', 'user')"
+			_, err := utils.RunCmdAndWait("powershell", pathCmd)
 			if err != nil {
 				return "", err
 			}

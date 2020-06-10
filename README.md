@@ -60,7 +60,7 @@ $ dapr init
 ✅  Success! Dapr is up and running
 ```
 
-> Note: To see that Dapr has been installed successful, from a command prompt run the `docker ps` command and check that the `daprio/dapr:latest` and `redis` container images are both running.
+> Note: To see that Dapr has been installed successfully, from a command prompt run the `docker ps` command and check that the `daprio/dapr:latest` and `redis` container images are both running. Also, this step creates a default components folder which is later used at runtime unless the --components-path option is provided. For Linux/MacOS, the default components folder path is $HOME/.dapr/components and for Windows it is %USERPROFILE%\.dapr\components.
 
 #### Install a specific runtime version
 
@@ -207,16 +207,16 @@ Publish a message:
 $ dapr publish --topic myevent
 ```
 
-Publish a message with a payload:
+Publish a message:
 
 * Linux/Mac
 ```bash
-$ dapr publish --topic myevent --payload '{ "name": "yoda" }'
+$ dapr publish --topic myevent --data '{ "name": "yoda" }'
 ```
 
 * Windows
 ```bash
-C:> dapr publish --topic myevent --payload "{ \"name\": \"yoda\" }"
+C:> dapr publish --topic myevent --data "{ \"name\": \"yoda\" }"
 ```
 
 ### Invoking
@@ -229,6 +229,8 @@ Launch Dapr and your app:
 ```
 $ dapr run --app-id nodeapp --app-port 3000 node app.js
 ```
+
+Note: To choose a non-default components folder, use the --components-path option.
 
 Invoke your app:
 
@@ -274,6 +276,14 @@ To list all Dapr components on Kubernetes:
 $ dapr components --kubernetes
 ```
 
+### Use non-default Components Path
+
+To use a custom path for component definitions
+
+```
+$ dapr run --components-path [custom path]
+```
+
 
 ### List Configurations
 
@@ -289,9 +299,12 @@ Use ```dapr list``` to get a list of all running instances.
 To stop a Dapr app on your machine:
 
 ```
-$ dapr stop --app-id myAppID
+$ dapr stop myAppID
 ```
-
+You can also stop multiple Dapr apps
+```
+$ dapr stop myAppID1 myAppID2
+```
 ### Enable profiling
 
 In order to enable profiling, use the `enable-profiling` flag:

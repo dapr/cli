@@ -30,7 +30,25 @@ func assertArgument(t *testing.T, key string, expectedValue string, args []strin
 	assert.Equal(t, expectedValue, value)
 }
 
+func setupRun(t *testing.T) {
+	componentsDir := GetDefaultComponentsFolder()
+	err := os.MkdirAll(componentsDir, 0700)
+	assert.Equal(t, nil, err, "Unable to setup components dir before running test")
+}
+
+func tearDownRun(t *testing.T) {
+	componentsDir := GetDefaultComponentsFolder()
+	err := os.RemoveAll(componentsDir)
+	assert.Equal(t, nil, err, "Unable to delete components dir after running test")
+}
+
 func TestRun(t *testing.T) {
+	// Setup the components directory which is done at init time
+	setupRun(t)
+
+	// Setup the tearDown routine to run in the end
+	defer tearDownRun(t)
+
 	t.Run("run happy http", func(t *testing.T) {
 		output, err := Run(&RunConfig{
 			AppID:           "MyID",
@@ -44,6 +62,7 @@ func TestRun(t *testing.T) {
 			Protocol:        "http",
 			RedisHost:       "localhost",
 			PlacementHost:   "localhost",
+			ComponentsPath:  GetDefaultComponentsFolder(),
 		})
 
 		assert.Nil(t, err)
@@ -61,7 +80,7 @@ func TestRun(t *testing.T) {
 		assertArgument(t, "max-concurrency", "-1", output.DaprCMD.Args)
 		assertArgument(t, "protocol", "http", output.DaprCMD.Args)
 		assertArgument(t, "app-port", "3000", output.DaprCMD.Args)
-		assertArgument(t, "components-path", "", output.DaprCMD.Args)
+		assertArgument(t, "components-path", GetDefaultComponentsFolder(), output.DaprCMD.Args)
 		if runtime.GOOS == "windows" {
 			assertArgument(t, "placement-address", "localhost:6050", output.DaprCMD.Args)
 		} else {
@@ -84,6 +103,7 @@ func TestRun(t *testing.T) {
 			Protocol:        "http",
 			RedisHost:       "localhost",
 			PlacementHost:   "localhost",
+			ComponentsPath:  GetDefaultComponentsFolder(),
 		})
 
 		assert.Nil(t, err)
@@ -101,7 +121,7 @@ func TestRun(t *testing.T) {
 		assertArgument(t, "max-concurrency", "-1", output.DaprCMD.Args)
 		assertArgument(t, "protocol", "http", output.DaprCMD.Args)
 		assertArgument(t, "app-port", "3000", output.DaprCMD.Args)
-		assertArgument(t, "components-path", "", output.DaprCMD.Args)
+		assertArgument(t, "components-path", GetDefaultComponentsFolder(), output.DaprCMD.Args)
 		if runtime.GOOS == "windows" {
 			assertArgument(t, "placement-address", "localhost:6050", output.DaprCMD.Args)
 		} else {
@@ -109,48 +129,5 @@ func TestRun(t *testing.T) {
 		}
 
 		assert.Nil(t, output.AppCMD)
-	})
-
-	t.Run("run enabling json secret store", func(t *testing.T) {
-		output, err := Run(&RunConfig{
-			AppID:                 "MyID",
-			AppPort:               3000,
-			HTTPPort:              8000,
-			GRPCPort:              50001,
-			LogLevel:              "WARN",
-			Arguments:             []string{"MyCommand", "--my-arg"},
-			EnableProfiling:       false,
-			ProfilePort:           9090,
-			Protocol:              "http",
-			RedisHost:             "localhost",
-			PlacementHost:         "localhost",
-			EnableJSONSecretStore: true,
-		})
-
-		assert.Nil(t, err)
-		assert.NotNil(t, output)
-
-		assert.Equal(t, "MyID", output.AppID)
-		assert.Equal(t, 8000, output.DaprHTTPPort)
-		assert.Equal(t, 50001, output.DaprGRPCPort)
-
-		assert.Contains(t, output.DaprCMD.Args[0], "daprd")
-		assertArgument(t, "app-id", "MyID", output.DaprCMD.Args)
-		assertArgument(t, "dapr-http-port", "8000", output.DaprCMD.Args)
-		assertArgument(t, "dapr-grpc-port", "50001", output.DaprCMD.Args)
-		assertArgument(t, "log-level", "WARN", output.DaprCMD.Args)
-		assertArgument(t, "max-concurrency", "-1", output.DaprCMD.Args)
-		assertArgument(t, "protocol", "http", output.DaprCMD.Args)
-		assertArgument(t, "app-port", "3000", output.DaprCMD.Args)
-		assertArgument(t, "components-path", "", output.DaprCMD.Args)
-		if runtime.GOOS == "windows" {
-			assertArgument(t, "placement-address", "localhost:6050", output.DaprCMD.Args)
-		} else {
-			assertArgument(t, "placement-address", "localhost:50005", output.DaprCMD.Args)
-		}
-
-		assert.Equal(t, "MyCommand", output.AppCMD.Args[0])
-		assert.Equal(t, "--my-arg", output.AppCMD.Args[1])
-		assert.Equal(t, "1", os.Getenv("DAPR_ENABLE_JSON_SECRET_STORE"))
 	})
 }
