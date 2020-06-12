@@ -18,7 +18,7 @@ var MTLSCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		enabled, err := kubernetes.IsMTLSEnabled()
 		if err != nil {
-			fmt.Println(fmt.Sprintf("error checking mTLS: %s", err))
+			fmt.Printf("error checking mTLS: %s \n", err)
 			return
 		}
 
@@ -26,7 +26,7 @@ var MTLSCmd = &cobra.Command{
 		if enabled {
 			status = "enabled"
 		}
-		fmt.Println(fmt.Sprintf("Mutual TLS is %s in your Kubernetes cluster", status))
+		fmt.Printf("Mutual TLS is %s in your Kubernetes cluster \n", status)
 	},
 }
 

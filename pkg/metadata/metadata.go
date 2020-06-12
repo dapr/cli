@@ -34,7 +34,7 @@ func Put(httpPort int, key, value string) error {
 	client := retryablehttp.NewClient()
 	client.Logger = nil
 	url := makeMetadataPutEndpoint(httpPort, key)
-	// nolint:gosec
+
 	req, err := retryablehttp.NewRequest("PUT", url, strings.NewReader(value))
 	if err != nil {
 		return err

@@ -211,6 +211,7 @@ func createRedisStateStore(redisHost string, componentsPath string) error {
 
 	filePath := filepath.Join(componentsPath, stateStoreYamlFileName)
 	fmt.Printf("WARNING: Redis State Store file is being overwritten: %s\n", filePath)
+	// #nosec G306
 	err = ioutil.WriteFile(filePath, b, 0644)
 	if err != nil {
 		return err
@@ -245,6 +246,7 @@ func createRedisPubSub(redisHost string, componentsPath string) error {
 
 	filePath := filepath.Join(componentsPath, messageBusYamlFileName)
 	fmt.Printf("WARNING: Redis PubSub file is being overwritten: %s\n", filePath)
+	// #nosec G306
 	err = ioutil.WriteFile(filePath, b, 0644)
 	if err != nil {
 		return err
