@@ -1,13 +1,13 @@
-# dapr invoke
+# dapr invokeGet
 
 ## Description
 
-Invokes a Dapr app with an optional payload (deprecated, use invokePost)
+Issue HTTP GET to Dapr app
 
 ## Usage
 
 ```bash
-dapr invoke [flags]
+dapr invokeGet [flags]
 ```
 
 ## Flags
@@ -15,6 +15,5 @@ dapr invoke [flags]
 | Name | Environment Variable | Default | Description
 | --- | --- | --- | --- |
 | `--app-id`, `-a` | | | The app ID to invoke |
-| `--help`, `-h` | | | Help for invoke |
+| `--help`, `-h` | | | Help for invokeGet |
 | `--method`, `-m` | | | The method to invoke |
-| `--payload`, `-p` | | | (optional) a json payload |
