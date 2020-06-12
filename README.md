@@ -181,7 +181,7 @@ $ dapr run --app-id nodeapp --app-port 3000 --grpc-port 50002 node app.js
 Example of launching Dapr within a specific Docker network:
 
 ```bash
-$ dapr init --redis-host dapr_redis
+$ dapr init --redis-host dapr_redis --network dapr-network
 $ dapr run --app-id nodeapp --placement-host dapr_placement node app.js
 ```
 
