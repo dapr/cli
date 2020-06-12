@@ -196,7 +196,12 @@ func getDownloadDest(installLocation string) (string, error) {
 		p = path.Join(usr.HomeDir, ".dapr")
 	}
 
-	err := os.MkdirAll(p, 0700)
+	err := os.MkdirAll(p, 0777)
+	if err != nil {
+		return "", err
+	}
+
+	err = os.Chmod(p, 0777)
 	if err != nil {
 		return "", err
 	}
@@ -405,13 +410,14 @@ func createComponentsDir(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 	componentsDir := GetDefaultComponentsFolder()
 	_, err := os.Stat(componentsDir)
 	if os.IsNotExist(err) {
-		errDir := os.MkdirAll(componentsDir, 0755)
+		errDir := os.MkdirAll(componentsDir, 0777)
 		if errDir != nil {
 			errorChan <- fmt.Errorf("error creating default components folder: %s", errDir)
 			return
 		}
 	}
 
+	os.Chmod(componentsDir, 0777)
 	createRedisPubSub(redisHost, componentsDir)
 	createRedisStateStore(redisHost, componentsDir)
 }
