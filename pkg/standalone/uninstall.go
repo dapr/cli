@@ -62,7 +62,7 @@ func removeContainers(uninstallAll bool, dockerNetwork string) []error {
 }
 
 func removeDefaultDaprDir(uninstallAll bool) (string, error) {
-	if uninstallAll == false {
+	if !uninstallAll {
 		return "", nil
 	}
 	defaultDaprPath := GetDefaultFolderPath(defaultDaprDirName)
