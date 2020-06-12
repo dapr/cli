@@ -6,15 +6,25 @@ import (
 	"runtime"
 )
 
-// getDefaultComponentsFolder returns the hidden .components folder created at init time
-func GetDefaultComponentsFolder() string {
-	const daprDirName = ".dapr"
-	const componentsDirName = "components"
-	daprDirPath := os.Getenv("HOME")
-	if runtime.GOOS == daprWindowsOS {
-		daprDirPath = os.Getenv("USERPROFILE")
-	}
+const (
+	defaultDaprDirName       = ".dapr"
+	DefaultComponentsDirName = "components"
+	defaultConfigDirName     = "config"
+)
 
-	defaultComponentsPath := path_filepath.Join(daprDirPath, daprDirName, componentsDirName)
-	return defaultComponentsPath
+func getHomeFolder() string {
+	homePath := os.Getenv("HOME")
+	if runtime.GOOS == daprWindowsOS {
+		homePath = os.Getenv("USERPROFILE")
+	}
+	return homePath
+}
+
+// GetDefaultFolderPath returns the default requested path to the requested path
+func GetDefaultFolderPath(dirName string) string {
+	homePath := getHomeFolder()
+	if dirName == defaultDaprDirName {
+		return path_filepath.Join(homePath, defaultDaprDirName)
+	}
+	return path_filepath.Join(homePath, defaultDaprDirName, dirName)
 }

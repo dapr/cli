@@ -26,6 +26,9 @@ import (
 const (
 	messageBusYamlFileName = "pubsub.yaml"
 	stateStoreYamlFileName = "statestore.yaml"
+	zipkinYamlFileName     = "zipkin.yaml"
+	zipkinDefaultHost      = "localhost"
+	defaultConfigFileName  = "default.yaml"
 	sentryDefaultAddress   = "localhost:50001"
 )
 
@@ -54,6 +57,19 @@ type RunOutput struct {
 	DaprGRPCPort int
 	AppID        string
 	AppCMD       *exec.Cmd
+}
+
+type configuration struct {
+	APIVersion string `yaml:"apiVersion"`
+	Kind       string `yaml:"kind"`
+	Metadata   struct {
+		Name string `yaml:"name"`
+	} `yaml:"metadata"`
+	Spec struct {
+		Tracing struct {
+			SamplingRate string `yaml:"samplingRate"`
+		} `yaml:"tracing"`
+	} `yaml:"spec"`
 }
 
 type component struct {
@@ -181,6 +197,65 @@ func getAppCommand(httpPort, grpcPort, metricsPort int, command string, args []s
 	return cmd, nil
 }
 
+func createDefaultConfigurtion(configFilePath string) error {
+	defaultConfig := configuration{
+		APIVersion: "dapr.io/v1alpha1",
+		Kind:       "Configuration",
+	}
+	defaultConfig.Metadata.Name = "daprConfig"
+	defaultConfig.Spec.Tracing.SamplingRate = "1"
+
+	b, err := yaml.Marshal(&defaultConfig)
+	if err != nil {
+		return err
+	}
+
+	_, err = os.Stat(configFilePath)
+	if os.IsNotExist(err) {
+		err = ioutil.WriteFile(configFilePath, b, 0644)
+		if err != nil {
+			return err
+		}
+	} else {
+		fmt.Printf("default configuration file exists at %s", configFilePath)
+	}
+
+	return nil
+}
+
+func createZipkinComponent(zipkinHost string, componentsPath string) error {
+	zipKinComponent := component{
+		APIVersion: "dapr.io/v1alpha1",
+		Kind:       "Component",
+	}
+	zipKinComponent.Metadata.Name = "zipkin"
+	zipKinComponent.Spec.Type = "exporters.zipkin"
+	zipKinComponent.Spec.Metadata = []componentMetadataItem{
+		{
+			Name:  "enabled",
+			Value: "true",
+		},
+		{
+			Name:  "exporterAddress",
+			Value: fmt.Sprintf("http://%s:9411/api/v2/spans", zipkinHost),
+		},
+	}
+
+	b, err := yaml.Marshal(&zipKinComponent)
+	if err != nil {
+		return err
+	}
+
+	filePath := filepath.Join(componentsPath, zipkinYamlFileName)
+	fmt.Printf("WARNING: Zipkin Component configuration file is being overwritten: %s\n", filePath)
+	err = ioutil.WriteFile(filePath, b, 0644)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func createRedisStateStore(redisHost string, componentsPath string) error {
 	redisStore := component{
 		APIVersion: "dapr.io/v1alpha1",
@@ -281,7 +356,12 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		return nil, err
 	}
 
-	var stateStore, pubSub string
+	configFile, err := getConfigFilePath(config)
+	if err != nil {
+		return nil, err
+	}
+
+	var stateStore, pubSub, zipkin string
 
 	for _, component := range components {
 		if strings.HasPrefix(component.Spec.Type, "state") {
@@ -289,6 +369,9 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		}
 		if strings.HasPrefix(component.Spec.Type, "pubsub") {
 			pubSub = component.Spec.Type
+		}
+		if strings.HasPrefix(component.Spec.Type, "exporters.zipkin") {
+			zipkin = component.Spec.Type
 		}
 	}
 
@@ -306,7 +389,14 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		}
 	}
 
-	daprCMD, daprHTTPPort, daprGRPCPort, metricsPort, err := getDaprCommand(appID, config.HTTPPort, config.GRPCPort, config.AppPort, config.ConfigFile, config.Protocol, config.EnableProfiling, config.ProfilePort, config.LogLevel, config.MaxConcurrency, config.PlacementHost, config.ComponentsPath)
+	if zipkin == "" {
+		err = createZipkinComponent(zipkinDefaultHost, config.ComponentsPath)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	daprCMD, daprHTTPPort, daprGRPCPort, metricsPort, err := getDaprCommand(appID, config.HTTPPort, config.GRPCPort, config.AppPort, configFile, config.Protocol, config.EnableProfiling, config.ProfilePort, config.LogLevel, config.MaxConcurrency, config.PlacementHost, config.ComponentsPath)
 	if err != nil {
 		return nil, err
 	}
@@ -342,4 +432,17 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		DaprHTTPPort: daprHTTPPort,
 		DaprGRPCPort: daprGRPCPort,
 	}, nil
+}
+
+func getConfigFilePath(config *RunConfig) (string, error) {
+	if config.ConfigFile == "" {
+		configPath := GetDefaultFolderPath(defaultConfigDirName)
+		filePath := filepath.Join(configPath, defaultConfigFileName)
+		err := createDefaultConfigurtion(filePath)
+		fmt.Printf("INFO: using default configuration file  %s \n", filePath)
+		return filePath, err
+	}
+
+	_, err := os.Stat(config.ConfigFile)
+	return config.ConfigFile, err
 }

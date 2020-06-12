@@ -44,6 +44,8 @@ const (
 	DaprPlacementContainerName = "dapr_placement"
 	// DaprRedisContainerName is the container name of redis
 	DaprRedisContainerName = "dapr_redis"
+	// DaprZipkinContainerName is the container name of zipkin
+	DaprZipkinContainerName = "dapr_zipkin"
 )
 
 func isInstallationRequired(installLocation, requestedVersion string) bool {
@@ -122,7 +124,8 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string) e
 	errorChan := make(chan error)
 
 	initSteps := []func(*sync.WaitGroup, chan<- error, string, string, string, string){}
-	initSteps = append(initSteps, installDaprBinary, createComponentsDir, runPlacementService, runRedis)
+	initSteps = append(initSteps, installDaprBinary, createComponentsDir, runPlacementService, runRedis, runZipkin)
+	dockerContainerNames := []string{DaprPlacementContainerName, DaprRedisContainerName, DaprZipkinContainerName}
 
 	wg.Add(len(initSteps))
 
@@ -158,13 +161,18 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string) e
 
 	if s != nil {
 		s.Stop()
-		err = confirmContainerIsRunning(utils.CreateContainerName(DaprRedisContainerName, dockerNetwork))
+	}
+
+	print.SuccessStatusEvent(os.Stdout, msg)
+	print.InfoStatusEvent(os.Stdout, "%s binary has been installed.\n", daprRuntimeFilePrefix)
+	for _, container := range dockerContainerNames {
+		err = confirmContainerIsRunning(utils.CreateContainerName(container, dockerNetwork))
 		if err != nil {
 			return err
 		}
-		print.SuccessStatusEvent(os.Stdout, msg)
+		print.InfoStatusEvent(os.Stdout, "%s container is running.\n", container)
 	}
-
+	print.InfoStatusEvent(os.Stdout, "Use `docker ps` to check running containers.\n")
 	return nil
 }
 
@@ -198,6 +206,44 @@ func getDownloadDest(installLocation string) (string, error) {
 	}
 
 	return p, nil
+}
+
+// installLocation is not used, but it is present because it's required to fit the initSteps func above.
+// If the number of args increases more, we may consider passing in a struct instead of individual args.
+func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string) {
+	defer wg.Done()
+
+	args := []string{
+		"run",
+		"--name", utils.CreateContainerName(DaprZipkinContainerName, dockerNetwork),
+		"--restart", "always",
+		"-d",
+	}
+
+	if dockerNetwork != "" {
+		args = append(
+			args,
+			"--network", dockerNetwork,
+			"--network-alias", DaprRedisContainerName)
+	} else {
+		args = append(
+			args,
+			"-p", "9411:9411")
+	}
+
+	args = append(args, "openzipkin/zipkin")
+	_, err := utils.RunCmdAndWait("docker", args...)
+
+	if err != nil {
+		runError := isContainerRunError(err)
+		if !runError {
+			errorChan <- parseDockerError("Zipkin tracing", err)
+		} else {
+			errorChan <- fmt.Errorf("docker %s failed with: %v", args, err)
+		}
+		return
+	}
+	errorChan <- nil
 }
 
 // installLocation is not used, but it is present because it's required to fit the initSteps func above.
@@ -239,7 +285,6 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, d
 }
 
 func confirmContainerIsRunning(containerName string) error {
-
 	// e.g. docker ps --filter name=dapr_redis --filter status=running --format {{.Names}}
 
 	args := []string{"ps", "--filter", "name=" + containerName, "--filter", "status=running", "--format", "{{.Names}}"}
@@ -394,11 +439,12 @@ func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version 
 	errorChan <- nil
 }
 
+// rename function.
 func createComponentsDir(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string) {
 	defer wg.Done()
 
 	// Make default components directory
-	componentsDir := GetDefaultComponentsFolder()
+	componentsDir := GetDefaultFolderPath(DefaultComponentsDirName)
 	_, err := os.Stat(componentsDir)
 	if os.IsNotExist(err) {
 		errDir := os.MkdirAll(componentsDir, 0777)
@@ -407,7 +453,16 @@ func createComponentsDir(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 			return
 		}
 	}
-	os.Chmod(componentsDir, 0777)
+	// Make default config directory
+	configDir := GetDefaultFolderPath(defaultConfigDirName)
+	_, err = os.Stat(configDir)
+	if os.IsNotExist(err) {
+		errDir := os.MkdirAll(configDir, 0755)
+		if errDir != nil {
+			errorChan <- fmt.Errorf("error creating default config folder: %s", errDir)
+			return
+		}
+	}
 }
 
 func makeExecutable(filepath string) error {

@@ -31,13 +31,13 @@ func assertArgument(t *testing.T, key string, expectedValue string, args []strin
 }
 
 func setupRun(t *testing.T) {
-	componentsDir := GetDefaultComponentsFolder()
+	componentsDir := GetDefaultFolderPath(DefaultComponentsDirName)
 	err := os.MkdirAll(componentsDir, 0700)
 	assert.Equal(t, nil, err, "Unable to setup components dir before running test")
 }
 
 func tearDownRun(t *testing.T) {
-	componentsDir := GetDefaultComponentsFolder()
+	componentsDir := GetDefaultFolderPath(DefaultComponentsDirName)
 	err := os.RemoveAll(componentsDir)
 	assert.Equal(t, nil, err, "Unable to delete components dir after running test")
 }
@@ -62,7 +62,7 @@ func TestRun(t *testing.T) {
 			Protocol:        "http",
 			RedisHost:       "localhost",
 			PlacementHost:   "localhost",
-			ComponentsPath:  GetDefaultComponentsFolder(),
+			ComponentsPath:  GetDefaultFolderPath(DefaultComponentsDirName),
 		})
 
 		assert.Nil(t, err)
@@ -80,7 +80,7 @@ func TestRun(t *testing.T) {
 		assertArgument(t, "max-concurrency", "-1", output.DaprCMD.Args)
 		assertArgument(t, "protocol", "http", output.DaprCMD.Args)
 		assertArgument(t, "app-port", "3000", output.DaprCMD.Args)
-		assertArgument(t, "components-path", GetDefaultComponentsFolder(), output.DaprCMD.Args)
+		assertArgument(t, "components-path", GetDefaultFolderPath(DefaultComponentsDirName), output.DaprCMD.Args)
 		if runtime.GOOS == "windows" {
 			assertArgument(t, "placement-address", "localhost:6050", output.DaprCMD.Args)
 		} else {
@@ -103,7 +103,7 @@ func TestRun(t *testing.T) {
 			Protocol:        "http",
 			RedisHost:       "localhost",
 			PlacementHost:   "localhost",
-			ComponentsPath:  GetDefaultComponentsFolder(),
+			ComponentsPath:  GetDefaultFolderPath(DefaultComponentsDirName),
 		})
 
 		assert.Nil(t, err)
@@ -121,7 +121,7 @@ func TestRun(t *testing.T) {
 		assertArgument(t, "max-concurrency", "-1", output.DaprCMD.Args)
 		assertArgument(t, "protocol", "http", output.DaprCMD.Args)
 		assertArgument(t, "app-port", "3000", output.DaprCMD.Args)
-		assertArgument(t, "components-path", GetDefaultComponentsFolder(), output.DaprCMD.Args)
+		assertArgument(t, "components-path", GetDefaultFolderPath(DefaultComponentsDirName), output.DaprCMD.Args)
 		if runtime.GOOS == "windows" {
 			assertArgument(t, "placement-address", "localhost:6050", output.DaprCMD.Args)
 		} else {
