@@ -123,10 +123,6 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string, r
 		return err
 	}
 
-	if redisHost == "" {
-		redisHost = daprDefaultRedisHost
-	}
-
 	var wg sync.WaitGroup
 	errorChan := make(chan error)
 
@@ -211,8 +207,14 @@ func getDownloadDest(installLocation string) (string, error) {
 
 // installLocation is not used, but it is present because it's required to fit the initSteps func above.
 // If the number of args increases more, we may consider passing in a struct instead of individual args.
-func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string, _ string) {
+func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string, redisHost string) {
 	defer wg.Done()
+
+	if redisHost != daprDefaultRedisHost {
+		// A non-default Redis host is specified. No need to start the redis container
+		fmt.Printf("You have specified redis-host: %s. Make sure you have a redis server running there.\n", redisHost)
+		return
+	}
 
 	args := []string{
 		"run",
