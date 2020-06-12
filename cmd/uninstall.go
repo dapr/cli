@@ -27,13 +27,14 @@ var UninstallCmd = &cobra.Command{
 		viper.BindPFlag("network", cmd.Flags().Lookup("network"))
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		print.InfoStatusEvent(os.Stdout, "Removing Dapr from your cluster...")
 
 		var err error
 
 		if uninstallKubernetes {
+			print.InfoStatusEvent(os.Stdout, "Removing Dapr from your cluster...")
 			err = kubernetes.Uninstall()
 		} else {
+			print.InfoStatusEvent(os.Stdout, "Removing Dapr from your machine...")
 			dockerNetwork := viper.GetString("network")
 			err = standalone.Uninstall(uninstallAll, dockerNetwork)
 		}
