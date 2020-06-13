@@ -239,7 +239,6 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, d
 }
 
 func confirmContainerIsRunning(containerName string) error {
-
 	// e.g. docker ps --filter name=dapr_redis --filter status=running --format {{.Names}}
 
 	args := []string{"ps", "--filter", "name=" + containerName, "--filter", "status=running", "--format", "{{.Names}}"}
@@ -451,6 +450,7 @@ func unzip(filepath, targetDir string) (string, error) {
 		}
 		defer outputFile.Close()
 
+		// #nosec G110
 		_, err = io.Copy(outputFile, zippedFile)
 		if err != nil {
 			return "", err
@@ -503,6 +503,7 @@ func untar(filepath, targetDir string) (string, error) {
 				return "", err
 			}
 
+			// #nosec G110
 			if _, err := io.Copy(f, tr); err != nil {
 				return "", err
 			}
@@ -541,6 +542,7 @@ func moveFileToPath(filepath string, installLocation string) (string, error) {
 		return "", err
 	}
 
+	// #nosec G306
 	if err = ioutil.WriteFile(destFilePath, input, 0644); err != nil {
 		if runtime.GOOS != daprWindowsOS && strings.Contains(err.Error(), "permission denied") {
 			err = errors.New(err.Error() + " - please run with sudo")

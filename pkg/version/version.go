@@ -36,7 +36,6 @@ func GetRuntimeVersion() string {
 		return "n/a\n"
 	}
 	return string(out)
-
 }
 
 type githubRepoReleaseItem struct {
