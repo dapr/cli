@@ -417,6 +417,7 @@ func createComponentsDir(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 			return
 		}
 	}
+
 	os.Chmod(componentsDir, 0777)
 
 	createRedisPubSub(redisHost, componentsDir)
