@@ -5,16 +5,15 @@
 
 package kubernetes
 
-import(
+import (
 	"fmt"
 
 	"github.com/dapr/cli/utils"
 )
 
 func InitDashboard() error {
-	
-	var daprDashboardManifestPath string = "https://raw.githubusercontent.com/dapr/dashboard/master/deploy/dashboard.yaml"
 
+	var daprDashboardManifestPath string = "https://raw.githubusercontent.com/dapr/dashboard/master/deploy/dashboard.yaml"
 
 	_, err := utils.RunCmdAndWait("kubectl", "apply", "-f", daprDashboardManifestPath)
 	if err != nil {
