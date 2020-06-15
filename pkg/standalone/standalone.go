@@ -655,10 +655,11 @@ func createRedisStateStore(redisHost string, componentsPath string) error {
 	}
 
 	filePath := filepath.Join(componentsPath, stateStoreYamlFileName)
-	err = ioutil.WriteFile(filePath, b, 0644)
+	err = ioutil.WriteFile(filePath, b, 0600)
 	if err != nil {
 		return err
-	}
+  	}
+        os.Chmod(filePath, 0644)
 
 	return nil
 }
@@ -688,10 +689,11 @@ func createRedisPubSub(redisHost string, componentsPath string) error {
 	}
 
 	filePath := filepath.Join(componentsPath, pubSubYamlFileName)
-	err = ioutil.WriteFile(filePath, b, 0644)
+	err = ioutil.WriteFile(filePath, b, 0600)
 	if err != nil {
 		return err
 	}
+        os.Chmod(filePath, 0644)
 
 	return nil
 }
