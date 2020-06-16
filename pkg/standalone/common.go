@@ -28,3 +28,9 @@ func GetDefaultFolderPath(dirName string) string {
 	}
 	return path_filepath.Join(homePath, defaultDaprDirName, dirName)
 }
+
+func GetDefaultConfigFilePath() string {
+	configPath := GetDefaultFolderPath(defaultConfigDirName)
+	filePath := path_filepath.Join(configPath, defaultConfigFileName)
+	return filePath
+}

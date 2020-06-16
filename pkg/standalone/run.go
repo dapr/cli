@@ -10,7 +10,6 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -187,12 +186,7 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		return nil, err
 	}
 
-	configFile, err := getConfigFilePath(config)
-	if err != nil {
-		return nil, err
-	}
-
-	daprCMD, daprHTTPPort, daprGRPCPort, metricsPort, err := getDaprCommand(appID, config.HTTPPort, config.GRPCPort, config.AppPort, configFile, config.Protocol, config.EnableProfiling, config.ProfilePort, config.LogLevel, config.MaxConcurrency, config.PlacementHost, config.ComponentsPath)
+	daprCMD, daprHTTPPort, daprGRPCPort, metricsPort, err := getDaprCommand(appID, config.HTTPPort, config.GRPCPort, config.AppPort, config.ConfigFile, config.Protocol, config.EnableProfiling, config.ProfilePort, config.LogLevel, config.MaxConcurrency, config.PlacementHost, config.ComponentsPath)
 
 	if err != nil {
 		return nil, err
@@ -229,17 +223,4 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		DaprHTTPPort: daprHTTPPort,
 		DaprGRPCPort: daprGRPCPort,
 	}, nil
-}
-
-func getConfigFilePath(config *RunConfig) (string, error) {
-	if config.ConfigFile == "" {
-		configPath := GetDefaultFolderPath(defaultConfigDirName)
-		filePath := filepath.Join(configPath, defaultConfigFileName)
-		_, err := os.Stat(filePath)
-		fmt.Printf("INFO: using default configuration file  %s \n", filePath)
-		return filePath, err
-	}
-
-	_, err := os.Stat(config.ConfigFile)
-	return config.ConfigFile, err
 }

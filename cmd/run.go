@@ -234,7 +234,7 @@ Run sidecar only:
 func init() {
 	RunCmd.Flags().IntVarP(&appPort, "app-port", "", -1, "the port your application is listening on")
 	RunCmd.Flags().StringVarP(&appID, "app-id", "", "", "an id for your application, used for service discovery")
-	RunCmd.Flags().StringVarP(&configFile, "config", "", "", "Dapr configuration file")
+	RunCmd.Flags().StringVarP(&configFile, "config", "", standalone.GetDefaultConfigFilePath(), "Dapr configuration file. Default is ~/.dapr/config/default.yaml or %USERPROFILE%\\.dapr\\config\\default.yaml")
 	RunCmd.Flags().IntVarP(&port, "port", "p", -1, "the HTTP port for Dapr to listen on")
 	RunCmd.Flags().IntVarP(&grpcPort, "grpc-port", "", -1, "the gRPC port for Dapr to listen on")
 	RunCmd.Flags().StringVarP(&image, "image", "", "", "the image to build the code in. input is repository/image")
