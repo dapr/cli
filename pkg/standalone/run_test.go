@@ -60,7 +60,6 @@ func TestRun(t *testing.T) {
 			EnableProfiling: false,
 			ProfilePort:     9090,
 			Protocol:        "http",
-			RedisHost:       "localhost",
 			PlacementHost:   "localhost",
 			ComponentsPath:  GetDefaultComponentsFolder(),
 		})
@@ -101,7 +100,6 @@ func TestRun(t *testing.T) {
 			EnableProfiling: false,
 			ProfilePort:     9090,
 			Protocol:        "http",
-			RedisHost:       "localhost",
 			PlacementHost:   "localhost",
 			ComponentsPath:  GetDefaultComponentsFolder(),
 		})

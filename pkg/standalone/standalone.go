@@ -18,6 +18,7 @@ import (
 	"os/exec"
 	"os/user"
 	"path"
+	"path/filepath"
 	path_filepath "path/filepath"
 	"runtime"
 	"strings"
@@ -25,6 +26,7 @@ import (
 	"time"
 
 	"github.com/fatih/color"
+	"gopkg.in/yaml.v2"
 
 	"github.com/briandowns/spinner"
 	"github.com/dapr/cli/pkg/print"
@@ -39,6 +41,9 @@ const (
 	daprLatestVersion                 = "latest"
 	daprDefaultLinuxAndMacInstallPath = "/usr/local/bin"
 	daprDefaultWindowsInstallPath     = "c:\\dapr"
+	daprDefaultRedisHost              = "localhost"
+	pubSubYamlFileName                = "pubsub.yaml"
+	stateStoreYamlFileName            = "statestore.yaml"
 
 	// DaprPlacementContainerName is the container name of placement service
 	DaprPlacementContainerName = "dapr_placement"
@@ -107,7 +112,7 @@ func isInstallationRequired(installLocation, requestedVersion string) bool {
 }
 
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
-func Init(runtimeVersion string, dockerNetwork string, installLocation string) error {
+func Init(runtimeVersion string, dockerNetwork string, installLocation string, redisHost string) error {
 	dockerInstalled := utils.IsDockerInstalled()
 	if !dockerInstalled {
 		return errors.New("could not connect to Docker. Docker may not be installed or running")
@@ -121,7 +126,7 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string) e
 	var wg sync.WaitGroup
 	errorChan := make(chan error)
 
-	initSteps := []func(*sync.WaitGroup, chan<- error, string, string, string, string){}
+	initSteps := []func(*sync.WaitGroup, chan<- error, string, string, string, string, string){}
 	initSteps = append(initSteps, installDaprBinary, createComponentsDir, runPlacementService, runRedis)
 
 	wg.Add(len(initSteps))
@@ -139,7 +144,7 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string) e
 	}
 
 	for _, step := range initSteps {
-		go step(&wg, errorChan, downloadDest, runtimeVersion, dockerNetwork, installLocation)
+		go step(&wg, errorChan, downloadDest, runtimeVersion, dockerNetwork, installLocation, redisHost)
 	}
 
 	go func() {
@@ -202,8 +207,14 @@ func getDownloadDest(installLocation string) (string, error) {
 
 // installLocation is not used, but it is present because it's required to fit the initSteps func above.
 // If the number of args increases more, we may consider passing in a struct instead of individual args.
-func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string) {
+func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string, redisHost string) {
 	defer wg.Done()
+
+	if redisHost != daprDefaultRedisHost {
+		// A non-default Redis host is specified. No need to start the redis container
+		fmt.Printf("You have specified redis-host: %s. Make sure you have a redis server running there.\n", redisHost)
+		return
+	}
 
 	args := []string{
 		"run",
@@ -278,7 +289,7 @@ func isContainerRunError(err error) bool {
 	return false
 }
 
-func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string) {
+func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string, _ string) {
 	defer wg.Done()
 
 	image := fmt.Sprintf("%s:%s", daprDockerImageName, version)
@@ -326,7 +337,7 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 	errorChan <- nil
 }
 
-func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string) {
+func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string, _ string) {
 	defer wg.Done()
 
 	// confirm if installation is required
@@ -393,7 +404,7 @@ func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version 
 	errorChan <- nil
 }
 
-func createComponentsDir(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string) {
+func createComponentsDir(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string, redisHost string) {
 	defer wg.Done()
 
 	// Make default components directory
@@ -406,7 +417,11 @@ func createComponentsDir(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 			return
 		}
 	}
+
 	os.Chmod(componentsDir, 0777)
+
+	createRedisPubSub(redisHost, componentsDir)
+	createRedisStateStore(redisHost, componentsDir)
 }
 
 func makeExecutable(filepath string) error {
@@ -609,4 +624,76 @@ func downloadFile(dir string, url string) (string, error) {
 	}
 
 	return filepath, nil
+}
+
+func createRedisStateStore(redisHost string, componentsPath string) error {
+	redisStore := component{
+		APIVersion: "dapr.io/v1alpha1",
+		Kind:       "Component",
+	}
+
+	redisStore.Metadata.Name = "statestore"
+	redisStore.Spec.Type = "state.redis"
+	redisStore.Spec.Metadata = []componentMetadataItem{
+		{
+			Name:  "redisHost",
+			Value: fmt.Sprintf("%s:6379", redisHost),
+		},
+		{
+			Name:  "redisPassword",
+			Value: "",
+		},
+		{
+			Name:  "actorStateStore",
+			Value: "true",
+		},
+	}
+
+	b, err := yaml.Marshal(&redisStore)
+	if err != nil {
+		return err
+	}
+
+	filePath := filepath.Join(componentsPath, stateStoreYamlFileName)
+	err = ioutil.WriteFile(filePath, b, 0600)
+	if err != nil {
+		return err
+  	}
+        os.Chmod(filePath, 0644)
+
+	return nil
+}
+
+func createRedisPubSub(redisHost string, componentsPath string) error {
+	redisPubSub := component{
+		APIVersion: "dapr.io/v1alpha1",
+		Kind:       "Component",
+	}
+
+	redisPubSub.Metadata.Name = "pubsub"
+	redisPubSub.Spec.Type = "pubsub.redis"
+	redisPubSub.Spec.Metadata = []componentMetadataItem{
+		{
+			Name:  "redisHost",
+			Value: fmt.Sprintf("%s:6379", redisHost),
+		},
+		{
+			Name:  "redisPassword",
+			Value: "",
+		},
+	}
+
+	b, err := yaml.Marshal(&redisPubSub)
+	if err != nil {
+		return err
+	}
+
+	filePath := filepath.Join(componentsPath, pubSubYamlFileName)
+	err = ioutil.WriteFile(filePath, b, 0600)
+	if err != nil {
+		return err
+	}
+        os.Chmod(filePath, 0644)
+
+	return nil
 }
