@@ -60,7 +60,7 @@ $ dapr init
 ✅  Success! Dapr is up and running
 ```
 
-> Note: To see that Dapr has been installed successfully, from a command prompt run the `docker ps` command and check that the `daprio/dapr:latest` and `redis` container images are both running. Also, this step creates a default components folder which is later used at runtime unless the --components-path option is provided. For Linux/MacOS, the default components folder path is $HOME/.dapr/components and for Windows it is %USERPROFILE%\.dapr\components.
+> Note: To see that Dapr has been installed successfully, from a command prompt run the `docker ps` command and check that the `daprio/dapr:latest`,  `dapr_redis` and `dapr_zipkin` container images are all running. Also, this step creates a default components folder which is later used at runtime unless the --components-path option is provided. For Linux/MacOS, the default components folder path is $HOME/.dapr/components and for Windows it is %USERPROFILE%\.dapr\components. This step also create default components files in the components folder called pubsub.yaml, statestore.yaml and zipkin.yaml. This step also creates a default config folder at $HOME/.dapr/config for Linux/MacOS or for Windows at %USERPROFILE%\.dapr\config. The config folder contains a default.yaml configuration file to enable tracing on `dapr init` call.
 
 #### Install a specific runtime version
 
