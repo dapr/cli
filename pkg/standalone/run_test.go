@@ -31,15 +31,21 @@ func assertArgument(t *testing.T, key string, expectedValue string, args []strin
 }
 
 func setupRun(t *testing.T) {
+	configDir := GetDefaultFolderPath(defaultConfigDirName)
 	componentsDir := GetDefaultFolderPath(DefaultComponentsDirName)
 	err := os.MkdirAll(componentsDir, 0700)
 	assert.Equal(t, nil, err, "Unable to setup components dir before running test")
+	err = os.MkdirAll(configDir, 0700)
+	assert.Equal(t, nil, err, "Unable to setup config dir before running test")
 }
 
 func tearDownRun(t *testing.T) {
+	configDir := GetDefaultFolderPath(defaultConfigDirName)
 	componentsDir := GetDefaultFolderPath(DefaultComponentsDirName)
 	err := os.RemoveAll(componentsDir)
 	assert.Equal(t, nil, err, "Unable to delete components dir after running test")
+	err = os.RemoveAll(configDir)
+	assert.Equal(t, nil, err, "Unable to delete config dir after running test")
 }
 
 func TestRun(t *testing.T) {
@@ -60,7 +66,6 @@ func TestRun(t *testing.T) {
 			EnableProfiling: false,
 			ProfilePort:     9090,
 			Protocol:        "http",
-			RedisHost:       "localhost",
 			PlacementHost:   "localhost",
 			ComponentsPath:  GetDefaultFolderPath(DefaultComponentsDirName),
 		})
@@ -101,7 +106,6 @@ func TestRun(t *testing.T) {
 			EnableProfiling: false,
 			ProfilePort:     9090,
 			Protocol:        "http",
-			RedisHost:       "localhost",
 			PlacementHost:   "localhost",
 			ComponentsPath:  GetDefaultFolderPath(DefaultComponentsDirName),
 		})
