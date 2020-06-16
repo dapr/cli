@@ -7,6 +7,7 @@ package standalone
 
 import (
 	"os"
+	path_filepath "path/filepath"
 	"runtime"
 	"strings"
 	"testing"
@@ -33,10 +34,13 @@ func assertArgument(t *testing.T, key string, expectedValue string, args []strin
 func setupRun(t *testing.T) {
 	configDir := GetDefaultFolderPath(defaultConfigDirName)
 	componentsDir := GetDefaultFolderPath(DefaultComponentsDirName)
+	configFile := path_filepath.Join(configDir, defaultConfigFileName)
 	err := os.MkdirAll(componentsDir, 0700)
 	assert.Equal(t, nil, err, "Unable to setup components dir before running test")
 	err = os.MkdirAll(configDir, 0700)
 	assert.Equal(t, nil, err, "Unable to setup config dir before running test")
+	_, err = os.Create(configFile)
+	assert.Equal(t, nil, err, "Unable to create config file before running test")
 }
 
 func tearDownRun(t *testing.T) {

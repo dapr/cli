@@ -23,12 +23,7 @@ import (
 	modes "github.com/dapr/dapr/pkg/config/modes"
 )
 
-const (
-	zipkinYamlFileName    = "zipkin.yaml"
-	zipkinDefaultHost     = "localhost"
-	defaultConfigFileName = "default.yaml"
-	sentryDefaultAddress  = "localhost:50001"
-)
+const sentryDefaultAddress = "localhost:50001"
 
 // RunConfig represents the application configuration parameters.
 type RunConfig struct {
@@ -54,36 +49,6 @@ type RunOutput struct {
 	DaprGRPCPort int
 	AppID        string
 	AppCMD       *exec.Cmd
-}
-
-type configuration struct {
-	APIVersion string `yaml:"apiVersion"`
-	Kind       string `yaml:"kind"`
-	Metadata   struct {
-		Name string `yaml:"name"`
-	} `yaml:"metadata"`
-	Spec struct {
-		Tracing struct {
-			SamplingRate string `yaml:"samplingRate"`
-		} `yaml:"tracing"`
-	} `yaml:"spec"`
-}
-
-type component struct {
-	APIVersion string `yaml:"apiVersion"`
-	Kind       string `yaml:"kind"`
-	Metadata   struct {
-		Name string `yaml:"name"`
-	} `yaml:"metadata"`
-	Spec struct {
-		Type     string                  `yaml:"type"`
-		Metadata []componentMetadataItem `yaml:"metadata"`
-	} `yaml:"spec"`
-}
-
-type componentMetadataItem struct {
-	Name  string `yaml:"name"`
-	Value string `yaml:"value"`
 }
 
 func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort int, configFile, protocol string, enableProfiling bool, profilePort int, logLevel string, maxConcurrency int, placementHost string, componentsPath string) (*exec.Cmd, int, int, int, error) {
@@ -194,65 +159,6 @@ func getAppCommand(httpPort, grpcPort, metricsPort int, command string, args []s
 	return cmd, nil
 }
 
-func createDefaultConfigurtion(configFilePath string) error {
-	defaultConfig := configuration{
-		APIVersion: "dapr.io/v1alpha1",
-		Kind:       "Configuration",
-	}
-	defaultConfig.Metadata.Name = "daprConfig"
-	defaultConfig.Spec.Tracing.SamplingRate = "1"
-
-	b, err := yaml.Marshal(&defaultConfig)
-	if err != nil {
-		return err
-	}
-
-	_, err = os.Stat(configFilePath)
-	if os.IsNotExist(err) {
-		err = ioutil.WriteFile(configFilePath, b, 0644)
-		if err != nil {
-			return err
-		}
-	} else {
-		fmt.Printf("default configuration file exists at %s", configFilePath)
-	}
-
-	return nil
-}
-
-func createZipkinComponent(zipkinHost string, componentsPath string) error {
-	zipKinComponent := component{
-		APIVersion: "dapr.io/v1alpha1",
-		Kind:       "Component",
-	}
-	zipKinComponent.Metadata.Name = "zipkin"
-	zipKinComponent.Spec.Type = "exporters.zipkin"
-	zipKinComponent.Spec.Metadata = []componentMetadataItem{
-		{
-			Name:  "enabled",
-			Value: "true",
-		},
-		{
-			Name:  "exporterAddress",
-			Value: fmt.Sprintf("http://%s:9411/api/v2/spans", zipkinHost),
-		},
-	}
-
-	b, err := yaml.Marshal(&zipKinComponent)
-	if err != nil {
-		return err
-	}
-
-	filePath := filepath.Join(componentsPath, zipkinYamlFileName)
-	fmt.Printf("WARNING: Zipkin Component configuration file is being overwritten: %s\n", filePath)
-	err = ioutil.WriteFile(filePath, b, 0644)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func Run(config *RunConfig) (*RunOutput, error) {
 	appID := config.AppID
 	if appID == "" {
@@ -329,7 +235,7 @@ func getConfigFilePath(config *RunConfig) (string, error) {
 	if config.ConfigFile == "" {
 		configPath := GetDefaultFolderPath(defaultConfigDirName)
 		filePath := filepath.Join(configPath, defaultConfigFileName)
-		err := createDefaultConfigurtion(filePath)
+		_, err := os.Stat(filePath)
 		fmt.Printf("INFO: using default configuration file  %s \n", filePath)
 		return filePath, err
 	}
