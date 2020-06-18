@@ -7,7 +7,6 @@ package standalone
 
 import (
 	"os"
-	path_filepath "path/filepath"
 	"runtime"
 	"strings"
 	"testing"
@@ -32,8 +31,8 @@ func assertArgument(t *testing.T, key string, expectedValue string, args []strin
 }
 
 func setupRun(t *testing.T) {
-	componentsDir := DefaultFolderPath(DefaultComponentsDirName)
-	configFile := path_filepath.Join(DefaultFolderPath(defaultDaprDirName), defaultConfigFileName)
+	componentsDir := DefaultComponentsDirPath()
+	configFile := DefaultConfigFilePath()
 	err := os.MkdirAll(componentsDir, 0700)
 	assert.Equal(t, nil, err, "Unable to setup components dir before running test")
 	_, err = os.Create(configFile)
@@ -41,9 +40,10 @@ func setupRun(t *testing.T) {
 }
 
 func tearDownRun(t *testing.T) {
-	componentsDir := DefaultFolderPath(DefaultComponentsDirName)
-	err := os.RemoveAll(componentsDir)
-	assert.Equal(t, nil, err, "Unable to delete components dir after running test")
+	err := os.RemoveAll(DefaultComponentsDirPath())
+	assert.Equal(t, nil, err, "Unable to delete default components dir after running test")
+	err = os.Remove(DefaultConfigFilePath())
+	assert.Equal(t, nil, err, "Unable to delete default config file after running test")
 }
 
 func TestRun(t *testing.T) {
@@ -65,7 +65,7 @@ func TestRun(t *testing.T) {
 			ProfilePort:     9090,
 			Protocol:        "http",
 			PlacementHost:   "localhost",
-			ComponentsPath:  DefaultFolderPath(DefaultComponentsDirName),
+			ComponentsPath:  DefaultComponentsDirPath(),
 		})
 
 		assert.Nil(t, err)
@@ -83,7 +83,7 @@ func TestRun(t *testing.T) {
 		assertArgument(t, "max-concurrency", "-1", output.DaprCMD.Args)
 		assertArgument(t, "protocol", "http", output.DaprCMD.Args)
 		assertArgument(t, "app-port", "3000", output.DaprCMD.Args)
-		assertArgument(t, "components-path", DefaultFolderPath(DefaultComponentsDirName), output.DaprCMD.Args)
+		assertArgument(t, "components-path", DefaultComponentsDirPath(), output.DaprCMD.Args)
 		if runtime.GOOS == "windows" {
 			assertArgument(t, "placement-address", "localhost:6050", output.DaprCMD.Args)
 		} else {
@@ -106,7 +106,7 @@ func TestRun(t *testing.T) {
 			Protocol:        "http",
 			PlacementHost:   "localhost",
 			ConfigFile:      DefaultConfigFilePath(),
-			ComponentsPath:  DefaultFolderPath(DefaultComponentsDirName),
+			ComponentsPath:  DefaultComponentsDirPath(),
 		})
 
 		assert.Nil(t, err)
@@ -125,7 +125,7 @@ func TestRun(t *testing.T) {
 		assertArgument(t, "protocol", "http", output.DaprCMD.Args)
 		assertArgument(t, "app-port", "3000", output.DaprCMD.Args)
 		assertArgument(t, "config", DefaultConfigFilePath(), output.DaprCMD.Args)
-		assertArgument(t, "components-path", DefaultFolderPath(DefaultComponentsDirName), output.DaprCMD.Args)
+		assertArgument(t, "components-path", DefaultComponentsDirPath(), output.DaprCMD.Args)
 		if runtime.GOOS == "windows" {
 			assertArgument(t, "placement-address", "localhost:6050", output.DaprCMD.Args)
 		} else {

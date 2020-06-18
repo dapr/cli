@@ -8,7 +8,7 @@ import (
 
 const (
 	defaultDaprDirName       = ".dapr"
-	DefaultComponentsDirName = "components"
+	defaultComponentsDirName = "components"
 	defaultConfigFileName    = "config.yaml"
 )
 
@@ -21,7 +21,7 @@ func homeFolder() string {
 }
 
 // DefaultFolderPath returns the default requested path to the requested path
-func DefaultFolderPath(dirName string) string {
+func defaultFolderPath(dirName string) string {
 	homePath := homeFolder()
 	if dirName == defaultDaprDirName {
 		return path_filepath.Join(homePath, defaultDaprDirName)
@@ -29,8 +29,12 @@ func DefaultFolderPath(dirName string) string {
 	return path_filepath.Join(homePath, defaultDaprDirName, dirName)
 }
 
+func DefaultComponentsDirPath() string {
+	return defaultFolderPath(defaultComponentsDirName)
+}
+
 func DefaultConfigFilePath() string {
-	configPath := DefaultFolderPath(defaultDaprDirName)
+	configPath := defaultFolderPath(defaultDaprDirName)
 	filePath := path_filepath.Join(configPath, defaultConfigFileName)
 	return filePath
 }

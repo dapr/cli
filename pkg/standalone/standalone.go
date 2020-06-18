@@ -485,7 +485,7 @@ func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error
 	var err error
 
 	// Make default components directory
-	componentsDir := DefaultFolderPath(DefaultComponentsDirName)
+	componentsDir := DefaultComponentsDirPath()
 	_, err = os.Stat(componentsDir)
 	if os.IsNotExist(err) {
 		errDir := os.MkdirAll(componentsDir, 0755)

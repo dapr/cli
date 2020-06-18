@@ -53,7 +53,7 @@ func removeDefaultDaprDir(uninstallAll bool) (string, error) {
 	if !uninstallAll {
 		return "", nil
 	}
-	defaultDaprPath := DefaultFolderPath(defaultDaprDirName)
+	defaultDaprPath := defaultFolderPath(defaultDaprDirName)
 	fmt.Println("removing folder: ", defaultDaprPath)
 	err := os.RemoveAll(defaultDaprPath)
 
