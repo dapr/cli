@@ -11,17 +11,9 @@ import (
 
 func removeContainers(uninstallAll bool, dockerNetwork string) []error {
 	var containerErrs []error
+	var err error
 
-	_, err := utils.RunCmdAndWait(
-		"docker", "rm",
-		"--force",
-		utils.CreateContainerName(DaprPlacementContainerName, dockerNetwork))
-
-	if err != nil {
-		containerErrs = append(
-			containerErrs,
-			fmt.Errorf("could not remove %s container: %s", DaprPlacementContainerName, err))
-	}
+	containerErrs = removeDockerContainer(containerErrs, DaprPlacementContainerName, dockerNetwork)
 
 	_, err = utils.RunCmdAndWait(
 		"docker", "rmi",
@@ -34,30 +26,26 @@ func removeContainers(uninstallAll bool, dockerNetwork string) []error {
 			fmt.Errorf("could not remove %s image: %s", daprDockerImageName, err))
 	}
 
-	// Add the zipkin container in uninstall all block
 	if uninstallAll {
-		fmt.Println("trying to remove redis container: ", DaprRedisContainerName)
-		_, err = utils.RunCmdAndWait(
-			"docker", "rm",
-			"--force",
-			utils.CreateContainerName(DaprRedisContainerName, dockerNetwork))
-		if err != nil {
-			containerErrs = append(
-				containerErrs,
-				fmt.Errorf("could not remove %s container: %s", DaprRedisContainerName, err))
-		}
-		fmt.Println("trying to remove zipkin container: ", DaprZipkinContainerName)
-		_, err = utils.RunCmdAndWait(
-			"docker", "rm",
-			"--force",
-			utils.CreateContainerName(DaprZipkinContainerName, dockerNetwork))
-		if err != nil {
-			containerErrs = append(
-				containerErrs,
-				fmt.Errorf("could not remove %s container: %s", DaprZipkinContainerName, err))
-		}
+		containerErrs = removeDockerContainer(containerErrs, DaprRedisContainerName, dockerNetwork)
+		containerErrs = removeDockerContainer(containerErrs, DaprZipkinContainerName, dockerNetwork)
 	}
 
+	return containerErrs
+}
+
+func removeDockerContainer(containerErrs []error, containerName, network string) []error {
+	fmt.Println("trying to remove container: ", containerName)
+	_, err := utils.RunCmdAndWait(
+		"docker", "rm",
+		"--force",
+		utils.CreateContainerName(containerName, network))
+
+	if err != nil {
+		containerErrs = append(
+			containerErrs,
+			fmt.Errorf("could not remove %s container: %s", containerName, err))
+	}
 	return containerErrs
 }
 
@@ -65,14 +53,14 @@ func removeDefaultDaprDir(uninstallAll bool) (string, error) {
 	if !uninstallAll {
 		return "", nil
 	}
-	defaultDaprPath := GetDefaultFolderPath(defaultDaprDirName)
-	fmt.Println("removing .dapr folder: ", defaultDaprPath)
+	defaultDaprPath := DefaultFolderPath(defaultDaprDirName)
+	fmt.Println("removing folder: ", defaultDaprPath)
 	err := os.RemoveAll(defaultDaprPath)
 
 	return defaultDaprPath, err
 }
 
-// Uninstall reverts all changes made by init. Deletes all installed containers, removes default components, config folder, unsets env variables.
+// Uninstall reverts all changes made by init. Deletes all installed containers, removes default dapr folder unsets env variables.
 func Uninstall(uninstallAll bool, dockerNetwork string) error {
 	var containerErrs []error
 

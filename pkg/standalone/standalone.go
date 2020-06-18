@@ -44,7 +44,6 @@ const (
 	pubSubYamlFileName                = "pubsub.yaml"
 	stateStoreYamlFileName            = "statestore.yaml"
 	zipkinYamlFileName                = "zipkin.yaml"
-	defaultConfigFileName             = "default.yaml"
 
 	// DaprPlacementContainerName is the container name of placement service
 	DaprPlacementContainerName = "dapr_placement"
@@ -160,7 +159,7 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string, r
 	errorChan := make(chan error)
 
 	initSteps := []func(*sync.WaitGroup, chan<- error, string, string, string, string, string){}
-	initSteps = append(initSteps, installDaprBinary, createComponentsDir, runPlacementService, runRedis, runZipkin)
+	initSteps = append(initSteps, installDaprBinary, createComponentsAndConfiguration, runPlacementService, runRedis, runZipkin)
 	dockerContainerNames := []string{DaprPlacementContainerName, DaprRedisContainerName, DaprZipkinContainerName}
 
 	wg.Add(len(initSteps))
@@ -480,13 +479,13 @@ func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version 
 	errorChan <- nil
 }
 
-func createComponentsDir(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string, redisHost string) {
+func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string, redisHost string) {
 	defer wg.Done()
 
 	var err error
 
 	// Make default components directory
-	componentsDir := GetDefaultFolderPath(DefaultComponentsDirName)
+	componentsDir := DefaultFolderPath(DefaultComponentsDirName)
 	_, err = os.Stat(componentsDir)
 	if os.IsNotExist(err) {
 		errDir := os.MkdirAll(componentsDir, 0755)
@@ -496,19 +495,7 @@ func createComponentsDir(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 		}
 	}
 
-	// Make default config directory
-	configDir := GetDefaultFolderPath(defaultConfigDirName)
-	_, err = os.Stat(configDir)
-	if os.IsNotExist(err) {
-		errDir := os.MkdirAll(configDir, 0755)
-		if errDir != nil {
-			errorChan <- fmt.Errorf("error creating default config folder: %s", errDir)
-			return
-		}
-	}
-
 	os.Chmod(componentsDir, 0777)
-	os.Chmod(configDir, 0777)
 
 	err = createRedisPubSub(redisHost, componentsDir)
 	if err != nil {
@@ -525,7 +512,7 @@ func createComponentsDir(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 		errorChan <- fmt.Errorf("error creating zipkin component file: %s", err)
 		return
 	}
-	err = createDefaultConfigurtion(configDir)
+	err = createDefaultConfiguration(DefaultConfigFilePath())
 	if err != nil {
 		errorChan <- fmt.Errorf("error creating default configuration file: %s", err)
 		return
@@ -763,7 +750,7 @@ func createRedisStateStore(redisHost string, componentsPath string) error {
 	}
 
 	filePath := path_filepath.Join(componentsPath, stateStoreYamlFileName)
-	err = checkAndOverWrite(filePath, b)
+	err = checkAndOverWriteFile(filePath, b)
 
 	return err
 }
@@ -793,12 +780,12 @@ func createRedisPubSub(redisHost string, componentsPath string) error {
 	}
 
 	filePath := path_filepath.Join(componentsPath, pubSubYamlFileName)
-	err = checkAndOverWrite(filePath, b)
+	err = checkAndOverWriteFile(filePath, b)
 
 	return err
 }
 
-func createDefaultConfigurtion(configDir string) error {
+func createDefaultConfiguration(filePath string) error {
 	defaultConfig := configuration{
 		APIVersion: "dapr.io/v1alpha1",
 		Kind:       "Configuration",
@@ -811,8 +798,7 @@ func createDefaultConfigurtion(configDir string) error {
 		return err
 	}
 
-	filePath := path_filepath.Join(configDir, defaultConfigFileName)
-	err = checkAndOverWrite(filePath, b)
+	err = checkAndOverWriteFile(filePath, b)
 
 	return err
 }
@@ -841,12 +827,12 @@ func createZipkinComponent(zipkinHost string, componentsPath string) error {
 	}
 
 	filePath := path_filepath.Join(componentsPath, zipkinYamlFileName)
-	err = checkAndOverWrite(filePath, b)
+	err = checkAndOverWriteFile(filePath, b)
 
 	return err
 }
 
-func checkAndOverWrite(filePath string, b []byte) error {
+func checkAndOverWriteFile(filePath string, b []byte) error {
 	_, err := os.Stat(filePath)
 	if os.IsNotExist(err) {
 		// #nosec G306

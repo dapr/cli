@@ -9,10 +9,10 @@ import (
 const (
 	defaultDaprDirName       = ".dapr"
 	DefaultComponentsDirName = "components"
-	defaultConfigDirName     = "config"
+	defaultConfigFileName    = "config.yaml"
 )
 
-func getHomeFolder() string {
+func homeFolder() string {
 	homePath := os.Getenv("HOME")
 	if runtime.GOOS == daprWindowsOS {
 		homePath = os.Getenv("USERPROFILE")
@@ -20,17 +20,17 @@ func getHomeFolder() string {
 	return homePath
 }
 
-// GetDefaultFolderPath returns the default requested path to the requested path
-func GetDefaultFolderPath(dirName string) string {
-	homePath := getHomeFolder()
+// DefaultFolderPath returns the default requested path to the requested path
+func DefaultFolderPath(dirName string) string {
+	homePath := homeFolder()
 	if dirName == defaultDaprDirName {
 		return path_filepath.Join(homePath, defaultDaprDirName)
 	}
 	return path_filepath.Join(homePath, defaultDaprDirName, dirName)
 }
 
-func GetDefaultConfigFilePath() string {
-	configPath := GetDefaultFolderPath(defaultConfigDirName)
+func DefaultConfigFilePath() string {
+	configPath := DefaultFolderPath(defaultDaprDirName)
 	filePath := path_filepath.Join(configPath, defaultConfigFileName)
 	return filePath
 }
