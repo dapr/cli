@@ -18,7 +18,6 @@ import (
 	"os/exec"
 	"os/user"
 	"path"
-	"path/filepath"
 	path_filepath "path/filepath"
 	"runtime"
 	"strings"
@@ -41,15 +40,48 @@ const (
 	daprLatestVersion                 = "latest"
 	daprDefaultLinuxAndMacInstallPath = "/usr/local/bin"
 	daprDefaultWindowsInstallPath     = "c:\\dapr"
-	daprDefaultRedisHost              = "localhost"
+	daprDefaultHost                   = "localhost"
 	pubSubYamlFileName                = "pubsub.yaml"
 	stateStoreYamlFileName            = "statestore.yaml"
+	zipkinYamlFileName                = "zipkin.yaml"
 
 	// DaprPlacementContainerName is the container name of placement service
 	DaprPlacementContainerName = "dapr_placement"
 	// DaprRedisContainerName is the container name of redis
 	DaprRedisContainerName = "dapr_redis"
+	// DaprZipkinContainerName is the container name of zipkin
+	DaprZipkinContainerName = "dapr_zipkin"
 )
+
+type configuration struct {
+	APIVersion string `yaml:"apiVersion"`
+	Kind       string `yaml:"kind"`
+	Metadata   struct {
+		Name string `yaml:"name"`
+	} `yaml:"metadata"`
+	Spec struct {
+		Tracing struct {
+			SamplingRate string `yaml:"samplingRate"`
+		} `yaml:"tracing"`
+	} `yaml:"spec"`
+}
+
+type component struct {
+	APIVersion string `yaml:"apiVersion"`
+	Kind       string `yaml:"kind"`
+	Metadata   struct {
+		Name string `yaml:"name"`
+	} `yaml:"metadata"`
+	Spec struct {
+		Type     string                  `yaml:"type"`
+		Metadata []componentMetadataItem `yaml:"metadata"`
+	} `yaml:"spec"`
+}
+
+type componentMetadataItem struct {
+	Name  string `yaml:"name"`
+	Value string `yaml:"value"`
+}
 
 func isInstallationRequired(installLocation, requestedVersion string) bool {
 	var destDir string
@@ -127,7 +159,8 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string, r
 	errorChan := make(chan error)
 
 	initSteps := []func(*sync.WaitGroup, chan<- error, string, string, string, string, string){}
-	initSteps = append(initSteps, installDaprBinary, createComponentsDir, runPlacementService, runRedis)
+	initSteps = append(initSteps, installDaprBinary, createComponentsAndConfiguration, runPlacementService, runRedis, runZipkin)
+	dockerContainerNames := []string{DaprPlacementContainerName, DaprRedisContainerName, DaprZipkinContainerName}
 
 	wg.Add(len(initSteps))
 
@@ -163,13 +196,18 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string, r
 
 	if s != nil {
 		s.Stop()
-		err = confirmContainerIsRunning(utils.CreateContainerName(DaprRedisContainerName, dockerNetwork))
+	}
+
+	print.SuccessStatusEvent(os.Stdout, msg)
+	print.InfoStatusEvent(os.Stdout, "%s binary has been installed.\n", daprRuntimeFilePrefix)
+	for _, container := range dockerContainerNames {
+		err = confirmContainerIsRunning(utils.CreateContainerName(container, dockerNetwork))
 		if err != nil {
 			return err
 		}
-		print.SuccessStatusEvent(os.Stdout, msg)
+		print.InfoStatusEvent(os.Stdout, "%s container is running.\n", container)
 	}
-
+	print.InfoStatusEvent(os.Stdout, "Use `docker ps` to check running containers.\n")
 	return nil
 }
 
@@ -207,10 +245,47 @@ func getDownloadDest(installLocation string) (string, error) {
 
 // installLocation is not used, but it is present because it's required to fit the initSteps func above.
 // If the number of args increases more, we may consider passing in a struct instead of individual args.
+
+func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string, redisHost string) {
+	defer wg.Done()
+
+	args := []string{
+		"run",
+		"--name", utils.CreateContainerName(DaprZipkinContainerName, dockerNetwork),
+		"--restart", "always",
+		"-d",
+	}
+
+	if dockerNetwork != "" {
+		args = append(
+			args,
+			"--network", dockerNetwork,
+			"--network-alias", DaprRedisContainerName)
+	} else {
+		args = append(
+			args,
+			"-p", "9411:9411")
+	}
+
+	args = append(args, "openzipkin/zipkin")
+	_, err := utils.RunCmdAndWait("docker", args...)
+
+	if err != nil {
+		runError := isContainerRunError(err)
+		if !runError {
+			errorChan <- parseDockerError("Zipkin tracing", err)
+		} else {
+			errorChan <- fmt.Errorf("docker %s failed with: %v", args, err)
+		}
+		return
+	}
+	errorChan <- nil
+}
+
 func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string, redisHost string) {
 	defer wg.Done()
 
-	if redisHost != daprDefaultRedisHost {
+	if redisHost != daprDefaultHost {
 		// A non-default Redis host is specified. No need to start the redis container
 		fmt.Printf("You have specified redis-host: %s. Make sure you have a redis server running there.\n", redisHost)
 		return
@@ -404,14 +479,16 @@ func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version 
 	errorChan <- nil
 }
 
-func createComponentsDir(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string, redisHost string) {
+func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string, redisHost string) {
 	defer wg.Done()
 
+	var err error
+
 	// Make default components directory
-	componentsDir := GetDefaultComponentsFolder()
-	_, err := os.Stat(componentsDir)
+	componentsDir := DefaultComponentsDirPath()
+	_, err = os.Stat(componentsDir)
 	if os.IsNotExist(err) {
-		errDir := os.MkdirAll(componentsDir, 0777)
+		errDir := os.MkdirAll(componentsDir, 0755)
 		if errDir != nil {
 			errorChan <- fmt.Errorf("error creating default components folder: %s", errDir)
 			return
@@ -420,8 +497,26 @@ func createComponentsDir(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 
 	os.Chmod(componentsDir, 0777)
 
-	createRedisPubSub(redisHost, componentsDir)
-	createRedisStateStore(redisHost, componentsDir)
+	err = createRedisPubSub(redisHost, componentsDir)
+	if err != nil {
+		errorChan <- fmt.Errorf("error creating redis pubsub component file: %s", err)
+		return
+	}
+	err = createRedisStateStore(redisHost, componentsDir)
+	if err != nil {
+		errorChan <- fmt.Errorf("error creating redis statestore component file: %s", err)
+		return
+	}
+	err = createZipkinComponent(daprDefaultHost, componentsDir)
+	if err != nil {
+		errorChan <- fmt.Errorf("error creating zipkin component file: %s", err)
+		return
+	}
+	err = createDefaultConfiguration(DefaultConfigFilePath())
+	if err != nil {
+		errorChan <- fmt.Errorf("error creating default configuration file: %s", err)
+		return
+	}
 }
 
 func makeExecutable(filepath string) error {
@@ -654,14 +749,10 @@ func createRedisStateStore(redisHost string, componentsPath string) error {
 		return err
 	}
 
-	filePath := filepath.Join(componentsPath, stateStoreYamlFileName)
-	err = ioutil.WriteFile(filePath, b, 0600)
-	if err != nil {
-		return err
-  	}
-        os.Chmod(filePath, 0644)
+	filePath := path_filepath.Join(componentsPath, stateStoreYamlFileName)
+	err = checkAndOverWriteFile(filePath, b)
 
-	return nil
+	return err
 }
 
 func createRedisPubSub(redisHost string, componentsPath string) error {
@@ -688,12 +779,68 @@ func createRedisPubSub(redisHost string, componentsPath string) error {
 		return err
 	}
 
-	filePath := filepath.Join(componentsPath, pubSubYamlFileName)
-	err = ioutil.WriteFile(filePath, b, 0600)
+	filePath := path_filepath.Join(componentsPath, pubSubYamlFileName)
+	err = checkAndOverWriteFile(filePath, b)
+
+	return err
+}
+
+func createDefaultConfiguration(filePath string) error {
+	defaultConfig := configuration{
+		APIVersion: "dapr.io/v1alpha1",
+		Kind:       "Configuration",
+	}
+	defaultConfig.Metadata.Name = "daprConfig"
+	defaultConfig.Spec.Tracing.SamplingRate = "1"
+
+	b, err := yaml.Marshal(&defaultConfig)
 	if err != nil {
 		return err
 	}
-        os.Chmod(filePath, 0644)
 
+	err = checkAndOverWriteFile(filePath, b)
+
+	return err
+}
+
+func createZipkinComponent(zipkinHost string, componentsPath string) error {
+	zipKinComponent := component{
+		APIVersion: "dapr.io/v1alpha1",
+		Kind:       "Component",
+	}
+	zipKinComponent.Metadata.Name = "zipkin"
+	zipKinComponent.Spec.Type = "exporters.zipkin"
+	zipKinComponent.Spec.Metadata = []componentMetadataItem{
+		{
+			Name:  "enabled",
+			Value: "true",
+		},
+		{
+			Name:  "exporterAddress",
+			Value: fmt.Sprintf("http://%s:9411/api/v2/spans", zipkinHost),
+		},
+	}
+
+	b, err := yaml.Marshal(&zipKinComponent)
+	if err != nil {
+		return err
+	}
+
+	filePath := path_filepath.Join(componentsPath, zipkinYamlFileName)
+	err = checkAndOverWriteFile(filePath, b)
+
+	return err
+}
+
+func checkAndOverWriteFile(filePath string, b []byte) error {
+	_, err := os.Stat(filePath)
+	if os.IsNotExist(err) {
+		// #nosec G306
+		if err = ioutil.WriteFile(filePath, b, 0644); err != nil {
+			return err
+		}
+	} else {
+		fmt.Printf("file %s exists in the default dapr path", filePath)
+	}
 	return nil
 }

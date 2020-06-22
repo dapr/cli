@@ -234,7 +234,7 @@ Run sidecar only:
 func init() {
 	RunCmd.Flags().IntVarP(&appPort, "app-port", "", -1, "the port your application is listening on")
 	RunCmd.Flags().StringVarP(&appID, "app-id", "", "", "an id for your application, used for service discovery")
-	RunCmd.Flags().StringVarP(&configFile, "config", "", "", "Dapr configuration file")
+	RunCmd.Flags().StringVarP(&configFile, "config", "", standalone.DefaultConfigFilePath(), "Dapr configuration file. Default is $HOME/.dapr/config.yaml or %USERPROFILE%\\.dapr\\config.yaml")
 	RunCmd.Flags().IntVarP(&port, "port", "p", -1, "the HTTP port for Dapr to listen on")
 	RunCmd.Flags().IntVarP(&grpcPort, "grpc-port", "", -1, "the gRPC port for Dapr to listen on")
 	RunCmd.Flags().StringVarP(&image, "image", "", "", "the image to build the code in. input is repository/image")
@@ -243,7 +243,7 @@ func init() {
 	RunCmd.Flags().StringVarP(&logLevel, "log-level", "", "info", "Sets the log verbosity. Valid values are: debug, info, warn, error, fatal, or panic. Default is info")
 	RunCmd.Flags().IntVarP(&maxConcurrency, "max-concurrency", "", -1, "controls the concurrency level of the app. Default is unlimited")
 	RunCmd.Flags().StringVarP(&protocol, "protocol", "", "http", "tells Dapr to use HTTP or gRPC to talk to the app. Default is http")
-	RunCmd.Flags().StringVarP(&componentsPath, "components-path", "", standalone.GetDefaultComponentsFolder(), "Path for components directory. Default is ~/.dapr/components or %USERPROFILE%\\.dapr\\components")
+	RunCmd.Flags().StringVarP(&componentsPath, "components-path", "", standalone.DefaultComponentsDirPath(), "Path for components directory. Default is $HOME/.dapr/components or %USERPROFILE%\\.dapr\\components")
 	RunCmd.Flags().String("placement-host", "localhost", "the host on which the placement service resides")
 
 	RootCmd.AddCommand(RunCmd)

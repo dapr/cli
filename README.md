@@ -60,7 +60,12 @@ $ dapr init
 ✅  Success! Dapr is up and running
 ```
 
-> Note: To see that Dapr has been installed successfully, from a command prompt run the `docker ps` command and check that the `daprio/dapr:latest` and `redis` container images are both running. Also, this step creates a default components folder which is later used at runtime unless the --components-path option is provided. For Linux/MacOS, the default components folder path is $HOME/.dapr/components and for Windows it is %USERPROFILE%\.dapr\components.
+> Note: To see that Dapr has been installed successfully, from a command prompt run the `docker ps` command and check that the `daprio/dapr:latest`,  `dapr_redis` and `dapr_zipkin` container images are all running.
+
+This step creates the following defaults:
+1. components folder which is later used at runtime unless the --components-path option is provided. For Linux/MacOS, the default components folder path is $HOME/.dapr/components and for Windows it is %USERPROFILE%\.dapr\components.
+2. component files in the components folder called pubsub.yaml, statestore.yaml and zipkin.yaml. 
+3. default config file $HOME/.dapr/config.yaml for Linux/MacOS or for Windows at %USERPROFILE%\.dapr\config.yaml to enable tracing on `dapr init` call. Can be overridden with the `--config` flag on `dapr run`.
 
 #### Install a specific runtime version
 
@@ -107,7 +112,7 @@ $ dapr uninstall
 ```
 
 
-The command above won't remove the redis container by default in case you were using it for other purposes.  To remove both the placement and redis container:
+The command above won't remove the redis or zipkin containers by default in case you were using it for other purposes.  It will also not remove the default dapr folder that was created on `dapr init`. To remove all the containers (placement, redis, zipkin) and also the default dapr folder created on init run:
 
 ```bash
 $ dapr uninstall --all

@@ -22,9 +22,7 @@ import (
 	modes "github.com/dapr/dapr/pkg/config/modes"
 )
 
-const (
-	sentryDefaultAddress = "localhost:50001"
-)
+const sentryDefaultAddress = "localhost:50001"
 
 // RunConfig represents the application configuration parameters.
 type RunConfig struct {
@@ -50,23 +48,6 @@ type RunOutput struct {
 	DaprGRPCPort int
 	AppID        string
 	AppCMD       *exec.Cmd
-}
-
-type component struct {
-	APIVersion string `yaml:"apiVersion"`
-	Kind       string `yaml:"kind"`
-	Metadata   struct {
-		Name string `yaml:"name"`
-	} `yaml:"metadata"`
-	Spec struct {
-		Type     string                  `yaml:"type"`
-		Metadata []componentMetadataItem `yaml:"metadata"`
-	} `yaml:"spec"`
-}
-
-type componentMetadataItem struct {
-	Name  string `yaml:"name"`
-	Value string `yaml:"value"`
 }
 
 func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort int, configFile, protocol string, enableProfiling bool, profilePort int, logLevel string, maxConcurrency int, placementHost string, componentsPath string) (*exec.Cmd, int, int, int, error) {
@@ -206,6 +187,7 @@ func Run(config *RunConfig) (*RunOutput, error) {
 	}
 
 	daprCMD, daprHTTPPort, daprGRPCPort, metricsPort, err := getDaprCommand(appID, config.HTTPPort, config.GRPCPort, config.AppPort, config.ConfigFile, config.Protocol, config.EnableProfiling, config.ProfilePort, config.LogLevel, config.MaxConcurrency, config.PlacementHost, config.ComponentsPath)
+
 	if err != nil {
 		return nil, err
 	}
