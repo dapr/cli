@@ -24,7 +24,7 @@ import (
 type PortForward struct {
 	Config     *rest.Config
 	Method     string
-	Url        *url.URL
+	URL        *url.URL
 	Host       string
 	LocalPort  int
 	RemotePort int
@@ -64,7 +64,7 @@ func NewPortForward(
 	}
 
 	if podName == "" {
-		return nil, fmt.Errorf("No running pods found for %s", deployName)
+		return nil, fmt.Errorf("no running pods found for %s", deployName)
 	}
 
 	req := client.CoreV1().RESTClient().Post().
@@ -76,7 +76,7 @@ func NewPortForward(
 	return &PortForward{
 		Config:     config,
 		Method:     "POST",
-		Url:        req.URL(),
+		URL:        req.URL(),
 		Host:       host,
 		LocalPort:  localPort,
 		RemotePort: remotePort,
@@ -101,7 +101,7 @@ func (pf *PortForward) run() error {
 	}
 
 	ports := []string{fmt.Sprintf("%d:%d", pf.LocalPort, pf.RemotePort)}
-	dialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, pf.Method, pf.Url)
+	dialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, pf.Method, pf.URL)
 
 	fw, err := portforward.NewOnAddresses(dialer, []string{pf.Host}, ports, pf.StopCh, pf.ReadyCh, out, errOut)
 	if err != nil {

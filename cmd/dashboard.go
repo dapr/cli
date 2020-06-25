@@ -77,17 +77,17 @@ var DashboardCmd = &cobra.Command{
 		}()
 
 		// get url for dashboard after port forwarding
-		var webUrl string = fmt.Sprintf("https://%s:%d", defaultHost, defaultPort)
+		var webURL string = fmt.Sprintf("https://%s:%d", defaultHost, defaultPort)
 
-		print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Dapr dashboard available at:\t%s\n", webUrl))
+		print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Dapr dashboard available at:\t%s\n", webURL))
 
 		if open {
 			print.InfoStatusEvent(os.Stdout, "launching Dapr dashboard in browser")
 
-			err := browser.OpenURL(webUrl)
+			err := browser.OpenURL(webURL)
 			if err != nil {
 				print.FailureStatusEvent(os.Stdout, "Failed to open Dapr dashboard automatically")
-				print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Visit %s in your browser to view the dashboard", webUrl))
+				print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Visit %s in your browser to view the dashboard", webURL))
 			}
 		}
 
