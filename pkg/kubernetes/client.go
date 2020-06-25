@@ -51,6 +51,11 @@ func getConfig() (*rest.Config, error) {
 	return config, nil
 }
 
+// GetKubeConfig returns kubeconfig
+func GetKubeConfig() (*rest.Config, error) {
+	return getConfig()
+}
+
 // Client returns a new Kubernetes client.
 func Client() (*k8s.Clientset, error) {
 	config, err := getConfig()

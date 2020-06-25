@@ -8,14 +8,19 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"os/signal"
 
 	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/pkg/print"
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
+	// dashboardSvc is the name of the dashboard service running in cluster
+	dashboardSvc = "dapr-dashboard"
+
 	// defaultHost is the default host used for port forwarding for `dapr dashboard`
 	defaultHost = "localhost"
 
@@ -29,13 +34,47 @@ var DashboardCmd = &cobra.Command{
 	Use:   "dashboard",
 	Short: "Runs the Dapr dashboard on a Kubernetes cluster",
 	Run: func(cmd *cobra.Command, args []string) {
-		print.InfoStatusEvent(os.Stdout, "Launching Dapr dashboard service in kubernetes cluster")
-		err := kubernetes.InitDashboard()
+		config, err := kubernetes.GetKubeConfig()
+
 		if err != nil {
-			print.FailureStatusEvent(os.Stdout, "Failed to initialize dashboard")
+			print.FailureStatusEvent(os.Stdout, "Failed to initialize kubernetes client")
+		}
+
+		print.InfoStatusEvent(os.Stdout, "Launching Dapr dashboard in kubernetes cluster")
+
+		err = kubernetes.InitDashboard()
+		if err != nil {
+			print.FailureStatusEvent(os.Stderr, "Failed to initialize dashboard")
 			return
 		}
-		print.SuccessStatusEvent(os.Stdout, "Dapr dashboard initialized successfully")
+
+		signals := make(chan os.Signal, 1)
+		signal.Notify(signals, os.Interrupt)
+		defer signal.Stop(signals)
+
+		portForward, err := kubernetes.NewPortForward(
+			config,
+			meta_v1.NamespaceDefault,
+			dashboardSvc,
+			defaultHost,
+			defaultPort,
+			defaultPort,
+			false,
+		)
+		if err != nil {
+			print.FailureStatusEvent(os.Stderr, "Failed to initialize port forwarding: %s\n", err)
+			os.Exit(1)
+		}
+
+		if err = portForward.Init(); err != nil {
+			print.FailureStatusEvent(os.Stderr, "Error initializing port forward. Check for `dapr dashboard` running in other terminal sessions")
+			os.Exit(1)
+		}
+
+		go func() {
+			<-signals
+			portForward.Stop()
+		}()
 
 		// get url for dashboard after port forwarding
 		var webUrl string = fmt.Sprintf("https://%s:%d", defaultHost, defaultPort)
@@ -51,6 +90,8 @@ var DashboardCmd = &cobra.Command{
 				print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Visit %s in your browser to view the dashboard", webUrl))
 			}
 		}
+
+		<-portForward.GetStop()
 	},
 }
 
