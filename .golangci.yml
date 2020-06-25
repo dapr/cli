@@ -233,3 +233,7 @@ linters:
     - unparam
     - wsl
     - gomnd
+    - testpackage
+    - nestif
+    - goerr113
+    - godot
