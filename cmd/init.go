@@ -40,7 +40,6 @@ var InitCmd = &cobra.Command{
 			print.SuccessStatusEvent(os.Stdout, "Success! Dapr has been installed. To verify, run 'kubectl get pods -w' or 'dapr status -k' in your terminal. To get started, go here: https://aka.ms/dapr-getting-started")
 		} else {
 			dockerNetwork := viper.GetString("network")
-			standalone.Uninstall(true, dockerNetwork)
 			redisHost := viper.GetString("redis-host")
 			err := standalone.Init(runtimeVersion, dockerNetwork, installLocation, redisHost)
 			if err != nil {
@@ -56,7 +55,7 @@ func init() {
 	InitCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Deploy Dapr to a Kubernetes cluster")
 	InitCmd.Flags().StringVarP(&runtimeVersion, "runtime-version", "", "latest", "The version of the Dapr runtime to install. for example: v0.1.0")
 	InitCmd.Flags().String("network", "", "The Docker network on which to deploy the Dapr runtime")
-	InitCmd.Flags().String("install-path", "", "The optional location to install Dapr to.  The default is /usr/local/bin for Linux/Mac and C:\\dapr for Windows")
+	InitCmd.Flags().String("install-path", "", "The optional location to install Daprd binary to.  The default is /usr/local/bin for Linux/Mac and C:\\dapr for Windows")
 	InitCmd.Flags().String("redis-host", "localhost", "The host on which the Redis service resides")
 
 	RootCmd.AddCommand(InitCmd)

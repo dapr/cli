@@ -51,6 +51,8 @@ const (
 	DaprRedisContainerName = "dapr_redis"
 	// DaprZipkinContainerName is the container name of zipkin
 	DaprZipkinContainerName = "dapr_zipkin"
+
+	errInstallTemplate = "please run `dapr uninstall` first before running `dapr init`"
 )
 
 type configuration struct {
@@ -83,64 +85,16 @@ type componentMetadataItem struct {
 	Value string `yaml:"value"`
 }
 
-func isInstallationRequired(installLocation, requestedVersion string) bool {
-	var destDir string
-
-	// if specified using --install-path
-	if installLocation != "" {
-		destDir = installLocation
-	} else {
-		if runtime.GOOS == daprWindowsOS {
-			destDir = daprDefaultWindowsInstallPath
-		} else {
-			destDir = daprDefaultLinuxAndMacInstallPath
-		}
-	}
-
-	// e.g. /usr/local/bin/daprd or c:\dapr, which are the defaults unless overridden by "installLocation"
-	daprdBinaryPath := path_filepath.Join(destDir, daprRuntimeFilePrefix)
+// Check if the previous version is already installed.
+func isBinaryInstallationRequired(installLocation, requestedVersion string) (bool, error) {
+	daprdBinaryPath := daprdBinaryFilePath(installLocation)
 
 	// first time install?
 	_, err := os.Stat(daprdBinaryPath)
-	if os.IsNotExist(err) {
-		return true
+	if !os.IsNotExist(err) {
+		return false, fmt.Errorf("%s %w, %s", daprdBinaryPath, os.ErrExist, errInstallTemplate)
 	}
-
-	var msg string
-
-	// what's the installed version?
-	v, err := utils.RunCmdAndWait(daprdBinaryPath, "--version")
-	if err != nil {
-		msg = fmt.Sprintf("unable to determine installed Dapr version at %s. installation will continue", destDir)
-		fmt.Println(msg)
-		return true
-	}
-	installedVersion := strings.TrimSpace(v)
-
-	// "latest" version requested. need to check the corresponding version
-	if requestedVersion == daprLatestVersion {
-		latestVersion, err := cli_ver.GetLatestRelease(cli_ver.DaprGitHubOrg, cli_ver.DaprGitHubRepo)
-		if err != nil {
-			msg = fmt.Sprintf("latest Dapr version information could not be found - %s", err.Error())
-			fmt.Println(msg)
-			return false
-		}
-		latestVersion = latestVersion[1:]
-		if installedVersion == latestVersion {
-			msg = fmt.Sprintf("required version %s is the same as installed version at %s", latestVersion, destDir)
-			fmt.Println(msg)
-			return false
-		}
-	}
-
-	// if daprd exists, need to confirm if the intended version is same as the current one
-	if installedVersion == requestedVersion {
-		msg = fmt.Sprintf("required version %s is the same as installed version at %s", requestedVersion, destDir)
-		fmt.Println(msg)
-		return false
-	}
-
-	return true
+	return true, nil
 }
 
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
@@ -152,6 +106,11 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string, r
 
 	downloadDest, err := getDownloadDest(installLocation)
 	if err != nil {
+		return err
+	}
+
+	// confirm if installation is required
+	if ok, err := isBinaryInstallationRequired(installLocation, runtimeVersion); !ok {
 		return err
 	}
 
@@ -201,11 +160,13 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string, r
 	print.SuccessStatusEvent(os.Stdout, msg)
 	print.InfoStatusEvent(os.Stdout, "%s binary has been installed.\n", daprRuntimeFilePrefix)
 	for _, container := range dockerContainerNames {
-		err = confirmContainerIsRunning(utils.CreateContainerName(container, dockerNetwork))
+		ok, err := confirmContainerIsRunningOrExists(utils.CreateContainerName(container, dockerNetwork), true)
 		if err != nil {
 			return err
 		}
-		print.InfoStatusEvent(os.Stdout, "%s container is running.\n", container)
+		if ok {
+			print.InfoStatusEvent(os.Stdout, "%s container is running.\n", container)
+		}
 	}
 	print.InfoStatusEvent(os.Stdout, "Use `docker ps` to check running containers.\n")
 	return nil
@@ -249,26 +210,41 @@ func getDownloadDest(installLocation string) (string, error) {
 func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string, redisHost string) {
 	defer wg.Done()
 
-	args := []string{
-		"run",
-		"--name", utils.CreateContainerName(DaprZipkinContainerName, dockerNetwork),
-		"--restart", "always",
-		"-d",
-	}
+	var zipkinContainerName = utils.CreateContainerName(DaprZipkinContainerName, dockerNetwork)
 
-	if dockerNetwork != "" {
-		args = append(
-			args,
-			"--network", dockerNetwork,
-			"--network-alias", DaprRedisContainerName)
+	exists, err := confirmContainerIsRunningOrExists(zipkinContainerName, false)
+	if err != nil {
+		errorChan <- err
+		return
+	}
+	var args = []string{}
+
+	if exists {
+		// do not create container again if it exists
+		fmt.Printf("\n%s container exists\n", zipkinContainerName)
+		args = append(args, "start", zipkinContainerName)
 	} else {
-		args = append(
-			args,
-			"-p", "9411:9411")
-	}
+		args = append(args,
+			"run",
+			"--name", zipkinContainerName,
+			"--restart", "always",
+			"-d",
+		)
 
-	args = append(args, "openzipkin/zipkin")
-	_, err := utils.RunCmdAndWait("docker", args...)
+		if dockerNetwork != "" {
+			args = append(
+				args,
+				"--network", dockerNetwork,
+				"--network-alias", DaprRedisContainerName)
+		} else {
+			args = append(
+				args,
+				"-p", "9411:9411")
+		}
+
+		args = append(args, "openzipkin/zipkin")
+	}
+	_, err = utils.RunCmdAndWait("docker", args...)
 
 	if err != nil {
 		runError := isContainerRunError(err)
@@ -285,32 +261,47 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, 
 func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string, redisHost string) {
 	defer wg.Done()
 
+	var redisContainerName = utils.CreateContainerName(DaprRedisContainerName, dockerNetwork)
+
 	if redisHost != daprDefaultHost {
 		// A non-default Redis host is specified. No need to start the redis container
 		fmt.Printf("You have specified redis-host: %s. Make sure you have a redis server running there.\n", redisHost)
 		return
 	}
 
-	args := []string{
-		"run",
-		"--name", utils.CreateContainerName(DaprRedisContainerName, dockerNetwork),
-		"--restart", "always",
-		"-d",
+	exists, err := confirmContainerIsRunningOrExists(redisContainerName, false)
+	if err != nil {
+		errorChan <- err
+		return
 	}
+	var args = []string{}
 
-	if dockerNetwork != "" {
-		args = append(
-			args,
-			"--network", dockerNetwork,
-			"--network-alias", DaprRedisContainerName)
+	if exists {
+		// do not create container again if it exists
+		fmt.Printf("\n%s container exists\n", redisContainerName)
+		args = append(args, "start", redisContainerName)
 	} else {
-		args = append(
-			args,
-			"-p", "6379:6379")
-	}
+		args = append(args,
+			"run",
+			"--name", redisContainerName,
+			"--restart", "always",
+			"-d",
+		)
 
-	args = append(args, "redis")
-	_, err := utils.RunCmdAndWait("docker", args...)
+		if dockerNetwork != "" {
+			args = append(
+				args,
+				"--network", dockerNetwork,
+				"--network-alias", DaprRedisContainerName)
+		} else {
+			args = append(
+				args,
+				"-p", "6379:6379")
+		}
+
+		args = append(args, "redis")
+	}
+	_, err = utils.RunCmdAndWait("docker", args...)
 
 	if err != nil {
 		runError := isContainerRunError(err)
@@ -324,23 +315,33 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, d
 	errorChan <- nil
 }
 
-func confirmContainerIsRunning(containerName string) error {
+// check if the container either exists and stopped or is running
+func confirmContainerIsRunningOrExists(containerName string, isRunning bool) (bool, error) {
 	// e.g. docker ps --filter name=dapr_redis --filter status=running --format {{.Names}}
 
-	args := []string{"ps", "--filter", "name=" + containerName, "--filter", "status=running", "--format", "{{.Names}}"}
+	args := []string{"ps", "--all", "--filter", "name=" + containerName}
+
+	if isRunning {
+		args = append(args, "--filter", "status=running")
+	}
+
+	args = append(args, "--format", "{{.Names}}")
 	response, err := utils.RunCmdAndWait("docker", args...)
 	response = strings.TrimSuffix(response, "\n")
 
 	// If 'docker ps' failed due to some reason
 	if err != nil {
-		return fmt.Errorf("unable to confirm whether %s is running. error\n%v", containerName, err.Error())
+		return false, fmt.Errorf("unable to confirm whether %s is running or exists. error\n%v", containerName, err.Error())
 	}
 	// 'docker ps' worked fine, but the response did not have the container name
 	if response == "" || response != containerName {
-		return fmt.Errorf("container %s is not running", containerName)
+		if isRunning {
+			return false, fmt.Errorf("container %s is not running", containerName)
+		}
+		return false, nil
 	}
 
-	return nil
+	return true, nil
 }
 
 func parseDockerError(component string, err error) error {
@@ -366,6 +367,7 @@ func isContainerRunError(err error) bool {
 
 func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string, _ string) {
 	defer wg.Done()
+	var placementContainerName = utils.CreateContainerName(DaprPlacementContainerName, dockerNetwork)
 
 	image := fmt.Sprintf("%s:%s", daprDockerImageName, version)
 
@@ -374,9 +376,20 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 		image = daprDockerImageName
 	}
 
+	exists, err := confirmContainerIsRunningOrExists(placementContainerName, false)
+
+	if err != nil {
+		errorChan <- err
+		return
+	} else if exists {
+		print.FailureStatusEvent(os.Stdout, "%s container exists.\n", placementContainerName)
+		errorChan <- fmt.Errorf("%s container exists or is running. %s", placementContainerName, errInstallTemplate)
+		return
+	}
+
 	args := []string{
 		"run",
-		"--name", utils.CreateContainerName(DaprPlacementContainerName, dockerNetwork),
+		"--name", placementContainerName,
 		"--restart", "always",
 		"-d",
 		"--entrypoint", "./placement",
@@ -398,7 +411,7 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 
 	args = append(args, image)
 
-	_, err := utils.RunCmdAndWait("docker", args...)
+	_, err = utils.RunCmdAndWait("docker", args...)
 
 	if err != nil {
 		runError := isContainerRunError(err)
@@ -414,11 +427,6 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 
 func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string, _ string) {
 	defer wg.Done()
-
-	// confirm if installation is required
-	if !isInstallationRequired(installLocation, version) {
-		return
-	}
 
 	archiveExt := "tar.gz"
 	if runtime.GOOS == daprWindowsOS {
@@ -463,10 +471,25 @@ func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version 
 		errorChan <- fmt.Errorf("error extracting Dapr binary: %s", err)
 		return
 	}
+	fmt.Printf("\nremoving archive %s\n", filepath)
+	err = os.Remove(filepath)
+
+	if err != nil {
+		errorChan <- fmt.Errorf("failed to remove archive: %s", err)
+		return
+	}
 
 	daprPath, err := moveFileToPath(extractedFilePath, installLocation)
 	if err != nil {
 		errorChan <- fmt.Errorf("error moving Dapr binary to path: %s", err)
+		return
+	}
+
+	fmt.Printf("\nremoving extracted binary %s\n", extractedFilePath)
+	err = os.Remove(extractedFilePath)
+
+	if err != nil {
+		errorChan <- fmt.Errorf("failed to remove extracted binary: %s", err)
 		return
 	}
 
@@ -646,7 +669,7 @@ func moveFileToPath(filepath string, installLocation string) (string, error) {
 		return "", err
 	}
 
-	fmt.Printf("Installing Dapr to %s\n", destDir)
+	fmt.Printf("\ninstalling Dapr to %s\n", destDir)
 	err = utils.CreateDirectory(destDir)
 	if err != nil {
 		return "", err
@@ -840,7 +863,7 @@ func checkAndOverWriteFile(filePath string, b []byte) error {
 			return err
 		}
 	} else {
-		fmt.Printf("file %s exists in the default dapr path", filePath)
+		fmt.Printf("\nfile %s exists in the default dapr path\n", filePath)
 	}
 	return nil
 }

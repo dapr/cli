@@ -29,6 +29,25 @@ func defaultFolderPath(dirName string) string {
 	return path_filepath.Join(homePath, defaultDaprDirName, dirName)
 }
 
+func binaryInstallationPath(installLocation string) string {
+	if installLocation != "" {
+		return installLocation
+	}
+	if runtime.GOOS == daprWindowsOS {
+		return daprDefaultWindowsInstallPath
+	}
+	return daprDefaultLinuxAndMacInstallPath
+}
+
+func daprdBinaryFilePath(installLocation string) string {
+	destDir := binaryInstallationPath(installLocation)
+	daprdBinaryPath := path_filepath.Join(destDir, daprRuntimeFilePrefix)
+	if runtime.GOOS == daprWindowsOS {
+		daprdBinaryPath = path_filepath.Join(daprdBinaryPath, ".exe")
+	}
+	return daprdBinaryPath
+}
+
 func DefaultComponentsDirPath() string {
 	return defaultFolderPath(defaultComponentsDirName)
 }
