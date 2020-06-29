@@ -12,7 +12,6 @@ import (
 	"net/url"
 	"os"
 	"strings"
-	"time"
 
 	core_v1 "k8s.io/api/core/v1"
 	k8s "k8s.io/client-go/kubernetes"
@@ -21,6 +20,7 @@ import (
 	"k8s.io/client-go/transport/spdy"
 )
 
+// PortForward provides a port-forward connection in a kubernetes cluster.
 type PortForward struct {
 	Config     *rest.Config
 	Method     string
@@ -33,14 +33,15 @@ type PortForward struct {
 	ReadyCh    chan struct{}
 }
 
+// NewPortForward returns an instance of PortForward struct that can be used
+// for establishing port-forwarding connection to a pod in kubernetes cluster,
+// specified by namespace and deployName.
 func NewPortForward(
 	config *rest.Config,
 	namespace, deployName string,
 	host string, localPort, remotePort int,
 	emitLogs bool,
 ) (*PortForward, error) {
-	time.Sleep(10 * time.Second)
-
 	client, err := k8s.NewForConfig(config)
 	if err != nil {
 		return nil, err
@@ -87,6 +88,8 @@ func NewPortForward(
 
 }
 
+// run creates port-forward connection and blocks
+// until Stop() is called.
 func (pf *PortForward) run() error {
 	transport, upgrader, err := spdy.RoundTripperFor(pf.Config)
 	if err != nil {
@@ -111,6 +114,9 @@ func (pf *PortForward) run() error {
 	return fw.ForwardPorts()
 }
 
+// Init creates and runs a port-forward connection.
+// This function blocks until connection is established.
+// Note: Caller should call Stop() to finish the connection.
 func (pf *PortForward) Init() error {
 	failure := make(chan error)
 
@@ -121,8 +127,10 @@ func (pf *PortForward) Init() error {
 	}()
 
 	select {
+	// if `pf.run()` succeeds, block until terminated
 	case <-pf.ReadyCh:
-		// do nothing if port forwarding is initialized
+
+	// if failure, causing a receive `<-failure` and returns the error
 	case err := <-failure:
 		return err
 	}
@@ -130,10 +138,13 @@ func (pf *PortForward) Init() error {
 	return nil
 }
 
+// Stop terminates port-forwarding connection.
 func (pf *PortForward) Stop() {
 	close(pf.StopCh)
 }
 
+// GetStop returns StopCh for a PortForward instance.
+// Receiving on StopCh will block until the port forwarding stops.
 func (pf *PortForward) GetStop() <-chan struct{} {
 	return pf.StopCh
 }

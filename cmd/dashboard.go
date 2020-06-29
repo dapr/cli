@@ -24,30 +24,33 @@ const (
 	// defaultHost is the default host used for port forwarding for `dapr dashboard`
 	defaultHost = "localhost"
 
-	// defaultPort is the default port used for port forwarding for `dapr dashboard`
-	defaultPort = 8080
+	// defaultLocalPort is the default local port used for port forwarding for `dapr dashboard`
+	defaultLocalPort = 8080
+
+	// remotePort is the port dapr dashboard pod is listening on
+	remotePort = 8080
 )
 
-var open bool
+var localPort int
 
 var DashboardCmd = &cobra.Command{
 	Use:   "dashboard",
 	Short: "Runs the Dapr dashboard on a Kubernetes cluster",
 	Run: func(cmd *cobra.Command, args []string) {
+		if port < 0 {
+			localPort = defaultLocalPort
+		} else {
+			localPort = port
+		}
+
 		config, err := kubernetes.GetKubeConfig()
 
 		if err != nil {
 			print.FailureStatusEvent(os.Stdout, "Failed to initialize kubernetes client")
-		}
-
-		print.InfoStatusEvent(os.Stdout, "Launching Dapr dashboard in kubernetes cluster")
-
-		err = kubernetes.InitDashboard()
-		if err != nil {
-			print.FailureStatusEvent(os.Stderr, "Failed to initialize dashboard")
 			return
 		}
 
+		// manage termination of port forwarding connection on interrupt
 		signals := make(chan os.Signal, 1)
 		signal.Notify(signals, os.Interrupt)
 		defer signal.Stop(signals)
@@ -57,38 +60,36 @@ var DashboardCmd = &cobra.Command{
 			meta_v1.NamespaceDefault,
 			dashboardSvc,
 			defaultHost,
-			defaultPort,
-			defaultPort,
+			localPort,
+			remotePort,
 			false,
 		)
 		if err != nil {
-			print.FailureStatusEvent(os.Stderr, "Failed to initialize port forwarding: %s\n", err)
+			print.FailureStatusEvent(os.Stdout, "%s\n", err)
 			os.Exit(1)
 		}
 
+		// initialize port forwarding
 		if err = portForward.Init(); err != nil {
-			print.FailureStatusEvent(os.Stderr, "Error initializing port forward. Check for `dapr dashboard` running in other terminal sessions")
+			print.FailureStatusEvent(os.Stdout, "Error in port forwarding: %s\nCheck for `dapr dashboard` running in other terminal sessions, or use the `--port` flag to use a different port.\n", err)
 			os.Exit(1)
 		}
 
+		// block until interrupt signal is received
 		go func() {
 			<-signals
 			portForward.Stop()
 		}()
 
-		// get url for dashboard after port forwarding
-		var webURL string = fmt.Sprintf("https://%s:%d", defaultHost, defaultPort)
+		// url for dashboard after port forwarding
+		var webURL string = fmt.Sprintf("http://%s:%d", defaultHost, localPort)
 
 		print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Dapr dashboard available at:\t%s\n", webURL))
 
-		if open {
-			print.InfoStatusEvent(os.Stdout, "launching Dapr dashboard in browser")
-
-			err := browser.OpenURL(webURL)
-			if err != nil {
-				print.FailureStatusEvent(os.Stdout, "Failed to open Dapr dashboard automatically")
-				print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Visit %s in your browser to view the dashboard", webURL))
-			}
+		err = browser.OpenURL(webURL)
+		if err != nil {
+			print.FailureStatusEvent(os.Stdout, "Failed to start Dapr dashboard in browser automatically")
+			print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Visit %s in your browser to view the dashboard", webURL))
 		}
 
 		<-portForward.GetStop()
@@ -96,9 +97,8 @@ var DashboardCmd = &cobra.Command{
 }
 
 func init() {
-	DashboardCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Deploy Dapr dashboard to a Kubernetes cluster")
-	DashboardCmd.Flags().BoolVarP(&open, "open", "o", false, "Open Dapr dashboard in a browser")
-	DashboardCmd.Flags().IntVarP(&port, "port", "p", defaultPort, "The local port on which to serve dashboard")
+	DashboardCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Start Dapr dashboard in local browser")
+	DashboardCmd.Flags().IntVarP(&port, "port", "p", defaultLocalPort, "The local port on which to serve dashboard")
 	DashboardCmd.MarkFlagRequired("kubernetes")
 	RootCmd.AddCommand(DashboardCmd)
 }
