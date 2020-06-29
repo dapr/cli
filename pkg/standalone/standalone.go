@@ -157,6 +157,7 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string, r
 		s.Stop()
 	}
 
+	msg = "Downloaded binaries and completed components set up."
 	print.SuccessStatusEvent(os.Stdout, msg)
 	print.InfoStatusEvent(os.Stdout, "%s binary has been installed.\n", daprRuntimeFilePrefix)
 	for _, container := range dockerContainerNames {

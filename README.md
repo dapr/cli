@@ -79,7 +79,7 @@ removing extracted binary /Users/msundar/.dapr/daprd
 > Note: To see that Dapr has been installed successfully, from a command prompt run the `docker ps` command and check that the `daprio/dapr:latest`,  `dapr_redis` and `dapr_zipkin` container images are all running.
 
 This step creates the following defaults:
-1. components folder which is later used at runtime unless the `--components-path` option is provided. For Linux/MacOS, the default components folder path is `$HOME/.dapr/components` and for Windows it is `%USERPROFILE%\.dapr\components`.
+1. components folder which is later used during `dapr run` unless the `--components-path` option is provided. For Linux/MacOS, the default components folder path is `$HOME/.dapr/components` and for Windows it is `%USERPROFILE%\.dapr\components`.
 2. component files in the components folder called `pubsub.yaml`, `statestore.yaml` and `zipkin.yaml`. 
 3. default config file `$HOME/.dapr/config.yaml` for Linux/MacOS or for Windows at `%USERPROFILE%\.dapr\config.yaml` to enable tracing on `dapr init` call. Can be overridden with the `--config` flag on `dapr run`.
 
@@ -137,10 +137,10 @@ You should always run a `dapr uninstall` before running another `dapr init`.
 
 #### Uninstall Dapr from a specific install path 
 
-If previously installed to a specific location, Dapr can be unsintalled with the `--install-path` argument
+If previously installed to a specific location for eg: `~/dapr_bin`, Dapr can be unsintalled with the `--install-path` argument
 
 ```bash
-dapr uninstall --install-path ~/.dapr
+dapr uninstall --install-path ~/dapr_bin
 ```
 
 #### Uninstall Dapr from a specific Docker network
