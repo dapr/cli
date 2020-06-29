@@ -57,11 +57,11 @@ Each release of Dapr CLI includes various OSes and architectures. These binary v
 $ dapr init
 ⌛  Making the jump to hyperspace...
 ↓  Downloading binaries and setting up components...
-removing archive /Users/msundar/.dapr/daprd_darwin_amd64.tar.gz
+removing archive ~/.dapr/daprd_darwin_amd64.tar.gz
 ↙  Downloading binaries and setting up components...
 installing Dapr to /usr/local/bin
 
-removing extracted binary /Users/msundar/.dapr/daprd
+removing extracted binary ~/.dapr/daprd
 ✅  Downloaded binaries and completed components set up.
 ℹ️  daprd binary has been installed.
 
