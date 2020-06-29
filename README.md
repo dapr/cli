@@ -62,7 +62,7 @@ removing archive /Users/msundar/.dapr/daprd_darwin_amd64.tar.gz
 installing Dapr to /usr/local/bin
 
 removing extracted binary /Users/msundar/.dapr/daprd
-✅  Downloading binaries and setting up components...
+✅  Downloaded binaries and completed components set up.
 ℹ️  daprd binary has been installed.
 
 ℹ️  dapr_placement container is running.
