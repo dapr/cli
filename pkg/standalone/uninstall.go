@@ -60,27 +60,39 @@ func removeDefaultDaprDir(uninstallAll bool) (string, error) {
 	return defaultDaprPath, err
 }
 
-func removeInstalledBinaries(installLocation string) (string, error) {
-	daprdBinaryPath := daprdBinaryFilePath(installLocation)
-	fmt.Println("removing binary: ", daprdBinaryPath)
-	err := os.Remove(daprdBinaryPath)
+func removeInstalledBinaries(binaryFilePrefix, installLocation string) (string, error) {
+	binaryPath := binaryFilePath(binaryFilePrefix, installLocation)
+	_, err := os.Stat(binaryPath)
+	if os.IsNotExist(err) {
+		return binaryPath, nil
+	}
+	fmt.Println("removing binary: ", binaryPath)
+	err = os.Remove(binaryPath)
 
-	return daprdBinaryPath, err
+	return binaryPath, err
 }
 
 // Uninstall reverts all changes made by init. Deletes all installed containers, removes default dapr folder,
 // removes the installed binary and unsets env variables.
-func Uninstall(uninstallAll bool, installLocation, dockerNetwork string) error {
+func Uninstall(uninstallSlim, uninstallAll bool, installLocation, dockerNetwork string) error {
 	var containerErrs []error
 
-	dockerInstalled := utils.IsDockerInstalled()
-	if dockerInstalled {
-		containerErrs = removeContainers(uninstallAll, dockerNetwork)
+	dockerInstalled := false
+	if !uninstallSlim {
+		dockerInstalled = utils.IsDockerInstalled()
+		if dockerInstalled {
+			containerErrs = removeContainers(uninstallAll, dockerNetwork)
+		}
 	}
 
-	daprdBinaryPath, err := removeInstalledBinaries(installLocation)
+	removed, err := removeInstalledBinaries(daprRuntimeFilePrefix, installLocation)
 	if err != nil {
-		fmt.Println("WARNING: could not delete binary file: ", daprdBinaryPath)
+		fmt.Println("WARNING: could not delete binary file: ", removed)
+	}
+
+	removed, err = removeInstalledBinaries(placementServiceFilePrefix, installLocation)
+	if err != nil {
+		fmt.Println("WARNING: could not delete binary file: ", removed)
 	}
 
 	err = rundata.DeleteRunDataFile()
@@ -88,13 +100,15 @@ func Uninstall(uninstallAll bool, installLocation, dockerNetwork string) error {
 		fmt.Println("WARNING: could not delete run data file")
 	}
 
-	daprPath, err := removeDefaultDaprDir(uninstallAll)
-	if err != nil {
-		fmt.Println("WARNING: could not delete default dapr folder: ", daprPath)
+	if !uninstallSlim {
+		daprPath, err := removeDefaultDaprDir(uninstallAll)
+		if err != nil {
+			fmt.Println("WARNING: could not delete default dapr folder: ", daprPath)
+		}
 	}
 
 	err = errors.New("uninstall failed")
-	if !dockerInstalled {
+	if !uninstallSlim && !dockerInstalled {
 		return fmt.Errorf("%w \n could not connect to Docker. Docker may not be installed or running", err)
 	}
 

@@ -48,6 +48,15 @@ func daprdBinaryFilePath(installLocation string) string {
 	return daprdBinaryPath
 }
 
+func binaryFilePath(binaryFilePrefix, installLocation string) string {
+	destDir := binaryInstallationPath(installLocation)
+	binaryPath := path_filepath.Join(destDir, binaryFilePrefix)
+	if runtime.GOOS == daprWindowsOS {
+		binaryPath = path_filepath.Join(binaryPath, ".exe")
+	}
+	return binaryPath
+}
+
 func DefaultComponentsDirPath() string {
 	return defaultFolderPath(defaultComponentsDirName)
 }

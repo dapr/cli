@@ -51,7 +51,13 @@ Each release of Dapr CLI includes various OSes and architectures. These binary v
    * For Linux/MacOS - `/usr/local/bin`
    * For Windows, create a directory and add this to your System PATH. For example create a directory called `c:\dapr` and add this directory to your path, by editing your system environment variable.
 
-### Install Dapr on your local machine (standalone)
+### Install Dapr on your local machine (self-hosted)
+
+In self-hosted mode, dapr can be installed with docker(recommended) or without a docker dependency.
+
+#### With Docker(recommended)
+
+With this option, multiple default configuration files and containers are installed along with the dapr runtime binary. 
 
 ```
 $ dapr init
@@ -82,6 +88,32 @@ This step creates the following defaults:
 1. components folder which is later used during `dapr run` unless the `--components-path` option is provided. For Linux/MacOS, the default components folder path is `$HOME/.dapr/components` and for Windows it is `%USERPROFILE%\.dapr\components`.
 2. component files in the components folder called `pubsub.yaml`, `statestore.yaml` and `zipkin.yaml`. 
 3. default config file `$HOME/.dapr/config.yaml` for Linux/MacOS or for Windows at `%USERPROFILE%\.dapr\config.yaml` to enable tracing on `dapr init` call. Can be overridden with the `--config` flag on `dapr run`.
+
+#### Without Docker 
+
+```bash
+$ dapr init --slim
+⌛  Making the jump to hyperspace...
+↙  Downloading binaries and setting up components...
+removing archive ~/.dapr/placement_darwin_amd64.tar.gz
+
+installing Dapr to /usr/local/bin
+
+removing extracted binary ~/.dapr/placement
+↙  Downloading binaries and setting up components...
+removing archive ~/.dapr/daprd_darwin_amd64.tar.gz
+←  Downloading binaries and setting up components...
+installing Dapr to /usr/local/bin
+
+removing extracted binary ~/.dapr/daprd
+✅  Downloaded binaries and completed components set up.
+ℹ️  daprd binary has been installed.
+
+ℹ️  placement binary has been installed.
+
+✅  Success! Dapr is up and running. To get started, go here: https://aka.ms/dapr-getting-started
+```
+>Note: Only the Dapr runtime binary and the placement service binary are installed.
 
 #### Install a specific runtime version
 
@@ -119,6 +151,7 @@ $ dapr init --redis-host 10.0.0.1
 
 ### Uninstall Dapr in a standalone mode
 
+#### With Docker
 
 Uninstalling will remove the placement container and the daprd binary installed in either the provided `--install-path` on `dapr init` or the default path `/usr/local/bin` for Linux/MacOS or `C:\dapr` for Windows. 
 
@@ -134,6 +167,19 @@ $ dapr uninstall --all
 ```
 
 You should always run a `dapr uninstall` before running another `dapr init`.	
+
+#### Without Docker
+
+If Dapr has been installed in self-hosted mode with docker, run the following command to remove the installed binaries(daprd, placement): 
+
+```bash
+$ dapr uninstall --slim
+ℹ️  Removing Dapr from your machine...
+removing binary:  /usr/local/bin/daprd
+removing binary:  /usr/local/bin/placement
+WARNING: could not delete run data file
+✅  Dapr binaries have been removed successfully
+```
 
 #### Uninstall Dapr from a specific install path 
 
