@@ -113,8 +113,8 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string, r
 	}
 
 	// confirm if installation is required
-	if ok, err := isBinaryInstallationRequired(daprRuntimeFilePrefix, installLocation, runtimeVersion); !ok {
-		return err
+	if ok, er := isBinaryInstallationRequired(daprRuntimeFilePrefix, installLocation, runtimeVersion); !ok {
+		return er
 	}
 
 	var wg sync.WaitGroup
@@ -122,8 +122,8 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string, r
 	initSteps := []func(*sync.WaitGroup, chan<- error, string, string, string, string){}
 	if slimMode {
 		// confirm if installation is required
-		if ok, err := isBinaryInstallationRequired(placementServiceFilePrefix, installLocation, runtimeVersion); !ok {
-			return err
+		if ok, er := isBinaryInstallationRequired(placementServiceFilePrefix, installLocation, runtimeVersion); !ok {
+			return er
 		}
 		// Install 2 binaries in slim mode, daprd, placement
 		wg.Add(2)
@@ -145,6 +145,12 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string, r
 		s.Color("cyan")
 		s.Suffix = fmt.Sprintf("  %s", msg)
 		s.Start()
+	}
+
+	// Make default components directory
+	err = makeDefaultComponentsDir()
+	if err != nil {
+		return err
 	}
 
 	// Initialize daprd binary
@@ -535,16 +541,6 @@ func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error
 
 	// Make default components directory
 	componentsDir := DefaultComponentsDirPath()
-	_, err = os.Stat(componentsDir)
-	if os.IsNotExist(err) {
-		errDir := os.MkdirAll(componentsDir, 0755)
-		if errDir != nil {
-			errorChan <- fmt.Errorf("error creating default components folder: %s", errDir)
-			return
-		}
-	}
-
-	os.Chmod(componentsDir, 0777)
 
 	err = createRedisPubSub(redisHost, componentsDir)
 	if err != nil {
@@ -566,6 +562,22 @@ func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error
 		errorChan <- fmt.Errorf("error creating default configuration file: %s", err)
 		return
 	}
+}
+
+func makeDefaultComponentsDir() error {
+	// Make default components directory
+	componentsDir := DefaultComponentsDirPath()
+	_, err := os.Stat(componentsDir)
+	if os.IsNotExist(err) {
+		fmt.Printf("creating default components folder: %s\n", componentsDir)
+		errDir := os.MkdirAll(componentsDir, 0755)
+		if errDir != nil {
+			return fmt.Errorf("error creating default components folder: %s", errDir)
+		}
+	}
+
+	os.Chmod(componentsDir, 0777)
+	return nil
 }
 
 func makeExecutable(filepath string) error {

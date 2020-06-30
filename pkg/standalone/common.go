@@ -39,15 +39,6 @@ func binaryInstallationPath(installLocation string) string {
 	return daprDefaultLinuxAndMacInstallPath
 }
 
-func daprdBinaryFilePath(installLocation string) string {
-	destDir := binaryInstallationPath(installLocation)
-	daprdBinaryPath := path_filepath.Join(destDir, daprRuntimeFilePrefix)
-	if runtime.GOOS == daprWindowsOS {
-		daprdBinaryPath = path_filepath.Join(daprdBinaryPath, ".exe")
-	}
-	return daprdBinaryPath
-}
-
 func binaryFilePath(binaryFilePrefix, installLocation string) string {
 	destDir := binaryInstallationPath(installLocation)
 	binaryPath := path_filepath.Join(destDir, binaryFilePrefix)

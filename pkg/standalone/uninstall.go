@@ -76,6 +76,8 @@ func removeInstalledBinaries(binaryFilePrefix, installLocation string) (string, 
 // removes the installed binary and unsets env variables.
 func Uninstall(uninstallSlim, uninstallAll bool, installLocation, dockerNetwork string) error {
 	var containerErrs []error
+	var err error
+	var path string
 
 	dockerInstalled := false
 	if !uninstallSlim {
@@ -85,14 +87,14 @@ func Uninstall(uninstallSlim, uninstallAll bool, installLocation, dockerNetwork 
 		}
 	}
 
-	removed, err := removeInstalledBinaries(daprRuntimeFilePrefix, installLocation)
+	path, err = removeInstalledBinaries(daprRuntimeFilePrefix, installLocation)
 	if err != nil {
-		fmt.Println("WARNING: could not delete binary file: ", removed)
+		fmt.Println("WARNING: could not delete binary file: ", path)
 	}
 
-	removed, err = removeInstalledBinaries(placementServiceFilePrefix, installLocation)
+	path, err = removeInstalledBinaries(placementServiceFilePrefix, installLocation)
 	if err != nil {
-		fmt.Println("WARNING: could not delete binary file: ", removed)
+		fmt.Println("WARNING: could not delete binary file: ", path)
 	}
 
 	err = rundata.DeleteRunDataFile()
@@ -100,11 +102,9 @@ func Uninstall(uninstallSlim, uninstallAll bool, installLocation, dockerNetwork 
 		fmt.Println("WARNING: could not delete run data file")
 	}
 
-	if !uninstallSlim {
-		daprPath, err := removeDefaultDaprDir(uninstallAll)
-		if err != nil {
-			fmt.Println("WARNING: could not delete default dapr folder: ", daprPath)
-		}
+	path, err = removeDefaultDaprDir(uninstallAll)
+	if err != nil {
+		fmt.Println("WARNING: could not delete default dapr folder: ", path)
 	}
 
 	err = errors.New("uninstall failed")

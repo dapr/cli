@@ -62,6 +62,7 @@ With this option, multiple default configuration files and containers are instal
 ```
 $ dapr init
 ⌛  Making the jump to hyperspace...
+creating default components folder: ~/.dapr/components
 ↓  Downloading binaries and setting up components...
 removing archive ~/.dapr/daprd_darwin_amd64.tar.gz
 ↙  Downloading binaries and setting up components...
@@ -94,6 +95,7 @@ This step creates the following defaults:
 ```bash
 $ dapr init --slim
 ⌛  Making the jump to hyperspace...
+creating default components folder: ~/.dapr/components
 ↙  Downloading binaries and setting up components...
 removing archive ~/.dapr/placement_darwin_amd64.tar.gz
 
@@ -113,7 +115,8 @@ removing extracted binary ~/.dapr/daprd
 
 ✅  Success! Dapr is up and running. To get started, go here: https://aka.ms/dapr-getting-started
 ```
->Note: Only the Dapr runtime binary and the placement service binary are installed.
+
+>Note: Only the Dapr runtime binary and the placement service binary are installed. An empty components folder, which is later used during `dapr run` unless the `--components-path` option is provided, is created. For Linux/MacOS, the default components folder path is `$HOME/.dapr/components` and for Windows it is `%USERPROFILE%\.dapr\components`.
 
 #### Install a specific runtime version
 
