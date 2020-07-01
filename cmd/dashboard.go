@@ -35,7 +35,7 @@ var localPort int
 
 var DashboardCmd = &cobra.Command{
 	Use:   "dashboard",
-	Short: "Runs the Dapr dashboard on a Kubernetes cluster",
+	Short: "Starts Dapr dashboard in a Kubernetes cluster",
 	Run: func(cmd *cobra.Command, args []string) {
 		if port < 0 {
 			localPort = defaultLocalPort
