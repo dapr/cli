@@ -16,8 +16,8 @@ dapr run [flags] [command]
 | --- | --- | --- | --- |
 | `--app-id` | | | An ID for your application, used for service discovery |
 | `--app-port` | | `-1` | The port your application is listening on |
-| `--components-path` | | `./components` | Path for components directory |
-| `--config` | | | Dapr configuration file |
+| `--components-path` | | `$HOME/.dapr/components or %USERPROFILE%\.dapr\components` | Path for components directory |
+| `--config` | | `$HOME/.dapr/config.yaml or %USERPROFILE%\.dapr\config.yaml` | Dapr configuration file |
 | `--enable-profiling` | | | Enable `pprof` profiling via an HTTP endpoint |
 | `--grpc-port` | | `-1` | The gRPC port for Dapr to listen on |
 | `--help`, `-h` | | | Help for run |
@@ -28,4 +28,3 @@ dapr run [flags] [command]
 | `--port`, `-p` | | `-1` | The HTTP port for Dapr to listen on |
 | `--profile-port` | | `-1` | The port for the profile server to listen on |
 | `--protocol` | | `http` | Tells Dapr to use HTTP or gRPC to talk to the app. Valid values are: `http` or `grpc` |
-| `--redis-host` | `DAPR_REDIS_HOST` | `localhost` | The host on which the Redis service resides |

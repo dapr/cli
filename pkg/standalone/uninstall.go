@@ -11,17 +11,9 @@ import (
 
 func removeContainers(uninstallAll bool, dockerNetwork string) []error {
 	var containerErrs []error
+	var err error
 
-	_, err := utils.RunCmdAndWait(
-		"docker", "rm",
-		"--force",
-		utils.CreateContainerName(DaprPlacementContainerName, dockerNetwork))
-
-	if err != nil {
-		containerErrs = append(
-			containerErrs,
-			fmt.Errorf("could not remove %s container: %s", DaprPlacementContainerName, err))
-	}
+	containerErrs = removeDockerContainer(containerErrs, DaprPlacementContainerName, dockerNetwork)
 
 	_, err = utils.RunCmdAndWait(
 		"docker", "rmi",
@@ -35,29 +27,50 @@ func removeContainers(uninstallAll bool, dockerNetwork string) []error {
 	}
 
 	if uninstallAll {
-		_, err = utils.RunCmdAndWait(
-			"docker", "rm",
-			"--force",
-			utils.CreateContainerName(DaprRedisContainerName, dockerNetwork))
-		if err != nil {
-			containerErrs = append(
-				containerErrs,
-				fmt.Errorf("could not remove %s container: %s", DaprRedisContainerName, err))
-		}
+		containerErrs = removeDockerContainer(containerErrs, DaprRedisContainerName, dockerNetwork)
+		containerErrs = removeDockerContainer(containerErrs, DaprZipkinContainerName, dockerNetwork)
 	}
 
 	return containerErrs
 }
 
-func removeDefaultComponentsFolder() (string, error) {
-	defaultComponentsPath := getDefaultComponentsFolder()
-	err := os.RemoveAll(defaultComponentsPath)
+func removeDockerContainer(containerErrs []error, containerName, network string) []error {
+	fmt.Println("removing container: ", containerName)
+	_, err := utils.RunCmdAndWait(
+		"docker", "rm",
+		"--force",
+		utils.CreateContainerName(containerName, network))
 
-	return defaultComponentsPath, err
+	if err != nil {
+		containerErrs = append(
+			containerErrs,
+			fmt.Errorf("could not remove %s container: %s", containerName, err))
+	}
+	return containerErrs
 }
 
-// Uninstall reverts all changes made by init. Deletes all installed containers, removes default components folder, unsets env variables
-func Uninstall(uninstallAll bool, dockerNetwork string) error {
+func removeDefaultDaprDir(uninstallAll bool) (string, error) {
+	if !uninstallAll {
+		return "", nil
+	}
+	defaultDaprPath := defaultFolderPath(defaultDaprDirName)
+	fmt.Println("removing folder: ", defaultDaprPath)
+	err := os.RemoveAll(defaultDaprPath)
+
+	return defaultDaprPath, err
+}
+
+func removeInstalledBinaries(installLocation string) (string, error) {
+	daprdBinaryPath := daprdBinaryFilePath(installLocation)
+	fmt.Println("removing binary: ", daprdBinaryPath)
+	err := os.Remove(daprdBinaryPath)
+
+	return daprdBinaryPath, err
+}
+
+// Uninstall reverts all changes made by init. Deletes all installed containers, removes default dapr folder,
+// removes the installed binary and unsets env variables.
+func Uninstall(uninstallAll bool, installLocation, dockerNetwork string) error {
 	var containerErrs []error
 
 	dockerInstalled := utils.IsDockerInstalled()
@@ -65,14 +78,19 @@ func Uninstall(uninstallAll bool, dockerNetwork string) error {
 		containerErrs = removeContainers(uninstallAll, dockerNetwork)
 	}
 
-	err := rundata.DeleteRunDataFile()
+	daprdBinaryPath, err := removeInstalledBinaries(installLocation)
+	if err != nil {
+		fmt.Println("WARNING: could not delete binary file: ", daprdBinaryPath)
+	}
+
+	err = rundata.DeleteRunDataFile()
 	if err != nil {
 		fmt.Println("WARNING: could not delete run data file")
 	}
 
-	componentsPath, err := removeDefaultComponentsFolder()
+	daprPath, err := removeDefaultDaprDir(uninstallAll)
 	if err != nil {
-		fmt.Println("WARNING: could not delete default components folder: ", componentsPath)
+		fmt.Println("WARNING: could not delete default dapr folder: ", daprPath)
 	}
 
 	err = errors.New("uninstall failed")
