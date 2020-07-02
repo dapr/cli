@@ -2,9 +2,21 @@
 
 ## Description
 
-Starts Dapr dashboard in a Kubernetes cluster.
+Start Dapr dashboard.
 
 ## Usage
+
+### Prerequisites
+
+Dapr dashboard should be deployed in the Kubernetes cluster.
+
+You can deploy the dashboard in the Kubernetes cluster as follows:
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/dapr/dashboard/master/deploy/dashboard.yaml
+```
+
+And then run:
 
 ```bash
 dapr dashboard [flags]
