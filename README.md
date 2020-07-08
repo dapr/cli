@@ -8,10 +8,11 @@ The Dapr CLI allows you to setup Dapr on your local dev machine or on a Kubernet
 ## Getting started
 
 ### Prerequisites
+If not following the instructions for installing Dapr [without containers](#Without-Containers)
 
 * Install [Docker](https://docs.docker.com/install/)
 
-*__Note: On Windows, Docker must be running in Linux Containers mode__*
+>__Note: On Windows, Docker must be running in Linux Containers mode__
 
 ### Installing Dapr CLI
 
@@ -53,9 +54,10 @@ Each release of Dapr CLI includes various OSes and architectures. These binary v
 
 ### Install Dapr on your local machine (self-hosted)
 
-In self-hosted mode, dapr can be installed with docker(recommended) or without a docker dependency.
+In self-hosted mode, dapr can be installed with the placement, redis and zipkin containers enabled by default(recommended) or without them which also does not require docker to be available in the environment.
 
-#### With Docker(recommended)
+#### With Containers
+([Prerequisite](#Prerequisites): Docker is available in the environment - recommended)
 
 With this option, multiple default configuration files and containers are installed along with the dapr runtime binary. 
 
@@ -90,7 +92,8 @@ This step creates the following defaults:
 2. component files in the components folder called `pubsub.yaml`, `statestore.yaml` and `zipkin.yaml`. 
 3. default config file `$HOME/.dapr/config.yaml` for Linux/MacOS or for Windows at `%USERPROFILE%\.dapr\config.yaml` to enable tracing on `dapr init` call. Can be overridden with the `--config` flag on `dapr run`.
 
-#### Without Docker 
+#### Without Containers
+(Docker is not needed, only binaries are installed)
 
 ```bash
 $ dapr init --slim
