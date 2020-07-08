@@ -154,9 +154,7 @@ $ dapr init --redis-host 10.0.0.1
 
 ### Uninstall Dapr in a standalone mode
 
-#### With Docker
-
-Uninstalling will remove the placement container and the daprd binary installed in either the provided `--install-path` on `dapr init` or the default path `/usr/local/bin` for Linux/MacOS or `C:\dapr` for Windows. 
+Uninstalling will remove the placement container if installed with Docker or the placement binary if not, and the daprd binary installed in either the provided `--install-path` on `dapr init` or the default path `/usr/local/bin` for Linux/MacOS or `C:\dapr` for Windows. 
 
 
 ```bash
@@ -169,20 +167,11 @@ The command above won't remove the redis or zipkin containers by default in case
 $ dapr uninstall --all
 ```
 
-You should always run a `dapr uninstall` before running another `dapr init`.	
+The above command can also be run when Dapr has been installed in a non-docker environment, it will only remove the installed binaries and the default dapr folder in that case. 
 
-#### Without Docker
+> NB: The `dapr uninstall` command will always try to remove the placement binary/service and will throw an error is not able to.
 
-If Dapr has been installed in self-hosted mode with docker, run the following command to remove the installed binaries(daprd, placement): 
-
-```bash
-$ dapr uninstall --slim
-ℹ️  Removing Dapr from your machine...
-removing binary:  /usr/local/bin/daprd
-removing binary:  /usr/local/bin/placement
-WARNING: could not delete run data file
-✅  Dapr binaries have been removed successfully
-```
+**You should always run a `dapr uninstall` before running another `dapr init`.**
 
 #### Uninstall Dapr from a specific install path 
 
