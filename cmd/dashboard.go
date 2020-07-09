@@ -48,7 +48,7 @@ var DashboardCmd = &cobra.Command{
 
 		config, client, err := kubernetes.GetKubeConfigClient()
 		if err != nil {
-			print.FailureStatusEvent(os.Stdout, "Failed to initialize kubernetes client")
+			print.FailureStatusEvent(os.Stdout, "Failed to initialize kubernetes client: %s", err.Error())
 			os.Exit(1)
 		}
 
