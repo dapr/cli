@@ -24,6 +24,7 @@ require (
 	github.com/olekukonko/tablewriter v0.0.1
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/phayes/freeport v0.0.0-20171002181615-b8543db493a5
+	github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4
 	github.com/shirou/gopsutil v2.20.2+incompatible
 	github.com/spf13/cobra v0.0.6
 	github.com/spf13/viper v1.5.0
