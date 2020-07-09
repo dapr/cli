@@ -14,7 +14,6 @@ import (
 	"github.com/dapr/cli/pkg/print"
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -27,10 +26,14 @@ const (
 	// defaultLocalPort is the default local port used for port forwarding for `dapr dashboard`
 	defaultLocalPort = 8080
 
+	// defaultNamespace is the default namespace where the dashboard is deployed
+	defaultNamespace = "dapr-system"
+
 	// remotePort is the port dapr dashboard pod is listening on
 	remotePort = 8080
 )
 
+var dashboardNamespace string
 var localPort int
 
 var DashboardCmd = &cobra.Command{
@@ -43,11 +46,10 @@ var DashboardCmd = &cobra.Command{
 			localPort = port
 		}
 
-		config, err := kubernetes.GetKubeConfig()
-
+		config, client, err := kubernetes.GetKubeConfigClient()
 		if err != nil {
 			print.FailureStatusEvent(os.Stdout, "Failed to initialize kubernetes client")
-			return
+			os.Exit(1)
 		}
 
 		// manage termination of port forwarding connection on interrupt
@@ -55,9 +57,24 @@ var DashboardCmd = &cobra.Command{
 		signal.Notify(signals, os.Interrupt)
 		defer signal.Stop(signals)
 
+		// search for dashboard service namespace in order:
+		// user-supplied namespace, dapr-system, default
+		namespaces := []string{dashboardNamespace}
+		if dashboardNamespace != "dapr-system" {
+			namespaces = append(namespaces, "dapr-system")
+		}
+		namespaces = append(namespaces, "default")
+		podNamespace := kubernetes.PodLocation(client, nil, dashboardSvc, namespaces)
+
+		// if the service is not found, error out, tell user to supply a namespace
+		if podNamespace == "" {
+			print.FailureStatusEvent(os.Stdout, "Failed to find Dapr dashboard in namespaces: %v\nIf Dapr dashboard is deployed to a different namespace, please use dapr dashboard -n", namespaces)
+			os.Exit(1)
+		}
+
 		portForward, err := kubernetes.NewPortForward(
 			config,
-			meta_v1.NamespaceDefault,
+			podNamespace,
 			dashboardSvc,
 			defaultHost,
 			localPort,
@@ -99,6 +116,7 @@ var DashboardCmd = &cobra.Command{
 func init() {
 	DashboardCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Start Dapr dashboard in local browser")
 	DashboardCmd.Flags().IntVarP(&port, "port", "p", defaultLocalPort, "The local port on which to serve dashboard")
+	DashboardCmd.Flags().StringVarP(&dashboardNamespace, "namespace", "n", defaultNamespace, "The namespace where Dapr dashboard is running")
 	DashboardCmd.MarkFlagRequired("kubernetes")
 	RootCmd.AddCommand(DashboardCmd)
 }
