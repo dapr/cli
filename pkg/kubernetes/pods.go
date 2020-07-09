@@ -14,29 +14,27 @@ func ListPods(client *k8s.Clientset, namespace string, labelSelector map[string]
 	if labelSelector != nil {
 		opts.LabelSelector = labels.FormatLabels(labelSelector)
 	}
-	return client.CoreV1().Pods(v1.NamespaceAll).List(opts)
+	return client.CoreV1().Pods(core_v1.NamespaceAll).List(opts)
 }
 
-// PodLocation returns the namespace that the given pod resides in, or empty if not in the given possibilities list
-func PodLocation(client *k8s.Clientset, labelSelector map[string]string, deployName string, namespacesToSearch []string) string {
+// CheckPodExists returns the namespace that the given pod resides in, or empty if not present in the given namespace
+func CheckPodExists(client *k8s.Clientset, namespace string, labelSelector map[string]string, deployName string) bool {
 	opts := v1.ListOptions{}
 	if labelSelector != nil {
 		opts.LabelSelector = labels.FormatLabels(labelSelector)
 	}
 
-	for _, nspace := range namespacesToSearch {
-		podList, err := client.CoreV1().Pods(nspace).List(opts)
-		if err != nil {
-			return nspace
-		}
+	podList, err := client.CoreV1().Pods(namespace).List(opts)
+	if err != nil {
+		return false
+	}
 
-		for _, pod := range podList.Items {
-			if pod.Status.Phase == core_v1.PodRunning {
-				if strings.HasPrefix(pod.Name, deployName) {
-					return nspace
-				}
+	for _, pod := range podList.Items {
+		if pod.Status.Phase == core_v1.PodRunning {
+			if strings.HasPrefix(pod.Name, deployName) {
+				return true
 			}
 		}
 	}
-	return ""
+	return false
 }

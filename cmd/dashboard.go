@@ -58,23 +58,26 @@ var DashboardCmd = &cobra.Command{
 		defer signal.Stop(signals)
 
 		// search for dashboard service namespace in order:
-		// user-supplied namespace, dapr-system, default
-		namespaces := []string{dashboardNamespace}
-		if dashboardNamespace != "dapr-system" {
-			namespaces = append(namespaces, "dapr-system")
+		// dapr-system, default
+		foundNamespace := ""
+		namespaces := []string{"dapr-system", "default"}
+		for _, namespace := range namespaces {
+			ok := kubernetes.CheckPodExists(client, namespace, nil, dashboardSvc)
+			if ok {
+				foundNamespace = namespace
+				break
+			}
 		}
-		namespaces = append(namespaces, "default")
-		podNamespace := kubernetes.PodLocation(client, nil, dashboardSvc, namespaces)
 
 		// if the service is not found, error out, tell user to supply a namespace
-		if podNamespace == "" {
+		if foundNamespace == "" {
 			print.FailureStatusEvent(os.Stdout, "Failed to find Dapr dashboard in namespaces: %v\nIf Dapr dashboard is deployed to a different namespace, please use dapr dashboard -n", namespaces)
 			os.Exit(1)
 		}
 
 		portForward, err := kubernetes.NewPortForward(
 			config,
-			podNamespace,
+			foundNamespace,
 			dashboardSvc,
 			defaultHost,
 			localPort,
@@ -101,6 +104,7 @@ var DashboardCmd = &cobra.Command{
 		// url for dashboard after port forwarding
 		var webURL string = fmt.Sprintf("http://%s:%d", defaultHost, localPort)
 
+		print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Dapr dashboard found in namespace:\t%s\n", foundNamespace))
 		print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Dapr dashboard available at:\t%s\n", webURL))
 
 		err = browser.OpenURL(webURL)
@@ -116,7 +120,6 @@ var DashboardCmd = &cobra.Command{
 func init() {
 	DashboardCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Start Dapr dashboard in local browser")
 	DashboardCmd.Flags().IntVarP(&port, "port", "p", defaultLocalPort, "The local port on which to serve dashboard")
-	DashboardCmd.Flags().StringVarP(&dashboardNamespace, "namespace", "n", defaultNamespace, "The namespace where Dapr dashboard is running")
 	DashboardCmd.MarkFlagRequired("kubernetes")
 	RootCmd.AddCommand(DashboardCmd)
 }
