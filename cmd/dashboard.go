@@ -54,7 +54,7 @@ var DashboardCmd = &cobra.Command{
 
 		// search for dashboard service namespace in order:
 		// user-supplied namespace, dapr-system, default
-		namespaces := []string{defaultNamespace}
+		namespaces := []string{dashboardNamespace}
 		if dashboardNamespace != defaultNamespace {
 			namespaces = append(namespaces, defaultNamespace)
 		}
@@ -115,7 +115,7 @@ var DashboardCmd = &cobra.Command{
 		// url for dashboard after port forwarding
 		var webURL string = fmt.Sprintf("http://%s:%d", defaultHost, localPort)
 
-		print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Dapr dashboard found in namespace:\t%s\n", foundNamespace))
+		print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Dapr dashboard found in namespace:\t%s", foundNamespace))
 		print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Dapr dashboard available at:\t%s\n", webURL))
 
 		err = browser.OpenURL(webURL)
