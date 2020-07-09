@@ -2,7 +2,7 @@
 
 ## Description
 
-Launches Dapr and your app side-by-side
+Launches Dapr and (optionally) your app side by side
 
 ## Usage
 
@@ -15,9 +15,9 @@ dapr run [flags] [command]
 | Name | Environment Variable | Default | Description
 | --- | --- | --- | --- |
 | `--app-id` | | | An ID for your application, used for service discovery |
-| `--app-port` | | `-1` | The port your application is listening on |
-| `--components-path` | | `$HOME/.dapr/components or %USERPROFILE%\.dapr\components` | Path for components directory |
-| `--config` | | `$HOME/.dapr/config.yaml or %USERPROFILE%\.dapr\config.yaml` | Dapr configuration file |
+| `--app-port` | | `-1` | The port your application is listening o
+| `--components-path` | | `Linux & Mac: $HOME/.dapr/components`, `Windows: %USERPROFILE%\.dapr\components` | Path for components directory |
+| `--config` | | `Linux & Mac: $HOME/.dapr/config.yaml`, `Windows: %USERPROFILE%\.dapr\config.yaml` | Dapr configuration file |
 | `--enable-profiling` | | | Enable `pprof` profiling via an HTTP endpoint |
 | `--grpc-port` | | `-1` | The gRPC port for Dapr to listen on |
 | `--help`, `-h` | | | Help for run |

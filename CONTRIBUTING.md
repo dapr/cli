@@ -63,7 +63,7 @@ All contributions come through pull requests. To submit a proposed change, we re
 1. Fork the relevant repo and create a new branch
 1. Create your change
     - Code changes require tests
-1. Update relevant documentation for the change
+1. Update relevant documentation (especially CLI Reference: `docs/reference`) for the change
 1. Commit and open a PR
 1. Wait for the CI process to finish and make sure all checks are green
 1. A maintainer of the project will be assigned, and you can expect a review within a few days
