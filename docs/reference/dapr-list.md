@@ -15,4 +15,4 @@ dapr list [flags]
 | Name | Environment Variable | Default | Description
 | --- | --- | --- | --- |
 | `--help`, `-h` | | | Help for list |
-| `--kubernetes` | | `false` | List all Dapr pods in a k8s cluster |
+| `--kubernetes`, `-k` | | `false` | List all Dapr pods in a k8s cluster |
