@@ -26,8 +26,11 @@ const (
 	// defaultLocalPort is the default local port used for port forwarding for `dapr dashboard`
 	defaultLocalPort = 8080
 
-	// defaultNamespace is the default namespace where the dashboard is deployed
-	defaultNamespace = "dapr-system"
+	// daprSystemNamespace is the namespace "dapr-system" (recommended Dapr install namespace)
+	daprSystemNamespace = "dapr-system"
+
+	// defaultNamespace is the default namespace (dapr init -k installation)
+	defaultNamespace = "default"
 
 	// remotePort is the port dapr dashboard pod is listening on
 	remotePort = 8080
@@ -55,10 +58,12 @@ var DashboardCmd = &cobra.Command{
 		// search for dashboard service namespace in order:
 		// user-supplied namespace, dapr-system, default
 		namespaces := []string{dashboardNamespace}
+		if dashboardNamespace != daprSystemNamespace {
+			namespaces = append(namespaces, daprSystemNamespace)
+		}
 		if dashboardNamespace != defaultNamespace {
 			namespaces = append(namespaces, defaultNamespace)
 		}
-		namespaces = append(namespaces, "default")
 
 		foundNamespace := ""
 		for _, namespace := range namespaces {
