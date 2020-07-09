@@ -33,7 +33,6 @@ const (
 	remotePort = 8080
 )
 
-var dashboardNamespace string
 var localPort int
 
 var DashboardCmd = &cobra.Command{
@@ -60,7 +59,7 @@ var DashboardCmd = &cobra.Command{
 		// search for dashboard service namespace in order:
 		// dapr-system, default
 		foundNamespace := ""
-		namespaces := []string{"dapr-system", "default"}
+		namespaces := []string{defaultNamespace, "default"}
 		for _, namespace := range namespaces {
 			ok := kubernetes.CheckPodExists(client, namespace, nil, dashboardSvc)
 			if ok {
