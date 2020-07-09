@@ -25,17 +25,20 @@ var UninstallCmd = &cobra.Command{
 	Short: "Removes a Dapr installation",
 	PreRun: func(cmd *cobra.Command, args []string) {
 		viper.BindPFlag("network", cmd.Flags().Lookup("network"))
+		viper.BindPFlag("install-path", cmd.Flags().Lookup("install-path"))
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		print.InfoStatusEvent(os.Stdout, "Removing Dapr from your cluster...")
 
 		var err error
 
 		if uninstallKubernetes {
+			print.InfoStatusEvent(os.Stdout, "Removing Dapr from your cluster...")
 			err = kubernetes.Uninstall()
 		} else {
+			print.InfoStatusEvent(os.Stdout, "Removing Dapr from your machine...")
 			dockerNetwork := viper.GetString("network")
-			err = standalone.Uninstall(uninstallAll, dockerNetwork)
+			installLocation := viper.GetString("install-path")
+			err = standalone.Uninstall(uninstallAll, installLocation, dockerNetwork)
 		}
 
 		if err != nil {
@@ -49,6 +52,7 @@ var UninstallCmd = &cobra.Command{
 func init() {
 	UninstallCmd.Flags().BoolVar(&uninstallKubernetes, "kubernetes", false, "Uninstall Dapr from a Kubernetes cluster")
 	UninstallCmd.Flags().BoolVar(&uninstallAll, "all", false, "Remove Redis container in addition to actor placement container")
+	UninstallCmd.Flags().String("install-path", "", "The optional location to uninstall Daprd binary from.  The default is /usr/local/bin for Linux/Mac and C:\\dapr for Windows")
 	UninstallCmd.Flags().String("network", "", "The Docker network from which to remove the Dapr runtime")
 	RootCmd.AddCommand(UninstallCmd)
 }

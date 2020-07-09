@@ -17,14 +17,21 @@ Usage:
   dapr [command]
 
 Available Commands:
-  help        Help about any command
-  init        Setup Dapr in Kubernetes or Standalone modes
-  list        List all Dapr instances
-  publish     Publish an event to multiple consumers
-  run         Launches Dapr and your app side by side
-  invoke      Invokes a Dapr app with an optional payload
-  stop        Stops a running Dapr instance and its associated app
-  uninstall   Removes a Dapr installation
+  components     List all Dapr components
+  configurations List all Dapr configurations
+  help           Help about any command
+  init           Setup dapr in Kubernetes or Standalone modes
+  invoke         Invokes a Dapr app with an optional payload (deprecated, use invokePost)
+  invokeGet      Issue HTTP GET to Dapr app
+  invokePost     Issue HTTP POST to Dapr app with an optional payload
+  list           List all Dapr instances
+  logs           Gets Dapr sidecar logs for an app in Kubernetes
+  mtls           Check if mTLS is enabled in a Kubernetes cluster
+  publish        Publish an event to multiple consumers
+  run            Launches Dapr and (optionally) your app side by side
+  status         Shows the Dapr system services (control plane) health status.
+  stop           Stops multiple running Dapr instances and their associated apps
+  uninstall      Removes a Dapr installation
 
 Flags:
   -h, --help      help for Dapr
@@ -37,12 +44,19 @@ Use "dapr [command] --help" for more information about a command.
 
 You can learn more about each Dapr command from the links below.
 
+ - [`dapr components`](dapr-components.md)
+ - [`dapr configurations`](dapr-configurations.md)
  - [`dapr help`](dapr-help.md)
  - [`dapr init`](dapr-init.md)
+ - [`dapr invoke`](dapr-invoke.md)
+ - [`dapr invokeGet`](dapr-invokeGet.md)
+ - [`dapr invokePost`](dapr-invokePost.md)
  - [`dapr list`](dapr-list.md)
+ - [`dapr logs`](dapr-logs.md)
+ - [`dapr mtls`](dapr-mtls.md)
  - [`dapr publish`](dapr-publish.md)
  - [`dapr run`](dapr-run.md)
- - [`dapr invoke`](dapr-invoke.md)
+ - [`dapr status`](dapr-status.md)
  - [`dapr stop`](dapr-stop.md)
  - [`dapr uninstall`](dapr-uninstall.md)
 
