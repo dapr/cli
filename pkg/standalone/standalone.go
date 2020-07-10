@@ -120,7 +120,7 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string, r
 	errorChan := make(chan error)
 
 	initSteps := []func(*sync.WaitGroup, chan<- error, string, string, string, string, string){}
-	initSteps = append(initSteps, installDaprBinary, createComponentsAndConfiguration, runPlacementService, runRedis, runZipkin)
+	initSteps = append(initSteps, installDaprBinary, installDashboardBinary, createComponentsAndConfiguration, runPlacementService, runRedis, runZipkin)
 	dockerContainerNames := []string{DaprPlacementContainerName, DaprRedisContainerName, DaprZipkinContainerName}
 
 	wg.Add(len(initSteps))
@@ -138,7 +138,7 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string, r
 	}
 
 	for _, step := range initSteps {
-		go step(&wg, errorChan, errorChan, downloadDest, runtimeVersion, dockerNetwork, installLocation, redisHost)
+		go step(&wg, errorChan, downloadDest, runtimeVersion, dockerNetwork, installLocation, redisHost)
 	}
 
 	go func() {
@@ -805,7 +805,7 @@ func downloadFile(dir string, url string) (string, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode == 404 {
-		return "", errors.New("runtime version not found")
+		return "", errors.New("version not found")
 	} else if resp.StatusCode != 200 {
 		return "", fmt.Errorf("download failed with %d", resp.StatusCode)
 	}
