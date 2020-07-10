@@ -9,7 +9,7 @@ The Dapr CLI allows you to setup Dapr on your local dev machine or on a Kubernet
 
 ### Prerequisites
 
-On default, during initialization the Dapr CLI will use Docker containers to help you get started easily with Dapr and therfore requires Docker to be installed. If you prefer to run Dapr without this environemnt and no dependancy on Docker, after installation of the CLI make sure follow the instructions to initialize Dapr for [slim init](#slim-init). 
+On default, during initialization the Dapr CLI will install the Dapr binaries as well as setup a developer environment to help you get started easily with Dapr. This environment uses Docker containers, therefore Docker needs to be installed. If you prefer to run Dapr without this environment and no dependency on Docker, after installation of the CLI make sure follow the instructions to initialize Dapr using [slim init](#slim-init).
 
 Note, if you are a new user, it is strongly recommended to intall Docker and use the regular init command.
 
