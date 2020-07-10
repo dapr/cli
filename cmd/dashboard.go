@@ -80,7 +80,6 @@ var DashboardCmd = &cobra.Command{
 
 			// if the service is found, tell the user to try with the found namespace
 			// if the service is still not found, throw an error
-			// if the service is still not found, throw an error
 			if ok {
 				print.InfoStatusEvent(os.Stdout, "Dapr dashboard found in namespace: %s. Run dapr dashboard -k -n %s to use this namespace.", nspace, nspace)
 
