@@ -36,8 +36,10 @@ import (
 const (
 	daprDockerImageName               = "daprio/dapr"
 	daprRuntimeFilePrefix             = "daprd"
+	dashboardFilePrefix               = "dashboard"
 	daprWindowsOS                     = "windows"
 	daprLatestVersion                 = "latest"
+	dashboardLatestVersion            = "latest"
 	daprDefaultLinuxAndMacInstallPath = "/usr/local/bin"
 	daprDefaultWindowsInstallPath     = "c:\\dapr"
 	daprDefaultHost                   = "localhost"
@@ -136,7 +138,7 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string, r
 	}
 
 	for _, step := range initSteps {
-		go step(&wg, errorChan, downloadDest, runtimeVersion, dockerNetwork, installLocation, redisHost)
+		go step(&wg, errorChan, errorChan, downloadDest, runtimeVersion, dockerNetwork, installLocation, redisHost)
 	}
 
 	go func() {
@@ -483,6 +485,83 @@ func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version 
 	daprPath, err := moveFileToPath(extractedFilePath, installLocation)
 	if err != nil {
 		errorChan <- fmt.Errorf("error moving Dapr binary to path: %s", err)
+		return
+	}
+
+	fmt.Printf("\nremoving extracted binary %s\n", extractedFilePath)
+	err = os.Remove(extractedFilePath)
+
+	if err != nil {
+		errorChan <- fmt.Errorf("failed to remove extracted binary: %s", err)
+		return
+	}
+
+	err = makeExecutable(daprPath)
+	if err != nil {
+		errorChan <- fmt.Errorf("error making Dapr binary executable: %s", err)
+		return
+	}
+
+	errorChan <- nil
+}
+
+func installDashboardBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string, _ string) {
+	defer wg.Done()
+
+	archiveExt := "tar.gz"
+	if runtime.GOOS == daprWindowsOS {
+		archiveExt = "zip"
+	}
+
+	if version == dashboardLatestVersion {
+		var err error
+		version, err = cli_ver.GetLatestRelease(cli_ver.DaprGitHubOrg, cli_ver.DashboardGitHubRepo)
+		if err != nil {
+			errorChan <- fmt.Errorf("cannot get the latest release version: %s", err)
+			return
+		}
+		version = version[1:]
+	}
+
+	dashboardURL := fmt.Sprintf(
+		"https://github.com/%s/%s/releases/download/v%s/%s_%s_%s.%s",
+		cli_ver.DaprGitHubOrg,
+		cli_ver.DashboardGitHubRepo,
+		version,
+		dashboardFilePrefix,
+		runtime.GOOS,
+		runtime.GOARCH,
+		archiveExt)
+
+	filepath, err := downloadFile(dir, dashboardURL)
+	if err != nil {
+		errorChan <- fmt.Errorf("error downloading Dapr dashboard binary: %s", err)
+		return
+	}
+
+	extractedFilePath := ""
+
+	if archiveExt == "zip" {
+		extractedFilePath, err = unzip(filepath, dir)
+	} else {
+		extractedFilePath, err = untar(filepath, dir)
+	}
+
+	if err != nil {
+		errorChan <- fmt.Errorf("error extracting Dapr dashboard binary: %s", err)
+		return
+	}
+	fmt.Printf("\nremoving archive %s\n", filepath)
+	err = os.Remove(filepath)
+
+	if err != nil {
+		errorChan <- fmt.Errorf("failed to remove archive: %s", err)
+		return
+	}
+
+	daprPath, err := moveFileToPath(extractedFilePath, installLocation)
+	if err != nil {
+		errorChan <- fmt.Errorf("error moving Dapr dashboard binary to path: %s", err)
 		return
 	}
 

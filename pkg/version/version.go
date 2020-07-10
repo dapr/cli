@@ -20,6 +20,8 @@ const (
 	DaprGitHubOrg = "dapr"
 	// DaprGitHubRepo is the repo name of dapr runtime on GitHub
 	DaprGitHubRepo = "dapr"
+	// DashboardGitHubRepo is the repo name of Dapr dashboard on GitHub
+	DashboardGitHubRepo = "dashboard"
 )
 
 // GetRuntimeVersion returns the version for the local Dapr runtime.
