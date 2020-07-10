@@ -22,3 +22,4 @@ dapr init [flags]
 | `--runtime-version` | | `latest` | The version of the Dapr runtime to install, for example: `v0.1.0-alpha` |
 | `--redis-host` | `DAPR_REDIS_HOST` | `localhost` | The host on which the Redis service resides |
 | `--install-path` |  | `/usr/local/bin` for Linux/Mac and `C:\dapr` for Windows | The optional location to install Dapr to. |
+| `--slim`, `-s` | | `false` | Initialize dapr in self-hosted mode without placement, redis and zipkin containers.|

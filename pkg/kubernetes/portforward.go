@@ -85,7 +85,6 @@ func NewPortForward(
 		StopCh:     make(chan struct{}, 1),
 		ReadyCh:    make(chan struct{}),
 	}, nil
-
 }
 
 // run creates port-forward connection and blocks
