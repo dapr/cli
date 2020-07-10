@@ -51,9 +51,17 @@ func getConfig() (*rest.Config, error) {
 	return config, nil
 }
 
-// GetKubeConfig returns kubeconfig
-func GetKubeConfig() (*rest.Config, error) {
-	return getConfig()
+// GetKubeConfigClient returns the kubeconfig and the client created from the kubeconfig
+func GetKubeConfigClient() (*rest.Config, *k8s.Clientset, error) {
+	config, err := getConfig()
+	if err != nil {
+		return nil, nil, err
+	}
+	client, err := k8s.NewForConfig(config)
+	if err != nil {
+		return config, nil, err
+	}
+	return config, client, nil
 }
 
 // Client returns a new Kubernetes client.
