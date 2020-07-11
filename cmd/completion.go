@@ -43,6 +43,12 @@ var completionExample = `
 	source <(dapr completion zsh)
 	# Set the dapr completion code for zsh[1] to autoload on startup
   	dapr completion zsh > "${fpath[1]}/_dapr"
+
+	# Installing powershell completion on Windows
+	## Create $PROFILE if it not exists
+	if (!(Test-Path -Path $PROFILE )){ New-Item -Type File -Path $PROFILE -Force }
+	## Add the completion to your profile
+	dapr completion powershell >> $PROFILE
 `
 
 func newCompletionCmd() *cobra.Command {
@@ -58,6 +64,7 @@ func newCompletionCmd() *cobra.Command {
 	cmd.AddCommand(
 		newCompletionBashCmd(),
 		newCompletionZshCmd(),
+		newCompletionPowerShellCmd(),
 	)
 
 	return cmd
@@ -81,6 +88,18 @@ func newCompletionZshCmd() *cobra.Command {
 		Short: "Generates zsh completion scripts",
 		Run: func(cmd *cobra.Command, args []string) {
 			RootCmd.GenZshCompletion(os.Stdout)
+		},
+	}
+
+	return cmd
+}
+
+func newCompletionPowerShellCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "powershell",
+		Short: "Generates powershell completion scripts",
+		Run: func(cmd *cobra.Command, args []string) {
+			RootCmd.GenPowerShellCompletion(os.Stdout)
 		},
 	}
 
