@@ -9,9 +9,13 @@ The Dapr CLI allows you to setup Dapr on your local dev machine or on a Kubernet
 
 ### Prerequisites
 
+On default, during initialization the Dapr CLI will install the Dapr binaries as well as setup a developer environment to help you get started easily with Dapr. This environment uses Docker containers, therefore Docker needs to be installed. If you prefer to run Dapr without this environment and no dependency on Docker, after installation of the CLI make sure follow the instructions to initialize Dapr using [slim init](#slim-init).
+
+Note, if you are a new user, it is strongly recommended to intall Docker and use the regular init command.
+
 * Install [Docker](https://docs.docker.com/install/)
 
-*__Note: On Windows, Docker must be running in Linux Containers mode__*
+>__Note: On Windows, Docker must be running in Linux Containers mode__
 
 ### Installing Dapr CLI
 
@@ -51,11 +55,24 @@ Each release of Dapr CLI includes various OSes and architectures. These binary v
    * For Linux/MacOS - `/usr/local/bin`
    * For Windows, create a directory and add this to your System PATH. For example create a directory called `c:\dapr` and add this directory to your path, by editing your system environment variable.
 
-### Install Dapr on your local machine (standalone)
+### Install Dapr on your local machine (self-hosted)
+
+In self-hosted mode, dapr can be initialized using the CLI  with the placement, redis and zipkin containers enabled by default(recommended) or without them which also does not require docker to be available in the environment.
+
+#### Initialize Dapr
+([Prerequisite](#Prerequisites): Docker is available in the environment - recommended)
+
+Use the init command to initialize Dapr. On init, multiple default configuration files and containers are installed along with the dapr runtime binary. 
+
+```bash
+dapr init
+```
+
+Output should look like so:
 
 ```
-$ dapr init
 ⌛  Making the jump to hyperspace...
+creating default components folder: ~/.dapr/components
 ↓  Downloading binaries and setting up components...
 removing archive ~/.dapr/daprd_darwin_amd64.tar.gz
 ↙  Downloading binaries and setting up components...
@@ -82,6 +99,41 @@ This step creates the following defaults:
 1. components folder which is later used during `dapr run` unless the `--components-path` option is provided. For Linux/MacOS, the default components folder path is `$HOME/.dapr/components` and for Windows it is `%USERPROFILE%\.dapr\components`.
 2. component files in the components folder called `pubsub.yaml`, `statestore.yaml` and `zipkin.yaml`. 
 3. default config file `$HOME/.dapr/config.yaml` for Linux/MacOS or for Windows at `%USERPROFILE%\.dapr\config.yaml` to enable tracing on `dapr init` call. Can be overridden with the `--config` flag on `dapr run`.
+
+#### Slim Init
+
+Alternatively to the above, to have the CLI not install any default configuration files or run Docker containers, use the `--slim` flag with the init command. Only Dapr binaries will be installed.
+
+```bash
+dapr init --slim
+```
+
+Output should look like so:
+
+```bash
+⌛  Making the jump to hyperspace...
+creating default components folder: ~/.dapr/components
+↙  Downloading binaries and setting up components...
+removing archive ~/.dapr/placement_darwin_amd64.tar.gz
+
+installing Dapr to /usr/local/bin
+
+removing extracted binary ~/.dapr/placement
+↙  Downloading binaries and setting up components...
+removing archive ~/.dapr/daprd_darwin_amd64.tar.gz
+←  Downloading binaries and setting up components...
+installing Dapr to /usr/local/bin
+
+removing extracted binary ~/.dapr/daprd
+✅  Downloaded binaries and completed components set up.
+ℹ️  daprd binary has been installed.
+
+ℹ️  placement binary has been installed.
+
+✅  Success! Dapr is up and running. To get started, go here: https://aka.ms/dapr-getting-started
+```
+
+>Note: When initializing Dapr with the `--slim` flag only the Dapr runtime binary and the placement service binary are installed. An empty default components folder is created with no default configuration files. During `dapr run` user should use `--components-path` to point to a components directory with custom configurations files or alternatively place these files in the default directory. For Linux/MacOS, the default components directory path is `$HOME/.dapr/components` and for Windows it is `%USERPROFILE%\.dapr\components`.
 
 #### Install a specific runtime version
 
@@ -119,8 +171,7 @@ $ dapr init --redis-host 10.0.0.1
 
 ### Uninstall Dapr in a standalone mode
 
-
-Uninstalling will remove the placement container and the daprd binary installed in either the provided `--install-path` on `dapr init` or the default path `/usr/local/bin` for Linux/MacOS or `C:\dapr` for Windows. 
+Uninstalling will remove the placement container if installed with Docker or the placement binary if not, and the daprd binary installed in either the provided `--install-path` on `dapr init` or the default path `/usr/local/bin` for Linux/MacOS or `C:\dapr` for Windows. 
 
 
 ```bash
@@ -133,7 +184,11 @@ The command above won't remove the redis or zipkin containers by default in case
 $ dapr uninstall --all
 ```
 
-You should always run a `dapr uninstall` before running another `dapr init`.	
+The above command can also be run when Dapr has been installed in a non-docker environment, it will only remove the installed binaries and the default dapr folder in that case. 
+
+> NB: The `dapr uninstall` command will always try to remove the placement binary/service and will throw an error is not able to.
+
+**You should always run a `dapr uninstall` before running another `dapr init`.**
 
 #### Uninstall Dapr from a specific install path 
 

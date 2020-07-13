@@ -36,6 +36,7 @@ import (
 const (
 	daprDockerImageName               = "daprio/dapr"
 	daprRuntimeFilePrefix             = "daprd"
+	placementServiceFilePrefix        = "placement"
 	daprWindowsOS                     = "windows"
 	daprLatestVersion                 = "latest"
 	daprDefaultLinuxAndMacInstallPath = "/usr/local/bin"
@@ -86,22 +87,24 @@ type componentMetadataItem struct {
 }
 
 // Check if the previous version is already installed.
-func isBinaryInstallationRequired(installLocation, requestedVersion string) (bool, error) {
-	daprdBinaryPath := daprdBinaryFilePath(installLocation)
+func isBinaryInstallationRequired(binaryFilePrefix, installLocation, requestedVersion string) (bool, error) {
+	binaryPath := binaryFilePath(binaryFilePrefix, installLocation)
 
 	// first time install?
-	_, err := os.Stat(daprdBinaryPath)
+	_, err := os.Stat(binaryPath)
 	if !os.IsNotExist(err) {
-		return false, fmt.Errorf("%s %w, %s", daprdBinaryPath, os.ErrExist, errInstallTemplate)
+		return false, fmt.Errorf("%s %w, %s", binaryPath, os.ErrExist, errInstallTemplate)
 	}
 	return true, nil
 }
 
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
-func Init(runtimeVersion string, dockerNetwork string, installLocation string, redisHost string) error {
-	dockerInstalled := utils.IsDockerInstalled()
-	if !dockerInstalled {
-		return errors.New("could not connect to Docker. Docker may not be installed or running")
+func Init(runtimeVersion string, dockerNetwork string, installLocation string, redisHost string, slimMode bool) error {
+	if !slimMode {
+		dockerInstalled := utils.IsDockerInstalled()
+		if !dockerInstalled {
+			return errors.New("could not connect to Docker. Docker may not be installed or running")
+		}
 	}
 
 	downloadDest, err := getDownloadDest(installLocation)
@@ -110,18 +113,27 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string, r
 	}
 
 	// confirm if installation is required
-	if ok, err := isBinaryInstallationRequired(installLocation, runtimeVersion); !ok {
-		return err
+	if ok, er := isBinaryInstallationRequired(daprRuntimeFilePrefix, installLocation, runtimeVersion); !ok {
+		return er
 	}
 
 	var wg sync.WaitGroup
 	errorChan := make(chan error)
-
-	initSteps := []func(*sync.WaitGroup, chan<- error, string, string, string, string, string){}
-	initSteps = append(initSteps, installDaprBinary, createComponentsAndConfiguration, runPlacementService, runRedis, runZipkin)
-	dockerContainerNames := []string{DaprPlacementContainerName, DaprRedisContainerName, DaprZipkinContainerName}
-
-	wg.Add(len(initSteps))
+	initSteps := []func(*sync.WaitGroup, chan<- error, string, string, string, string){}
+	if slimMode {
+		// confirm if installation is required
+		if ok, er := isBinaryInstallationRequired(placementServiceFilePrefix, installLocation, runtimeVersion); !ok {
+			return er
+		}
+		// Install 2 binaries in slim mode, daprd, placement
+		wg.Add(2)
+	} else {
+		// Install only a single binary daprd
+		wg.Add(1)
+		initSteps = append(initSteps, createComponentsAndConfiguration, runPlacementService, runRedis, runZipkin)
+		// Init other configurations, containers
+		wg.Add(len(initSteps))
+	}
 
 	msg := "Downloading binaries and setting up components..."
 	var s *spinner.Spinner
@@ -135,8 +147,23 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string, r
 		s.Start()
 	}
 
-	for _, step := range initSteps {
-		go step(&wg, errorChan, downloadDest, runtimeVersion, dockerNetwork, installLocation, redisHost)
+	// Make default components directory
+	err = makeDefaultComponentsDir()
+	if err != nil {
+		return err
+	}
+
+	// Initialize daprd binary
+	go installBinary(&wg, errorChan, downloadDest, runtimeVersion, daprRuntimeFilePrefix, dockerNetwork, installLocation)
+
+	if slimMode {
+		// Initialize placement binary only on slim install
+		go installBinary(&wg, errorChan, downloadDest, runtimeVersion, placementServiceFilePrefix, dockerNetwork, installLocation)
+	} else {
+		for _, step := range initSteps {
+			// Run init on the configurations and containers
+			go step(&wg, errorChan, downloadDest, runtimeVersion, dockerNetwork, redisHost)
+		}
 	}
 
 	go func() {
@@ -160,16 +187,22 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string, r
 	msg = "Downloaded binaries and completed components set up."
 	print.SuccessStatusEvent(os.Stdout, msg)
 	print.InfoStatusEvent(os.Stdout, "%s binary has been installed.\n", daprRuntimeFilePrefix)
-	for _, container := range dockerContainerNames {
-		ok, err := confirmContainerIsRunningOrExists(utils.CreateContainerName(container, dockerNetwork), true)
-		if err != nil {
-			return err
+	if slimMode {
+		// Print info on placement binary only on slim install
+		print.InfoStatusEvent(os.Stdout, "%s binary has been installed.\n", placementServiceFilePrefix)
+	} else {
+		dockerContainerNames := []string{DaprPlacementContainerName, DaprRedisContainerName, DaprZipkinContainerName}
+		for _, container := range dockerContainerNames {
+			ok, err := confirmContainerIsRunningOrExists(utils.CreateContainerName(container, dockerNetwork), true)
+			if err != nil {
+				return err
+			}
+			if ok {
+				print.InfoStatusEvent(os.Stdout, "%s container is running.\n", container)
+			}
 		}
-		if ok {
-			print.InfoStatusEvent(os.Stdout, "%s container is running.\n", container)
-		}
+		print.InfoStatusEvent(os.Stdout, "Use `docker ps` to check running containers.\n")
 	}
-	print.InfoStatusEvent(os.Stdout, "Use `docker ps` to check running containers.\n")
 	return nil
 }
 
@@ -205,10 +238,7 @@ func getDownloadDest(installLocation string) (string, error) {
 	return p, nil
 }
 
-// installLocation is not used, but it is present because it's required to fit the initSteps func above.
-// If the number of args increases more, we may consider passing in a struct instead of individual args.
-
-func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string, redisHost string) {
+func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, _ string) {
 	defer wg.Done()
 
 	var zipkinContainerName = utils.CreateContainerName(DaprZipkinContainerName, dockerNetwork)
@@ -259,7 +289,7 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, 
 	errorChan <- nil
 }
 
-func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string, redisHost string) {
+func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, redisHost string) {
 	defer wg.Done()
 
 	var redisContainerName = utils.CreateContainerName(DaprRedisContainerName, dockerNetwork)
@@ -366,7 +396,7 @@ func isContainerRunError(err error) bool {
 	return false
 }
 
-func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string, _ string) {
+func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, _ string) {
 	defer wg.Done()
 	var placementContainerName = utils.CreateContainerName(DaprPlacementContainerName, dockerNetwork)
 
@@ -426,7 +456,7 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 	errorChan <- nil
 }
 
-func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string, _ string) {
+func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, binaryFilePrefix string, dockerNetwork string, installLocation string) {
 	defer wg.Done()
 
 	archiveExt := "tar.gz"
@@ -443,20 +473,21 @@ func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version 
 		}
 		version = version[1:]
 	}
-
-	daprURL := fmt.Sprintf(
+	// https://github.com/dapr/dapr/releases/download/v0.8.0/daprd_darwin_amd64.tar.gz
+	// https://github.com/dapr/dapr/releases/download/v0.8.0/placement_darwin_amd64.tar.gz
+	fileURL := fmt.Sprintf(
 		"https://github.com/%s/%s/releases/download/v%s/%s_%s_%s.%s",
 		cli_ver.DaprGitHubOrg,
 		cli_ver.DaprGitHubRepo,
 		version,
-		daprRuntimeFilePrefix,
+		binaryFilePrefix,
 		runtime.GOOS,
 		runtime.GOARCH,
 		archiveExt)
 
-	filepath, err := downloadFile(dir, daprURL)
+	filepath, err := downloadFile(dir, fileURL)
 	if err != nil {
-		errorChan <- fmt.Errorf("error downloading Dapr binary: %s", err)
+		errorChan <- fmt.Errorf("error downloading %s binary: %s", binaryFilePrefix, err)
 		return
 	}
 
@@ -465,11 +496,11 @@ func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version 
 	if archiveExt == "zip" {
 		extractedFilePath, err = unzip(filepath, dir)
 	} else {
-		extractedFilePath, err = untar(filepath, dir)
+		extractedFilePath, err = untar(filepath, dir, binaryFilePrefix)
 	}
 
 	if err != nil {
-		errorChan <- fmt.Errorf("error extracting Dapr binary: %s", err)
+		errorChan <- fmt.Errorf("error extracting %s binary: %s", binaryFilePrefix, err)
 		return
 	}
 	fmt.Printf("\nremoving archive %s\n", filepath)
@@ -480,9 +511,9 @@ func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version 
 		return
 	}
 
-	daprPath, err := moveFileToPath(extractedFilePath, installLocation)
+	binaryPath, err := moveFileToPath(extractedFilePath, installLocation)
 	if err != nil {
-		errorChan <- fmt.Errorf("error moving Dapr binary to path: %s", err)
+		errorChan <- fmt.Errorf("error moving %s binary to path: %s", binaryFilePrefix, err)
 		return
 	}
 
@@ -494,32 +525,22 @@ func installDaprBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version 
 		return
 	}
 
-	err = makeExecutable(daprPath)
+	err = makeExecutable(binaryPath)
 	if err != nil {
-		errorChan <- fmt.Errorf("error making Dapr binary executable: %s", err)
+		errorChan <- fmt.Errorf("error making %s binary executable: %s", binaryFilePrefix, err)
 		return
 	}
 
 	errorChan <- nil
 }
 
-func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, installLocation string, redisHost string) {
+func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, redisHost string) {
 	defer wg.Done()
 
 	var err error
 
 	// Make default components directory
 	componentsDir := DefaultComponentsDirPath()
-	_, err = os.Stat(componentsDir)
-	if os.IsNotExist(err) {
-		errDir := os.MkdirAll(componentsDir, 0755)
-		if errDir != nil {
-			errorChan <- fmt.Errorf("error creating default components folder: %s", errDir)
-			return
-		}
-	}
-
-	os.Chmod(componentsDir, 0777)
 
 	err = createRedisPubSub(redisHost, componentsDir)
 	if err != nil {
@@ -541,6 +562,22 @@ func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error
 		errorChan <- fmt.Errorf("error creating default configuration file: %s", err)
 		return
 	}
+}
+
+func makeDefaultComponentsDir() error {
+	// Make default components directory
+	componentsDir := DefaultComponentsDirPath()
+	_, err := os.Stat(componentsDir)
+	if os.IsNotExist(err) {
+		fmt.Printf("creating default components folder: %s\n", componentsDir)
+		errDir := os.MkdirAll(componentsDir, 0755)
+		if errDir != nil {
+			return fmt.Errorf("error creating default components folder: %s", errDir)
+		}
+	}
+
+	os.Chmod(componentsDir, 0777)
+	return nil
 }
 
 func makeExecutable(filepath string) error {
@@ -596,7 +633,7 @@ func unzip(filepath, targetDir string) (string, error) {
 	return "", nil
 }
 
-func untar(filepath, targetDir string) (string, error) {
+func untar(filepath, targetDir, binaryFilePrefix string) (string, error) {
 	tarFile, err := os.Open(filepath)
 	if err != nil {
 		return "", err
@@ -627,8 +664,8 @@ func untar(filepath, targetDir string) (string, error) {
 
 		switch header.Typeflag {
 		case tar.TypeReg:
-			// Extract only daprd
-			if header.Name != "daprd" {
+			// Extract only the binaryFile
+			if header.Name != binaryFilePrefix {
 				continue
 			}
 
