@@ -37,6 +37,7 @@ const (
 	daprDockerImageName               = "daprio/dapr"
 	daprRuntimeFilePrefix             = "daprd"
 	placementServiceFilePrefix        = "placement"
+	dashboardFilePrefix        		  = "dashboard"
 	daprWindowsOS                     = "windows"
 	daprLatestVersion                 = "latest"
 	daprDefaultLinuxAndMacInstallPath = "/usr/local/bin"
@@ -113,8 +114,8 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string, r
 	}
 
 	// confirm if installation is required
-	if ok, er := isBinaryInstallationRequired(daprRuntimeFilePrefix, installLocation, runtimeVersion); !ok {
-		return er
+	if ok, err := isBinaryInstallationRequired(daprRuntimeFilePrefix, installLocation, runtimeVersion); !ok {
+		return err
 	}
 
 	var wg sync.WaitGroup
@@ -154,11 +155,14 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string, r
 	}
 
 	// Initialize daprd binary
-	go installBinary(&wg, errorChan, downloadDest, runtimeVersion, daprRuntimeFilePrefix, dockerNetwork, installLocation)
+	go installBinary(&wg, errorChan, downloadDest, runtimeVersion, cli_ver.DaprGitHubRepo, daprRuntimeFilePrefix, dockerNetwork, installLocation)
+
+	// Initialize dashboard binary
+	go installBinary(&wg, errorChan, downloadDest, runtimeVersion, cli_ver.DashboardGitHubRepo, dashboardFilePrefix, dockerNetwork, installLocation)
 
 	if slimMode {
 		// Initialize placement binary only on slim install
-		go installBinary(&wg, errorChan, downloadDest, runtimeVersion, placementServiceFilePrefix, dockerNetwork, installLocation)
+		go installBinary(&wg, errorChan, downloadDest, runtimeVersion, cli_ver.DaprGitHubRepo, placementServiceFilePrefix, dockerNetwork, installLocation)
 	} else {
 		for _, step := range initSteps {
 			// Run init on the configurations and containers
@@ -456,7 +460,7 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 	errorChan <- nil
 }
 
-func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, binaryFilePrefix string, dockerNetwork string, installLocation string) {
+func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, githubRepo string, binaryFilePrefix string, dockerNetwork string, installLocation string) {
 	defer wg.Done()
 
 	archiveExt := "tar.gz"
@@ -466,19 +470,18 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, bin
 
 	if version == daprLatestVersion {
 		var err error
-		version, err = cli_ver.GetLatestRelease(cli_ver.DaprGitHubOrg, cli_ver.DaprGitHubRepo)
+		version, err = cli_ver.GetLatestRelease(cli_ver.DaprGitHubOrg, githubRepo)
 		if err != nil {
 			errorChan <- fmt.Errorf("cannot get the latest release version: %s", err)
 			return
 		}
 		version = version[1:]
 	}
-	// https://github.com/dapr/dapr/releases/download/v0.8.0/daprd_darwin_amd64.tar.gz
-	// https://github.com/dapr/dapr/releases/download/v0.8.0/placement_darwin_amd64.tar.gz
+
 	fileURL := fmt.Sprintf(
 		"https://github.com/%s/%s/releases/download/v%s/%s_%s_%s.%s",
 		cli_ver.DaprGitHubOrg,
-		cli_ver.DaprGitHubRepo,
+		githubRepo,
 		version,
 		binaryFilePrefix,
 		runtime.GOOS,
