@@ -72,24 +72,12 @@ Output should look like so:
 
 ```
 ⌛  Making the jump to hyperspace...
-creating default components folder: ~/.dapr/components
-↓  Downloading binaries and setting up components...
-removing archive ~/.dapr/daprd_darwin_amd64.tar.gz
-↙  Downloading binaries and setting up components...
-installing Dapr to /usr/local/bin
-
-removing extracted binary ~/.dapr/daprd
 ✅  Downloaded binaries and completed components set up.
-ℹ️  daprd binary has been installed.
-
+ℹ️  daprd binary has been installed to /usr/local/bin.
 ℹ️  dapr_placement container is running.
-
 ℹ️  dapr_redis container is running.
-
 ℹ️  dapr_zipkin container is running.
-
 ℹ️  Use `docker ps` to check running containers.
-
 ✅  Success! Dapr is up and running. To get started, go here: https://aka.ms/dapr-getting-started
 ```
 
@@ -112,24 +100,9 @@ Output should look like so:
 
 ```bash
 ⌛  Making the jump to hyperspace...
-creating default components folder: ~/.dapr/components
-↙  Downloading binaries and setting up components...
-removing archive ~/.dapr/placement_darwin_amd64.tar.gz
-
-installing Dapr to /usr/local/bin
-
-removing extracted binary ~/.dapr/placement
-↙  Downloading binaries and setting up components...
-removing archive ~/.dapr/daprd_darwin_amd64.tar.gz
-←  Downloading binaries and setting up components...
-installing Dapr to /usr/local/bin
-
-removing extracted binary ~/.dapr/daprd
 ✅  Downloaded binaries and completed components set up.
-ℹ️  daprd binary has been installed.
-
+ℹ️  daprd binary has been installed to /usr/local/bin.
 ℹ️  placement binary has been installed.
-
 ✅  Success! Dapr is up and running. To get started, go here: https://aka.ms/dapr-getting-started
 ```
 
