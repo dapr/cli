@@ -114,10 +114,20 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string, r
 		return err
 	}
 
+	downloadDest, err = os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+
+	downloadDest += "/.dapr"
+
+
 	// confirm if installation is required
 	if ok, err := isBinaryInstallationRequired(daprRuntimeFilePrefix, installLocation, runtimeVersion); !ok {
 		return err
 	}
+
+	print.InfoStatusEvent(os.Stdout, downloadDest)
 
 	var wg sync.WaitGroup
 	errorChan := make(chan error)
@@ -127,11 +137,11 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string, r
 		if ok, er := isBinaryInstallationRequired(placementServiceFilePrefix, installLocation, runtimeVersion); !ok {
 			return er
 		}
-		// Install 2 binaries in slim mode, daprd, placement
-		wg.Add(2)
+		// Install 3 binaries in slim mode: daprd, dashboard, placement
+		wg.Add(3)
 	} else {
-		// Install only a single binary daprd
-		wg.Add(1)
+		// Install 2 binaries: daprd, dashboard
+		wg.Add(2)
 		initSteps = append(initSteps, createComponentsAndConfiguration, runPlacementService, runRedis, runZipkin)
 		// Init other configurations, containers
 		wg.Add(len(initSteps))
@@ -515,21 +525,25 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, git
 		return
 	}
 
-	binaryPath, err := moveFileToPath(extractedFilePath, installLocation)
-	if err != nil {
-		errorChan <- fmt.Errorf("error moving %s binary to path: %s", binaryFilePrefix, err)
-		return
+	if binaryFilePrefix == "dashboard" {
+		// TODO: Create bash file for dashboard executable
+	}
+	else {
+		err = os.Remove(filepath)
+
+		if err != nil {
+			errorChan <- fmt.Errorf("failed to remove archive: %s", err)
+			return
+		}
+	
+		binaryPath, err := moveFileToPath(extractedFilePath, installLocation)
+		if err != nil {
+			errorChan <- fmt.Errorf("error moving %s binary to path: %s", binaryFilePrefix, err)
+			return
+		}
 	}
 
-	fmt.Printf("\nremoving extracted binary %s\n", extractedFilePath)
-	err = os.Remove(extractedFilePath)
-
-	if err != nil {
-		errorChan <- fmt.Errorf("failed to remove extracted binary: %s", err)
-		return
-	}
-
-	err = makeExecutable(binaryPath)
+	err = makeExecutable(extractedFilePath)
 	if err != nil {
 		errorChan <- fmt.Errorf("error making %s binary executable: %s", binaryFilePrefix, err)
 		return
@@ -664,27 +678,28 @@ func untar(filepath, targetDir, binaryFilePrefix string) (string, error) {
 			continue
 		}
 
-		extractedFilePath := path.Join(targetDir, header.Name)
-
-		switch header.Typeflag {
-		case tar.TypeReg:
-			// Extract only the binaryFile
-			if header.Name != binaryFilePrefix {
-				continue
-			}
-
-			f, err := os.OpenFile(extractedFilePath, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
-			if err != nil {
+		path := path_filepath.Join(targetDir, header.Name)
+		info := header.FileInfo()
+		if info.IsDir() {
+			if err = os.MkdirAll(path, info.Mode()); err != nil {
 				return "", err
 			}
+			continue
+		}
+ 
+		f, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, info.Mode())
+		if err != nil {
+			return "", err
+		}
+		defer f.Close()
 
-			// #nosec G110
-			if _, err := io.Copy(f, tr); err != nil {
-				return "", err
-			}
-			f.Close()
+		// #nosec G110
+		if _, err = io.Copy(f, tr); err != nil {
+			return "", err
+		}
 
-			return extractedFilePath, nil
+		if strings.HasSuffix(header.Name, binaryFilePrefix) {
+			return path, nil
 		}
 	}
 }
