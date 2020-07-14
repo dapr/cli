@@ -163,6 +163,15 @@ The above command can also be run when Dapr has been installed in a non-docker e
 
 **You should always run a `dapr uninstall` before running another `dapr init`.**
 
+#### Uninstall a specific runtime version on kubernetes
+
+You can uninstall a specific version of the Dapr runtime on kubernetes using `dapr uninstall --runtime-version`. You can find the list of versions in [Dapr Release](https://github.com/dapr/dapr/releases).
+
+```bash
+# Uninstall v0.1.0 runtime
+$ dapr init --runtime-version 0.1.0 --kubernetes
+```
+
 #### Uninstall Dapr from a specific install path 
 
 If previously installed to a specific location for eg: `~/dapr_bin`, Dapr can be unsintalled with the `--install-path` argument
