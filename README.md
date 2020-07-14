@@ -403,6 +403,16 @@ You can run Dapr's sidecar only (`daprd`) by omitting the application's command 
 $ dapr run --app-id myapp --port 3005 --grpc-port 50001
 ```
 
+### Generate shell completion scripts
+
+To generate shell completion scripts:
+
+```
+$ dapr completion
+```
+
+For more details, please run the command and check the examples to apply to your shell.
+
 ## Reference for the Dapr CLI
 
 See the [Reference Guide](docs/reference/reference.md) for more information about individual Dapr commands.
