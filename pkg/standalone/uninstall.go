@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/dapr/cli/pkg/rundata"
+	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/utils"
 )
 
@@ -39,10 +39,10 @@ func removeContainers(uninstallPlacementContainer, uninstallAll bool, dockerNetw
 func removeDockerContainer(containerErrs []error, containerName, network string) []error {
 	exists, _ := confirmContainerIsRunningOrExists(containerName, false)
 	if !exists {
-		fmt.Printf("WARNING: %s container does not exist\n", containerName)
+		print.WarningStatusEvent(os.Stdout, "WARNING: %s container does not exist", containerName)
 		return containerErrs
 	}
-	fmt.Println("removing container: ", containerName)
+	print.InfoStatusEvent(os.Stdout, "Removing container: %s", containerName)
 	_, err := utils.RunCmdAndWait(
 		"docker", "rm",
 		"--force",
@@ -61,8 +61,13 @@ func removeDefaultDaprDir(uninstallAll bool) (string, error) {
 		return "", nil
 	}
 	defaultDaprPath := defaultFolderPath(defaultDaprDirName)
-	fmt.Println("removing folder: ", defaultDaprPath)
-	err := os.RemoveAll(defaultDaprPath)
+	_, err := os.Stat(defaultDaprPath)
+	if os.IsNotExist(err) {
+		print.WarningStatusEvent(os.Stdout, "WARNING: %s default Dapr folder does not exist", defaultDaprPath)
+		return defaultDaprPath, nil
+	}
+	print.InfoStatusEvent(os.Stdout, "Removing folder: %s", defaultDaprPath)
+	err = os.RemoveAll(defaultDaprPath)
 
 	return defaultDaprPath, err
 }
@@ -73,7 +78,7 @@ func removeInstalledBinaries(binaryFilePrefix, installLocation string) (string, 
 	if os.IsNotExist(err) {
 		return binaryPath, nil
 	}
-	fmt.Println("removing binary: ", binaryPath)
+	print.InfoStatusEvent(os.Stdout, "Removing binary: %s", binaryPath)
 	err = os.Remove(binaryPath)
 
 	return binaryPath, err
@@ -88,7 +93,7 @@ func Uninstall(uninstallAll bool, installLocation, dockerNetwork string) error {
 
 	path, err = removeInstalledBinaries(daprRuntimeFilePrefix, installLocation)
 	if err != nil {
-		fmt.Println("WARNING: could not delete binary file: ", path)
+		print.WarningStatusEvent(os.Stdout, "WARNING: could not delete binary file: %s", path)
 	}
 
 	placementFilePath := binaryFilePath(placementServiceFilePrefix, installLocation)
@@ -96,7 +101,7 @@ func Uninstall(uninstallAll bool, installLocation, dockerNetwork string) error {
 	uninstallPlacementContainer := os.IsNotExist(placementErr)
 	path, err = removeInstalledBinaries(placementServiceFilePrefix, installLocation)
 	if err != nil {
-		fmt.Println("WARNING: could not delete binary file: ", path)
+		print.WarningStatusEvent(os.Stdout, "WARNING: could not delete binary file: %s", path)
 	}
 
 	dockerInstalled := false
@@ -105,14 +110,9 @@ func Uninstall(uninstallAll bool, installLocation, dockerNetwork string) error {
 		containerErrs = removeContainers(uninstallPlacementContainer, uninstallAll, dockerNetwork)
 	}
 
-	err = rundata.DeleteRunDataFile()
-	if err != nil {
-		fmt.Println("WARNING: could not delete run data file")
-	}
-
 	path, err = removeDefaultDaprDir(uninstallAll)
 	if err != nil {
-		fmt.Println("WARNING: could not delete default dapr folder: ", path)
+		print.WarningStatusEvent(os.Stdout, "WARNING: could not delete default dapr folder: %s", path)
 	}
 
 	err = errors.New("uninstall failed")
