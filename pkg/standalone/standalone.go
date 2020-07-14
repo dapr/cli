@@ -201,10 +201,17 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string, r
 
 	msg = "Downloaded binaries and completed components set up."
 	print.SuccessStatusEvent(os.Stdout, msg)
-	print.InfoStatusEvent(os.Stdout, "%s binary has been installed.\n", daprRuntimeFilePrefix)
+	destDir := daprDefaultLinuxAndMacInstallPath
+	if runtime.GOOS == daprWindowsOS {
+		destDir = daprDefaultWindowsInstallPath
+	}
+	if installLocation != "" {
+		destDir = installLocation
+	}
+	print.InfoStatusEvent(os.Stdout, "%s binary has been installed to %s.", daprRuntimeFilePrefix, destDir)
 	if slimMode {
 		// Print info on placement binary only on slim install
-		print.InfoStatusEvent(os.Stdout, "%s binary has been installed.\n", placementServiceFilePrefix)
+		print.InfoStatusEvent(os.Stdout, "%s binary has been installed to %s.", placementServiceFilePrefix, destDir)
 	} else {
 		dockerContainerNames := []string{DaprPlacementContainerName, DaprRedisContainerName, DaprZipkinContainerName}
 		for _, container := range dockerContainerNames {
@@ -213,10 +220,10 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string, r
 				return err
 			}
 			if ok {
-				print.InfoStatusEvent(os.Stdout, "%s container is running.\n", container)
+				print.InfoStatusEvent(os.Stdout, "%s container is running.", container)
 			}
 		}
-		print.InfoStatusEvent(os.Stdout, "Use `docker ps` to check running containers.\n")
+		print.InfoStatusEvent(os.Stdout, "Use `docker ps` to check running containers.")
 	}
 	return nil
 }
@@ -267,7 +274,6 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, 
 
 	if exists {
 		// do not create container again if it exists
-		fmt.Printf("\n%s container exists\n", zipkinContainerName)
 		args = append(args, "start", zipkinContainerName)
 	} else {
 		args = append(args,
@@ -324,7 +330,6 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, d
 
 	if exists {
 		// do not create container again if it exists
-		fmt.Printf("\n%s container exists\n", redisContainerName)
 		args = append(args, "start", redisContainerName)
 	} else {
 		args = append(args,
@@ -428,7 +433,6 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 		errorChan <- err
 		return
 	} else if exists {
-		print.FailureStatusEvent(os.Stdout, "%s container exists.\n", placementContainerName)
 		errorChan <- fmt.Errorf("%s container exists or is running. %s", placementContainerName, errInstallTemplate)
 		return
 	}
@@ -517,7 +521,6 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, git
 		errorChan <- fmt.Errorf("error extracting %s binary: %s", binaryFilePrefix, err)
 		return
 	}
-	fmt.Printf("\nremoving archive %s\n", filepath)
 	err = os.Remove(filepath)
 
 	if err != nil {
@@ -587,7 +590,6 @@ func makeDefaultComponentsDir() error {
 	componentsDir := DefaultComponentsDirPath()
 	_, err := os.Stat(componentsDir)
 	if os.IsNotExist(err) {
-		fmt.Printf("creating default components folder: %s\n", componentsDir)
 		errDir := os.MkdirAll(componentsDir, 0755)
 		if errDir != nil {
 			return fmt.Errorf("error creating default components folder: %s", errDir)
@@ -614,6 +616,7 @@ func unzip(filepath, targetDir string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	defer zipReader.Close()
 
 	if len(zipReader.Reader.File) > 0 {
 		file := zipReader.Reader.File[0]
@@ -726,7 +729,6 @@ func moveFileToPath(filepath string, installLocation string) (string, error) {
 		return "", err
 	}
 
-	fmt.Printf("\ninstalling Dapr to %s\n", destDir)
 	err = utils.CreateDirectory(destDir)
 	if err != nil {
 		return "", err
@@ -754,7 +756,8 @@ func moveFileToPath(filepath string, installLocation string) (string, error) {
 		return fmt.Sprintf("%s\\daprd.exe", destDir), nil
 	}
 
-	if installLocation != "" {
+	if !strings.HasPrefix(fileName, placementServiceFilePrefix) && installLocation != "" {
+		// print only on daprd binary install in custom location
 		color.Set(color.FgYellow)
 		fmt.Printf("\nDapr installed to %s, please run the following to add it to your path:\n", destDir)
 		fmt.Printf("    export PATH=$PATH:%s\n", destDir)
@@ -919,8 +922,6 @@ func checkAndOverWriteFile(filePath string, b []byte) error {
 		if err = ioutil.WriteFile(filePath, b, 0644); err != nil {
 			return err
 		}
-	} else {
-		fmt.Printf("\nfile %s exists in the default dapr path\n", filePath)
 	}
 	return nil
 }

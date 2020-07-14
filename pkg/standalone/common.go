@@ -43,7 +43,7 @@ func binaryFilePath(binaryFilePrefix, installLocation string) string {
 	destDir := binaryInstallationPath(installLocation)
 	binaryPath := path_filepath.Join(destDir, binaryFilePrefix)
 	if runtime.GOOS == daprWindowsOS {
-		binaryPath = path_filepath.Join(binaryPath, ".exe")
+		binaryPath += ".exe"
 	}
 	return binaryPath
 }

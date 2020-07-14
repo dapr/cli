@@ -72,24 +72,12 @@ Output should look like so:
 
 ```
 ⌛  Making the jump to hyperspace...
-creating default components folder: ~/.dapr/components
-↓  Downloading binaries and setting up components...
-removing archive ~/.dapr/daprd_darwin_amd64.tar.gz
-↙  Downloading binaries and setting up components...
-installing Dapr to /usr/local/bin
-
-removing extracted binary ~/.dapr/daprd
 ✅  Downloaded binaries and completed components set up.
-ℹ️  daprd binary has been installed.
-
+ℹ️  daprd binary has been installed to /usr/local/bin.
 ℹ️  dapr_placement container is running.
-
 ℹ️  dapr_redis container is running.
-
 ℹ️  dapr_zipkin container is running.
-
 ℹ️  Use `docker ps` to check running containers.
-
 ✅  Success! Dapr is up and running. To get started, go here: https://aka.ms/dapr-getting-started
 ```
 
@@ -112,24 +100,9 @@ Output should look like so:
 
 ```bash
 ⌛  Making the jump to hyperspace...
-creating default components folder: ~/.dapr/components
-↙  Downloading binaries and setting up components...
-removing archive ~/.dapr/placement_darwin_amd64.tar.gz
-
-installing Dapr to /usr/local/bin
-
-removing extracted binary ~/.dapr/placement
-↙  Downloading binaries and setting up components...
-removing archive ~/.dapr/daprd_darwin_amd64.tar.gz
-←  Downloading binaries and setting up components...
-installing Dapr to /usr/local/bin
-
-removing extracted binary ~/.dapr/daprd
 ✅  Downloaded binaries and completed components set up.
-ℹ️  daprd binary has been installed.
-
+ℹ️  daprd binary has been installed to /usr/local/bin.
 ℹ️  placement binary has been installed.
-
 ✅  Success! Dapr is up and running. To get started, go here: https://aka.ms/dapr-getting-started
 ```
 
@@ -429,6 +402,16 @@ You can run Dapr's sidecar only (`daprd`) by omitting the application's command 
 ```
 $ dapr run --app-id myapp --port 3005 --grpc-port 50001
 ```
+
+### Generate shell completion scripts
+
+To generate shell completion scripts:
+
+```
+$ dapr completion
+```
+
+For more details, please run the command and check the examples to apply to your shell.
 
 ## Reference for the Dapr CLI
 
