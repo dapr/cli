@@ -55,6 +55,6 @@ func init() {
 	UninstallCmd.Flags().BoolVar(&uninstallAll, "all", false, "Remove Redis container in addition to actor placement container")
 	UninstallCmd.Flags().String("install-path", "", "The optional location to uninstall Daprd binary from.  The default is /usr/local/bin for Linux/Mac and C:\\dapr for Windows")
 	UninstallCmd.Flags().String("network", "", "The Docker network from which to remove the Dapr runtime")
-	UninstallCmd.Flags().StringVarP(&uninstallVersion, "runtime-version", "", "latest", "The version of the Dapr runtime to uninstall. for example: v0.1.0")
+	UninstallCmd.Flags().StringVarP(&uninstallVersion, "runtime-version", "", "latest", "The version of the Dapr runtime to uninstall. for example: v0.1.0 (Kubernetes mode only)")
 	RootCmd.AddCommand(UninstallCmd)
 }
