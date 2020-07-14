@@ -597,6 +597,7 @@ func unzip(filepath, targetDir string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	defer zipReader.Close()
 
 	if len(zipReader.Reader.File) > 0 {
 		file := zipReader.Reader.File[0]
