@@ -205,6 +205,13 @@ To remove Dapr from your Kubernetes cluster, use the `uninstall` command with `-
 $ dapr uninstall --kubernetes
 ```
 
+You can uninstall a specific version of the Dapr runtime on kubernetes using `dapr uninstall --runtime-version`. You can find the list of versions in [Dapr Release](https://github.com/dapr/dapr/releases).
+
+```bash
+# Uninstall v0.1.0 runtime
+$ dapr uninstall --runtime-version=v0.1.0 --kubernetes
+```
+
 ### Launch Dapr and your app
 
 The Dapr CLI lets you debug easily by launching both Dapr and your app.
