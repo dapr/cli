@@ -520,13 +520,6 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, bin
 		return
 	}
 
-	err = os.Remove(extractedFilePath)
-
-	if err != nil {
-		errorChan <- fmt.Errorf("failed to remove extracted binary: %s", err)
-		return
-	}
-
 	err = makeExecutable(binaryPath)
 	if err != nil {
 		errorChan <- fmt.Errorf("error making %s binary executable: %s", binaryFilePrefix, err)
