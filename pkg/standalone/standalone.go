@@ -114,13 +114,6 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string, r
 		return err
 	}
 
-	downloadDest, err = os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-
-	downloadDest += "/.dapr"
-
 	// confirm if installation is required
 	if ok, err := isBinaryInstallationRequired(daprRuntimeFilePrefix, installLocation, runtimeVersion); !ok {
 		return err
@@ -530,34 +523,26 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, git
 	binaryPath := ""
 
 	if runtime.GOOS != daprWindowsOS && binaryFilePrefix == "dashboard" {
-		binaryPath, err := createBinaryReference(extractedFilePath, installLocation)
+		binaryPath, err = createBinaryReference(extractedFilePath, installLocation)
 		if err != nil {
 			errorChan <- fmt.Errorf("error referencing %s binary to path: %s", binaryFilePrefix, err)
 			return
 		}
-
-		err = makeExecutable(binaryPath)
-		if err != nil {
-			errorChan <- fmt.Errorf("error making %s binary executable: %s", binaryFilePrefix, err)
-			return
-		}
-
-		errorChan <- nil
 	} else {
 		binaryPath, err = moveFileToPath(extractedFilePath, installLocation)
 		if err != nil {
 			errorChan <- fmt.Errorf("error moving %s binary to path: %s", binaryFilePrefix, err)
 			return
 		}
-
-		err = makeExecutable(binaryPath)
-		if err != nil {
-			errorChan <- fmt.Errorf("error making %s binary executable: %s", binaryFilePrefix, err)
-			return
-		}
-
-		errorChan <- nil
 	}
+
+	err = makeExecutable(binaryPath)
+	if err != nil {
+		errorChan <- fmt.Errorf("error making %s binary executable: %s", binaryFilePrefix, err)
+		return
+	}
+
+	errorChan <- nil
 }
 
 func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, redisHost string) {
