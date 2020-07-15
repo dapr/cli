@@ -68,6 +68,8 @@ Use the init command to initialize Dapr. On init, multiple default configuration
 dapr init
 ```
 
+> For Linux users, if you run your docker cmds with sudo or the install path is `/usr/local/bin`(default install path), you need to use "**sudo dapr init**"
+
 Output should look like so:
 
 ```
@@ -150,6 +152,7 @@ Uninstalling will remove the placement container if installed with Docker or the
 ```bash
 $ dapr uninstall
 ```
+> For Linux users, if you run your docker cmds with sudo or the install path is `/usr/local/bin`(default install path), you need to use "**sudo dapr uninstall**" to remove dapr binaries and/or the containers.
 
 The command above won't remove the redis or zipkin containers by default in case you were using it for other purposes.  It will also not remove the default dapr folder that was created on `dapr init`. To remove all the containers (placement, redis, zipkin) and also the default dapr folder created on init run:
 
@@ -203,6 +206,13 @@ To remove Dapr from your Kubernetes cluster, use the `uninstall` command with `-
 
 ```
 $ dapr uninstall --kubernetes
+```
+
+You can uninstall a specific version of the Dapr runtime on kubernetes using `dapr uninstall --runtime-version`. You can find the list of versions in [Dapr Release](https://github.com/dapr/dapr/releases).
+
+```bash
+# Uninstall v0.1.0 runtime
+$ dapr uninstall --runtime-version=v0.1.0 --kubernetes
 ```
 
 ### Launch Dapr and your app

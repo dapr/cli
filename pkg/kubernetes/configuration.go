@@ -8,7 +8,7 @@ import (
 func GetDefaultConfiguration() v1alpha1.Configuration {
 	return v1alpha1.Configuration{
 		ObjectMeta: meta_v1.ObjectMeta{
-			Name: "default",
+			Name: "daprsystem",
 		},
 		Spec: v1alpha1.ConfigurationSpec{
 			MTLSSpec: v1alpha1.MTLSSpec{
