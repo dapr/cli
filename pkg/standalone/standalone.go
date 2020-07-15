@@ -37,7 +37,7 @@ const (
 	daprDockerImageName               = "daprio/dapr"
 	daprRuntimeFilePrefix             = "daprd"
 	placementServiceFilePrefix        = "placement"
-	dashboardFilePrefix        		  = "dashboard"
+	dashboardFilePrefix               = "dashboard"
 	daprWindowsOS                     = "windows"
 	daprLatestVersion                 = "latest"
 	dashboardLatestVersion            = "latest"
@@ -120,7 +120,6 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string, r
 	}
 
 	downloadDest += "/.dapr"
-
 
 	// confirm if installation is required
 	if ok, err := isBinaryInstallationRequired(daprRuntimeFilePrefix, installLocation, runtimeVersion); !ok {
@@ -528,31 +527,37 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, git
 		return
 	}
 
-	if binaryFilePrefix == "dashboard" {
-		// TODO: Create bash file for dashboard executable
-	}
-	else {
-		err = os.Remove(filepath)
+	binaryPath := ""
 
+	if runtime.GOOS != daprWindowsOS && binaryFilePrefix == "dashboard" {
+		binaryPath, err := createBinaryReference(extractedFilePath, installLocation)
 		if err != nil {
-			errorChan <- fmt.Errorf("failed to remove archive: %s", err)
+			errorChan <- fmt.Errorf("error referencing %s binary to path: %s", binaryFilePrefix, err)
 			return
 		}
-	
-		binaryPath, err := moveFileToPath(extractedFilePath, installLocation)
+
+		err = makeExecutable(binaryPath)
+		if err != nil {
+			errorChan <- fmt.Errorf("error making %s binary executable: %s", binaryFilePrefix, err)
+			return
+		}
+
+		errorChan <- nil
+	} else {
+		binaryPath, err = moveFileToPath(extractedFilePath, installLocation)
 		if err != nil {
 			errorChan <- fmt.Errorf("error moving %s binary to path: %s", binaryFilePrefix, err)
 			return
 		}
-	}
 
-	err = makeExecutable(extractedFilePath)
-	if err != nil {
-		errorChan <- fmt.Errorf("error making %s binary executable: %s", binaryFilePrefix, err)
-		return
-	}
+		err = makeExecutable(binaryPath)
+		if err != nil {
+			errorChan <- fmt.Errorf("error making %s binary executable: %s", binaryFilePrefix, err)
+			return
+		}
 
-	errorChan <- nil
+		errorChan <- nil
+	}
 }
 
 func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, redisHost string) {
@@ -689,7 +694,7 @@ func untar(filepath, targetDir, binaryFilePrefix string) (string, error) {
 			}
 			continue
 		}
- 
+
 		f, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, info.Mode())
 		if err != nil {
 			return "", err
@@ -737,6 +742,61 @@ func moveFileToPath(filepath string, installLocation string) (string, error) {
 	// #nosec G306
 	if err = ioutil.WriteFile(destFilePath, input, 0644); err != nil {
 		if runtime.GOOS != daprWindowsOS && strings.Contains(err.Error(), "permission denied") {
+			err = errors.New(err.Error() + " - please run with sudo")
+		}
+		return "", err
+	}
+
+	if runtime.GOOS == daprWindowsOS {
+		p := os.Getenv("PATH")
+
+		if !strings.Contains(strings.ToLower(p), strings.ToLower(destDir)) {
+			pathCmd := "[System.Environment]::SetEnvironmentVariable('Path',[System.Environment]::GetEnvironmentVariable('Path','user') + '" + fmt.Sprintf(";%s", destDir) + "', 'user')"
+			_, err := utils.RunCmdAndWait("powershell", pathCmd)
+			if err != nil {
+				return "", err
+			}
+		}
+
+		return fmt.Sprintf("%s\\daprd.exe", destDir), nil
+	}
+
+	if !strings.HasPrefix(fileName, placementServiceFilePrefix) && installLocation != "" {
+		// print only on daprd binary install in custom location
+		color.Set(color.FgYellow)
+		fmt.Printf("\nDapr installed to %s, please run the following to add it to your path:\n", destDir)
+		fmt.Printf("    export PATH=$PATH:%s\n", destDir)
+		color.Unset()
+	}
+
+	return destFilePath, nil
+}
+
+func createBinaryReference(filepath string, installLocation string) (string, error) {
+	destDir := daprDefaultLinuxAndMacInstallPath
+	fileName := path_filepath.Base(filepath)
+	destFilePath := ""
+
+	// if user specified --install-path, use that
+	if installLocation != "" {
+		destDir = installLocation
+	}
+
+	destFilePath = path.Join(destDir, fileName)
+
+	dir := path_filepath.Dir(filepath)
+	executable := path_filepath.Base(filepath)
+
+	input := []byte(fmt.Sprintf("#!/bin/sh\ncd %s\n./%s", dir, executable))
+
+	err := utils.CreateDirectory(destDir)
+	if err != nil {
+		return "", err
+	}
+
+	// #nosec G306
+	if err := ioutil.WriteFile(destFilePath, input, 0644); err != nil {
+		if strings.Contains(err.Error(), "permission denied") {
 			err = errors.New(err.Error() + " - please run with sudo")
 		}
 		return "", err
