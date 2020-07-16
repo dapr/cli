@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	path_filepath "path/filepath"
 
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/utils"
@@ -72,6 +73,19 @@ func removeDefaultDaprDir(uninstallAll bool) (string, error) {
 	return defaultDaprPath, err
 }
 
+func removeDashboardFiles() (string, error) {
+	defaultDashboardPath := path_filepath.Join(defaultFolderPath(defaultDaprDirName), "release")
+	_, err := os.Stat(defaultDashboardPath)
+	if os.IsNotExist(err) {
+		print.WarningStatusEvent(os.Stdout, "WARNING: %s default Dapr dashboard folder does not exist", defaultDashboardPath)
+		return defaultDashboardPath, nil
+	}
+	print.InfoStatusEvent(os.Stdout, "Removing folder: %s", defaultDashboardPath)
+	err = os.RemoveAll(defaultDashboardPath)
+
+	return defaultDashboardPath, err
+}
+
 func removeInstalledBinaries(binaryFilePrefix, installLocation string) (string, error) {
 	binaryPath := binaryFilePath(binaryFilePrefix, installLocation)
 	_, err := os.Stat(binaryPath)
@@ -96,6 +110,11 @@ func Uninstall(uninstallAll bool, installLocation, dockerNetwork string) error {
 		print.WarningStatusEvent(os.Stdout, "WARNING: could not delete binary file: %s", path)
 	}
 
+	path, err = removeInstalledBinaries(dashboardFilePrefix, installLocation)
+	if err != nil {
+		print.WarningStatusEvent(os.Stdout, "WARNING: could not delete binary file: %s", path)
+	}
+
 	placementFilePath := binaryFilePath(placementServiceFilePrefix, installLocation)
 	_, placementErr := os.Stat(placementFilePath) // check if the placement binary exists
 	uninstallPlacementContainer := os.IsNotExist(placementErr)
@@ -110,12 +129,17 @@ func Uninstall(uninstallAll bool, installLocation, dockerNetwork string) error {
 		containerErrs = removeContainers(uninstallPlacementContainer, uninstallAll, dockerNetwork)
 	}
 
+	err = errors.New("uninstall failed")
+	path, err = removeDashboardFiles()
+	if err != nil {
+		return fmt.Errorf("%w \nFailed to delete dashboard files", err)
+	}
+
 	path, err = removeDefaultDaprDir(uninstallAll)
 	if err != nil {
 		print.WarningStatusEvent(os.Stdout, "WARNING: could not delete default dapr folder: %s", path)
 	}
 
-	err = errors.New("uninstall failed")
 	if uninstallPlacementContainer && !dockerInstalled {
 		// if placement binary did not exist before trying to delete it and not able to connect to docker.
 		return fmt.Errorf("%w \ncould not delete placement service. Either the placement binary is not found, or Docker may not be installed or running", err)

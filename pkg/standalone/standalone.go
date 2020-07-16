@@ -16,7 +16,6 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"os/user"
 	"path"
 	path_filepath "path/filepath"
 	"runtime"
@@ -118,8 +117,6 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string, r
 	if ok, err := isBinaryInstallationRequired(daprRuntimeFilePrefix, installLocation, runtimeVersion); !ok {
 		return err
 	}
-
-	print.InfoStatusEvent(os.Stdout, downloadDest)
 
 	var wg sync.WaitGroup
 	errorChan := make(chan error)
@@ -232,11 +229,11 @@ func getDownloadDest(installLocation string) (string, error) {
 			p = installLocation
 		}
 	} else {
-		usr, err := user.Current()
+		homeDir, err := os.UserHomeDir()
 		if err != nil {
 			return "", err
 		}
-		p = path.Join(usr.HomeDir, ".dapr")
+		p = path.Join(homeDir, ".dapr")
 	}
 
 	err := os.MkdirAll(p, 0777)
@@ -471,7 +468,7 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, git
 	defer wg.Done()
 
 	archiveExt := "tar.gz"
-	if runtime.GOOS == daprWindowsOS {
+	if runtime.GOOS == daprWindowsOS && !strings.Contains(binaryFilePrefix, "dashboard") {
 		archiveExt = "zip"
 	}
 
