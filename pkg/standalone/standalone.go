@@ -158,7 +158,7 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string, r
 	go installBinary(&wg, errorChan, downloadDest, runtimeVersion, cli_ver.DaprGitHubRepo, daprRuntimeFilePrefix, dockerNetwork, installLocation)
 
 	// Initialize dashboard binary
-	go installBinary(&wg, errorChan, downloadDest, runtimeVersion, cli_ver.DashboardGitHubRepo, dashboardFilePrefix, dockerNetwork, installLocation)
+	go installBinary(&wg, errorChan, downloadDest, "latest", cli_ver.DashboardGitHubRepo, dashboardFilePrefix, dockerNetwork, installLocation)
 
 	if slimMode {
 		// Initialize placement binary only on slim install
