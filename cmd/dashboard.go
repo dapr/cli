@@ -165,7 +165,10 @@ var DashboardCmd = &cobra.Command{
 				Dir:    dashboardPath,
 				Stdout: os.Stdout,
 			}
-			cmdDashboardStandalone.Run()
+			err := cmdDashboardStandalone.Run()
+			if err != nil {
+				print.FailureStatusEvent(os.Stdout, "Dapr dashboard not found. If you installed dapr to a non-default directory, try `dapr dashboard -d <your-install-location>")
+			}
 		}
 	},
 }
