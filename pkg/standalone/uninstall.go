@@ -1,7 +1,6 @@
 package standalone
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	path_filepath "path/filepath"
@@ -140,10 +139,9 @@ func Uninstall(uninstallAll bool, installLocation, dockerNetwork string) error {
 		containerErrs = removeContainers(uninstallPlacementContainer, uninstallAll, dockerNetwork)
 	}
 
-	err = errors.New("uninstall failed")
 	path, err = removeDashboardFiles(installLocation)
 	if err != nil {
-		return fmt.Errorf("%w \nFailed to delete dashboard files", err)
+		return fmt.Errorf("%w \nFailed to delete dashboard files from path: %s", err, path)
 	}
 
 	path, err = removeDefaultDaprDir(uninstallAll)

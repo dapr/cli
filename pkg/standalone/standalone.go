@@ -114,8 +114,8 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string, r
 	}
 
 	// confirm if installation is required
-	if ok, err := isBinaryInstallationRequired(daprRuntimeFilePrefix, installLocation, runtimeVersion); !ok {
-		return err
+	if ok, er := isBinaryInstallationRequired(daprRuntimeFilePrefix, installLocation, runtimeVersion); !ok {
+		return er
 	}
 
 	var wg sync.WaitGroup
@@ -527,7 +527,7 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, git
 		// Move /release/os/web directory to /web
 		oldPath := path_filepath.Join(path_filepath.Dir(extractedFilePath), "web")
 		newPath := path_filepath.Join(dir, "web")
-		err := os.Rename(oldPath, newPath)
+		err = os.Rename(oldPath, newPath)
 		if err != nil {
 			errorChan <- fmt.Errorf("failed to move dashboard files: %s", err)
 			return
