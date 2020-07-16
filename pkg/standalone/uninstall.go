@@ -73,9 +73,9 @@ func removeDefaultDaprDir(uninstallAll bool) (string, error) {
 	return defaultDaprPath, err
 }
 
-func removeDashboardFiles() (string, error) {
-	defaultInstallPath := defaultFolderPath(defaultDaprDirName)
-	defaultDashboardPath := path_filepath.Join(defaultInstallPath, "release")
+func removeDashboardFiles(installLocation string) (string, error) {
+	installPath := binaryInstallationPath(installLocation)
+	defaultDashboardPath := path_filepath.Join(installPath, "web")
 	_, err := os.Stat(defaultDashboardPath)
 	if os.IsNotExist(err) {
 		print.WarningStatusEvent(os.Stdout, "WARNING: %s default Dapr dashboard folder does not exist", defaultDashboardPath)
@@ -131,7 +131,7 @@ func Uninstall(uninstallAll bool, installLocation, dockerNetwork string) error {
 	}
 
 	err = errors.New("uninstall failed")
-	path, err = removeDashboardFiles()
+	path, err = removeDashboardFiles(installLocation)
 	if err != nil {
 		return fmt.Errorf("%w \nFailed to delete dashboard files", err)
 	}

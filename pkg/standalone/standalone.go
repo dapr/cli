@@ -518,12 +518,28 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, git
 	}
 
 	binaryPath := ""
-
-	if runtime.GOOS != daprWindowsOS && binaryFilePrefix == "dashboard" {
-		binaryPath, err = createBinaryReference(extractedFilePath, installLocation)
+	if binaryFilePrefix == "dashboard" {
+		oldPath := path_filepath.Join(path_filepath.Dir(extractedFilePath), "web")
+		newPath := path_filepath.Join(dir, "web")
+		err := os.Rename(oldPath, newPath)
 		if err != nil {
-			errorChan <- fmt.Errorf("error referencing %s binary to path: %s", binaryFilePrefix, err)
+			errorChan <- fmt.Errorf("failed to move dashboard files: %s", err)
 			return
+		}
+		err = os.Rename(extractedFilePath, path_filepath.Join(dir, path_filepath.Base(extractedFilePath)))
+		if err != nil {
+			errorChan <- fmt.Errorf("failed to move dashboard binary: %s", err)
+			return
+		}
+		extractedFilePath = path_filepath.Join(newPath, path_filepath.Base(extractedFilePath))
+		os.RemoveAll(path_filepath.Join(dir, "release"))
+
+		if runtime.GOOS != daprWindowsOS {
+			binaryPath, err = createBinaryReference(extractedFilePath, installLocation)
+			if err != nil {
+				errorChan <- fmt.Errorf("error referencing %s binary to path: %s", binaryFilePrefix, err)
+				return
+			}
 		}
 	} else {
 		binaryPath, err = moveFileToPath(extractedFilePath, installLocation)
