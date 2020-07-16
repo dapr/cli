@@ -158,7 +158,7 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string, r
 	go installBinary(&wg, errorChan, downloadDest, runtimeVersion, cli_ver.DaprGitHubRepo, daprRuntimeFilePrefix, dockerNetwork, installLocation)
 
 	// Initialize dashboard binary
-	go installBinary(&wg, errorChan, downloadDest, "latest", cli_ver.DashboardGitHubRepo, dashboardFilePrefix, dockerNetwork, installLocation)
+	go installBinary(&wg, errorChan, downloadDest, dashboardLatestVersion, cli_ver.DashboardGitHubRepo, dashboardFilePrefix, dockerNetwork, installLocation)
 
 	if slimMode {
 		// Initialize placement binary only on slim install
@@ -468,6 +468,8 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, git
 	defer wg.Done()
 
 	archiveExt := "tar.gz"
+
+	// Dashboard packages come packaged as .tar.gz on all platforms
 	if runtime.GOOS == daprWindowsOS && !strings.Contains(binaryFilePrefix, "dashboard") {
 		archiveExt = "zip"
 	}
@@ -518,7 +520,11 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, git
 	}
 
 	binaryPath := ""
+
+	// If the installed binary is the dashboard binary, some extra steps need to happen
 	if binaryFilePrefix == "dashboard" {
+
+		// Move /release/os/web directory to /web
 		oldPath := path_filepath.Join(path_filepath.Dir(extractedFilePath), "web")
 		newPath := path_filepath.Join(dir, "web")
 		err := os.Rename(oldPath, newPath)
@@ -526,14 +532,22 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, git
 			errorChan <- fmt.Errorf("failed to move dashboard files: %s", err)
 			return
 		}
+
+		// Move binary from /release/os/web/dashboard(.exe) to /dashboard(.exe)
 		err = os.Rename(extractedFilePath, path_filepath.Join(dir, path_filepath.Base(extractedFilePath)))
 		if err != nil {
 			errorChan <- fmt.Errorf("error moving %s binary to path: %s", binaryFilePrefix, err)
 			return
 		}
+
+		// Change the extracted binary file path to reflect the move above
 		extractedFilePath = path_filepath.Join(dir, path_filepath.Base(extractedFilePath))
+
+		// Remove the now-empty 'release' directory
 		os.RemoveAll(path_filepath.Join(dir, "release"))
 
+		// If the platform is Mac or Linux, create a bash script at installLocation
+		// (default: /usr/local/bin) to locate the dashboard binary and run
 		if runtime.GOOS != daprWindowsOS {
 			binaryPath, err = createBinaryReference(extractedFilePath, installLocation)
 			if err != nil {
@@ -541,7 +555,7 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, git
 				return
 			}
 		} else {
-			// Ensure PATH variable is set
+			// Ensure PATH variable is set in Windows OS
 			binaryPath, err = moveFileToPath(extractedFilePath, path_filepath.Dir(extractedFilePath))
 			if err != nil {
 				errorChan <- fmt.Errorf("error moving %s binary to path: %s", binaryFilePrefix, err)
@@ -549,6 +563,7 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, git
 			}
 		}
 	} else {
+		// Daprd, placement binaries can be moved directly to installLocation
 		binaryPath, err = moveFileToPath(extractedFilePath, installLocation)
 		if err != nil {
 			errorChan <- fmt.Errorf("error moving %s binary to path: %s", binaryFilePrefix, err)
@@ -556,6 +571,7 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, git
 		}
 	}
 
+	// Make the resulting binaryPath executable
 	err = makeExecutable(binaryPath)
 	if err != nil {
 		errorChan <- fmt.Errorf("error making %s binary executable: %s", binaryFilePrefix, err)
@@ -679,18 +695,19 @@ func untar(filepath, targetDir, binaryFilePrefix string) (string, error) {
 
 	tr := tar.NewReader(gzr)
 
+	foundBinary := ""
 	for {
 		header, err := tr.Next()
 
-		switch {
-		case err == io.EOF:
+		if err == io.EOF {
 			break
-		case err != nil:
+		} else if err != nil {
 			return "", err
-		case header == nil:
+		} else if header == nil {
 			continue
 		}
 
+		// untar all files in archive
 		path := path_filepath.Join(targetDir, header.Name)
 		info := header.FileInfo()
 		if info.IsDir() {
@@ -711,10 +728,12 @@ func untar(filepath, targetDir, binaryFilePrefix string) (string, error) {
 			return "", err
 		}
 
+		// If the found file is the binary that we want to find, save it and return later
 		if strings.HasSuffix(header.Name, binaryFilePrefix) || strings.HasSuffix(header.Name, binaryFilePrefix+".exe") {
-			return path, nil
+			foundBinary = path
 		}
 	}
+	return foundBinary, nil
 }
 
 func moveFileToPath(filepath string, installLocation string) (string, error) {
@@ -777,6 +796,7 @@ func moveFileToPath(filepath string, installLocation string) (string, error) {
 	return destFilePath, nil
 }
 
+// Creates a bash file to reference a binary (Linux/ Mac only)
 func createBinaryReference(filepath string, installLocation string) (string, error) {
 	destDir := daprDefaultLinuxAndMacInstallPath
 	fileName := path_filepath.Base(filepath)
@@ -792,6 +812,10 @@ func createBinaryReference(filepath string, installLocation string) (string, err
 	dir := path_filepath.Dir(filepath)
 	executable := path_filepath.Base(filepath)
 
+	// Create byte array for the resulting bash file. Will look something like
+	//	#!/bin/sh
+	//	cd <install-path>
+	//	./<executable>
 	input := []byte(fmt.Sprintf("#!/bin/sh\ncd %s\n./%s", dir, executable))
 
 	err := utils.CreateDirectory(destDir)
@@ -828,7 +852,7 @@ func downloadFile(dir string, url string) (string, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode == 404 {
-		return "", errors.New("version not found")
+		return "", fmt.Errorf("version not found from url: %s", url)
 	} else if resp.StatusCode != 200 {
 		return "", fmt.Errorf("download failed with %d", resp.StatusCode)
 	}

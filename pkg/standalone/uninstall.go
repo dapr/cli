@@ -74,18 +74,24 @@ func removeDefaultDaprDir(uninstallAll bool) (string, error) {
 	return defaultDaprPath, err
 }
 
+// Removes the /web/ directory from dashboard install
 func removeDashboardFiles(installLocation string) (string, error) {
+	// Find the location of the user dashboard install
 	installPath := defaultFolderPath(defaultDaprDirName)
 	if runtime.GOOS == daprWindowsOS {
 		installPath = binaryInstallationPath(installLocation)
 	}
 	defaultDashboardPath := path_filepath.Join(installPath, "web")
+
+	// Check if the path is found
 	_, err := os.Stat(defaultDashboardPath)
 	if os.IsNotExist(err) {
 		print.WarningStatusEvent(os.Stdout, "WARNING: %s default Dapr dashboard folder does not exist", defaultDashboardPath)
 		return defaultDashboardPath, nil
 	}
 	print.InfoStatusEvent(os.Stdout, "Removing folder: %s", defaultDashboardPath)
+
+	// Remove it, if the path exists
 	err = os.RemoveAll(defaultDashboardPath)
 
 	return defaultDashboardPath, err

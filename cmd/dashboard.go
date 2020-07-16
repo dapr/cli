@@ -143,6 +143,10 @@ var DashboardCmd = &cobra.Command{
 
 			<-portForward.GetStop()
 		} else {
+			// Standalone mode
+
+			// Use the dashboard path given by the user, or if not supplied,
+			// use the default binary install location
 			var binaryName string
 			if dashboardPath == "" {
 				if runtime.GOOS == "windows" {
@@ -153,6 +157,8 @@ var DashboardCmd = &cobra.Command{
 					binaryName = "dashboard"
 				}
 			}
+
+			// Construct command to run dashboard
 			cmdDashboardStandalone := &exec.Cmd{
 				Path:   path_filepath.Join(dashboardPath, binaryName),
 				Dir:    dashboardPath,

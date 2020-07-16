@@ -77,6 +77,7 @@ func GetLatestRelease(gitHubOrg, gitHubRepo string) (string, error) {
 	}
 
 	for _, release := range githubRepoReleases {
+		// Allow -rc tags for dashboard
 		if !strings.Contains(release.TagName, "-rc") || strings.Contains(releaseURL, "dashboard") {
 			return release.TagName, nil
 		}
