@@ -528,16 +528,23 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, git
 		}
 		err = os.Rename(extractedFilePath, path_filepath.Join(dir, path_filepath.Base(extractedFilePath)))
 		if err != nil {
-			errorChan <- fmt.Errorf("failed to move dashboard binary: %s", err)
+			errorChan <- fmt.Errorf("error moving %s binary to path: %s", binaryFilePrefix, err)
 			return
 		}
-		extractedFilePath = path_filepath.Join(newPath, path_filepath.Base(extractedFilePath))
+		extractedFilePath = path_filepath.Join(dir, path_filepath.Base(extractedFilePath))
 		os.RemoveAll(path_filepath.Join(dir, "release"))
 
 		if runtime.GOOS != daprWindowsOS {
 			binaryPath, err = createBinaryReference(extractedFilePath, installLocation)
 			if err != nil {
 				errorChan <- fmt.Errorf("error referencing %s binary to path: %s", binaryFilePrefix, err)
+				return
+			}
+		} else {
+			// Ensure PATH variable is set
+			binaryPath, err = moveFileToPath(extractedFilePath, path_filepath.Dir(extractedFilePath))
+			if err != nil {
+				errorChan <- fmt.Errorf("error moving %s binary to path: %s", binaryFilePrefix, err)
 				return
 			}
 		}
@@ -798,28 +805,6 @@ func createBinaryReference(filepath string, installLocation string) (string, err
 			err = errors.New(err.Error() + " - please run with sudo")
 		}
 		return "", err
-	}
-
-	if runtime.GOOS == daprWindowsOS {
-		p := os.Getenv("PATH")
-
-		if !strings.Contains(strings.ToLower(p), strings.ToLower(destDir)) {
-			pathCmd := "[System.Environment]::SetEnvironmentVariable('Path',[System.Environment]::GetEnvironmentVariable('Path','user') + '" + fmt.Sprintf(";%s", destDir) + "', 'user')"
-			_, err := utils.RunCmdAndWait("powershell", pathCmd)
-			if err != nil {
-				return "", err
-			}
-		}
-
-		return fmt.Sprintf("%s\\daprd.exe", destDir), nil
-	}
-
-	if !strings.HasPrefix(fileName, placementServiceFilePrefix) && installLocation != "" {
-		// print only on daprd binary install in custom location
-		color.Set(color.FgYellow)
-		fmt.Printf("\nDapr installed to %s, please run the following to add it to your path:\n", destDir)
-		fmt.Printf("    export PATH=$PATH:%s\n", destDir)
-		color.Unset()
 	}
 
 	return destFilePath, nil

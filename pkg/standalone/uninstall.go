@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	path_filepath "path/filepath"
+	"runtime"
 
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/utils"
@@ -74,7 +75,10 @@ func removeDefaultDaprDir(uninstallAll bool) (string, error) {
 }
 
 func removeDashboardFiles(installLocation string) (string, error) {
-	installPath := binaryInstallationPath(installLocation)
+	installPath := defaultFolderPath(defaultDaprDirName)
+	if runtime.GOOS == daprWindowsOS {
+		installPath = binaryInstallationPath(installLocation)
+	}
 	defaultDashboardPath := path_filepath.Join(installPath, "web")
 	_, err := os.Stat(defaultDashboardPath)
 	if os.IsNotExist(err) {
