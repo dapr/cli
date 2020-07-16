@@ -661,7 +661,7 @@ func untar(filepath, targetDir, binaryFilePrefix string) (string, error) {
 
 		switch {
 		case err == io.EOF:
-			return "", fmt.Errorf("file is empty")
+			break
 		case err != nil:
 			return "", err
 		case header == nil:
@@ -688,7 +688,7 @@ func untar(filepath, targetDir, binaryFilePrefix string) (string, error) {
 			return "", err
 		}
 
-		if strings.HasSuffix(header.Name, binaryFilePrefix) {
+		if strings.HasSuffix(header.Name, binaryFilePrefix) || strings.HasSuffix(header.Name, binaryFilePrefix+".exe") {
 			return path, nil
 		}
 	}

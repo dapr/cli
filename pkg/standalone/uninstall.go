@@ -74,7 +74,8 @@ func removeDefaultDaprDir(uninstallAll bool) (string, error) {
 }
 
 func removeDashboardFiles() (string, error) {
-	defaultDashboardPath := path_filepath.Join(defaultFolderPath(defaultDaprDirName), "release")
+	defaultInstallPath := defaultFolderPath(defaultDaprDirName)
+	defaultDashboardPath := path_filepath.Join(defaultInstallPath, "release")
 	_, err := os.Stat(defaultDashboardPath)
 	if os.IsNotExist(err) {
 		print.WarningStatusEvent(os.Stdout, "WARNING: %s default Dapr dashboard folder does not exist", defaultDashboardPath)

@@ -77,7 +77,7 @@ func GetLatestRelease(gitHubOrg, gitHubRepo string) (string, error) {
 	}
 
 	for _, release := range githubRepoReleases {
-		if !strings.Contains(release.TagName, "-rc") {
+		if !strings.Contains(release.TagName, "-rc") || strings.Contains(releaseURL, "dashboard") {
 			return release.TagName, nil
 		}
 	}

@@ -153,7 +153,6 @@ var DashboardCmd = &cobra.Command{
 					binaryName = "dashboard"
 				}
 			}
-			fmt.Println(dashboardPath)
 			cmdDashboardStandalone := &exec.Cmd{
 				Path:   path_filepath.Join(dashboardPath, binaryName),
 				Dir:    dashboardPath,
