@@ -147,14 +147,15 @@ var DashboardCmd = &cobra.Command{
 
 			// Use the dashboard path given by the user, or if not supplied,
 			// use the default binary install location
-			var binaryName string
+			var binaryName = "dashboard"
+			if runtime.GOOS == "windows" {
+				binaryName = "dashboard.exe"
+			}
 			if dashboardPath == "" {
 				if runtime.GOOS == "windows" {
 					dashboardPath = daprDefaultWindowsInstallPath
-					binaryName = "dashboard.exe"
 				} else {
 					dashboardPath = daprDefaultLinuxAndMacInstallPath
-					binaryName = "dashboard"
 				}
 			}
 
