@@ -36,10 +36,8 @@ const (
 	daprDockerImageName               = "daprio/dapr"
 	daprRuntimeFilePrefix             = "daprd"
 	placementServiceFilePrefix        = "placement"
-	dashboardFilePrefix               = "dashboard"
 	daprWindowsOS                     = "windows"
 	daprLatestVersion                 = "latest"
-	dashboardLatestVersion            = "latest"
 	daprDefaultLinuxAndMacInstallPath = "/usr/local/bin"
 	daprDefaultWindowsInstallPath     = "c:\\dapr"
 	daprDefaultHost                   = "localhost"
@@ -126,11 +124,11 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string, r
 		if ok, er := isBinaryInstallationRequired(placementServiceFilePrefix, installLocation, runtimeVersion); !ok {
 			return er
 		}
-		// Install 3 binaries in slim mode: daprd, dashboard, placement
-		wg.Add(3)
-	} else {
-		// Install 2 binaries: daprd, dashboard
+		// Install 2 binaries in slim mode, daprd, placement
 		wg.Add(2)
+	} else {
+		// Install only a single binary daprd
+		wg.Add(1)
 		initSteps = append(initSteps, createComponentsAndConfiguration, runPlacementService, runRedis, runZipkin)
 		// Init other configurations, containers
 		wg.Add(len(initSteps))
@@ -156,9 +154,6 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string, r
 
 	// Initialize daprd binary
 	go installBinary(&wg, errorChan, downloadDest, runtimeVersion, cli_ver.DaprGitHubRepo, daprRuntimeFilePrefix, dockerNetwork, installLocation)
-
-	// Initialize dashboard binary
-	go installBinary(&wg, errorChan, downloadDest, dashboardLatestVersion, cli_ver.DashboardGitHubRepo, dashboardFilePrefix, dockerNetwork, installLocation)
 
 	if slimMode {
 		// Initialize placement binary only on slim install
@@ -519,59 +514,12 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, git
 		return
 	}
 
-	binaryPath := ""
-
-	// If the installed binary is the dashboard binary, some extra steps need to happen
-	if binaryFilePrefix == "dashboard" {
-
-		// Move /release/os/web directory to /web
-		oldPath := path_filepath.Join(path_filepath.Dir(extractedFilePath), "web")
-		newPath := path_filepath.Join(dir, "web")
-		err = os.Rename(oldPath, newPath)
-		if err != nil {
-			errorChan <- fmt.Errorf("failed to move dashboard files: %s", err)
-			return
-		}
-
-		// Move binary from /release/os/web/dashboard(.exe) to /dashboard(.exe)
-		err = os.Rename(extractedFilePath, path_filepath.Join(dir, path_filepath.Base(extractedFilePath)))
-		if err != nil {
-			errorChan <- fmt.Errorf("error moving %s binary to path: %s", binaryFilePrefix, err)
-			return
-		}
-
-		// Change the extracted binary file path to reflect the move above
-		extractedFilePath = path_filepath.Join(dir, path_filepath.Base(extractedFilePath))
-
-		// Remove the now-empty 'release' directory
-		os.RemoveAll(path_filepath.Join(dir, "release"))
-
-		// If the platform is Mac or Linux, create a bash script at installLocation
-		// (default: /usr/local/bin) to locate the dashboard binary and run
-		if runtime.GOOS != daprWindowsOS {
-			binaryPath, err = createBinaryReference(extractedFilePath, installLocation)
-			if err != nil {
-				errorChan <- fmt.Errorf("error referencing %s binary to path: %s", binaryFilePrefix, err)
-				return
-			}
-		} else {
-			// Ensure PATH variable is set in Windows OS
-			binaryPath, err = moveFileToPath(extractedFilePath, path_filepath.Dir(extractedFilePath))
-			if err != nil {
-				errorChan <- fmt.Errorf("error moving %s binary to path: %s", binaryFilePrefix, err)
-				return
-			}
-		}
-	} else {
-		// Daprd, placement binaries can be moved directly to installLocation
-		binaryPath, err = moveFileToPath(extractedFilePath, installLocation)
-		if err != nil {
-			errorChan <- fmt.Errorf("error moving %s binary to path: %s", binaryFilePrefix, err)
-			return
-		}
+	binaryPath, err := moveFileToPath(extractedFilePath, installLocation)
+	if err != nil {
+		errorChan <- fmt.Errorf("error moving %s binary to path: %s", binaryFilePrefix, err)
+		return
 	}
 
-	// Make the resulting binaryPath executable
 	err = makeExecutable(binaryPath)
 	if err != nil {
 		errorChan <- fmt.Errorf("error making %s binary executable: %s", binaryFilePrefix, err)
@@ -791,44 +739,6 @@ func moveFileToPath(filepath string, installLocation string) (string, error) {
 		fmt.Printf("\nDapr installed to %s, please run the following to add it to your path:\n", destDir)
 		fmt.Printf("    export PATH=$PATH:%s\n", destDir)
 		color.Unset()
-	}
-
-	return destFilePath, nil
-}
-
-// Creates a bash file to reference a binary (Linux/ Mac only)
-func createBinaryReference(filepath string, installLocation string) (string, error) {
-	destDir := daprDefaultLinuxAndMacInstallPath
-	fileName := path_filepath.Base(filepath)
-	destFilePath := ""
-
-	// if user specified --install-path, use that
-	if installLocation != "" {
-		destDir = installLocation
-	}
-
-	destFilePath = path.Join(destDir, fileName)
-
-	dir := path_filepath.Dir(filepath)
-	executable := path_filepath.Base(filepath)
-
-	// Create byte array for the resulting bash file. Will look something like
-	//	#!/bin/sh
-	//	cd <install-path>
-	//	./<executable>
-	input := []byte(fmt.Sprintf("#!/bin/sh\ncd %s\n./%s", dir, executable))
-
-	err := utils.CreateDirectory(destDir)
-	if err != nil {
-		return "", err
-	}
-
-	// #nosec G306
-	if err := ioutil.WriteFile(destFilePath, input, 0644); err != nil {
-		if strings.Contains(err.Error(), "permission denied") {
-			err = errors.New(err.Error() + " - please run with sudo")
-		}
-		return "", err
 	}
 
 	return destFilePath, nil

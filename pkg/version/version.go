@@ -20,8 +20,6 @@ const (
 	DaprGitHubOrg = "dapr"
 	// DaprGitHubRepo is the repo name of dapr runtime on GitHub
 	DaprGitHubRepo = "dapr"
-	// DashboardGitHubRepo is the repo name of dapr dashboard on GitHub
-	DashboardGitHubRepo = "dashboard"
 )
 
 // GetRuntimeVersion returns the version for the local Dapr runtime.
@@ -78,7 +76,7 @@ func GetLatestRelease(gitHubOrg, gitHubRepo string) (string, error) {
 
 	for _, release := range githubRepoReleases {
 		// Allow -rc tags for dashboard
-		if !strings.Contains(release.TagName, "-rc") || strings.Contains(releaseURL, "dashboard") {
+		if !strings.Contains(release.TagName, "-rc") {
 			return release.TagName, nil
 		}
 	}

@@ -3,8 +3,6 @@ package standalone
 import (
 	"fmt"
 	"os"
-	path_filepath "path/filepath"
-	"runtime"
 
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/utils"
@@ -73,29 +71,6 @@ func removeDefaultDaprDir(uninstallAll bool) (string, error) {
 	return defaultDaprPath, err
 }
 
-// Removes the /web/ directory from dashboard install
-func removeDashboardFiles(installLocation string) (string, error) {
-	// Find the location of the user dashboard install
-	installPath := defaultFolderPath(defaultDaprDirName)
-	if runtime.GOOS == daprWindowsOS {
-		installPath = binaryInstallationPath(installLocation)
-	}
-	defaultDashboardPath := path_filepath.Join(installPath, "web")
-
-	// Check if the path is found
-	_, err := os.Stat(defaultDashboardPath)
-	if os.IsNotExist(err) {
-		print.WarningStatusEvent(os.Stdout, "WARNING: %s default Dapr dashboard folder does not exist", defaultDashboardPath)
-		return defaultDashboardPath, nil
-	}
-	print.InfoStatusEvent(os.Stdout, "Removing folder: %s", defaultDashboardPath)
-
-	// Remove it, if the path exists
-	err = os.RemoveAll(defaultDashboardPath)
-
-	return defaultDashboardPath, err
-}
-
 func removeInstalledBinaries(binaryFilePrefix, installLocation string) (string, error) {
 	binaryPath := binaryFilePath(binaryFilePrefix, installLocation)
 	_, err := os.Stat(binaryPath)
@@ -120,11 +95,6 @@ func Uninstall(uninstallAll bool, installLocation, dockerNetwork string) error {
 		print.WarningStatusEvent(os.Stdout, "WARNING: could not delete binary file: %s", path)
 	}
 
-	path, err = removeInstalledBinaries(dashboardFilePrefix, installLocation)
-	if err != nil {
-		print.WarningStatusEvent(os.Stdout, "WARNING: could not delete binary file: %s", path)
-	}
-
 	placementFilePath := binaryFilePath(placementServiceFilePrefix, installLocation)
 	_, placementErr := os.Stat(placementFilePath) // check if the placement binary exists
 	uninstallPlacementContainer := os.IsNotExist(placementErr)
@@ -137,11 +107,6 @@ func Uninstall(uninstallAll bool, installLocation, dockerNetwork string) error {
 	dockerInstalled = utils.IsDockerInstalled()
 	if dockerInstalled {
 		containerErrs = removeContainers(uninstallPlacementContainer, uninstallAll, dockerNetwork)
-	}
-
-	path, err = removeDashboardFiles(installLocation)
-	if err != nil {
-		return fmt.Errorf("%w \nFailed to delete dashboard files from path: %s", err, path)
 	}
 
 	path, err = removeDefaultDaprDir(uninstallAll)

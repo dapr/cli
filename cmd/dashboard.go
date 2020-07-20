@@ -8,10 +8,7 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"os/signal"
-	path_filepath "path/filepath"
-	"runtime"
 
 	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/pkg/print"
@@ -45,7 +42,6 @@ const (
 
 var dashboardNamespace string
 var localPort int
-var dashboardPath string
 
 var DashboardCmd = &cobra.Command{
 	Use:   "dashboard",
@@ -144,31 +140,6 @@ var DashboardCmd = &cobra.Command{
 			<-portForward.GetStop()
 		} else {
 			// Standalone mode
-
-			// Use the dashboard path given by the user, or if not supplied,
-			// use the default binary install location
-			var binaryName = "dashboard"
-			if runtime.GOOS == "windows" {
-				binaryName = "dashboard.exe"
-			}
-			if dashboardPath == "" {
-				if runtime.GOOS == "windows" {
-					dashboardPath = daprDefaultWindowsInstallPath
-				} else {
-					dashboardPath = daprDefaultLinuxAndMacInstallPath
-				}
-			}
-
-			// Construct command to run dashboard
-			cmdDashboardStandalone := &exec.Cmd{
-				Path:   path_filepath.Join(dashboardPath, binaryName),
-				Dir:    dashboardPath,
-				Stdout: os.Stdout,
-			}
-			err := cmdDashboardStandalone.Run()
-			if err != nil {
-				print.FailureStatusEvent(os.Stdout, "Dapr dashboard not found. If you installed dapr to a non-default directory, try `dapr dashboard -d <your-install-location>")
-			}
 		}
 	},
 }
@@ -177,6 +148,5 @@ func init() {
 	DashboardCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Start Dapr dashboard in local browser")
 	DashboardCmd.Flags().IntVarP(&port, "port", "p", defaultLocalPort, "The local port on which to serve dashboard")
 	DashboardCmd.Flags().StringVarP(&dashboardNamespace, "namespace", "n", daprSystemNamespace, "The namespace where Dapr dashboard is running")
-	DashboardCmd.Flags().StringVarP(&dashboardPath, "dashboard-path", "d", "", "The location of the dashboard executable to run")
 	RootCmd.AddCommand(DashboardCmd)
 }
