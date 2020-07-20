@@ -710,11 +710,13 @@ func moveFileToPath(filepath string, installLocation string) (string, error) {
 	}
 
 	// #nosec G306
-	if err = ioutil.WriteFile(destFilePath, input, 0644); err != nil {
-		if runtime.GOOS != daprWindowsOS && strings.Contains(err.Error(), "permission denied") {
-			err = errors.New(err.Error() + " - please run with sudo")
+	if path_filepath.Dir(destFilePath) != path_filepath.Dir(filepath) {
+		if err = ioutil.WriteFile(destFilePath, input, 0644); err != nil {
+			if runtime.GOOS != daprWindowsOS && strings.Contains(err.Error(), "permission denied") {
+				err = errors.New(err.Error() + " - please run with sudo")
+			}
+			return "", err
 		}
-		return "", err
 	}
 
 	if runtime.GOOS == daprWindowsOS {
