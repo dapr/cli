@@ -6,6 +6,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -42,6 +43,7 @@ var UninstallCmd = &cobra.Command{
 			err = standalone.Uninstall(uninstallAll, installLocation, dockerNetwork)
 		}
 
+		err = errors.New("uninstall failed")
 		if err != nil {
 			print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error removing Dapr: %s", err))
 		} else {
