@@ -16,7 +16,6 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"os/user"
 	"path"
 	path_filepath "path/filepath"
 	"runtime"
@@ -154,11 +153,11 @@ func Init(runtimeVersion string, dockerNetwork string, installLocation string, r
 	}
 
 	// Initialize daprd binary
-	go installBinary(&wg, errorChan, downloadDest, runtimeVersion, daprRuntimeFilePrefix, dockerNetwork, installLocation)
+	go installBinary(&wg, errorChan, downloadDest, runtimeVersion, cli_ver.DaprGitHubRepo, daprRuntimeFilePrefix, dockerNetwork, installLocation)
 
 	if slimMode {
 		// Initialize placement binary only on slim install
-		go installBinary(&wg, errorChan, downloadDest, runtimeVersion, placementServiceFilePrefix, dockerNetwork, installLocation)
+		go installBinary(&wg, errorChan, downloadDest, runtimeVersion, cli_ver.DaprGitHubRepo, placementServiceFilePrefix, dockerNetwork, installLocation)
 	} else {
 		for _, step := range initSteps {
 			// Run init on the configurations and containers
@@ -225,11 +224,11 @@ func getDownloadDest(installLocation string) (string, error) {
 			p = installLocation
 		}
 	} else {
-		usr, err := user.Current()
+		homeDir, err := os.UserHomeDir()
 		if err != nil {
 			return "", err
 		}
-		p = path.Join(usr.HomeDir, ".dapr")
+		p = path.Join(homeDir, ".dapr")
 	}
 
 	err := os.MkdirAll(p, 0777)
@@ -460,7 +459,7 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 	errorChan <- nil
 }
 
-func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, binaryFilePrefix string, dockerNetwork string, installLocation string) {
+func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, githubRepo string, binaryFilePrefix string, dockerNetwork string, installLocation string) {
 	defer wg.Done()
 
 	archiveExt := "tar.gz"
@@ -470,19 +469,18 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, bin
 
 	if version == daprLatestVersion {
 		var err error
-		version, err = cli_ver.GetLatestRelease(cli_ver.DaprGitHubOrg, cli_ver.DaprGitHubRepo)
+		version, err = cli_ver.GetLatestRelease(cli_ver.DaprGitHubOrg, githubRepo)
 		if err != nil {
 			errorChan <- fmt.Errorf("cannot get the latest release version: %s", err)
 			return
 		}
 		version = version[1:]
 	}
-	// https://github.com/dapr/dapr/releases/download/v0.8.0/daprd_darwin_amd64.tar.gz
-	// https://github.com/dapr/dapr/releases/download/v0.8.0/placement_darwin_amd64.tar.gz
+
 	fileURL := fmt.Sprintf(
 		"https://github.com/%s/%s/releases/download/v%s/%s_%s_%s.%s",
 		cli_ver.DaprGitHubOrg,
-		cli_ver.DaprGitHubRepo,
+		githubRepo,
 		version,
 		binaryFilePrefix,
 		runtime.GOOS,
@@ -643,41 +641,45 @@ func untar(filepath, targetDir, binaryFilePrefix string) (string, error) {
 
 	tr := tar.NewReader(gzr)
 
+	foundBinary := ""
 	for {
 		header, err := tr.Next()
 
-		switch {
-		case err == io.EOF:
-			return "", fmt.Errorf("file is empty")
-		case err != nil:
+		if err == io.EOF {
+			break
+		} else if err != nil {
 			return "", err
-		case header == nil:
+		} else if header == nil {
 			continue
 		}
 
-		extractedFilePath := path.Join(targetDir, header.Name)
-
-		switch header.Typeflag {
-		case tar.TypeReg:
-			// Extract only the binaryFile
-			if header.Name != binaryFilePrefix {
-				continue
-			}
-
-			f, err := os.OpenFile(extractedFilePath, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
-			if err != nil {
+		// untar all files in archive
+		path := path_filepath.Join(targetDir, header.Name)
+		info := header.FileInfo()
+		if info.IsDir() {
+			if err = os.MkdirAll(path, info.Mode()); err != nil {
 				return "", err
 			}
+			continue
+		}
 
-			// #nosec G110
-			if _, err := io.Copy(f, tr); err != nil {
-				return "", err
-			}
-			f.Close()
+		f, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, info.Mode())
+		if err != nil {
+			return "", err
+		}
+		defer f.Close()
 
-			return extractedFilePath, nil
+		// #nosec G110
+		if _, err = io.Copy(f, tr); err != nil {
+			return "", err
+		}
+
+		// If the found file is the binary that we want to find, save it and return later
+		if strings.HasSuffix(header.Name, binaryFilePrefix) || strings.HasSuffix(header.Name, binaryFilePrefix+".exe") {
+			foundBinary = path
 		}
 	}
+	return foundBinary, nil
 }
 
 func moveFileToPath(filepath string, installLocation string) (string, error) {

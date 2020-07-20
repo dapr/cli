@@ -34,6 +34,10 @@ const (
 
 	// remotePort is the port dapr dashboard pod is listening on
 	remotePort = 8080
+
+	// default install locations for Dapr executables
+	daprDefaultLinuxAndMacInstallPath = "/usr/local/bin"
+	daprDefaultWindowsInstallPath     = "c:\\dapr"
 )
 
 var dashboardNamespace string
@@ -49,90 +53,92 @@ var DashboardCmd = &cobra.Command{
 			localPort = port
 		}
 
-		config, client, err := kubernetes.GetKubeConfigClient()
-		if err != nil {
-			print.FailureStatusEvent(os.Stdout, "Failed to initialize kubernetes client: %s", err.Error())
-			os.Exit(1)
-		}
-
-		// search for dashboard service namespace in order:
-		// user-supplied namespace, dapr-system, default
-		namespaces := []string{dashboardNamespace}
-		if dashboardNamespace != daprSystemNamespace {
-			namespaces = append(namespaces, daprSystemNamespace)
-		}
-		if dashboardNamespace != defaultNamespace {
-			namespaces = append(namespaces, defaultNamespace)
-		}
-
-		foundNamespace := ""
-		for _, namespace := range namespaces {
-			ok, _ := kubernetes.CheckPodExists(client, namespace, nil, dashboardSvc)
-			if ok {
-				foundNamespace = namespace
-				break
+		if kubernetesMode {
+			config, client, err := kubernetes.GetKubeConfigClient()
+			if err != nil {
+				print.FailureStatusEvent(os.Stdout, "Failed to initialize kubernetes client: %s", err.Error())
+				os.Exit(1)
 			}
-		}
 
-		// if the service is not found, try to search all pods
-		if foundNamespace == "" {
-			ok, nspace := kubernetes.CheckPodExists(client, "", nil, dashboardSvc)
-
-			// if the service is found, tell the user to try with the found namespace
-			// if the service is still not found, throw an error
-			if ok {
-				print.InfoStatusEvent(os.Stdout, "Dapr dashboard found in namespace: %s. Run dapr dashboard -k -n %s to use this namespace.", nspace, nspace)
-
-			} else {
-				print.FailureStatusEvent(os.Stdout, "Failed to find Dapr dashboard in cluster. Check status of dapr dashboard in the cluster.")
+			// search for dashboard service namespace in order:
+			// user-supplied namespace, dapr-system, default
+			namespaces := []string{dashboardNamespace}
+			if dashboardNamespace != daprSystemNamespace {
+				namespaces = append(namespaces, daprSystemNamespace)
 			}
-			os.Exit(1)
+			if dashboardNamespace != defaultNamespace {
+				namespaces = append(namespaces, defaultNamespace)
+			}
+
+			foundNamespace := ""
+			for _, namespace := range namespaces {
+				ok, _ := kubernetes.CheckPodExists(client, namespace, nil, dashboardSvc)
+				if ok {
+					foundNamespace = namespace
+					break
+				}
+			}
+
+			// if the service is not found, try to search all pods
+			if foundNamespace == "" {
+				ok, nspace := kubernetes.CheckPodExists(client, "", nil, dashboardSvc)
+
+				// if the service is found, tell the user to try with the found namespace
+				// if the service is still not found, throw an error
+				if ok {
+					print.InfoStatusEvent(os.Stdout, "Dapr dashboard found in namespace: %s. Run dapr dashboard -k -n %s to use this namespace.", nspace, nspace)
+
+				} else {
+					print.FailureStatusEvent(os.Stdout, "Failed to find Dapr dashboard in cluster. Check status of dapr dashboard in the cluster.")
+				}
+				os.Exit(1)
+			}
+
+			// manage termination of port forwarding connection on interrupt
+			signals := make(chan os.Signal, 1)
+			signal.Notify(signals, os.Interrupt)
+			defer signal.Stop(signals)
+
+			portForward, err := kubernetes.NewPortForward(
+				config,
+				foundNamespace,
+				dashboardSvc,
+				defaultHost,
+				localPort,
+				remotePort,
+				false,
+			)
+			if err != nil {
+				print.FailureStatusEvent(os.Stdout, "%s\n", err)
+				os.Exit(1)
+			}
+
+			// initialize port forwarding
+			if err = portForward.Init(); err != nil {
+				print.FailureStatusEvent(os.Stdout, "Error in port forwarding: %s\nCheck for `dapr dashboard` running in other terminal sessions, or use the `--port` flag to use a different port.\n", err)
+				os.Exit(1)
+			}
+
+			// block until interrupt signal is received
+			go func() {
+				<-signals
+				portForward.Stop()
+			}()
+
+			// url for dashboard after port forwarding
+			var webURL string = fmt.Sprintf("http://%s:%d", defaultHost, localPort)
+
+			print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Dapr dashboard found in namespace:\t%s", foundNamespace))
+			print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Dapr dashboard available at:\t%s\n", webURL))
+
+			err = browser.OpenURL(webURL)
+			if err != nil {
+				print.FailureStatusEvent(os.Stdout, "Failed to start Dapr dashboard in browser automatically")
+				print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Visit %s in your browser to view the dashboard", webURL))
+			}
+
+			<-portForward.GetStop()
 		}
-
-		// manage termination of port forwarding connection on interrupt
-		signals := make(chan os.Signal, 1)
-		signal.Notify(signals, os.Interrupt)
-		defer signal.Stop(signals)
-
-		portForward, err := kubernetes.NewPortForward(
-			config,
-			foundNamespace,
-			dashboardSvc,
-			defaultHost,
-			localPort,
-			remotePort,
-			false,
-		)
-		if err != nil {
-			print.FailureStatusEvent(os.Stdout, "%s\n", err)
-			os.Exit(1)
-		}
-
-		// initialize port forwarding
-		if err = portForward.Init(); err != nil {
-			print.FailureStatusEvent(os.Stdout, "Error in port forwarding: %s\nCheck for `dapr dashboard` running in other terminal sessions, or use the `--port` flag to use a different port.\n", err)
-			os.Exit(1)
-		}
-
-		// block until interrupt signal is received
-		go func() {
-			<-signals
-			portForward.Stop()
-		}()
-
-		// url for dashboard after port forwarding
-		var webURL string = fmt.Sprintf("http://%s:%d", defaultHost, localPort)
-
-		print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Dapr dashboard found in namespace:\t%s", foundNamespace))
-		print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Dapr dashboard available at:\t%s\n", webURL))
-
-		err = browser.OpenURL(webURL)
-		if err != nil {
-			print.FailureStatusEvent(os.Stdout, "Failed to start Dapr dashboard in browser automatically")
-			print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Visit %s in your browser to view the dashboard", webURL))
-		}
-
-		<-portForward.GetStop()
 	},
 }
 
