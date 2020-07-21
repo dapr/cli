@@ -89,14 +89,15 @@ func Uninstall(uninstallAll bool, dockerNetwork string) error {
 	var containerErrs []error
 	var err error
 	var path string
+	installDir := defaultDaprDirPath()
 
-	daprdFilePath := binaryFilePath(daprRuntimeFilePrefix)
+	daprdFilePath := binaryFilePath(installDir, daprRuntimeFilePrefix)
 	err = removeFileIfExists(daprdFilePath)
 	if err != nil {
 		print.WarningStatusEvent(os.Stdout, "WARNING: could not delete binary file: %s", daprdFilePath)
 	}
 
-	placementFilePath := binaryFilePath(placementServiceFilePrefix)
+	placementFilePath := binaryFilePath(installDir, placementServiceFilePrefix)
 	_, placementErr := os.Stat(placementFilePath) // check if the placement binary exists
 	uninstallPlacementContainer := os.IsNotExist(placementErr)
 	err = removeFileIfExists(placementFilePath)

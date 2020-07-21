@@ -1,3 +1,8 @@
+// ------------------------------------------------------------
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+// ------------------------------------------------------------
+
 package standalone
 
 import (
@@ -17,9 +22,8 @@ func defaultDaprDirPath() string {
 	return path_filepath.Join(homeDir, defaultDaprDirName)
 }
 
-func binaryFilePath(binaryFilePrefix string) string {
-	destDir := defaultDaprDirPath()
-	binaryPath := path_filepath.Join(destDir, binaryFilePrefix)
+func binaryFilePath(binaryDir string, binaryFilePrefix string) string {
+	binaryPath := path_filepath.Join(binaryDir, binaryFilePrefix)
 	if runtime.GOOS == daprWindowsOS {
 		binaryPath += ".exe"
 	}

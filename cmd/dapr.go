@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/dapr/cli/pkg/api"
-	"github.com/dapr/cli/pkg/version"
+	"github.com/dapr/cli/pkg/standalone"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -47,7 +47,7 @@ func Execute(version, apiVersion string) {
 }
 
 func setVersion() {
-	template := fmt.Sprintf("CLI version: %s \nRuntime version: %s", RootCmd.Version, version.GetRuntimeVersion())
+	template := fmt.Sprintf("CLI version: %s \nRuntime version: %s", RootCmd.Version, standalone.GetRuntimeVersion())
 	RootCmd.SetVersionTemplate(template)
 }
 
