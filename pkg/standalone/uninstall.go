@@ -60,7 +60,7 @@ func removeDefaultDaprDir(uninstallAll bool) (string, error) {
 	if !uninstallAll {
 		return "", nil
 	}
-	defaultDaprPath := defaultFolderPath(defaultDaprDirName)
+	defaultDaprPath := defaultDaprDirPath()
 	_, err := os.Stat(defaultDaprPath)
 	if os.IsNotExist(err) {
 		print.WarningStatusEvent(os.Stdout, "WARNING: %s default Dapr folder does not exist", defaultDaprPath)
@@ -72,36 +72,36 @@ func removeDefaultDaprDir(uninstallAll bool) (string, error) {
 	return defaultDaprPath, err
 }
 
-func removeInstalledBinaries(binaryFilePrefix, installLocation string) (string, error) {
-	binaryPath := binaryFilePath(binaryFilePrefix, installLocation)
-	_, err := os.Stat(binaryPath)
+func removeFileIfExists(binaryFilePath string) error {
+	_, err := os.Stat(binaryFilePath)
 	if os.IsNotExist(err) {
-		return binaryPath, nil
+		return nil
 	}
-	print.InfoStatusEvent(os.Stdout, "Removing binary: %s", binaryPath)
-	err = os.Remove(binaryPath)
+	print.InfoStatusEvent(os.Stdout, "Removing file: %s", binaryFilePath)
+	err = os.Remove(binaryFilePath)
 
-	return binaryPath, err
+	return err
 }
 
 // Uninstall reverts all changes made by init. Deletes all installed containers, removes default dapr folder,
 // removes the installed binary and unsets env variables.
-func Uninstall(uninstallAll bool, installLocation, dockerNetwork string) error {
+func Uninstall(uninstallAll bool, dockerNetwork string) error {
 	var containerErrs []error
 	var err error
 	var path string
 
-	path, err = removeInstalledBinaries(daprRuntimeFilePrefix, installLocation)
+	daprdFilePath := binaryFilePath(daprRuntimeFilePrefix)
+	err = removeFileIfExists(daprdFilePath)
 	if err != nil {
-		print.WarningStatusEvent(os.Stdout, "WARNING: could not delete binary file: %s", path)
+		print.WarningStatusEvent(os.Stdout, "WARNING: could not delete binary file: %s", daprdFilePath)
 	}
 
-	placementFilePath := binaryFilePath(placementServiceFilePrefix, installLocation)
+	placementFilePath := binaryFilePath(placementServiceFilePrefix)
 	_, placementErr := os.Stat(placementFilePath) // check if the placement binary exists
 	uninstallPlacementContainer := os.IsNotExist(placementErr)
-	path, err = removeInstalledBinaries(placementServiceFilePrefix, installLocation)
+	err = removeFileIfExists(placementFilePath)
 	if err != nil {
-		print.WarningStatusEvent(os.Stdout, "WARNING: could not delete binary file: %s", path)
+		print.WarningStatusEvent(os.Stdout, "WARNING: could not delete binary file: %s", placementFilePath)
 	}
 
 	dockerInstalled := false

@@ -12,35 +12,13 @@ const (
 	defaultConfigFileName    = "config.yaml"
 )
 
-func homeFolder() string {
-	homePath := os.Getenv("HOME")
-	if runtime.GOOS == daprWindowsOS {
-		homePath = os.Getenv("USERPROFILE")
-	}
-	return homePath
+func defaultDaprDirPath() string {
+	homeDir, _ := os.UserHomeDir()
+	return path_filepath.Join(homeDir, defaultDaprDirName)
 }
 
-// DefaultFolderPath returns the default requested path to the requested path
-func defaultFolderPath(dirName string) string {
-	homePath := homeFolder()
-	if dirName == defaultDaprDirName {
-		return path_filepath.Join(homePath, defaultDaprDirName)
-	}
-	return path_filepath.Join(homePath, defaultDaprDirName, dirName)
-}
-
-func binaryInstallationPath(installLocation string) string {
-	if installLocation != "" {
-		return installLocation
-	}
-	if runtime.GOOS == daprWindowsOS {
-		return daprDefaultWindowsInstallPath
-	}
-	return daprDefaultLinuxAndMacInstallPath
-}
-
-func binaryFilePath(binaryFilePrefix, installLocation string) string {
-	destDir := binaryInstallationPath(installLocation)
+func binaryFilePath(binaryFilePrefix string) string {
+	destDir := defaultDaprDirPath()
 	binaryPath := path_filepath.Join(destDir, binaryFilePrefix)
 	if runtime.GOOS == daprWindowsOS {
 		binaryPath += ".exe"
@@ -49,11 +27,9 @@ func binaryFilePath(binaryFilePrefix, installLocation string) string {
 }
 
 func DefaultComponentsDirPath() string {
-	return defaultFolderPath(defaultComponentsDirName)
+	return path_filepath.Join(defaultDaprDirPath(), defaultComponentsDirName)
 }
 
 func DefaultConfigFilePath() string {
-	configPath := defaultFolderPath(defaultDaprDirName)
-	filePath := path_filepath.Join(configPath, defaultConfigFileName)
-	return filePath
+	return path_filepath.Join(defaultDaprDirPath(), defaultConfigFileName)
 }
