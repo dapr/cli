@@ -106,7 +106,8 @@ func Init(runtimeVersion string, dockerNetwork string, redisHost string, slimMod
 		}
 	}
 
-	installDir, err := getDaprInstallDir()
+	installDir := defaultDaprDirPath()
+	err := prepareDaprInstallDir(installDir)
 	if err != nil {
 		return err
 	}
@@ -201,19 +202,18 @@ func Init(runtimeVersion string, dockerNetwork string, redisHost string, slimMod
 	return nil
 }
 
-func getDaprInstallDir() (string, error) {
-	p := defaultDaprDirPath()
-	err := os.MkdirAll(p, 0777)
+func prepareDaprInstallDir(installDir string) error {
+	err := os.MkdirAll(installDir, 0777)
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	err = os.Chmod(p, 0777)
+	err = os.Chmod(installDir, 0777)
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	return p, nil
+	return nil
 }
 
 func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, _ string) {
