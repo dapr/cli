@@ -23,7 +23,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/fatih/color"
 	"gopkg.in/yaml.v2"
 
 	"github.com/briandowns/spinner"
@@ -684,28 +683,6 @@ func moveFileToPath(filepath string, installLocation string) (string, error) {
 			err = errors.New(err.Error() + " - please run with sudo")
 		}
 		return "", err
-	}
-
-	if runtime.GOOS == daprWindowsOS {
-		p := os.Getenv("PATH")
-
-		if !strings.Contains(strings.ToLower(p), strings.ToLower(destDir)) {
-			pathCmd := "[System.Environment]::SetEnvironmentVariable('Path',[System.Environment]::GetEnvironmentVariable('Path','user') + '" + fmt.Sprintf(";%s", destDir) + "', 'user')"
-			_, err := utils.RunCmdAndWait("powershell", pathCmd)
-			if err != nil {
-				return "", err
-			}
-		}
-
-		return fmt.Sprintf("%s\\daprd.exe", destDir), nil
-	}
-
-	if !strings.HasPrefix(fileName, placementServiceFilePrefix) && installLocation != "" {
-		// print only on daprd binary install in custom location
-		color.Set(color.FgYellow)
-		fmt.Printf("\nDapr installed to %s, please run the following to add it to your path:\n", destDir)
-		fmt.Printf("    export PATH=$PATH:%s\n", destDir)
-		color.Unset()
 	}
 
 	return destFilePath, nil
