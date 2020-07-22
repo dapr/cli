@@ -62,7 +62,7 @@ In self-hosted mode, dapr can be initialized using the CLI  with the placement, 
 #### Initialize Dapr
 ([Prerequisite](#Prerequisites): Docker is available in the environment - recommended)
 
-Use the init command to initialize Dapr. On init, multiple default configuration files and containers are installed along with the dapr runtime binary. Dapr runtime binary is installed under $HOME/.dapr/bin for Mac, Linux and %USERPROFILE%\.dapr/bin for Windows.
+Use the init command to initialize Dapr. On init, multiple default configuration files and containers are installed along with the dapr runtime binary. Dapr runtime binary is installed under $HOME/.dapr/bin for Mac, Linux and %USERPROFILE%\.dapr\bin for Windows.
 
 ```bash
 dapr init
