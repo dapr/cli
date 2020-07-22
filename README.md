@@ -75,7 +75,7 @@ Output should look like so:
 ```
 ⌛  Making the jump to hyperspace...
 ✅  Downloaded binaries and completed components set up.
-ℹ️  daprd binary has been installed to  /home/<user_name>/.dapr.
+ℹ️  daprd binary has been installed to  /home/<user_name>/.dapr/bin.
 ℹ️  dapr_placement container is running.
 ℹ️  dapr_redis container is running.
 ℹ️  dapr_zipkin container is running.
@@ -103,7 +103,7 @@ Output should look like so:
 ```bash
 ⌛  Making the jump to hyperspace...
 ✅  Downloaded binaries and completed components set up.
-ℹ️  daprd binary has been installed to /home/<user_name>/.dapr.
+ℹ️  daprd binary has been installed to /home/<user_name>/.dapr/bin.
 ℹ️  placement binary has been installed.
 ✅  Success! Dapr is up and running. To get started, go here: https://aka.ms/dapr-getting-started
 ```
