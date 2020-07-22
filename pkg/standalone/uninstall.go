@@ -71,7 +71,6 @@ func removeDir(dirPath string) error {
 // removes the installed binary and unsets env variables.
 func Uninstall(uninstallAll bool, dockerNetwork string) error {
 	var containerErrs []error
-	var err error
 	daprDefaultDir := defaultDaprDirPath()
 	daprBinDir := defaultDaprBinPath()
 
@@ -80,7 +79,10 @@ func Uninstall(uninstallAll bool, dockerNetwork string) error {
 	uninstallPlacementContainer := os.IsNotExist(placementErr)
 
 	// Remove .dapr/bin
-	err = removeDir(daprBinDir)
+	err := removeDir(daprBinDir)
+	if err != nil {
+		print.WarningStatusEvent(os.Stdout, "WARNING: could not delete dapr bin dir: %s", daprBinDir)
+	}
 
 	dockerInstalled := false
 	dockerInstalled = utils.IsDockerInstalled()
@@ -91,7 +93,7 @@ func Uninstall(uninstallAll bool, dockerNetwork string) error {
 	if uninstallAll {
 		err = removeDir(daprDefaultDir)
 		if err != nil {
-			print.WarningStatusEvent(os.Stdout, "WARNING: could not delete default dapr folder: %s", daprDefaultDir)
+			print.WarningStatusEvent(os.Stdout, "WARNING: could not delete default dapr dir: %s", daprDefaultDir)
 		}
 	}
 
