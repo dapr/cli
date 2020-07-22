@@ -13,6 +13,7 @@ import (
 
 const (
 	defaultDaprDirName       = ".dapr"
+	defaultDaprBinDirName    = "bin"
 	defaultComponentsDirName = "components"
 	defaultConfigFileName    = "config.yaml"
 )
@@ -20,6 +21,10 @@ const (
 func defaultDaprDirPath() string {
 	homeDir, _ := os.UserHomeDir()
 	return path_filepath.Join(homeDir, defaultDaprDirName)
+}
+
+func defaultDaprBinPath() string {
+	return path_filepath.Join(defaultDaprDirPath(), defaultDaprBinDirName)
 }
 
 func binaryFilePath(binaryDir string, binaryFilePrefix string) string {

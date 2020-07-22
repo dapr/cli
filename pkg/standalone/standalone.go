@@ -33,17 +33,15 @@ import (
 )
 
 const (
-	daprDockerImageName               = "daprio/dapr"
-	daprRuntimeFilePrefix             = "daprd"
-	placementServiceFilePrefix        = "placement"
-	daprWindowsOS                     = "windows"
-	daprLatestVersion                 = "latest"
-	daprDefaultLinuxAndMacInstallPath = "/usr/local/bin"
-	daprDefaultWindowsInstallPath     = "c:\\dapr"
-	daprDefaultHost                   = "localhost"
-	pubSubYamlFileName                = "pubsub.yaml"
-	stateStoreYamlFileName            = "statestore.yaml"
-	zipkinYamlFileName                = "zipkin.yaml"
+	daprDockerImageName        = "daprio/dapr"
+	daprRuntimeFilePrefix      = "daprd"
+	placementServiceFilePrefix = "placement"
+	daprWindowsOS              = "windows"
+	daprLatestVersion          = "latest"
+	daprDefaultHost            = "localhost"
+	pubSubYamlFileName         = "pubsub.yaml"
+	stateStoreYamlFileName     = "statestore.yaml"
+	zipkinYamlFileName         = "zipkin.yaml"
 
 	// DaprPlacementContainerName is the container name of placement service
 	DaprPlacementContainerName = "dapr_placement"
@@ -106,14 +104,14 @@ func Init(runtimeVersion string, dockerNetwork string, redisHost string, slimMod
 		}
 	}
 
-	installDir := defaultDaprDirPath()
-	err := prepareDaprInstallDir(installDir)
+	daprBinDir := defaultDaprBinPath()
+	err := prepareDaprInstallDir(daprBinDir)
 	if err != nil {
 		return err
 	}
 
 	// confirm if installation is required
-	if ok, er := isBinaryInstallationRequired(daprRuntimeFilePrefix, installDir, runtimeVersion); !ok {
+	if ok, er := isBinaryInstallationRequired(daprRuntimeFilePrefix, daprBinDir, runtimeVersion); !ok {
 		return er
 	}
 
@@ -150,15 +148,15 @@ func Init(runtimeVersion string, dockerNetwork string, redisHost string, slimMod
 	}
 
 	// Initialize daprd binary
-	go installBinary(&wg, errorChan, installDir, runtimeVersion, daprRuntimeFilePrefix, dockerNetwork)
+	go installBinary(&wg, errorChan, daprBinDir, runtimeVersion, daprRuntimeFilePrefix, dockerNetwork)
 
 	if slimMode {
 		// Initialize placement binary only on slim install
-		go installBinary(&wg, errorChan, installDir, runtimeVersion, placementServiceFilePrefix, dockerNetwork)
+		go installBinary(&wg, errorChan, daprBinDir, runtimeVersion, placementServiceFilePrefix, dockerNetwork)
 	} else {
 		for _, step := range initSteps {
 			// Run init on the configurations and containers
-			go step(&wg, errorChan, installDir, runtimeVersion, dockerNetwork, redisHost)
+			go step(&wg, errorChan, daprBinDir, runtimeVersion, dockerNetwork, redisHost)
 		}
 	}
 
@@ -182,10 +180,10 @@ func Init(runtimeVersion string, dockerNetwork string, redisHost string, slimMod
 
 	msg = "Downloaded binaries and completed components set up."
 	print.SuccessStatusEvent(os.Stdout, msg)
-	print.InfoStatusEvent(os.Stdout, "%s binary has been installed to %s.", daprRuntimeFilePrefix, installDir)
+	print.InfoStatusEvent(os.Stdout, "%s binary has been installed to %s.", daprRuntimeFilePrefix, daprBinDir)
 	if slimMode {
 		// Print info on placement binary only on slim install
-		print.InfoStatusEvent(os.Stdout, "%s binary has been installed to %s.", placementServiceFilePrefix, installDir)
+		print.InfoStatusEvent(os.Stdout, "%s binary has been installed to %s.", placementServiceFilePrefix, daprBinDir)
 	} else {
 		dockerContainerNames := []string{DaprPlacementContainerName, DaprRedisContainerName, DaprZipkinContainerName}
 		for _, container := range dockerContainerNames {
@@ -202,13 +200,13 @@ func Init(runtimeVersion string, dockerNetwork string, redisHost string, slimMod
 	return nil
 }
 
-func prepareDaprInstallDir(installDir string) error {
-	err := os.MkdirAll(installDir, 0777)
+func prepareDaprInstallDir(daprBinDir string) error {
+	err := os.MkdirAll(daprBinDir, 0777)
 	if err != nil {
 		return err
 	}
 
-	err = os.Chmod(installDir, 0777)
+	err = os.Chmod(daprBinDir, 0777)
 	if err != nil {
 		return err
 	}
@@ -485,7 +483,7 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, bin
 		return
 	}
 
-	binaryPath, err := moveFileToPath(extractedFilePath, defaultDaprDirPath())
+	binaryPath, err := moveFileToPath(extractedFilePath, dir)
 	if err != nil {
 		errorChan <- fmt.Errorf("error moving %s binary to path: %s", binaryFilePrefix, err)
 		return
@@ -652,20 +650,10 @@ func untar(filepath, targetDir, binaryFilePrefix string) (string, error) {
 }
 
 func moveFileToPath(filepath string, installLocation string) (string, error) {
-	destDir := daprDefaultLinuxAndMacInstallPath
-	if runtime.GOOS == daprWindowsOS {
-		destDir = daprDefaultWindowsInstallPath
-		filepath = strings.Replace(filepath, "/", "\\", -1)
-	}
-
 	fileName := path_filepath.Base(filepath)
 	destFilePath := ""
 
-	// if user specified --install-path, use that
-	if installLocation != "" {
-		destDir = installLocation
-	}
-
+	destDir := installLocation
 	destFilePath = path.Join(destDir, fileName)
 
 	input, err := ioutil.ReadFile(filepath)

@@ -56,30 +56,14 @@ func removeDockerContainer(containerErrs []error, containerName, network string)
 	return containerErrs
 }
 
-func removeDefaultDaprDir(uninstallAll bool) (string, error) {
-	if !uninstallAll {
-		return "", nil
-	}
-	defaultDaprPath := defaultDaprDirPath()
-	_, err := os.Stat(defaultDaprPath)
+func removeDir(dirPath string) error {
+	_, err := os.Stat(dirPath)
 	if os.IsNotExist(err) {
-		print.WarningStatusEvent(os.Stdout, "WARNING: %s default Dapr folder does not exist", defaultDaprPath)
-		return defaultDaprPath, nil
-	}
-	print.InfoStatusEvent(os.Stdout, "Removing folder: %s", defaultDaprPath)
-	err = os.RemoveAll(defaultDaprPath)
-
-	return defaultDaprPath, err
-}
-
-func removeFileIfExists(binaryFilePath string) error {
-	_, err := os.Stat(binaryFilePath)
-	if os.IsNotExist(err) {
+		print.WarningStatusEvent(os.Stdout, "WARNING: %s does not exist", dirPath)
 		return nil
 	}
-	print.InfoStatusEvent(os.Stdout, "Removing file: %s", binaryFilePath)
-	err = os.Remove(binaryFilePath)
-
+	print.InfoStatusEvent(os.Stdout, "Removing directory: %s", dirPath)
+	err = os.RemoveAll(dirPath)
 	return err
 }
 
@@ -88,22 +72,15 @@ func removeFileIfExists(binaryFilePath string) error {
 func Uninstall(uninstallAll bool, dockerNetwork string) error {
 	var containerErrs []error
 	var err error
-	var path string
-	installDir := defaultDaprDirPath()
+	daprDefaultDir := defaultDaprDirPath()
+	daprBinDir := defaultDaprBinPath()
 
-	daprdFilePath := binaryFilePath(installDir, daprRuntimeFilePrefix)
-	err = removeFileIfExists(daprdFilePath)
-	if err != nil {
-		print.WarningStatusEvent(os.Stdout, "WARNING: could not delete binary file: %s", daprdFilePath)
-	}
-
-	placementFilePath := binaryFilePath(installDir, placementServiceFilePrefix)
+	placementFilePath := binaryFilePath(daprBinDir, placementServiceFilePrefix)
 	_, placementErr := os.Stat(placementFilePath) // check if the placement binary exists
 	uninstallPlacementContainer := os.IsNotExist(placementErr)
-	err = removeFileIfExists(placementFilePath)
-	if err != nil {
-		print.WarningStatusEvent(os.Stdout, "WARNING: could not delete binary file: %s", placementFilePath)
-	}
+
+	// Remove .dapr/bin
+	err = removeDir(daprBinDir)
 
 	dockerInstalled := false
 	dockerInstalled = utils.IsDockerInstalled()
@@ -111,9 +88,11 @@ func Uninstall(uninstallAll bool, dockerNetwork string) error {
 		containerErrs = removeContainers(uninstallPlacementContainer, uninstallAll, dockerNetwork)
 	}
 
-	path, err = removeDefaultDaprDir(uninstallAll)
-	if err != nil {
-		print.WarningStatusEvent(os.Stdout, "WARNING: could not delete default dapr folder: %s", path)
+	if uninstallAll {
+		err = removeDir(daprDefaultDir)
+		if err != nil {
+			print.WarningStatusEvent(os.Stdout, "WARNING: could not delete default dapr folder: %s", daprDefaultDir)
+		}
 	}
 
 	err = errors.New("uninstall failed")
