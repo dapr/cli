@@ -84,7 +84,7 @@ type componentMetadataItem struct {
 }
 
 // Check if the previous version is already installed.
-func isBinaryInstallationRequired(binaryFilePrefix, installDir, requestedVersion string) (bool, error) {
+func isBinaryInstallationRequired(binaryFilePrefix, installDir) (bool, error) {
 	binaryPath := binaryFilePath(installDir, binaryFilePrefix)
 
 	// first time install?
@@ -111,7 +111,7 @@ func Init(runtimeVersion string, dockerNetwork string, redisHost string, slimMod
 	}
 
 	// confirm if installation is required
-	if ok, er := isBinaryInstallationRequired(daprRuntimeFilePrefix, daprBinDir, runtimeVersion); !ok {
+	if ok, er := isBinaryInstallationRequired(daprRuntimeFilePrefix, daprBinDir); !ok {
 		return er
 	}
 
