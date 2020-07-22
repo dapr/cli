@@ -10,8 +10,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os/exec"
-	"runtime"
 	"strings"
 )
 
@@ -21,22 +19,6 @@ const (
 	// DaprGitHubRepo is the repo name of dapr runtime on GitHub
 	DaprGitHubRepo = "dapr"
 )
-
-// GetRuntimeVersion returns the version for the local Dapr runtime.
-func GetRuntimeVersion() string {
-	runtimeName := ""
-	if runtime.GOOS == "windows" {
-		runtimeName = "daprd.exe"
-	} else {
-		runtimeName = "daprd"
-	}
-
-	out, err := exec.Command(runtimeName, "--version").Output()
-	if err != nil {
-		return "n/a\n"
-	}
-	return string(out)
-}
 
 type githubRepoReleaseItem struct {
 	URL     string `json:"url"`
