@@ -84,7 +84,7 @@ type componentMetadataItem struct {
 }
 
 // Check if the previous version is already installed.
-func isBinaryInstallationRequired(binaryFilePrefix, installDir) (bool, error) {
+func isBinaryInstallationRequired(binaryFilePrefix, installDir string) (bool, error) {
 	binaryPath := binaryFilePath(installDir, binaryFilePrefix)
 
 	// first time install?
