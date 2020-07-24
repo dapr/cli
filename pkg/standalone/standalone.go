@@ -434,8 +434,7 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, bin
 
 	archiveExt := "tar.gz"
 
-	// Dashboard packages come packaged as .tar.gz on all platforms
-	if runtime.GOOS == daprWindowsOS && !strings.Contains(binaryFilePrefix, "dashboard") {
+	if runtime.GOOS == daprWindowsOS {
 		archiveExt = "zip"
 	}
 
