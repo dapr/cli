@@ -34,10 +34,6 @@ const (
 
 	// remotePort is the port dapr dashboard pod is listening on
 	remotePort = 8080
-
-	// default install locations for Dapr executables
-	daprDefaultLinuxAndMacInstallPath = "/usr/local/bin"
-	daprDefaultWindowsInstallPath     = "c:\\dapr"
 )
 
 var dashboardNamespace string
@@ -138,8 +134,6 @@ var DashboardCmd = &cobra.Command{
 			}
 
 			<-portForward.GetStop()
-		} else {
-			// Standalone mode
 		}
 	},
 }
