@@ -35,7 +35,8 @@ func setupRun(t *testing.T) {
 	configFile := DefaultConfigFilePath()
 	err := os.MkdirAll(componentsDir, 0700)
 	assert.Equal(t, nil, err, "Unable to setup components dir before running test")
-	_, err = os.Create(configFile)
+	file, err := os.Create(configFile)
+	file.Close()
 	assert.Equal(t, nil, err, "Unable to create config file before running test")
 }
 

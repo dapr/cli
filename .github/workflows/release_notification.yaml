@@ -1,0 +1,17 @@
+# ------------------------------------------------------------
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+# ------------------------------------------------------------
+
+name: release_notification
+
+on:
+  release:
+    types: [prereleased,released]
+jobs:
+  notify:
+    name: Notify about Dapr Cli release.
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify dapr/homebrew-tap repo
+        run: GITHUB_TOKEN="${{ secrets.RELEASE_USER_TOKEN }}" gh api repos/dapr/homebrew-tap/dispatches -X POST -F event_type=update
