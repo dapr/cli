@@ -218,7 +218,8 @@ Run sidecar only:
 			} else {
 				print.SuccessStatusEvent(os.Stdout, "Exited Dapr successfully")
 			}
-			dapr-grpc-port
+
+			if output.AppCMD != nil {
 				err = output.AppCMD.Process.Kill()
 				if err != nil {
 					print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error exiting App: %s", err))
