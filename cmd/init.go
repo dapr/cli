@@ -6,6 +6,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/dapr/cli/pkg/kubernetes"
@@ -33,7 +34,7 @@ var InitCmd = &cobra.Command{
 
 		if kubernetesMode {
 			print.InfoStatusEvent(os.Stdout, "Note: this installation is recommended for testing purposes. For production environments, please use Helm \n")
-			err := kubernetes.Init(runtimeVersion)
+			err := kubernetes.Init(fmt.Sprintf("v%s", runtimeVersion))
 			if err != nil {
 				print.FailureStatusEvent(os.Stdout, err.Error())
 				return
