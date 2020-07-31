@@ -634,7 +634,7 @@ func untar(filepath, targetDir, binaryFilePrefix string) (string, error) {
 			continue
 		}
 
-		f, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, info.Mode())
+		f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
 		if err != nil {
 			return "", err
 		}
