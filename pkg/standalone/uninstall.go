@@ -1,6 +1,7 @@
 package standalone
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -96,6 +97,7 @@ func Uninstall(uninstallAll bool, dockerNetwork string) error {
 		}
 	}
 
+	err = errors.New("uninstall failed")
 	if uninstallPlacementContainer && !dockerInstalled {
 		// if placement binary did not exist before trying to delete it and not able to connect to docker.
 		return fmt.Errorf("%w \ncould not delete placement service. Either the placement binary is not found, or Docker may not be installed or running", err)
