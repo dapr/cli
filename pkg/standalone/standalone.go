@@ -646,7 +646,7 @@ func untar(filepath, targetDir, binaryFilePrefix string) (string, error) {
 		}
 
 		// If the found file is the binary that we want to find, save it and return later
-		if strings.HasSuffix(header.Name, binaryFilePrefix) || strings.HasSuffix(header.Name, binaryFilePrefix+".exe") {
+		if strings.HasSuffix(header.Name, binaryFilePrefix) {
 			foundBinary = path
 		}
 	}
