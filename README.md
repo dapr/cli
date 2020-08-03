@@ -204,7 +204,7 @@ You can uninstall a specific version of the Dapr runtime on kubernetes using `da
 
 ```bash
 # Uninstall v0.1.0 runtime
-$ dapr uninstall --runtime-version=v0.1.0 --kubernetes
+$ dapr uninstall --runtime-version=0.1.0 --kubernetes
 ```
 
 ### Launch Dapr and your app
