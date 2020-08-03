@@ -467,7 +467,7 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, bin
 	extractedFilePath := ""
 
 	if archiveExt == "zip" {
-		extractedFilePath, err = unzip(filepath, dir)
+		extractedFilePath, err = unzip(filepath, dir, binaryFilePrefix)
 	} else {
 		extractedFilePath, err = untar(filepath, dir, binaryFilePrefix)
 	}
@@ -554,47 +554,49 @@ func makeExecutable(filepath string) error {
 	return nil
 }
 
-func unzip(filepath, targetDir string) (string, error) {
-	zipReader, err := zip.OpenReader(filepath)
+func unzip(filepath, targetDir, binaryFilePrefix string) (string, error) {
+	r, err := zip.OpenReader(filepath)
 	if err != nil {
 		return "", err
 	}
-	defer zipReader.Close()
+	defer r.Close()
 
-	if len(zipReader.Reader.File) > 0 {
-		file := zipReader.Reader.File[0]
+	foundBinary := ""
+	for _, f := range r.File {
+		fpath := path_filepath.Join(targetDir, f.Name)
+		if strings.HasSuffix(fpath, fmt.Sprintf("%s.exe", binaryFilePrefix)) {
+			foundBinary = fpath
+		}
 
-		zippedFile, err := file.Open()
-		if err != nil {
+		if f.FileInfo().IsDir() {
+			os.MkdirAll(fpath, os.ModePerm)
+			continue
+		}
+
+		if err = os.MkdirAll(path_filepath.Dir(fpath), os.ModePerm); err != nil {
 			return "", err
 		}
-		defer zippedFile.Close()
 
-		extractedFilePath := path.Join(
-			targetDir,
-			file.Name,
-		)
-
-		outputFile, err := os.OpenFile(
-			extractedFilePath,
-			os.O_WRONLY|os.O_CREATE|os.O_TRUNC,
-			file.Mode(),
-		)
-		if err != nil {
-			return "", err
-		}
-		defer outputFile.Close()
-
-		// #nosec G110
-		_, err = io.Copy(outputFile, zippedFile)
+		outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
 		if err != nil {
 			return "", err
 		}
 
-		return extractedFilePath, nil
+		rc, err := f.Open()
+		if err != nil {
+			return "", err
+		}
+
+		_, err = io.Copy(outFile, rc)
+
+		outFile.Close()
+		rc.Close()
+
+		if err != nil {
+			return "", err
+		}
 	}
-
-	return "", nil
+	return foundBinary, nil
 }
 
 func untar(filepath, targetDir, binaryFilePrefix string) (string, error) {
