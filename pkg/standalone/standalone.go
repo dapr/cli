@@ -51,10 +51,6 @@ const (
 	DaprZipkinContainerName = "dapr_zipkin"
 
 	errInstallTemplate = "please run `dapr uninstall` first before running `dapr init`"
-
-	// maxFileBytes is the maximum file size a file can be after being unarchived
-	// without throwing an error
-	maxFileBytes = 100000000
 )
 
 type configuration struct {
@@ -604,18 +600,13 @@ func unzip(filepath, targetDir, binaryFilePrefix string) (string, error) {
 			return "", err
 		}
 
-		// fixes gosec G110
-		bytesRead, err := io.CopyN(outFile, rc, maxFileBytes)
+		// #nosec G110
+		_, err = io.Copy(outFile, rc)
 
 		outFile.Close()
 		rc.Close()
 
-		if bytesRead >= maxFileBytes {
-			return "", fmt.Errorf("file %s too large to decompress from zip archive (> %vMB)", f.Name, maxFileBytes/1000000)
-		}
-		if err == io.EOF {
-			continue
-		} else if err != nil {
+		if err != nil {
 			return "", err
 		}
 	}
