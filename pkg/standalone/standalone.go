@@ -554,6 +554,15 @@ func makeExecutable(filepath string) error {
 	return nil
 }
 
+// https://github.com/snyk/zip-slip-vulnerability, fixes gosec G305
+func sanitizeExtractPath(filePath string, destination string) (string, error) {
+	destpath := path_filepath.Join(destination, filePath)
+	if !strings.HasPrefix(destpath, path_filepath.Clean(destination)+string(os.PathSeparator)) {
+		return "", fmt.Errorf("%s: illegal file path", filePath)
+	}
+	return destpath, nil
+}
+
 func unzip(filepath, targetDir, binaryFilePrefix string) (string, error) {
 	r, err := zip.OpenReader(filepath)
 	if err != nil {
@@ -563,7 +572,11 @@ func unzip(filepath, targetDir, binaryFilePrefix string) (string, error) {
 
 	foundBinary := ""
 	for _, f := range r.File {
-		fpath := path_filepath.Join(targetDir, f.Name)
+		fpath, err := sanitizeExtractPath(targetDir, f.Name)
+		if err != nil {
+			return "", err
+		}
+
 		if strings.HasSuffix(fpath, fmt.Sprintf("%s.exe", binaryFilePrefix)) {
 			foundBinary = fpath
 		}
@@ -587,13 +600,17 @@ func unzip(filepath, targetDir, binaryFilePrefix string) (string, error) {
 			return "", err
 		}
 
-		_, err = io.Copy(outFile, rc)
+		// fixes gosec G110
+		bytesRead, err := io.CopyN(outFile, rc, 30000000)
 
 		outFile.Close()
 		rc.Close()
 
 		if err != nil {
 			return "", err
+		}
+		if bytesRead >= 30000000 {
+			return "", fmt.Errorf("file %s too large to decompress from zip archive (> 30MB)", f.Name)
 		}
 	}
 	return foundBinary, nil
@@ -627,7 +644,11 @@ func untar(filepath, targetDir, binaryFilePrefix string) (string, error) {
 		}
 
 		// untar all files in archive
-		path := path_filepath.Join(targetDir, header.Name)
+		path, err := sanitizeExtractPath(targetDir, header.Name)
+		if err != nil {
+			return "", err
+		}
+
 		info := header.FileInfo()
 		if info.IsDir() {
 			if err = os.MkdirAll(path, info.Mode()); err != nil {
