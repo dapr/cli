@@ -51,6 +51,10 @@ const (
 	DaprZipkinContainerName = "dapr_zipkin"
 
 	errInstallTemplate = "please run `dapr uninstall` first before running `dapr init`"
+
+	// maxFileBytes is the maximum file size a file can be after being unarchived
+	// without throwing an error
+	maxFileBytes = 100000000
 )
 
 type configuration struct {
@@ -555,7 +559,7 @@ func makeExecutable(filepath string) error {
 }
 
 // https://github.com/snyk/zip-slip-vulnerability, fixes gosec G305
-func sanitizeExtractPath(filePath string, destination string) (string, error) {
+func sanitizeExtractPath(destination string, filePath string) (string, error) {
 	destpath := path_filepath.Join(destination, filePath)
 	if !strings.HasPrefix(destpath, path_filepath.Clean(destination)+string(os.PathSeparator)) {
 		return "", fmt.Errorf("%s: illegal file path", filePath)
@@ -601,18 +605,21 @@ func unzip(filepath, targetDir, binaryFilePrefix string) (string, error) {
 		}
 
 		// fixes gosec G110
-		bytesRead, err := io.CopyN(outFile, rc, 30000000)
+		bytesRead, err := io.CopyN(outFile, rc, maxFileBytes)
 
 		outFile.Close()
 		rc.Close()
 
-		if err != nil {
+		if bytesRead >= maxFileBytes {
+			return "", fmt.Errorf("file %s too large to decompress from zip archive (> %vMB)", f.Name, maxFileBytes/1000000)
+		}
+		if err == io.EOF {
+			continue
+		} else if err != nil {
 			return "", err
 		}
-		if bytesRead >= 30000000 {
-			return "", fmt.Errorf("file %s too large to decompress from zip archive (> 30MB)", f.Name)
-		}
 	}
+	fmt.Println(foundBinary)
 	return foundBinary, nil
 }
 
