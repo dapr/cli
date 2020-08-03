@@ -610,7 +610,6 @@ func unzip(filepath, targetDir, binaryFilePrefix string) (string, error) {
 			return "", err
 		}
 	}
-	fmt.Println(foundBinary)
 	return foundBinary, nil
 }
 
