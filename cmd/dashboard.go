@@ -29,7 +29,7 @@ const (
 	// daprSystemNamespace is the namespace "dapr-system" (recommended Dapr install namespace)
 	daprSystemNamespace = "dapr-system"
 
-	// defaultNamespace is the default namespace (from dapr init -k installation)
+	// defaultNamespace is the default namespace (dapr init -k installation)
 	defaultNamespace = "default"
 
 	// remotePort is the port dapr dashboard pod is listening on
