@@ -10,7 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	path_filepath "path/filepath"
+	"path/filepath"
 	"runtime"
 
 	"github.com/dapr/cli/pkg/kubernetes"
@@ -151,7 +151,7 @@ var DashboardCmd = &cobra.Command{
 
 			// Construct command to run dashboard
 			cmdDashboardStandalone := &exec.Cmd{
-				Path:   path_filepath.Join(dashboardPath, binaryName),
+				Path:   filepath.Join(dashboardPath, binaryName),
 				Dir:    dashboardPath,
 				Stdout: os.Stdout,
 			}
