@@ -73,7 +73,7 @@ func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort in
 		maxConcurrency = -1
 	}
 
-	daprCMD := binaryFilePath(defaultDaprBinPath(), "daprd")
+	daprCMD := BinaryFilePath(DefaultDaprBinPath(), "daprd")
 	metricsPort, err := freeport.GetFreePort()
 	if err != nil {
 		return nil, -1, -1, -1, err

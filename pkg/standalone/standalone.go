@@ -35,9 +35,11 @@ import (
 const (
 	daprDockerImageName        = "daprio/dapr"
 	daprRuntimeFilePrefix      = "daprd"
+	dashboardFilePrefix        = "dashboard"
 	placementServiceFilePrefix = "placement"
 	daprWindowsOS              = "windows"
 	daprLatestVersion          = "latest"
+	dashboardLatestVersion     = "latest"
 	daprDefaultHost            = "localhost"
 	pubSubYamlFileName         = "pubsub.yaml"
 	stateStoreYamlFileName     = "statestore.yaml"
@@ -85,7 +87,7 @@ type componentMetadataItem struct {
 
 // Check if the previous version is already installed.
 func isBinaryInstallationRequired(binaryFilePrefix, installDir string) (bool, error) {
-	binaryPath := binaryFilePath(installDir, binaryFilePrefix)
+	binaryPath := BinaryFilePath(installDir, binaryFilePrefix)
 
 	// first time install?
 	_, err := os.Stat(binaryPath)
@@ -104,7 +106,7 @@ func Init(runtimeVersion string, dockerNetwork string, redisHost string, slimMod
 		}
 	}
 
-	daprBinDir := defaultDaprBinPath()
+	daprBinDir := DefaultDaprBinPath()
 	err := prepareDaprInstallDir(daprBinDir)
 	if err != nil {
 		return err
@@ -119,11 +121,11 @@ func Init(runtimeVersion string, dockerNetwork string, redisHost string, slimMod
 	errorChan := make(chan error)
 	initSteps := []func(*sync.WaitGroup, chan<- error, string, string, string, string){}
 	if slimMode {
-		// Install 2 binaries in slim mode, daprd, placement
-		wg.Add(2)
+		// Install 3 binaries in slim mode: daprd, dashboard, placement
+		wg.Add(3)
 	} else {
-		// Install only a single binary daprd
-		wg.Add(1)
+		// Install 2 binaries: daprd, dashboard
+		wg.Add(2)
 		initSteps = append(initSteps, createComponentsAndConfiguration, runPlacementService, runRedis, runZipkin)
 		// Init other configurations, containers
 		wg.Add(len(initSteps))
@@ -149,6 +151,9 @@ func Init(runtimeVersion string, dockerNetwork string, redisHost string, slimMod
 
 	// Initialize daprd binary
 	go installBinary(&wg, errorChan, daprBinDir, runtimeVersion, daprRuntimeFilePrefix, dockerNetwork, cli_ver.DaprGitHubRepo)
+
+	// Initialize dashboard binary
+	go installBinary(&wg, errorChan, daprBinDir, dashboardLatestVersion, dashboardFilePrefix, dockerNetwork, cli_ver.DashboardGitHubRepo)
 
 	if slimMode {
 		// Initialize placement binary only on slim install
@@ -481,6 +486,32 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, bin
 	if err != nil {
 		errorChan <- fmt.Errorf("failed to remove archive: %s", err)
 		return
+	}
+
+	// If the installed binary is the dashboard binary, some extra steps need to happen
+	if binaryFilePrefix == "dashboard" {
+
+		// Move /release/os/web directory to /web
+		oldPath := path_filepath.Join(path_filepath.Dir(extractedFilePath), "web")
+		newPath := path_filepath.Join(dir, "web")
+		err = os.Rename(oldPath, newPath)
+		if err != nil {
+			errorChan <- fmt.Errorf("failed to move dashboard files: %s", err)
+			return
+		}
+
+		// Move binary from /release/<os>/web/dashboard(.exe) to /dashboard(.exe)
+		err = os.Rename(extractedFilePath, path_filepath.Join(dir, path_filepath.Base(extractedFilePath)))
+		if err != nil {
+			errorChan <- fmt.Errorf("error moving %s binary to path: %s", binaryFilePrefix, err)
+			return
+		}
+
+		// Change the extracted binary file path to reflect the move above
+		extractedFilePath = path_filepath.Join(dir, path_filepath.Base(extractedFilePath))
+
+		// Remove the now-empty 'release' directory
+		os.RemoveAll(path_filepath.Join(dir, "release"))
 	}
 
 	binaryPath, err := moveFileToPath(extractedFilePath, dir)

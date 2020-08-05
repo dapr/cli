@@ -18,6 +18,8 @@ const (
 	DaprGitHubOrg = "dapr"
 	// DaprGitHubRepo is the repo name of dapr runtime on GitHub
 	DaprGitHubRepo = "dapr"
+	// DashboardGitHubRepo is the repo name of dapr dashboard on GitHub
+	DashboardGitHubRepo = "dashboard"
 )
 
 type githubRepoReleaseItem struct {
@@ -57,7 +59,8 @@ func GetLatestRelease(gitHubOrg, gitHubRepo string) (string, error) {
 	}
 
 	for _, release := range githubRepoReleases {
-		if !strings.Contains(release.TagName, "-rc") {
+		// Allow -rc tags for dashboard
+		if !strings.Contains(release.TagName, "-rc") || strings.Contains(releaseURL, "dashboard") {
 			return release.TagName, nil
 		}
 	}
