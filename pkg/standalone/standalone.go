@@ -87,7 +87,7 @@ type componentMetadataItem struct {
 
 // Check if the previous version is already installed.
 func isBinaryInstallationRequired(binaryFilePrefix, installDir string) (bool, error) {
-	binaryPath := BinaryFilePath(installDir, binaryFilePrefix)
+	binaryPath := binaryFilePath(installDir, binaryFilePrefix)
 
 	// first time install?
 	_, err := os.Stat(binaryPath)
@@ -106,7 +106,7 @@ func Init(runtimeVersion string, dockerNetwork string, redisHost string, slimMod
 		}
 	}
 
-	daprBinDir := DefaultDaprBinPath()
+	daprBinDir := defaultDaprBinPath()
 	err := prepareDaprInstallDir(daprBinDir)
 	if err != nil {
 		return err

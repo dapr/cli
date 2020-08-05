@@ -71,10 +71,10 @@ func removeDir(dirPath string) error {
 // removes the installed binary and unsets env variables.
 func Uninstall(uninstallAll bool, dockerNetwork string) error {
 	var containerErrs []error
-	daprDefaultDir := DefaultDaprDirPath()
-	daprBinDir := DefaultDaprBinPath()
+	daprDefaultDir := defaultDaprDirPath()
+	daprBinDir := defaultDaprBinPath()
 
-	placementFilePath := BinaryFilePath(daprBinDir, placementServiceFilePrefix)
+	placementFilePath := binaryFilePath(daprBinDir, placementServiceFilePrefix)
 	_, placementErr := os.Stat(placementFilePath) // check if the placement binary exists
 	uninstallPlacementContainer := os.IsNotExist(placementErr)
 

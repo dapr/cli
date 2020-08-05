@@ -9,8 +9,8 @@ import "os/exec"
 
 // GetRuntimeVersion returns the version for the local Dapr runtime.
 func GetRuntimeVersion() string {
-	daprBinDir := DefaultDaprBinPath()
-	daprCMD := BinaryFilePath(daprBinDir, "daprd")
+	daprBinDir := defaultDaprBinPath()
+	daprCMD := binaryFilePath(daprBinDir, "daprd")
 
 	out, err := exec.Command(daprCMD, "--version").Output()
 	if err != nil {

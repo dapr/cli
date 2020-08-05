@@ -8,10 +8,7 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"os/signal"
-	"path/filepath"
-	"runtime"
 
 	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/pkg/print"
@@ -140,26 +137,7 @@ var DashboardCmd = &cobra.Command{
 			<-portForward.GetStop()
 		} else {
 			// Standalone mode
-
-			// Use the default binary install location
-			dashboardPath := standalone.DefaultDaprBinPath()
-
-			binaryName := "dashboard"
-			if runtime.GOOS == "windows" {
-				binaryName = "dashboard.exe"
-			}
-
-			// Construct command to run dashboard
-			cmdDashboardStandalone := &exec.Cmd{
-				Path:   filepath.Join(dashboardPath, binaryName),
-				Dir:    dashboardPath,
-				Stdout: os.Stdout,
-			}
-
-			err := cmdDashboardStandalone.Run()
-			if err != nil {
-				print.FailureStatusEvent(os.Stdout, "Dapr dashboard not found. Is Dapr installed?")
-			}
+			standalone.RunDashboard()
 		}
 	},
 }

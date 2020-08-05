@@ -18,19 +18,16 @@ const (
 	defaultConfigFileName    = "config.yaml"
 )
 
-// DefaultDaprDirPath returns the default Dapr install path
-func DefaultDaprDirPath() string {
+func defaultDaprDirPath() string {
 	homeDir, _ := os.UserHomeDir()
 	return path_filepath.Join(homeDir, defaultDaprDirName)
 }
 
-// DefaultDaprBinPath returns the default install path for Dapr binaries
-func DefaultDaprBinPath() string {
-	return path_filepath.Join(DefaultDaprDirPath(), defaultDaprBinDirName)
+func defaultDaprBinPath() string {
+	return path_filepath.Join(defaultDaprDirPath(), defaultDaprBinDirName)
 }
 
-// BinaryFilePath returns the OS-specific default binary file path
-func BinaryFilePath(binaryDir string, binaryFilePrefix string) string {
+func binaryFilePath(binaryDir string, binaryFilePrefix string) string {
 	binaryPath := path_filepath.Join(binaryDir, binaryFilePrefix)
 	if runtime.GOOS == daprWindowsOS {
 		binaryPath += ".exe"
@@ -38,12 +35,10 @@ func BinaryFilePath(binaryDir string, binaryFilePrefix string) string {
 	return binaryPath
 }
 
-// DefaultComponentsDirPath returns the default path for the Dapr components directory
 func DefaultComponentsDirPath() string {
-	return path_filepath.Join(DefaultDaprDirPath(), defaultComponentsDirName)
+	return path_filepath.Join(defaultDaprDirPath(), defaultComponentsDirName)
 }
 
-// DefaultConfigFilePath returns the default path for the Dapr configuration file
 func DefaultConfigFilePath() string {
-	return path_filepath.Join(DefaultDaprDirPath(), defaultConfigFileName)
+	return path_filepath.Join(defaultDaprDirPath(), defaultConfigFileName)
 }
