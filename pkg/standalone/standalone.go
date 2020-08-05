@@ -434,6 +434,32 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 	errorChan <- nil
 }
 
+func moveDashboardFiles(extractedFilePath string, dir string, errorChan chan<- error) (string, error) {
+	// Move /release/os/web directory to /web
+	oldPath := path_filepath.Join(path_filepath.Dir(extractedFilePath), "web")
+	newPath := path_filepath.Join(dir, "web")
+	err := os.Rename(oldPath, newPath)
+	if err != nil {
+		errorChan <- fmt.Errorf("failed to move dashboard files: %s", err)
+		return "", err
+	}
+
+	// Move binary from /release/<os>/web/dashboard(.exe) to /dashboard(.exe)
+	err = os.Rename(extractedFilePath, path_filepath.Join(dir, path_filepath.Base(extractedFilePath)))
+	if err != nil {
+		errorChan <- fmt.Errorf("error moving %s binary to path: %s", path_filepath.Base(extractedFilePath), err)
+		return "", err
+	}
+
+	// Change the extracted binary file path to reflect the move above
+	extractedFilePath = path_filepath.Join(dir, path_filepath.Base(extractedFilePath))
+
+	// Remove the now-empty 'release' directory
+	os.RemoveAll(path_filepath.Join(dir, "release"))
+
+	return extractedFilePath, nil
+}
+
 func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, binaryFilePrefix string, dockerNetwork string, githubRepo string) {
 	defer wg.Done()
 
@@ -488,30 +514,11 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, bin
 		return
 	}
 
-	// If the installed binary is the dashboard binary, some extra steps need to happen
 	if binaryFilePrefix == "dashboard" {
-
-		// Move /release/os/web directory to /web
-		oldPath := path_filepath.Join(path_filepath.Dir(extractedFilePath), "web")
-		newPath := path_filepath.Join(dir, "web")
-		err = os.Rename(oldPath, newPath)
+		extractedFilePath, err = moveDashboardFiles(extractedFilePath, dir, errorChan)
 		if err != nil {
-			errorChan <- fmt.Errorf("failed to move dashboard files: %s", err)
 			return
 		}
-
-		// Move binary from /release/<os>/web/dashboard(.exe) to /dashboard(.exe)
-		err = os.Rename(extractedFilePath, path_filepath.Join(dir, path_filepath.Base(extractedFilePath)))
-		if err != nil {
-			errorChan <- fmt.Errorf("error moving %s binary to path: %s", binaryFilePrefix, err)
-			return
-		}
-
-		// Change the extracted binary file path to reflect the move above
-		extractedFilePath = path_filepath.Join(dir, path_filepath.Base(extractedFilePath))
-
-		// Remove the now-empty 'release' directory
-		os.RemoveAll(path_filepath.Join(dir, "release"))
 	}
 
 	binaryPath, err := moveFileToPath(extractedFilePath, dir)

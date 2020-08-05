@@ -158,7 +158,7 @@ var DashboardCmd = &cobra.Command{
 
 			err := cmdDashboardStandalone.Run()
 			if err != nil {
-				print.FailureStatusEvent(os.Stdout, "Dapr dashboard not found")
+				print.FailureStatusEvent(os.Stdout, "Dapr dashboard not found. Is Dapr installed?")
 			}
 		}
 	},
