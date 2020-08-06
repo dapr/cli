@@ -18,6 +18,8 @@ const (
 	DaprGitHubOrg = "dapr"
 	// DaprGitHubRepo is the repo name of dapr runtime on GitHub
 	DaprGitHubRepo = "dapr"
+	// DashboardGitHubRepo is the repo name of dapr dashboard on GitHub
+	DashboardGitHubRepo = "dashboard"
 )
 
 type githubRepoReleaseItem struct {
