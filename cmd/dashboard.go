@@ -12,6 +12,7 @@ import (
 
 	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/pkg/print"
+	"github.com/dapr/cli/pkg/standalone"
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 )
@@ -134,6 +135,9 @@ var DashboardCmd = &cobra.Command{
 			}
 
 			<-portForward.GetStop()
+		} else {
+			// Standalone mode
+			standalone.RunDashboard()
 		}
 	},
 }
@@ -142,6 +146,5 @@ func init() {
 	DashboardCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Start Dapr dashboard in local browser")
 	DashboardCmd.Flags().IntVarP(&port, "port", "p", defaultLocalPort, "The local port on which to serve dashboard")
 	DashboardCmd.Flags().StringVarP(&dashboardNamespace, "namespace", "n", daprSystemNamespace, "The namespace where Dapr dashboard is running")
-	DashboardCmd.MarkFlagRequired("kubernetes")
 	RootCmd.AddCommand(DashboardCmd)
 }

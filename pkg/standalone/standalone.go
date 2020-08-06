@@ -35,9 +35,11 @@ import (
 const (
 	daprDockerImageName        = "daprio/dapr"
 	daprRuntimeFilePrefix      = "daprd"
+	dashboardFilePrefix        = "dashboard"
 	placementServiceFilePrefix = "placement"
 	daprWindowsOS              = "windows"
 	daprLatestVersion          = "latest"
+	dashboardLatestVersion     = "latest"
 	daprDefaultHost            = "localhost"
 	pubSubYamlFileName         = "pubsub.yaml"
 	stateStoreYamlFileName     = "statestore.yaml"
@@ -119,11 +121,11 @@ func Init(runtimeVersion string, dockerNetwork string, redisHost string, slimMod
 	errorChan := make(chan error)
 	initSteps := []func(*sync.WaitGroup, chan<- error, string, string, string, string){}
 	if slimMode {
-		// Install 2 binaries in slim mode, daprd, placement
-		wg.Add(2)
+		// Install 3 binaries in slim mode: daprd, dashboard, placement
+		wg.Add(3)
 	} else {
-		// Install only a single binary daprd
-		wg.Add(1)
+		// Install 2 binaries: daprd, dashboard
+		wg.Add(2)
 		initSteps = append(initSteps, createComponentsAndConfiguration, runPlacementService, runRedis, runZipkin)
 		// Init other configurations, containers
 		wg.Add(len(initSteps))
@@ -149,6 +151,9 @@ func Init(runtimeVersion string, dockerNetwork string, redisHost string, slimMod
 
 	// Initialize daprd binary
 	go installBinary(&wg, errorChan, daprBinDir, runtimeVersion, daprRuntimeFilePrefix, dockerNetwork, cli_ver.DaprGitHubRepo)
+
+	// Initialize dashboard binary
+	go installBinary(&wg, errorChan, daprBinDir, dashboardLatestVersion, dashboardFilePrefix, dockerNetwork, cli_ver.DashboardGitHubRepo)
 
 	if slimMode {
 		// Initialize placement binary only on slim install
@@ -429,6 +434,36 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 	errorChan <- nil
 }
 
+func moveDashboardFiles(extractedFilePath string, dir string) (string, error) {
+	// Move /release/os/web directory to /web
+	oldPath := path_filepath.Join(path_filepath.Dir(extractedFilePath), "web")
+	newPath := path_filepath.Join(dir, "web")
+	err := os.Rename(oldPath, newPath)
+	if err != nil {
+		err = fmt.Errorf("failed to move dashboard files: %s", err)
+		return "", err
+	}
+
+	// Move binary from /release/<os>/web/dashboard(.exe) to /dashboard(.exe)
+	err = os.Rename(extractedFilePath, path_filepath.Join(dir, path_filepath.Base(extractedFilePath)))
+	if err != nil {
+		err = fmt.Errorf("error moving %s binary to path: %s", path_filepath.Base(extractedFilePath), err)
+		return "", err
+	}
+
+	// Change the extracted binary file path to reflect the move above
+	extractedFilePath = path_filepath.Join(dir, path_filepath.Base(extractedFilePath))
+
+	// Remove the now-empty 'release' directory
+	err = os.RemoveAll(path_filepath.Join(dir, "release"))
+	if err != nil {
+		err = fmt.Errorf("error moving dashboard files: %s", err)
+		return "", err
+	}
+
+	return extractedFilePath, nil
+}
+
 func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, binaryFilePrefix string, dockerNetwork string, githubRepo string) {
 	defer wg.Done()
 
@@ -481,6 +516,14 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, bin
 	if err != nil {
 		errorChan <- fmt.Errorf("failed to remove archive: %s", err)
 		return
+	}
+
+	if binaryFilePrefix == "dashboard" {
+		extractedFilePath, err = moveDashboardFiles(extractedFilePath, dir)
+		if err != nil {
+			errorChan <- err
+			return
+		}
 	}
 
 	binaryPath, err := moveFileToPath(extractedFilePath, dir)
