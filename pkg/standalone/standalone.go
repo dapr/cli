@@ -434,20 +434,20 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 	errorChan <- nil
 }
 
-func moveDashboardFiles(extractedFilePath string, dir string, errorChan chan<- error) (string, error) {
+func moveDashboardFiles(extractedFilePath string, dir string) (string, error) {
 	// Move /release/os/web directory to /web
 	oldPath := path_filepath.Join(path_filepath.Dir(extractedFilePath), "web")
 	newPath := path_filepath.Join(dir, "web")
 	err := os.Rename(oldPath, newPath)
 	if err != nil {
-		errorChan <- fmt.Errorf("failed to move dashboard files: %s", err)
+		err = fmt.Errorf("failed to move dashboard files: %s", err)
 		return "", err
 	}
 
 	// Move binary from /release/<os>/web/dashboard(.exe) to /dashboard(.exe)
 	err = os.Rename(extractedFilePath, path_filepath.Join(dir, path_filepath.Base(extractedFilePath)))
 	if err != nil {
-		errorChan <- fmt.Errorf("error moving %s binary to path: %s", path_filepath.Base(extractedFilePath), err)
+		err = fmt.Errorf("error moving %s binary to path: %s", path_filepath.Base(extractedFilePath), err)
 		return "", err
 	}
 
@@ -455,7 +455,10 @@ func moveDashboardFiles(extractedFilePath string, dir string, errorChan chan<- e
 	extractedFilePath = path_filepath.Join(dir, path_filepath.Base(extractedFilePath))
 
 	// Remove the now-empty 'release' directory
-	os.RemoveAll(path_filepath.Join(dir, "release"))
+	err = os.RemoveAll(path_filepath.Join(dir, "release"))
+	if err != nil {
+		err = fmt.Errorf("error moving dashboard files: %s", err)
+	}
 
 	return extractedFilePath, nil
 }
@@ -515,8 +518,9 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, bin
 	}
 
 	if binaryFilePrefix == "dashboard" {
-		extractedFilePath, err = moveDashboardFiles(extractedFilePath, dir, errorChan)
+		extractedFilePath, err = moveDashboardFiles(extractedFilePath, dir)
 		if err != nil {
+			errorChan <- err
 			return
 		}
 	}
