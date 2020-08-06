@@ -148,11 +148,11 @@ func Init(runtimeVersion string, dockerNetwork string, redisHost string, slimMod
 	}
 
 	// Initialize daprd binary
-	go installBinary(&wg, errorChan, daprBinDir, runtimeVersion, daprRuntimeFilePrefix, dockerNetwork)
+	go installBinary(&wg, errorChan, daprBinDir, runtimeVersion, daprRuntimeFilePrefix, dockerNetwork, cli_ver.DaprGitHubRepo)
 
 	if slimMode {
 		// Initialize placement binary only on slim install
-		go installBinary(&wg, errorChan, daprBinDir, runtimeVersion, placementServiceFilePrefix, dockerNetwork)
+		go installBinary(&wg, errorChan, daprBinDir, runtimeVersion, placementServiceFilePrefix, dockerNetwork, cli_ver.DaprGitHubRepo)
 	} else {
 		for _, step := range initSteps {
 			// Run init on the configurations and containers
@@ -429,29 +429,29 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 	errorChan <- nil
 }
 
-func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, binaryFilePrefix string, dockerNetwork string) {
+func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, binaryFilePrefix string, dockerNetwork string, githubRepo string) {
 	defer wg.Done()
 
 	archiveExt := "tar.gz"
+
 	if runtime.GOOS == daprWindowsOS {
 		archiveExt = "zip"
 	}
 
 	if version == daprLatestVersion {
 		var err error
-		version, err = cli_ver.GetLatestRelease(cli_ver.DaprGitHubOrg, cli_ver.DaprGitHubRepo)
+		version, err = cli_ver.GetLatestRelease(cli_ver.DaprGitHubOrg, githubRepo)
 		if err != nil {
 			errorChan <- fmt.Errorf("cannot get the latest release version: %s", err)
 			return
 		}
 		version = version[1:]
 	}
-	// https://github.com/dapr/dapr/releases/download/v0.8.0/daprd_darwin_amd64.tar.gz
-	// https://github.com/dapr/dapr/releases/download/v0.8.0/placement_darwin_amd64.tar.gz
+
 	fileURL := fmt.Sprintf(
 		"https://github.com/%s/%s/releases/download/v%s/%s_%s_%s.%s",
 		cli_ver.DaprGitHubOrg,
-		cli_ver.DaprGitHubRepo,
+		githubRepo,
 		version,
 		binaryFilePrefix,
 		runtime.GOOS,
@@ -467,7 +467,7 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, bin
 	extractedFilePath := ""
 
 	if archiveExt == "zip" {
-		extractedFilePath, err = unzip(filepath, dir)
+		extractedFilePath, err = unzip(filepath, dir, binaryFilePrefix)
 	} else {
 		extractedFilePath, err = untar(filepath, dir, binaryFilePrefix)
 	}
@@ -554,47 +554,63 @@ func makeExecutable(filepath string) error {
 	return nil
 }
 
-func unzip(filepath, targetDir string) (string, error) {
-	zipReader, err := zip.OpenReader(filepath)
+// https://github.com/snyk/zip-slip-vulnerability, fixes gosec G305
+func sanitizeExtractPath(destination string, filePath string) (string, error) {
+	destpath := path_filepath.Join(destination, filePath)
+	if !strings.HasPrefix(destpath, path_filepath.Clean(destination)+string(os.PathSeparator)) {
+		return "", fmt.Errorf("%s: illegal file path", filePath)
+	}
+	return destpath, nil
+}
+
+func unzip(filepath, targetDir, binaryFilePrefix string) (string, error) {
+	r, err := zip.OpenReader(filepath)
 	if err != nil {
 		return "", err
 	}
-	defer zipReader.Close()
+	defer r.Close()
 
-	if len(zipReader.Reader.File) > 0 {
-		file := zipReader.Reader.File[0]
-
-		zippedFile, err := file.Open()
+	foundBinary := ""
+	for _, f := range r.File {
+		fpath, err := sanitizeExtractPath(targetDir, f.Name)
 		if err != nil {
 			return "", err
 		}
-		defer zippedFile.Close()
 
-		extractedFilePath := path.Join(
-			targetDir,
-			file.Name,
-		)
+		if strings.HasSuffix(fpath, fmt.Sprintf("%s.exe", binaryFilePrefix)) {
+			foundBinary = fpath
+		}
 
-		outputFile, err := os.OpenFile(
-			extractedFilePath,
-			os.O_WRONLY|os.O_CREATE|os.O_TRUNC,
-			file.Mode(),
-		)
+		if f.FileInfo().IsDir() {
+			os.MkdirAll(fpath, os.ModePerm)
+			continue
+		}
+
+		if err = os.MkdirAll(path_filepath.Dir(fpath), os.ModePerm); err != nil {
+			return "", err
+		}
+
+		outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
 		if err != nil {
 			return "", err
 		}
-		defer outputFile.Close()
+
+		rc, err := f.Open()
+		if err != nil {
+			return "", err
+		}
 
 		// #nosec G110
-		_, err = io.Copy(outputFile, zippedFile)
+		_, err = io.Copy(outFile, rc)
+
+		outFile.Close()
+		rc.Close()
+
 		if err != nil {
 			return "", err
 		}
-
-		return extractedFilePath, nil
 	}
-
-	return "", nil
+	return foundBinary, nil
 }
 
 func untar(filepath, targetDir, binaryFilePrefix string) (string, error) {
@@ -612,41 +628,49 @@ func untar(filepath, targetDir, binaryFilePrefix string) (string, error) {
 
 	tr := tar.NewReader(gzr)
 
+	foundBinary := ""
 	for {
 		header, err := tr.Next()
 
-		switch {
-		case err == io.EOF:
-			return "", fmt.Errorf("file is empty")
-		case err != nil:
+		if err == io.EOF {
+			break
+		} else if err != nil {
 			return "", err
-		case header == nil:
+		} else if header == nil {
 			continue
 		}
 
-		extractedFilePath := path.Join(targetDir, header.Name)
+		// untar all files in archive
+		path, err := sanitizeExtractPath(targetDir, header.Name)
+		if err != nil {
+			return "", err
+		}
 
-		switch header.Typeflag {
-		case tar.TypeReg:
-			// Extract only the binaryFile
-			if header.Name != binaryFilePrefix {
-				continue
-			}
-
-			f, err := os.OpenFile(extractedFilePath, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
-			if err != nil {
+		info := header.FileInfo()
+		if info.IsDir() {
+			if err = os.MkdirAll(path, info.Mode()); err != nil {
 				return "", err
 			}
+			continue
+		}
 
-			// #nosec G110
-			if _, err := io.Copy(f, tr); err != nil {
-				return "", err
-			}
-			f.Close()
+		f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
+		if err != nil {
+			return "", err
+		}
+		defer f.Close()
 
-			return extractedFilePath, nil
+		// #nosec G110
+		if _, err = io.Copy(f, tr); err != nil {
+			return "", err
+		}
+
+		// If the found file is the binary that we want to find, save it and return later
+		if strings.HasSuffix(header.Name, binaryFilePrefix) {
+			foundBinary = path
 		}
 	}
+	return foundBinary, nil
 }
 
 func moveFileToPath(filepath string, installLocation string) (string, error) {
@@ -716,7 +740,7 @@ func downloadFile(dir string, url string) (string, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode == 404 {
-		return "", errors.New("runtime version not found")
+		return "", fmt.Errorf("version not found from url: %s", url)
 	} else if resp.StatusCode != 200 {
 		return "", fmt.Errorf("download failed with %d", resp.StatusCode)
 	}
