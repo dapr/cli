@@ -755,7 +755,7 @@ func moveFileToPath(filepath string, installLocation string) (string, error) {
 		return fmt.Sprintf("%s\\daprd.exe", destDir), nil
 	}
 
-	if !strings.HasPrefix(fileName, placementServiceFilePrefix) && installLocation != "" {
+	if strings.HasPrefix(fileName, daprRuntimeFilePrefix) && installLocation != "" {
 		color.Set(color.FgYellow)
 		fmt.Printf("\nDapr runtime installed to %s, you may run the following to add it to your path if you want to run daprd directly:\n", destDir)
 		fmt.Printf("    export PATH=$PATH:%s\n", destDir)
