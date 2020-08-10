@@ -136,7 +136,7 @@ $ docker network create dapr-network
 $ dapr init --network dapr-network
 ```
 
-> Note: When installed to a specific Docker network, you will need to add the `--placement-host` arguments to `dapr run` commands run in any containers within that network.
+> Note: When installed to a specific Docker network, you will need to add the `--placement-host-address` arguments to `dapr run` commands run in any containers within that network.
 
 #### Install with a specific host on which the Redis service resides
 ```bash
@@ -227,20 +227,20 @@ $ dapr run --app-id nodeapp --app-port 3000 node app.js
 Example of launching Dapr on HTTP port 6000:
 
 ```
-$ dapr run --app-id nodeapp --app-port 3000 --port 6000 node app.js
+$ dapr run --app-id nodeapp --app-port 3000 --dapr-http-port 6000 node app.js
 ```
 
 Example of launching Dapr on gRPC port 50002:
 
 ```
-$ dapr run --app-id nodeapp --app-port 3000 --grpc-port 50002 node app.js
+$ dapr run --app-id nodeapp --app-port 3000 --dapr-grpc-port 50002 node app.js
 ```
 
 Example of launching Dapr within a specific Docker network:
 
 ```bash
 $ dapr init --redis-host dapr_redis --network dapr-network
-$ dapr run --app-id nodeapp --placement-host dapr_placement node app.js
+$ dapr run --app-id nodeapp --placement-host-address dapr_placement node app.js
 ```
 
 > Note: When in a specific Docker network, the Redis and placement service containers are given specific network aliases, `dapr_redis` and `dapr_placement`, respectively.
@@ -402,7 +402,7 @@ The default is `info`.
 You can run Dapr's sidecar only (`daprd`) by omitting the application's command in the end:
 
 ```
-$ dapr run --app-id myapp --port 3005 --grpc-port 50001
+$ dapr run --app-id myapp --dapr-http-port 3005 --dapr-grpc-port 50001
 ```
 
 ### Generate shell completion scripts
