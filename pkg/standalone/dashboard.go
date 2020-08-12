@@ -28,7 +28,5 @@ func RunDashboard() {
 	err := cmdDashboardStandalone.Run()
 	if err != nil {
 		print.FailureStatusEvent(os.Stdout, "Dapr dashboard not found. Is Dapr installed?")
-	} else {
-		print.SuccessStatusEvent(os.Stdout, "hi")
 	}
 }
