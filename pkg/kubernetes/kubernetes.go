@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	daprLatestVersion = "latest"
+	daprLatestVersion = "vlatest"
 )
 
 // Init deploys the Dapr operator using the supplied runtime version.
