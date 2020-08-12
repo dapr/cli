@@ -12,7 +12,7 @@ import (
 
 const (
 	systemConfigName      = "daprsystem"
-	trustBundleSecretName = "dapr-trust-bundle"
+	trustBundleSecretName = "dapr-trust-bundle" // nolint:gosec
 )
 
 func IsMTLSEnabled() (bool, error) {
@@ -72,17 +72,17 @@ func ExportTrustChain(outputDir string) error {
 			issuerCert := i.Data["issuer.crt"]
 			issuerKey := i.Data["issuer.key"]
 
-			err := ioutil.WriteFile(filepath.Join(outputDir, "ca.crt"), ca, 0700)
+			err := ioutil.WriteFile(filepath.Join(outputDir, "ca.crt"), ca, 0600)
 			if err != nil {
 				return err
 			}
 
-			err = ioutil.WriteFile(filepath.Join(outputDir, "issuer.crt"), issuerCert, 0700)
+			err = ioutil.WriteFile(filepath.Join(outputDir, "issuer.crt"), issuerCert, 0600)
 			if err != nil {
 				return err
 			}
 
-			err = ioutil.WriteFile(filepath.Join(outputDir, "issuer.key"), issuerKey, 0700)
+			err = ioutil.WriteFile(filepath.Join(outputDir, "issuer.key"), issuerKey, 0600)
 			if err != nil {
 				return err
 			}
