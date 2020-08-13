@@ -90,7 +90,7 @@ func helmConfig(namespace string) (*helm.Configuration, error) {
 	flags := &genericclioptions.ConfigFlags{
 		Namespace: &namespace,
 	}
-	err := ac.Init(flags, namespace, "secret", debugLog)
+	err := ac.Init(flags, namespace, "secret", debugLogf)
 	return &ac, err
 }
 
@@ -185,5 +185,5 @@ func install(config InitConfiguration) error {
 	return nil
 }
 
-func debugLog(format string, v ...interface{}) {
+func debugLogf(format string, v ...interface{}) {
 }

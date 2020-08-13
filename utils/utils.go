@@ -111,6 +111,7 @@ func CreateDirectory(dir string) error {
 
 // IsDockerInstalled checks whether docker is installed/running
 func IsDockerInstalled() bool {
+	//lint:ignore SA1019
 	cli, err := client.NewEnvClient()
 	if err != nil {
 		return false
