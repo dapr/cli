@@ -333,6 +333,24 @@ To check if Mutual TLS is enabled in your Kubernetes cluster:
 $ dapr mtls --kubernetes
 ```
 
+### Export TLS certificates
+
+To export the root cert, issuer cert and issuer key created by Dapr from a Kubernetes cluster to a local path:
+
+```
+$ dapr mtls export
+```
+
+This will save the certs to the working directory.
+
+To specify a custom directory:
+
+```
+$ dapr mtls export -o certs
+```
+
+This can be used when upgrading to a newer version of Dapr, as it's recommended to carry over the existing certs for a zero downtime upgrade.
+
 ### List Components
 
 To list all Dapr components on Kubernetes:

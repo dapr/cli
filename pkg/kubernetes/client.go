@@ -23,16 +23,18 @@ import (
 
 const kubeConfigDelimiter = ":"
 
-func getConfig() (*rest.Config, error) {
-	var kubeconfig *string
+var kubeconfig *string
 
+func init() {
 	if home := homeDir(); home != "" {
 		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
 	} else {
 		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
 	}
 	flag.Parse()
+}
 
+func getConfig() (*rest.Config, error) {
 	kubeConfigEnv := os.Getenv("KUBECONFIG")
 	delimiterBelongsToPath := strings.Count(*kubeconfig, kubeConfigDelimiter) == 1 && strings.EqualFold(*kubeconfig, kubeConfigEnv)
 
