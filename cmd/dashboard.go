@@ -39,11 +39,17 @@ const (
 
 var dashboardNamespace string
 var localPort int
+var dashboardVersion bool
 
 var DashboardCmd = &cobra.Command{
 	Use:   "dashboard",
 	Short: "Start Dapr dashboard",
 	Run: func(cmd *cobra.Command, args []string) {
+		if dashboardVersion {
+			fmt.Println(standalone.GetDashboardVersion())
+			os.Exit(0)
+		}
+
 		if port < 0 {
 			localPort = defaultLocalPort
 		} else {
@@ -144,6 +150,7 @@ var DashboardCmd = &cobra.Command{
 
 func init() {
 	DashboardCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Start Dapr dashboard in local browser")
+	DashboardCmd.Flags().BoolVarP(&dashboardVersion, "version", "v", false, "Check Dapr dashboard version")
 	DashboardCmd.Flags().IntVarP(&port, "port", "p", defaultLocalPort, "The local port on which to serve dashboard")
 	DashboardCmd.Flags().StringVarP(&dashboardNamespace, "namespace", "n", daprSystemNamespace, "The namespace where Dapr dashboard is running")
 	RootCmd.AddCommand(DashboardCmd)

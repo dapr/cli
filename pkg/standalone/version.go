@@ -18,3 +18,15 @@ func GetRuntimeVersion() string {
 	}
 	return string(out)
 }
+
+// GetDashboardVersion returns the version for the local Dapr dashboard.
+func GetDashboardVersion() string {
+	daprBinDir := defaultDaprBinPath()
+	dashboardCMD := binaryFilePath(daprBinDir, "dashboard")
+
+	out, err := exec.Command(dashboardCMD, "--version").Output()
+	if err != nil {
+		return "n/a\n"
+	}
+	return string(out)
+}
