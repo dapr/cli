@@ -46,7 +46,7 @@ var DashboardCmd = &cobra.Command{
 	Short: "Start Dapr dashboard",
 	Run: func(cmd *cobra.Command, args []string) {
 		if dashboardVersion {
-			standalone.GetDashboardVersion()
+			fmt.Println(standalone.GetDashboardVersion())
 			os.Exit(0)
 		}
 

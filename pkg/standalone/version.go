@@ -5,7 +5,9 @@
 
 package standalone
 
-import "os/exec"
+import (
+	"os/exec"
+)
 
 // GetRuntimeVersion returns the version for the local Dapr runtime.
 func GetRuntimeVersion() string {
@@ -19,6 +21,7 @@ func GetRuntimeVersion() string {
 	return string(out)
 }
 
+// GetDashboardVersion returns the version for the local Dapr dashboard.
 func GetDashboardVersion() string {
 	daprBinDir := defaultDaprBinPath()
 	dashboardCMD := binaryFilePath(daprBinDir, "dashboard")
