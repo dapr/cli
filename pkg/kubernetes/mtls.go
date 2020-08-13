@@ -86,6 +86,7 @@ func ExportTrustChain(outputDir string) error {
 			if err != nil {
 				return err
 			}
+			break
 		}
 	}
 	return nil
