@@ -176,35 +176,44 @@ $ dapr uninstall --network dapr-network
 
 ### Install Dapr on Kubernetes
 
-The init command will install the latest stable version of Dapr on your cluster. For more advanced use cases, use our [Helm Chart](https://github.com/dapr/dapr/tree/master/charts/dapr).
+The init command will install Dapr to a Kubernetes cluster. For more advanced use cases, use our [Helm Chart](https://github.com/dapr/dapr/tree/master/charts/dapr).
 
-> Please note, that using the CLI does not support non-default namespaces.  
-> If you need a non-default namespace, please use Helm.
+*Note: The default namespace is dapr-system*
 
 ```
-$ dapr init --kubernetes
+$ dapr init -k
+
 ⌛  Making the jump to hyperspace...
-ℹ️  Note: this installation is recommended for testing purposes. For production environments, please use Helm
+ℹ️  Note: To install Dapr using Helm, see here:  https://github.com/dapr/docs/blob/master/getting-started/environment-setup.md#using-helm-advanced
 
 ✅  Deploying the Dapr control plane to your cluster...
-✅  Success! Dapr has been installed. To verify, run 'kubectl get pods -w' or 'dapr status -k' in your terminal. To get started, go here: https://aka.ms/dapr-getting-started
+✅  Success! Dapr has been installed to namespace dapr-system. To verify, run "dapr status -k" in your terminal. To get started, go here: https://aka.ms/dapr-getting-started
+```
+
+#### Installing to a custom namespace
+
+```
+$ dapr init -k -n my-namespace
+```
+
+#### Installing with a highly avaialable control plane config
+
+```
+$ dapr init -k --enable-ha=true
+```
+
+#### Installing with mTLS disabled
+
+```
+$ dapr init -k --enable-mtls=false
 ```
 
 #### Uninstall Dapr on Kubernetes
 
-To remove Dapr from your Kubernetes cluster, use the `uninstall` command with `--kubernetes`
-
-> Note: this won't remove Dapr installations that were deployed using Helm.
+To remove Dapr from your Kubernetes cluster, use the `uninstall` command with `--kubernetes` flag or the `-k` shorthand.
 
 ```
-$ dapr uninstall --kubernetes
-```
-
-You can uninstall a specific version of the Dapr runtime on kubernetes using `dapr uninstall --runtime-version`. You can find the list of versions in [Dapr Release](https://github.com/dapr/dapr/releases).
-
-```bash
-# Uninstall v0.1.0 runtime
-$ dapr uninstall --runtime-version=0.1.0 --kubernetes
+$ dapr uninstall -k
 ```
 
 ### Launch Dapr and your app
@@ -332,6 +341,24 @@ To check if Mutual TLS is enabled in your Kubernetes cluster:
 ```
 $ dapr mtls --kubernetes
 ```
+
+### Export TLS certificates
+
+To export the root cert, issuer cert and issuer key created by Dapr from a Kubernetes cluster to a local path:
+
+```
+$ dapr mtls export
+```
+
+This will save the certs to the working directory.
+
+To specify a custom directory:
+
+```
+$ dapr mtls export -o certs
+```
+
+This can be used when upgrading to a newer version of Dapr, as it's recommended to carry over the existing certs for a zero downtime upgrade.
 
 ### List Components
 
