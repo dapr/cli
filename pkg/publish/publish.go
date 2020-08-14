@@ -16,9 +16,12 @@ import (
 )
 
 // SendPayloadToTopic publishes the topic
-func SendPayloadToTopic(topic, payload string) error {
+func SendPayloadToTopic(topic, payload, pubsubName string) error {
 	if topic == "" {
 		return errors.New("topic is missing")
+	}
+	if pubsubName == "" {
+		return errors.New("pubsubName is missing")
 	}
 
 	l, err := standalone.List()
@@ -37,7 +40,7 @@ func SendPayloadToTopic(topic, payload string) error {
 		b = []byte(payload)
 	}
 
-	url := fmt.Sprintf("http://localhost:%s/v%s/publish/%s", fmt.Sprintf("%v", app.HTTPPort), api.RuntimeAPIVersion, topic)
+	url := fmt.Sprintf("http://localhost:%s/v%s/publish/%s/%s", fmt.Sprintf("%v", app.HTTPPort), api.RuntimeAPIVersion, pubsubName, topic)
 	// nolint: gosec
 	r, err := http.Post(url, "application/json", bytes.NewBuffer(b))
 
