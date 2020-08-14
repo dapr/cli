@@ -16,12 +16,13 @@ import (
 
 var publishTopic string
 var publishPayload string
+var pubsubName string
 
 var PublishCmd = &cobra.Command{
 	Use:   "publish",
 	Short: "Publish an event to multiple consumers",
 	Run: func(cmd *cobra.Command, args []string) {
-		err := publish.SendPayloadToTopic(publishTopic, publishPayload)
+		err := publish.SendPayloadToTopic(publishTopic, publishPayload, pubsubName)
 		if err != nil {
 			print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error publishing topic %s: %s", publishTopic, err))
 			return
@@ -34,7 +35,9 @@ var PublishCmd = &cobra.Command{
 func init() {
 	PublishCmd.Flags().StringVarP(&publishTopic, "topic", "t", "", "the topic the app is listening on")
 	PublishCmd.Flags().StringVarP(&publishPayload, "data", "d", "", "(optional) a json serialized string")
+	PublishCmd.Flags().StringVarP(&pubsubName, "pubsub", "", "", "name of the pub/sub component")
 	PublishCmd.MarkFlagRequired("app-id")
 	PublishCmd.MarkFlagRequired("topic")
+	PublishCmd.MarkFlagRequired("pubsub")
 	RootCmd.AddCommand(PublishCmd)
 }
