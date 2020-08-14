@@ -358,6 +358,12 @@ To specify a custom directory:
 $ dapr mtls export -o certs
 ```
 
+### Check root certificate expiry
+
+```
+$ dapr mtls expiry
+```
+
 This can be used when upgrading to a newer version of Dapr, as it's recommended to carry over the existing certs for a zero downtime upgrade.
 
 ### List Components
