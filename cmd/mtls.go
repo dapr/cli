@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/pkg/print"
@@ -50,10 +51,26 @@ var ExportCMD = &cobra.Command{
 	},
 }
 
+var ExpiryCMD = &cobra.Command{
+	Use:   "expiry",
+	Short: "Checks the expiry of the root certificate",
+	Run: func(cmd *cobra.Command, args []string) {
+		expiry, err := kubernetes.Expiry()
+		if err != nil {
+			print.FailureStatusEvent(os.Stdout, fmt.Sprintf("error getting root cert expiry: %s", err))
+			return
+		}
+
+		duration := int(expiry.Sub(time.Now().UTC()).Hours())
+		fmt.Println(fmt.Sprintf("Root certificate expires in %v hours. Expiry date: %s", duration, expiry.String()))
+	},
+}
+
 func init() {
 	MTLSCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Check if mTLS is enabled in a Kubernetes cluster")
 	ExportCMD.Flags().StringVarP(&exportPath, "out", "o", ".", "Output directory path to save the certs")
 	MTLSCmd.MarkFlagRequired("kubernetes")
 	MTLSCmd.AddCommand(ExportCMD)
+	MTLSCmd.AddCommand(ExpiryCMD)
 	RootCmd.AddCommand(MTLSCmd)
 }
