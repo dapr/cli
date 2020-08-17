@@ -277,13 +277,10 @@ $ dapr run --app-id nodeapp --app-port 3000 node app.js
 
 Publish a message:
 
-```
-$ dapr publish --pubsub pubsub --topic myevent
-```
+The `--pubsub` parameter takes in the name of the pub/sub.  The default name of the pub/sub configed by the CLi is "pubsub".
+
 
 Publish a message:
-
-The `--pubsub` parameter takes in the name of the pub/sub.  The default name of the pub/sub configed by the CLi is "pubsub".
 
 * Linux/Mac
 ```bash
