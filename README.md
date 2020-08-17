@@ -277,7 +277,7 @@ $ dapr run --app-id nodeapp --app-port 3000 node app.js
 
 Publish a message:
 
-The `--pubsub` parameter takes in the name of the pub/sub.  The default name of the pub/sub configed by the CLi is "pubsub".
+The `--pubsub` parameter takes in the name of the pub/sub.  The default name of the pub/sub configed by the CLI is "pubsub".
 
 
 Publish a message:
