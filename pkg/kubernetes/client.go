@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	scheme "github.com/dapr/dapr/pkg/client/clientset/versioned"
 	k8s "k8s.io/client-go/kubernetes"
@@ -23,6 +24,7 @@ import (
 
 const kubeConfigDelimiter = ":"
 
+var doOnce sync.Once
 var kubeconfig *string
 
 func init() {
@@ -34,7 +36,9 @@ func init() {
 }
 
 func getConfig() (*rest.Config, error) {
-	flag.Parse()
+	doOnce.Do(func() {
+		flag.Parse()
+	})
 	kubeConfigEnv := os.Getenv("KUBECONFIG")
 	delimiterBelongsToPath := strings.Count(*kubeconfig, kubeConfigDelimiter) == 1 && strings.EqualFold(*kubeconfig, kubeConfigEnv)
 
