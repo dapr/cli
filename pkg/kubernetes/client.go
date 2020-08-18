@@ -31,10 +31,10 @@ func init() {
 	} else {
 		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
 	}
-	flag.Parse()
 }
 
 func getConfig() (*rest.Config, error) {
+	flag.Parse()
 	kubeConfigEnv := os.Getenv("KUBECONFIG")
 	delimiterBelongsToPath := strings.Count(*kubeconfig, kubeConfigDelimiter) == 1 && strings.EqualFold(*kubeconfig, kubeConfigEnv)
 
