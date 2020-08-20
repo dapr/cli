@@ -21,7 +21,7 @@ jobs:
     name: Build ${{ matrix.target_os }}_${{ matrix.target_arch }} binaries
     runs-on: ${{ matrix.os }}
     env:
-      GOVER: 1.14
+      GOVER: 1.15
       GOLANGCILINT_VER: 1.26.0
       GOOS: ${{ matrix.target_os }}
       GOARCH: ${{ matrix.target_arch }}
@@ -30,7 +30,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macOS-latest]
-        target_arch: [arm, amd64]
+        target_arch: [amd64]
         include:
           - os: ubuntu-latest
             target_os: linux
@@ -59,6 +59,12 @@ jobs:
         run: make lint
       - name: Parse release version and set REL_VERSION
         run: python ./.github/scripts/get_release_version.py
+      - name: Run make go.mod check-diff
+        if: matrix.target_arch != 'arm'
+        run: make go.mod check-diff
+      - name: Generate CLI docs and check differences
+        if: matrix.target_os == 'linux'
+        run: make cli-docs check-doc-diff check-new-file
       - name: Run make test
         if: matrix.target_arch != 'arm'
         run: make test
