@@ -63,7 +63,7 @@ jobs:
         if: matrix.target_arch != 'arm'
         run: make go.mod check-diff
       - name: Generate CLI docs and check differences
-        if: matrix.target_os == 'linux'
+        if: matrix.target_arch != 'arm' && matrix.target_os == 'linux'
         run: make cli-docs check-doc-diff check-new-file
       - name: Run make test
         if: matrix.target_arch != 'arm'
