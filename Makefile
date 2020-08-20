@@ -125,3 +125,39 @@ release: build archive
 .PHONY: test
 test:
 	go test ./pkg/...
+
+################################################################################
+# Target: go.mod                                                               #
+################################################################################
+.PHONY: go.mod
+go.mod:
+	go mod tidy
+
+################################################################################
+# Target: check-diff                                                           #
+################################################################################
+.PHONY: check-diff
+check-diff:
+	git diff --exit-code ./go.mod # check no changes
+
+################################################################################
+# Target: cli-docs                                                             #
+################################################################################
+.PHONY: cli-docs
+cli-docs:
+	go run .github/scripts/docs.go ./docs/reference
+
+################################################################################
+# Target: check-doc-diff. Differences in already generated docs                #
+################################################################################
+.PHONY: check-doc-diff
+check-doc-diff:
+	git diff --relative=docs --exit-code
+
+################################################################################
+# Target: check-new-file. Check new file additions                             #
+################################################################################
+.PHONY: check-new-file
+check-new-file:
+	git ls-files --other --exclude-standard --directory | wc -l | xargs -I {} test {} -eq 0
+
