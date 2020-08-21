@@ -16,5 +16,7 @@ func main() {
 	if len(os.Args) < 2 {
 		panic("Requires a path to generate docs in.")
 	}
+	// Tag contains date. Need to disable generation to avoid date generation errors.
+	cmd.RootCmd.DisableAutoGenTag = true
 	doc.GenMarkdownTree(cmd.RootCmd, os.Args[1])
 }
