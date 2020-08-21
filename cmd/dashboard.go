@@ -37,9 +37,11 @@ const (
 	remotePort = 8080
 )
 
-var dashboardNamespace string
-var localPort int
-var dashboardVersion bool
+var (
+	dashboardNamespace string
+	localPort          int
+	dashboardVersion   bool
+)
 
 var DashboardCmd = &cobra.Command{
 	Use:   "dashboard",
@@ -90,7 +92,6 @@ var DashboardCmd = &cobra.Command{
 				// if the service is still not found, throw an error
 				if ok {
 					print.InfoStatusEvent(os.Stdout, "Dapr dashboard found in namespace: %s. Run dapr dashboard -k -n %s to use this namespace.", nspace, nspace)
-
 				} else {
 					print.FailureStatusEvent(os.Stdout, "Failed to find Dapr dashboard in cluster. Check status of dapr dashboard in the cluster.")
 				}

@@ -23,13 +23,12 @@ import (
 	"sync"
 	"time"
 
-	"gopkg.in/yaml.v2"
-
 	"github.com/briandowns/spinner"
 	"github.com/dapr/cli/pkg/print"
 	cli_ver "github.com/dapr/cli/pkg/version"
 	"github.com/dapr/cli/utils"
 	"github.com/fatih/color"
+	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -222,14 +221,14 @@ func prepareDaprInstallDir(daprBinDir string) error {
 func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, _ string) {
 	defer wg.Done()
 
-	var zipkinContainerName = utils.CreateContainerName(DaprZipkinContainerName, dockerNetwork)
+	zipkinContainerName := utils.CreateContainerName(DaprZipkinContainerName, dockerNetwork)
 
 	exists, err := confirmContainerIsRunningOrExists(zipkinContainerName, false)
 	if err != nil {
 		errorChan <- err
 		return
 	}
-	var args = []string{}
+	args := []string{}
 
 	if exists {
 		// do not create container again if it exists
@@ -272,7 +271,7 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, 
 func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, redisHost string) {
 	defer wg.Done()
 
-	var redisContainerName = utils.CreateContainerName(DaprRedisContainerName, dockerNetwork)
+	redisContainerName := utils.CreateContainerName(DaprRedisContainerName, dockerNetwork)
 
 	if redisHost != daprDefaultHost {
 		// A non-default Redis host is specified. No need to start the redis container
@@ -285,7 +284,7 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, d
 		errorChan <- err
 		return
 	}
-	var args = []string{}
+	args := []string{}
 
 	if exists {
 		// do not create container again if it exists
@@ -357,7 +356,7 @@ func confirmContainerIsRunningOrExists(containerName string, isRunning bool) (bo
 func parseDockerError(component string, err error) error {
 	if exitError, ok := err.(*exec.ExitError); ok {
 		exitCode := exitError.ExitCode()
-		if exitCode == 125 { //see https://github.com/moby/moby/pull/14012
+		if exitCode == 125 { // see https://github.com/moby/moby/pull/14012
 			return fmt.Errorf("failed to launch %s. Is it already running?", component)
 		}
 		if exitCode == 127 {
@@ -377,7 +376,7 @@ func isContainerRunError(err error) bool {
 
 func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, _ string) {
 	defer wg.Done()
-	var placementContainerName = utils.CreateContainerName(DaprPlacementContainerName, dockerNetwork)
+	placementContainerName := utils.CreateContainerName(DaprPlacementContainerName, dockerNetwork)
 
 	image := fmt.Sprintf("%s:%s", daprDockerImageName, version)
 
@@ -765,7 +764,7 @@ func moveFileToPath(filepath string, installLocation string) (string, error) {
 	return destFilePath, nil
 }
 
-// nolint:gosec
+// nolint:gosec, noctx
 func downloadFile(dir string, url string) (string, error) {
 	tokens := strings.Split(url, "/")
 	fileName := tokens[len(tokens)-1]

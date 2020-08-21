@@ -237,3 +237,4 @@ linters:
     - nestif
     - goerr113
     - godot
+    - nlreturn # check for blank line before return statements

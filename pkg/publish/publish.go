@@ -41,7 +41,7 @@ func SendPayloadToTopic(topic, payload, pubsubName string) error {
 	}
 
 	url := fmt.Sprintf("http://localhost:%s/v%s/publish/%s/%s", fmt.Sprintf("%v", app.HTTPPort), api.RuntimeAPIVersion, pubsubName, topic)
-	// nolint: gosec
+	// nolint: gosec, noctx
 	r, err := http.Post(url, "application/json", bytes.NewBuffer(b))
 
 	if r != nil {

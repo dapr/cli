@@ -48,7 +48,6 @@ func NewPortForward(
 	}
 
 	podList, err := ListPods(client, namespace, nil)
-
 	if err != nil {
 		return nil, err
 	}

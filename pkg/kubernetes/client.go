@@ -15,17 +15,25 @@ import (
 
 	scheme "github.com/dapr/dapr/pkg/client/clientset/versioned"
 	k8s "k8s.io/client-go/kubernetes"
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"       // gcp auth
-	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"      // oidc auth
-	_ "k8s.io/client-go/plugin/pkg/client/auth/openstack" // openstack auth
+
+	//  gcp auth
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+
+	//  oidc auth
+	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
+
+	//  openstack auth
+	_ "k8s.io/client-go/plugin/pkg/client/auth/openstack"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
 const kubeConfigDelimiter = ":"
 
-var doOnce sync.Once
-var kubeconfig *string
+var (
+	doOnce     sync.Once
+	kubeconfig *string
+)
 
 func init() {
 	if home := homeDir(); home != "" {

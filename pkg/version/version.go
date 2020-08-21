@@ -29,7 +29,7 @@ type githubRepoReleaseItem struct {
 	Draft   bool   `json:"draft"`
 }
 
-// nolint:gosec
+// nolint:gosec, noctx
 // GetLatestRelease return the latest release version of dapr
 func GetLatestRelease(gitHubOrg, gitHubRepo string) (string, error) {
 	releaseURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases", gitHubOrg, gitHubRepo)

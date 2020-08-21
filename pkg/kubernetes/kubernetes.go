@@ -13,17 +13,16 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/dapr/cli/pkg/print"
-	v1 "k8s.io/api/core/v1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/helm/pkg/strvals"
-
 	"github.com/briandowns/spinner"
+	"github.com/dapr/cli/pkg/print"
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
+	v1 "k8s.io/api/core/v1"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/helm/pkg/strvals"
 )
 
 const (

@@ -16,9 +16,11 @@ import (
 	"github.com/spf13/viper"
 )
 
-var uninstallNamespace string
-var uninstallKubernetes bool
-var uninstallAll bool
+var (
+	uninstallNamespace  string
+	uninstallKubernetes bool
+	uninstallAll        bool
+)
 
 // UninstallCmd is a command from removing a Dapr installation
 var UninstallCmd = &cobra.Command{
@@ -29,7 +31,6 @@ var UninstallCmd = &cobra.Command{
 		viper.BindPFlag("install-path", cmd.Flags().Lookup("install-path"))
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-
 		var err error
 
 		if uninstallKubernetes {
