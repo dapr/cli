@@ -92,10 +92,9 @@ $(CLI_BINARY):
 ################################################################################
 # Target: lint                                                                 #
 ################################################################################
-# Due to https://github.com/golangci/golangci-lint/issues/580, we need to add --fix for windows
 .PHONY: lint
 lint:
-	$(GOLANGCI_LINT) run --fix --timeout=20m
+	$(GOLANGCI_LINT) run --timeout=20m
 
 ################################################################################
 # Target: archive                                                              #
