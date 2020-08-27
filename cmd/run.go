@@ -204,9 +204,9 @@ Run sidecar only:
 				err = metadata.Put(output.DaprHTTPPort, "appCommand", appCommand)
 				if err != nil {
 					print.WarningStatusEvent(os.Stdout, "Could not update sidecar metadata for appCommand: %s", err.Error())
+				} else {
+					print.SuccessStatusEvent(os.Stdout, "You're up and running! Both Dapr and your app logs will appear here.\n")
 				}
-
-				print.SuccessStatusEvent(os.Stdout, "You're up and running! Both Dapr and your app logs will appear here.\n")
 			} else {
 				print.SuccessStatusEvent(os.Stdout, "You're up and running! Dapr logs will appear here.\n")
 			}
