@@ -24,6 +24,7 @@ type StatusOutput struct {
 	Namespace string `csv:"NAMESPACE"`
 	Healthy   string `csv:"HEALTHY"`
 	Status    string `csv:"STATUS"`
+	Replicas  int    `csv:"REPLICAS"`
 	Version   string `csv:"VERSION"`
 	Age       string `csv:"AGE"`
 	Created   string `csv:"CREATED"`
@@ -47,9 +48,9 @@ func Status() ([]StatusOutput, error) {
 			p, err := ListPods(client, v1.NamespaceAll, map[string]string{
 				"app": label,
 			})
-			if err == nil && len(p.Items) == 1 {
+			if err == nil {
 				pod := p.Items[0]
-
+				replicas := len(p.Items)
 				image := pod.Spec.Containers[0].Image
 				namespace := pod.GetNamespace()
 				age := age.GetAge(pod.CreationTimestamp.Time)
@@ -57,17 +58,29 @@ func Status() ([]StatusOutput, error) {
 				version := image[strings.IndexAny(image, ":")+1:]
 				status := ""
 
-				if pod.Status.ContainerStatuses[0].State.Waiting != nil {
-					status = fmt.Sprintf("Waiting (%s)", pod.Status.ContainerStatuses[0].State.Waiting.Reason)
-				} else if pod.Status.ContainerStatuses[0].State.Running != nil {
-					status = "Running"
-				} else if pod.Status.ContainerStatuses[0].State.Terminated != nil {
-					status = "Terminated"
+				// loop through all replicas and update to Running/Healthy status only if all instances are Running and Healthy
+				healthy := "False"
+				running := true
+
+				for _, p := range p.Items {
+					if p.Status.ContainerStatuses[0].State.Waiting != nil {
+						status = fmt.Sprintf("Waiting (%s)", p.Status.ContainerStatuses[0].State.Waiting.Reason)
+					} else if pod.Status.ContainerStatuses[0].State.Terminated != nil {
+						status = "Terminated"
+					}
+
+					if p.Status.ContainerStatuses[0].State.Running == nil {
+						running = false
+						break
+					}
+
+					if p.Status.ContainerStatuses[0].Ready {
+						healthy = "True"
+					}
 				}
 
-				healthy := "False"
-				if pod.Status.ContainerStatuses[0].Ready {
-					healthy = "True"
+				if running {
+					status = "Running"
 				}
 
 				s := StatusOutput{
@@ -78,6 +91,7 @@ func Status() ([]StatusOutput, error) {
 					Status:    status,
 					Version:   version,
 					Healthy:   healthy,
+					Replicas:  replicas,
 				}
 
 				m.Lock()
