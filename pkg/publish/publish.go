@@ -29,7 +29,7 @@ func SendPayloadToTopic(topic, payload, pubsubName string) error {
 		return err
 	}
 
-	daprHttpPort, err := getDaprHttpPort(l)
+	daprHTTPPort, err := getDaprHTTPPort(l)
 	if err != nil {
 		return err
 	}
@@ -40,7 +40,7 @@ func SendPayloadToTopic(topic, payload, pubsubName string) error {
 		b = []byte(payload)
 	}
 
-	url := fmt.Sprintf("http://localhost:%s/v%s/publish/%s/%s", fmt.Sprintf("%v", daprHttpPort), api.RuntimeAPIVersion, pubsubName, topic)
+	url := fmt.Sprintf("http://localhost:%s/v%s/publish/%s/%s", fmt.Sprintf("%v", daprHTTPPort), api.RuntimeAPIVersion, pubsubName, topic)
 	// nolint: gosec
 	r, err := http.Post(url, "application/json", bytes.NewBuffer(b))
 
@@ -55,7 +55,7 @@ func SendPayloadToTopic(topic, payload, pubsubName string) error {
 	return nil
 }
 
-func getDaprHttpPort(list []standalone.ListOutput) (int, error) {
+func getDaprHTTPPort(list []standalone.ListOutput) (int, error) {
 	for i := 0; i < len(list); i++ {
 		if list[i].AppID != "" {
 			return list[i].HTTPPort, nil
