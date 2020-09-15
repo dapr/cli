@@ -29,18 +29,18 @@ func SendPayloadToTopic(topic, payload, pubsubName string) error {
 		return err
 	}
 
-	if len(l) == 0 {
-		return errors.New("couldn't find a running Dapr instance")
+	daprHTTPPort, err := getDaprHTTPPort(l)
+	if err != nil {
+		return err
 	}
 
-	app := l[0]
 	b := []byte{}
 
 	if payload != "" {
 		b = []byte(payload)
 	}
 
-	url := fmt.Sprintf("http://localhost:%s/v%s/publish/%s/%s", fmt.Sprintf("%v", app.HTTPPort), api.RuntimeAPIVersion, pubsubName, topic)
+	url := fmt.Sprintf("http://localhost:%s/v%s/publish/%s/%s", fmt.Sprintf("%v", daprHTTPPort), api.RuntimeAPIVersion, pubsubName, topic)
 	// nolint: gosec
 	r, err := http.Post(url, "application/json", bytes.NewBuffer(b))
 
@@ -53,4 +53,13 @@ func SendPayloadToTopic(topic, payload, pubsubName string) error {
 	}
 
 	return nil
+}
+
+func getDaprHTTPPort(list []standalone.ListOutput) (int, error) {
+	for i := 0; i < len(list); i++ {
+		if list[i].AppID != "" {
+			return list[i].HTTPPort, nil
+		}
+	}
+	return 0, errors.New("couldn't find a running Dapr instance")
 }
