@@ -13,13 +13,19 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/pkg/metadata"
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/pkg/standalone"
+	"github.com/dapr/cli/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+)
+
+const (
+	runtimeWaitTimeoutInSeconds = 60
 )
 
 var appPort int
@@ -140,6 +146,31 @@ Run sidecar only:
 				if err != nil {
 					print.FailureStatusEvent(os.Stdout, err.Error())
 					os.Exit(1)
+				}
+
+				if appPort <= 0 {
+					// If app does not listen to port, we can check for Dapr's sidecar health before starting the app.
+					// Otherwise, it creates a deadlock.
+					sidecarUp := true
+					print.InfoStatusEvent(os.Stdout, "Checking if Dapr sidecar is listening on HTTP port %v", output.DaprHTTPPort)
+					err = utils.IsDaprListeningOnPort(output.DaprHTTPPort, time.Duration(runtimeWaitTimeoutInSeconds)*time.Second)
+					if err != nil {
+						sidecarUp = false
+						print.WarningStatusEvent(os.Stdout, "Dapr sidecar is not listening on HTTP port: %s", err.Error())
+					}
+
+					print.InfoStatusEvent(os.Stdout, "Checking if Dapr sidecar is listening on GRPC port %v", output.DaprGRPCPort)
+					err = utils.IsDaprListeningOnPort(output.DaprGRPCPort, time.Duration(runtimeWaitTimeoutInSeconds)*time.Second)
+					if err != nil {
+						sidecarUp = false
+						print.WarningStatusEvent(os.Stdout, "Dapr sidecar is not listening on GRPC port: %s", err.Error())
+					}
+
+					if sidecarUp {
+						print.InfoStatusEvent(os.Stdout, "Dapr sidecar is up and running.")
+					} else {
+						print.WarningStatusEvent(os.Stdout, "Dapr sidecar might not be responding.")
+					}
 				}
 
 				daprRunning <- true

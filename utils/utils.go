@@ -11,9 +11,11 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/docker/docker/client"
 	"github.com/olekukonko/tablewriter"
@@ -118,4 +120,24 @@ func IsDockerInstalled() bool {
 	}
 	_, err = cli.Ping(context.Background())
 	return err == nil
+}
+
+// IsDaprListeningOnPort checks if Dapr is litening to a given port.
+func IsDaprListeningOnPort(port int, timeout time.Duration) error {
+	start := time.Now()
+	for {
+		host := fmt.Sprintf("127.0.0.1:%v", port)
+		conn, err := net.DialTimeout("tcp", host, timeout)
+		if err == nil {
+			conn.Close()
+			return nil
+		}
+
+		if time.Since(start).Seconds() >= timeout.Seconds() {
+			// Give up.
+			return err
+		}
+
+		time.Sleep(time.Second)
+	}
 }
