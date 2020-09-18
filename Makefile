@@ -123,4 +123,4 @@ release: build archive
 ################################################################################
 .PHONY: test
 test:
-	go test ./pkg/...
+	go test ./pkg/... $(COVERAGE_OPTS)
