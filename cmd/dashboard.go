@@ -38,7 +38,7 @@ const (
 )
 
 var dashboardNamespace string
-var localPort int
+var dashboardLocalPort int
 var dashboardVersion bool
 
 var DashboardCmd = &cobra.Command{
@@ -50,10 +50,9 @@ var DashboardCmd = &cobra.Command{
 			os.Exit(0)
 		}
 
-		if port < 0 {
-			localPort = defaultLocalPort
-		} else {
-			localPort = port
+		if dashboardLocalPort <= 0 {
+			print.FailureStatusEvent(os.Stdout, "Invalid port: %v", dashboardLocalPort)
+			os.Exit(1)
 		}
 
 		if kubernetesMode {
@@ -107,7 +106,7 @@ var DashboardCmd = &cobra.Command{
 				foundNamespace,
 				dashboardSvc,
 				defaultHost,
-				localPort,
+				dashboardLocalPort,
 				remotePort,
 				false,
 			)
@@ -129,7 +128,7 @@ var DashboardCmd = &cobra.Command{
 			}()
 
 			// url for dashboard after port forwarding
-			var webURL string = fmt.Sprintf("http://%s:%d", defaultHost, localPort)
+			var webURL string = fmt.Sprintf("http://%s:%d", defaultHost, dashboardLocalPort)
 
 			print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Dapr dashboard found in namespace:\t%s", foundNamespace))
 			print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Dapr dashboard available at:\t%s\n", webURL))
@@ -143,7 +142,10 @@ var DashboardCmd = &cobra.Command{
 			<-portForward.GetStop()
 		} else {
 			// Standalone mode
-			standalone.RunDashboard()
+			err := standalone.NewDashboardCmd(dashboardLocalPort).Run()
+			if err != nil {
+				print.FailureStatusEvent(os.Stdout, "Dapr dashboard not found. Is Dapr installed?")
+			}
 		}
 	},
 }
@@ -151,7 +153,7 @@ var DashboardCmd = &cobra.Command{
 func init() {
 	DashboardCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Start Dapr dashboard in local browser")
 	DashboardCmd.Flags().BoolVarP(&dashboardVersion, "version", "v", false, "Check Dapr dashboard version")
-	DashboardCmd.Flags().IntVarP(&port, "port", "p", defaultLocalPort, "The local port on which to serve dashboard")
+	DashboardCmd.Flags().IntVarP(&dashboardLocalPort, "port", "p", defaultLocalPort, "The local port on which to serve dashboard")
 	DashboardCmd.Flags().StringVarP(&dashboardNamespace, "namespace", "n", daprSystemNamespace, "The namespace where Dapr dashboard is running")
 	RootCmd.AddCommand(DashboardCmd)
 }
