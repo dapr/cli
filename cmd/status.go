@@ -19,9 +19,18 @@ var StatusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Shows the Dapr system services (control plane) health status.",
 	Run: func(cmd *cobra.Command, args []string) {
-		status, err := kubernetes.Status()
+		sc, err := kubernetes.NewStatusClient()
 		if err != nil {
 			print.FailureStatusEvent(os.Stdout, err.Error())
+			os.Exit(1)
+		}
+		status, err := sc.Status()
+		if err != nil {
+			print.FailureStatusEvent(os.Stdout, err.Error())
+			os.Exit(1)
+		}
+		if len(status) == 0 {
+			print.FailureStatusEvent(os.Stdout, "No status returned. Is Dapr initialized in your cluster?")
 			os.Exit(1)
 		}
 		table, err := gocsv.MarshalString(status)
