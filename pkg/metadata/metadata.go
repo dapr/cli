@@ -19,7 +19,7 @@ import (
 // Get retrieves the metadata of a given app's sidecar.
 func Get(httpPort int) (*api.Metadata, error) {
 	url := makeMetadataGetEndpoint(httpPort)
-	// nolint:gosec, noctx
+	// nolint:gosec
 	r, err := http.Get(url)
 	if err != nil {
 		return nil, err

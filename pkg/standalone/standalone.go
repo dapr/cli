@@ -44,11 +44,11 @@ const (
 	stateStoreYamlFileName     = "statestore.yaml"
 	zipkinYamlFileName         = "zipkin.yaml"
 
-	// DaprPlacementContainerName is the container name of placement service
+	// DaprPlacementContainerName is the container name of placement service.
 	DaprPlacementContainerName = "dapr_placement"
-	// DaprRedisContainerName is the container name of redis
+	// DaprRedisContainerName is the container name of redis.
 	DaprRedisContainerName = "dapr_redis"
-	// DaprZipkinContainerName is the container name of zipkin
+	// DaprZipkinContainerName is the container name of zipkin.
 	DaprZipkinContainerName = "dapr_zipkin"
 
 	errInstallTemplate = "please run `dapr uninstall` first before running `dapr init`"
@@ -111,7 +111,7 @@ func Init(runtimeVersion string, dockerNetwork string, redisHost string, slimMod
 		return err
 	}
 
-	// confirm if installation is required
+	// confirm if installation is required.
 	if ok, er := isBinaryInstallationRequired(daprRuntimeFilePrefix, daprBinDir); !ok {
 		return er
 	}
@@ -324,7 +324,7 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, d
 	errorChan <- nil
 }
 
-// check if the container either exists and stopped or is running
+// check if the container either exists and stopped or is running.
 func confirmContainerIsRunningOrExists(containerName string, isRunning bool) (bool, error) {
 	// e.g. docker ps --filter name=dapr_redis --filter status=running --format {{.Names}}
 
@@ -764,7 +764,7 @@ func moveFileToPath(filepath string, installLocation string) (string, error) {
 	return destFilePath, nil
 }
 
-// nolint:gosec, noctx
+// nolint:gosec
 func downloadFile(dir string, url string) (string, error) {
 	tokens := strings.Split(url, "/")
 	fileName := tokens[len(tokens)-1]

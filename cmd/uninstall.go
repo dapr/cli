@@ -22,7 +22,7 @@ var (
 	uninstallAll        bool
 )
 
-// UninstallCmd is a command from removing a Dapr installation
+// UninstallCmd is a command from removing a Dapr installation.
 var UninstallCmd = &cobra.Command{
 	Use:   "uninstall",
 	Short: "Removes a Dapr installation",

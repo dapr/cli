@@ -24,7 +24,7 @@ func Get(appID, method string) (string, error) {
 	for _, lo := range list {
 		if lo.AppID == appID {
 			url := makeEndpoint(lo, method)
-			// nolint:gosec,noctx
+			// nolint:gosec
 			r, err := http.Get(url)
 			if err != nil {
 				return "", err
@@ -48,7 +48,7 @@ func Post(appID, method, payload string) (string, error) {
 	for _, lo := range list {
 		if lo.AppID == appID {
 			url := makeEndpoint(lo, method)
-			// nolint: gosec, noctx
+			// nolint: gosec
 			r, err := http.Post(url, "application/json", bytes.NewBuffer([]byte(payload)))
 			if err != nil {
 				return "", err

@@ -15,7 +15,7 @@ import (
 	"github.com/dapr/cli/pkg/standalone"
 )
 
-// SendPayloadToTopic publishes the topic
+// SendPayloadToTopic publishes the topic.
 func SendPayloadToTopic(topic, payload, pubsubName string) error {
 	if topic == "" {
 		return errors.New("topic is missing")

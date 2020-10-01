@@ -155,7 +155,7 @@ func getAppCommand(httpPort, grpcPort, metricsPort int, command string, args []s
 func Run(config *RunConfig) (*RunOutput, error) {
 	appID := config.AppID
 	if appID == "" {
-		appID = strings.Replace(sillyname.GenerateStupidName(), " ", "-", -1)
+		appID = strings.ReplaceAll(sillyname.GenerateStupidName(), " ", "-")
 	}
 
 	_, err := os.Stat(config.ComponentsPath)

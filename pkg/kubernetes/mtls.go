@@ -47,7 +47,7 @@ func getSystemConfig() (*v1alpha1.Configuration, error) {
 	return nil, errors.New("system configuration not found")
 }
 
-// ExportTrustChain takes the root cert, issuer cert and issuer key from a k8s cluster and saves them in a given directory
+// ExportTrustChain takes the root cert, issuer cert and issuer key from a k8s cluster and saves them in a given directory.
 func ExportTrustChain(outputDir string) error {
 	_, err := os.Stat(outputDir)
 
@@ -107,7 +107,7 @@ func getTrustChainSecret() (*corev1.Secret, error) {
 	return nil, fmt.Errorf("could not find trust chain secret named %s in namespace %s", trustBundleSecretName, c.GetNamespace())
 }
 
-// Expiry returns the expiry time for the root cert
+// Expiry returns the expiry time for the root cert.
 func Expiry() (*time.Time, error) {
 	secret, err := getTrustChainSecret()
 	if err != nil {

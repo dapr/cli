@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// invokeGetCmd represents the invokeGet command
+// invokeGetCmd represents the invokeGet command.
 var invokeGetCmd = &cobra.Command{
 	Use:   "invokeGet",
 	Short: "Issue HTTP GET to Dapr app",

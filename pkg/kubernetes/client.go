@@ -65,7 +65,7 @@ func getConfig() (*rest.Config, error) {
 	return config, nil
 }
 
-// GetKubeConfigClient returns the kubeconfig and the client created from the kubeconfig
+// GetKubeConfigClient returns the kubeconfig and the client created from the kubeconfig.
 func GetKubeConfigClient() (*rest.Config, *k8s.Clientset, error) {
 	config, err := getConfig()
 	if err != nil {
@@ -87,7 +87,7 @@ func Client() (*k8s.Clientset, error) {
 	return k8s.NewForConfig(config)
 }
 
-// DaprClient returns a new Kubernetes Dapr client
+// DaprClient returns a new Kubernetes Dapr client.
 func DaprClient() (scheme.Interface, error) {
 	config, err := getConfig()
 	if err != nil {

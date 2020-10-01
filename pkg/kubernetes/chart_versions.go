@@ -1,6 +1,6 @@
 package kubernetes
 
-// This can be deprecated in the future (>= 1.0) when chart versions align to runtime versions.
+// This can be removed in the future (>= 1.0) when chart versions align to runtime versions.
 var chartVersionsMap = map[string]string{
 	"0.7.0": "0.4.0",
 	"0.7.1": "0.4.1",

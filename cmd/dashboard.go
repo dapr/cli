@@ -18,22 +18,22 @@ import (
 )
 
 const (
-	// dashboardSvc is the name of the dashboard service running in cluster
+	// dashboardSvc is the name of the dashboard service running in cluster.
 	dashboardSvc = "dapr-dashboard"
 
-	// defaultHost is the default host used for port forwarding for `dapr dashboard`
+	// defaultHost is the default host used for port forwarding for `dapr dashboard`.
 	defaultHost = "localhost"
 
-	// defaultLocalPort is the default local port used for port forwarding for `dapr dashboard`
+	// defaultLocalPort is the default local port used for port forwarding for `dapr dashboard`.
 	defaultLocalPort = 8080
 
-	// daprSystemNamespace is the namespace "dapr-system" (recommended Dapr install namespace)
+	// daprSystemNamespace is the namespace "dapr-system" (recommended Dapr install namespace).
 	daprSystemNamespace = "dapr-system"
 
-	// defaultNamespace is the default namespace (dapr init -k installation)
+	// defaultNamespace is the default namespace (dapr init -k installation).
 	defaultNamespace = "default"
 
-	// remotePort is the port dapr dashboard pod is listening on
+	// remotePort is the port dapr dashboard pod is listening on.
 	remotePort = 8080
 )
 

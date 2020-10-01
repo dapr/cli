@@ -9,7 +9,7 @@ import (
 	helm "helm.sh/helm/v3/pkg/action"
 )
 
-// Uninstall removes Dapr from a Kubernetes cluster
+// Uninstall removes Dapr from a Kubernetes cluster.
 func Uninstall(namespace string) error {
 	config, err := helmConfig(namespace)
 	if err != nil {
