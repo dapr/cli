@@ -2,6 +2,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/dapr/cli)](https://goreportcard.com/report/github.com/dapr/cli)
 [![Build Status](https://github.com/dapr/cli/workflows/dapr_cli/badge.svg)](https://github.com/dapr/cli/actions?workflow=dapr_cli)
+[![codecov](https://codecov.io/gh/dapr/cli/branch/master/graph/badge.svg)](https://codecov.io/gh/dapr/cli)
 
 The Dapr CLI allows you to setup Dapr on your local dev machine or on a Kubernetes cluster, provides debugging support, launches and manages Dapr instances.
 
@@ -87,7 +88,7 @@ Output should look like so:
 
 This step creates the following defaults:
 1. components folder which is later used during `dapr run` unless the `--components-path` option is provided. For Linux/MacOS, the default components folder path is `$HOME/.dapr/components` and for Windows it is `%USERPROFILE%\.dapr\components`.
-2. component files in the components folder called `pubsub.yaml`, `statestore.yaml` and `zipkin.yaml`. 
+2. component files in the components folder called `pubsub.yaml`, `statestore.yaml` and `zipkin.yaml`.
 3. default config file `$HOME/.dapr/config.yaml` for Linux/MacOS or for Windows at `%USERPROFILE%\.dapr\config.yaml` to enable tracing on `dapr init` call. Can be overridden with the `--config` flag on `dapr run`.
 
 #### Slim Init
@@ -146,7 +147,7 @@ $ dapr init --redis-host 10.0.0.1
 
 ### Uninstall Dapr in a standalone mode
 
-Uninstalling will remove daprd binary and the placement container (if installed with Docker or the placement binary if not). 
+Uninstalling will remove daprd binary and the placement container (if installed with Docker or the placement binary if not).
 
 
 ```bash
@@ -160,7 +161,7 @@ The command above won't remove the redis or zipkin containers by default in case
 $ dapr uninstall --all
 ```
 
-The above command can also be run when Dapr has been installed in a non-docker environment, it will only remove the installed binaries and the default dapr folder in that case. 
+The above command can also be run when Dapr has been installed in a non-docker environment, it will only remove the installed binaries and the default dapr folder in that case.
 
 > NB: The `dapr uninstall` command will always try to remove the placement binary/service and will throw an error is not able to.
 
@@ -457,5 +458,4 @@ See the [Development Guide](https://github.com/dapr/cli/blob/master/docs/develop
 
 ## Code of Conduct
 
- This project has adopted the [Microsoft Open Source Code of conduct](https://opensource.microsoft.com/codeofconduct/).
- For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+Please refer to our [Dapr Community Code of Conduct](https://github.com/dapr/community/blob/master/CODE-OF-CONDUCT.md)

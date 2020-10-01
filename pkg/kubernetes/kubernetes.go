@@ -27,7 +27,7 @@ import (
 
 const (
 	daprReleaseName   = "dapr"
-	daprHelmRepo      = "https://daprio.azurecr.io/helm/v1/repo"
+	daprHelmRepo      = "https://dapr.github.io/helm-charts"
 	daprLatestVersion = "latest"
 )
 
