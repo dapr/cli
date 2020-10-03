@@ -41,6 +41,10 @@ type runData struct {
 	appCmd     string
 }
 
+func (d *daprProcess) List() ([]ListOutput, error) {
+	return List()
+}
+
 // List outputs all the applications.
 func List() ([]ListOutput, error) {
 	list := []ListOutput{}

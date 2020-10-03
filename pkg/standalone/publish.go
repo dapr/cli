@@ -3,7 +3,7 @@
 // Licensed under the MIT License.
 // ------------------------------------------------------------
 
-package publish
+package standalone
 
 import (
 	"bytes"
@@ -12,11 +12,10 @@ import (
 	"net/http"
 
 	"github.com/dapr/cli/pkg/api"
-	"github.com/dapr/cli/pkg/standalone"
 )
 
-// SendPayloadToTopic publishes the topic
-func SendPayloadToTopic(topic, payload, pubsubName string) error {
+// Publish publishes payload to topic in pubsub referenced by pubsubName
+func (s *Standalone) Publish(topic, payload, pubsubName string) error {
 	if topic == "" {
 		return errors.New("topic is missing")
 	}
@@ -24,7 +23,7 @@ func SendPayloadToTopic(topic, payload, pubsubName string) error {
 		return errors.New("pubsubName is missing")
 	}
 
-	l, err := standalone.List()
+	l, err := s.List()
 	if err != nil {
 		return err
 	}
@@ -43,19 +42,22 @@ func SendPayloadToTopic(topic, payload, pubsubName string) error {
 	url := fmt.Sprintf("http://localhost:%s/v%s/publish/%s/%s", fmt.Sprintf("%v", daprHTTPPort), api.RuntimeAPIVersion, pubsubName, topic)
 	// nolint: gosec
 	r, err := http.Post(url, "application/json", bytes.NewBuffer(b))
+	if err != nil {
+		return err
+	}
+
+	if r.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected status code %d on publishing to %s in %s", r.StatusCode, topic, pubsubName)
+	}
 
 	if r != nil {
 		defer r.Body.Close()
 	}
 
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
-func getDaprHTTPPort(list []standalone.ListOutput) (int, error) {
+func getDaprHTTPPort(list []ListOutput) (int, error) {
 	for i := 0; i < len(list); i++ {
 		if list[i].AppID != "" {
 			return list[i].HTTPPort, nil

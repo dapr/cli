@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/dapr/cli/pkg/invoke"
 	"github.com/dapr/cli/pkg/print"
+	"github.com/dapr/cli/pkg/standalone"
 	"github.com/spf13/cobra"
 )
 
@@ -14,7 +14,8 @@ var invokeGetCmd = &cobra.Command{
 	Use:   "invokeGet",
 	Short: "Issue HTTP GET to Dapr app",
 	Run: func(cmd *cobra.Command, args []string) {
-		response, err := invoke.Get(invokeAppID, invokeAppMethod)
+		client := standalone.NewStandaloneClient()
+		response, err := client.InvokeGet(invokeAppID, invokeAppMethod)
 		if err != nil {
 			print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error invoking app %s: %s", invokeAppID, err))
 
