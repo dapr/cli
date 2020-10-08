@@ -14,9 +14,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var publishTopic string
-var publishPayload string
-var pubsubName string
+var (
+	publishTopic   string
+	publishPayload string
+	pubsubName     string
+)
 
 var PublishCmd = &cobra.Command{
 	Use:   "publish",

@@ -13,13 +13,11 @@ import (
 	"runtime"
 	"strings"
 
-	"gopkg.in/yaml.v2"
-
 	"github.com/Pallinder/sillyname-go"
-	"github.com/phayes/freeport"
-
 	"github.com/dapr/dapr/pkg/components"
 	modes "github.com/dapr/dapr/pkg/config/modes"
+	"github.com/phayes/freeport"
+	"gopkg.in/yaml.v2"
 )
 
 const sentryDefaultAddress = "localhost:50001"
@@ -157,7 +155,7 @@ func getAppCommand(httpPort, grpcPort, metricsPort int, command string, args []s
 func Run(config *RunConfig) (*RunOutput, error) {
 	appID := config.AppID
 	if appID == "" {
-		appID = strings.Replace(sillyname.GenerateStupidName(), " ", "-", -1)
+		appID = strings.ReplaceAll(sillyname.GenerateStupidName(), " ", "-")
 	}
 
 	_, err := os.Stat(config.ComponentsPath)
@@ -183,7 +181,6 @@ func Run(config *RunConfig) (*RunOutput, error) {
 	}
 
 	daprCMD, daprHTTPPort, daprGRPCPort, metricsPort, err := getDaprCommand(appID, config.HTTPPort, config.GRPCPort, config.AppPort, config.ConfigFile, config.Protocol, config.EnableProfiling, config.ProfilePort, config.LogLevel, config.MaxConcurrency, config.PlacementHost, config.ComponentsPath)
-
 	if err != nil {
 		return nil, err
 	}

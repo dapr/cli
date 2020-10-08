@@ -23,13 +23,12 @@ import (
 	"sync"
 	"time"
 
-	"gopkg.in/yaml.v2"
-
 	"github.com/briandowns/spinner"
 	"github.com/dapr/cli/pkg/print"
 	cli_ver "github.com/dapr/cli/pkg/version"
 	"github.com/dapr/cli/utils"
 	"github.com/fatih/color"
+	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -45,11 +44,11 @@ const (
 	stateStoreYamlFileName     = "statestore.yaml"
 	zipkinYamlFileName         = "zipkin.yaml"
 
-	// DaprPlacementContainerName is the container name of placement service
+	// DaprPlacementContainerName is the container name of placement service.
 	DaprPlacementContainerName = "dapr_placement"
-	// DaprRedisContainerName is the container name of redis
+	// DaprRedisContainerName is the container name of redis.
 	DaprRedisContainerName = "dapr_redis"
-	// DaprZipkinContainerName is the container name of zipkin
+	// DaprZipkinContainerName is the container name of zipkin.
 	DaprZipkinContainerName = "dapr_zipkin"
 
 	errInstallTemplate = "please run `dapr uninstall` first before running `dapr init`"
@@ -112,7 +111,7 @@ func Init(runtimeVersion string, dockerNetwork string, redisHost string, slimMod
 		return err
 	}
 
-	// confirm if installation is required
+	// confirm if installation is required.
 	if ok, er := isBinaryInstallationRequired(daprRuntimeFilePrefix, daprBinDir); !ok {
 		return er
 	}
@@ -222,14 +221,14 @@ func prepareDaprInstallDir(daprBinDir string) error {
 func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, _ string) {
 	defer wg.Done()
 
-	var zipkinContainerName = utils.CreateContainerName(DaprZipkinContainerName, dockerNetwork)
+	zipkinContainerName := utils.CreateContainerName(DaprZipkinContainerName, dockerNetwork)
 
 	exists, err := confirmContainerIsRunningOrExists(zipkinContainerName, false)
 	if err != nil {
 		errorChan <- err
 		return
 	}
-	var args = []string{}
+	args := []string{}
 
 	if exists {
 		// do not create container again if it exists
@@ -272,7 +271,7 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, 
 func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, redisHost string) {
 	defer wg.Done()
 
-	var redisContainerName = utils.CreateContainerName(DaprRedisContainerName, dockerNetwork)
+	redisContainerName := utils.CreateContainerName(DaprRedisContainerName, dockerNetwork)
 
 	if redisHost != daprDefaultHost {
 		// A non-default Redis host is specified. No need to start the redis container
@@ -285,7 +284,7 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, d
 		errorChan <- err
 		return
 	}
-	var args = []string{}
+	args := []string{}
 
 	if exists {
 		// do not create container again if it exists
@@ -325,7 +324,7 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, d
 	errorChan <- nil
 }
 
-// check if the container either exists and stopped or is running
+// check if the container either exists and stopped or is running.
 func confirmContainerIsRunningOrExists(containerName string, isRunning bool) (bool, error) {
 	// e.g. docker ps --filter name=dapr_redis --filter status=running --format {{.Names}}
 
@@ -357,7 +356,7 @@ func confirmContainerIsRunningOrExists(containerName string, isRunning bool) (bo
 func parseDockerError(component string, err error) error {
 	if exitError, ok := err.(*exec.ExitError); ok {
 		exitCode := exitError.ExitCode()
-		if exitCode == 125 { //see https://github.com/moby/moby/pull/14012
+		if exitCode == 125 { // see https://github.com/moby/moby/pull/14012
 			return fmt.Errorf("failed to launch %s. Is it already running?", component)
 		}
 		if exitCode == 127 {
@@ -377,7 +376,7 @@ func isContainerRunError(err error) bool {
 
 func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, _ string) {
 	defer wg.Done()
-	var placementContainerName = utils.CreateContainerName(DaprPlacementContainerName, dockerNetwork)
+	placementContainerName := utils.CreateContainerName(DaprPlacementContainerName, dockerNetwork)
 
 	image := fmt.Sprintf("%s:%s", daprDockerImageName, version)
 

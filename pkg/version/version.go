@@ -14,11 +14,11 @@ import (
 )
 
 const (
-	// DaprGitHubOrg is the org name of dapr on GitHub
+	// DaprGitHubOrg is the org name of dapr on GitHub.
 	DaprGitHubOrg = "dapr"
-	// DaprGitHubRepo is the repo name of dapr runtime on GitHub
+	// DaprGitHubRepo is the repo name of dapr runtime on GitHub.
 	DaprGitHubRepo = "dapr"
-	// DashboardGitHubRepo is the repo name of dapr dashboard on GitHub
+	// DashboardGitHubRepo is the repo name of dapr dashboard on GitHub.
 	DashboardGitHubRepo = "dashboard"
 )
 
@@ -30,7 +30,7 @@ type githubRepoReleaseItem struct {
 }
 
 // nolint:gosec
-// GetLatestRelease return the latest release version of dapr
+// GetLatestRelease return the latest release version of dapr.
 func GetLatestRelease(gitHubOrg, gitHubRepo string) (string, error) {
 	releaseURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases", gitHubOrg, gitHubRepo)
 	resp, err := http.Get(releaseURL)
@@ -39,7 +39,7 @@ func GetLatestRelease(gitHubOrg, gitHubRepo string) (string, error) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("%s - %s", releaseURL, resp.Status)
 	}
 

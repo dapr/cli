@@ -9,7 +9,7 @@ import (
 	"github.com/dapr/cli/cmd"
 )
 
-// Values for version and apiVersion are injected by the build
+// Values for version and apiVersion are injected by the build.
 var (
 	version    = ""
 	apiVersion = "1.0"

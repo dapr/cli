@@ -21,5 +21,6 @@ func GetAge(t time.Time) string {
 	} else if d.Hours() > 24 {
 		return fmt.Sprintf("%vd", int(d.Hours()/24))
 	}
+
 	return ""
 }

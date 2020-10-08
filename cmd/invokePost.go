@@ -14,28 +14,24 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	invokePostCmd = &cobra.Command{
-		Use:   "invokePost",
-		Short: "Issue HTTP POST to Dapr app with an optional payload",
-		Run: func(cmd *cobra.Command, args []string) {
+var invokePostCmd = &cobra.Command{
+	Use:   "invokePost",
+	Short: "Issue HTTP POST to Dapr app with an optional payload",
+	Run: func(cmd *cobra.Command, args []string) {
+		response, err := invoke.Post(invokeAppID, invokeAppMethod, invokePayload)
+		if err != nil {
+			print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error invoking app %s: %s", invokeAppID, err))
 
-			response, err := invoke.Post(invokeAppID, invokeAppMethod, invokePayload)
-			if err != nil {
-				print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error invoking app %s: %s", invokeAppID, err))
+			return
+		}
 
-				return
-			}
+		if response != "" {
+			fmt.Println(response)
+		}
 
-			if response != "" {
-				fmt.Println(response)
-			}
-
-			print.SuccessStatusEvent(os.Stdout, fmt.Sprintf("HTTP Post to method %s invoked successfully", invokeAppMethod))
-
-		},
-	}
-)
+		print.SuccessStatusEvent(os.Stdout, fmt.Sprintf("HTTP Post to method %s invoked successfully", invokeAppMethod))
+	},
+}
 
 func init() {
 	invokePostCmd.Flags().StringVarP(&invokeAppID, "app-id", "a", "", "the app id to invoke")

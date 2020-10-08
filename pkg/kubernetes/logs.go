@@ -35,7 +35,7 @@ func Logs(appID, podName, namespace string) error {
 	}
 
 	if podName == "" {
-		//no pod name specified. in case of multiple pods, the first one will be selected
+		// no pod name specified. in case of multiple pods, the first one will be selected
 		var foundDaprPod bool
 		for _, pod := range pods.Items {
 			if foundDaprPod {
@@ -43,7 +43,7 @@ func Logs(appID, podName, namespace string) error {
 			}
 			for _, container := range pod.Spec.Containers {
 				if container.Name == daprdContainerName {
-					//find app ID
+					// find app ID
 					for i, arg := range container.Args {
 						if arg == appIDContainerArgName {
 							id := container.Args[i+1]

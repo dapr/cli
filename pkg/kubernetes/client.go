@@ -15,17 +15,25 @@ import (
 
 	scheme "github.com/dapr/dapr/pkg/client/clientset/versioned"
 	k8s "k8s.io/client-go/kubernetes"
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"       // gcp auth
-	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"      // oidc auth
-	_ "k8s.io/client-go/plugin/pkg/client/auth/openstack" // openstack auth
+
+	//  gcp auth
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+
+	//  oidc auth
+	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
+
+	//  openstack auth
+	_ "k8s.io/client-go/plugin/pkg/client/auth/openstack"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
 const kubeConfigDelimiter = ":"
 
-var doOnce sync.Once
-var kubeconfig *string
+var (
+	doOnce     sync.Once
+	kubeconfig *string
+)
 
 func init() {
 	if home := homeDir(); home != "" {
@@ -57,7 +65,7 @@ func getConfig() (*rest.Config, error) {
 	return config, nil
 }
 
-// GetKubeConfigClient returns the kubeconfig and the client created from the kubeconfig
+// GetKubeConfigClient returns the kubeconfig and the client created from the kubeconfig.
 func GetKubeConfigClient() (*rest.Config, *k8s.Clientset, error) {
 	config, err := getConfig()
 	if err != nil {
@@ -79,7 +87,7 @@ func Client() (*k8s.Clientset, error) {
 	return k8s.NewForConfig(config)
 }
 
-// DaprClient returns a new Kubernetes Dapr client
+// DaprClient returns a new Kubernetes Dapr client.
 func DaprClient() (scheme.Interface, error) {
 	config, err := getConfig()
 	if err != nil {

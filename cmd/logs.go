@@ -13,10 +13,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var logsAppID string
-var podName string
-var namespace string
-var k8s bool
+var (
+	logsAppID string
+	podName   string
+	namespace string
+	k8s       bool
+)
 
 var LogsCmd = &cobra.Command{
 	Use:   "logs",
