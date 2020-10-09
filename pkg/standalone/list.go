@@ -111,7 +111,7 @@ func List() ([]ListOutput, error) {
 				continue
 			}
 
-			var run = runData{
+			run := runData{
 				cliPID:     cliPID,
 				sidecarPID: proc.Pid(),
 				grpcPort:   grpcPort,
@@ -148,7 +148,7 @@ func List() ([]ListOutput, error) {
 
 			createTime := time.Unix(createUnixTimeMilliseconds/1000, 0)
 
-			var listRow = ListOutput{
+			listRow := ListOutput{
 				Created: createTime.Format("2006-01-02 15:04.05"),
 				Age:     age.GetAge(createTime),
 				PID:     proc.Pid(),

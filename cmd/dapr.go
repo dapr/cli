@@ -31,7 +31,7 @@ var RootCmd = &cobra.Command{
 A serverless runtime for hyperscale, distributed systems`,
 }
 
-// Execute adds all child commands to the root command
+// Execute adds all child commands to the root command.
 func Execute(version, apiVersion string) {
 	RootCmd.Version = version
 	api.RuntimeAPIVersion = apiVersion

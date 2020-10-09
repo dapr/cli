@@ -62,7 +62,7 @@ var ExpiryCMD = &cobra.Command{
 		}
 
 		duration := int(expiry.Sub(time.Now().UTC()).Hours())
-		fmt.Println(fmt.Sprintf("Root certificate expires in %v hours. Expiry date: %s", duration, expiry.String()))
+		fmt.Printf("Root certificate expires in %v hours. Expiry date: %s", duration, expiry.String())
 	},
 }
 

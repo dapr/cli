@@ -7,3 +7,8 @@ assignees: ''
 
 ---
 ## Describe the feature
+
+## Release Note
+<!-- How should this new feature be announced in our release notes? It can be populated later. -->
+
+RELEASE NOTE:

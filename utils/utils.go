@@ -21,7 +21,7 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
-// PrintTable to print in the table format
+// PrintTable to print in the table format.
 func PrintTable(csvContent string) {
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
@@ -111,7 +111,7 @@ func CreateDirectory(dir string) error {
 	return os.Mkdir(dir, 0777)
 }
 
-// IsDockerInstalled checks whether docker is installed/running
+// IsDockerInstalled checks whether docker is installed/running.
 func IsDockerInstalled() bool {
 	// nolint:staticcheck
 	cli, err := client.NewEnvClient()

@@ -24,22 +24,24 @@ import (
 	"github.com/spf13/viper"
 )
 
+var (
+	appPort         int
+	profilePort     int
+	appID           string
+	configFile      string
+	port            int
+	grpcPort        int
+	maxConcurrency  int
+	image           string
+	enableProfiling bool
+	logLevel        string
+	protocol        string
+	componentsPath  string
+)
+
 const (
 	runtimeWaitTimeoutInSeconds = 60
 )
-
-var appPort int
-var profilePort int
-var appID string
-var configFile string
-var port int
-var grpcPort int
-var maxConcurrency int
-var image string
-var enableProfiling bool
-var logLevel string
-var protocol string
-var componentsPath string
 
 var RunCmd = &cobra.Command{
 	Use:   "run",
@@ -101,7 +103,7 @@ Run sidecar only:
 				return
 			}
 
-			var sigCh = make(chan os.Signal, 1)
+			sigCh := make(chan os.Signal, 1)
 			signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
 
 			daprRunning := make(chan bool, 1)

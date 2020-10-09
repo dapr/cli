@@ -19,3 +19,9 @@ assignees: ''
 ## Steps to Reproduce the Problem
 
 <!-- How can a maintainer reproduce this issue (be detailed) -->
+
+## Release Note
+
+<!-- How should the fix for this issue be communicated in our release notes? It can be populated later. -->
+
+RELEASE NOTE:

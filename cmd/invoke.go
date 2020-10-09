@@ -12,9 +12,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var invokeAppID string
-var invokeAppMethod string
-var invokePayload string
+var (
+	invokeAppID     string
+	invokeAppMethod string
+	invokePayload   string
+)
 
 var InvokeCmd = &cobra.Command{
 	Use:   "invoke",

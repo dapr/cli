@@ -14,7 +14,7 @@ import (
 	"github.com/dapr/cli/pkg/api"
 )
 
-// Publish publishes payload to topic in pubsub referenced by pubsubName
+// Publish publishes payload to topic in pubsub referenced by pubsubName.
 func (s *Standalone) Publish(topic, payload, pubsubName string) error {
 	if topic == "" {
 		return errors.New("topic is missing")

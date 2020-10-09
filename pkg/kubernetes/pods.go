@@ -26,7 +26,7 @@ func ListPods(client *k8s.Clientset, namespace string, labelSelector map[string]
 }
 
 // CheckPodExists returns a boolean representing the pod's existence and the namespace that the given pod resides in,
-// or empty if not present in the given namespace
+// or empty if not present in the given namespace.
 func CheckPodExists(client *k8s.Clientset, namespace string, labelSelector map[string]string, deployName string) (bool, string) {
 	opts := v1.ListOptions{}
 	if labelSelector != nil {

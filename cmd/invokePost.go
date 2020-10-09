@@ -14,17 +14,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	invokePostCmd = &cobra.Command{
-		Use:   "invokePost",
-		Short: "Issue HTTP POST to Dapr app with an optional payload",
-		Run: func(cmd *cobra.Command, args []string) {
-			invokePost(invokeAppID, invokeAppMethod, invokePayload)
+var invokePostCmd = &cobra.Command{
+	Use:   "invokePost",
+	Short: "Issue HTTP POST to Dapr app with an optional payload",
+	Run: func(cmd *cobra.Command, args []string) {
+		invokePost(invokeAppID, invokeAppMethod, invokePayload)
 
-			print.SuccessStatusEvent(os.Stdout, fmt.Sprintf("HTTP Post to method %s invoked successfully", invokeAppMethod))
-		},
-	}
-)
+		print.SuccessStatusEvent(os.Stdout, fmt.Sprintf("HTTP Post to method %s invoked successfully", invokeAppMethod))
+	},
+}
 
 func invokePost(invokeAppID, invokeAppMethod, invokePayload string) {
 	client := standalone.NewStandaloneClient()

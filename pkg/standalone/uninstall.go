@@ -47,7 +47,6 @@ func removeDockerContainer(containerErrs []error, containerName, network string)
 		"docker", "rm",
 		"--force",
 		utils.CreateContainerName(containerName, network))
-
 	if err != nil {
 		containerErrs = append(
 			containerErrs,

@@ -16,12 +16,14 @@ import (
 	"github.com/spf13/viper"
 )
 
-var kubernetesMode bool
-var slimMode bool
-var runtimeVersion string
-var initNamespace string
-var enableMTLS bool
-var enableHA bool
+var (
+	kubernetesMode bool
+	slimMode       bool
+	runtimeVersion string
+	initNamespace  string
+	enableMTLS     bool
+	enableHA       bool
+)
 
 var InitCmd = &cobra.Command{
 	Use:   "init",
@@ -30,7 +32,6 @@ var InitCmd = &cobra.Command{
 		viper.BindPFlag("network", cmd.Flags().Lookup("network"))
 		viper.BindPFlag("install-path", cmd.Flags().Lookup("install-path"))
 		viper.BindPFlag("redis-host", cmd.Flags().Lookup("redis-host"))
-
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		print.PendingStatusEvent(os.Stdout, "Making the jump to hyperspace...")
