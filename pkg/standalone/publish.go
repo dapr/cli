@@ -23,7 +23,7 @@ func (s *Standalone) Publish(topic, payload, pubsubName string) error {
 		return errors.New("pubsubName is missing")
 	}
 
-	l, err := s.List()
+	l, err := s.process.List()
 	if err != nil {
 		return err
 	}
