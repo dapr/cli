@@ -15,7 +15,7 @@ import (
 )
 
 // InvokeGet invokes the application via HTTP GET.
-func (s *Standalone) Get(appID, method string) (string, error) {
+func (s *Standalone) InvokeGet(appID, method string) (string, error) {
 	list, err := s.process.List()
 	if err != nil {
 		return "", err
@@ -37,8 +37,8 @@ func (s *Standalone) Get(appID, method string) (string, error) {
 	return "", fmt.Errorf("app ID %s not found", appID)
 }
 
-// Post invokes the application via HTTP POST.
-func (s *Standalone) Post(appID, method, payload string) (string, error) {
+// InvokePost invokes the application via HTTP POST.
+func (s *Standalone) InvokePost(appID, method, payload string) (string, error) {
 	list, err := s.process.List()
 	if err != nil {
 		return "", err

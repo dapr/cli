@@ -29,7 +29,7 @@ var invokePostCmd = &cobra.Command{
 
 func invokePost(invokeAppID, invokeAppMethod, invokePayload string) error {
 	client := standalone.NewClient()
-	response, err := client.Post(invokeAppID, invokeAppMethod, invokePayload)
+	response, err := client.InvokePost(invokeAppID, invokeAppMethod, invokePayload)
 	if err != nil {
 		er := fmt.Errorf("error invoking app %s: %s", invokeAppID, err)
 		print.FailureStatusEvent(os.Stdout, er.Error())

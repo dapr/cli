@@ -15,7 +15,7 @@ var invokeGetCmd = &cobra.Command{
 	Short: "Issue HTTP GET to Dapr app",
 	Run: func(cmd *cobra.Command, args []string) {
 		client := standalone.NewClient()
-		response, err := client.Get(invokeAppID, invokeAppMethod)
+		response, err := client.InvokeGet(invokeAppID, invokeAppMethod)
 		if err != nil {
 			print.FailureStatusEvent(os.Stdout, fmt.Sprintf("error invoking app %s: %s", invokeAppID, err))
 			// exit with error
