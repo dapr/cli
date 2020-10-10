@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/dapr/cli/pkg/invoke"
 	"github.com/dapr/cli/pkg/print"
+	"github.com/dapr/cli/pkg/standalone"
 	"github.com/spf13/cobra"
 )
 
@@ -18,19 +18,28 @@ var invokePostCmd = &cobra.Command{
 	Use:   "invokePost",
 	Short: "Issue HTTP POST to Dapr app with an optional payload",
 	Run: func(cmd *cobra.Command, args []string) {
-		response, err := invoke.Post(invokeAppID, invokeAppMethod, invokePayload)
+		err := invokePost(invokeAppID, invokeAppMethod, invokePayload)
 		if err != nil {
-			print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error invoking app %s: %s", invokeAppID, err))
-
-			return
+			// exit with error
+			os.Exit(1)
 		}
-
-		if response != "" {
-			fmt.Println(response)
-		}
-
 		print.SuccessStatusEvent(os.Stdout, fmt.Sprintf("HTTP Post to method %s invoked successfully", invokeAppMethod))
 	},
+}
+
+func invokePost(invokeAppID, invokeAppMethod, invokePayload string) error {
+	client := standalone.NewClient()
+	response, err := client.InvokePost(invokeAppID, invokeAppMethod, invokePayload)
+	if err != nil {
+		er := fmt.Errorf("error invoking app %s: %s", invokeAppID, err)
+		print.FailureStatusEvent(os.Stdout, er.Error())
+		return er
+	}
+
+	if response != "" {
+		fmt.Println(response)
+	}
+	return nil
 }
 
 func init() {

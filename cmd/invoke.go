@@ -6,10 +6,8 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 
-	"github.com/dapr/cli/pkg/invoke"
 	"github.com/dapr/cli/pkg/print"
 	"github.com/spf13/cobra"
 )
@@ -24,16 +22,11 @@ var InvokeCmd = &cobra.Command{
 	Use:   "invoke",
 	Short: "Invokes a Dapr app with an optional payload (deprecated, use invokePost)",
 	Run: func(cmd *cobra.Command, args []string) {
-		response, err := invoke.Post(invokeAppID, invokeAppMethod, invokePayload)
+		err := invokePost(invokeAppID, invokeAppMethod, invokePayload)
 		if err != nil {
-			print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error invoking app %s: %s", invokeAppID, err))
-			return
+			// exit with error
+			os.Exit(1)
 		}
-
-		if response != "" {
-			fmt.Println(response)
-		}
-
 		print.SuccessStatusEvent(os.Stdout, "App invoked successfully")
 	},
 }
