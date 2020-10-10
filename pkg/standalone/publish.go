@@ -45,13 +45,9 @@ func (s *Standalone) Publish(topic, payload, pubsubName string) error {
 	if err != nil {
 		return err
 	}
-
+	defer r.Body.Close()
 	if r.StatusCode != http.StatusOK {
 		return fmt.Errorf("unexpected status code %d on publishing to %s in %s", r.StatusCode, topic, pubsubName)
-	}
-
-	if r != nil {
-		defer r.Body.Close()
 	}
 
 	return nil

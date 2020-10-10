@@ -18,24 +18,28 @@ var invokePostCmd = &cobra.Command{
 	Use:   "invokePost",
 	Short: "Issue HTTP POST to Dapr app with an optional payload",
 	Run: func(cmd *cobra.Command, args []string) {
-		invokePost(invokeAppID, invokeAppMethod, invokePayload)
-
+		err := invokePost(invokeAppID, invokeAppMethod, invokePayload)
+		if err != nil {
+			// exit with error
+			os.Exit(1)
+		}
 		print.SuccessStatusEvent(os.Stdout, fmt.Sprintf("HTTP Post to method %s invoked successfully", invokeAppMethod))
 	},
 }
 
-func invokePost(invokeAppID, invokeAppMethod, invokePayload string) {
-	client := standalone.NewStandaloneClient()
-	response, err := client.InvokePost(invokeAppID, invokeAppMethod, invokePayload)
+func invokePost(invokeAppID, invokeAppMethod, invokePayload string) error {
+	client := standalone.NewClient()
+	response, err := client.Post(invokeAppID, invokeAppMethod, invokePayload)
 	if err != nil {
-		print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error invoking app %s: %s", invokeAppID, err))
-
-		return
+		er := fmt.Errorf("error invoking app %s: %s", invokeAppID, err)
+		print.FailureStatusEvent(os.Stdout, er.Error())
+		return er
 	}
 
 	if response != "" {
 		fmt.Println(response)
 	}
+	return nil
 }
 
 func init() {

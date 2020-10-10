@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestPubLish(t *testing.T) {
+func TestPublish(t *testing.T) {
 	testCases := []struct {
 		name          string
 		pubsubName    string
@@ -73,7 +73,6 @@ func TestPubLish(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			ts, port := getTestServer(tc.expectedPath, tc.resp)
 			ts.Start()

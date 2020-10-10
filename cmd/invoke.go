@@ -22,7 +22,11 @@ var InvokeCmd = &cobra.Command{
 	Use:   "invoke",
 	Short: "Invokes a Dapr app with an optional payload (deprecated, use invokePost)",
 	Run: func(cmd *cobra.Command, args []string) {
-		invokePost(invokeAppID, invokeAppMethod, invokePayload)
+		err := invokePost(invokeAppID, invokeAppMethod, invokePayload)
+		if err != nil {
+			// exit with error
+			os.Exit(1)
+		}
 		print.SuccessStatusEvent(os.Stdout, "App invoked successfully")
 	},
 }

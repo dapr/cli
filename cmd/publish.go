@@ -24,11 +24,11 @@ var PublishCmd = &cobra.Command{
 	Use:   "publish",
 	Short: "Publish an event to multiple consumers",
 	Run: func(cmd *cobra.Command, args []string) {
-		client := standalone.NewStandaloneClient()
+		client := standalone.NewClient()
 		err := client.Publish(publishTopic, publishPayload, pubsubName)
 		if err != nil {
 			print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error publishing topic %s: %s", publishTopic, err))
-			return
+			os.Exit(1)
 		}
 
 		print.SuccessStatusEvent(os.Stdout, "Event published successfully")
