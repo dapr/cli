@@ -306,10 +306,18 @@ $ dapr run --app-id nodeapp --app-port 3000 node app.js
 
 Note: To choose a non-default components folder, use the --components-path option.
 
-Invoke your app:
+Invoke your app with POST:
 
 ```
-$ dapr invoke --app-id nodeapp --method mymethod
+$ dapr invokePost --app-id nodeapp --method mymethod
+```
+
+**Note: To invoke a remote gRPC enabled app, use `invokePost`.
+
+Invoke your app with GET:
+
+```
+$ dapr invokeGet --app-id nodeapp --method mymethod
 ```
 
 ### List

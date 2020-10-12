@@ -9,6 +9,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	invokeAppID     string
+	invokeAppMethod string
+	invokePayload   string
+)
+
 // invokeGetCmd represents the invokeGet command.
 var invokeGetCmd = &cobra.Command{
 	Use:   "invokeGet",
