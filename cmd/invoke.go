@@ -31,7 +31,7 @@ var InvokeCmd = &cobra.Command{
 		client := standalone.NewClient()
 		response, err := client.Invoke(invokeAppID, invokeAppMethod, invokePayload, invokeVerb)
 		if err != nil {
-			err := fmt.Errorf("error invoking app %s: %s", invokeAppID, err)
+			err = fmt.Errorf("error invoking app %s: %s", invokeAppID, err)
 			print.FailureStatusEvent(os.Stdout, err.Error())
 			return
 		}
