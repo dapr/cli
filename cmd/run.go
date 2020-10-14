@@ -279,16 +279,5 @@ func init() {
 	RunCmd.Flags().StringVarP(&componentsPath, "components-path", "d", standalone.DefaultComponentsDirPath(), "Path for components directory. Default is $HOME/.dapr/components or %USERPROFILE%\\.dapr\\components")
 	RunCmd.Flags().String("placement-host-address", "localhost", "the host on which the placement service resides")
 
-	// deprecated flags
-	RunCmd.Flags().IntVarP(&port, "port", "", -1, "the HTTP port for Dapr to listen on")
-	RunCmd.Flags().IntVarP(&grpcPort, "grpc-port", "", -1, "the gRPC port for Dapr to listen on")
-	RunCmd.Flags().String("placement-host", "localhost", "the host on which the placement service resides")
-	RunCmd.Flags().StringVarP(&protocol, "protocol", "", "http", "tells Dapr to use HTTP or gRPC to talk to the app. Default is http")
-
-	RunCmd.Flags().MarkDeprecated("port", "this flag is deprecated and will be removed in v1.0. Use dapr-http-port instead")
-	RunCmd.Flags().MarkDeprecated("grpc-port", "this flag is deprecated and will be removed in v1.0. Use dapr-grpc-port instead")
-	RunCmd.Flags().MarkDeprecated("placement-host", "this flag is deprecated and will be removed in v1.0. Use placement-host-address instead")
-	RunCmd.Flags().MarkDeprecated("protocol", "this flag is deprecated and will be removed in v1.0. Use app-protocol instead")
-
 	RootCmd.AddCommand(RunCmd)
 }

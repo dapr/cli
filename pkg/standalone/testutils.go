@@ -24,7 +24,7 @@ func (m *mockDaprProcess) List() ([]ListOutput, error) {
 func getTestServer(expectedPath, resp string) (*httptest.Server, int) {
 	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(
 		w http.ResponseWriter, r *http.Request) {
-		if r.RequestURI != expectedPath {
+		if expectedPath != "" && r.RequestURI != expectedPath {
 			w.WriteHeader(http.StatusInternalServerError)
 
 			return
