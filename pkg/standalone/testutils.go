@@ -29,12 +29,12 @@ func getTestServer(expectedPath, resp string) (*httptest.Server, int) {
 
 			return
 		}
-		if r.Method == http.MethodPost {
+		if r.Method == http.MethodGet {
+			w.Write([]byte(resp))
+		} else {
 			buf := new(bytes.Buffer)
 			buf.ReadFrom(r.Body)
 			w.Write(buf.Bytes())
-		} else if r.Method == http.MethodGet {
-			w.Write([]byte(resp))
 		}
 	}))
 
