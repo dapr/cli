@@ -3,7 +3,7 @@
 // Licensed under the MIT License.
 // ------------------------------------------------------------
 
-package invoke
+package standalone
 
 import (
 	"bytes"
@@ -12,12 +12,11 @@ import (
 	"net/http"
 
 	"github.com/dapr/cli/pkg/api"
-	"github.com/dapr/cli/pkg/standalone"
 )
 
-// Get invokes the application via HTTP GET.
-func Get(appID, method string) (string, error) {
-	list, err := standalone.List()
+// InvokeGet invokes the application via HTTP GET.
+func (s *Standalone) InvokeGet(appID, method string) (string, error) {
+	list, err := s.process.List()
 	if err != nil {
 		return "", err
 	}
@@ -38,9 +37,9 @@ func Get(appID, method string) (string, error) {
 	return "", fmt.Errorf("app ID %s not found", appID)
 }
 
-// Post invokes the application via HTTP POST.
-func Post(appID, method, payload string) (string, error) {
-	list, err := standalone.List()
+// InvokePost invokes the application via HTTP POST.
+func (s *Standalone) InvokePost(appID, method, payload string) (string, error) {
+	list, err := s.process.List()
 	if err != nil {
 		return "", err
 	}
@@ -62,7 +61,7 @@ func Post(appID, method, payload string) (string, error) {
 	return "", fmt.Errorf("app ID %s not found", appID)
 }
 
-func makeEndpoint(lo standalone.ListOutput, method string) string {
+func makeEndpoint(lo ListOutput, method string) string {
 	return fmt.Sprintf("http://127.0.0.1:%s/v%s/invoke/%s/method/%s", fmt.Sprintf("%v", lo.HTTPPort), api.RuntimeAPIVersion, lo.AppID, method)
 }
 
