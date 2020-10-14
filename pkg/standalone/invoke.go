@@ -15,8 +15,7 @@ import (
 	"github.com/dapr/cli/pkg/api"
 )
 
-// nolint: gosec
-// Invoke is a command to invoke a remote or local dapr instance
+// Invoke is a command to invoke a remote or local dapr instance.
 func (s *Standalone) Invoke(appID, method, payload, verb string) (string, error) {
 	list, err := s.process.List()
 	if err != nil {
