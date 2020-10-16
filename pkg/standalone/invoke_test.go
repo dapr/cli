@@ -74,7 +74,7 @@ func TestInvoke(t *testing.T) {
 					Err: tc.listErr,
 				},
 			}
-			res, err := client.InvokeGet(tc.appID, tc.method)
+			res, err := client.Invoke(tc.appID, tc.method, "", "GET")
 			if tc.errorExpected {
 				assert.Error(t, err, "expected an error")
 				assert.Equal(t, tc.errString, err.Error(), "expected error strings to match")
@@ -83,6 +83,7 @@ func TestInvoke(t *testing.T) {
 				assert.Equal(t, tc.resp, res, "expected response to match")
 			}
 		})
+
 		t.Run(tc.name+" post", func(t *testing.T) {
 			ts, port := getTestServer(tc.expectedPath, tc.resp)
 			ts.Start()
@@ -94,13 +95,55 @@ func TestInvoke(t *testing.T) {
 					Err: tc.listErr,
 				},
 			}
-			res, err := client.InvokePost(tc.appID, tc.method, "test payload")
+			res, err := client.Invoke(tc.appID, tc.method, tc.resp, "POST")
 			if tc.errorExpected {
 				assert.Error(t, err, "expected an error")
 				assert.Equal(t, tc.errString, err.Error(), "expected error strings to match")
 			} else {
 				assert.NoError(t, err, "expected no error")
-				assert.Equal(t, tc.postResponse, res, "expected response to match")
+				assert.Equal(t, tc.resp, res, "expected response to match")
+			}
+		})
+
+		t.Run(tc.name+" delete", func(t *testing.T) {
+			ts, port := getTestServer(tc.expectedPath, tc.resp)
+			ts.Start()
+			defer ts.Close()
+			tc.lo.HTTPPort = port
+			client := &Standalone{
+				process: &mockDaprProcess{
+					Lo:  []ListOutput{tc.lo},
+					Err: tc.listErr,
+				},
+			}
+			res, err := client.Invoke(tc.appID, tc.method, tc.resp, "DELETE")
+			if tc.errorExpected {
+				assert.Error(t, err, "expected an error")
+				assert.Equal(t, tc.errString, err.Error(), "expected error strings to match")
+			} else {
+				assert.NoError(t, err, "expected no error")
+				assert.Equal(t, tc.resp, res, "expected response to match")
+			}
+		})
+
+		t.Run(tc.name+" put", func(t *testing.T) {
+			ts, port := getTestServer(tc.expectedPath, tc.resp)
+			ts.Start()
+			defer ts.Close()
+			tc.lo.HTTPPort = port
+			client := &Standalone{
+				process: &mockDaprProcess{
+					Lo:  []ListOutput{tc.lo},
+					Err: tc.listErr,
+				},
+			}
+			res, err := client.Invoke(tc.appID, tc.method, tc.resp, "PUT")
+			if tc.errorExpected {
+				assert.Error(t, err, "expected an error")
+				assert.Equal(t, tc.errString, err.Error(), "expected error strings to match")
+			} else {
+				assert.NoError(t, err, "expected no error")
+				assert.Equal(t, tc.resp, res, "expected response to match")
 			}
 		})
 	}
