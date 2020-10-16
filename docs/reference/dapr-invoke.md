@@ -2,7 +2,7 @@
 
 ## Description
 
-Invokes a Dapr app with an optional payload (deprecated, use invokePost)
+Invokes a Dapr app with an optional payload
 
 ## Usage
 
@@ -18,3 +18,4 @@ dapr invoke [flags]
 | `--help`, `-h` | | | Help for invoke |
 | `--method`, `-m` | | | The method to invoke |
 | `--payload`, `-p` | | | (optional) a json payload |
+| `--verb`, `-v` | | | (optional) The HTTP verb to use. default is POST |
