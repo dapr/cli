@@ -295,7 +295,7 @@ C:> dapr publish --pubsub pubsub --topic myevent --data "{ \"name\": \"yoda\" }"
 
 ### Invoking
 
-To test your endpoints with Dapr, simply expose any ```POST``` HTTP endpoint.
+To test your endpoints with Dapr, simply expose any HTTP endpoint.
 For this sample, we'll assume a node app listening on port 3000 with a ```/mymethod``` endpoint.
 
 Launch Dapr and your app:
@@ -310,6 +310,14 @@ Invoke your app:
 
 ```
 $ dapr invoke --app-id nodeapp --method mymethod
+```
+
+Specify a verb:
+
+By default, Dapr will use the `POST` verb. If your app uses Dapr for gRPC, you should use `POST`.
+
+```
+$ dapr invoke --app-id nodeapp --method mymethod --verb GET
 ```
 
 ### List
