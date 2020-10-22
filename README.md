@@ -437,6 +437,15 @@ $ dapr run --app-id nodeapp --app-port 3000 node app.js --log-level debug
 This sets the Dapr log level to `debug`.
 The default is `info`.
 
+### Enable SSL when invoking an app
+
+If your app is listening on `https` or has a gRPC TLS configuration enabled, use the following `app-ssl` flag:
+
+```
+$ dapr run --app-id nodeapp --app-port 3000 node app.js --app-ssl
+```
+
+The default is false.
 
 ### Running sidecar only
 
