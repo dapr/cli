@@ -445,6 +445,8 @@ If your app is listening on `https` or has a gRPC TLS configuration enabled, use
 $ dapr run --app-id nodeapp --app-port 3000 node app.js --app-ssl
 ```
 
+This will have Dapr invoke the app over an insecure SSL channel.
+
 The default is false.
 
 ### Running sidecar only

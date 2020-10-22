@@ -28,4 +28,4 @@ dapr run [flags] [command]
 | `--port`, `-p` | | `-1` | The HTTP port for Dapr to listen on |
 | `--profile-port` | | `-1` | The port for the profile server to listen on |
 | `--protocol` | | `http` | Tells Dapr to use HTTP or gRPC to talk to the app. Valid values are: `http` or `grpc` |
-| `--app-ssl` | | `false` | Tells Dapr to invoke the app over https |
+| `--app-ssl` | | `false` | Tells Dapr to invoke the app over https with an insecure channel |
