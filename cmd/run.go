@@ -37,6 +37,7 @@ var (
 	logLevel        string
 	protocol        string
 	componentsPath  string
+	appSSL          bool
 )
 
 const (
@@ -97,6 +98,7 @@ Run sidecar only:
 				Protocol:        protocol,
 				PlacementHost:   viper.GetString("placement-host"),
 				ComponentsPath:  componentsPath,
+				AppSSL:          appSSL,
 			})
 			if err != nil {
 				print.FailureStatusEvent(os.Stdout, err.Error())
@@ -278,6 +280,7 @@ func init() {
 	RunCmd.Flags().StringVarP(&protocol, "app-protocol", "P", "http", "tells Dapr to use HTTP or gRPC to talk to the app. Default is http")
 	RunCmd.Flags().StringVarP(&componentsPath, "components-path", "d", standalone.DefaultComponentsDirPath(), "Path for components directory. Default is $HOME/.dapr/components or %USERPROFILE%\\.dapr\\components")
 	RunCmd.Flags().String("placement-host-address", "localhost", "the host on which the placement service resides")
+	RunCmd.Flags().BoolVar(&appSSL, "app-ssl", false, "when true, will have Dapr invoke the app over https. default is false")
 
 	RootCmd.AddCommand(RunCmd)
 }

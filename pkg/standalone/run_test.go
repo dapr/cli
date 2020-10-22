@@ -67,6 +67,7 @@ func TestRun(t *testing.T) {
 			Protocol:        "http",
 			PlacementHost:   "localhost",
 			ComponentsPath:  DefaultComponentsDirPath(),
+			AppSSL:          true,
 		})
 
 		assert.Nil(t, err)
@@ -85,6 +86,7 @@ func TestRun(t *testing.T) {
 		assertArgument(t, "protocol", "http", output.DaprCMD.Args)
 		assertArgument(t, "app-port", "3000", output.DaprCMD.Args)
 		assertArgument(t, "components-path", DefaultComponentsDirPath(), output.DaprCMD.Args)
+		assertArgument(t, "app-ssl", "true", output.DaprCMD.Args)
 		if runtime.GOOS == "windows" {
 			assertArgument(t, "placement-address", "localhost:6050", output.DaprCMD.Args)
 		} else {
