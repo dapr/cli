@@ -21,9 +21,7 @@ Available Commands:
   configurations List all Dapr configurations
   help           Help about any command
   init           Setup dapr in Kubernetes or Standalone modes
-  invoke         Invokes a Dapr app with an optional payload (deprecated, use invokePost)
-  invokeGet      Issue HTTP GET to Dapr app
-  invokePost     Issue HTTP POST to Dapr app with an optional payload
+  invoke         Invokes a Dapr app with an optional payload
   list           List all Dapr instances
   logs           Gets Dapr sidecar logs for an app in Kubernetes
   mtls           Check if mTLS is enabled in a Kubernetes cluster

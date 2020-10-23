@@ -191,7 +191,9 @@ func Init(runtimeVersion string, dockerNetwork string, redisHost string, slimMod
 	} else {
 		dockerContainerNames := []string{DaprPlacementContainerName, DaprRedisContainerName, DaprZipkinContainerName}
 		for _, container := range dockerContainerNames {
-			ok, err := confirmContainerIsRunningOrExists(utils.CreateContainerName(container, dockerNetwork), true)
+			// We don't need to check for the redis container if a custom host was specified
+			containerEnabled := container != DaprRedisContainerName || redisHost == daprDefaultHost
+			ok, err := confirmContainerIsRunningOrExists(utils.CreateContainerName(container, dockerNetwork), containerEnabled)
 			if err != nil {
 				return err
 			}

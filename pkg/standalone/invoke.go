@@ -8,37 +8,15 @@ package standalone
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 
 	"github.com/dapr/cli/pkg/api"
 )
 
-// InvokeGet invokes the application via HTTP GET.
-func (s *Standalone) InvokeGet(appID, method string) (string, error) {
-	list, err := s.process.List()
-	if err != nil {
-		return "", err
-	}
-	for _, lo := range list {
-		if lo.AppID == appID {
-			url := makeEndpoint(lo, method)
-			// nolint:gosec
-			r, err := http.Get(url)
-			if err != nil {
-				return "", err
-			}
-
-			defer r.Body.Close()
-			return handleResponse(r)
-		}
-	}
-
-	return "", fmt.Errorf("app ID %s not found", appID)
-}
-
-// InvokePost invokes the application via HTTP POST.
-func (s *Standalone) InvokePost(appID, method, payload string) (string, error) {
+// Invoke is a command to invoke a remote or local dapr instance.
+func (s *Standalone) Invoke(appID, method, payload, verb string) (string, error) {
 	list, err := s.process.List()
 	if err != nil {
 		return "", err
@@ -47,12 +25,21 @@ func (s *Standalone) InvokePost(appID, method, payload string) (string, error) {
 	for _, lo := range list {
 		if lo.AppID == appID {
 			url := makeEndpoint(lo, method)
-			// nolint: gosec
-			r, err := http.Post(url, "application/json", bytes.NewBuffer([]byte(payload)))
+			var body io.Reader
+
+			if payload != "" {
+				body = bytes.NewBuffer([]byte(payload))
+			}
+			req, err := http.NewRequest(verb, url, body)
 			if err != nil {
 				return "", err
 			}
+			req.Header.Set("Content-Type", "application/json")
 
+			r, err := http.DefaultClient.Do(req)
+			if err != nil {
+				return "", err
+			}
 			defer r.Body.Close()
 			return handleResponse(r)
 		}
