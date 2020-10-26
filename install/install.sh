@@ -161,7 +161,7 @@ cleanup() {
 }
 
 installCompleted() {
-    echo -e "\nTo get started with Dapr, please visit https://github.com/dapr/docs/tree/master/getting-started"
+    echo -e "\nTo get started with Dapr, please visit https://docs.dapr.io/getting-started/"
 }
 
 # -----------------------------------------------------------------------------
