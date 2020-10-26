@@ -26,7 +26,7 @@ var (
 
 var InvokeCmd = &cobra.Command{
 	Use:   "invoke",
-	Short: "Invokes a Dapr app with an optional payload (deprecated, use invokePost)",
+	Short: "Invoke a method on a given Dapr application",
 	Run: func(cmd *cobra.Command, args []string) {
 		client := standalone.NewClient()
 		response, err := client.Invoke(invokeAppID, invokeAppMethod, invokePayload, invokeVerb)
@@ -44,10 +44,11 @@ var InvokeCmd = &cobra.Command{
 }
 
 func init() {
-	InvokeCmd.Flags().StringVarP(&invokeAppID, "app-id", "a", "", "the app id to invoke")
-	InvokeCmd.Flags().StringVarP(&invokeAppMethod, "method", "m", "", "the method to invoke")
-	InvokeCmd.Flags().StringVarP(&invokePayload, "payload", "p", "", "(optional) a json payload")
-	InvokeCmd.Flags().StringVarP(&invokeVerb, "verb", "v", defaultHTTPVerb, "(optional) The HTTP verb to use. default is POST")
+	InvokeCmd.Flags().StringVarP(&invokeAppID, "app-id", "a", "", "The application id to invoke")
+	InvokeCmd.Flags().StringVarP(&invokeAppMethod, "method", "m", "", "The method to invoke")
+	InvokeCmd.Flags().StringVarP(&invokePayload, "payload", "p", "", "The JSON payload (optional)")
+	InvokeCmd.Flags().StringVarP(&invokeVerb, "verb", "v", defaultHTTPVerb, "The HTTP verb to use")
+	InvokeCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	InvokeCmd.MarkFlagRequired("app-id")
 	InvokeCmd.MarkFlagRequired("method")
 	RootCmd.AddCommand(InvokeCmd)

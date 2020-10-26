@@ -22,7 +22,7 @@ var (
 
 var LogsCmd = &cobra.Command{
 	Use:   "logs",
-	Short: "Gets Dapr sidecar logs for an app in Kubernetes",
+	Short: "Get Dapr sidecar logs for an application",
 	Run: func(cmd *cobra.Command, args []string) {
 		err := kubernetes.Logs(logsAppID, podName, namespace)
 		if err != nil {
@@ -34,10 +34,11 @@ var LogsCmd = &cobra.Command{
 }
 
 func init() {
-	LogsCmd.Flags().BoolVarP(&k8s, "kubernetes", "k", true, "only works with a Kubernetes cluster")
-	LogsCmd.Flags().StringVarP(&logsAppID, "app-id", "a", "", "The app id for which logs are needed")
-	LogsCmd.Flags().StringVarP(&podName, "pod-name", "p", "", "(optional) Name of the Pod. Use this in case you have multiple app instances (Pods)")
-	LogsCmd.Flags().StringVarP(&namespace, "namespace", "n", "", "(optional) Kubernetes namespace in which your application is deployed. default value is 'default'")
+	LogsCmd.Flags().BoolVarP(&k8s, "kubernetes", "k", true, "Get logs from a Kubernetes cluster")
+	LogsCmd.Flags().StringVarP(&logsAppID, "app-id", "a", "", "The application id for which logs are needed")
+	LogsCmd.Flags().StringVarP(&podName, "pod-name", "p", "", "The name of the pod in Kubernetes, in case your application has multiple pods (optional)")
+	LogsCmd.Flags().StringVarP(&namespace, "namespace", "n", "default", "The Kubernetes namespace in which your application is deployed")
+	LogsCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	LogsCmd.MarkFlagRequired("app-id")
 	LogsCmd.MarkFlagRequired("kubernetes")
 	RootCmd.AddCommand(LogsCmd)

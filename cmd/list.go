@@ -59,6 +59,7 @@ var ListCmd = &cobra.Command{
 }
 
 func init() {
-	ListCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "List all Dapr pods in a k8s cluster")
+	ListCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "List all Dapr pods in a Kubernetes cluster")
+	ListCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	RootCmd.AddCommand(ListCmd)
 }

@@ -38,7 +38,8 @@ var ConfigurtionsCmd = &cobra.Command{
 }
 
 func init() {
-	ConfigurtionsCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "List all Dapr configurations in a k8s cluster")
+	ConfigurtionsCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "List all Dapr configurations in a Kubernetes cluster")
+	ConfigurtionsCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	ConfigurtionsCmd.MarkFlagRequired("kubernetes")
 	RootCmd.AddCommand(ConfigurtionsCmd)
 }

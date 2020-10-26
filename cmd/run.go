@@ -46,8 +46,8 @@ const (
 
 var RunCmd = &cobra.Command{
 	Use:   "run",
-	Short: "Launches Dapr and (optionally) your app side by side",
-	Long: `Runs Dapr's sidecar and (optionally) an application.
+	Short: "Run Dapr and (optionally) your application side by side",
+	Long: `Run Dapr's sidecar and (optionally) an application.
 
 Run a Java application:
   dapr run --app-id myapp -- java -jar myapp.jar
@@ -267,20 +267,20 @@ Run sidecar only:
 }
 
 func init() {
-	RunCmd.Flags().IntVarP(&appPort, "app-port", "p", -1, "the port your application is listening on")
-	RunCmd.Flags().StringVarP(&appID, "app-id", "i", "", "an id for your application, used for service discovery")
-	RunCmd.Flags().StringVarP(&configFile, "config", "c", standalone.DefaultConfigFilePath(), "Dapr configuration file. Default is $HOME/.dapr/config.yaml or %USERPROFILE%\\.dapr\\config.yaml")
-	RunCmd.Flags().IntVarP(&port, "dapr-http-port", "H", -1, "the HTTP port for Dapr to listen on")
-	RunCmd.Flags().IntVarP(&grpcPort, "dapr-grpc-port", "G", -1, "the gRPC port for Dapr to listen on")
-	RunCmd.Flags().StringVarP(&image, "image", "", "", "the image to build the code in. input is repository/image")
+	RunCmd.Flags().IntVarP(&appPort, "app-port", "p", -1, "The port your application is listening on")
+	RunCmd.Flags().StringVarP(&appID, "app-id", "i", "", "The id for your application, used for service discovery")
+	RunCmd.Flags().StringVarP(&configFile, "config", "c", standalone.DefaultConfigFilePath(), "Dapr configuration file")
+	RunCmd.Flags().IntVarP(&port, "dapr-http-port", "H", -1, "The HTTP port for Dapr to listen on")
+	RunCmd.Flags().IntVarP(&grpcPort, "dapr-grpc-port", "G", -1, "The gRPC port for Dapr to listen on")
+	RunCmd.Flags().StringVarP(&image, "image", "", "", "The image to build the code in (input is repository/image)")
 	RunCmd.Flags().BoolVar(&enableProfiling, "enable-profiling", false, "Enable pprof profiling via an HTTP endpoint")
-	RunCmd.Flags().IntVarP(&profilePort, "profile-port", "", -1, "the port for the profile server to listen on")
-	RunCmd.Flags().StringVarP(&logLevel, "log-level", "", "info", "Sets the log verbosity. Valid values are: debug, info, warn, error, fatal, or panic. Default is info")
-	RunCmd.Flags().IntVarP(&maxConcurrency, "max-concurrency", "", -1, "controls the concurrency level of the app. Default is unlimited")
-	RunCmd.Flags().StringVarP(&protocol, "app-protocol", "P", "http", "tells Dapr to use HTTP or gRPC to talk to the app. Default is http")
-	RunCmd.Flags().StringVarP(&componentsPath, "components-path", "d", standalone.DefaultComponentsDirPath(), "Path for components directory. Default is $HOME/.dapr/components or %USERPROFILE%\\.dapr\\components")
-	RunCmd.Flags().String("placement-host-address", "localhost", "the host on which the placement service resides")
-	RunCmd.Flags().BoolVar(&appSSL, "app-ssl", false, "when true, will have Dapr invoke the app over https. default is false")
-
+	RunCmd.Flags().IntVarP(&profilePort, "profile-port", "", -1, "The port for the profile server to listen on")
+	RunCmd.Flags().StringVarP(&logLevel, "log-level", "", "info", "The log verbosity. Valid values are: debug, info, warn, error, fatal, or panic")
+	RunCmd.Flags().IntVarP(&maxConcurrency, "max-concurrency", "", -1, "The concurrency level of the application, otherwise is unlimited")
+	RunCmd.Flags().StringVarP(&protocol, "app-protocol", "P", "http", "The protocol (gRPC or HTTP) Dapr uses to talk to the application")
+	RunCmd.Flags().StringVarP(&componentsPath, "components-path", "d", standalone.DefaultComponentsDirPath(), "The path for components directory")
+	RunCmd.Flags().String("placement-host-address", "localhost", "The host on which the placement service resides")
+	RunCmd.Flags().BoolVar(&appSSL, "app-ssl", false, "Enable https when Dapr invokes the application")
+	RunCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	RootCmd.AddCommand(RunCmd)
 }
