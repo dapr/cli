@@ -38,7 +38,8 @@ var ComponentsCmd = &cobra.Command{
 }
 
 func init() {
-	ComponentsCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "List all Dapr components in a k8s cluster")
+	ComponentsCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "List all Dapr components in a Kubernetes cluster")
+	ComponentsCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	ComponentsCmd.MarkFlagRequired("kubernetes")
 	RootCmd.AddCommand(ComponentsCmd)
 }

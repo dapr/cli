@@ -25,7 +25,7 @@ var (
 // UninstallCmd is a command from removing a Dapr installation.
 var UninstallCmd = &cobra.Command{
 	Use:   "uninstall",
-	Short: "Removes a Dapr installation",
+	Short: "Uninstall Dapr runtime",
 	PreRun: func(cmd *cobra.Command, args []string) {
 		viper.BindPFlag("network", cmd.Flags().Lookup("network"))
 		viper.BindPFlag("install-path", cmd.Flags().Lookup("install-path"))
@@ -52,8 +52,9 @@ var UninstallCmd = &cobra.Command{
 
 func init() {
 	UninstallCmd.Flags().BoolVarP(&uninstallKubernetes, "kubernetes", "k", false, "Uninstall Dapr from a Kubernetes cluster")
-	UninstallCmd.Flags().BoolVar(&uninstallAll, "all", false, "Removes .dapr directory, Redis, Placement and Zipkin containers")
+	UninstallCmd.Flags().BoolVar(&uninstallAll, "all", false, "Remove .dapr directory, Redis, Placement and Zipkin containers")
 	UninstallCmd.Flags().String("network", "", "The Docker network from which to remove the Dapr runtime")
-	UninstallCmd.Flags().StringVarP(&uninstallNamespace, "namespace", "n", "dapr-system", "The namespace to uninstall Dapr from (Kubernetes mode only)")
+	UninstallCmd.Flags().StringVarP(&uninstallNamespace, "namespace", "n", "dapr-system", "The Kubernetes namespace to uninstall Dapr from")
+	UninstallCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	RootCmd.AddCommand(UninstallCmd)
 }

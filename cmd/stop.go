@@ -17,7 +17,7 @@ var stopAppID string
 
 var StopCmd = &cobra.Command{
 	Use:   "stop",
-	Short: "Stops multiple running Dapr instances and their associated apps",
+	Short: "Stop Dapr instances and their associated apps in self-hosted mode",
 	Run: func(cmd *cobra.Command, args []string) {
 		if stopAppID != "" {
 			args = append(args, stopAppID)
@@ -34,6 +34,7 @@ var StopCmd = &cobra.Command{
 }
 
 func init() {
-	StopCmd.Flags().StringVarP(&stopAppID, "app-id", "", "", "app id to stop (standalone mode)")
+	StopCmd.Flags().StringVarP(&stopAppID, "app-id", "", "", "The application id to be stopped")
+	StopCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	RootCmd.AddCommand(StopCmd)
 }

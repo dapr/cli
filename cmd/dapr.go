@@ -27,8 +27,8 @@ var RootCmd = &cobra.Command{
   \__,_/\__,_/ .___/_/     
 	      /_/            
 									   
-======================================================
-A serverless runtime for hyperscale, distributed systems`,
+===============================
+Distributed Application Runtime`,
 }
 
 // Execute adds all child commands to the root command.

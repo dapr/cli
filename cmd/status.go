@@ -17,7 +17,7 @@ import (
 
 var StatusCmd = &cobra.Command{
 	Use:   "status",
-	Short: "Shows the Dapr system services (control plane) health status.",
+	Short: "Show the health status of Dapr services",
 	Run: func(cmd *cobra.Command, args []string) {
 		sc, err := kubernetes.NewStatusClient()
 		if err != nil {
@@ -44,7 +44,8 @@ var StatusCmd = &cobra.Command{
 }
 
 func init() {
-	StatusCmd.Flags().BoolVarP(&k8s, "kubernetes", "k", true, "only works with a Kubernetes cluster")
+	StatusCmd.Flags().BoolVarP(&k8s, "kubernetes", "k", false, "Show the health status of Dapr services on Kubernetes cluster")
+	StatusCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	StatusCmd.MarkFlagRequired("kubernetes")
 	RootCmd.AddCommand(StatusCmd)
 }

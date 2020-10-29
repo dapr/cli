@@ -20,7 +20,7 @@ var exportPath string
 
 var MTLSCmd = &cobra.Command{
 	Use:   "mtls",
-	Short: "Check if mTLS is enabled in a Kubernetes cluster",
+	Short: "Check if mTLS is enabled",
 	Run: func(cmd *cobra.Command, args []string) {
 		enabled, err := kubernetes.IsMTLSEnabled()
 		if err != nil {
@@ -68,7 +68,9 @@ var ExpiryCMD = &cobra.Command{
 
 func init() {
 	MTLSCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Check if mTLS is enabled in a Kubernetes cluster")
-	ExportCMD.Flags().StringVarP(&exportPath, "out", "o", ".", "Output directory path to save the certs")
+	MTLSCmd.Flags().BoolP("help", "h", false, "Print this help message")
+	ExportCMD.Flags().StringVarP(&exportPath, "out", "o", ".", "The output directory path to save the certs")
+	ExportCMD.Flags().BoolP("help", "h", false, "Print this help message")
 	MTLSCmd.MarkFlagRequired("kubernetes")
 	MTLSCmd.AddCommand(ExportCMD)
 	MTLSCmd.AddCommand(ExpiryCMD)
