@@ -82,15 +82,15 @@ func TestRun(t *testing.T) {
 		assertArgument(t, "dapr-http-port", "8000", output.DaprCMD.Args)
 		assertArgument(t, "dapr-grpc-port", "50001", output.DaprCMD.Args)
 		assertArgument(t, "log-level", "WARN", output.DaprCMD.Args)
-		assertArgument(t, "max-concurrency", "-1", output.DaprCMD.Args)
-		assertArgument(t, "protocol", "http", output.DaprCMD.Args)
+		assertArgument(t, "app-max-concurrency", "-1", output.DaprCMD.Args)
+		assertArgument(t, "app-protocol", "http", output.DaprCMD.Args)
 		assertArgument(t, "app-port", "3000", output.DaprCMD.Args)
 		assertArgument(t, "components-path", DefaultComponentsDirPath(), output.DaprCMD.Args)
 		assertArgument(t, "app-ssl", "true", output.DaprCMD.Args)
 		if runtime.GOOS == "windows" {
-			assertArgument(t, "placement-address", "localhost:6050", output.DaprCMD.Args)
+			assertArgument(t, "placement-host-address", "localhost:6050", output.DaprCMD.Args)
 		} else {
-			assertArgument(t, "placement-address", "localhost:50005", output.DaprCMD.Args)
+			assertArgument(t, "placement-host-address", "localhost:50005", output.DaprCMD.Args)
 		}
 
 		assert.Equal(t, "MyCommand", output.AppCMD.Args[0])
@@ -124,15 +124,15 @@ func TestRun(t *testing.T) {
 		assertArgument(t, "dapr-http-port", "8000", output.DaprCMD.Args)
 		assertArgument(t, "dapr-grpc-port", "50001", output.DaprCMD.Args)
 		assertArgument(t, "log-level", "INFO", output.DaprCMD.Args)
-		assertArgument(t, "max-concurrency", "-1", output.DaprCMD.Args)
-		assertArgument(t, "protocol", "http", output.DaprCMD.Args)
+		assertArgument(t, "app-max-concurrency", "-1", output.DaprCMD.Args)
+		assertArgument(t, "app-protocol", "http", output.DaprCMD.Args)
 		assertArgument(t, "app-port", "3000", output.DaprCMD.Args)
 		assertArgument(t, "config", DefaultConfigFilePath(), output.DaprCMD.Args)
 		assertArgument(t, "components-path", DefaultComponentsDirPath(), output.DaprCMD.Args)
 		if runtime.GOOS == "windows" {
-			assertArgument(t, "placement-address", "localhost:6050", output.DaprCMD.Args)
+			assertArgument(t, "placement-host-address", "localhost:6050", output.DaprCMD.Args)
 		} else {
-			assertArgument(t, "placement-address", "localhost:50005", output.DaprCMD.Args)
+			assertArgument(t, "placement-host-address", "localhost:50005", output.DaprCMD.Args)
 		}
 
 		assert.Nil(t, output.AppCMD)

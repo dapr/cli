@@ -260,7 +260,7 @@ $ dapr run --app-id nodeapp --placement-host-address dapr_placement node app.js
 If your app uses gRPC instead of HTTP to receive Dapr events, run the CLI with the following command:
 
 ```
-dapr run --app-id nodeapp --protocol grpc --app-port 6000 node app.js
+dapr run --app-id nodeapp --app-protocol grpc --app-port 6000 node app.js
 ```
 
 The example above assumed your app port is 6000.
