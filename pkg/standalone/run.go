@@ -78,12 +78,12 @@ func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort in
 		return nil, -1, -1, -1, err
 	}
 
-	args := []string{"--app-id", appID, "--dapr-http-port", fmt.Sprintf("%v", daprHTTPPort), "--dapr-grpc-port", fmt.Sprintf("%v", daprGRPCPort), "--log-level", logLevel, "--max-concurrency", fmt.Sprintf("%v", maxConcurrency), "--protocol", protocol, "--metrics-port", fmt.Sprintf("%v", metricsPort), "--components-path", componentsPath}
+	args := []string{"--app-id", appID, "--dapr-http-port", fmt.Sprintf("%v", daprHTTPPort), "--dapr-grpc-port", fmt.Sprintf("%v", daprGRPCPort), "--log-level", logLevel, "--app-max-concurrency", fmt.Sprintf("%v", maxConcurrency), "--app-protocol", protocol, "--metrics-port", fmt.Sprintf("%v", metricsPort), "--components-path", componentsPath}
 	if appPort > -1 {
 		args = append(args, "--app-port", fmt.Sprintf("%v", appPort))
 	}
 
-	args = append(args, "--placement-address")
+	args = append(args, "--placement-host-address")
 
 	if runtime.GOOS == daprWindowsOS {
 		args = append(args, fmt.Sprintf("%s:6050", placementHost))
