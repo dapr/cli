@@ -72,6 +72,8 @@ func newCompletionCmd() *cobra.Command {
 		newCompletionPowerShellCmd(),
 	)
 
+	cmd.Flags().BoolP("help", "h", false, "Print this help message")
+
 	return cmd
 }
 
