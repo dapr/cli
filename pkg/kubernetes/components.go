@@ -6,6 +6,8 @@
 package kubernetes
 
 import (
+	"strings"
+
 	"github.com/dapr/cli/pkg/age"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -14,8 +16,10 @@ import (
 type ComponentsOutput struct {
 	Name    string `csv:"Name"`
 	Type    string `csv:"Type"`
-	Age     string `csv:"AGE"`
+	Version string `csv:"VERSION"`
+	Scopes  string `csv:"SCOPES"`
 	Created string `csv:"CREATED"`
+	Age     string `csv:"AGE"`
 }
 
 // List outputs all Dapr components.
@@ -37,6 +41,8 @@ func Components() ([]ComponentsOutput, error) {
 			Type:    c.Spec.Type,
 			Created: c.CreationTimestamp.Format("2006-01-02 15:04.05"),
 			Age:     age.GetAge(c.CreationTimestamp.Time),
+			Version: c.Spec.Version,
+			Scopes:  strings.Join(c.Scopes, ","),
 		})
 	}
 	return co, nil
