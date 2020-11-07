@@ -6,7 +6,7 @@ require (
 	github.com/Pallinder/sillyname-go v0.0.0-20130730142914-97aeae9e6ba1
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/briandowns/spinner v1.6.1
-	github.com/dapr/dapr v0.7.1
+	github.com/dapr/dapr v0.11.3
 	github.com/docker/docker v17.12.0-ce-rc1.0.20200618181300-9dc6525e6118+incompatible
 	github.com/fatih/color v1.7.0
 	github.com/go-ole/go-ole v1.2.4 // indirect
@@ -22,16 +22,17 @@ require (
 	github.com/shirou/gopsutil v2.20.2+incompatible
 	github.com/spf13/cobra v0.0.6
 	github.com/spf13/viper v1.5.0
-	github.com/stretchr/testify v1.4.0
+	github.com/stretchr/testify v1.5.1
 	golang.org/x/time v0.0.0-20190921001708-c4c64cad1fd0 // indirect
 	gopkg.in/yaml.v2 v2.2.8
 	helm.sh/helm/v3 v3.1.0
-	k8s.io/api v0.17.2
-	k8s.io/apimachinery v0.17.2
+	k8s.io/api v0.17.8
+	k8s.io/apimachinery v0.17.8
 	k8s.io/cli-runtime v0.17.2
 	k8s.io/client-go v0.17.2
 	k8s.io/helm v2.16.10+incompatible
 	rsc.io/letsencrypt v0.0.3 // indirect
+	sigs.k8s.io/structured-merge-diff/v3 v3.0.0-20200116222232-67a7b8c61874 // indirect
 )
 
 replace (
