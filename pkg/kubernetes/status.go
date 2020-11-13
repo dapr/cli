@@ -21,6 +21,7 @@ import (
 var controlPlaneLabels = []string{
 	"dapr-operator",
 	"dapr-sentry",
+	"dapr-placement", // TODO: This is for the backward compatibility. Remove this after 1.0.0 GA release.
 	"dapr-placement-server",
 	"dapr-sidecar-injector",
 	"dapr-dashboard",
