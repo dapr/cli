@@ -18,7 +18,13 @@ import (
 	k8s "k8s.io/client-go/kubernetes"
 )
 
-var controlPlaneLabels = []string{"dapr-operator", "dapr-sentry", "dapr-placement", "dapr-sidecar-injector", "dapr-dashboard"}
+var controlPlaneLabels = []string{
+	"dapr-operator",
+	"dapr-sentry",
+	"dapr-placement-server",
+	"dapr-sidecar-injector",
+	"dapr-dashboard",
+}
 
 type StatusClient struct {
 	client k8s.Interface
