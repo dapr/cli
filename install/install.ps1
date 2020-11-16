@@ -3,7 +3,8 @@
 # Licensed under the MIT License.
 # ------------------------------------------------------------
 param (
-    [string]$DaprRoot = "c:\dapr"
+    [string]$DaprRoot = "/tmp/",
+    [string]$Version = ""
 )
 
 $ErrorActionPreference = 'stop'
@@ -62,16 +63,23 @@ if ($releases.Count -eq 0) {
 }
 
 # Filter windows binary and download archive
-$windowsAsset = $releases | Where-Object { $_.tag_name -notlike "*rc*" } | Select-Object -First 1 | Select-Object -ExpandProperty assets | Where-Object { $_.name -Like "*windows_amd64.zip" }
-if (!$windowsAsset) {
-    throw "Cannot find the windows Dapr CLI binary"
+if (!$Version) {
+    $windowsAsset = $releases | Where-Object { $_.tag_name -notlike "*rc*" } | Select-Object -First 1 | Select-Object -ExpandProperty assets | Where-Object { $_.name -Like "*windows_amd64.zip" }
+    if (!$windowsAsset) {
+        throw "Cannot find the windows Dapr CLI binary"
+    }
+    $zipFileUrl = $windowsAsset.url
+    $assetName = $windowsAsset.name
+} else {
+    $assetName = "dapr_windows_amd64.zip"
+    $zipFileUrl = "https://github.com/${GitHubOrg}/${GitHubRepo}/releases/download/v${Version}/${assetName}"
 }
 
-$zipFilePath = $DaprRoot + "\" + $windowsAsset.name
-Write-Output "Downloading $zipFilePath ..."
+$zipFilePath = $DaprRoot + "\" + $assetName
+Write-Output "Downloading $zipFileUrl ..."
 
 $githubHeader.Accept = "application/octet-stream"
-Invoke-WebRequest -Headers $githubHeader -Uri $windowsAsset.url -OutFile $zipFilePath
+Invoke-WebRequest -Headers $githubHeader -Uri $zipFileUrl -OutFile $zipFilePath
 if (!(Test-Path $zipFilePath -PathType Leaf)) {
     throw "Failed to download Dapr Cli binary - $zipFilePath"
 }
