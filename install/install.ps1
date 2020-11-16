@@ -3,10 +3,11 @@
 # Licensed under the MIT License.
 # ------------------------------------------------------------
 param (
-    [string]$DaprRoot = "c:\dapr",
-    [string]$Version = ""
+    [string]$Version,
+    [string]$DaprRoot = "c:\dapr"
 )
 
+Write-Output ""
 $ErrorActionPreference = 'stop'
 
 #Escape space of DapRoot path

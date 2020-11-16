@@ -11,7 +11,7 @@ powershell -Command "iwr -useb https://raw.githubusercontent.com/dapr/cli/master
 ### Get the specific version
 
 ```
-powershell -Command "iwr -useb https://raw.githubusercontent.com/dapr/cli/master/install/install.ps1 | iex -Version <Version>"
+powershell -Command "$script=iwr -useb https://raw.githubusercontent.com/dapr/cli/youngp/add-version-param/install/install.ps1; $block=[ScriptBlock]::Create($script); invoke-command -ScriptBlock $block -ArgumentList 1.0.0-rc.1"
 ```
 
 ## MacOS
@@ -25,7 +25,7 @@ curl -fsSL https://raw.githubusercontent.com/dapr/cli/master/install/install.sh 
 ### Get the specific version
 
 ```
-curl -fsSL https://raw.githubusercontent.com/dapr/cli/master/install/install.sh | /bin/bash <Version>
+curl -fsSL https://raw.githubusercontent.com/dapr/cli/master/install/install.sh | /bin/bash -s <Version>
 ```
 
 ## Linux
@@ -39,5 +39,5 @@ wget -q https://raw.githubusercontent.com/dapr/cli/master/install/install.sh -O 
 ### Get the specific version
 
 ```
-wget -q https://raw.githubusercontent.com/dapr/cli/master/install/install.sh -O - | /bin/bash <Version>
+wget -q https://raw.githubusercontent.com/dapr/cli/master/install/install.sh -O - | /bin/bash -s <Version>
 ```
