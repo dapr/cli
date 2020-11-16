@@ -3,7 +3,7 @@
 # Licensed under the MIT License.
 # ------------------------------------------------------------
 param (
-    [string]$DaprRoot = "/tmp/",
+    [string]$DaprRoot = "c:\dapr",
     [string]$Version = ""
 )
 
