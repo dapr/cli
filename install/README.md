@@ -11,7 +11,7 @@ powershell -Command "iwr -useb https://raw.githubusercontent.com/dapr/cli/master
 ### Get the specific version
 
 ```
-powershell -Command "\$script=iwr -useb https://raw.githubusercontent.com/dapr/cli/master/install/install.ps1; \$block=[ScriptBlock]::Create(\$script); invoke-command -ScriptBlock \$block -ArgumentList <Version>"
+powershell -Command "$script=iwr -useb https://raw.githubusercontent.com/dapr/cli/master/install/install.ps1; $block=[ScriptBlock]::Create($script); invoke-command -ScriptBlock $block -ArgumentList <Version>"
 ```
 
 ## MacOS
