@@ -174,7 +174,16 @@ verifySupported
 checkExistingDapr
 checkHttpRequestCLI
 
-getLatestRelease
+
+if [ -z "$1" ]; then
+    echo "Getting the latest Dapr CLI..."
+    getLatestRelease
+else
+    ret_val=v$1
+fi
+
+echo "Installing $ret_val Dapr CLI..."
+
 downloadFile $ret_val
 installFile
 cleanup

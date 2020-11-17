@@ -32,7 +32,6 @@ require (
 	k8s.io/client-go v0.17.2
 	k8s.io/helm v2.16.10+incompatible
 	rsc.io/letsencrypt v0.0.3 // indirect
-	sigs.k8s.io/structured-merge-diff/v3 v3.0.0-20200116222232-67a7b8c61874 // indirect
 )
 
 replace (
