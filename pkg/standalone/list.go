@@ -20,25 +20,27 @@ import (
 
 // ListOutput represents the application ID, application port and creation time.
 type ListOutput struct {
-	AppID    string `csv:"APP ID"`
-	HTTPPort int    `csv:"HTTP PORT"`
-	GRPCPort int    `csv:"GRPC PORT"`
-	AppPort  int    `csv:"APP PORT"`
-	Command  string `csv:"COMMAND"`
-	Age      string `csv:"AGE"`
-	Created  string `csv:"CREATED"`
-	PID      int
+	AppID          string `csv:"APP ID"`
+	HTTPPort       int    `csv:"HTTP PORT"`
+	GRPCPort       int    `csv:"GRPC PORT"`
+	AppPort        int    `csv:"APP PORT"`
+	MetricsEnabled bool   `csv:"-"` // Not displayed, consumed by dashboard.
+	Command        string `csv:"COMMAND"`
+	Age            string `csv:"AGE"`
+	Created        string `csv:"CREATED"`
+	PID            int
 }
 
 // runData is a placeholder for collected information linking cli and sidecar.
 type runData struct {
-	cliPID     int
-	sidecarPID int
-	grpcPort   int
-	httpPort   int
-	appPort    int
-	appID      string
-	appCmd     string
+	cliPID        int
+	sidecarPID    int
+	grpcPort      int
+	httpPort      int
+	appPort       int
+	appID         string
+	appCmd        string
+	enableMetrics bool
 }
 
 func (d *daprProcess) List() ([]ListOutput, error) {
@@ -96,6 +98,11 @@ func List() ([]ListOutput, error) {
 				appPort = 0
 			}
 
+			enableMetrics, err := strconv.ParseBool(argumentsMap["--enable-metrics"])
+			if err != nil {
+				// Default is true for metrics.
+				enableMetrics = true
+			}
 			appID := argumentsMap["--app-id"]
 			appCmd := ""
 			cliPIDString := ""
@@ -112,13 +119,14 @@ func List() ([]ListOutput, error) {
 			}
 
 			run := runData{
-				cliPID:     cliPID,
-				sidecarPID: proc.Pid(),
-				grpcPort:   grpcPort,
-				httpPort:   httpPort,
-				appPort:    appPort,
-				appID:      appID,
-				appCmd:     appCmd,
+				cliPID:        cliPID,
+				sidecarPID:    proc.Pid(),
+				grpcPort:      grpcPort,
+				httpPort:      httpPort,
+				appPort:       appPort,
+				appID:         appID,
+				appCmd:        appCmd,
+				enableMetrics: enableMetrics,
 			}
 
 			cliToSidecarMap[cliPID] = &run
@@ -161,6 +169,7 @@ func List() ([]ListOutput, error) {
 				listRow.HTTPPort = run.httpPort
 				listRow.GRPCPort = run.grpcPort
 				listRow.AppPort = run.appPort
+				listRow.MetricsEnabled = run.enableMetrics
 				listRow.Command = utils.TruncateString(run.appCmd, 20)
 			}
 
