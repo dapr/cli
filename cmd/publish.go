@@ -37,8 +37,8 @@ var PublishCmd = &cobra.Command{
 
 func init() {
 	PublishCmd.Flags().StringVarP(&publishTopic, "topic", "t", "", "The topic to be published to")
-	PublishCmd.Flags().StringVarP(&publishPayload, "data", "d", "", "The JSON serialized string (optional)")
-	PublishCmd.Flags().StringVarP(&pubsubName, "pubsub", "", "", "The name of the pub/sub component")
+	PublishCmd.Flags().StringVarP(&publishPayload, "data", "d", "", "The JSON serialized data string (optional)")
+	PublishCmd.Flags().StringVarP(&pubsubName, "pubsub", "p", "", "The name of the pub/sub component")
 	PublishCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	PublishCmd.MarkFlagRequired("app-id")
 	PublishCmd.MarkFlagRequired("topic")

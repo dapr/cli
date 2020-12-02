@@ -34,7 +34,7 @@ var StopCmd = &cobra.Command{
 }
 
 func init() {
-	StopCmd.Flags().StringVarP(&stopAppID, "app-id", "", "", "The application id to be stopped")
+	StopCmd.Flags().StringVarP(&stopAppID, "app-id", "a", "", "The application id to be stopped")
 	StopCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	RootCmd.AddCommand(StopCmd)
 }
