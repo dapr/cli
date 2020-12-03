@@ -156,6 +156,6 @@ func init() {
 	DashboardCmd.Flags().BoolVarP(&dashboardVersion, "version", "v", false, "Print the version for Dapr dashboard")
 	DashboardCmd.Flags().IntVarP(&dashboardLocalPort, "port", "p", defaultLocalPort, "The local port on which to serve Dapr dashboard")
 	DashboardCmd.Flags().StringVarP(&dashboardNamespace, "namespace", "n", daprSystemNamespace, "The namespace where Dapr dashboard is running")
-	DashboardCmd.Flags().BoolP("help", "h", false, "Prints this help message")
+	DashboardCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	RootCmd.AddCommand(DashboardCmd)
 }
