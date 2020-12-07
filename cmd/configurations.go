@@ -17,7 +17,7 @@ import (
 
 var ConfigurtionsCmd = &cobra.Command{
 	Use:   "configurations",
-	Short: "List all Dapr configurations",
+	Short: "List all Dapr configurations. Supported platforms: Kubernetes",
 	Run: func(cmd *cobra.Command, args []string) {
 		if kubernetesMode {
 			configs, err := kubernetes.Configurations()
@@ -35,6 +35,10 @@ var ConfigurtionsCmd = &cobra.Command{
 			utils.PrintTable(table)
 		}
 	},
+	Example: `
+# List Kubernetes Dapr configurations
+dapr configurations -k
+`,
 }
 
 func init() {

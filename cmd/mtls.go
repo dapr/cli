@@ -20,7 +20,11 @@ var exportPath string
 
 var MTLSCmd = &cobra.Command{
 	Use:   "mtls",
-	Short: "Check if mTLS is enabled",
+	Short: "Check if mTLS is enabled. Supported platforms: Kubernetes",
+	Example: `
+# Check if mTLS is enabled
+dapr mtls -k
+`,
 	Run: func(cmd *cobra.Command, args []string) {
 		enabled, err := kubernetes.IsMTLSEnabled()
 		if err != nil {
@@ -39,6 +43,10 @@ var MTLSCmd = &cobra.Command{
 var ExportCMD = &cobra.Command{
 	Use:   "export",
 	Short: "Export the root CA, issuer cert and key from Kubernetes to local files",
+	Example: `
+# Export certs to local folder 
+dapr mtls export -o ./certs
+`,
 	Run: func(cmd *cobra.Command, args []string) {
 		err := kubernetes.ExportTrustChain(exportPath)
 		if err != nil {
@@ -54,6 +62,10 @@ var ExportCMD = &cobra.Command{
 var ExpiryCMD = &cobra.Command{
 	Use:   "expiry",
 	Short: "Checks the expiry of the root certificate",
+	Example: `
+# Check expiry of Kubernetes certs
+dapr mtls expiry
+`,
 	Run: func(cmd *cobra.Command, args []string) {
 		expiry, err := kubernetes.Expiry()
 		if err != nil {

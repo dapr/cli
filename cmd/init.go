@@ -27,12 +27,24 @@ var (
 
 var InitCmd = &cobra.Command{
 	Use:   "init",
-	Short: "Install Dapr on supported hosting platforms, currently: Kubernetes and self-hosted",
+	Short: "Install Dapr on supported hosting platforms. Supported platforms: Kubernetes and self-hosted",
 	PreRun: func(cmd *cobra.Command, args []string) {
 		viper.BindPFlag("network", cmd.Flags().Lookup("network"))
 		viper.BindPFlag("install-path", cmd.Flags().Lookup("install-path"))
 		viper.BindPFlag("redis-host", cmd.Flags().Lookup("redis-host"))
 	},
+	Example: `
+# Initialize Dapr in self-hosted mode
+dapr init
+
+# Initialize Dapr in Kubernetes
+dapr init -k
+
+# Initialize Dapr in slim self-hosted mode
+dapr init -s
+
+# See more at: https://docs.dapr.io/getting-started/
+`,
 	Run: func(cmd *cobra.Command, args []string) {
 		print.PendingStatusEvent(os.Stdout, "Making the jump to hyperspace...")
 

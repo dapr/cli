@@ -25,7 +25,17 @@ var (
 // UninstallCmd is a command from removing a Dapr installation.
 var UninstallCmd = &cobra.Command{
 	Use:   "uninstall",
-	Short: "Uninstall Dapr runtime",
+	Short: "Uninstall Dapr runtime. Supported platforms: Kubernetes and self-hosted",
+	Example: `
+# Uninstall from self-hosted mode
+dapr uninstall
+
+# Uninstall from self-hosted mode and remove .dapr directory, Redis, Placement and Zipkin containers
+dapr uninstall --all
+
+# Uninstall from Kubernetes
+dapr uninstall -k
+`,
 	PreRun: func(cmd *cobra.Command, args []string) {
 		viper.BindPFlag("network", cmd.Flags().Lookup("network"))
 		viper.BindPFlag("install-path", cmd.Flags().Lookup("install-path"))

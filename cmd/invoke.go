@@ -26,7 +26,14 @@ var (
 
 var InvokeCmd = &cobra.Command{
 	Use:   "invoke",
-	Short: "Invoke a method on a given Dapr application",
+	Short: "Invoke a method on a given Dapr application. Supported platforms: Self-hosted",
+	Example: `
+# Invoke a sample method on target app with POST Verb
+dapr invoke --app-id target --method sample --data '{"key":"value"}
+
+# Invoke a sample method on target app with GET Verb
+dapr invoke --app-id target --method sample --verb GET
+`,
 	Run: func(cmd *cobra.Command, args []string) {
 		client := standalone.NewClient()
 		response, err := client.Invoke(invokeAppID, invokeAppMethod, invokeData, invokeVerb)

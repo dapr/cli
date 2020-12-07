@@ -22,7 +22,11 @@ var (
 
 var PublishCmd = &cobra.Command{
 	Use:   "publish",
-	Short: "Publish a pub-sub event",
+	Short: "Publish a pub-sub event. Supported platforms: Self-hosted",
+	Example: `
+# Publish to sample topic in target pubsub
+dapr publish --topic sample --pubsub target --data '{"key":"value"}'
+`,
 	Run: func(cmd *cobra.Command, args []string) {
 		client := standalone.NewClient()
 		err := client.Publish(publishTopic, publishPayload, pubsubName)
