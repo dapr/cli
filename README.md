@@ -88,7 +88,7 @@ Output should look like so:
 
 This step creates the following defaults:
 1. components folder which is later used during `dapr run` unless the `--components-path` option is provided. For Linux/MacOS, the default components folder path is `$HOME/.dapr/components` and for Windows it is `%USERPROFILE%\.dapr\components`.
-2. component files in the components folder called `pubsub.yaml`, `statestore.yaml` and `zipkin.yaml`.
+2. component files in the components folder called `pubsub.yaml` and `statestore.yaml`.
 3. default config file `$HOME/.dapr/config.yaml` for Linux/MacOS or for Windows at `%USERPROFILE%\.dapr\config.yaml` to enable tracing on `dapr init` call. Can be overridden with the `--config` flag on `dapr run`.
 
 #### Slim Init

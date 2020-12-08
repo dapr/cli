@@ -42,7 +42,6 @@ const (
 	daprDefaultHost            = "localhost"
 	pubSubYamlFileName         = "pubsub.yaml"
 	stateStoreYamlFileName     = "statestore.yaml"
-	zipkinYamlFileName         = "zipkin.yaml"
 
 	// DaprPlacementContainerName is the container name of placement service.
 	DaprPlacementContainerName = "dapr_placement"
@@ -63,6 +62,9 @@ type configuration struct {
 	Spec struct {
 		Tracing struct {
 			SamplingRate string `yaml:"samplingRate"`
+			Zipkin       struct {
+				EndpointAddress string `yaml:"endpointAddress"`
+			} `yaml:"zipkin"`
 		} `yaml:"tracing"`
 	} `yaml:"spec"`
 }
@@ -560,12 +562,7 @@ func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error
 		errorChan <- fmt.Errorf("error creating redis statestore component file: %s", err)
 		return
 	}
-	err = createZipkinComponent(daprDefaultHost, componentsDir)
-	if err != nil {
-		errorChan <- fmt.Errorf("error creating zipkin component file: %s", err)
-		return
-	}
-	err = createDefaultConfiguration(DefaultConfigFilePath())
+	err = createDefaultConfiguration(daprDefaultHost, DefaultConfigFilePath())
 	if err != nil {
 		errorChan <- fmt.Errorf("error creating default configuration file: %s", err)
 		return
@@ -867,48 +864,19 @@ func createRedisPubSub(redisHost string, componentsPath string) error {
 	return err
 }
 
-func createDefaultConfiguration(filePath string) error {
+func createDefaultConfiguration(zipkinHost, filePath string) error {
 	defaultConfig := configuration{
 		APIVersion: "dapr.io/v1alpha1",
 		Kind:       "Configuration",
 	}
 	defaultConfig.Metadata.Name = "daprConfig"
 	defaultConfig.Spec.Tracing.SamplingRate = "1"
-
+	defaultConfig.Spec.Tracing.Zipkin.EndpointAddress = fmt.Sprintf("http://%s:9411/api/v2/spans", zipkinHost)
 	b, err := yaml.Marshal(&defaultConfig)
 	if err != nil {
 		return err
 	}
 
-	err = checkAndOverWriteFile(filePath, b)
-
-	return err
-}
-
-func createZipkinComponent(zipkinHost string, componentsPath string) error {
-	zipKinComponent := component{
-		APIVersion: "dapr.io/v1alpha1",
-		Kind:       "Component",
-	}
-	zipKinComponent.Metadata.Name = "zipkin"
-	zipKinComponent.Spec.Type = "exporters.zipkin"
-	zipKinComponent.Spec.Metadata = []componentMetadataItem{
-		{
-			Name:  "enabled",
-			Value: "true",
-		},
-		{
-			Name:  "exporterAddress",
-			Value: fmt.Sprintf("http://%s:9411/api/v2/spans", zipkinHost),
-		},
-	}
-
-	b, err := yaml.Marshal(&zipKinComponent)
-	if err != nil {
-		return err
-	}
-
-	filePath := path_filepath.Join(componentsPath, zipkinYamlFileName)
 	err = checkAndOverWriteFile(filePath, b)
 
 	return err
