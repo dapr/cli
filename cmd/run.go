@@ -44,8 +44,7 @@ const (
 
 var RunCmd = &cobra.Command{
 	Use:   "run",
-	Short: "Run Dapr and (optionally) your application side by side",
-	Long:  `Run Dapr's sidecar and (optionally) an application. Supported Platforms: Self-hosted mode.`,
+	Short: "Run Dapr and (optionally) your application side by side. Supported platforms: Self-hosted",
 	Example: `
 Run a Java application:
   dapr run --app-id myapp -- java -jar myapp.jar

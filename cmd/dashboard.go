@@ -45,7 +45,20 @@ var (
 
 var DashboardCmd = &cobra.Command{
 	Use:   "dashboard",
-	Short: "Start Dapr dashboard",
+	Short: "Start Dapr dashboard. Supported platforms: Kubernetes and self-hosted",
+	Example: `
+# Start dashboard locally
+dapr dashboard
+
+# Start dashboard locally in a specified port 
+dapr dashboard -p 9999
+
+# Port forward to dashboard in Kubernetes 
+dapr dashboard -k 
+
+# Port forward to dashboard in Kubernetes using a port
+dapr dashboard -k -p 9999
+`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if dashboardVersion {
 			fmt.Println(standalone.GetDashboardVersion())
