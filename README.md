@@ -139,12 +139,6 @@ $ dapr init --network dapr-network
 
 > Note: When installed to a specific Docker network, you will need to add the `--placement-host-address` arguments to `dapr run` commands run in any containers within that network.
 
-#### Install with a specific host on which the Redis service resides
-```bash
-# Specify a particular redis host
-$ dapr init --redis-host 10.0.0.1
-```
-
 ### Uninstall Dapr in a standalone mode
 
 Uninstalling will remove daprd binary and the placement container (if installed with Docker or the placement binary if not).
@@ -249,11 +243,11 @@ $ dapr run --app-id nodeapp --app-port 3000 --dapr-grpc-port 50002 node app.js
 Example of launching Dapr within a specific Docker network:
 
 ```bash
-$ dapr init --redis-host dapr_redis --network dapr-network
+$ dapr init --network dapr-network
 $ dapr run --app-id nodeapp --placement-host-address dapr_placement node app.js
 ```
 
-> Note: When in a specific Docker network, the Redis and placement service containers are given specific network aliases, `dapr_redis` and `dapr_placement`, respectively.
+> Note: When in a specific Docker network, the Redis, Zipkin and placement service containers are given specific network aliases, `dapr_redis`, `dapr_zipkin` and `dapr_placement`, respectively. The default configuration files reflect the network alias rather than `localhost` when a docker network is specified.
 
 ### Use gRPC
 

@@ -30,8 +30,6 @@ var InitCmd = &cobra.Command{
 	Short: "Install Dapr on supported hosting platforms. Supported platforms: Kubernetes and self-hosted",
 	PreRun: func(cmd *cobra.Command, args []string) {
 		viper.BindPFlag("network", cmd.Flags().Lookup("network"))
-		viper.BindPFlag("install-path", cmd.Flags().Lookup("install-path"))
-		viper.BindPFlag("redis-host", cmd.Flags().Lookup("redis-host"))
 	},
 	Example: `
 # Initialize Dapr in self-hosted mode
@@ -68,8 +66,7 @@ dapr init -s
 			if !slimMode {
 				dockerNetwork = viper.GetString("network")
 			}
-			redisHost := viper.GetString("redis-host")
-			err := standalone.Init(runtimeVersion, dockerNetwork, redisHost, slimMode)
+			err := standalone.Init(runtimeVersion, dockerNetwork, slimMode)
 			if err != nil {
 				print.FailureStatusEvent(os.Stdout, err.Error())
 				return
@@ -87,7 +84,6 @@ func init() {
 	InitCmd.Flags().BoolVarP(&enableMTLS, "enable-mtls", "", true, "Enable mTLS in your cluster")
 	InitCmd.Flags().BoolVarP(&enableHA, "enable-ha", "", false, "Enable high availability (HA) mode")
 	InitCmd.Flags().String("network", "", "The Docker network on which to deploy the Dapr runtime")
-	InitCmd.Flags().String("redis-host", "localhost", "The host on which the Redis service resides")
 	InitCmd.Flags().BoolP("help", "h", false, "Print this help message")
 
 	RootCmd.AddCommand(InitCmd)
