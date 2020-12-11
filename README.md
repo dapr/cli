@@ -279,12 +279,12 @@ Publish a message:
 
 * Linux/Mac
 ```bash
-$ dapr publish --pubsub pubsub --topic myevent --data '{ "name": "yoda" }'
+$ dapr publish --publish-app-id nodeapp --pubsub pubsub --topic myevent --data '{ "name": "yoda" }'
 ```
 
 * Windows
 ```bash
-C:> dapr publish --pubsub pubsub --topic myevent --data "{ \"name\": \"yoda\" }"
+C:> dapr publish --publish-app-id nodeapp --pubsub pubsub --topic myevent --data "{ \"name\": \"yoda\" }"
 ```
 
 ### Invoking
