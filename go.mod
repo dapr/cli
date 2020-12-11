@@ -6,7 +6,7 @@ require (
 	github.com/Pallinder/sillyname-go v0.0.0-20130730142914-97aeae9e6ba1
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/briandowns/spinner v1.6.1
-	github.com/dapr/dapr v0.11.3
+	github.com/dapr/dapr v1.0.0-rc.1.0.20201211012322-e192d1215eb3
 	github.com/docker/docker v17.12.0-ce-rc1.0.20200618181300-9dc6525e6118+incompatible
 	github.com/fatih/color v1.7.0
 	github.com/go-ole/go-ole v1.2.4 // indirect
@@ -22,9 +22,8 @@ require (
 	github.com/shirou/gopsutil v2.20.2+incompatible
 	github.com/spf13/cobra v0.0.6
 	github.com/spf13/viper v1.5.0
-	github.com/stretchr/testify v1.5.1
-	golang.org/x/time v0.0.0-20190921001708-c4c64cad1fd0 // indirect
-	gopkg.in/yaml.v2 v2.2.8
+	github.com/stretchr/testify v1.6.1
+	gopkg.in/yaml.v2 v2.3.0
 	helm.sh/helm/v3 v3.1.0
 	k8s.io/api v0.17.8
 	k8s.io/apimachinery v0.17.8
@@ -35,8 +34,9 @@ require (
 )
 
 replace (
-	github.com/Azure/go-autorest => github.com/Azure/go-autorest v13.3.0+incompatible
-
+	github.com/Azure/go-autorest => github.com/Azure/go-autorest v14.2.0+incompatible
 	github.com/russross/blackfriday => github.com/russross/blackfriday v1.5.2
+
+	golang.org/x/sys => golang.org/x/sys v0.0.0-20200826173525-f9321e4c35a6
 	k8s.io/client => github.com/kubernetes-client/go v0.0.0-20190928040339-c757968c4c36
 )
