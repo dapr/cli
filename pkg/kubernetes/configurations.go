@@ -7,6 +7,8 @@ package kubernetes
 
 import (
 	"encoding/json"
+	"io"
+	"os"
 	"strconv"
 
 	"github.com/dapr/cli/pkg/age"
@@ -32,12 +34,18 @@ type configurationDetailedOutput struct {
 
 // PrintConfigurations prints all Dapr configurations.
 func PrintConfigurations(name, outputFormat string) error {
-	client, err := DaprClient()
-	if err != nil {
-		return err
-	}
+	return writeConfigurations(os.Stdout, func() (*v1alpha1.ConfigurationList, error) {
+		client, err := DaprClient()
+		if err != nil {
+			return nil, err
+		}
 
-	confs, err := client.ConfigurationV1alpha1().Configurations(meta_v1.NamespaceAll).List(meta_v1.ListOptions{})
+		return client.ConfigurationV1alpha1().Configurations(meta_v1.NamespaceAll).List(meta_v1.ListOptions{})
+	}, name, outputFormat)
+}
+
+func writeConfigurations(writer io.Writer, getConfigFunc func() (*v1alpha1.ConfigurationList, error), name, outputFormat string) error {
+	confs, err := getConfigFunc()
 	if err != nil {
 		return err
 	}
@@ -56,13 +64,13 @@ func PrintConfigurations(name, outputFormat string) error {
 	}
 
 	if outputFormat == "" || outputFormat == "list" {
-		return printList(filtered)
+		return printList(writer, filtered)
 	}
 
-	return printDetail(outputFormat, filteredSpecs)
+	return printDetail(writer, outputFormat, filteredSpecs)
 }
 
-func printDetail(outputFormat string, list []configurationDetailedOutput) error {
+func printDetail(writer io.Writer, outputFormat string, list []configurationDetailedOutput) error {
 	var err error
 	output := []byte{}
 	var obj interface{} = list
@@ -81,11 +89,11 @@ func printDetail(outputFormat string, list []configurationDetailedOutput) error 
 		return err
 	}
 
-	print(string(output))
+	writer.Write(output)
 	return nil
 }
 
-func printList(list []v1alpha1.Configuration) error {
+func printList(writer io.Writer, list []v1alpha1.Configuration) error {
 	co := []configurationsOutput{}
 	for _, c := range list {
 		co = append(co, configurationsOutput{
@@ -102,7 +110,7 @@ func printList(list []v1alpha1.Configuration) error {
 		return err
 	}
 
-	utils.PrintTable(table)
+	utils.WriteTable(writer, table)
 	return nil
 }
 
