@@ -54,7 +54,11 @@ func writeConfigurations(writer io.Writer, getConfigFunc func() (*v1alpha1.Confi
 	filteredSpecs := []configurationDetailedOutput{}
 	for _, c := range confs.Items {
 		confName := c.GetName()
-		if (confName != "daprsystem") && (name == "" || confName == name) {
+		if confName == "daprsystem" {
+			continue
+		}
+
+		if name == "" || confName == name {
 			filtered = append(filtered, c)
 			filteredSpecs = append(filteredSpecs, configurationDetailedOutput{
 				Name: confName,
