@@ -10,29 +10,24 @@ import (
 
 	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/pkg/print"
-	"github.com/dapr/cli/utils"
-	"github.com/gocarina/gocsv"
 	"github.com/spf13/cobra"
 )
 
-var ConfigurtionsCmd = &cobra.Command{
+var (
+	configurationName         string
+	configurationOutputFormat string
+)
+
+var ConfigurationsCmd = &cobra.Command{
 	Use:   "configurations",
 	Short: "List all Dapr configurations. Supported platforms: Kubernetes",
 	Run: func(cmd *cobra.Command, args []string) {
 		if kubernetesMode {
-			configs, err := kubernetes.Configurations()
+			err := kubernetes.PrintConfigurations(configurationName, configurationOutputFormat)
 			if err != nil {
 				print.FailureStatusEvent(os.Stdout, err.Error())
 				os.Exit(1)
 			}
-
-			table, err := gocsv.MarshalString(configs)
-			if err != nil {
-				print.FailureStatusEvent(os.Stdout, err.Error())
-				os.Exit(1)
-			}
-
-			utils.PrintTable(table)
 		}
 	},
 	Example: `
@@ -42,8 +37,10 @@ dapr configurations -k
 }
 
 func init() {
-	ConfigurtionsCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "List all Dapr configurations in a Kubernetes cluster")
-	ConfigurtionsCmd.Flags().BoolP("help", "h", false, "Print this help message")
-	ConfigurtionsCmd.MarkFlagRequired("kubernetes")
-	RootCmd.AddCommand(ConfigurtionsCmd)
+	ConfigurationsCmd.Flags().StringVarP(&configurationName, "name", "n", "", "The configuration name to be printed (optional)")
+	ConfigurationsCmd.Flags().StringVarP(&configurationOutputFormat, "output", "o", "list", "Output format (options: json or yaml or list)")
+	ConfigurationsCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "List all Dapr configurations in a Kubernetes cluster")
+	ConfigurationsCmd.Flags().BoolP("help", "h", false, "Print this help message")
+	ConfigurationsCmd.MarkFlagRequired("kubernetes")
+	RootCmd.AddCommand(ConfigurationsCmd)
 }
