@@ -41,7 +41,6 @@ dapr init -k
 # Initialize particular Dapr runtime in self-hosted mode
 dapr init --runtime-version 0.10.0
 
-
 # Initialize particular Dapr runtime in Kubernetes
 dapr init -k --runtime-version 0.10.0
 
