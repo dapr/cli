@@ -36,6 +36,7 @@ var (
 	protocol        string
 	componentsPath  string
 	appSSL          bool
+	metricsPort     int
 )
 
 const (
@@ -81,6 +82,7 @@ var RunCmd = &cobra.Command{
 			PlacementHost:   viper.GetString("placement-host-address"),
 			ComponentsPath:  componentsPath,
 			AppSSL:          appSSL,
+			MetricsPort:     metricsPort,
 		})
 		if err != nil {
 			print.FailureStatusEvent(os.Stdout, err.Error())
@@ -238,6 +240,7 @@ func init() {
 	RunCmd.Flags().StringVarP(&componentsPath, "components-path", "d", standalone.DefaultComponentsDirPath(), "The path for components directory")
 	RunCmd.Flags().String("placement-host-address", "localhost", "The host on which the placement service resides")
 	RunCmd.Flags().BoolVar(&appSSL, "app-ssl", false, "Enable https when Dapr invokes the application")
+	RunCmd.Flags().IntVarP(&metricsPort, "metrics-port", "M", -1, "The port of metrics on dapr")
 	RunCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	RootCmd.AddCommand(RunCmd)
 }
