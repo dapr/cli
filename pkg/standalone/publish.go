@@ -15,12 +15,17 @@ import (
 )
 
 // Publish publishes payload to topic in pubsub referenced by pubsubName.
-func (s *Standalone) Publish(topic, payload, pubsubName string) error {
-	if topic == "" {
-		return errors.New("topic is missing")
+func (s *Standalone) Publish(publishAppID, pubsubName, topic, payload string) error {
+	if publishAppID == "" {
+		return errors.New("publishAppID is missing")
 	}
+
 	if pubsubName == "" {
 		return errors.New("pubsubName is missing")
+	}
+
+	if topic == "" {
+		return errors.New("topic is missing")
 	}
 
 	l, err := s.process.List()
@@ -28,7 +33,7 @@ func (s *Standalone) Publish(topic, payload, pubsubName string) error {
 		return err
 	}
 
-	daprHTTPPort, err := getDaprHTTPPort(l)
+	daprHTTPPort, err := getDaprHTTPPort(l, publishAppID)
 	if err != nil {
 		return err
 	}
@@ -53,9 +58,9 @@ func (s *Standalone) Publish(topic, payload, pubsubName string) error {
 	return nil
 }
 
-func getDaprHTTPPort(list []ListOutput) (int, error) {
+func getDaprHTTPPort(list []ListOutput, publishAppID string) (int, error) {
 	for i := 0; i < len(list); i++ {
-		if list[i].AppID != "" {
+		if list[i].AppID == publishAppID {
 			return list[i].HTTPPort, nil
 		}
 	}

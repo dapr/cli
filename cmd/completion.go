@@ -86,6 +86,8 @@ func newCompletionBashCmd() *cobra.Command {
 		},
 	}
 
+	cmd.Flags().BoolP("help", "h", false, "Print this help message")
+
 	return cmd
 }
 
@@ -97,6 +99,7 @@ func newCompletionZshCmd() *cobra.Command {
 			RootCmd.GenZshCompletion(os.Stdout)
 		},
 	}
+	cmd.Flags().BoolP("help", "h", false, "Print this help message")
 
 	return cmd
 }
@@ -109,6 +112,7 @@ func newCompletionPowerShellCmd() *cobra.Command {
 			RootCmd.GenPowerShellCompletion(os.Stdout)
 		},
 	}
+	cmd.Flags().BoolP("help", "h", false, "Print this help message")
 
 	return cmd
 }

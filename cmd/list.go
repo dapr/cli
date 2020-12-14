@@ -19,7 +19,14 @@ import (
 
 var ListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "List all Dapr instances",
+	Short: "List all Dapr instances. Supported platforms: Kubernetes and self-hosted",
+	Example: `
+# List Dapr instances in self-hosted mode
+dapr list
+
+# List Dapr instances in Kubernetes mode
+dapr list -k
+`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if kubernetesMode {
 			list, err := kubernetes.List()

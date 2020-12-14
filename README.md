@@ -88,7 +88,7 @@ Output should look like so:
 
 This step creates the following defaults:
 1. components folder which is later used during `dapr run` unless the `--components-path` option is provided. For Linux/MacOS, the default components folder path is `$HOME/.dapr/components` and for Windows it is `%USERPROFILE%\.dapr\components`.
-2. component files in the components folder called `pubsub.yaml`, `statestore.yaml` and `zipkin.yaml`.
+2. component files in the components folder called `pubsub.yaml` and `statestore.yaml`.
 3. default config file `$HOME/.dapr/config.yaml` for Linux/MacOS or for Windows at `%USERPROFILE%\.dapr\config.yaml` to enable tracing on `dapr init` call. Can be overridden with the `--config` flag on `dapr run`.
 
 #### Slim Init
@@ -138,12 +138,6 @@ $ dapr init --network dapr-network
 ```
 
 > Note: When installed to a specific Docker network, you will need to add the `--placement-host-address` arguments to `dapr run` commands run in any containers within that network.
-
-#### Install with a specific host on which the Redis service resides
-```bash
-# Specify a particular redis host
-$ dapr init --redis-host 10.0.0.1
-```
 
 ### Uninstall Dapr in a standalone mode
 
@@ -249,11 +243,11 @@ $ dapr run --app-id nodeapp --app-port 3000 --dapr-grpc-port 50002 node app.js
 Example of launching Dapr within a specific Docker network:
 
 ```bash
-$ dapr init --redis-host dapr_redis --network dapr-network
+$ dapr init --network dapr-network
 $ dapr run --app-id nodeapp --placement-host-address dapr_placement node app.js
 ```
 
-> Note: When in a specific Docker network, the Redis and placement service containers are given specific network aliases, `dapr_redis` and `dapr_placement`, respectively.
+> Note: When in a specific Docker network, the Redis, Zipkin and placement service containers are given specific network aliases, `dapr_redis`, `dapr_zipkin` and `dapr_placement`, respectively. The default configuration files reflect the network alias rather than `localhost` when a docker network is specified.
 
 ### Use gRPC
 
@@ -285,12 +279,12 @@ Publish a message:
 
 * Linux/Mac
 ```bash
-$ dapr publish --pubsub pubsub --topic myevent --data '{ "name": "yoda" }'
+$ dapr publish --publish-app-id nodeapp --pubsub pubsub --topic myevent --data '{ "name": "yoda" }'
 ```
 
 * Windows
 ```bash
-C:> dapr publish --pubsub pubsub --topic myevent --data "{ \"name\": \"yoda\" }"
+C:> dapr publish --publish-app-id nodeapp --pubsub pubsub --topic myevent --data "{ \"name\": \"yoda\" }"
 ```
 
 ### Invoking

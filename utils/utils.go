@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
 	"os"
@@ -23,7 +24,12 @@ import (
 
 // PrintTable to print in the table format.
 func PrintTable(csvContent string) {
-	table := tablewriter.NewWriter(os.Stdout)
+	WriteTable(os.Stdout, csvContent)
+}
+
+// WriteTable writes the csv table to writer.
+func WriteTable(writer io.Writer, csvContent string) {
+	table := tablewriter.NewWriter(writer)
 	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
 	table.SetBorder(false)
 	table.SetHeaderLine(false)

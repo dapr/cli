@@ -45,7 +45,20 @@ var (
 
 var DashboardCmd = &cobra.Command{
 	Use:   "dashboard",
-	Short: "Start Dapr dashboard",
+	Short: "Start Dapr dashboard. Supported platforms: Kubernetes and self-hosted",
+	Example: `
+# Start dashboard locally
+dapr dashboard
+
+# Start dashboard locally in a specified port 
+dapr dashboard -p 9999
+
+# Port forward to dashboard in Kubernetes 
+dapr dashboard -k 
+
+# Port forward to dashboard in Kubernetes using a port
+dapr dashboard -k -p 9999
+`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if dashboardVersion {
 			fmt.Println(standalone.GetDashboardVersion())
@@ -156,6 +169,6 @@ func init() {
 	DashboardCmd.Flags().BoolVarP(&dashboardVersion, "version", "v", false, "Print the version for Dapr dashboard")
 	DashboardCmd.Flags().IntVarP(&dashboardLocalPort, "port", "p", defaultLocalPort, "The local port on which to serve Dapr dashboard")
 	DashboardCmd.Flags().StringVarP(&dashboardNamespace, "namespace", "n", daprSystemNamespace, "The namespace where Dapr dashboard is running")
-	DashboardCmd.Flags().BoolP("help", "h", false, "Prints this help message")
+	DashboardCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	RootCmd.AddCommand(DashboardCmd)
 }

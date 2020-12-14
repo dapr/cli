@@ -17,7 +17,11 @@ import (
 
 var StatusCmd = &cobra.Command{
 	Use:   "status",
-	Short: "Show the health status of Dapr services",
+	Short: "Show the health status of Dapr services. Supported platforms: Kubernetes",
+	Example: `
+# Get status of Dapr services from Kubernetes
+dapr status -k 
+`,
 	Run: func(cmd *cobra.Command, args []string) {
 		sc, err := kubernetes.NewStatusClient()
 		if err != nil {
