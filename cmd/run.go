@@ -102,31 +102,8 @@ var RunCmd = &cobra.Command{
 					output.DaprHTTPPort,
 					output.DaprGRPCPort))
 
-			stdErrPipe, pipeErr := output.DaprCMD.StderrPipe()
-			if pipeErr != nil {
-				print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error creating stderr for Dapr: %s", err.Error()))
-				os.Exit(1)
-			}
-
-			stdOutPipe, pipeErr := output.DaprCMD.StdoutPipe()
-			if pipeErr != nil {
-				print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error creating stdout for Dapr: %s", err.Error()))
-				os.Exit(1)
-			}
-
-			errScanner := bufio.NewScanner(stdErrPipe)
-			outScanner := bufio.NewScanner(stdOutPipe)
-			go func() {
-				for errScanner.Scan() {
-					fmt.Println(print.Yellow(fmt.Sprintf("== DAPR == %s\n", errScanner.Text())))
-				}
-			}()
-
-			go func() {
-				for outScanner.Scan() {
-					fmt.Println(print.Yellow(fmt.Sprintf("== DAPR == %s\n", outScanner.Text())))
-				}
-			}()
+			output.DaprCMD.Stdout = os.Stdout
+			output.DaprCMD.Stderr = os.Stderr
 
 			err = output.DaprCMD.Start()
 			if err != nil {
