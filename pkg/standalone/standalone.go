@@ -42,7 +42,6 @@ const (
 	daprDefaultHost            = "localhost"
 	pubSubYamlFileName         = "pubsub.yaml"
 	stateStoreYamlFileName     = "statestore.yaml"
-	zipkinYamlFileName         = "zipkin.yaml"
 
 	// DaprPlacementContainerName is the container name of placement service.
 	DaprPlacementContainerName = "dapr_placement"
@@ -63,6 +62,9 @@ type configuration struct {
 	Spec struct {
 		Tracing struct {
 			SamplingRate string `yaml:"samplingRate"`
+			Zipkin       struct {
+				EndpointAddress string `yaml:"endpointAddress"`
+			} `yaml:"zipkin"`
 		} `yaml:"tracing"`
 	} `yaml:"spec"`
 }
@@ -97,7 +99,7 @@ func isBinaryInstallationRequired(binaryFilePrefix, installDir string) (bool, er
 }
 
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
-func Init(runtimeVersion string, dockerNetwork string, redisHost string, slimMode bool) error {
+func Init(runtimeVersion string, dockerNetwork string, slimMode bool) error {
 	if !slimMode {
 		dockerInstalled := utils.IsDockerInstalled()
 		if !dockerInstalled {
@@ -118,7 +120,7 @@ func Init(runtimeVersion string, dockerNetwork string, redisHost string, slimMod
 
 	var wg sync.WaitGroup
 	errorChan := make(chan error)
-	initSteps := []func(*sync.WaitGroup, chan<- error, string, string, string, string){}
+	initSteps := []func(*sync.WaitGroup, chan<- error, string, string, string){}
 	if slimMode {
 		// Install 3 binaries in slim mode: daprd, dashboard, placement
 		wg.Add(3)
@@ -160,7 +162,7 @@ func Init(runtimeVersion string, dockerNetwork string, redisHost string, slimMod
 	} else {
 		for _, step := range initSteps {
 			// Run init on the configurations and containers
-			go step(&wg, errorChan, daprBinDir, runtimeVersion, dockerNetwork, redisHost)
+			go step(&wg, errorChan, daprBinDir, runtimeVersion, dockerNetwork)
 		}
 	}
 
@@ -191,14 +193,13 @@ func Init(runtimeVersion string, dockerNetwork string, redisHost string, slimMod
 	} else {
 		dockerContainerNames := []string{DaprPlacementContainerName, DaprRedisContainerName, DaprZipkinContainerName}
 		for _, container := range dockerContainerNames {
-			// We don't need to check for the redis container if a custom host was specified
-			containerEnabled := container != DaprRedisContainerName || redisHost == daprDefaultHost
-			ok, err := confirmContainerIsRunningOrExists(utils.CreateContainerName(container, dockerNetwork), containerEnabled)
+			containerName := utils.CreateContainerName(container, dockerNetwork)
+			ok, err := confirmContainerIsRunningOrExists(containerName, true)
 			if err != nil {
 				return err
 			}
 			if ok {
-				print.InfoStatusEvent(os.Stdout, "%s container is running.", container)
+				print.InfoStatusEvent(os.Stdout, "%s container is running.", containerName)
 			}
 		}
 		print.InfoStatusEvent(os.Stdout, "Use `docker ps` to check running containers.")
@@ -220,7 +221,7 @@ func prepareDaprInstallDir(daprBinDir string) error {
 	return nil
 }
 
-func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, _ string) {
+func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string) {
 	defer wg.Done()
 
 	zipkinContainerName := utils.CreateContainerName(DaprZipkinContainerName, dockerNetwork)
@@ -247,7 +248,7 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, 
 			args = append(
 				args,
 				"--network", dockerNetwork,
-				"--network-alias", DaprRedisContainerName)
+				"--network-alias", DaprZipkinContainerName)
 		} else {
 			args = append(
 				args,
@@ -270,16 +271,10 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, 
 	errorChan <- nil
 }
 
-func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, redisHost string) {
+func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string) {
 	defer wg.Done()
 
 	redisContainerName := utils.CreateContainerName(DaprRedisContainerName, dockerNetwork)
-
-	if redisHost != daprDefaultHost {
-		// A non-default Redis host is specified. No need to start the redis container
-		fmt.Printf("You have specified redis-host: %s. Make sure you have a redis server running there.\n", redisHost)
-		return
-	}
 
 	exists, err := confirmContainerIsRunningOrExists(redisContainerName, false)
 	if err != nil {
@@ -376,7 +371,7 @@ func isContainerRunError(err error) bool {
 	return false
 }
 
-func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, _ string) {
+func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string) {
 	defer wg.Done()
 	placementContainerName := utils.CreateContainerName(DaprPlacementContainerName, dockerNetwork)
 
@@ -542,9 +537,16 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, bin
 	errorChan <- nil
 }
 
-func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, redisHost string) {
+func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error, _, _ string, dockerNetwork string) {
 	defer wg.Done()
 
+	redisHost := daprDefaultHost
+	zipkinHost := daprDefaultHost
+	if dockerNetwork != "" {
+		// Default to network scoped alias of the container names when a dockerNetwork is specified.
+		redisHost = DaprRedisContainerName
+		zipkinHost = DaprZipkinContainerName
+	}
 	var err error
 
 	// Make default components directory
@@ -560,12 +562,7 @@ func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error
 		errorChan <- fmt.Errorf("error creating redis statestore component file: %s", err)
 		return
 	}
-	err = createZipkinComponent(daprDefaultHost, componentsDir)
-	if err != nil {
-		errorChan <- fmt.Errorf("error creating zipkin component file: %s", err)
-		return
-	}
-	err = createDefaultConfiguration(DefaultConfigFilePath())
+	err = createDefaultConfiguration(zipkinHost, DefaultConfigFilePath())
 	if err != nil {
 		errorChan <- fmt.Errorf("error creating default configuration file: %s", err)
 		return
@@ -867,48 +864,19 @@ func createRedisPubSub(redisHost string, componentsPath string) error {
 	return err
 }
 
-func createDefaultConfiguration(filePath string) error {
+func createDefaultConfiguration(zipkinHost, filePath string) error {
 	defaultConfig := configuration{
 		APIVersion: "dapr.io/v1alpha1",
 		Kind:       "Configuration",
 	}
 	defaultConfig.Metadata.Name = "daprConfig"
 	defaultConfig.Spec.Tracing.SamplingRate = "1"
-
+	defaultConfig.Spec.Tracing.Zipkin.EndpointAddress = fmt.Sprintf("http://%s:9411/api/v2/spans", zipkinHost)
 	b, err := yaml.Marshal(&defaultConfig)
 	if err != nil {
 		return err
 	}
 
-	err = checkAndOverWriteFile(filePath, b)
-
-	return err
-}
-
-func createZipkinComponent(zipkinHost string, componentsPath string) error {
-	zipKinComponent := component{
-		APIVersion: "dapr.io/v1alpha1",
-		Kind:       "Component",
-	}
-	zipKinComponent.Metadata.Name = "zipkin"
-	zipKinComponent.Spec.Type = "exporters.zipkin"
-	zipKinComponent.Spec.Metadata = []componentMetadataItem{
-		{
-			Name:  "enabled",
-			Value: "true",
-		},
-		{
-			Name:  "exporterAddress",
-			Value: fmt.Sprintf("http://%s:9411/api/v2/spans", zipkinHost),
-		},
-	}
-
-	b, err := yaml.Marshal(&zipKinComponent)
-	if err != nil {
-		return err
-	}
-
-	filePath := path_filepath.Join(componentsPath, zipkinYamlFileName)
 	err = checkAndOverWriteFile(filePath, b)
 
 	return err

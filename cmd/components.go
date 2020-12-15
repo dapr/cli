@@ -17,7 +17,7 @@ import (
 
 var ComponentsCmd = &cobra.Command{
 	Use:   "components",
-	Short: "List all Dapr components",
+	Short: "List all Dapr components. Supported platforms: Kubernetes",
 	Run: func(cmd *cobra.Command, args []string) {
 		if kubernetesMode {
 			components, err := kubernetes.Components()
@@ -35,6 +35,10 @@ var ComponentsCmd = &cobra.Command{
 			utils.PrintTable(table)
 		}
 	},
+	Example: `
+# List Kubernetes components
+dapr components -k
+`,
 }
 
 func init() {

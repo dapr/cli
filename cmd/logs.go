@@ -22,7 +22,11 @@ var (
 
 var LogsCmd = &cobra.Command{
 	Use:   "logs",
-	Short: "Get Dapr sidecar logs for an application",
+	Short: "Get Dapr sidecar logs for an application. Supported platforms: Kubernetes",
+	Example: `
+# Get logs of sample app from target pod in custom namespace
+dapr logs -k --app-id sample --pod-name target --namespace custom
+`,
 	Run: func(cmd *cobra.Command, args []string) {
 		err := kubernetes.Logs(logsAppID, podName, namespace)
 		if err != nil {

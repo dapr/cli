@@ -37,20 +37,21 @@ func removeContainers(uninstallPlacementContainer, uninstallAll bool, dockerNetw
 }
 
 func removeDockerContainer(containerErrs []error, containerName, network string) []error {
-	exists, _ := confirmContainerIsRunningOrExists(containerName, false)
+	container := utils.CreateContainerName(containerName, network)
+	exists, _ := confirmContainerIsRunningOrExists(container, false)
 	if !exists {
-		print.WarningStatusEvent(os.Stdout, "WARNING: %s container does not exist", containerName)
+		print.WarningStatusEvent(os.Stdout, "WARNING: %s container does not exist", container)
 		return containerErrs
 	}
-	print.InfoStatusEvent(os.Stdout, "Removing container: %s", containerName)
+	print.InfoStatusEvent(os.Stdout, "Removing container: %s", container)
 	_, err := utils.RunCmdAndWait(
 		"docker", "rm",
 		"--force",
-		utils.CreateContainerName(containerName, network))
+		container)
 	if err != nil {
 		containerErrs = append(
 			containerErrs,
-			fmt.Errorf("could not remove %s container: %s", containerName, err))
+			fmt.Errorf("could not remove %s container: %s", container, err))
 	}
 	return containerErrs
 }
