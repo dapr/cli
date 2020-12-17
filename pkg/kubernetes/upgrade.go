@@ -78,7 +78,8 @@ func Upgrade(conf UpgradeConfig) error {
 		issuerCert := secret.Data["issuer.crt"]
 		issuerKey := secret.Data["issuer.key"]
 
-		vals, err = mtlsChartValues(string(ca), string(issuerCert), string(issuerKey))
+		ha := highAvailabilityEnabled(status)
+		vals, err = mtlsChartValues(string(ca), string(issuerCert), string(issuerKey), ha)
 		if err != nil {
 			return err
 		}
@@ -95,6 +96,15 @@ func Upgrade(conf UpgradeConfig) error {
 	return nil
 }
 
+func highAvailabilityEnabled(status []StatusOutput) bool {
+	for _, s := range status {
+		if s.Replicas > 1 {
+			return true
+		}
+	}
+	return false
+}
+
 func applyCRDs(version string) error {
 	for _, crd := range crds {
 		url := fmt.Sprintf("https://raw.githubusercontent.com/dapr/dapr/%s/charts/dapr/crds/%s.yaml", version, crd)
@@ -106,12 +116,16 @@ func applyCRDs(version string) error {
 	return nil
 }
 
-func mtlsChartValues(ca, issuerCert, issuerKey string) (map[string]interface{}, error) {
+func mtlsChartValues(ca, issuerCert, issuerKey string, haMode bool) (map[string]interface{}, error) {
 	chartVals := map[string]interface{}{}
 	globalVals := []string{
 		fmt.Sprintf("dapr_sentry.tls.root.certPEM=%s", ca),
 		fmt.Sprintf("dapr_sentry.tls.issuer.certPEM=%s", issuerCert),
 		fmt.Sprintf("dapr_sentry.tls.issuer.keyPEM=%s", issuerKey),
+	}
+
+	if haMode {
+		globalVals = append(globalVals, "global.ha.enabled=true")
 	}
 
 	for _, v := range globalVals {
