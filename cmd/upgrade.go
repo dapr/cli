@@ -39,5 +39,8 @@ func init() {
 	UpgradeCmd.Flags().StringVarP(&runtimeVersion, "runtime-version", "", "latest", "The version of the Dapr runtime to upgrade to, for example: 1.0.0")
 	UpgradeCmd.Flags().BoolP("help", "h", false, "Print this help message")
 
+	UpgradeCmd.MarkFlagRequired("runtime-version")
+	UpgradeCmd.MarkFlagRequired("kubernetes")
+
 	RootCmd.AddCommand(UpgradeCmd)
 }
