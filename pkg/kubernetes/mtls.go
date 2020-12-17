@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"context"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
@@ -94,7 +95,7 @@ func getTrustChainSecret() (*corev1.Secret, error) {
 	if err != nil {
 		return nil, err
 	}
-	res, err := client.CoreV1().Secrets(c.GetNamespace()).List(meta_v1.ListOptions{})
+	res, err := client.CoreV1().Secrets(c.GetNamespace()).List(context.TODO(), meta_v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

@@ -6,6 +6,7 @@
 package kubernetes
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -80,7 +81,7 @@ func createNamespace(namespace string) error {
 		},
 	}
 	// try to create the namespace if it doesn't exist. ok to ignore error.
-	client.CoreV1().Namespaces().Create(ns)
+	client.CoreV1().Namespaces().Create(context.TODO(), ns, meta_v1.CreateOptions{})
 	return nil
 }
 
