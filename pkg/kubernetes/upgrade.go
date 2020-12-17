@@ -48,7 +48,7 @@ func Upgrade(conf UpgradeConfig) error {
 	}
 
 	if len(status) == 0 {
-		return errors.New("Dapr is not installed in your cluster")
+		return errors.New("dapr is not installed in your cluster")
 	}
 
 	print.InfoStatusEvent(os.Stdout, "Dapr control plane version %s detected", status[0].Version)
@@ -69,9 +69,9 @@ func Upgrade(conf UpgradeConfig) error {
 	var vals map[string]interface{}
 
 	if mtls {
-		secret, err := getTrustChainSecret()
-		if err != nil {
-			return err
+		secret, sErr := getTrustChainSecret()
+		if sErr != nil {
+			return sErr
 		}
 
 		ca := secret.Data["ca.crt"]
