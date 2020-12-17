@@ -27,16 +27,6 @@ type UpgradeConfig struct {
 }
 
 func Upgrade(conf UpgradeConfig) error {
-	helmConf, err := helmConfig("dapr-system")
-	if err != nil {
-		return err
-	}
-
-	daprChart, err := daprChart(conf.RuntimeVersion, helmConf)
-	if err != nil {
-		return err
-	}
-
 	sc, err := NewStatusClient()
 	if err != nil {
 		return err
@@ -52,6 +42,16 @@ func Upgrade(conf UpgradeConfig) error {
 	}
 
 	print.InfoStatusEvent(os.Stdout, "Dapr control plane version %s detected", status[0].Version)
+
+	helmConf, err := helmConfig(status[0].Namespace)
+	if err != nil {
+		return err
+	}
+
+	daprChart, err := daprChart(conf.RuntimeVersion, helmConf)
+	if err != nil {
+		return err
+	}
 
 	upgradeClient := helm.NewUpgrade(helmConf)
 	upgradeClient.ResetValues = true
