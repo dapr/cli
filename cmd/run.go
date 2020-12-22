@@ -46,13 +46,15 @@ var RunCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Run Dapr and (optionally) your application side by side. Supported platforms: Self-hosted",
 	Example: `
-Run a Java application:
+# Run a .NET application:
+  dapr run --app-id myapp --app-port 5000 -- dotnet run
+# Run a Java application:
   dapr run --app-id myapp -- java -jar myapp.jar
-Run a NodeJs application that listens to port 3000:
+# Run a NodeJs application that listens to port 3000:
   dapr run --app-id myapp --app-port 3000 -- node myapp.js
-Run a Python application:
+# Run a Python application:
   dapr run --app-id myapp -- python myapp.py
-Run sidecar only:
+# Run sidecar only:
   dapr run --app-id myapp
   `,
 	Args: cobra.MinimumNArgs(0),
@@ -100,31 +102,8 @@ Run sidecar only:
 					output.DaprHTTPPort,
 					output.DaprGRPCPort))
 
-			stdErrPipe, pipeErr := output.DaprCMD.StderrPipe()
-			if pipeErr != nil {
-				print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error creating stderr for Dapr: %s", err.Error()))
-				os.Exit(1)
-			}
-
-			stdOutPipe, pipeErr := output.DaprCMD.StdoutPipe()
-			if pipeErr != nil {
-				print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error creating stdout for Dapr: %s", err.Error()))
-				os.Exit(1)
-			}
-
-			errScanner := bufio.NewScanner(stdErrPipe)
-			outScanner := bufio.NewScanner(stdOutPipe)
-			go func() {
-				for errScanner.Scan() {
-					fmt.Println(print.Yellow(fmt.Sprintf("== DAPR == %s\n", errScanner.Text())))
-				}
-			}()
-
-			go func() {
-				for outScanner.Scan() {
-					fmt.Println(print.Yellow(fmt.Sprintf("== DAPR == %s\n", outScanner.Text())))
-				}
-			}()
+			output.DaprCMD.Stdout = os.Stdout
+			output.DaprCMD.Stderr = os.Stderr
 
 			err = output.DaprCMD.Start()
 			if err != nil {
