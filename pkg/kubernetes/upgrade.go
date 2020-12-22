@@ -41,7 +41,7 @@ func Upgrade(conf UpgradeConfig) error {
 		return errors.New("dapr is not installed in your cluster")
 	}
 
-	print.InfoStatusEvent(os.Stdout, "Dapr control plane version %s detected", status[0].Version)
+	print.InfoStatusEvent(os.Stdout, "Dapr control plane version %s detected in namespace %s", status[0].Version, status[0].Namespace)
 
 	helmConf, err := helmConfig(status[0].Namespace)
 	if err != nil {
@@ -67,6 +67,9 @@ func Upgrade(conf UpgradeConfig) error {
 	}
 
 	var vals map[string]interface{}
+	var ca []byte
+	var issuerCert []byte
+	var issuerKey []byte
 
 	if mtls {
 		secret, sErr := getTrustChainSecret()
@@ -74,15 +77,15 @@ func Upgrade(conf UpgradeConfig) error {
 			return sErr
 		}
 
-		ca := secret.Data["ca.crt"]
-		issuerCert := secret.Data["issuer.crt"]
-		issuerKey := secret.Data["issuer.key"]
+		ca = secret.Data["ca.crt"]
+		issuerCert = secret.Data["issuer.crt"]
+		issuerKey = secret.Data["issuer.key"]
+	}
 
-		ha := highAvailabilityEnabled(status)
-		vals, err = mtlsChartValues(string(ca), string(issuerCert), string(issuerKey), ha)
-		if err != nil {
-			return err
-		}
+	ha := highAvailabilityEnabled(status)
+	vals, err = upgradeChartValues(string(ca), string(issuerCert), string(issuerKey), ha)
+	if err != nil {
+		return err
 	}
 
 	err = applyCRDs(fmt.Sprintf("v%s", conf.RuntimeVersion))
@@ -116,12 +119,15 @@ func applyCRDs(version string) error {
 	return nil
 }
 
-func mtlsChartValues(ca, issuerCert, issuerKey string, haMode bool) (map[string]interface{}, error) {
+func upgradeChartValues(ca, issuerCert, issuerKey string, haMode bool) (map[string]interface{}, error) {
 	chartVals := map[string]interface{}{}
-	globalVals := []string{
-		fmt.Sprintf("dapr_sentry.tls.root.certPEM=%s", ca),
-		fmt.Sprintf("dapr_sentry.tls.issuer.certPEM=%s", issuerCert),
-		fmt.Sprintf("dapr_sentry.tls.issuer.keyPEM=%s", issuerKey),
+	globalVals := []string{}
+
+	if ca != "" && issuerCert != "" && issuerKey != "" {
+		globalVals = append(globalVals, fmt.Sprintf("dapr_sentry.tls.root.certPEM=%s", ca),
+			fmt.Sprintf("dapr_sentry.tls.issuer.certPEM=%s", issuerCert),
+			fmt.Sprintf("dapr_sentry.tls.issuer.keyPEM=%s", issuerKey),
+		)
 	}
 
 	if haMode {
