@@ -173,7 +173,7 @@ $ dapr uninstall --network dapr-network
 
 The init command will install Dapr to a Kubernetes cluster. For more advanced use cases, use our [Helm Chart](https://github.com/dapr/dapr/tree/master/charts/dapr).
 
-*Note: The default namespace is dapr-system*
+*Note: The default namespace is dapr-system. The installation will appear under the name `dapr` for Helm*
 
 ```
 $ dapr init -k

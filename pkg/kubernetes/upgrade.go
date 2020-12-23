@@ -9,12 +9,15 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/utils"
 	helm "helm.sh/helm/v3/pkg/action"
 	"k8s.io/helm/pkg/strvals"
 )
+
+const operatorName = "dapr-operator"
 
 var crds = []string{
 	"components",
@@ -41,7 +44,13 @@ func Upgrade(conf UpgradeConfig) error {
 		return errors.New("dapr is not installed in your cluster")
 	}
 
-	print.InfoStatusEvent(os.Stdout, "Dapr control plane version %s detected in namespace %s", status[0].Version, status[0].Namespace)
+	var daprVersion string
+	for _, s := range status {
+		if s.Name == operatorName {
+			daprVersion = s.Version
+		}
+	}
+	print.InfoStatusEvent(os.Stdout, "Dapr control plane version %s detected in namespace %s", daprVersion, status[0].Namespace)
 
 	helmConf, err := helmConfig(status[0].Namespace)
 	if err != nil {
@@ -93,7 +102,21 @@ func Upgrade(conf UpgradeConfig) error {
 		return err
 	}
 
-	if _, err = upgradeClient.Run("dapr", daprChart, vals); err != nil {
+	listClient := helm.NewList(helmConf)
+	releases, err := listClient.Run()
+	if err != nil {
+		return err
+	}
+
+	var chart string
+	for _, r := range releases {
+		if r.Chart != nil && strings.Contains(r.Chart.Name(), "dapr") {
+			chart = r.Name
+			break
+		}
+	}
+
+	if _, err = upgradeClient.Run(chart, daprChart, vals); err != nil {
 		return err
 	}
 	return nil
