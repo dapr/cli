@@ -185,6 +185,14 @@ $ dapr init -k
 ✅  Success! Dapr has been installed to namespace dapr-system. To verify, run "dapr status -k" in your terminal. To get started, go here: https://aka.ms/dapr-getting-started
 ```
 
+#### Supplying Helm values
+
+All available [Helm Chart values](https://github.com/dapr/dapr/tree/master/charts/dapr#configuration) can be set by using the `--set` flag:
+
+```
+$ dapr init -k --set global.tag=0.11.2 --set dapr_operator.logLevel=error  
+```
+
 #### Installing to a custom namespace
 
 ```
@@ -220,6 +228,14 @@ $ dapr upgrade -k --runtime-version=1.0.0-rc.2
 ```
 
 The example above shows how to upgrade from your current version to version `1.0.0-rc.2`.
+
+#### Supplying Helm values
+
+All available [Helm Chart values](https://github.com/dapr/dapr/tree/master/charts/dapr#configuration) can be set by using the `--set` flag:
+
+```
+$ dapr upgrade -k --runtime-version=1.0.0-rc.2 --set global.tag=0.11.2 --set dapr_operator.logLevel=error  
+```
 
 *Note: do not use the `dapr upgrade` command if you're upgrading from 0.x versions of Dapr*
 
