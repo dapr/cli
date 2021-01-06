@@ -432,6 +432,14 @@ If you want to manually assign a profiling port, use the `profile-port` flag:
 $ dapr run --app-id nodeapp --app-port 3000 node app.js --enable-profiling --profile-port 7777
 ```
 
+### Set metrics server port
+
+To change the metrics server port used by Dapr, set the `metrics-port` flag:
+
+```
+$ dapr run --app-id nodeapp --app-port 3000 node app.js --metrics-port 5040
+```
+
 ### Set log level
 
 In order to set the Dapr runtime log verbosity level, use the `log-level` flag:
