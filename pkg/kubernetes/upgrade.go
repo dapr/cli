@@ -27,6 +27,7 @@ var crds = []string{
 
 type UpgradeConfig struct {
 	RuntimeVersion string
+	Args           []string
 }
 
 func Upgrade(conf UpgradeConfig) error {
@@ -92,7 +93,7 @@ func Upgrade(conf UpgradeConfig) error {
 	}
 
 	ha := highAvailabilityEnabled(status)
-	vals, err = upgradeChartValues(string(ca), string(issuerCert), string(issuerKey), ha)
+	vals, err = upgradeChartValues(string(ca), string(issuerCert), string(issuerKey), ha, conf.Args)
 	if err != nil {
 		return err
 	}
@@ -142,9 +143,9 @@ func applyCRDs(version string) error {
 	return nil
 }
 
-func upgradeChartValues(ca, issuerCert, issuerKey string, haMode bool) (map[string]interface{}, error) {
+func upgradeChartValues(ca, issuerCert, issuerKey string, haMode bool, args []string) (map[string]interface{}, error) {
 	chartVals := map[string]interface{}{}
-	globalVals := []string{}
+	globalVals := args
 
 	if ca != "" && issuerCert != "" && issuerKey != "" {
 		globalVals = append(globalVals, fmt.Sprintf("dapr_sentry.tls.root.certPEM=%s", ca),
