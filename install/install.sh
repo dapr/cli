@@ -50,6 +50,14 @@ verifySupported() {
         fi
     done
 
+    if [ "$current_osarch" == "darwin-arm64" ]; then
+        echo "The darwin_arm64 arch has no native binary, however you can use the amd64 version so long as you have rosetta installed"
+        echo "Use 'softwareupdate --install-rosetta' to install rosetta if you don't already have it"
+        ARCH="amd64"
+        return
+    fi
+
+
     echo "No prebuilt binary for ${current_osarch}"
     exit 1
 }
