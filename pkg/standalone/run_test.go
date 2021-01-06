@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func assertArgument(t *testing.T, key string, expectedValue string, args []string) {
+func assertArgumentEqual(t *testing.T, key string, expectedValue string, args []string) {
 	var value string
 	for index, arg := range args {
 		if arg == "--"+key {
@@ -28,6 +28,22 @@ func assertArgument(t *testing.T, key string, expectedValue string, args []strin
 	}
 
 	assert.Equal(t, expectedValue, value)
+}
+
+func assertArgumentNotEqual(t *testing.T, key string, expectedValue string, args []string) {
+	var value string
+	for index, arg := range args {
+		if arg == "--"+key {
+			nextIndex := index + 1
+			if nextIndex < len(args) {
+				if !strings.HasPrefix(args[nextIndex], "--") {
+					value = args[nextIndex]
+				}
+			}
+		}
+	}
+
+	assert.NotEqual(t, expectedValue, value)
 }
 
 func setupRun(t *testing.T) {
@@ -54,21 +70,24 @@ func TestRun(t *testing.T) {
 	// Setup the tearDown routine to run in the end
 	defer tearDownRun(t)
 
+	basicConfig := &RunConfig{
+		AppID:           "MyID",
+		AppPort:         3000,
+		HTTPPort:        8000,
+		GRPCPort:        50001,
+		LogLevel:        "WARN",
+		Arguments:       []string{"MyCommand", "--my-arg"},
+		EnableProfiling: false,
+		ProfilePort:     9090,
+		Protocol:        "http",
+		PlacementHost:   "localhost",
+		ComponentsPath:  DefaultComponentsDirPath(),
+		AppSSL:          true,
+		MetricsPort:     9001,
+	}
+
 	t.Run("run happy http", func(t *testing.T) {
-		output, err := Run(&RunConfig{
-			AppID:           "MyID",
-			AppPort:         3000,
-			HTTPPort:        8000,
-			GRPCPort:        50001,
-			LogLevel:        "WARN",
-			Arguments:       []string{"MyCommand", "--my-arg"},
-			EnableProfiling: false,
-			ProfilePort:     9090,
-			Protocol:        "http",
-			PlacementHost:   "localhost",
-			ComponentsPath:  DefaultComponentsDirPath(),
-			AppSSL:          true,
-		})
+		output, err := Run(basicConfig)
 
 		assert.Nil(t, err)
 		assert.NotNil(t, output)
@@ -78,19 +97,20 @@ func TestRun(t *testing.T) {
 		assert.Equal(t, 50001, output.DaprGRPCPort)
 
 		assert.Contains(t, output.DaprCMD.Args[0], "daprd")
-		assertArgument(t, "app-id", "MyID", output.DaprCMD.Args)
-		assertArgument(t, "dapr-http-port", "8000", output.DaprCMD.Args)
-		assertArgument(t, "dapr-grpc-port", "50001", output.DaprCMD.Args)
-		assertArgument(t, "log-level", "WARN", output.DaprCMD.Args)
-		assertArgument(t, "app-max-concurrency", "-1", output.DaprCMD.Args)
-		assertArgument(t, "app-protocol", "http", output.DaprCMD.Args)
-		assertArgument(t, "app-port", "3000", output.DaprCMD.Args)
-		assertArgument(t, "components-path", DefaultComponentsDirPath(), output.DaprCMD.Args)
-		assertArgument(t, "app-ssl", "true", output.DaprCMD.Args)
+		assertArgumentEqual(t, "app-id", "MyID", output.DaprCMD.Args)
+		assertArgumentEqual(t, "dapr-http-port", "8000", output.DaprCMD.Args)
+		assertArgumentEqual(t, "dapr-grpc-port", "50001", output.DaprCMD.Args)
+		assertArgumentEqual(t, "log-level", "WARN", output.DaprCMD.Args)
+		assertArgumentEqual(t, "app-max-concurrency", "-1", output.DaprCMD.Args)
+		assertArgumentEqual(t, "app-protocol", "http", output.DaprCMD.Args)
+		assertArgumentEqual(t, "app-port", "3000", output.DaprCMD.Args)
+		assertArgumentEqual(t, "components-path", DefaultComponentsDirPath(), output.DaprCMD.Args)
+		assertArgumentEqual(t, "app-ssl", "true", output.DaprCMD.Args)
+		assertArgumentEqual(t, "metrics-port", "9001", output.DaprCMD.Args)
 		if runtime.GOOS == "windows" {
-			assertArgument(t, "placement-host-address", "localhost:6050", output.DaprCMD.Args)
+			assertArgumentEqual(t, "placement-host-address", "localhost:6050", output.DaprCMD.Args)
 		} else {
-			assertArgument(t, "placement-host-address", "localhost:50005", output.DaprCMD.Args)
+			assertArgumentEqual(t, "placement-host-address", "localhost:50005", output.DaprCMD.Args)
 		}
 
 		assert.Equal(t, "MyCommand", output.AppCMD.Args[0])
@@ -98,19 +118,10 @@ func TestRun(t *testing.T) {
 	})
 
 	t.Run("run without app command", func(t *testing.T) {
-		output, err := Run(&RunConfig{
-			AppID:           "MyID",
-			AppPort:         3000,
-			HTTPPort:        8000,
-			GRPCPort:        50001,
-			LogLevel:        "INFO",
-			EnableProfiling: false,
-			ProfilePort:     9090,
-			Protocol:        "http",
-			PlacementHost:   "localhost",
-			ConfigFile:      DefaultConfigFilePath(),
-			ComponentsPath:  DefaultComponentsDirPath(),
-		})
+		basicConfig.Arguments = nil
+		basicConfig.LogLevel = "INFO"
+		basicConfig.ConfigFile = DefaultConfigFilePath()
+		output, err := Run(basicConfig)
 
 		assert.Nil(t, err)
 		assert.NotNil(t, output)
@@ -120,21 +131,35 @@ func TestRun(t *testing.T) {
 		assert.Equal(t, 50001, output.DaprGRPCPort)
 
 		assert.Contains(t, output.DaprCMD.Args[0], "daprd")
-		assertArgument(t, "app-id", "MyID", output.DaprCMD.Args)
-		assertArgument(t, "dapr-http-port", "8000", output.DaprCMD.Args)
-		assertArgument(t, "dapr-grpc-port", "50001", output.DaprCMD.Args)
-		assertArgument(t, "log-level", "INFO", output.DaprCMD.Args)
-		assertArgument(t, "app-max-concurrency", "-1", output.DaprCMD.Args)
-		assertArgument(t, "app-protocol", "http", output.DaprCMD.Args)
-		assertArgument(t, "app-port", "3000", output.DaprCMD.Args)
-		assertArgument(t, "config", DefaultConfigFilePath(), output.DaprCMD.Args)
-		assertArgument(t, "components-path", DefaultComponentsDirPath(), output.DaprCMD.Args)
+		assertArgumentEqual(t, "app-id", "MyID", output.DaprCMD.Args)
+		assertArgumentEqual(t, "dapr-http-port", "8000", output.DaprCMD.Args)
+		assertArgumentEqual(t, "dapr-grpc-port", "50001", output.DaprCMD.Args)
+		assertArgumentEqual(t, "log-level", "INFO", output.DaprCMD.Args)
+		assertArgumentEqual(t, "app-max-concurrency", "-1", output.DaprCMD.Args)
+		assertArgumentEqual(t, "app-protocol", "http", output.DaprCMD.Args)
+		assertArgumentEqual(t, "app-port", "3000", output.DaprCMD.Args)
+		assertArgumentEqual(t, "config", DefaultConfigFilePath(), output.DaprCMD.Args)
+		assertArgumentEqual(t, "components-path", DefaultComponentsDirPath(), output.DaprCMD.Args)
 		if runtime.GOOS == "windows" {
-			assertArgument(t, "placement-host-address", "localhost:6050", output.DaprCMD.Args)
+			assertArgumentEqual(t, "placement-host-address", "localhost:6050", output.DaprCMD.Args)
 		} else {
-			assertArgument(t, "placement-host-address", "localhost:50005", output.DaprCMD.Args)
+			assertArgumentEqual(t, "placement-host-address", "localhost:50005", output.DaprCMD.Args)
 		}
 
 		assert.Nil(t, output.AppCMD)
+	})
+
+	t.Run("run without port", func(t *testing.T) {
+		basicConfig.HTTPPort = -1
+		basicConfig.GRPCPort = -1
+		basicConfig.MetricsPort = -1
+		output, err := Run(basicConfig)
+
+		assert.Nil(t, err)
+		assert.NotNil(t, output)
+
+		assertArgumentNotEqual(t, "http-port", "-1", output.DaprCMD.Args)
+		assertArgumentNotEqual(t, "grpc-port", "-1", output.DaprCMD.Args)
+		assertArgumentNotEqual(t, "metrics-port", "-1", output.DaprCMD.Args)
 	})
 }
