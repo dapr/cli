@@ -54,7 +54,7 @@ dapr init -s
 		print.PendingStatusEvent(os.Stdout, "Making the jump to hyperspace...")
 
 		if kubernetesMode {
-			print.InfoStatusEvent(os.Stdout, "Note: To install Dapr using Helm, see here:  https://docs.dapr.io/getting-started/install-dapr/#install-with-helm-advanced\n")
+			print.InfoStatusEvent(os.Stdout, "Note: To install Dapr using Helm, see here: https://docs.dapr.io/getting-started/install-dapr-kubernetes/#install-with-helm-advanced\n")
 
 			config := kubernetes.InitConfiguration{
 				Namespace:  initNamespace,
