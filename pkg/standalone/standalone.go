@@ -61,11 +61,11 @@ type configuration struct {
 	} `yaml:"metadata"`
 	Spec struct {
 		Tracing struct {
-			SamplingRate string `yaml:"samplingRate"`
+			SamplingRate string `yaml:"samplingRate,omitempty"`
 			Zipkin       struct {
-				EndpointAddress string `yaml:"endpointAddress"`
-			} `yaml:"zipkin"`
-		} `yaml:"tracing"`
+				EndpointAddress string `yaml:"endpointAddress,omitempty"`
+			} `yaml:"zipkin,omitempty"`
+		} `yaml:"tracing,omitempty"`
 	} `yaml:"spec"`
 }
 
@@ -124,13 +124,15 @@ func Init(runtimeVersion string, dockerNetwork string, slimMode bool) error {
 	if slimMode {
 		// Install 3 binaries in slim mode: daprd, dashboard, placement
 		wg.Add(3)
+		initSteps = append(initSteps, createSlimConfiguration)
 	} else {
 		// Install 2 binaries: daprd, dashboard
 		wg.Add(2)
 		initSteps = append(initSteps, createComponentsAndConfiguration, runPlacementService, runRedis, runZipkin)
-		// Init other configurations, containers
-		wg.Add(len(initSteps))
 	}
+
+	// Init other configurations, containers
+	wg.Add(len(initSteps))
 
 	msg := "Downloading binaries and setting up components..."
 	var s *spinner.Spinner
@@ -159,11 +161,11 @@ func Init(runtimeVersion string, dockerNetwork string, slimMode bool) error {
 	if slimMode {
 		// Initialize placement binary only on slim install
 		go installBinary(&wg, errorChan, daprBinDir, runtimeVersion, placementServiceFilePrefix, dockerNetwork, cli_ver.DaprGitHubRepo)
-	} else {
-		for _, step := range initSteps {
-			// Run init on the configurations and containers
-			go step(&wg, errorChan, daprBinDir, runtimeVersion, dockerNetwork)
-		}
+	}
+
+	for _, step := range initSteps {
+		// Run init on the configurations and containers
+		go step(&wg, errorChan, daprBinDir, runtimeVersion, dockerNetwork)
 	}
 
 	go func() {
@@ -569,6 +571,17 @@ func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error
 	}
 }
 
+func createSlimConfiguration(wg *sync.WaitGroup, errorChan chan<- error, _, _ string, _ string) {
+	defer wg.Done()
+
+	// For --slim we pass empty string so that we do not configure zipkin.
+	err := createDefaultConfiguration("", DefaultConfigFilePath())
+	if err != nil {
+		errorChan <- fmt.Errorf("error creating default configuration file: %s", err)
+		return
+	}
+}
+
 func makeDefaultComponentsDir() error {
 	// Make default components directory
 	componentsDir := DefaultComponentsDirPath()
@@ -870,8 +883,10 @@ func createDefaultConfiguration(zipkinHost, filePath string) error {
 		Kind:       "Configuration",
 	}
 	defaultConfig.Metadata.Name = "daprConfig"
-	defaultConfig.Spec.Tracing.SamplingRate = "1"
-	defaultConfig.Spec.Tracing.Zipkin.EndpointAddress = fmt.Sprintf("http://%s:9411/api/v2/spans", zipkinHost)
+	if zipkinHost != "" {
+		defaultConfig.Spec.Tracing.SamplingRate = "1"
+		defaultConfig.Spec.Tracing.Zipkin.EndpointAddress = fmt.Sprintf("http://%s:9411/api/v2/spans", zipkinHost)
+	}
 	b, err := yaml.Marshal(&defaultConfig)
 	if err != nil {
 		return err
