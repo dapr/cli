@@ -27,9 +27,9 @@ import (
 )
 
 const (
-	daprReleaseName   = "dapr"
-	daprHelmRepo      = "https://dapr.github.io/helm-charts"
-	daprLatestVersion = "latest"
+	daprReleaseName = "dapr"
+	daprHelmRepo    = "https://dapr.github.io/helm-charts"
+	latestVersion   = "latest"
 )
 
 type InitConfiguration struct {
@@ -116,7 +116,7 @@ func daprChart(version string, config *helm.Configuration) (*chart.Chart, error)
 	pull.RepoURL = daprHelmRepo
 	pull.Settings = &cli.EnvSettings{}
 
-	if version != daprLatestVersion {
+	if version != latestVersion {
 		pull.Version = chartVersion(version)
 	}
 

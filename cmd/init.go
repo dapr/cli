@@ -17,13 +17,14 @@ import (
 )
 
 var (
-	kubernetesMode bool
-	slimMode       bool
-	runtimeVersion string
-	initNamespace  string
-	enableMTLS     bool
-	enableHA       bool
-	values         []string
+	kubernetesMode   bool
+	slimMode         bool
+	runtimeVersion   string
+	dashboardVersion string
+	initNamespace    string
+	enableMTLS       bool
+	enableHA         bool
+	values           []string
 )
 
 var InitCmd = &cobra.Command{
@@ -74,7 +75,7 @@ dapr init -s
 			if !slimMode {
 				dockerNetwork = viper.GetString("network")
 			}
-			err := standalone.Init(runtimeVersion, dockerNetwork, slimMode)
+			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode)
 			if err != nil {
 				print.FailureStatusEvent(os.Stdout, err.Error())
 				return
@@ -88,6 +89,7 @@ func init() {
 	InitCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Deploy Dapr to a Kubernetes cluster")
 	InitCmd.Flags().BoolVarP(&slimMode, "slim", "s", false, "Exclude placement service, Redis and Zipkin containers from self-hosted installation")
 	InitCmd.Flags().StringVarP(&runtimeVersion, "runtime-version", "", "latest", "The version of the Dapr runtime to install, for example: 1.0.0")
+	InitCmd.Flags().StringVarP(&dashboardVersion, "dashboard-version", "", "latest", "The version of the Dapr dashboard to install, for example: 1.0.0")
 	InitCmd.Flags().StringVarP(&initNamespace, "namespace", "n", "dapr-system", "The Kubernetes namespace to install Dapr in")
 	InitCmd.Flags().BoolVarP(&enableMTLS, "enable-mtls", "", true, "Enable mTLS in your cluster")
 	InitCmd.Flags().BoolVarP(&enableHA, "enable-ha", "", false, "Enable high availability (HA) mode")

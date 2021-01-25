@@ -37,8 +37,7 @@ const (
 	dashboardFilePrefix        = "dashboard"
 	placementServiceFilePrefix = "placement"
 	daprWindowsOS              = "windows"
-	daprLatestVersion          = "latest"
-	dashboardLatestVersion     = "latest"
+	latestVersion              = "latest"
 	daprDefaultHost            = "localhost"
 	pubSubYamlFileName         = "pubsub.yaml"
 	stateStoreYamlFileName     = "statestore.yaml"
@@ -99,7 +98,7 @@ func isBinaryInstallationRequired(binaryFilePrefix, installDir string) (bool, er
 }
 
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
-func Init(runtimeVersion string, dockerNetwork string, slimMode bool) error {
+func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool) error {
 	if !slimMode {
 		dockerInstalled := utils.IsDockerInstalled()
 		if !dockerInstalled {
@@ -156,7 +155,7 @@ func Init(runtimeVersion string, dockerNetwork string, slimMode bool) error {
 	go installBinary(&wg, errorChan, daprBinDir, runtimeVersion, daprRuntimeFilePrefix, dockerNetwork, cli_ver.DaprGitHubRepo)
 
 	// Initialize dashboard binary
-	go installBinary(&wg, errorChan, daprBinDir, dashboardLatestVersion, dashboardFilePrefix, dockerNetwork, cli_ver.DashboardGitHubRepo)
+	go installBinary(&wg, errorChan, daprBinDir, dashboardVersion, dashboardFilePrefix, dockerNetwork, cli_ver.DashboardGitHubRepo)
 
 	if slimMode {
 		// Initialize placement binary only on slim install
@@ -380,7 +379,7 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 	image := fmt.Sprintf("%s:%s", daprDockerImageName, version)
 
 	// Use only image for latest version
-	if version == daprLatestVersion {
+	if version == latestVersion {
 		image = daprDockerImageName
 	}
 
@@ -462,6 +461,18 @@ func moveDashboardFiles(extractedFilePath string, dir string) (string, error) {
 	return extractedFilePath, nil
 }
 
+func overrideLastestVersion(version, repo string) (string, error) {
+	if version == latestVersion {
+		var err error
+		version, err = cli_ver.GetLatestRelease(cli_ver.DaprGitHubOrg, repo)
+		if err != nil {
+			return "", fmt.Errorf("cannot get the latest release version: %s", err)
+		}
+		version = version[1:]
+	}
+	return version, nil
+}
+
 func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, binaryFilePrefix string, dockerNetwork string, githubRepo string) {
 	defer wg.Done()
 
@@ -471,21 +482,17 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, bin
 		archiveExt = "zip"
 	}
 
-	if version == daprLatestVersion {
-		var err error
-		version, err = cli_ver.GetLatestRelease(cli_ver.DaprGitHubOrg, githubRepo)
-		if err != nil {
-			errorChan <- fmt.Errorf("cannot get the latest release version: %s", err)
-			return
-		}
-		version = version[1:]
+	v, err := overrideLastestVersion(version, githubRepo)
+	if err != nil {
+		errorChan <- err
+		return
 	}
 
 	fileURL := fmt.Sprintf(
 		"https://github.com/%s/%s/releases/download/v%s/%s_%s_%s.%s",
 		cli_ver.DaprGitHubOrg,
 		githubRepo,
-		version,
+		v,
 		binaryFilePrefix,
 		runtime.GOOS,
 		runtime.GOARCH,
