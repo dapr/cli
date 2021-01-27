@@ -17,12 +17,14 @@ import (
 )
 
 var (
-	kubernetesMode bool
-	slimMode       bool
-	runtimeVersion string
-	initNamespace  string
-	enableMTLS     bool
-	enableHA       bool
+	kubernetesMode   bool
+	slimMode         bool
+	runtimeVersion   string
+	dashboardVersion string
+	initNamespace    string
+	enableMTLS       bool
+	enableHA         bool
+	values           []string
 )
 
 var InitCmd = &cobra.Command{
@@ -53,13 +55,14 @@ dapr init -s
 		print.PendingStatusEvent(os.Stdout, "Making the jump to hyperspace...")
 
 		if kubernetesMode {
-			print.InfoStatusEvent(os.Stdout, "Note: To install Dapr using Helm, see here:  https://docs.dapr.io/getting-started/install-dapr/#install-with-helm-advanced\n")
+			print.InfoStatusEvent(os.Stdout, "Note: To install Dapr using Helm, see here: https://docs.dapr.io/getting-started/install-dapr-kubernetes/#install-with-helm-advanced\n")
 
 			config := kubernetes.InitConfiguration{
 				Namespace:  initNamespace,
 				Version:    runtimeVersion,
 				EnableMTLS: enableMTLS,
 				EnableHA:   enableHA,
+				Args:       values,
 			}
 			err := kubernetes.Init(config)
 			if err != nil {
@@ -72,7 +75,7 @@ dapr init -s
 			if !slimMode {
 				dockerNetwork = viper.GetString("network")
 			}
-			err := standalone.Init(runtimeVersion, dockerNetwork, slimMode)
+			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode)
 			if err != nil {
 				print.FailureStatusEvent(os.Stdout, err.Error())
 				return
@@ -86,11 +89,12 @@ func init() {
 	InitCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Deploy Dapr to a Kubernetes cluster")
 	InitCmd.Flags().BoolVarP(&slimMode, "slim", "s", false, "Exclude placement service, Redis and Zipkin containers from self-hosted installation")
 	InitCmd.Flags().StringVarP(&runtimeVersion, "runtime-version", "", "latest", "The version of the Dapr runtime to install, for example: 1.0.0")
+	InitCmd.Flags().StringVarP(&dashboardVersion, "dashboard-version", "", "latest", "The version of the Dapr dashboard to install, for example: 1.0.0")
 	InitCmd.Flags().StringVarP(&initNamespace, "namespace", "n", "dapr-system", "The Kubernetes namespace to install Dapr in")
 	InitCmd.Flags().BoolVarP(&enableMTLS, "enable-mtls", "", true, "Enable mTLS in your cluster")
 	InitCmd.Flags().BoolVarP(&enableHA, "enable-ha", "", false, "Enable high availability (HA) mode")
 	InitCmd.Flags().String("network", "", "The Docker network on which to deploy the Dapr runtime")
 	InitCmd.Flags().BoolP("help", "h", false, "Print this help message")
-
+	InitCmd.Flags().StringArrayVar(&values, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
 	RootCmd.AddCommand(InitCmd)
 }

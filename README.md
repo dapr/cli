@@ -173,7 +173,7 @@ $ dapr uninstall --network dapr-network
 
 The init command will install Dapr to a Kubernetes cluster. For more advanced use cases, use our [Helm Chart](https://github.com/dapr/dapr/tree/master/charts/dapr).
 
-*Note: The default namespace is dapr-system*
+*Note: The default namespace is dapr-system. The installation will appear under the name `dapr` for Helm*
 
 ```
 $ dapr init -k
@@ -183,6 +183,14 @@ $ dapr init -k
 
 ✅  Deploying the Dapr control plane to your cluster...
 ✅  Success! Dapr has been installed to namespace dapr-system. To verify, run "dapr status -k" in your terminal. To get started, go here: https://aka.ms/dapr-getting-started
+```
+
+#### Supplying Helm values
+
+All available [Helm Chart values](https://github.com/dapr/dapr/tree/master/charts/dapr#configuration) can be set by using the `--set` flag:
+
+```
+$ dapr init -k --set global.tag=0.11.2 --set dapr_operator.logLevel=error  
 ```
 
 #### Installing to a custom namespace
@@ -210,6 +218,26 @@ To remove Dapr from your Kubernetes cluster, use the `uninstall` command with `-
 ```
 $ dapr uninstall -k
 ```
+
+### Upgrade Dapr on Kubernetes
+
+To perform a zero downtime upgrade of the Dapr control plane:
+
+```
+$ dapr upgrade -k --runtime-version=1.0.0-rc.2  
+```
+
+The example above shows how to upgrade from your current version to version `1.0.0-rc.2`.
+
+#### Supplying Helm values
+
+All available [Helm Chart values](https://github.com/dapr/dapr/tree/master/charts/dapr#configuration) can be set by using the `--set` flag:
+
+```
+$ dapr upgrade -k --runtime-version=1.0.0-rc.2 --set global.tag=0.11.2 --set dapr_operator.logLevel=error  
+```
+
+*Note: do not use the `dapr upgrade` command if you're upgrading from 0.x versions of Dapr*
 
 ### Launch Dapr and your app
 
@@ -418,6 +446,14 @@ If you want to manually assign a profiling port, use the `profile-port` flag:
 
 ```
 $ dapr run --app-id nodeapp --app-port 3000 node app.js --enable-profiling --profile-port 7777
+```
+
+### Set metrics server port
+
+To change the metrics server port used by Dapr, set the `metrics-port` flag:
+
+```
+$ dapr run --app-id nodeapp --app-port 3000 node app.js --metrics-port 5040
 ```
 
 ### Set log level

@@ -6,6 +6,7 @@
 package kubernetes
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -26,9 +27,9 @@ import (
 )
 
 const (
-	daprReleaseName   = "dapr"
-	daprHelmRepo      = "https://dapr.github.io/helm-charts"
-	daprLatestVersion = "latest"
+	daprReleaseName = "dapr"
+	daprHelmRepo    = "https://dapr.github.io/helm-charts"
+	latestVersion   = "latest"
 )
 
 type InitConfiguration struct {
@@ -36,6 +37,7 @@ type InitConfiguration struct {
 	Namespace  string
 	EnableMTLS bool
 	EnableHA   bool
+	Args       []string
 }
 
 // Init deploys the Dapr operator using the supplied runtime version.
@@ -80,7 +82,7 @@ func createNamespace(namespace string) error {
 		},
 	}
 	// try to create the namespace if it doesn't exist. ok to ignore error.
-	client.CoreV1().Namespaces().Create(ns)
+	client.CoreV1().Namespaces().Create(context.TODO(), ns, meta_v1.CreateOptions{})
 	return nil
 }
 
@@ -114,7 +116,7 @@ func daprChart(version string, config *helm.Configuration) (*chart.Chart, error)
 	pull.RepoURL = daprHelmRepo
 	pull.Settings = &cli.EnvSettings{}
 
-	if version != daprLatestVersion {
+	if version != latestVersion {
 		pull.Version = chartVersion(version)
 	}
 
@@ -144,6 +146,7 @@ func chartValues(config InitConfiguration) (map[string]interface{}, error) {
 		fmt.Sprintf("global.ha.enabled=%t", config.EnableHA),
 		fmt.Sprintf("global.mtls.enabled=%t", config.EnableMTLS),
 	}
+	globalVals = append(globalVals, config.Args...)
 
 	for _, v := range globalVals {
 		if err := strvals.ParseInto(v, chartVals); err != nil {

@@ -38,9 +38,9 @@ const (
 )
 
 var (
-	dashboardNamespace string
-	dashboardLocalPort int
-	dashboardVersion   bool
+	dashboardNamespace  string
+	dashboardLocalPort  int
+	dashboardVersionCmd bool
 )
 
 var DashboardCmd = &cobra.Command{
@@ -60,7 +60,7 @@ dapr dashboard -k
 dapr dashboard -k -p 9999
 `,
 	Run: func(cmd *cobra.Command, args []string) {
-		if dashboardVersion {
+		if dashboardVersionCmd {
 			fmt.Println(standalone.GetDashboardVersion())
 			os.Exit(0)
 		}
@@ -166,7 +166,7 @@ dapr dashboard -k -p 9999
 
 func init() {
 	DashboardCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Opens Dapr dashboard in local browser via local proxy to Kubernetes cluster")
-	DashboardCmd.Flags().BoolVarP(&dashboardVersion, "version", "v", false, "Print the version for Dapr dashboard")
+	DashboardCmd.Flags().BoolVarP(&dashboardVersionCmd, "version", "v", false, "Print the version for Dapr dashboard")
 	DashboardCmd.Flags().IntVarP(&dashboardLocalPort, "port", "p", defaultLocalPort, "The local port on which to serve Dapr dashboard")
 	DashboardCmd.Flags().StringVarP(&dashboardNamespace, "namespace", "n", daprSystemNamespace, "The namespace where Dapr dashboard is running")
 	DashboardCmd.Flags().BoolP("help", "h", false, "Print this help message")

@@ -37,8 +37,7 @@ const (
 	dashboardFilePrefix        = "dashboard"
 	placementServiceFilePrefix = "placement"
 	daprWindowsOS              = "windows"
-	daprLatestVersion          = "latest"
-	dashboardLatestVersion     = "latest"
+	latestVersion              = "latest"
 	daprDefaultHost            = "localhost"
 	pubSubYamlFileName         = "pubsub.yaml"
 	stateStoreYamlFileName     = "statestore.yaml"
@@ -61,11 +60,11 @@ type configuration struct {
 	} `yaml:"metadata"`
 	Spec struct {
 		Tracing struct {
-			SamplingRate string `yaml:"samplingRate"`
+			SamplingRate string `yaml:"samplingRate,omitempty"`
 			Zipkin       struct {
-				EndpointAddress string `yaml:"endpointAddress"`
-			} `yaml:"zipkin"`
-		} `yaml:"tracing"`
+				EndpointAddress string `yaml:"endpointAddress,omitempty"`
+			} `yaml:"zipkin,omitempty"`
+		} `yaml:"tracing,omitempty"`
 	} `yaml:"spec"`
 }
 
@@ -99,7 +98,7 @@ func isBinaryInstallationRequired(binaryFilePrefix, installDir string) (bool, er
 }
 
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
-func Init(runtimeVersion string, dockerNetwork string, slimMode bool) error {
+func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool) error {
 	if !slimMode {
 		dockerInstalled := utils.IsDockerInstalled()
 		if !dockerInstalled {
@@ -124,13 +123,15 @@ func Init(runtimeVersion string, dockerNetwork string, slimMode bool) error {
 	if slimMode {
 		// Install 3 binaries in slim mode: daprd, dashboard, placement
 		wg.Add(3)
+		initSteps = append(initSteps, createSlimConfiguration)
 	} else {
 		// Install 2 binaries: daprd, dashboard
 		wg.Add(2)
 		initSteps = append(initSteps, createComponentsAndConfiguration, runPlacementService, runRedis, runZipkin)
-		// Init other configurations, containers
-		wg.Add(len(initSteps))
 	}
+
+	// Init other configurations, containers
+	wg.Add(len(initSteps))
 
 	msg := "Downloading binaries and setting up components..."
 	var s *spinner.Spinner
@@ -154,16 +155,16 @@ func Init(runtimeVersion string, dockerNetwork string, slimMode bool) error {
 	go installBinary(&wg, errorChan, daprBinDir, runtimeVersion, daprRuntimeFilePrefix, dockerNetwork, cli_ver.DaprGitHubRepo)
 
 	// Initialize dashboard binary
-	go installBinary(&wg, errorChan, daprBinDir, dashboardLatestVersion, dashboardFilePrefix, dockerNetwork, cli_ver.DashboardGitHubRepo)
+	go installBinary(&wg, errorChan, daprBinDir, dashboardVersion, dashboardFilePrefix, dockerNetwork, cli_ver.DashboardGitHubRepo)
 
 	if slimMode {
 		// Initialize placement binary only on slim install
 		go installBinary(&wg, errorChan, daprBinDir, runtimeVersion, placementServiceFilePrefix, dockerNetwork, cli_ver.DaprGitHubRepo)
-	} else {
-		for _, step := range initSteps {
-			// Run init on the configurations and containers
-			go step(&wg, errorChan, daprBinDir, runtimeVersion, dockerNetwork)
-		}
+	}
+
+	for _, step := range initSteps {
+		// Run init on the configurations and containers
+		go step(&wg, errorChan, daprBinDir, runtimeVersion, dockerNetwork)
 	}
 
 	go func() {
@@ -378,7 +379,7 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 	image := fmt.Sprintf("%s:%s", daprDockerImageName, version)
 
 	// Use only image for latest version
-	if version == daprLatestVersion {
+	if version == latestVersion {
 		image = daprDockerImageName
 	}
 
@@ -460,6 +461,18 @@ func moveDashboardFiles(extractedFilePath string, dir string) (string, error) {
 	return extractedFilePath, nil
 }
 
+func overrideLastestVersion(version, repo string) (string, error) {
+	if version == latestVersion {
+		var err error
+		version, err = cli_ver.GetLatestRelease(cli_ver.DaprGitHubOrg, repo)
+		if err != nil {
+			return "", fmt.Errorf("cannot get the latest release version: %s", err)
+		}
+		version = version[1:]
+	}
+	return version, nil
+}
+
 func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, binaryFilePrefix string, dockerNetwork string, githubRepo string) {
 	defer wg.Done()
 
@@ -469,21 +482,17 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, bin
 		archiveExt = "zip"
 	}
 
-	if version == daprLatestVersion {
-		var err error
-		version, err = cli_ver.GetLatestRelease(cli_ver.DaprGitHubOrg, githubRepo)
-		if err != nil {
-			errorChan <- fmt.Errorf("cannot get the latest release version: %s", err)
-			return
-		}
-		version = version[1:]
+	v, err := overrideLastestVersion(version, githubRepo)
+	if err != nil {
+		errorChan <- err
+		return
 	}
 
 	fileURL := fmt.Sprintf(
 		"https://github.com/%s/%s/releases/download/v%s/%s_%s_%s.%s",
 		cli_ver.DaprGitHubOrg,
 		githubRepo,
-		version,
+		v,
 		binaryFilePrefix,
 		runtime.GOOS,
 		runtime.GOARCH,
@@ -563,6 +572,17 @@ func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error
 		return
 	}
 	err = createDefaultConfiguration(zipkinHost, DefaultConfigFilePath())
+	if err != nil {
+		errorChan <- fmt.Errorf("error creating default configuration file: %s", err)
+		return
+	}
+}
+
+func createSlimConfiguration(wg *sync.WaitGroup, errorChan chan<- error, _, _ string, _ string) {
+	defer wg.Done()
+
+	// For --slim we pass empty string so that we do not configure zipkin.
+	err := createDefaultConfiguration("", DefaultConfigFilePath())
 	if err != nil {
 		errorChan <- fmt.Errorf("error creating default configuration file: %s", err)
 		return
@@ -870,8 +890,10 @@ func createDefaultConfiguration(zipkinHost, filePath string) error {
 		Kind:       "Configuration",
 	}
 	defaultConfig.Metadata.Name = "daprConfig"
-	defaultConfig.Spec.Tracing.SamplingRate = "1"
-	defaultConfig.Spec.Tracing.Zipkin.EndpointAddress = fmt.Sprintf("http://%s:9411/api/v2/spans", zipkinHost)
+	if zipkinHost != "" {
+		defaultConfig.Spec.Tracing.SamplingRate = "1"
+		defaultConfig.Spec.Tracing.Zipkin.EndpointAddress = fmt.Sprintf("http://%s:9411/api/v2/spans", zipkinHost)
+	}
 	b, err := yaml.Marshal(&defaultConfig)
 	if err != nil {
 		return err

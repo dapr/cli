@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/Pallinder/sillyname-go"
@@ -38,6 +39,7 @@ type RunConfig struct {
 	PlacementHost   string
 	ComponentsPath  string
 	AppSSL          bool
+	MetricsPort     int
 }
 
 // RunOutput represents the run output.
@@ -49,7 +51,7 @@ type RunOutput struct {
 	AppCMD       *exec.Cmd
 }
 
-func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort int, configFile, protocol string, enableProfiling bool, profilePort int, logLevel string, maxConcurrency int, placementHost string, componentsPath string, appSSL bool) (*exec.Cmd, int, int, int, error) {
+func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort int, configFile, protocol string, enableProfiling bool, profilePort int, logLevel string, maxConcurrency int, placementHost string, componentsPath string, appSSL bool, metricsPort int) (*exec.Cmd, int, int, int, error) {
 	if daprHTTPPort < 0 {
 		port, err := freeport.GetFreePort()
 		if err != nil {
@@ -68,21 +70,33 @@ func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort in
 		daprGRPCPort = grpcPort
 	}
 
+	if metricsPort < 0 {
+		var err error
+		metricsPort, err = freeport.GetFreePort()
+		if err != nil {
+			return nil, -1, -1, -1, err
+		}
+	}
+
 	if maxConcurrency < 1 {
 		maxConcurrency = -1
 	}
 
 	daprCMD := binaryFilePath(defaultDaprBinPath(), "daprd")
-	metricsPort, err := freeport.GetFreePort()
-	if err != nil {
-		return nil, -1, -1, -1, err
-	}
 
-	args := []string{"--app-id", appID, "--dapr-http-port", fmt.Sprintf("%v", daprHTTPPort), "--dapr-grpc-port", fmt.Sprintf("%v", daprGRPCPort), "--log-level", logLevel, "--app-max-concurrency", fmt.Sprintf("%v", maxConcurrency), "--app-protocol", protocol, "--metrics-port", fmt.Sprintf("%v", metricsPort), "--components-path", componentsPath}
+	args := []string{
+		"--app-id", appID,
+		"--dapr-http-port", strconv.Itoa(daprHTTPPort),
+		"--dapr-grpc-port", strconv.Itoa(daprGRPCPort),
+		"--log-level", logLevel,
+		"--app-max-concurrency", strconv.Itoa(maxConcurrency),
+		"--app-protocol", protocol,
+		"--components-path", componentsPath,
+		"--metrics-port", strconv.Itoa(metricsPort),
+	}
 	if appPort > -1 {
-		args = append(args, "--app-port", fmt.Sprintf("%v", appPort))
+		args = append(args, "--app-port", strconv.Itoa(appPort))
 	}
-
 	args = append(args, "--placement-host-address")
 
 	if runtime.GOOS == daprWindowsOS {
@@ -112,7 +126,7 @@ func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort in
 		args = append(
 			args,
 			"--enable-profiling", "true",
-			"--profile-port", fmt.Sprintf("%v", profilePort))
+			"--profile-port", strconv.Itoa(profilePort))
 	}
 
 	if appSSL {
@@ -185,7 +199,7 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		return nil, err
 	}
 
-	daprCMD, daprHTTPPort, daprGRPCPort, metricsPort, err := getDaprCommand(appID, config.HTTPPort, config.GRPCPort, config.AppPort, config.ConfigFile, config.Protocol, config.EnableProfiling, config.ProfilePort, config.LogLevel, config.MaxConcurrency, config.PlacementHost, config.ComponentsPath, config.AppSSL)
+	daprCMD, daprHTTPPort, daprGRPCPort, metricsPort, err := getDaprCommand(appID, config.HTTPPort, config.GRPCPort, config.AppPort, config.ConfigFile, config.Protocol, config.EnableProfiling, config.ProfilePort, config.LogLevel, config.MaxConcurrency, config.PlacementHost, config.ComponentsPath, config.AppSSL, config.MetricsPort)
 	if err != nil {
 		return nil, err
 	}

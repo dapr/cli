@@ -10,7 +10,7 @@ param (
 Write-Output ""
 $ErrorActionPreference = 'stop'
 
-#Escape space of DapRoot path
+#Escape space of DaprRoot path
 $DaprRoot = $DaprRoot -replace ' ', '` '
 
 # Constants
@@ -101,14 +101,14 @@ Remove-Item $zipFilePath -Force
 
 # Add DaprRoot directory to User Path environment variable
 Write-Output "Try to add $DaprRoot to User Path Environment variable..."
-$UserPathEnvionmentVar = [Environment]::GetEnvironmentVariable("PATH", "User")
-if ($UserPathEnvionmentVar -like '*dapr*') {
-    Write-Output "Skipping to add $DaprRoot to User Path - $UserPathEnvionmentVar"
+$UserPathEnvironmentVar = [Environment]::GetEnvironmentVariable("PATH", "User")
+if ($UserPathEnvironmentVar -like '*dapr*') {
+    Write-Output "Skipping to add $DaprRoot to User Path - $UserPathEnvironmentVar"
 }
 else {
-    [System.Environment]::SetEnvironmentVariable("PATH", $UserPathEnvionmentVar + ";$DaprRoot", "User")
-    $UserPathEnvionmentVar = [Environment]::GetEnvironmentVariable("PATH", "User")
-    Write-Output "Added $DaprRoot to User Path - $UserPathEnvionmentVar"
+    [System.Environment]::SetEnvironmentVariable("PATH", $UserPathEnvironmentVar + ";$DaprRoot", "User")
+    $UserPathEnvironmentVar = [Environment]::GetEnvironmentVariable("PATH", "User")
+    Write-Output "Added $DaprRoot to User Path - $UserPathEnvironmentVar"
 }
 
 Write-Output "`r`nDapr CLI is installed successfully."

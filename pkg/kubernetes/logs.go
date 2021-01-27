@@ -6,6 +6,7 @@
 package kubernetes
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -63,7 +64,7 @@ func Logs(appID, podName, namespace string) error {
 	}
 
 	getLogsRequest := client.CoreV1().Pods(namespace).GetLogs(podName, &corev1.PodLogOptions{Container: daprdContainerName, Follow: false})
-	logStream, err := getLogsRequest.Stream()
+	logStream, err := getLogsRequest.Stream(context.TODO())
 	if err != nil {
 		return fmt.Errorf("could not get logs. Please check pod-name (%s). Error - %v", podName, err)
 	}
