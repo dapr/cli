@@ -8,6 +8,7 @@ package utils
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -15,11 +16,14 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"reflect"
 	"strings"
 	"time"
 
 	"github.com/docker/docker/client"
+	"github.com/gocarina/gocsv"
 	"github.com/olekukonko/tablewriter"
+	"gopkg.in/yaml.v2"
 )
 
 // PrintTable to print in the table format.
@@ -146,4 +150,38 @@ func IsDaprListeningOnPort(port int, timeout time.Duration) error {
 
 		time.Sleep(time.Second)
 	}
+}
+
+func MarshalAndWriteTable(writer io.Writer, in interface{}) error {
+	table, err := gocsv.MarshalString(in)
+	if err != nil {
+		return err
+	}
+
+	WriteTable(writer, table)
+	return nil
+}
+
+func PrintDetail(writer io.Writer, outputFormat string, list interface{}) error {
+	obj := list
+	s := reflect.ValueOf(list)
+	if s.Kind() == reflect.Slice && s.Len() == 1 {
+		obj = s.Index(0).Interface()
+	}
+
+	var err error
+	output := []byte{}
+
+	switch outputFormat {
+	case "yaml":
+		output, err = yaml.Marshal(obj)
+	case "json":
+		output, err = json.MarshalIndent(obj, "", "  ")
+	}
+	if err != nil {
+		return err
+	}
+
+	_, err = writer.Write(output)
+	return err
 }

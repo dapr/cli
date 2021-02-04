@@ -6,17 +6,15 @@
 package kubernetes
 
 import (
-	"encoding/json"
 	"io"
 	"os"
 	"strconv"
 
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/dapr/cli/pkg/age"
 	"github.com/dapr/cli/utils"
 	v1alpha1 "github.com/dapr/dapr/pkg/apis/configuration/v1alpha1"
-	"github.com/gocarina/gocsv"
-	"gopkg.in/yaml.v2"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type configurationsOutput struct {
@@ -68,36 +66,13 @@ func writeConfigurations(writer io.Writer, getConfigFunc func() (*v1alpha1.Confi
 	}
 
 	if outputFormat == "" || outputFormat == "list" {
-		return printList(writer, filtered)
+		return printConfigurationList(writer, filtered)
 	}
 
-	return printDetail(writer, outputFormat, filteredSpecs)
+	return utils.PrintDetail(writer, outputFormat, filteredSpecs)
 }
 
-func printDetail(writer io.Writer, outputFormat string, list []configurationDetailedOutput) error {
-	var err error
-	output := []byte{}
-	var obj interface{} = list
-	if len(list) == 1 {
-		obj = list[0]
-	}
-	if outputFormat == "yaml" {
-		output, err = yaml.Marshal(obj)
-	}
-
-	if outputFormat == "json" {
-		output, err = json.MarshalIndent(obj, "", "  ")
-	}
-
-	if err != nil {
-		return err
-	}
-
-	writer.Write(output)
-	return nil
-}
-
-func printList(writer io.Writer, list []v1alpha1.Configuration) error {
+func printConfigurationList(writer io.Writer, list []v1alpha1.Configuration) error {
 	co := []configurationsOutput{}
 	for _, c := range list {
 		co = append(co, configurationsOutput{
@@ -109,13 +84,7 @@ func printList(writer io.Writer, list []v1alpha1.Configuration) error {
 		})
 	}
 
-	table, err := gocsv.MarshalString(co)
-	if err != nil {
-		return err
-	}
-
-	utils.WriteTable(writer, table)
-	return nil
+	return utils.MarshalAndWriteTable(writer, co)
 }
 
 func tracingEnabled(spec v1alpha1.TracingSpec) bool {
