@@ -6,10 +6,15 @@
 package kubernetes
 
 import (
+	"io"
+	"os"
 	"strings"
 
-	"github.com/dapr/cli/pkg/age"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/dapr/cli/pkg/age"
+	"github.com/dapr/cli/utils"
+	v1alpha1 "github.com/dapr/dapr/pkg/apis/components/v1alpha1"
 )
 
 // ComponentsOutput represent a Dapr component.
@@ -22,20 +27,51 @@ type ComponentsOutput struct {
 	Age     string `csv:"AGE"`
 }
 
-// List outputs all Dapr components.
-func Components() ([]ComponentsOutput, error) {
-	client, err := DaprClient()
+// PrintComponents prints all Dapr components.
+func PrintComponents(name, outputFormat string) error {
+	return writeComponents(os.Stdout, func() (*v1alpha1.ComponentList, error) {
+		client, err := DaprClient()
+		if err != nil {
+			return nil, err
+		}
+
+		return client.ComponentsV1alpha1().Components(meta_v1.NamespaceAll).List(meta_v1.ListOptions{})
+	}, name, outputFormat)
+}
+
+func writeComponents(writer io.Writer, getConfigFunc func() (*v1alpha1.ComponentList, error), name, outputFormat string) error {
+	confs, err := getConfigFunc()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	comps, err := client.ComponentsV1alpha1().Components(meta_v1.NamespaceAll).List(meta_v1.ListOptions{})
-	if err != nil {
-		return nil, err
+	filtered := []v1alpha1.Component{}
+	filteredSpecs := []configurationDetailedOutput{}
+	for _, c := range confs.Items {
+		confName := c.GetName()
+		if confName == "daprsystem" {
+			continue
+		}
+
+		if name == "" || strings.EqualFold(confName, name) {
+			filtered = append(filtered, c)
+			filteredSpecs = append(filteredSpecs, configurationDetailedOutput{
+				Name: confName,
+				Spec: c.Spec,
+			})
+		}
 	}
 
+	if outputFormat == "" || outputFormat == "list" {
+		return printComponentList(writer, filtered)
+	}
+
+	return utils.PrintDetail(writer, outputFormat, filteredSpecs)
+}
+
+func printComponentList(writer io.Writer, list []v1alpha1.Component) error {
 	co := []ComponentsOutput{}
-	for _, c := range comps.Items {
+	for _, c := range list {
 		co = append(co, ComponentsOutput{
 			Name:    c.GetName(),
 			Type:    c.Spec.Type,
@@ -45,5 +81,6 @@ func Components() ([]ComponentsOutput, error) {
 			Scopes:  strings.Join(c.Scopes, ","),
 		})
 	}
-	return co, nil
+
+	return utils.MarshalAndWriteTable(writer, co)
 }
