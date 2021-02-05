@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"strconv"
+	"strings"
 
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -56,7 +57,7 @@ func writeConfigurations(writer io.Writer, getConfigFunc func() (*v1alpha1.Confi
 			continue
 		}
 
-		if name == "" || confName == name {
+		if name == "" || strings.EqualFold(confName, name) {
 			filtered = append(filtered, c)
 			filteredSpecs = append(filteredSpecs, configurationDetailedOutput{
 				Name: confName,

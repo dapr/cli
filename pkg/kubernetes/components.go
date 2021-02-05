@@ -53,7 +53,7 @@ func writeComponents(writer io.Writer, getConfigFunc func() (*v1alpha1.Component
 			continue
 		}
 
-		if name == "" || confName == name {
+		if name == "" || strings.EqualFold(confName, name) {
 			filtered = append(filtered, c)
 			filteredSpecs = append(filteredSpecs, configurationDetailedOutput{
 				Name: confName,
