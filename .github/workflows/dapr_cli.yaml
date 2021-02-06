@@ -102,6 +102,10 @@ jobs:
           REL_VER=`cat ${REL_VERSION_FILE}`
           echo "REL_VERSION=${REL_VER}" >> $GITHUB_ENV
           rm -f ${REL_VERSION_FILE}
+      - name: generate checksum files
+        run: cd ${ARTIFACT_DIR} && for i in *; do sha256sum -b $i > "$i.sha256"; done && cd -
+      - name: lists artifacts
+        run: ls -l ${{ env.ARTIFACT_DIR }}
       - name: publish binaries to github
         if: startswith(github.ref, 'refs/tags/v')
         run: |
