@@ -1,5 +1,5 @@
 // ------------------------------------------------------------
-// Copyright (c) Microsoft Corporation.
+// Copyright (c) Microsoft Corporation and Dapr Contributors.
 // Licensed under the MIT License.
 // ------------------------------------------------------------
 
@@ -10,9 +10,12 @@ import (
 
 	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/pkg/print"
-	"github.com/dapr/cli/utils"
-	"github.com/gocarina/gocsv"
 	"github.com/spf13/cobra"
+)
+
+var (
+	componentsName         string
+	componentsOutputFormat string
 )
 
 var ComponentsCmd = &cobra.Command{
@@ -20,19 +23,11 @@ var ComponentsCmd = &cobra.Command{
 	Short: "List all Dapr components. Supported platforms: Kubernetes",
 	Run: func(cmd *cobra.Command, args []string) {
 		if kubernetesMode {
-			components, err := kubernetes.Components()
+			err := kubernetes.PrintComponents(componentsName, componentsOutputFormat)
 			if err != nil {
 				print.FailureStatusEvent(os.Stdout, err.Error())
 				os.Exit(1)
 			}
-
-			table, err := gocsv.MarshalString(components)
-			if err != nil {
-				print.FailureStatusEvent(os.Stdout, err.Error())
-				os.Exit(1)
-			}
-
-			utils.PrintTable(table)
 		}
 	},
 	Example: `
@@ -42,6 +37,8 @@ dapr components -k
 }
 
 func init() {
+	ComponentsCmd.Flags().StringVarP(&componentsName, "name", "n", "", "The components name to be printed (optional)")
+	ComponentsCmd.Flags().StringVarP(&componentsOutputFormat, "output", "o", "list", "Output format (options: json or yaml or list)")
 	ComponentsCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "List all Dapr components in a Kubernetes cluster")
 	ComponentsCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	ComponentsCmd.MarkFlagRequired("kubernetes")
