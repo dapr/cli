@@ -13,6 +13,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var upgradeRuntimeVersion string
+
 var UpgradeCmd = &cobra.Command{
 	Use:   "upgrade",
 	Short: "Upgrades a Dapr control plane installation in a cluster. Supported platforms: Kubernetes",
@@ -24,20 +26,20 @@ dapr upgrade -k
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		err := kubernetes.Upgrade(kubernetes.UpgradeConfig{
-			RuntimeVersion: runtimeVersion,
+			RuntimeVersion: upgradeRuntimeVersion,
 			Args:           values,
 		})
 		if err != nil {
 			print.FailureStatusEvent(os.Stdout, "Failed to upgrade Dapr: %s", err)
 			return
 		}
-		print.SuccessStatusEvent(os.Stdout, "Dapr control plane successfully upgraded to version %s. Make sure your deployments are restarted to pick up the latest sidecar version.", runtimeVersion)
+		print.SuccessStatusEvent(os.Stdout, "Dapr control plane successfully upgraded to version %s. Make sure your deployments are restarted to pick up the latest sidecar version.", upgradeRuntimeVersion)
 	},
 }
 
 func init() {
 	UpgradeCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Upgrade Dapr in a Kubernetes cluster")
-	UpgradeCmd.Flags().StringVarP(&runtimeVersion, "runtime-version", "", "", "The version of the Dapr runtime to upgrade to, for example: 1.0.0")
+	UpgradeCmd.Flags().StringVarP(&upgradeRuntimeVersion, "runtime-version", "", "", "The version of the Dapr runtime to upgrade to, for example: 1.0.0")
 	UpgradeCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	UpgradeCmd.Flags().StringArrayVar(&values, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
 
