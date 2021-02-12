@@ -26,14 +26,14 @@ dapr upgrade -k
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		err := kubernetes.Upgrade(kubernetes.UpgradeConfig{
-			RuntimeVersion: runtimeVersion,
+			RuntimeVersion: upgradeRuntimeVersion,
 			Args:           values,
 		})
 		if err != nil {
 			print.FailureStatusEvent(os.Stdout, "Failed to upgrade Dapr: %s", err)
 			return
 		}
-		print.SuccessStatusEvent(os.Stdout, "Dapr control plane successfully upgraded to version %s. Make sure your deployments are restarted to pick up the latest sidecar version.", runtimeVersion)
+		print.SuccessStatusEvent(os.Stdout, "Dapr control plane successfully upgraded to version %s. Make sure your deployments are restarted to pick up the latest sidecar version.", upgradeRuntimeVersion)
 	},
 }
 
