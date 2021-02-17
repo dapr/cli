@@ -116,13 +116,13 @@ Output should look like so:
 You can install or upgrade to a specific version of the Dapr runtime using `dapr init --runtime-version`. You can find the list of versions in [Dapr Release](https://github.com/dapr/dapr/releases).
 
 ```bash
-# Install v0.1.0 runtime
-$ dapr init --runtime-version 0.1.0
+# Install v1.0.0 runtime
+$ dapr init --runtime-version 1.0.0
 
 # Check the versions of CLI and runtime
 $ dapr --version
-CLI version: v0.1.0
-Runtime version: v0.1.0
+CLI version: v1.0.0
+Runtime version: v1.0.0
 ```
 
 #### Install to a specific Docker network
@@ -190,7 +190,7 @@ $ dapr init -k
 All available [Helm Chart values](https://github.com/dapr/dapr/tree/master/charts/dapr#configuration) can be set by using the `--set` flag:
 
 ```
-$ dapr init -k --set global.tag=0.11.2 --set dapr_operator.logLevel=error  
+$ dapr init -k --set global.tag=1.0.0 --set dapr_operator.logLevel=error  
 ```
 
 #### Installing to a custom namespace
@@ -224,17 +224,17 @@ $ dapr uninstall -k
 To perform a zero downtime upgrade of the Dapr control plane:
 
 ```
-$ dapr upgrade -k --runtime-version=1.0.0-rc.2  
+$ dapr upgrade -k --runtime-version=1.0.0
 ```
 
-The example above shows how to upgrade from your current version to version `1.0.0-rc.2`.
+The example above shows how to upgrade from your current version to version `1.0.0`.
 
 #### Supplying Helm values
 
 All available [Helm Chart values](https://github.com/dapr/dapr/tree/master/charts/dapr#configuration) can be set by using the `--set` flag:
 
 ```
-$ dapr upgrade -k --runtime-version=1.0.0-rc.2 --set global.tag=0.11.2 --set dapr_operator.logLevel=error  
+$ dapr upgrade -k --runtime-version=1.0.0 --set global.tag=my-tag --set dapr_operator.logLevel=error  
 ```
 
 *Note: do not use the `dapr upgrade` command if you're upgrading from 0.x versions of Dapr*
