@@ -96,7 +96,7 @@ func (s *StatusClient) Status() ([]StatusOutput, error) {
 
 			for _, p := range p.Items {
 				if len(p.Status.ContainerStatuses) == 0 {
-					status = p.Status.Phase
+					status = string(p.Status.Phase)
 				} else if p.Status.ContainerStatuses[0].State.Waiting != nil {
 					status = fmt.Sprintf("Waiting (%s)", p.Status.ContainerStatuses[0].State.Waiting.Reason)
 				} else if pod.Status.ContainerStatuses[0].State.Terminated != nil {
