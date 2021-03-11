@@ -133,19 +133,6 @@ func highAvailabilityEnabled(status []StatusOutput) bool {
 }
 
 func applyCRDs(version string) error {
-	l := []string{
-		"components.dapr.io",
-		"configurations.dapr.io",
-		"subscriptions.dapr.io",
-	}
-
-	for _, c := range l {
-		_, err := utils.RunCmdAndWait("kubectl", "delete", "crd", c)
-		if err != nil {
-			return err
-		}
-	}
-
 	for _, crd := range crds {
 		url := fmt.Sprintf("https://raw.githubusercontent.com/dapr/dapr/%s/charts/dapr/crds/%s.yaml", version, crd)
 		_, err := utils.RunCmdAndWait("kubectl", "apply", "-f", url)
