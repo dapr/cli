@@ -176,10 +176,7 @@ func install(config InitConfiguration) error {
 	installClient := helm.NewInstall(helmConf)
 	installClient.ReleaseName = daprReleaseName
 	installClient.Namespace = config.Namespace
-	if config.Wait {
-		installClient.Wait = true
-		installClient.Timeout = 5 * time.Minute
-	}
+	installClient.Wait = config.Wait
 
 	values, err := chartValues(config)
 	if err != nil {
