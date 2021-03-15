@@ -38,6 +38,7 @@ type InitConfiguration struct {
 	EnableMTLS bool
 	EnableHA   bool
 	Args       []string
+	Wait       bool
 }
 
 // Init deploys the Dapr operator using the supplied runtime version.
@@ -175,6 +176,10 @@ func install(config InitConfiguration) error {
 	installClient := helm.NewInstall(helmConf)
 	installClient.ReleaseName = daprReleaseName
 	installClient.Namespace = config.Namespace
+	if config.Wait {
+		installClient.Wait = true
+		installClient.Timeout = 5 * time.Minute
+	}
 
 	values, err := chartValues(config)
 	if err != nil {

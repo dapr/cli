@@ -18,6 +18,7 @@ import (
 
 var (
 	kubernetesMode   bool
+	wait             bool
 	slimMode         bool
 	runtimeVersion   string
 	dashboardVersion string
@@ -39,6 +40,9 @@ dapr init
 
 # Initialize Dapr in Kubernetes
 dapr init -k
+
+# Initialize Dapr in Kubernetes and wait for the installation to complete
+dapr init -k --wait
 
 # Initialize particular Dapr runtime in self-hosted mode
 dapr init --runtime-version 0.10.0
@@ -63,6 +67,7 @@ dapr init -s
 				EnableMTLS: enableMTLS,
 				EnableHA:   enableHA,
 				Args:       values,
+				Wait:       wait,
 			}
 			err := kubernetes.Init(config)
 			if err != nil {
@@ -87,6 +92,7 @@ dapr init -s
 
 func init() {
 	InitCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Deploy Dapr to a Kubernetes cluster")
+	InitCmd.Flags().BoolVarP(&wait, "wait", "", false, "Wait for Kubernetes initialization to complete")
 	InitCmd.Flags().BoolVarP(&slimMode, "slim", "s", false, "Exclude placement service, Redis and Zipkin containers from self-hosted installation")
 	InitCmd.Flags().StringVarP(&runtimeVersion, "runtime-version", "", "latest", "The version of the Dapr runtime to install, for example: 1.0.0")
 	InitCmd.Flags().StringVarP(&dashboardVersion, "dashboard-version", "", "latest", "The version of the Dapr dashboard to install, for example: 1.0.0")

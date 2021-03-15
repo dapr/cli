@@ -211,6 +211,12 @@ $ dapr init -k --enable-ha=true
 $ dapr init -k --enable-mtls=false
 ```
 
+#### Waiting for the Helm install to complete
+
+```
+$ dapr init -k --wait
+```
+
 #### Uninstall Dapr on Kubernetes
 
 To remove Dapr from your Kubernetes cluster, use the `uninstall` command with `--kubernetes` flag or the `-k` shorthand.
