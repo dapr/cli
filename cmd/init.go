@@ -43,7 +43,7 @@ dapr init
 dapr init -k
 
 # Initialize Dapr in Kubernetes and wait for the installation to complete (default timeout is 300s/5m)
-dapr init -k --wait --timeout 300
+dapr init -k --wait --timeout 600
 
 # Initialize particular Dapr runtime in self-hosted mode
 dapr init --runtime-version 0.10.0
