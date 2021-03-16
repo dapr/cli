@@ -42,7 +42,7 @@ dapr init
 # Initialize Dapr in Kubernetes
 dapr init -k
 
-# Initialize Dapr in Kubernetes and wait for the installation to complete up to 5 minutes
+# Initialize Dapr in Kubernetes and wait for the installation to complete (default timeout is 300s/5m)
 dapr init -k --wait --timeout 300
 
 # Initialize particular Dapr runtime in self-hosted mode
@@ -95,7 +95,7 @@ dapr init -s
 func init() {
 	InitCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Deploy Dapr to a Kubernetes cluster")
 	InitCmd.Flags().BoolVarP(&wait, "wait", "", false, "Wait for Kubernetes initialization to complete")
-	InitCmd.Flags().UintVarP(&timeout, "timeout", "", 300, "The timeout for the Kubernetes installation")
+	InitCmd.Flags().UintVarP(&timeout, "timeout", "", 300, "The wait timeout for the Kubernetes installation")
 	InitCmd.Flags().BoolVarP(&slimMode, "slim", "s", false, "Exclude placement service, Redis and Zipkin containers from self-hosted installation")
 	InitCmd.Flags().StringVarP(&runtimeVersion, "runtime-version", "", "latest", "The version of the Dapr runtime to install, for example: 1.0.0")
 	InitCmd.Flags().StringVarP(&dashboardVersion, "dashboard-version", "", "latest", "The version of the Dapr dashboard to install, for example: 1.0.0")
