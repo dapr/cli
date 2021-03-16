@@ -44,10 +44,6 @@ func EnableJSONFormat() {
 	logAsJSON = true
 }
 
-func IsJSONFormat() bool {
-	return logAsJSON
-}
-
 // SuccessStatusEvent reports on a success event.
 func SuccessStatusEvent(w io.Writer, fmtstr string, a ...interface{}) {
 	if logAsJSON {
