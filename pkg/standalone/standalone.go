@@ -21,9 +21,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
-	"time"
 
-	"github.com/briandowns/spinner"
 	"github.com/dapr/cli/pkg/print"
 	cli_ver "github.com/dapr/cli/pkg/version"
 	"github.com/dapr/cli/utils"
@@ -134,16 +132,8 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 	wg.Add(len(initSteps))
 
 	msg := "Downloading binaries and setting up components..."
-	var s *spinner.Spinner
-	if runtime.GOOS == daprWindowsOS {
-		print.InfoStatusEvent(os.Stdout, msg)
-	} else {
-		s = spinner.New(spinner.CharSets[0], 100*time.Millisecond)
-		s.Writer = os.Stdout
-		s.Color("cyan")
-		s.Suffix = fmt.Sprintf("  %s", msg)
-		s.Start()
-	}
+	stopSpinning := print.Spinner(os.Stdout, msg)
+	defer stopSpinning(print.Failure)
 
 	// Make default components directory
 	err = makeDefaultComponentsDir()
@@ -174,16 +164,11 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 
 	for err := range errorChan {
 		if err != nil {
-			if s != nil {
-				s.Stop()
-			}
 			return err
 		}
 	}
 
-	if s != nil {
-		s.Stop()
-	}
+	stopSpinning(print.Success)
 
 	msg = "Downloaded binaries and completed components set up."
 	print.SuccessStatusEvent(os.Stdout, msg)
