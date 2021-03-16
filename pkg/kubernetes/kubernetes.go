@@ -39,6 +39,7 @@ type InitConfiguration struct {
 	EnableHA   bool
 	Args       []string
 	Wait       bool
+	Timeout    uint
 }
 
 // Init deploys the Dapr operator using the supplied runtime version.
@@ -177,6 +178,7 @@ func install(config InitConfiguration) error {
 	installClient.ReleaseName = daprReleaseName
 	installClient.Namespace = config.Namespace
 	installClient.Wait = config.Wait
+	installClient.Timeout = time.Duration(config.Timeout) * time.Second
 
 	values, err := chartValues(config)
 	if err != nil {

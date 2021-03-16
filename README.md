@@ -211,10 +211,10 @@ $ dapr init -k --enable-ha=true
 $ dapr init -k --enable-mtls=false
 ```
 
-#### Waiting for the Helm install to complete
+#### Waiting for the Helm install to complete (default timeout is 300s/5m)
 
 ```
-$ dapr init -k --wait
+$ dapr init -k --wait --timeout 600
 ```
 
 #### Uninstall Dapr on Kubernetes
@@ -223,6 +223,12 @@ To remove Dapr from your Kubernetes cluster, use the `uninstall` command with `-
 
 ```
 $ dapr uninstall -k
+```
+
+The default timeout is 300s/5m and can be overridden using the `--timeout` flag.
+
+```
+$ dapr uninstall -k --timeout 600
 ```
 
 ### Upgrade Dapr on Kubernetes

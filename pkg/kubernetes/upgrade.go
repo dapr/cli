@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/utils"
@@ -28,6 +29,7 @@ var crds = []string{
 type UpgradeConfig struct {
 	RuntimeVersion string
 	Args           []string
+	Timeout        uint
 }
 
 func Upgrade(conf UpgradeConfig) error {
@@ -68,6 +70,7 @@ func Upgrade(conf UpgradeConfig) error {
 	upgradeClient.Namespace = status[0].Namespace
 	upgradeClient.CleanupOnFail = true
 	upgradeClient.Wait = true
+	upgradeClient.Timeout = time.Duration(conf.Timeout) * time.Second
 
 	print.InfoStatusEvent(os.Stdout, "Starting upgrade...")
 
