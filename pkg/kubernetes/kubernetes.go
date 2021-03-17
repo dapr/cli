@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/dapr/cli/pkg/print"
 	helm "helm.sh/helm/v3/pkg/action"
@@ -35,6 +36,8 @@ type InitConfiguration struct {
 	EnableMTLS bool
 	EnableHA   bool
 	Args       []string
+	Wait       bool
+	Timeout    uint
 }
 
 // Init deploys the Dapr operator using the supplied runtime version.
@@ -159,6 +162,8 @@ func install(config InitConfiguration) error {
 	installClient := helm.NewInstall(helmConf)
 	installClient.ReleaseName = daprReleaseName
 	installClient.Namespace = config.Namespace
+	installClient.Wait = config.Wait
+	installClient.Timeout = time.Duration(config.Timeout) * time.Second
 
 	values, err := chartValues(config)
 	if err != nil {
