@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/dapr/cli/pkg/api"
+	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/pkg/standalone"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -30,6 +31,8 @@ var RootCmd = &cobra.Command{
 ===============================
 Distributed Application Runtime`,
 }
+
+var logAsJSON bool
 
 // Execute adds all child commands to the root command.
 func Execute(version, apiVersion string) {
@@ -52,7 +55,15 @@ func setVersion() {
 }
 
 func initConfig() {
+	if logAsJSON {
+		print.EnableJSONFormat()
+	}
+
 	viper.SetEnvPrefix("dapr")
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 	viper.AutomaticEnv()
+}
+
+func init() {
+	RootCmd.PersistentFlags().BoolVarP(&logAsJSON, "log-as-json", "", false, "Log output in JSON format")
 }
