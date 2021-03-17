@@ -76,7 +76,7 @@ func TestStatus(t *testing.T) {
 			}, false))
 		status, err := k8s.Status()
 		assert.Nil(t, err, "status should not raise an error")
-		assert.Equal(t, 1, len(status), "Expected status to be empty list")
+		assert.Equal(t, 1, len(status), "Expected status to be non-empty list")
 		stat := status[0]
 		assert.Equal(t, "dapr-dashboard", stat.Name, "expected name to match")
 		assert.Equal(t, "dapr-system", stat.Namespace, "expected namespace to match")
@@ -100,7 +100,7 @@ func TestStatus(t *testing.T) {
 			}, true))
 		status, err := k8s.Status()
 		assert.Nil(t, err, "status should not raise an error")
-		assert.Equal(t, 1, len(status), "Expected status to be empty list")
+		assert.Equal(t, 1, len(status), "Expected status to be non-empty list")
 		stat := status[0]
 		assert.Equal(t, "dapr-dashboard", stat.Name, "expected name to match")
 		assert.Equal(t, "dapr-system", stat.Namespace, "expected namespace to match")
@@ -125,7 +125,7 @@ func TestStatus(t *testing.T) {
 
 		status, err := k8s.Status()
 		assert.Nil(t, err, "status should not raise an error")
-		assert.Equal(t, 1, len(status), "Expected status to be empty list")
+		assert.Equal(t, 1, len(status), "Expected status to be non-empty list")
 		stat := status[0]
 		assert.Equal(t, "dapr-dashboard", stat.Name, "expected name to match")
 		assert.Equal(t, "dapr-system", stat.Namespace, "expected namespace to match")
@@ -134,6 +134,35 @@ func TestStatus(t *testing.T) {
 		assert.Equal(t, 1, stat.Replicas, "expected replicas to match")
 		assert.Equal(t, "False", stat.Healthy, "expected health to match")
 		assert.Equal(t, stat.Status, "Terminated", "expected terminated status")
+	})
+
+	t.Run("one status pending", func(t *testing.T) {
+		testTime := time.Now()
+
+		pod := newDaprControlPlanePod(
+			"dapr-dashboard-58877dbc9d-n8qg2", "dapr-dashboard",
+			testTime.Add(time.Duration(-20)*time.Minute),
+			v1.ContainerState{
+				Terminated: &v1.ContainerStateTerminated{
+					ExitCode: 1,
+				},
+			}, false)
+		// delete pod's podstatus
+		pod.Status.ContainerStatuses = nil
+		pod.Status.Phase = v1.PodPending
+
+		k8s := newTestSimpleK8s(pod)
+		status, err := k8s.Status()
+		assert.Nil(t, err, "status should not raise an error")
+		assert.Equal(t, 1, len(status), "Expected status to be non-empty list")
+		stat := status[0]
+		assert.Equal(t, "dapr-dashboard", stat.Name, "expected name to match")
+		assert.Equal(t, "dapr-system", stat.Namespace, "expected namespace to match")
+		assert.Equal(t, "20m", stat.Age, "expected age to match")
+		assert.Equal(t, "0.0.1", stat.Version, "expected version to match")
+		assert.Equal(t, 1, stat.Replicas, "expected replicas to match")
+		assert.Equal(t, "False", stat.Healthy, "expected health to match")
+		assert.Equal(t, stat.Status, "Pending", "expected pending status")
 	})
 
 	t.Run("one status empty client", func(t *testing.T) {

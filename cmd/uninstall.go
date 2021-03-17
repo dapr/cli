@@ -45,7 +45,7 @@ dapr uninstall -k
 
 		if uninstallKubernetes {
 			print.InfoStatusEvent(os.Stdout, "Removing Dapr from your cluster...")
-			err = kubernetes.Uninstall(uninstallNamespace)
+			err = kubernetes.Uninstall(uninstallNamespace, timeout)
 		} else {
 			print.InfoStatusEvent(os.Stdout, "Removing Dapr from your machine...")
 			dockerNetwork := viper.GetString("network")
@@ -62,6 +62,7 @@ dapr uninstall -k
 
 func init() {
 	UninstallCmd.Flags().BoolVarP(&uninstallKubernetes, "kubernetes", "k", false, "Uninstall Dapr from a Kubernetes cluster")
+	UninstallCmd.Flags().UintVarP(&timeout, "timeout", "", 300, "The timeout for the Kubernetes uninstall")
 	UninstallCmd.Flags().BoolVar(&uninstallAll, "all", false, "Remove .dapr directory, Redis, Placement and Zipkin containers")
 	UninstallCmd.Flags().String("network", "", "The Docker network from which to remove the Dapr runtime")
 	UninstallCmd.Flags().StringVarP(&uninstallNamespace, "namespace", "n", "dapr-system", "The Kubernetes namespace to uninstall Dapr from")

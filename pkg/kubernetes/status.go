@@ -95,13 +95,16 @@ func (s *StatusClient) Status() ([]StatusOutput, error) {
 			running := true
 
 			for _, p := range p.Items {
-				if p.Status.ContainerStatuses[0].State.Waiting != nil {
+				if len(p.Status.ContainerStatuses) == 0 {
+					status = string(p.Status.Phase)
+				} else if p.Status.ContainerStatuses[0].State.Waiting != nil {
 					status = fmt.Sprintf("Waiting (%s)", p.Status.ContainerStatuses[0].State.Waiting.Reason)
 				} else if pod.Status.ContainerStatuses[0].State.Terminated != nil {
 					status = "Terminated"
 				}
 
-				if p.Status.ContainerStatuses[0].State.Running == nil {
+				if len(p.Status.ContainerStatuses) == 0 ||
+					p.Status.ContainerStatuses[0].State.Running == nil {
 					running = false
 
 					break

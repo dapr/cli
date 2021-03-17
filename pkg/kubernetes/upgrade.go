@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/utils"
@@ -28,6 +29,7 @@ var crds = []string{
 type UpgradeConfig struct {
 	RuntimeVersion string
 	Args           []string
+	Timeout        uint
 }
 
 func Upgrade(conf UpgradeConfig) error {
@@ -68,6 +70,7 @@ func Upgrade(conf UpgradeConfig) error {
 	upgradeClient.Namespace = status[0].Namespace
 	upgradeClient.CleanupOnFail = true
 	upgradeClient.Wait = true
+	upgradeClient.Timeout = time.Duration(conf.Timeout) * time.Second
 
 	print.InfoStatusEvent(os.Stdout, "Starting upgrade...")
 
@@ -133,19 +136,6 @@ func highAvailabilityEnabled(status []StatusOutput) bool {
 }
 
 func applyCRDs(version string) error {
-	l := []string{
-		"components.dapr.io",
-		"configurations.dapr.io",
-		"subscriptions.dapr.io",
-	}
-
-	for _, c := range l {
-		_, err := utils.RunCmdAndWait("kubectl", "delete", "crd", c)
-		if err != nil {
-			return err
-		}
-	}
-
 	for _, crd := range crds {
 		url := fmt.Sprintf("https://raw.githubusercontent.com/dapr/dapr/%s/charts/dapr/crds/%s.yaml", version, crd)
 		_, err := utils.RunCmdAndWait("kubectl", "apply", "-f", url)

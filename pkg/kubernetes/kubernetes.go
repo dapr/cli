@@ -11,10 +11,8 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"runtime"
 	"time"
 
-	"github.com/briandowns/spinner"
 	"github.com/dapr/cli/pkg/print"
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
@@ -38,35 +36,24 @@ type InitConfiguration struct {
 	EnableMTLS bool
 	EnableHA   bool
 	Args       []string
+	Wait       bool
+	Timeout    uint
 }
 
 // Init deploys the Dapr operator using the supplied runtime version.
 func Init(config InitConfiguration) error {
 	msg := "Deploying the Dapr control plane to your cluster..."
-	var s *spinner.Spinner
 
-	if runtime.GOOS == "windows" {
-		print.InfoStatusEvent(os.Stdout, msg)
-	} else {
-		s = spinner.New(spinner.CharSets[0], 100*time.Millisecond)
-		s.Writer = os.Stdout
-		s.Color("cyan")
-		s.Suffix = fmt.Sprintf("  %s", msg)
-		s.Start()
-	}
+	stopSpinning := print.Spinner(os.Stdout, msg)
+	defer stopSpinning(print.Failure)
 
 	err := install(config)
 	if err != nil {
-		if s != nil {
-			s.Stop()
-		}
 		return err
 	}
 
-	if s != nil {
-		s.Stop()
-		print.SuccessStatusEvent(os.Stdout, msg)
-	}
+	stopSpinning(print.Success)
+
 	return nil
 }
 
@@ -175,6 +162,8 @@ func install(config InitConfiguration) error {
 	installClient := helm.NewInstall(helmConf)
 	installClient.ReleaseName = daprReleaseName
 	installClient.Namespace = config.Namespace
+	installClient.Wait = config.Wait
+	installClient.Timeout = time.Duration(config.Timeout) * time.Second
 
 	values, err := chartValues(config)
 	if err != nil {
