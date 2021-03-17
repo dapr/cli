@@ -11,10 +11,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"runtime"
-	"time"
 
-	"github.com/briandowns/spinner"
 	"github.com/dapr/cli/pkg/print"
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
@@ -43,30 +40,17 @@ type InitConfiguration struct {
 // Init deploys the Dapr operator using the supplied runtime version.
 func Init(config InitConfiguration) error {
 	msg := "Deploying the Dapr control plane to your cluster..."
-	var s *spinner.Spinner
 
-	if runtime.GOOS == "windows" {
-		print.InfoStatusEvent(os.Stdout, msg)
-	} else {
-		s = spinner.New(spinner.CharSets[0], 100*time.Millisecond)
-		s.Writer = os.Stdout
-		s.Color("cyan")
-		s.Suffix = fmt.Sprintf("  %s", msg)
-		s.Start()
-	}
+	stopSpinning := print.Spinner(os.Stdout, msg)
+	defer stopSpinning(print.Failure)
 
 	err := install(config)
 	if err != nil {
-		if s != nil {
-			s.Stop()
-		}
 		return err
 	}
 
-	if s != nil {
-		s.Stop()
-		print.SuccessStatusEvent(os.Stdout, msg)
-	}
+	stopSpinning(print.Success)
+
 	return nil
 }
 
