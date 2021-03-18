@@ -6,16 +6,11 @@
 name: e2e
 
 on:
-  push:
-    branches:
-      - master
-      - release-*
-    tags:
-      - v*
   pull_request:
     branches:
       - master
-      - release-*
+      - 'release-*'
+
 jobs:
   self-hosted-e2e:
     name: Run Self-Hosted E2E tests in ${{ matrix.target_os }}_${{ matrix.target_arch }}
