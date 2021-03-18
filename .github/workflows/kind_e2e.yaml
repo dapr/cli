@@ -3,7 +3,7 @@
 # Licensed under the MIT License.
 # ------------------------------------------------------------
 
-name: E2E tests for K8s (KinD)
+name: e2e
 
 on:
   pull_request:
