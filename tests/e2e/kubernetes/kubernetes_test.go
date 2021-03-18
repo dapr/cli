@@ -28,17 +28,6 @@ import (
 
 	k8s "k8s.io/client-go/kubernetes"
 
-	// //  azure auth
-	// _ "k8s.io/client-go/plugin/pkg/client/auth/azure"
-
-	// //  gcp auth
-	// _ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-
-	// //  oidc auth
-	// _ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
-
-	// //  openstack auth
-	// _ "k8s.io/client-go/plugin/pkg/client/auth/openstack"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
