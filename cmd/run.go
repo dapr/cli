@@ -9,10 +9,8 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"os/signal"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/dapr/cli/pkg/metadata"
@@ -90,7 +88,7 @@ var RunCmd = &cobra.Command{
 		}
 
 		sigCh := make(chan os.Signal, 1)
-		signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
+		setupShutdownNotify(sigCh)
 
 		daprRunning := make(chan bool, 1)
 		appRunning := make(chan bool, 1)
