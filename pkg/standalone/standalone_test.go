@@ -8,6 +8,7 @@ package standalone
 import (
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -51,4 +52,50 @@ spec: {}
 	})
 
 	os.Remove(testFile)
+}
+
+func TestRedisPubSubConfig(t *testing.T) {
+	expectedPubSubConfig := `apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: pubsub
+spec:
+  type: pubsub.redis
+  version: v1.0
+  metadata:
+  - name: redisHost
+    value: localhost:6379
+  - name: redisPassword
+    value: ""`
+	tempDir := t.TempDir()
+	createRedisPubSub("localhost", tempDir)
+	pubsubFilePath := filepath.Join(tempDir, pubSubYamlFileName)
+	assert.FileExists(t, pubsubFilePath)
+	content, err := ioutil.ReadFile(pubsubFilePath)
+	assert.NoError(t, err)
+	assert.YAMLEq(t, expectedPubSubConfig, string(content))
+}
+
+func TestRedisStateStoreConfig(t *testing.T) {
+	expectedStateStoreConfig := `apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: statestore
+spec:
+  type: state.redis
+  version: v1.0
+  metadata:
+  - name: redisHost
+    value: localhost:6379
+  - name: redisPassword
+    value: ""
+  - name: actorStateStore
+    value: "true"`
+	tempDir := t.TempDir()
+	createRedisStateStore("localhost", tempDir)
+	stateStoreFilePath := filepath.Join(tempDir, stateStoreYamlFileName)
+	assert.FileExists(t, stateStoreFilePath)
+	content, err := ioutil.ReadFile(stateStoreFilePath)
+	assert.NoError(t, err)
+	assert.YAMLEq(t, expectedStateStoreConfig, string(content))
 }
