@@ -207,7 +207,7 @@ func testInstall(t *testing.T) {
 			},
 			"spec": map[interface{}]interface{}{
 				"type":    "state.redis",
-				"version": "v1.0",
+				"version": "v1",
 				"metadata": []interface{}{
 					map[interface{}]interface{}{
 						"name":  "redisHost",
@@ -232,7 +232,7 @@ func testInstall(t *testing.T) {
 			},
 			"spec": map[interface{}]interface{}{
 				"type":    "pubsub.redis",
-				"version": "v1.0",
+				"version": "v1",
 				"metadata": []interface{}{
 					map[interface{}]interface{}{
 						"name":  "redisHost",

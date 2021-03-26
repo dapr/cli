@@ -814,7 +814,7 @@ func createRedisStateStore(redisHost string, componentsPath string) error {
 
 	redisStore.Metadata.Name = "statestore"
 	redisStore.Spec.Type = "state.redis"
-	redisStore.Spec.Version = "v1.0"
+	redisStore.Spec.Version = "v1"
 	redisStore.Spec.Metadata = []componentMetadataItem{
 		{
 			Name:  "redisHost",
@@ -849,7 +849,7 @@ func createRedisPubSub(redisHost string, componentsPath string) error {
 
 	redisPubSub.Metadata.Name = "pubsub"
 	redisPubSub.Spec.Type = "pubsub.redis"
-	redisPubSub.Spec.Version = "v1.0"
+	redisPubSub.Spec.Version = "v1"
 	redisPubSub.Spec.Metadata = []componentMetadataItem{
 		{
 			Name:  "redisHost",
