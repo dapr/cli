@@ -1,5 +1,3 @@
-// +build !windows
-
 // ------------------------------------------------------------
 // Copyright (c) Microsoft Corporation and Dapr Contributors.
 // Licensed under the MIT License.
@@ -9,8 +7,9 @@ package standalone
 
 import (
 	"fmt"
+	"syscall"
 
-	"github.com/dapr/cli/utils"
+	"golang.org/x/sys/windows"
 )
 
 // Stop terminates the application process.
@@ -22,13 +21,18 @@ func Stop(appID string) error {
 
 	for _, a := range apps {
 		if a.AppID == appID {
-			pid := fmt.Sprintf("%v", a.PID)
+			eventName, _ := syscall.UTF16FromString(fmt.Sprintf("dapr_cli_%v", a.PID))
+			eventHandle, err := windows.OpenEvent(windows.EVENT_MODIFY_STATE, false, &eventName[0])
+			if err != nil {
+				return err
+			}
 
-			_, err := utils.RunCmdAndWait("kill", pid)
-
+			err = windows.SetEvent(eventHandle)
 			return err
 		}
 	}
 
 	return fmt.Errorf("couldn't find app id %s", appID)
 }
+
+

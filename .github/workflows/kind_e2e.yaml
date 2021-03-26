@@ -1,0 +1,124 @@
+# ------------------------------------------------------------
+# Copyright (c) Microsoft Corporation and Dapr Contributors.
+# Licensed under the MIT License.
+# ------------------------------------------------------------
+
+name: e2e
+
+on:
+  pull_request:
+    branches:
+      - master
+      - 'release-*'
+
+defaults:
+  run:
+    shell: bash
+    working-directory: ./src/github.com/dapr/cli
+
+jobs:
+  # This workflow runs our e2e tests in a local KinD cluster. Since it
+  # does not required a paid cluster and special credentials, it does
+  # not require /ok-to-test. That allows contributors to run E2E tests
+  # in their Draft PRs without explicit approval from Dapr
+  # maintainers.
+  #
+  # One other benefit of a fully-localized workflow is that tests are
+  # running on a fresh cluster everytime, thus being decoupled from
+  # shared resource issues.
+  #
+  # However, KinD currently does not support Windows nodes so this is
+  # not intended to be a complete replacement for our AKS-based E2E
+  # workflows.
+  kubernetes-e2e:
+    name: E2E tests for K8s (KinD)
+    runs-on: ubuntu-latest
+    env:
+      GOVER: 1.16
+    strategy:
+      fail-fast: false # Keep running if one leg fails.
+      matrix:
+        k8s-version:
+        - v1.17.11
+        - v1.18.8
+        - v1.19.1
+        mode:
+        - ha
+        - non-ha
+        # Map between K8s and KinD versions.
+        # This is attempting to make it a bit clearer what's being tested.
+        # See: https://github.com/kubernetes-sigs/kind/releases/tag/v0.9.0
+        include:
+        - k8s-version: v1.17.11
+          kind-version: v0.9.0
+          kind-image-sha: sha256:5240a7a2c34bf241afb54ac05669f8a46661912eab05705d660971eeb12f6555
+        - k8s-version: v1.18.8
+          kind-version: v0.9.0
+          kind-image-sha: sha256:f4bcc97a0ad6e7abaf3f643d890add7efe6ee4ab90baeb374b4f41a4c95567eb
+        - k8s-version: v1.19.1
+          kind-version: v0.9.0
+          kind-image-sha: sha256:98cf5288864662e37115e362b23e4369c8c4a408f99cbc06e58ac30ddc721600
+        exclude:
+        - k8s-version: v1.17.11
+          mode: non-ha
+        - k8s-version: v1.18.8
+          mode: non-ha
+    steps:
+    - name: Set up Go ${{ env.GOVER }}
+      uses: actions/setup-go@v2
+      with:
+        go-version: ${{ env.GOVER }}
+    - name: Check out code onto GOPATH
+      uses: actions/checkout@v2
+      with:
+        path: ./src/github.com/dapr/cli
+
+    - name: Configure KinD
+      # Generate a KinD configuration file that uses:
+      # (a) a couple of worker nodes: this is needed to run both
+      #     ZooKeeper + Kakfa, and
+      # (b) a local registry: Due to `kind load` performance
+      #     https://github.com/kubernetes-sigs/kind/issues/1165, using
+      #     a local repository speeds up the image pushes into KinD
+      #     significantly.
+      working-directory: ./
+      run: |
+        cat > kind.yaml <<EOF
+        apiVersion: kind.x-k8s.io/v1alpha4
+        kind: Cluster
+        nodes:
+        - role: control-plane
+          image: kindest/node:${{ matrix.k8s-version }}@${{ matrix.kind-image-sha }}
+        - role: worker
+          image: kindest/node:${{ matrix.k8s-version }}@${{ matrix.kind-image-sha }}
+        - role: worker
+          image: kindest/node:${{ matrix.k8s-version }}@${{ matrix.kind-image-sha }}
+        - role: worker
+          image: kindest/node:${{ matrix.k8s-version }}@${{ matrix.kind-image-sha }}
+        EOF
+
+        # Log the generated kind.yaml for easy reference.
+        cat kind.yaml
+
+    - name: Create KinD Cluster
+      uses: helm/kind-action@v1.0.0
+      with:
+        config: kind.yaml
+        cluster_name: kind
+        version: ${{ matrix.kind-version }}
+
+    - name: Get KinD info
+      run: |
+        kubectl cluster-info --context kind-kind
+        NODE_IP=$(kubectl get nodes \
+                  -lkubernetes.io/hostname!=kind-control-plane \
+                  -ojsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')
+        echo "MINIKUBE_NODE_IP=$NODE_IP" >> $GITHUB_ENV
+
+    - name: Free up some diskspace
+      run: |
+        docker image prune -a -f
+
+    - name: Run tests
+      run: |
+        make e2e-build-run-k8s

@@ -23,9 +23,11 @@ require (
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/viper v1.7.0
 	github.com/stretchr/testify v1.6.1
+	golang.org/x/sys v0.0.0-20210319071255-635bc2c9138d // indirect
 	gopkg.in/yaml.v2 v2.3.0
 	helm.sh/helm/v3 v3.4.0
 	k8s.io/api v0.20.0
+	k8s.io/apiextensions-apiserver v0.20.0
 	k8s.io/apimachinery v0.20.0
 	k8s.io/cli-runtime v0.20.0
 	k8s.io/client-go v0.20.0
