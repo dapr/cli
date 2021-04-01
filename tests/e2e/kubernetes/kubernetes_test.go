@@ -34,7 +34,7 @@ import (
 
 const (
 	daprNamespace        = "dapr-cli-tests"
-	daprRuntimeVersion   = "1.0.1"
+	daprRuntimeVersion   = "1.1.0"
 	daprDashboardVersion = "0.6.0"
 )
 
@@ -204,9 +204,9 @@ func testClusterRoleBindings(wanted bool) func(t *testing.T) {
 		require.NoError(t, err)
 
 		foundMap := map[string]bool{
-			"dapr-operator":            false,
-			"role-tokenreview-binding": false,
-			"dashboard-reader-global":  false,
+			"dapr-operator":                 false,
+			"dapr-role-tokenreview-binding": false,
+			"dashboard-reader-global":       false,
 		}
 
 		var listContinue string
