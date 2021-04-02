@@ -74,6 +74,7 @@ type component struct {
 	} `yaml:"metadata"`
 	Spec struct {
 		Type     string                  `yaml:"type"`
+		Version  string                  `yaml:"version"`
 		Metadata []componentMetadataItem `yaml:"metadata"`
 	} `yaml:"spec"`
 }
@@ -813,6 +814,7 @@ func createRedisStateStore(redisHost string, componentsPath string) error {
 
 	redisStore.Metadata.Name = "statestore"
 	redisStore.Spec.Type = "state.redis"
+	redisStore.Spec.Version = "v1"
 	redisStore.Spec.Metadata = []componentMetadataItem{
 		{
 			Name:  "redisHost",
@@ -847,6 +849,7 @@ func createRedisPubSub(redisHost string, componentsPath string) error {
 
 	redisPubSub.Metadata.Name = "pubsub"
 	redisPubSub.Spec.Type = "pubsub.redis"
+	redisPubSub.Spec.Version = "v1"
 	redisPubSub.Spec.Metadata = []componentMetadataItem{
 		{
 			Name:  "redisHost",
