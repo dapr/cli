@@ -28,7 +28,7 @@ import (
 
 const (
 	daprNamespace        = "dapr-cli-tests"
-	daprRuntimeVersion   = "1.0.1"
+	daprRuntimeVersion   = "1.1.0"
 	daprDashboardVersion = "0.6.0"
 )
 
