@@ -41,6 +41,7 @@ func TestStandaloneInstall(t *testing.T) {
 		phase func(*testing.T)
 	}{
 		{"test install", testInstall},
+		{"test run", testRun},
 		{"test uninstall", testUninstall},
 	}
 
@@ -268,4 +269,29 @@ func testInstall(t *testing.T) {
 	}
 
 	assert.Empty(t, configs)
+}
+
+func testRun(t *testing.T) {
+	daprPath := getDaprPath()
+
+	output, err := spawn.Command(daprPath, "run", "--", "bash", "-c", "echo test")
+	t.Log(output)
+	require.NoError(t, err, "run failed")
+	assert.Contains(t, output, "Exited App successfully")
+	assert.Contains(t, output, "Exited Dapr successfully")
+
+	output, err = spawn.Command(daprPath, "run", "--", "bash", "-c", "exit 1")
+	t.Log(output)
+	require.NoError(t, err, "run failed")
+	assert.Contains(t, output, "The App process exited with error code: exit status 1")
+	assert.Contains(t, output, "Exited Dapr successfully")
+
+
+	// Test that the CLI exits on a daprd shutdown.
+	output, err = spawn.Command(daprPath, "run", "--dapr-http-port", "9999", "--", "bash", "-c", "curl -v http://localhost:9999/v1.0/shutdown; sleep 10; exit 1")
+	t.Log(output)
+	require.NoError(t, err, "run failed")
+	assert.Contains(t, output, "Exited App successfully", "App should be shutdown before it has a chance to return non-zero")
+	assert.Contains(t, output, "Exited Dapr successfully")
+
 }
