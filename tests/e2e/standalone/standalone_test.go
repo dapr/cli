@@ -28,7 +28,7 @@ import (
 
 const (
 	daprNamespace        = "dapr-cli-tests"
-	daprRuntimeVersion   = "1.0.1"
+	daprRuntimeVersion   = "1.1.0"
 	daprDashboardVersion = "0.6.0"
 )
 
@@ -206,7 +206,8 @@ func testInstall(t *testing.T) {
 				"name": "statestore",
 			},
 			"spec": map[interface{}]interface{}{
-				"type": "state.redis",
+				"type":    "state.redis",
+				"version": "v1",
 				"metadata": []interface{}{
 					map[interface{}]interface{}{
 						"name":  "redisHost",
@@ -230,7 +231,8 @@ func testInstall(t *testing.T) {
 				"name": "pubsub",
 			},
 			"spec": map[interface{}]interface{}{
-				"type": "pubsub.redis",
+				"type":    "pubsub.redis",
+				"version": "v1",
 				"metadata": []interface{}{
 					map[interface{}]interface{}{
 						"name":  "redisHost",

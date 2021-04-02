@@ -150,13 +150,15 @@ var RunCmd = &cobra.Command{
 			stdErrPipe, pipeErr := output.AppCMD.StderrPipe()
 			if pipeErr != nil {
 				print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error creating stderr for App: %s", err.Error()))
-				os.Exit(1)
+				appRunning <- false
+				return
 			}
 
 			stdOutPipe, pipeErr := output.AppCMD.StdoutPipe()
 			if pipeErr != nil {
 				print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error creating stdout for App: %s", err.Error()))
-				os.Exit(1)
+				appRunning <- false
+				return
 			}
 
 			errScanner := bufio.NewScanner(stdErrPipe)
@@ -176,13 +178,24 @@ var RunCmd = &cobra.Command{
 			err = output.AppCMD.Start()
 			if err != nil {
 				print.FailureStatusEvent(os.Stdout, err.Error())
-				os.Exit(1)
+				appRunning <- false
+				return
 			}
 
 			appRunning <- true
 		}()
 
-		<-appRunning
+		appRunStatus := <-appRunning
+		if !appRunStatus {
+			// Start App failed, try to stop Dapr and exit.
+			err = output.DaprCMD.Process.Kill()
+			if err != nil {
+				print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Start App failed, try to stop Dapr Error: %s", err))
+			} else {
+				print.SuccessStatusEvent(os.Stdout, "Start App failed, try to stop Dapr successfully")
+			}
+			os.Exit(1)
+		}
 
 		// Metadata API is only available if app has started listening to port, so wait for app to start before calling metadata API.
 		err = metadata.Put(output.DaprHTTPPort, "cliPID", strconv.Itoa(os.Getpid()))
