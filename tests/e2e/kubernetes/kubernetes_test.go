@@ -40,7 +40,7 @@ const (
 
 func TestKubernetesInstallNonHA(t *testing.T) {
 	// Ensure a clean environment
-	uninstall()
+	uninstall() // does not wait for pod deletion
 
 	tests := []struct {
 		name  string
@@ -50,12 +50,13 @@ func TestKubernetesInstallNonHA(t *testing.T) {
 		{"crds exist", testCRDs(true)},
 		{"clusterroles exist", testClusterRoles(true)},
 		{"clusterrolebindings exist", testClusterRoleBindings(true)},
-		{"status check", testStatus(false)},
+		{"status check", testStatus(true, false)},
 		//-------------------------------------------------
-		{"uninstall", testUninstall},
+		{"uninstall", testUninstall}, // waits for pod deletion
 		{"clusterroles not exist", testClusterRoles(false)},
 		{"clusterroles not exist", testClusterRoles(false)},
 		{"clusterrolebindings not exist", testClusterRoleBindings(false)},
+		{"status check errors out", testStatus(false, false)},
 	}
 
 	for _, tc := range tests {
@@ -65,7 +66,7 @@ func TestKubernetesInstallNonHA(t *testing.T) {
 
 func TestKubernetesInstallHA(t *testing.T) {
 	// Ensure a clean environment
-	uninstall()
+	uninstall() // does not wait for pod deletion
 
 	tests := []struct {
 		name  string
@@ -75,12 +76,13 @@ func TestKubernetesInstallHA(t *testing.T) {
 		{"crds exist", testCRDs(true)},
 		{"clusterroles exist", testClusterRoles(true)},
 		{"clusterrolebindings exist", testClusterRoleBindings(true)},
-		{"status check", testStatus(true)},
+		{"status check", testStatus(true, true)},
 		//-------------------------------------------------
-		{"uninstall", testUninstall},
+		{"uninstall", testUninstall}, // waits for pod deletion
 		{"clusterroles not exist", testClusterRoles(false)},
 		{"clusterroles not exist", testClusterRoles(false)},
 		{"clusterrolebindings not exist", testClusterRoleBindings(false)},
+		{"status check errors out", testStatus(false, true)},
 	}
 
 	for _, tc := range tests {
@@ -107,6 +109,20 @@ func testUninstall(t *testing.T) {
 	output, err := uninstall()
 	t.Log(output)
 	require.NoError(t, err, "uninstall failed")
+	// wait for pods to be deleted completely
+	// needed to verify status checks fails correctly
+	podsDeleted := make(chan struct{})
+	done := make(chan struct{})
+	t.Log("waiting for pods to be deleted completely")
+	go waitPodDeletion(done, podsDeleted, t)
+	select {
+	case <-podsDeleted:
+		t.Log("pods were delted as expected on uninstall")
+		return
+	case <-time.After(2 * time.Minute):
+		done <- struct{}{}
+		t.Error("Pods were not deleted as expectedx")
+	}
 }
 
 func testInstall(haMode bool) func(t *testing.T) {
@@ -185,11 +201,18 @@ func testInstall(haMode bool) func(t *testing.T) {
 	}
 }
 
-func testStatus(haMode bool) func(t *testing.T) {
+func testStatus(isDaprInstalled, haMode bool) func(t *testing.T) {
 	return func(t *testing.T) {
 		daprPath := getDaprPath()
 		output, err := spawn.Command(daprPath, "status", "-k")
-		require.NoError(t, err, "status check failed")
+		if isDaprInstalled {
+			require.NoError(t, err, "status check failed")
+		} else {
+			t.Log("checking status fails as expected")
+			require.Error(t, err, "status check did not fail as expected")
+			require.Contains(t, output, " No status returned. Is Dapr initialized in your cluster?", "error on message verification")
+			return
+		}
 		notFound := map[string][]string{}
 		if !haMode {
 			notFound = map[string][]string{
@@ -386,4 +409,28 @@ func homeDir() string {
 		return h
 	}
 	return os.Getenv("USERPROFILE") // windows
+}
+
+func waitPodDeletion(done, podsDeleted chan struct{}, t *testing.T) {
+	for {
+		select {
+		case <-done: // if timeout was reached
+			return
+		default:
+			break
+		}
+		ctx := context.Background()
+		ctxt, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+		k8sClient, err := kubernetes.Client()
+		require.NoError(t, err, "error getting k8s client for pods check")
+		list, err := k8sClient.CoreV1().Pods(daprNamespace).List(ctxt, v1.ListOptions{
+			Limit: 100,
+		})
+		require.NoError(t, err, "error getting pods list from k8s")
+		if len(list.Items) == 0 {
+			podsDeleted <- struct{}{}
+		}
+		time.Sleep(15 * time.Second)
+	}
 }
