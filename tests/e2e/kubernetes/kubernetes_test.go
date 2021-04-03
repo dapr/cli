@@ -23,7 +23,6 @@ import (
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/tests/e2e/spawn"
 
 	k8s "k8s.io/client-go/kubernetes"
@@ -32,71 +31,202 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
+type resource int
+
 const (
-	daprNamespace        = "dapr-cli-tests"
-	daprRuntimeVersion   = "1.1.1"
-	daprDashboardVersion = "0.6.0"
+	customResourceDefs resource = iota
+	clusterRoles
+	clusterRoleBindings
 )
 
-func TestKubernetesInstallNonHA(t *testing.T) {
-	// Ensure a clean environment
-	uninstall() // does not wait for pod deletion
+type versionDetails struct {
+	runtimeVersion      string
+	dashboardVersion    string
+	customResourceDefs  []string
+	clusterRoles        []string
+	clusterRoleBindings []string
+}
 
-	tests := []struct {
-		name  string
-		phase func(*testing.T)
-	}{
-		{"install without mtls", testInstall(false)},
-		{"crds exist", testCRDs(true)},
-		{"clusterroles exist", testClusterRoles(true)},
-		{"clusterrolebindings exist", testClusterRoleBindings(true)},
-		{"apply and check components exist", testComponents(true)},
-		{"check mtls disabled", testMtls(true, false)},
-		{"status check", testStatus(true, false)},
-		//-------------------------------------------------
-		{"uninstall", testUninstall}, // waits for pod deletion
-		// related to https://github.com/dapr/cli/issues/656
-		{"crds  exist after uninstall", testCRDs(true)},
-		{"clusterroles not exist", testClusterRoles(false)},
-		{"clusterrolebindings not exist", testClusterRoleBindings(false)},
-		{"check components do not exist", testComponents(false)},
-		{"check mtls error", testMtls(false, false)},          // second parameter does not matter here
-		{"status check errors out", testStatus(false, false)}, // second parameter does not matter here
-	}
+type testOptions struct {
+	haEnabled             bool
+	mtlsEnabled           bool
+	applyComponentChanges bool
+	checkResourceExists   map[resource]bool
+}
 
+type testCase struct {
+	name     string
+	callable func(*testing.T)
+}
+
+const (
+	daprNamespace           = "dapr-cli-tests"
+	currentRuntimeVersion   = "1.1.1"
+	currentDashboardVersion = "0.6.0"
+)
+
+var currentVersionDetails = versionDetails{
+	runtimeVersion:      currentRuntimeVersion,
+	dashboardVersion:    currentDashboardVersion,
+	customResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
+	clusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+	clusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+}
+
+func TestKubernetesNonHAModeMTLSDisabled(t *testing.T) {
+	// ensure clean env for test
+	ensureCleanEnv(t, currentVersionDetails)
+
+	// setup tests
+	tests := []testCase{}
+	tests = append(tests, getTestsOnInstall(currentVersionDetails, testOptions{
+		haEnabled:             false,
+		mtlsEnabled:           false,
+		applyComponentChanges: true,
+		checkResourceExists: map[resource]bool{
+			customResourceDefs:  true,
+			clusterRoles:        true,
+			clusterRoleBindings: true,
+		},
+	})...)
+
+	tests = append(tests, getTestsOnUninstall(currentVersionDetails, testOptions{
+		checkResourceExists: map[resource]bool{
+			customResourceDefs:  true,
+			clusterRoles:        false,
+			clusterRoleBindings: false,
+		},
+	})...)
+
+	// execute tests
 	for _, tc := range tests {
-		t.Run(tc.name, tc.phase)
+		t.Run(tc.name, tc.callable)
 	}
 }
 
-func TestKubernetesInstallHA(t *testing.T) {
+func TestKubernetesHAModeMTLSDisabled(t *testing.T) {
+	// ensure clean env for test
+	ensureCleanEnv(t, currentVersionDetails)
+
+	// setup tests
+	tests := []testCase{}
+	tests = append(tests, getTestsOnInstall(currentVersionDetails, testOptions{
+		haEnabled:             true,
+		mtlsEnabled:           false,
+		applyComponentChanges: true,
+		checkResourceExists: map[resource]bool{
+			customResourceDefs:  true,
+			clusterRoles:        true,
+			clusterRoleBindings: true,
+		},
+	})...)
+
+	tests = append(tests, getTestsOnUninstall(currentVersionDetails, testOptions{
+		checkResourceExists: map[resource]bool{
+			customResourceDefs:  true,
+			clusterRoles:        false,
+			clusterRoleBindings: false,
+		},
+	})...)
+
+	// execute tests
+	for _, tc := range tests {
+		t.Run(tc.name, tc.callable)
+	}
+}
+
+func TestKubernetesNonHAModeMTLSEnabled(t *testing.T) {
+	// ensure clean env for test
+	ensureCleanEnv(t, currentVersionDetails)
+
+	// setup tests
+	tests := []testCase{}
+	tests = append(tests, getTestsOnInstall(currentVersionDetails, testOptions{
+		haEnabled:             false,
+		mtlsEnabled:           true,
+		applyComponentChanges: true,
+		checkResourceExists: map[resource]bool{
+			customResourceDefs:  true,
+			clusterRoles:        true,
+			clusterRoleBindings: true,
+		},
+	})...)
+
+	tests = append(tests, getTestsOnUninstall(currentVersionDetails, testOptions{
+		checkResourceExists: map[resource]bool{
+			customResourceDefs:  true,
+			clusterRoles:        false,
+			clusterRoleBindings: false,
+		},
+	})...)
+
+	// execute tests
+	for _, tc := range tests {
+		t.Run(tc.name, tc.callable)
+	}
+}
+
+func TestKubernetesHAModeMTLSEnabled(t *testing.T) {
+	// ensure clean env for test
+	ensureCleanEnv(t, currentVersionDetails)
+
+	// setup tests
+	tests := []testCase{}
+	tests = append(tests, getTestsOnInstall(currentVersionDetails, testOptions{
+		haEnabled:             true,
+		mtlsEnabled:           true,
+		applyComponentChanges: true,
+		checkResourceExists: map[resource]bool{
+			customResourceDefs:  true,
+			clusterRoles:        true,
+			clusterRoleBindings: true,
+		},
+	})...)
+
+	tests = append(tests, getTestsOnUninstall(currentVersionDetails, testOptions{
+		checkResourceExists: map[resource]bool{
+			// TODO Related to https://github.com/dapr/cli/issues/656
+			customResourceDefs:  true,
+			clusterRoles:        false,
+			clusterRoleBindings: false,
+		},
+	})...)
+
+	// execute tests
+	for _, tc := range tests {
+		t.Run(tc.name, tc.callable)
+	}
+}
+
+func ensureCleanEnv(t *testing.T, versions ...versionDetails) {
 	// Ensure a clean environment
 	uninstall() // does not wait for pod deletion
-
-	tests := []struct {
-		name  string
-		phase func(*testing.T)
-	}{
-		{"install with mtls default", testInstall(true)},
-		{"crds exist", testCRDs(true)},
-		{"clusterroles exist", testClusterRoles(true)},
-		{"clusterrolebindings exist", testClusterRoleBindings(true)},
-		{"apply and check components exist", testComponents(true)},
-		{"check mtls enabled", testMtls(true, true)},
-		{"status check", testStatus(true, true)},
-		//-------------------------------------------------
-		{"uninstall", testUninstall}, // waits for pod deletion
-		// related to https://github.com/dapr/cli/issues/656
-		{"crds  exist after uninstall", testCRDs(true)},
-		{"clusterroles not exist", testClusterRoles(false)},
-		{"clusterrolebindings not exist", testClusterRoleBindings(false)},
-		{"check components do not exist", testComponents(false)},
-		{"check mtls error", testMtls(false, false)},         // second parameter does not matter here
-		{"status check errors out", testStatus(false, true)}, // second parameter does not matter here
+	for _, v := range versions {
+		t.Run("delete CRDs "+v.runtimeVersion, deleteCRD(v.customResourceDefs))
 	}
+}
 
-	for _, tc := range tests {
-		t.Run(tc.name, tc.phase)
+func getTestsOnInstall(details versionDetails, opts testOptions) []testCase {
+	return []testCase{
+		{"install " + details.runtimeVersion, testInstall(details, opts)},
+		{"crds exist " + details.runtimeVersion, testCRDs(details, opts)},
+		{"clusterroles exist " + details.runtimeVersion, testClusterRoles(details, opts)},
+		{"clusterrolebindings exist " + details.runtimeVersion, testClusterRoleBindings(details, opts)},
+		{"apply and check components exist " + details.runtimeVersion, testComponentsOnInstall(opts)},
+		{"check mtls " + details.runtimeVersion, testMtlsOnInstall(opts)},
+		{"status check", testStatusOnInstall(details, opts)},
+	}
+}
+
+func getTestsOnUninstall(details versionDetails, opts testOptions) []testCase {
+	return []testCase{
+		{"uninstall " + details.runtimeVersion, testUninstall}, // waits for pod deletion
+		{"crds exist on uninstall " + details.runtimeVersion, testCRDs(details, opts)},
+		{"clusterroles not exist " + details.runtimeVersion, testClusterRoles(details, opts)},
+		{"clusterrolebindings not exist " + details.runtimeVersion, testClusterRoleBindings(details, opts)},
+		{"check components exist on uninstall " + details.runtimeVersion, testComponentsOnUninstall()},
+		{"check mtls error " + details.runtimeVersion, testMtlsOnUninstall()},
+		{"check status error " + details.runtimeVersion, testStatusOnUninstall()},
 	}
 }
 
@@ -135,98 +265,111 @@ func testUninstall(t *testing.T) {
 	}
 }
 
-func testInstall(haMode bool) func(t *testing.T) {
+func testInstall(details versionDetails, opts testOptions) func(t *testing.T) {
 	return func(t *testing.T) {
 		daprPath := getDaprPath()
 		args := []string{
 			"init", "-k",
 			"--wait",
 			"-n", daprNamespace,
-			"--runtime-version", daprRuntimeVersion,
+			"--runtime-version", details.runtimeVersion,
 			"--log-as-json"}
-		if haMode {
+		if opts.haEnabled {
 			args = append(args, "--enable-ha")
-		} else {
-			// For now testing mtls disabled flag only for the non-HA mode
+		}
+		if !opts.mtlsEnabled {
+			t.Log("install without mtls")
 			args = append(args, "--enable-mtls=false")
+		} else {
+			t.Log("install with mtls")
 		}
 		output, err := spawn.Command(daprPath, args...)
 		t.Log(output)
 		require.NoError(t, err, "init failed")
 
-		ctx := context.Background()
-		ctxt, cancel := context.WithTimeout(ctx, 10*time.Second)
-		defer cancel()
-		k8sClient, err := kubernetes.Client()
-		require.NoError(t, err)
-		list, err := k8sClient.CoreV1().Pods(daprNamespace).List(ctxt, v1.ListOptions{
-			Limit: 100,
-		})
-		require.NoError(t, err)
+		validatePodsOnInstallUpgrade(details, t)
+	}
+}
 
-		notFound := map[string]string{
-			"sentry":    daprRuntimeVersion,
-			"sidecar":   daprRuntimeVersion,
-			"dashboard": daprDashboardVersion,
-			"placement": daprRuntimeVersion,
-			"operator":  daprRuntimeVersion,
-		}
-		prefixes := map[string]string{
-			"sentry":    "dapr-sentry-",
-			"sidecar":   "dapr-sidecar-injector-",
-			"dashboard": "dapr-dashboard-",
-			"placement": "dapr-placement-server-",
-			"operator":  "dapr-operator-",
-		}
+func validatePodsOnInstallUpgrade(details versionDetails, t *testing.T) {
+	ctx := context.Background()
+	ctxt, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	k8sClient, err := getClient()
+	require.NoError(t, err)
+	list, err := k8sClient.CoreV1().Pods(daprNamespace).List(ctxt, v1.ListOptions{
+		Limit: 100,
+	})
+	require.NoError(t, err)
 
-		t.Logf("items %d", len(list.Items))
-		for _, pod := range list.Items {
-			t.Log(pod.ObjectMeta.Name)
-			for component, prefix := range prefixes {
-				if pod.Status.Phase != core_v1.PodRunning {
+	notFound := map[string]string{
+		"sentry":    details.runtimeVersion,
+		"sidecar":   details.runtimeVersion,
+		"dashboard": details.dashboardVersion,
+		"placement": details.runtimeVersion,
+		"operator":  details.runtimeVersion,
+	}
+	prefixes := map[string]string{
+		"sentry":    "dapr-sentry-",
+		"sidecar":   "dapr-sidecar-injector-",
+		"dashboard": "dapr-dashboard-",
+		"placement": "dapr-placement-server-",
+		"operator":  "dapr-operator-",
+	}
+
+	t.Logf("items %d", len(list.Items))
+	for _, pod := range list.Items {
+		t.Log(pod.ObjectMeta.Name)
+		for component, prefix := range prefixes {
+			if pod.Status.Phase != core_v1.PodRunning {
+				continue
+			}
+			if !pod.Status.ContainerStatuses[0].Ready {
+				continue
+			}
+			if strings.HasPrefix(pod.ObjectMeta.Name, prefix) {
+				expectedVersion, ok := notFound[component]
+				if !ok {
 					continue
 				}
-				if !pod.Status.ContainerStatuses[0].Ready {
+				if len(pod.Spec.Containers) == 0 {
 					continue
 				}
-				if strings.HasPrefix(pod.ObjectMeta.Name, prefix) {
-					expectedVersion, ok := notFound[component]
-					if !ok {
-						continue
-					}
-					if len(pod.Spec.Containers) == 0 {
-						continue
-					}
 
-					image := pod.Spec.Containers[0].Image
-					versionIndex := strings.LastIndex(image, ":")
-					if versionIndex != -1 {
-						version := image[versionIndex+1:]
-						if version == expectedVersion {
-							delete(notFound, component)
-						}
+				image := pod.Spec.Containers[0].Image
+				versionIndex := strings.LastIndex(image, ":")
+				if versionIndex != -1 {
+					version := image[versionIndex+1:]
+					if version == expectedVersion {
+						delete(notFound, component)
 					}
 				}
 			}
 		}
-
-		assert.Empty(t, notFound)
 	}
+	assert.Empty(t, notFound)
 }
 
-func testMtls(isDaprInstalled, enabled bool) func(t *testing.T) {
+func testMtlsOnUninstall() func(t *testing.T) {
 	return func(t *testing.T) {
 		daprPath := getDaprPath()
 		output, err := spawn.Command(daprPath, "mtls", "-k")
-		if !isDaprInstalled {
-			require.Error(t, err, "expected error to be return if dapr not installed")
-			require.Contains(t, output, "error checking mTLS: system configuration not found", "expected output to match")
-			return
-		}
+		require.Error(t, err, "expected error to be return if dapr not installed")
+		require.Contains(t, output, "error checking mTLS: system configuration not found", "expected output to match")
+		return
+	}
+}
+
+func testMtlsOnInstall(opts testOptions) func(t *testing.T) {
+	return func(t *testing.T) {
+		daprPath := getDaprPath()
+		output, err := spawn.Command(daprPath, "mtls", "-k")
 		require.NoError(t, err, "expected no error on querying for mtls")
-		if !enabled {
+		if !opts.mtlsEnabled {
+			t.Log("check mtls disabled")
 			require.Contains(t, output, "Mutual TLS is disabled in your Kubernetes cluster", "expected output to match")
 		} else {
+			t.Log("check mtls enabled")
 			require.Contains(t, output, "Mutual TLS is enabled in your Kubernetes cluster", "expected output to match")
 		}
 
@@ -263,34 +406,45 @@ func testMtls(isDaprInstalled, enabled bool) func(t *testing.T) {
 	}
 }
 
-func testComponents(isDaprInstalled bool) func(t *testing.T) {
+func testComponentsOnInstall(opts testOptions) func(t *testing.T) {
 	return func(t *testing.T) {
 		daprPath := getDaprPath()
-		if isDaprInstalled {
-			// if dapr is installed, apply and check for components
+		// if dapr is installed
+		if opts.applyComponentChanges {
+			// apply any changes to the component
+			t.Log("apply component changes")
 			output, err := spawn.Command("kubectl", "apply", "-f", "../testdata/statestore.yaml")
 			require.NoError(t, err, "expected no error on kubectl apply")
 			require.Equal(t, "component.dapr.io/statestore created\n", output, "expceted output to match")
-			output, err = spawn.Command(daprPath, "components", "-k")
-			require.NoError(t, err, "expected no error on calling dapr components")
-			componentOutputCheck(t, output)
-		} else {
-			// On Dapr uninstall CRDs are not removed, consequently the components will not be removed
-			// Related to https://github.com/dapr/cli/issues/656
-			// For now the components remain
-			output, err := spawn.Command(daprPath, "components", "-k")
-			require.NoError(t, err, "expected no error on calling dapr components")
-			componentOutputCheck(t, output)
-			// Manually remove components and verify output
-			output, err = spawn.Command("kubectl", "delete", "-f", "../testdata/statestore.yaml")
-			require.NoError(t, err, "expected no error on kubectl apply")
-			require.Equal(t, "component.dapr.io \"statestore\" deleted\n", output, "expected output to match")
-			output, err = spawn.Command(daprPath, "components", "-k")
-			require.NoError(t, err, "expected no error on calling dapr components")
-			lines := strings.Split(output, "\n")
-			// An extra empty line is there in output
-			require.Equal(t, 2, len(lines), "expected only header of the output to remain")
 		}
+
+		t.Log("check applied component exists")
+		output, err := spawn.Command(daprPath, "components", "-k")
+		require.NoError(t, err, "expected no error on calling dapr components")
+		componentOutputCheck(t, output)
+	}
+}
+
+func testComponentsOnUninstall() func(t *testing.T) {
+	return func(t *testing.T) {
+		daprPath := getDaprPath()
+		// On Dapr uninstall CRDs are not removed, consequently the components will not be removed
+		// TODO Related to https://github.com/dapr/cli/issues/656
+		// For now the components remain
+		output, err := spawn.Command(daprPath, "components", "-k")
+		require.NoError(t, err, "expected no error on calling dapr components")
+		componentOutputCheck(t, output)
+
+		// Manually remove components and verify output
+		output, err = spawn.Command("kubectl", "delete", "-f", "../testdata/statestore.yaml")
+		require.NoError(t, err, "expected no error on kubectl apply")
+		require.Equal(t, "component.dapr.io \"statestore\" deleted\n", output, "expected output to match")
+		output, err = spawn.Command(daprPath, "components", "-k")
+		require.NoError(t, err, "expected no error on calling dapr components")
+		lines := strings.Split(output, "\n")
+
+		// An extra empty line is there in output
+		require.Equal(t, 2, len(lines), "expected only header of the output to remain")
 	}
 }
 
@@ -306,34 +460,37 @@ func componentOutputCheck(t *testing.T, output string) {
 	assert.Equal(t, "app1", fields[3], "expected scopes to match")
 }
 
-func testStatus(isDaprInstalled, haMode bool) func(t *testing.T) {
+func testStatusOnUninstall() func(t *testing.T) {
 	return func(t *testing.T) {
 		daprPath := getDaprPath()
 		output, err := spawn.Command(daprPath, "status", "-k")
-		if isDaprInstalled {
-			require.NoError(t, err, "status check failed")
-		} else {
-			t.Log("checking status fails as expected")
-			require.Error(t, err, "status check did not fail as expected")
-			require.Contains(t, output, " No status returned. Is Dapr initialized in your cluster?", "error on message verification")
-			return
-		}
+		t.Log("checking status fails as expected")
+		require.Error(t, err, "status check did not fail as expected")
+		require.Contains(t, output, " No status returned. Is Dapr initialized in your cluster?", "error on message verification")
+	}
+}
+
+func testStatusOnInstall(details versionDetails, opts testOptions) func(t *testing.T) {
+	return func(t *testing.T) {
+		daprPath := getDaprPath()
+		output, err := spawn.Command(daprPath, "status", "-k")
+		require.NoError(t, err, "status check failed")
 		notFound := map[string][]string{}
-		if !haMode {
+		if !opts.haEnabled {
 			notFound = map[string][]string{
-				"dapr-sentry":           {daprRuntimeVersion, "1"},
-				"dapr-sidecar-injector": {daprRuntimeVersion, "1"},
-				"dapr-dashboard":        {daprDashboardVersion, "1"},
-				"dapr-placement-server": {daprRuntimeVersion, "1"},
-				"dapr-operator":         {daprRuntimeVersion, "1"},
+				"dapr-sentry":           {details.runtimeVersion, "1"},
+				"dapr-sidecar-injector": {details.runtimeVersion, "1"},
+				"dapr-dashboard":        {details.dashboardVersion, "1"},
+				"dapr-placement-server": {details.runtimeVersion, "1"},
+				"dapr-operator":         {details.runtimeVersion, "1"},
 			}
 		} else {
 			notFound = map[string][]string{
-				"dapr-sentry":           {daprRuntimeVersion, "3"},
-				"dapr-sidecar-injector": {daprRuntimeVersion, "3"},
-				"dapr-dashboard":        {daprDashboardVersion, "1"},
-				"dapr-placement-server": {daprRuntimeVersion, "3"},
-				"dapr-operator":         {daprRuntimeVersion, "3"},
+				"dapr-sentry":           {details.runtimeVersion, "3"},
+				"dapr-sidecar-injector": {details.runtimeVersion, "3"},
+				"dapr-dashboard":        {details.dashboardVersion, "1"},
+				"dapr-placement-server": {details.runtimeVersion, "3"},
+				"dapr-operator":         {details.runtimeVersion, "3"},
 			}
 		}
 
@@ -355,20 +512,37 @@ func testStatus(isDaprInstalled, haMode bool) func(t *testing.T) {
 	}
 }
 
-func testCRDs(wanted bool) func(t *testing.T) {
+func (v versionDetails) constructFoundMap(res resource) map[string]bool {
+	foundMap := map[string]bool{}
+	var list []string
+	switch res {
+	case customResourceDefs:
+		list = v.customResourceDefs
+	case clusterRoles:
+		list = v.clusterRoles
+	case clusterRoleBindings:
+		list = v.clusterRoleBindings
+	}
+
+	for _, val := range list {
+		foundMap[val] = false
+	}
+	return foundMap
+}
+
+func testCRDs(details versionDetails, opts testOptions) func(t *testing.T) {
 	return func(t *testing.T) {
+		foundMap := details.constructFoundMap(customResourceDefs)
+		wanted, ok := opts.checkResourceExists[customResourceDefs]
+		if !ok {
+			t.Errorf("check on CRDs called when not defined in test options")
+		}
 		ctx := context.Background()
 		cfg, err := getConfig()
 		require.NoError(t, err)
 
 		apiextensionsClientSet, err := apiextensionsclient.NewForConfig(cfg)
 		require.NoError(t, err)
-
-		foundMap := map[string]bool{
-			"components.dapr.io":     false,
-			"configurations.dapr.io": false,
-			"subscriptions.dapr.io":  false,
-		}
 
 		var listContinue string
 		for {
@@ -399,17 +573,17 @@ func testCRDs(wanted bool) func(t *testing.T) {
 	}
 }
 
-func testClusterRoleBindings(wanted bool) func(t *testing.T) {
+func testClusterRoleBindings(details versionDetails, opts testOptions) func(t *testing.T) {
 	return func(t *testing.T) {
+		foundMap := details.constructFoundMap(clusterRoleBindings)
+		wanted, ok := opts.checkResourceExists[clusterRoleBindings]
+		if !ok {
+			t.Errorf("check on cluster roles bindings called when not defined in test options")
+		}
+
 		ctx := context.Background()
 		k8sClient, err := getClient()
 		require.NoError(t, err)
-
-		foundMap := map[string]bool{
-			"dapr-operator":                 false,
-			"dapr-role-tokenreview-binding": false,
-			"dashboard-reader-global":       false,
-		}
 
 		var listContinue string
 		for {
@@ -440,16 +614,16 @@ func testClusterRoleBindings(wanted bool) func(t *testing.T) {
 	}
 }
 
-func testClusterRoles(wanted bool) func(t *testing.T) {
+func testClusterRoles(details versionDetails, opts testOptions) func(t *testing.T) {
 	return func(t *testing.T) {
+		foundMap := details.constructFoundMap(clusterRoles)
+		wanted, ok := opts.checkResourceExists[clusterRoles]
+		if !ok {
+			t.Errorf("check on cluster roles called when not defined in test options")
+		}
 		ctx := context.Background()
 		k8sClient, err := getClient()
 		require.NoError(t, err)
-
-		foundMap := map[string]bool{
-			"dapr-operator-admin": false,
-			"dashboard-reader":    false,
-		}
 
 		var listContinue string
 		for {
@@ -527,7 +701,7 @@ func waitPodDeletion(done, podsDeleted chan struct{}, t *testing.T) {
 		ctx := context.Background()
 		ctxt, cancel := context.WithTimeout(ctx, 10*time.Second)
 		defer cancel()
-		k8sClient, err := kubernetes.Client()
+		k8sClient, err := getClient()
 		require.NoError(t, err, "error getting k8s client for pods check")
 		list, err := k8sClient.CoreV1().Pods(daprNamespace).List(ctxt, v1.ListOptions{
 			Limit: 100,
@@ -537,5 +711,21 @@ func waitPodDeletion(done, podsDeleted chan struct{}, t *testing.T) {
 			podsDeleted <- struct{}{}
 		}
 		time.Sleep(15 * time.Second)
+	}
+}
+
+func deleteCRD(crds []string) func(*testing.T) {
+	return func(t *testing.T) {
+		for _, crd := range crds {
+			output, err := spawn.Command("kubectl", "delete", "crd", crd)
+			if err != nil {
+				// CRD already deleted and not found
+				require.Contains(t, output, "Error from server (NotFound)")
+				continue
+			} else {
+				require.NoErrorf(t, err, "expected no error on deleting crd %s", crd)
+			}
+			require.Equal(t, fmt.Sprintf("customresourcedefinition.apiextensions.k8s.io \"%s\" deleted\n", crd), output, "expected output to match")
+		}
 	}
 }
