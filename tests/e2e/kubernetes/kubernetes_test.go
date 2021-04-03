@@ -53,7 +53,8 @@ func TestKubernetesInstallNonHA(t *testing.T) {
 		{"status check", testStatus(true, false)},
 		//-------------------------------------------------
 		{"uninstall", testUninstall}, // waits for pod deletion
-		{"clusterroles not exist", testClusterRoles(false)},
+		// related to https://github.com/dapr/cli/issues/656
+		{"crds  exist after uninstall", testCRDs(true)},
 		{"clusterroles not exist", testClusterRoles(false)},
 		{"clusterrolebindings not exist", testClusterRoleBindings(false)},
 		{"status check errors out", testStatus(false, false)},
@@ -79,7 +80,8 @@ func TestKubernetesInstallHA(t *testing.T) {
 		{"status check", testStatus(true, true)},
 		//-------------------------------------------------
 		{"uninstall", testUninstall}, // waits for pod deletion
-		{"clusterroles not exist", testClusterRoles(false)},
+		// related to https://github.com/dapr/cli/issues/656
+		{"crds  exist after uninstall", testCRDs(true)},
 		{"clusterroles not exist", testClusterRoles(false)},
 		{"clusterrolebindings not exist", testClusterRoleBindings(false)},
 		{"status check errors out", testStatus(false, true)},
