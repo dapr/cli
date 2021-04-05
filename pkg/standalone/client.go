@@ -17,7 +17,7 @@ type Client interface {
 	// Invoke is a command to invoke a remote or local dapr instance
 	Invoke(appID, method, data, verb string) (string, error)
 	// Publish is used to publish event to a topic in a pubsub for an app ID.
-	Publish(publishAppID, pubsubName, topic, payload string) error
+	Publish(publishAppID, pubsubName, topic string, payload []byte) error
 }
 
 type Standalone struct {

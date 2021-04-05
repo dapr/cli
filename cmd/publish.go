@@ -7,6 +7,7 @@ package cmd
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 
 	"github.com/dapr/cli/pkg/print"
@@ -15,10 +16,11 @@ import (
 )
 
 var (
-	publishAppID   string
-	pubsubName     string
-	publishTopic   string
-	publishPayload string
+	publishAppID       string
+	pubsubName         string
+	publishTopic       string
+	publishPayload     string
+	publishPayloadFile string
 )
 
 var PublishCmd = &cobra.Command{
@@ -29,8 +31,20 @@ var PublishCmd = &cobra.Command{
 dapr publish --publish-app-id myapp --pubsub target --topic sample --data '{"key":"value"}'
 `,
 	Run: func(cmd *cobra.Command, args []string) {
+		bytePayload := []byte{}
+		var err error
+		if publishPayloadFile != "" {
+			bytePayload, err = ioutil.ReadFile(publishPayloadFile)
+			if err != nil {
+				print.FailureStatusEvent(os.Stdout, "Error reading payload from '%s'. Error: %s", publishPayloadFile, err)
+				os.Exit(1)
+			}
+		} else if publishPayload != "" {
+			bytePayload = []byte(publishPayload)
+		}
+
 		client := standalone.NewClient()
-		err := client.Publish(publishAppID, pubsubName, publishTopic, publishPayload)
+		err = client.Publish(publishAppID, pubsubName, publishTopic, bytePayload)
 		if err != nil {
 			print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error publishing topic %s: %s", publishTopic, err))
 			os.Exit(1)
@@ -45,6 +59,7 @@ func init() {
 	PublishCmd.Flags().StringVarP(&pubsubName, "pubsub", "p", "", "The name of the pub/sub component")
 	PublishCmd.Flags().StringVarP(&publishTopic, "topic", "t", "", "The topic to be published to")
 	PublishCmd.Flags().StringVarP(&publishPayload, "data", "d", "", "The JSON serialized data string (optional)")
+	PublishCmd.Flags().StringVarP(&publishPayloadFile, "data-file", "f", "", "A file containing the JSON serialized data (optional)")
 	PublishCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	PublishCmd.MarkFlagRequired("publish-app-id")
 	PublishCmd.MarkFlagRequired("topic")

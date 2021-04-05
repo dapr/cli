@@ -24,6 +24,8 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/dapr/cli/tests/e2e/spawn"
+	"github.com/dapr/go-sdk/service/common"
+	daprHttp "github.com/dapr/go-sdk/service/http"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 )
@@ -45,6 +47,7 @@ func TestStandaloneInstall(t *testing.T) {
 		{"test install", testInstall},
 		{"test run", testRun},
 		{"test stop", testStop},
+		{"test publish", testPublish},
 		{"test uninstall", testUninstall},
 	}
 
@@ -304,11 +307,11 @@ func testRun(t *testing.T) {
 
 }
 
-func testStop(t *testing.T) {
+func executeAgainstRunningDapr(t *testing.T, f func(), daprArgs ...string) {
 	daprPath := getDaprPath()
 
-	cmd := exec.Command(daprPath, "run", "--app-id", "dapr_e2e_stop", "--", "bash", "-c", "sleep 60 ; exit 1")
-	reader, _  := cmd.StdoutPipe()
+	cmd := exec.Command(daprPath, daprArgs...)
+	reader, _ := cmd.StdoutPipe()
 	scanner := bufio.NewScanner(reader)
 
 	cmd.Start()
@@ -317,18 +320,79 @@ func testStop(t *testing.T) {
 	for scanner.Scan() {
 		outputChunk := scanner.Text()
 		t.Log(outputChunk)
-		if strings.Contains(outputChunk, "You're up and running! Both Dapr and your app logs will appear here.") {
-			output, err := spawn.Command(daprPath, "stop", "--app-id", "dapr_e2e_stop")
-			t.Log(output)
-			require.NoError(t, err, "dapr stop failed")
-			assert.Contains(t, output, "app stopped successfully: dapr_e2e_stop")
+		if strings.Contains(outputChunk, "You're up and running!") {
+			f()
 		}
 		daprOutput += outputChunk
 	}
 
 	err := cmd.Wait()
 	require.NoError(t, err, "dapr didn't exit cleanly")
-	assert.Contains(t, daprOutput, "Exited App successfully", "Stop command should have been called before the app had a chance to exit")
+	assert.NotContains(t, daprOutput, "The App process exited with error code: exit status", "Stop command should have been called before the app had a chance to exit")
 	assert.Contains(t, daprOutput, "Exited Dapr successfully")
+}
+
+func testStop(t *testing.T) {
+	executeAgainstRunningDapr(t, func() {
+		output, err := spawn.Command(getDaprPath(), "stop", "--app-id", "dapr_e2e_stop")
+		t.Log(output)
+		require.NoError(t, err, "dapr stop failed")
+		assert.Contains(t, output, "app stopped successfully: dapr_e2e_stop")
+
+	}, "run", "--app-id", "dapr_e2e_stop", "--", "bash", "-c", "sleep 60 ; exit 1")
+}
+
+func testPublish(t *testing.T) {
+	var sub = &common.Subscription{
+		PubsubName: "pubsub",
+		Topic:      "sample",
+		Route:      "/orders",
+	}
+
+	s := daprHttp.NewService(":9988")
+
+	events := make(chan *common.TopicEvent)
+
+	err := s.AddTopicEventHandler(sub, func(ctx context.Context, e *common.TopicEvent) (retry bool, err error) {
+		events <- e
+		return false, nil
+	})
+
+	assert.NoError(t, err, "unable to AddTopicEventHandler")
+
+	defer s.Stop()
+	go func() {
+		err = s.Start()
+
+		assert.NoError(t, err, "unable to listen on :9988")
+	}()
+
+	daprPath := getDaprPath()
+	executeAgainstRunningDapr(t, func() {
+		t.Run("publish from file", func(t *testing.T) {
+			output, err := spawn.Command(daprPath, "publish", "--publish-app-id", "pub_e2e", "--pubsub", "pubsub", "--topic", "sample", "--data-file", "../testdata/message.json")
+			t.Log(output)
+			assert.NoError(t, err, "unable to publish from --data-file")
+			assert.Contains(t, output, "Event published successfully")
+
+			event := <-events
+			assert.Equal(t, map[string]interface{}{"dapr": "is_great"}, event.Data)
+		})
+
+		t.Run("publish from string", func(t *testing.T) {
+			output, err := spawn.Command(daprPath, "publish", "--publish-app-id", "pub_e2e", "--pubsub", "pubsub", "--topic", "sample", "--data", "{\"cli\": \"is_working\"}")
+			t.Log(output)
+			assert.NoError(t, err, "unable to publish from --data")
+			assert.Contains(t, output, "Event published successfully")
+
+			event := <-events
+			assert.Equal(t, map[string]interface{}{"cli": "is_working"}, event.Data)
+		})
+
+		output, err := spawn.Command(getDaprPath(), "stop", "--app-id", "pub_e2e")
+		t.Log(output)
+		require.NoError(t, err, "dapr stop failed")
+		assert.Contains(t, output, "app stopped successfully: pub_e2e")
+	}, "run", "--app-id", "pub_e2e", "--app-port", "9988")
 
 }

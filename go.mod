@@ -7,6 +7,7 @@ require (
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/briandowns/spinner v1.6.1
 	github.com/dapr/dapr v1.0.0-rc.1.0.20201217002310-310e670d987b
+	github.com/dapr/go-sdk v1.0.0
 	github.com/docker/docker v17.12.0-ce-rc1.0.20200618181300-9dc6525e6118+incompatible
 	github.com/fatih/color v1.7.0
 	github.com/go-ole/go-ole v1.2.4 // indirect
