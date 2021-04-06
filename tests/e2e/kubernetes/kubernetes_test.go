@@ -38,23 +38,53 @@ const (
 	daprDashboardVersion = "0.6.0"
 )
 
-func TestKubernetesInstall(t *testing.T) {
+func TestKubernetesInstallNonHA(t *testing.T) {
 	// Ensure a clean environment
-	uninstall()
+	uninstall() // does not wait for pod deletion
 
 	tests := []struct {
 		name  string
 		phase func(*testing.T)
 	}{
-		{"install", testInstall},
+		{"install", testInstall(false)},
 		{"crds exist", testCRDs(true)},
 		{"clusterroles exist", testClusterRoles(true)},
 		{"clusterrolebindings exist", testClusterRoleBindings(true)},
+		{"status check", testStatus(true, false)},
 		//-------------------------------------------------
-		{"uninstall", testUninstall},
-		{"clusterroles not exist", testClusterRoles(false)},
+		{"uninstall", testUninstall}, // waits for pod deletion
+		// related to https://github.com/dapr/cli/issues/656
+		{"crds  exist after uninstall", testCRDs(true)},
 		{"clusterroles not exist", testClusterRoles(false)},
 		{"clusterrolebindings not exist", testClusterRoleBindings(false)},
+		{"status check errors out", testStatus(false, false)},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, tc.phase)
+	}
+}
+
+func TestKubernetesInstallHA(t *testing.T) {
+	// Ensure a clean environment
+	uninstall() // does not wait for pod deletion
+
+	tests := []struct {
+		name  string
+		phase func(*testing.T)
+	}{
+		{"install", testInstall(true)},
+		{"crds exist", testCRDs(true)},
+		{"clusterroles exist", testClusterRoles(true)},
+		{"clusterrolebindings exist", testClusterRoleBindings(true)},
+		{"status check", testStatus(true, true)},
+		//-------------------------------------------------
+		{"uninstall", testUninstall}, // waits for pod deletion
+		// related to https://github.com/dapr/cli/issues/656
+		{"crds  exist after uninstall", testCRDs(true)},
+		{"clusterroles not exist", testClusterRoles(false)},
+		{"clusterrolebindings not exist", testClusterRoleBindings(false)},
+		{"status check errors out", testStatus(false, true)},
 	}
 
 	for _, tc := range tests {
@@ -81,76 +111,145 @@ func testUninstall(t *testing.T) {
 	output, err := uninstall()
 	t.Log(output)
 	require.NoError(t, err, "uninstall failed")
+	// wait for pods to be deleted completely
+	// needed to verify status checks fails correctly
+	podsDeleted := make(chan struct{})
+	done := make(chan struct{})
+	t.Log("waiting for pods to be deleted completely")
+	go waitPodDeletion(done, podsDeleted, t)
+	select {
+	case <-podsDeleted:
+		t.Log("pods were delted as expected on uninstall")
+		return
+	case <-time.After(2 * time.Minute):
+		done <- struct{}{}
+		t.Error("Pods were not deleted as expectedx")
+	}
 }
 
-func testInstall(t *testing.T) {
-	daprPath := getDaprPath()
-	output, err := spawn.Command(daprPath,
-		"init", "-k",
-		"--wait",
-		"-n", daprNamespace,
-		"--runtime-version", daprRuntimeVersion,
-		"--log-as-json")
-	t.Log(output)
-	require.NoError(t, err, "init failed")
+func testInstall(haMode bool) func(t *testing.T) {
+	return func(t *testing.T) {
+		daprPath := getDaprPath()
+		args := []string{
+			"init", "-k",
+			"--wait",
+			"-n", daprNamespace,
+			"--runtime-version", daprRuntimeVersion,
+			"--log-as-json"}
+		if haMode {
+			args = append(args, "--enable-ha")
+		}
+		output, err := spawn.Command(daprPath, args...)
+		t.Log(output)
+		require.NoError(t, err, "init failed")
 
-	ctx := context.Background()
-	ctxt, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-	k8sClient, err := kubernetes.Client()
-	require.NoError(t, err)
-	list, err := k8sClient.CoreV1().Pods(daprNamespace).List(ctxt, v1.ListOptions{
-		Limit: 100,
-	})
-	require.NoError(t, err)
+		ctx := context.Background()
+		ctxt, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+		k8sClient, err := kubernetes.Client()
+		require.NoError(t, err)
+		list, err := k8sClient.CoreV1().Pods(daprNamespace).List(ctxt, v1.ListOptions{
+			Limit: 100,
+		})
+		require.NoError(t, err)
 
-	notFound := map[string]string{
-		"sentry":    daprRuntimeVersion,
-		"sidecar":   daprRuntimeVersion,
-		"dashboard": daprDashboardVersion,
-		"placement": daprRuntimeVersion,
-		"operator":  daprRuntimeVersion,
-	}
-	prefixes := map[string]string{
-		"sentry":    "dapr-sentry-",
-		"sidecar":   "dapr-sidecar-injector-",
-		"dashboard": "dapr-dashboard-",
-		"placement": "dapr-placement-server-",
-		"operator":  "dapr-operator-",
-	}
+		notFound := map[string]string{
+			"sentry":    daprRuntimeVersion,
+			"sidecar":   daprRuntimeVersion,
+			"dashboard": daprDashboardVersion,
+			"placement": daprRuntimeVersion,
+			"operator":  daprRuntimeVersion,
+		}
+		prefixes := map[string]string{
+			"sentry":    "dapr-sentry-",
+			"sidecar":   "dapr-sidecar-injector-",
+			"dashboard": "dapr-dashboard-",
+			"placement": "dapr-placement-server-",
+			"operator":  "dapr-operator-",
+		}
 
-	t.Logf("items %d", len(list.Items))
-	for _, pod := range list.Items {
-		t.Log(pod.ObjectMeta.Name)
-		for component, prefix := range prefixes {
-			if pod.Status.Phase != core_v1.PodRunning {
-				continue
-			}
-			if !pod.Status.ContainerStatuses[0].Ready {
-				continue
-			}
-			if strings.HasPrefix(pod.ObjectMeta.Name, prefix) {
-				expectedVersion, ok := notFound[component]
-				if !ok {
+		t.Logf("items %d", len(list.Items))
+		for _, pod := range list.Items {
+			t.Log(pod.ObjectMeta.Name)
+			for component, prefix := range prefixes {
+				if pod.Status.Phase != core_v1.PodRunning {
 					continue
 				}
-				if len(pod.Spec.Containers) == 0 {
+				if !pod.Status.ContainerStatuses[0].Ready {
 					continue
 				}
+				if strings.HasPrefix(pod.ObjectMeta.Name, prefix) {
+					expectedVersion, ok := notFound[component]
+					if !ok {
+						continue
+					}
+					if len(pod.Spec.Containers) == 0 {
+						continue
+					}
 
-				image := pod.Spec.Containers[0].Image
-				versionIndex := strings.LastIndex(image, ":")
-				if versionIndex != -1 {
-					version := image[versionIndex+1:]
-					if version == expectedVersion {
-						delete(notFound, component)
+					image := pod.Spec.Containers[0].Image
+					versionIndex := strings.LastIndex(image, ":")
+					if versionIndex != -1 {
+						version := image[versionIndex+1:]
+						if version == expectedVersion {
+							delete(notFound, component)
+						}
 					}
 				}
 			}
 		}
-	}
 
-	assert.Empty(t, notFound)
+		assert.Empty(t, notFound)
+	}
+}
+
+func testStatus(isDaprInstalled, haMode bool) func(t *testing.T) {
+	return func(t *testing.T) {
+		daprPath := getDaprPath()
+		output, err := spawn.Command(daprPath, "status", "-k")
+		if isDaprInstalled {
+			require.NoError(t, err, "status check failed")
+		} else {
+			t.Log("checking status fails as expected")
+			require.Error(t, err, "status check did not fail as expected")
+			require.Contains(t, output, " No status returned. Is Dapr initialized in your cluster?", "error on message verification")
+			return
+		}
+		notFound := map[string][]string{}
+		if !haMode {
+			notFound = map[string][]string{
+				"dapr-sentry":           {daprRuntimeVersion, "1"},
+				"dapr-sidecar-injector": {daprRuntimeVersion, "1"},
+				"dapr-dashboard":        {daprDashboardVersion, "1"},
+				"dapr-placement-server": {daprRuntimeVersion, "1"},
+				"dapr-operator":         {daprRuntimeVersion, "1"},
+			}
+		} else {
+			notFound = map[string][]string{
+				"dapr-sentry":           {daprRuntimeVersion, "3"},
+				"dapr-sidecar-injector": {daprRuntimeVersion, "3"},
+				"dapr-dashboard":        {daprDashboardVersion, "1"},
+				"dapr-placement-server": {daprRuntimeVersion, "3"},
+				"dapr-operator":         {daprRuntimeVersion, "3"},
+			}
+		}
+
+		lines := strings.Split(output, "\n")[1:] // remove header of status
+		for _, line := range lines {
+			cols := strings.Fields(strings.TrimSpace(line))
+			if len(cols) > 6 { // atleast 6 fields are verified from status (Age and created time are not)
+				if toVerify, ok := notFound[cols[0]]; ok { // get by name
+					require.Equal(t, daprNamespace, cols[1], "namespace must match")
+					require.Equal(t, "True", cols[2], "healthly field must be true")
+					require.Equal(t, "Running", cols[3], "pods must be Running")
+					require.Equal(t, toVerify[1], cols[4], "replicas must be equal")
+					require.Equal(t, toVerify[0], cols[5], "versions must match")
+					delete(notFound, cols[0])
+				}
+			}
+		}
+		assert.Empty(t, notFound)
+	}
 }
 
 func testCRDs(wanted bool) func(t *testing.T) {
@@ -312,4 +411,28 @@ func homeDir() string {
 		return h
 	}
 	return os.Getenv("USERPROFILE") // windows
+}
+
+func waitPodDeletion(done, podsDeleted chan struct{}, t *testing.T) {
+	for {
+		select {
+		case <-done: // if timeout was reached
+			return
+		default:
+			break
+		}
+		ctx := context.Background()
+		ctxt, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+		k8sClient, err := kubernetes.Client()
+		require.NoError(t, err, "error getting k8s client for pods check")
+		list, err := k8sClient.CoreV1().Pods(daprNamespace).List(ctxt, v1.ListOptions{
+			Limit: 100,
+		})
+		require.NoError(t, err, "error getting pods list from k8s")
+		if len(list.Items) == 0 {
+			podsDeleted <- struct{}{}
+		}
+		time.Sleep(15 * time.Second)
+	}
 }
