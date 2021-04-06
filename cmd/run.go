@@ -111,6 +111,18 @@ var RunCmd = &cobra.Command{
 				os.Exit(1)
 			}
 
+			go func() {
+				daprdErr := output.DaprCMD.Wait()
+
+				if daprdErr != nil {
+					print.FailureStatusEvent(os.Stdout, "The daprd process exited with error code: %s", daprdErr.Error())
+
+				} else {
+					print.SuccessStatusEvent(os.Stdout, "Exited Dapr successfully")
+				}
+				sigCh <- os.Interrupt
+			}()
+
 			if appPort <= 0 {
 				// If app does not listen to port, we can check for Dapr's sidecar health before starting the app.
 				// Otherwise, it creates a deadlock.
@@ -182,6 +194,17 @@ var RunCmd = &cobra.Command{
 				return
 			}
 
+			go func() {
+				appErr := output.AppCMD.Wait()
+
+				if appErr != nil {
+					print.FailureStatusEvent(os.Stdout, "The App process exited with error code: %s", appErr.Error())
+				} else {
+					print.SuccessStatusEvent(os.Stdout, "Exited App successfully")
+				}
+				sigCh <- os.Interrupt
+			}()
+
 			appRunning <- true
 		}()
 
@@ -219,14 +242,16 @@ var RunCmd = &cobra.Command{
 		<-sigCh
 		print.InfoStatusEvent(os.Stdout, "\nterminated signal received: shutting down")
 
-		err = output.DaprCMD.Process.Kill()
-		if err != nil {
-			print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error exiting Dapr: %s", err))
-		} else {
-			print.SuccessStatusEvent(os.Stdout, "Exited Dapr successfully")
+		if output.DaprCMD.ProcessState == nil || !output.DaprCMD.ProcessState.Exited() {
+			err = output.DaprCMD.Process.Kill()
+			if err != nil {
+				print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error exiting Dapr: %s", err))
+			} else {
+				print.SuccessStatusEvent(os.Stdout, "Exited Dapr successfully")
+			}
 		}
 
-		if output.AppCMD != nil {
+		if output.AppCMD != nil && (output.AppCMD.ProcessState == nil || !output.AppCMD.ProcessState.Exited()) {
 			err = output.AppCMD.Process.Kill()
 			if err != nil {
 				print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error exiting App: %s", err))
