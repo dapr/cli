@@ -3,7 +3,7 @@
 # Licensed under the MIT License.
 # ------------------------------------------------------------
 
-name: e2e
+name: E2E - Self-hosted
 
 on:
   pull_request:
