@@ -30,7 +30,7 @@ import (
 
 const (
 	daprNamespace        = "dapr-cli-tests"
-	daprRuntimeVersion   = "1.1.0"
+	daprRuntimeVersion   = "1.1.1"
 	daprDashboardVersion = "0.6.0"
 )
 
@@ -308,7 +308,7 @@ func testStop(t *testing.T) {
 	daprPath := getDaprPath()
 
 	cmd := exec.Command(daprPath, "run", "--app-id", "dapr_e2e_stop", "--", "bash", "-c", "sleep 60 ; exit 1")
-	reader, _  := cmd.StdoutPipe()
+	reader, _ := cmd.StdoutPipe()
 	scanner := bufio.NewScanner(reader)
 
 	cmd.Start()
