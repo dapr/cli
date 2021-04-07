@@ -8,10 +8,12 @@
 package standalone_test
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -42,6 +44,7 @@ func TestStandaloneInstall(t *testing.T) {
 	}{
 		{"test install", testInstall},
 		{"test run", testRun},
+		{"test stop", testStop},
 		{"test uninstall", testUninstall},
 	}
 
@@ -298,5 +301,34 @@ func testRun(t *testing.T) {
 		assert.Contains(t, output, "Exited App successfully", "App should be shutdown before it has a chance to return non-zero")
 		assert.Contains(t, output, "Exited Dapr successfully")
 	})
+
+}
+
+func testStop(t *testing.T) {
+	daprPath := getDaprPath()
+
+	cmd := exec.Command(daprPath, "run", "--app-id", "dapr_e2e_stop", "--", "bash", "-c", "sleep 60 ; exit 1")
+	reader, _  := cmd.StdoutPipe()
+	scanner := bufio.NewScanner(reader)
+
+	cmd.Start()
+
+	daprOutput := ""
+	for scanner.Scan() {
+		outputChunk := scanner.Text()
+		t.Log(outputChunk)
+		if strings.Contains(outputChunk, "You're up and running! Both Dapr and your app logs will appear here.") {
+			output, err := spawn.Command(daprPath, "stop", "--app-id", "dapr_e2e_stop")
+			t.Log(output)
+			require.NoError(t, err, "dapr stop failed")
+			assert.Contains(t, output, "app stopped successfully: dapr_e2e_stop")
+		}
+		daprOutput += outputChunk
+	}
+
+	err := cmd.Wait()
+	require.NoError(t, err, "dapr didn't exit cleanly")
+	assert.Contains(t, daprOutput, "Exited App successfully", "Stop command should have been called before the app had a chance to exit")
+	assert.Contains(t, daprOutput, "Exited Dapr successfully")
 
 }

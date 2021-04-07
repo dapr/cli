@@ -23,15 +23,15 @@ jobs:
       ARCHIVE_OUTDIR: dist/archives
     strategy:
       matrix:
-        os: [ubuntu-latest]
-        target_arch: [amd64, arm64]
+        os: [ubuntu-latest, macos-latest]
+        target_arch: [amd64]
         include:
           - os: ubuntu-latest
             target_os: linux
-          #- os: windows-latest
-          #  target_os: windows
-          #- os: macOS-latest
-          #  target_os: darwin
+          - os: macOS-latest
+            target_os: darwin
+            #- os: windows-latest
+            #target_os: windows
     steps:
       - name: Set up Go ${{ env.GOVER }}
         uses: actions/setup-go@v2
@@ -39,7 +39,24 @@ jobs:
           go-version: ${{ env.GOVER }}
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
-      - name: Setup Docker
-        uses: docker-practice/actions-setup-docker@master
+      - name: Install docker - MacOS
+        if: matrix.os == 'macos-latest'
+        run: |
+          # Taken from https://github.com/actions/virtual-environments/issues/1143#issuecomment-652264388
+          brew install --cask docker
+          xattr -d -r com.apple.quarantine /Applications/Docker.app
+          sudo /bin/cp /Applications/Docker.app/Contents/Library/LaunchServices/com.docker.vmnetd /Library/PrivilegedHelperTools
+          sudo /bin/cp /Applications/Docker.app/Contents/Resources/com.docker.vmnetd.plist /Library/LaunchDaemons/
+          sudo /bin/chmod 544 /Library/PrivilegedHelperTools/com.docker.vmnetd
+          sudo /bin/chmod 644 /Library/LaunchDaemons/com.docker.vmnetd.plist
+          sudo /bin/launchctl load /Library/LaunchDaemons/com.docker.vmnetd.plist
+          open -g -a Docker.app
+          i=0
+          while ! docker system info &>/dev/null; do
+            (( i++ == 0 )) && printf %s '-- Waiting for Docker to finish starting up...' || printf '.'
+            sleep 1
+          done
+          (( i )) && printf '\n'
+          echo "-- Docker is ready."
       - name: Run E2E tests 
         run: make e2e-build-run-sh
