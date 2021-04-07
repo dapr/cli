@@ -46,10 +46,12 @@ func TestKubernetesInstallNonHA(t *testing.T) {
 		name  string
 		phase func(*testing.T)
 	}{
-		{"install", testInstall(false)},
+		{"install without mtls", testInstall(false)},
 		{"crds exist", testCRDs(true)},
 		{"clusterroles exist", testClusterRoles(true)},
 		{"clusterrolebindings exist", testClusterRoleBindings(true)},
+		{"apply and check components exist", testComponents(true)},
+		{"check mtls disabled", testMtls(true, false)},
 		{"status check", testStatus(true, false)},
 		//-------------------------------------------------
 		{"uninstall", testUninstall}, // waits for pod deletion
@@ -57,7 +59,9 @@ func TestKubernetesInstallNonHA(t *testing.T) {
 		{"crds  exist after uninstall", testCRDs(true)},
 		{"clusterroles not exist", testClusterRoles(false)},
 		{"clusterrolebindings not exist", testClusterRoleBindings(false)},
-		{"status check errors out", testStatus(false, false)},
+		{"check components do not exist", testComponents(false)},
+		{"check mtls error", testMtls(false, false)},          // second parameter does not matter here
+		{"status check errors out", testStatus(false, false)}, // second parameter does not matter here
 	}
 
 	for _, tc := range tests {
@@ -73,10 +77,12 @@ func TestKubernetesInstallHA(t *testing.T) {
 		name  string
 		phase func(*testing.T)
 	}{
-		{"install", testInstall(true)},
+		{"install with mtls default", testInstall(true)},
 		{"crds exist", testCRDs(true)},
 		{"clusterroles exist", testClusterRoles(true)},
 		{"clusterrolebindings exist", testClusterRoleBindings(true)},
+		{"apply and check components exist", testComponents(true)},
+		{"check mtls enabled", testMtls(true, true)},
 		{"status check", testStatus(true, true)},
 		//-------------------------------------------------
 		{"uninstall", testUninstall}, // waits for pod deletion
@@ -84,7 +90,9 @@ func TestKubernetesInstallHA(t *testing.T) {
 		{"crds  exist after uninstall", testCRDs(true)},
 		{"clusterroles not exist", testClusterRoles(false)},
 		{"clusterrolebindings not exist", testClusterRoleBindings(false)},
-		{"status check errors out", testStatus(false, true)},
+		{"check components do not exist", testComponents(false)},
+		{"check mtls error", testMtls(false, false)},         // second parameter does not matter here
+		{"status check errors out", testStatus(false, true)}, // second parameter does not matter here
 	}
 
 	for _, tc := range tests {
@@ -138,6 +146,9 @@ func testInstall(haMode bool) func(t *testing.T) {
 			"--log-as-json"}
 		if haMode {
 			args = append(args, "--enable-ha")
+		} else {
+			// For now testing mtls disabled flag only for the non-HA mode
+			args = append(args, "--enable-mtls=false")
 		}
 		output, err := spawn.Command(daprPath, args...)
 		t.Log(output)
@@ -201,6 +212,98 @@ func testInstall(haMode bool) func(t *testing.T) {
 
 		assert.Empty(t, notFound)
 	}
+}
+
+func testMtls(isDaprInstalled, enabled bool) func(t *testing.T) {
+	return func(t *testing.T) {
+		daprPath := getDaprPath()
+		output, err := spawn.Command(daprPath, "mtls", "-k")
+		if !isDaprInstalled {
+			require.Error(t, err, "expected error to be return if dapr not installed")
+			require.Contains(t, output, "error checking mTLS: system configuration not found", "expected output to match")
+			return
+		}
+		require.NoError(t, err, "expected no error on querying for mtls")
+		if !enabled {
+			require.Contains(t, output, "Mutual TLS is disabled in your Kubernetes cluster", "expected output to match")
+		} else {
+			require.Contains(t, output, "Mutual TLS is enabled in your Kubernetes cluster", "expected output to match")
+		}
+
+		//expiry
+		output, err = spawn.Command(daprPath, "mtls", "expiry")
+		require.NoError(t, err, "expected no error on querying for mtls expiry")
+		assert.Contains(t, output, "Root certificate expires in", "expected output to contain string")
+		assert.Contains(t, output, "Expiry date:", "expected output to contain string")
+
+		//export
+		// check that the dir does not exist now
+		_, err = os.Stat("./certs")
+		if assert.Error(t, err) {
+			assert.True(t, os.IsNotExist(err), err.Error())
+		}
+
+		output, err = spawn.Command(daprPath, "mtls", "export", "-o", "./certs")
+		require.NoError(t, err, "expected no error on mtls export")
+		require.Contains(t, output, "Trust certs successfully exported to", "expected output to contain string")
+
+		// check export success
+		_, err = os.Stat("./certs")
+		require.NoError(t, err, "expected directory to exist")
+		_, err = os.Stat("./certs/ca.crt")
+		require.NoError(t, err, "expected file to exist")
+		_, err = os.Stat("./certs/issuer.crt")
+		require.NoError(t, err, "expected file to exist")
+		_, err = os.Stat("./certs/issuer.key")
+		require.NoError(t, err, "expected file to exist")
+		err = os.RemoveAll("./certs")
+		if err != nil {
+			t.Logf("error on removing local certs directory %s", err.Error())
+		}
+	}
+}
+
+func testComponents(isDaprInstalled bool) func(t *testing.T) {
+	return func(t *testing.T) {
+		daprPath := getDaprPath()
+		if isDaprInstalled {
+			// if dapr is installed, apply and check for components
+			output, err := spawn.Command("kubectl", "apply", "-f", "../testdata/statestore.yaml")
+			require.NoError(t, err, "expected no error on kubectl apply")
+			require.Equal(t, "component.dapr.io/statestore created\n", output, "expceted output to match")
+			output, err = spawn.Command(daprPath, "components", "-k")
+			require.NoError(t, err, "expected no error on calling dapr components")
+			componentOutputCheck(t, output)
+		} else {
+			// On Dapr uninstall CRDs are not removed, consequently the components will not be removed
+			// Related to https://github.com/dapr/cli/issues/656
+			// For now the components remain
+			output, err := spawn.Command(daprPath, "components", "-k")
+			require.NoError(t, err, "expected no error on calling dapr components")
+			componentOutputCheck(t, output)
+			// Manually remove components and verify output
+			output, err = spawn.Command("kubectl", "delete", "-f", "../testdata/statestore.yaml")
+			require.NoError(t, err, "expected no error on kubectl apply")
+			require.Equal(t, "component.dapr.io \"statestore\" deleted\n", output, "expected output to match")
+			output, err = spawn.Command(daprPath, "components", "-k")
+			require.NoError(t, err, "expected no error on calling dapr components")
+			lines := strings.Split(output, "\n")
+			// An extra empty line is there in output
+			require.Equal(t, 2, len(lines), "expected only header of the output to remain")
+		}
+	}
+}
+
+func componentOutputCheck(t *testing.T, output string) {
+	lines := strings.Split(output, "\n")[1:] // remove header
+	// for fresh cluster only one component yaml has been applied
+	fields := strings.Fields(lines[0])
+	// Fields splits on space, so Created time field might be split again
+	assert.GreaterOrEqual(t, len(fields), 6, "expected at least 6 fields in components outptu")
+	assert.Equal(t, "statestore", fields[0], "expected name to match")
+	assert.Equal(t, "state.redis", fields[1], "expected type to match")
+	assert.Equal(t, "v1", fields[2], "expected version to match")
+	assert.Equal(t, "app1", fields[3], "expected scopes to match")
 }
 
 func testStatus(isDaprInstalled, haMode bool) func(t *testing.T) {

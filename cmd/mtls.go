@@ -29,7 +29,7 @@ dapr mtls -k
 		enabled, err := kubernetes.IsMTLSEnabled()
 		if err != nil {
 			print.FailureStatusEvent(os.Stdout, fmt.Sprintf("error checking mTLS: %s", err))
-			return
+			os.Exit(1)
 		}
 
 		status := "disabled"
