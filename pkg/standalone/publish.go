@@ -15,7 +15,7 @@ import (
 )
 
 // Publish publishes payload to topic in pubsub referenced by pubsubName.
-func (s *Standalone) Publish(publishAppID, pubsubName, topic, payload string) error {
+func (s *Standalone) Publish(publishAppID, pubsubName, topic string, payload []byte) error {
 	if publishAppID == "" {
 		return errors.New("publishAppID is missing")
 	}
@@ -38,15 +38,9 @@ func (s *Standalone) Publish(publishAppID, pubsubName, topic, payload string) er
 		return err
 	}
 
-	b := []byte{}
-
-	if payload != "" {
-		b = []byte(payload)
-	}
-
 	url := fmt.Sprintf("http://localhost:%s/v%s/publish/%s/%s", fmt.Sprintf("%v", daprHTTPPort), api.RuntimeAPIVersion, pubsubName, topic)
 	// nolint: gosec
-	r, err := http.Post(url, "application/json", bytes.NewBuffer(b))
+	r, err := http.Post(url, "application/json", bytes.NewBuffer(payload))
 	if err != nil {
 		return err
 	}

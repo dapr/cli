@@ -16,7 +16,7 @@ func TestPublish(t *testing.T) {
 		name          string
 		publishAppID  string
 		pubsubName    string
-		payload       string
+		payload       []byte
 		topic         string
 		lo            ListOutput
 		listErr       error
@@ -29,7 +29,7 @@ func TestPublish(t *testing.T) {
 		{
 			name:          "test empty topic",
 			publishAppID:  "",
-			payload:       "test",
+			payload:       []byte("test"),
 			pubsubName:    "test",
 			errString:     "publishAppID is missing",
 			errorExpected: true,
@@ -37,7 +37,7 @@ func TestPublish(t *testing.T) {
 		{
 			name:          "test empty topic",
 			publishAppID:  "test",
-			payload:       "test",
+			payload:       []byte("test"),
 			pubsubName:    "test",
 			errString:     "topic is missing",
 			errorExpected: true,
@@ -45,7 +45,7 @@ func TestPublish(t *testing.T) {
 		{
 			name:          "test empty pubsubName",
 			publishAppID:  "test",
-			payload:       "test",
+			payload:       []byte("test"),
 			topic:         "test",
 			errString:     "pubsubName is missing",
 			errorExpected: true,
@@ -53,7 +53,7 @@ func TestPublish(t *testing.T) {
 		{
 			name:          "test list error",
 			publishAppID:  "test",
-			payload:       "test",
+			payload:       []byte("test"),
 			topic:         "test",
 			pubsubName:    "test",
 			listErr:       assert.AnError,
@@ -63,7 +63,7 @@ func TestPublish(t *testing.T) {
 		{
 			name:         "test empty appID in list output",
 			publishAppID: "test",
-			payload:      "test",
+			payload:      []byte("test"),
 			topic:        "test",
 			pubsubName:   "test",
 			lo: ListOutput{
@@ -78,7 +78,7 @@ func TestPublish(t *testing.T) {
 			publishAppID: "myAppID",
 			pubsubName:   "testPubsubName",
 			topic:        "testTopic",
-			payload:      "test payload",
+			payload:      []byte("test payload"),
 			lo: ListOutput{
 				AppID: "not my myAppID",
 			},
@@ -90,7 +90,7 @@ func TestPublish(t *testing.T) {
 			publishAppID: "myAppID",
 			pubsubName:   "testPubsubName",
 			topic:        "testTopic",
-			payload:      "test payload",
+			payload:      []byte("test payload"),
 			expectedPath: "/v1.0/publish/testPubsubName/testTopic",
 			postResponse: "test payload",
 			lo: ListOutput{
