@@ -132,7 +132,7 @@ test:
 ################################################################################
 .PHONY: test-e2e-k8s
 test-e2e-k8s:
-	go test -count=1 -v -tags=e2e ./tests/e2e/kubernetes/...
+	go test -count=1 -v timeout 20m -tags=e2e ./tests/e2e/kubernetes/...
 
 ################################################################################
 # Build, E2E Tests for Kubernetes											   #

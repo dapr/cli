@@ -37,6 +37,10 @@ const (
 	customResourceDefs resource = iota
 	clusterRoles
 	clusterRoleBindings
+
+	daprNamespace           = "dapr-cli-tests"
+	currentRuntimeVersion   = "1.1.1"
+	currentDashboardVersion = "0.6.0"
 )
 
 type versionDetails struct {
@@ -45,6 +49,10 @@ type versionDetails struct {
 	customResourceDefs  []string
 	clusterRoles        []string
 	clusterRoleBindings []string
+}
+type upgradePath struct {
+	previous versionDetails
+	next     versionDetails
 }
 
 type testOptions struct {
@@ -59,151 +67,71 @@ type testCase struct {
 	callable func(*testing.T)
 }
 
-const (
-	daprNamespace           = "dapr-cli-tests"
-	currentRuntimeVersion   = "1.1.1"
-	currentDashboardVersion = "0.6.0"
+var (
+	currentVersionDetails = versionDetails{
+		runtimeVersion:      currentRuntimeVersion,
+		dashboardVersion:    currentDashboardVersion,
+		customResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
+		clusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+		clusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+	}
+
+	supportedUpgradePaths = []upgradePath{
+		{
+			previous: versionDetails{
+				runtimeVersion:      "1.0.0",
+				dashboardVersion:    "0.6.0",
+				clusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+				clusterRoleBindings: []string{"dapr-operator", "role-tokenreview-binding", "dashboard-reader-global"},
+				customResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
+			},
+			next: versionDetails{
+				runtimeVersion:      "1.1.0",
+				dashboardVersion:    "0.6.0",
+				clusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+				clusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+				customResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
+			},
+		},
+		{
+			previous: versionDetails{
+				runtimeVersion:      "1.0.0",
+				dashboardVersion:    "0.6.0",
+				clusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+				clusterRoleBindings: []string{"dapr-operator", "role-tokenreview-binding", "dashboard-reader-global"},
+				customResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
+			},
+			next: versionDetails{
+				runtimeVersion:      "1.1.1",
+				dashboardVersion:    "0.6.0",
+				clusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+				clusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+				customResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
+			},
+		},
+		{
+			previous: versionDetails{
+				runtimeVersion:      "1.1.0",
+				dashboardVersion:    "0.6.0",
+				clusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+				clusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+				customResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
+			},
+			next: versionDetails{
+				runtimeVersion:      "1.1.1",
+				dashboardVersion:    "0.6.0",
+				clusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+				clusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+				customResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
+			},
+		},
+	}
 )
 
-var currentVersionDetails = versionDetails{
-	runtimeVersion:      currentRuntimeVersion,
-	dashboardVersion:    currentDashboardVersion,
-	customResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
-	clusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
-	clusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
-}
-
-func TestKubernetesNonHAModeMTLSDisabled(t *testing.T) {
-	// ensure clean env for test
-	ensureCleanEnv(t, currentVersionDetails)
-
-	// setup tests
-	tests := []testCase{}
-	tests = append(tests, getTestsOnInstall(currentVersionDetails, testOptions{
-		haEnabled:             false,
-		mtlsEnabled:           false,
-		applyComponentChanges: true,
-		checkResourceExists: map[resource]bool{
-			customResourceDefs:  true,
-			clusterRoles:        true,
-			clusterRoleBindings: true,
-		},
-	})...)
-
-	tests = append(tests, getTestsOnUninstall(currentVersionDetails, testOptions{
-		checkResourceExists: map[resource]bool{
-			customResourceDefs:  true,
-			clusterRoles:        false,
-			clusterRoleBindings: false,
-		},
-	})...)
-
-	// execute tests
-	for _, tc := range tests {
-		t.Run(tc.name, tc.callable)
-	}
-}
-
-func TestKubernetesHAModeMTLSDisabled(t *testing.T) {
-	// ensure clean env for test
-	ensureCleanEnv(t, currentVersionDetails)
-
-	// setup tests
-	tests := []testCase{}
-	tests = append(tests, getTestsOnInstall(currentVersionDetails, testOptions{
-		haEnabled:             true,
-		mtlsEnabled:           false,
-		applyComponentChanges: true,
-		checkResourceExists: map[resource]bool{
-			customResourceDefs:  true,
-			clusterRoles:        true,
-			clusterRoleBindings: true,
-		},
-	})...)
-
-	tests = append(tests, getTestsOnUninstall(currentVersionDetails, testOptions{
-		checkResourceExists: map[resource]bool{
-			customResourceDefs:  true,
-			clusterRoles:        false,
-			clusterRoleBindings: false,
-		},
-	})...)
-
-	// execute tests
-	for _, tc := range tests {
-		t.Run(tc.name, tc.callable)
-	}
-}
-
-func TestKubernetesNonHAModeMTLSEnabled(t *testing.T) {
-	// ensure clean env for test
-	ensureCleanEnv(t, currentVersionDetails)
-
-	// setup tests
-	tests := []testCase{}
-	tests = append(tests, getTestsOnInstall(currentVersionDetails, testOptions{
-		haEnabled:             false,
-		mtlsEnabled:           true,
-		applyComponentChanges: true,
-		checkResourceExists: map[resource]bool{
-			customResourceDefs:  true,
-			clusterRoles:        true,
-			clusterRoleBindings: true,
-		},
-	})...)
-
-	tests = append(tests, getTestsOnUninstall(currentVersionDetails, testOptions{
-		checkResourceExists: map[resource]bool{
-			customResourceDefs:  true,
-			clusterRoles:        false,
-			clusterRoleBindings: false,
-		},
-	})...)
-
-	// execute tests
-	for _, tc := range tests {
-		t.Run(tc.name, tc.callable)
-	}
-}
-
-func TestKubernetesHAModeMTLSEnabled(t *testing.T) {
-	// ensure clean env for test
-	ensureCleanEnv(t, currentVersionDetails)
-
-	// setup tests
-	tests := []testCase{}
-	tests = append(tests, getTestsOnInstall(currentVersionDetails, testOptions{
-		haEnabled:             true,
-		mtlsEnabled:           true,
-		applyComponentChanges: true,
-		checkResourceExists: map[resource]bool{
-			customResourceDefs:  true,
-			clusterRoles:        true,
-			clusterRoleBindings: true,
-		},
-	})...)
-
-	tests = append(tests, getTestsOnUninstall(currentVersionDetails, testOptions{
-		checkResourceExists: map[resource]bool{
-			// TODO Related to https://github.com/dapr/cli/issues/656
-			customResourceDefs:  true,
-			clusterRoles:        false,
-			clusterRoleBindings: false,
-		},
-	})...)
-
-	// execute tests
-	for _, tc := range tests {
-		t.Run(tc.name, tc.callable)
-	}
-}
-
-func ensureCleanEnv(t *testing.T, versions ...versionDetails) {
+func ensureCleanEnv(t *testing.T, details versionDetails) {
 	// Ensure a clean environment
 	uninstall() // does not wait for pod deletion
-	for _, v := range versions {
-		t.Run("delete CRDs "+v.runtimeVersion, deleteCRD(v.customResourceDefs))
-	}
+	t.Run("delete CRDs "+details.runtimeVersion, deleteCRD(details.customResourceDefs))
 }
 
 func getTestsOnInstall(details versionDetails, opts testOptions) []testCase {
@@ -212,10 +140,45 @@ func getTestsOnInstall(details versionDetails, opts testOptions) []testCase {
 		{"crds exist " + details.runtimeVersion, testCRDs(details, opts)},
 		{"clusterroles exist " + details.runtimeVersion, testClusterRoles(details, opts)},
 		{"clusterrolebindings exist " + details.runtimeVersion, testClusterRoleBindings(details, opts)},
-		{"apply and check components exist " + details.runtimeVersion, testComponentsOnInstall(opts)},
-		{"check mtls " + details.runtimeVersion, testMtlsOnInstall(opts)},
-		{"status check", testStatusOnInstall(details, opts)},
+		{"apply and check components exist " + details.runtimeVersion, testComponentsOnInstallUpgrade(opts)},
+		{"check mtls " + details.runtimeVersion, testMtlsOnInstallUpgrade(opts)},
+		{"status check " + details.runtimeVersion, testStatusOnInstallUpgrade(details, opts)},
 	}
+}
+
+func getTestsOnUpgrade(p upgradePath, installOpts, upgradeOpts testOptions) []testCase {
+	tests := []testCase{}
+
+	// install previous version
+	tests = append(tests, getTestsOnInstall(p.previous, installOpts)...)
+
+	details := p.next
+
+	tests = append(tests, []testCase{
+		{"upgrade to " + details.runtimeVersion, testUpgrade(details)},
+		{"crds exist " + details.runtimeVersion, testCRDs(details, upgradeOpts)},
+		{"clusterroles exist " + details.runtimeVersion, testClusterRoles(details, upgradeOpts)},
+		{"clusterrolebindings exist " + details.runtimeVersion, testClusterRoleBindings(details, upgradeOpts)},
+		{"previously applied components exist " + details.runtimeVersion, testComponentsOnInstallUpgrade(upgradeOpts)},
+		{"check mtls " + details.runtimeVersion, testMtlsOnInstallUpgrade(upgradeOpts)},
+		{"status check " + details.runtimeVersion, testStatusOnInstallUpgrade(details, upgradeOpts)},
+	}...)
+
+	// uninstall
+	tests = append(tests, getTestsOnUninstall(p.next, testOptions{
+		checkResourceExists: map[resource]bool{
+			// TODO Related to https://github.com/dapr/cli/issues/656
+			customResourceDefs:  true,
+			clusterRoles:        false,
+			clusterRoleBindings: false,
+		},
+	})...)
+
+	// delete CRDs if exist
+	tests = append(tests, testCase{"delete CRDs " + p.previous.runtimeVersion, deleteCRD(p.previous.customResourceDefs)})
+	tests = append(tests, testCase{"delete CRDs " + p.next.runtimeVersion, deleteCRD(p.next.customResourceDefs)})
+
+	return tests
 }
 
 func getTestsOnUninstall(details versionDetails, opts testOptions) []testCase {
@@ -254,14 +217,42 @@ func testUninstall(t *testing.T) {
 	podsDeleted := make(chan struct{})
 	done := make(chan struct{})
 	t.Log("waiting for pods to be deleted completely")
-	go waitPodDeletion(done, podsDeleted, t)
+	go waitPodDeletion(t, done, podsDeleted)
 	select {
 	case <-podsDeleted:
 		t.Log("pods were delted as expected on uninstall")
 		return
 	case <-time.After(2 * time.Minute):
 		done <- struct{}{}
-		t.Error("Pods were not deleted as expectedx")
+		t.Error("timeout verifying pods were deleted as expectedx")
+	}
+}
+
+func testUpgrade(details versionDetails) func(t *testing.T) {
+	return func(t *testing.T) {
+		daprPath := getDaprPath()
+		args := []string{
+			"upgrade", "-k",
+			"--runtime-version", details.runtimeVersion,
+			"--log-as-json"}
+		output, err := spawn.Command(daprPath, args...)
+		t.Log(output)
+		require.NoError(t, err, "upgrade failed")
+
+		done := make(chan struct{})
+		podsRunning := make(chan struct{})
+
+		go waitAllPodsRunning(t, daprNamespace, done, podsRunning)
+		select {
+		case <-podsRunning:
+			t.Logf("verified all pods running in namespace %s are running after upgrade", daprNamespace)
+		case <-time.After(2 * time.Minute):
+			done <- struct{}{}
+			t.Logf("timeout verifying all pods running in namespace %s", daprNamespace)
+			t.FailNow()
+		}
+
+		validatePodsOnInstallUpgrade(t, details)
 	}
 }
 
@@ -287,11 +278,11 @@ func testInstall(details versionDetails, opts testOptions) func(t *testing.T) {
 		t.Log(output)
 		require.NoError(t, err, "init failed")
 
-		validatePodsOnInstallUpgrade(details, t)
+		validatePodsOnInstallUpgrade(t, details)
 	}
 }
 
-func validatePodsOnInstallUpgrade(details versionDetails, t *testing.T) {
+func validatePodsOnInstallUpgrade(t *testing.T, details versionDetails) {
 	ctx := context.Background()
 	ctxt, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
@@ -360,7 +351,7 @@ func testMtlsOnUninstall() func(t *testing.T) {
 	}
 }
 
-func testMtlsOnInstall(opts testOptions) func(t *testing.T) {
+func testMtlsOnInstallUpgrade(opts testOptions) func(t *testing.T) {
 	return func(t *testing.T) {
 		daprPath := getDaprPath()
 		output, err := spawn.Command(daprPath, "mtls", "-k")
@@ -406,7 +397,7 @@ func testMtlsOnInstall(opts testOptions) func(t *testing.T) {
 	}
 }
 
-func testComponentsOnInstall(opts testOptions) func(t *testing.T) {
+func testComponentsOnInstallUpgrade(opts testOptions) func(t *testing.T) {
 	return func(t *testing.T) {
 		daprPath := getDaprPath()
 		// if dapr is installed
@@ -470,7 +461,7 @@ func testStatusOnUninstall() func(t *testing.T) {
 	}
 }
 
-func testStatusOnInstall(details versionDetails, opts testOptions) func(t *testing.T) {
+func testStatusOnInstallUpgrade(details versionDetails, opts testOptions) func(t *testing.T) {
 	return func(t *testing.T) {
 		daprPath := getDaprPath()
 		output, err := spawn.Command(daprPath, "status", "-k")
@@ -690,7 +681,7 @@ func homeDir() string {
 	return os.Getenv("USERPROFILE") // windows
 }
 
-func waitPodDeletion(done, podsDeleted chan struct{}, t *testing.T) {
+func waitPodDeletion(t *testing.T, done, podsDeleted chan struct{}) {
 	for {
 		select {
 		case <-done: // if timeout was reached
@@ -714,6 +705,36 @@ func waitPodDeletion(done, podsDeleted chan struct{}, t *testing.T) {
 	}
 }
 
+func waitAllPodsRunning(t *testing.T, namespace string, done, podsRunning chan struct{}) {
+	for {
+		select {
+		case <-done: // if timeout was reached
+			return
+		default:
+			break
+		}
+		ctx := context.Background()
+		ctxt, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+		k8sClient, err := getClient()
+		require.NoError(t, err, "error getting k8s client for pods check")
+		list, err := k8sClient.CoreV1().Pods(namespace).List(ctxt, v1.ListOptions{
+			Limit: 100,
+		})
+		require.NoError(t, err, "error getting pods list from k8s")
+		count := 0
+		for _, item := range list.Items {
+			if item.Status.Phase == core_v1.PodRunning {
+				count += 1
+			}
+		}
+		if len(list.Items) == count {
+			podsRunning <- struct{}{}
+		}
+		time.Sleep(15 * time.Second)
+	}
+}
+
 func deleteCRD(crds []string) func(*testing.T) {
 	return func(t *testing.T) {
 		for _, crd := range crds {
@@ -727,5 +748,221 @@ func deleteCRD(crds []string) func(*testing.T) {
 			}
 			require.Equal(t, fmt.Sprintf("customresourcedefinition.apiextensions.k8s.io \"%s\" deleted\n", crd), output, "expected output to match")
 		}
+	}
+}
+
+// -------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------
+// All test definitions below this line ------------------------------------------------------------
+
+func TestKubernetesNonHAModeMTLSDisabled(t *testing.T) {
+	// ensure clean env for test
+	ensureCleanEnv(t, currentVersionDetails)
+
+	// setup tests
+	tests := []testCase{}
+	tests = append(tests, getTestsOnInstall(currentVersionDetails, testOptions{
+		haEnabled:             false,
+		mtlsEnabled:           false,
+		applyComponentChanges: true,
+		checkResourceExists: map[resource]bool{
+			customResourceDefs:  true,
+			clusterRoles:        true,
+			clusterRoleBindings: true,
+		},
+	})...)
+
+	tests = append(tests, getTestsOnUninstall(currentVersionDetails, testOptions{
+		checkResourceExists: map[resource]bool{
+			customResourceDefs:  true,
+			clusterRoles:        false,
+			clusterRoleBindings: false,
+		},
+	})...)
+
+	// execute tests
+	for _, tc := range tests {
+		t.Run(tc.name, tc.callable)
+	}
+}
+
+func TestKubernetesHAModeMTLSDisabled(t *testing.T) {
+	// ensure clean env for test
+	ensureCleanEnv(t, currentVersionDetails)
+
+	// setup tests
+	tests := []testCase{}
+	tests = append(tests, getTestsOnInstall(currentVersionDetails, testOptions{
+		haEnabled:             true,
+		mtlsEnabled:           false,
+		applyComponentChanges: true,
+		checkResourceExists: map[resource]bool{
+			customResourceDefs:  true,
+			clusterRoles:        true,
+			clusterRoleBindings: true,
+		},
+	})...)
+
+	tests = append(tests, getTestsOnUninstall(currentVersionDetails, testOptions{
+		checkResourceExists: map[resource]bool{
+			customResourceDefs:  true,
+			clusterRoles:        false,
+			clusterRoleBindings: false,
+		},
+	})...)
+
+	// execute tests
+	for _, tc := range tests {
+		t.Run(tc.name, tc.callable)
+	}
+}
+
+func TestKubernetesNonHAModeMTLSEnabled(t *testing.T) {
+	// ensure clean env for test
+	ensureCleanEnv(t, currentVersionDetails)
+
+	// setup tests
+	tests := []testCase{}
+	tests = append(tests, getTestsOnInstall(currentVersionDetails, testOptions{
+		haEnabled:             false,
+		mtlsEnabled:           true,
+		applyComponentChanges: true,
+		checkResourceExists: map[resource]bool{
+			customResourceDefs:  true,
+			clusterRoles:        true,
+			clusterRoleBindings: true,
+		},
+	})...)
+
+	tests = append(tests, getTestsOnUninstall(currentVersionDetails, testOptions{
+		checkResourceExists: map[resource]bool{
+			customResourceDefs:  true,
+			clusterRoles:        false,
+			clusterRoleBindings: false,
+		},
+	})...)
+
+	// execute tests
+	for _, tc := range tests {
+		t.Run(tc.name, tc.callable)
+	}
+}
+
+func TestKubernetesHAModeMTLSEnabled(t *testing.T) {
+	// ensure clean env for test
+	ensureCleanEnv(t, currentVersionDetails)
+
+	// setup tests
+	tests := []testCase{}
+	tests = append(tests, getTestsOnInstall(currentVersionDetails, testOptions{
+		haEnabled:             true,
+		mtlsEnabled:           true,
+		applyComponentChanges: true,
+		checkResourceExists: map[resource]bool{
+			customResourceDefs:  true,
+			clusterRoles:        true,
+			clusterRoleBindings: true,
+		},
+	})...)
+
+	tests = append(tests, getTestsOnUninstall(currentVersionDetails, testOptions{
+		checkResourceExists: map[resource]bool{
+			// TODO Related to https://github.com/dapr/cli/issues/656
+			customResourceDefs:  true,
+			clusterRoles:        false,
+			clusterRoleBindings: false,
+		},
+	})...)
+
+	// execute tests
+	for _, tc := range tests {
+		t.Run(tc.name, tc.callable)
+	}
+}
+
+func TestKubernetesUpgradeNonHAModeMTLSDisabled(t *testing.T) {
+	// Ensure a clean environment
+	uninstall() // does not wait for pod deletion
+	for _, p := range supportedUpgradePaths {
+		t.Run(fmt.Sprintf("setup v%s to v%s", p.previous.runtimeVersion, p.next.runtimeVersion), func(t *testing.T) {
+			t.Run("delete CRDs "+p.previous.runtimeVersion, deleteCRD(p.previous.customResourceDefs))
+			t.Run("delete CRDs "+p.next.runtimeVersion, deleteCRD(p.next.customResourceDefs))
+		})
+	}
+
+	for _, p := range supportedUpgradePaths {
+		t.Run(fmt.Sprintf("v%s to v%s", p.previous.runtimeVersion, p.next.runtimeVersion), func(t *testing.T) {
+			installOpts := testOptions{
+				haEnabled:             false,
+				mtlsEnabled:           false,
+				applyComponentChanges: true,
+				checkResourceExists: map[resource]bool{
+					customResourceDefs:  true,
+					clusterRoles:        true,
+					clusterRoleBindings: true,
+				},
+			}
+
+			upgradeOpts := testOptions{
+				haEnabled: false,
+				//TODO Related to https://github.com/dapr/cli/issues/664
+				mtlsEnabled: true,
+				// do not apply changes on upgrade, verify existing components
+				applyComponentChanges: false,
+				checkResourceExists: map[resource]bool{
+					customResourceDefs:  true,
+					clusterRoles:        true,
+					clusterRoleBindings: true,
+				},
+			}
+			tests := getTestsOnUpgrade(p, installOpts, upgradeOpts)
+
+			for _, tc := range tests {
+				t.Run(tc.name, tc.callable)
+			}
+		})
+	}
+}
+
+func TestKubernetesUpgradeNonHAModeMTLSEnabled(t *testing.T) {
+	// Ensure a clean environment
+	uninstall() // does not wait for pod deletion
+	for _, p := range supportedUpgradePaths {
+		t.Run(fmt.Sprintf("setup v%s to v%s", p.previous.runtimeVersion, p.next.runtimeVersion), func(t *testing.T) {
+			t.Run("delete CRDs "+p.previous.runtimeVersion, deleteCRD(p.previous.customResourceDefs))
+			t.Run("delete CRDs "+p.next.runtimeVersion, deleteCRD(p.next.customResourceDefs))
+		})
+	}
+
+	for _, p := range supportedUpgradePaths {
+		t.Run(fmt.Sprintf("v%s to v%s", p.previous.runtimeVersion, p.next.runtimeVersion), func(t *testing.T) {
+			installOpts := testOptions{
+				haEnabled:             false,
+				mtlsEnabled:           true,
+				applyComponentChanges: true,
+				checkResourceExists: map[resource]bool{
+					customResourceDefs:  true,
+					clusterRoles:        true,
+					clusterRoleBindings: true,
+				},
+			}
+
+			upgradeOpts := testOptions{
+				haEnabled:   false,
+				mtlsEnabled: true,
+				// do not apply changes on upgrade, verify existing components
+				applyComponentChanges: false,
+				checkResourceExists: map[resource]bool{
+					customResourceDefs:  true,
+					clusterRoles:        true,
+					clusterRoleBindings: true,
+				},
+			}
+			tests := getTestsOnUpgrade(p, installOpts, upgradeOpts)
+
+			for _, tc := range tests {
+				t.Run(tc.name, tc.callable)
+			}
+		})
 	}
 }
