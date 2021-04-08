@@ -8,7 +8,6 @@ package standalone
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 
@@ -16,7 +15,7 @@ import (
 )
 
 // Invoke is a command to invoke a remote or local dapr instance.
-func (s *Standalone) Invoke(appID, method, data, verb string) (string, error) {
+func (s *Standalone) Invoke(appID, method string, data []byte, verb string) (string, error) {
 	list, err := s.process.List()
 	if err != nil {
 		return "", err
@@ -25,12 +24,7 @@ func (s *Standalone) Invoke(appID, method, data, verb string) (string, error) {
 	for _, lo := range list {
 		if lo.AppID == appID {
 			url := makeEndpoint(lo, method)
-			var body io.Reader
-
-			if data != "" {
-				body = bytes.NewBuffer([]byte(data))
-			}
-			req, err := http.NewRequest(verb, url, body)
+			req, err := http.NewRequest(verb, url, bytes.NewBuffer(data))
 			if err != nil {
 				return "", err
 			}

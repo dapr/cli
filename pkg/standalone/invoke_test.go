@@ -74,7 +74,7 @@ func TestInvoke(t *testing.T) {
 					Err: tc.listErr,
 				},
 			}
-			res, err := client.Invoke(tc.appID, tc.method, "", "GET")
+			res, err := client.Invoke(tc.appID, tc.method, []byte{}, "GET")
 			if tc.errorExpected {
 				assert.Error(t, err, "expected an error")
 				assert.Equal(t, tc.errString, err.Error(), "expected error strings to match")
@@ -95,7 +95,7 @@ func TestInvoke(t *testing.T) {
 					Err: tc.listErr,
 				},
 			}
-			res, err := client.Invoke(tc.appID, tc.method, tc.resp, "POST")
+			res, err := client.Invoke(tc.appID, tc.method, []byte(tc.resp), "POST")
 			if tc.errorExpected {
 				assert.Error(t, err, "expected an error")
 				assert.Equal(t, tc.errString, err.Error(), "expected error strings to match")
@@ -116,7 +116,7 @@ func TestInvoke(t *testing.T) {
 					Err: tc.listErr,
 				},
 			}
-			res, err := client.Invoke(tc.appID, tc.method, tc.resp, "DELETE")
+			res, err := client.Invoke(tc.appID, tc.method, []byte(tc.resp), "DELETE")
 			if tc.errorExpected {
 				assert.Error(t, err, "expected an error")
 				assert.Equal(t, tc.errString, err.Error(), "expected error strings to match")
@@ -137,7 +137,7 @@ func TestInvoke(t *testing.T) {
 					Err: tc.listErr,
 				},
 			}
-			res, err := client.Invoke(tc.appID, tc.method, tc.resp, "PUT")
+			res, err := client.Invoke(tc.appID, tc.method, []byte(tc.resp), "PUT")
 			if tc.errorExpected {
 				assert.Error(t, err, "expected an error")
 				assert.Equal(t, tc.errString, err.Error(), "expected error strings to match")
