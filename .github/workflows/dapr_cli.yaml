@@ -60,6 +60,9 @@ jobs:
         with:
           version: ${{ env.GOLANG_CI_LINT_VER }}
           only-new-issues: true
+      - name: Run make go.mod check-diff
+        if: matrix.target_arch == 'amd64' && matrix.target_os == 'linux'
+        run: make go.mod check-diff
       - name: Parse release version and set REL_VERSION
         run: python ./.github/scripts/get_release_version.py
       - name: Run make test

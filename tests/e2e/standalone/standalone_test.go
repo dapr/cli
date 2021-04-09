@@ -48,6 +48,7 @@ func TestStandaloneInstall(t *testing.T) {
 		{"test run", testRun},
 		{"test stop", testStop},
 		{"test publish", testPublish},
+		{"test invoke", testInvoke},
 		{"test uninstall", testUninstall},
 	}
 
@@ -394,5 +395,52 @@ func testPublish(t *testing.T) {
 		require.NoError(t, err, "dapr stop failed")
 		assert.Contains(t, output, "app stopped successfully: pub_e2e")
 	}, "run", "--app-id", "pub_e2e", "--app-port", "9988")
+
+}
+
+func testInvoke(t *testing.T) {
+	s := daprHttp.NewService(":9987")
+
+	err := s.AddServiceInvocationHandler("/test", func(ctx context.Context, e *common.InvocationEvent) (*common.Content, error) {
+		val := &common.Content{
+			Data:        e.Data,
+			ContentType: e.ContentType,
+			DataTypeURL: e.DataTypeURL,
+		}
+		return val, nil
+	})
+
+	assert.NoError(t, err, "unable to AddTopicEventHandler")
+
+	defer s.Stop()
+	go func() {
+		err = s.Start()
+
+		assert.NoError(t, err, "unable to listen on :9987")
+	}()
+
+	daprPath := getDaprPath()
+	executeAgainstRunningDapr(t, func() {
+		t.Run("publish from file", func(t *testing.T) {
+			output, err := spawn.Command(daprPath, "invoke", "--app-id", "invoke_e2e", "--method", "test", "--data-file", "../testdata/message.json")
+			t.Log(output)
+			assert.NoError(t, err, "unable to publish from --data-file")
+			assert.Contains(t, output, "App invoked successfully")
+			assert.Contains(t, output, "{\"dapr\": \"is_great\"}")
+		})
+
+		t.Run("publish from string", func(t *testing.T) {
+			output, err := spawn.Command(daprPath, "invoke", "--app-id", "invoke_e2e", "--method", "test", "--data", "{\"cli\": \"is_working\"}")
+			t.Log(output)
+			assert.NoError(t, err, "unable to publish from --data")
+			assert.Contains(t, output, "{\"cli\": \"is_working\"}")
+			assert.Contains(t, output, "App invoked successfully")
+		})
+
+		output, err := spawn.Command(getDaprPath(), "stop", "--app-id", "invoke_e2e")
+		t.Log(output)
+		require.NoError(t, err, "dapr stop failed")
+		assert.Contains(t, output, "app stopped successfully: invoke_e2e")
+	}, "run", "--app-id", "invoke_e2e", "--app-port", "9987")
 
 }
