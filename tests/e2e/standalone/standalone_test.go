@@ -49,6 +49,7 @@ func TestStandaloneInstall(t *testing.T) {
 		{"test stop", testStop},
 		{"test publish", testPublish},
 		{"test invoke", testInvoke},
+		{"test list", testList},
 		{"test uninstall", testUninstall},
 	}
 
@@ -333,6 +334,15 @@ func executeAgainstRunningDapr(t *testing.T, f func(), daprArgs ...string) {
 	assert.Contains(t, daprOutput, "Exited Dapr successfully")
 }
 
+func testList(t *testing.T) {
+	executeAgainstRunningDapr(t, func() {
+		output, err := spawn.Command(getDaprPath(), "list")
+		t.Log(output)
+		require.NoError(t, err, "dapr list failed")
+		listtOutputCheck(t, output)
+	}, "run", "--app-id", "dapr_e2e_list", "-H", "3555", "-G", "4555", "--", "bash", "-c", "sleep 10 ; exit 0")
+}
+
 func testStop(t *testing.T) {
 	executeAgainstRunningDapr(t, func() {
 		output, err := spawn.Command(getDaprPath(), "stop", "--app-id", "dapr_e2e_stop")
@@ -421,7 +431,7 @@ func testInvoke(t *testing.T) {
 
 	daprPath := getDaprPath()
 	executeAgainstRunningDapr(t, func() {
-		t.Run("publish from file", func(t *testing.T) {
+		t.Run("data from file", func(t *testing.T) {
 			output, err := spawn.Command(daprPath, "invoke", "--app-id", "invoke_e2e", "--method", "test", "--data-file", "../testdata/message.json")
 			t.Log(output)
 			assert.NoError(t, err, "unable to publish from --data-file")
@@ -429,7 +439,7 @@ func testInvoke(t *testing.T) {
 			assert.Contains(t, output, "{\"dapr\": \"is_great\"}")
 		})
 
-		t.Run("publish from string", func(t *testing.T) {
+		t.Run("data from string", func(t *testing.T) {
 			output, err := spawn.Command(daprPath, "invoke", "--app-id", "invoke_e2e", "--method", "test", "--data", "{\"cli\": \"is_working\"}")
 			t.Log(output)
 			assert.NoError(t, err, "unable to publish from --data")
@@ -443,4 +453,16 @@ func testInvoke(t *testing.T) {
 		assert.Contains(t, output, "app stopped successfully: invoke_e2e")
 	}, "run", "--app-id", "invoke_e2e", "--app-port", "9987")
 
+}
+
+func listtOutputCheck(t *testing.T, output string) {
+	lines := strings.Split(output, "\n")[1:] // remove header
+	// only one app is runnning at this time
+	fields := strings.Fields(lines[0])
+	// Fields splits on space, so Created time field might be split again
+	assert.GreaterOrEqual(t, len(fields), 4, "expected at least 4 fields in components outptu")
+	assert.Equal(t, "dapr_e2e_list", fields[0], "expected name to match")
+	assert.Equal(t, "3555", fields[1], "expected http port to match")
+	assert.Equal(t, "4555", fields[2], "expected grpc port to match")
+	assert.Equal(t, "0", fields[3], "expected app port to match")
 }
