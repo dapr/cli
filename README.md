@@ -511,7 +511,7 @@ For more details, please run the command and check the examples to apply to your
 
 ## Reference for the Dapr CLI
 
-See the [Reference Guide](docs/reference/reference.md) for more information about individual Dapr commands.
+See the [Reference Guide](https://docs.dapr.io/reference/cli/) for more information about individual Dapr commands.
 
 ## Contributing to Dapr CLI
 
