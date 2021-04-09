@@ -39,6 +39,11 @@ dapr invoke --app-id target --method sample --verb GET
 	Run: func(cmd *cobra.Command, args []string) {
 		bytePayload := []byte{}
 		var err error
+		if invokeDataFile != "" && invokeData != "" {
+			print.FailureStatusEvent(os.Stdout, "Only one of --data and --data-file allowed in the same invoke command")
+			os.Exit(1)
+		}
+
 		if invokeDataFile != "" {
 			bytePayload, err = ioutil.ReadFile(invokeDataFile)
 			if err != nil {
