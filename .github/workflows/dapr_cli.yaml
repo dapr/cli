@@ -65,6 +65,11 @@ jobs:
         run: make go.mod check-diff
       - name: Parse release version and set REL_VERSION
         run: python ./.github/scripts/get_release_version.py
+      - name: Setup test output
+        shell: bash
+        run: |
+          export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-unit.json
+          echo "TEST_OUTPUT_FILE=$TEST_OUTPUT_FILE" >> $GITHUB_ENV
       - name: Run make test
         env:
           COVERAGE_OPTS: "-coverprofile=coverage.txt -covermode=atomic"
@@ -86,6 +91,12 @@ jobs:
         with:
           name: cli_drop
           path: ${{ env.ARCHIVE_OUTDIR }}
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@master
+        with:
+          name: ${{ matrix.target_os }}_${{ matrix.target_arch }}_test_unit.json
+          path: ${{ env.TEST_OUTPUT_FILE }}
   publish:
     name: Publish binaries
     needs: build
