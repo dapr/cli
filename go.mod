@@ -33,6 +33,10 @@ require (
 	k8s.io/cli-runtime v0.20.2
 	k8s.io/client-go v0.20.2
 	k8s.io/helm v2.16.10+incompatible
+	github.com/shurcooL/sanitized_anchor_name
+	github.com/russross/blackfriday/v2
+	github.com/cpuguy83/go-md2man
+	github.com/cpuguy83/go-md2man/v2
 )
 
 replace (
