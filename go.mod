@@ -9,11 +9,11 @@ require (
 	github.com/dapr/dapr v1.0.0-rc.1.0.20201217002310-310e670d987b
 	github.com/dapr/go-sdk v1.0.0
 	github.com/docker/docker v17.12.0-ce-rc1.0.20200618181300-9dc6525e6118+incompatible
-	github.com/fatih/color v1.7.0
+	github.com/fatih/color v1.10.0
 	github.com/go-ole/go-ole v1.2.4 // indirect
 	github.com/gocarina/gocsv v0.0.0-20190426105157-2fc85fcf0c07
+	github.com/google/go-cmp v0.5.5 // indirect
 	github.com/hashicorp/go-retryablehttp v0.5.3
-	github.com/mattn/go-colorable v0.1.6 // indirect
 	github.com/mattn/go-runewidth v0.0.8 // indirect
 	github.com/mitchellh/go-ps v0.0.0-20190716172923-621e5597135b
 	github.com/nightlyone/lockfile v0.0.0-20180618180623-0ad87eef1443
