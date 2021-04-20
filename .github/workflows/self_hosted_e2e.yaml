@@ -59,4 +59,15 @@ jobs:
           (( i )) && printf '\n'
           echo "-- Docker is ready."
       - name: Run E2E tests 
-        run: make e2e-build-run-sh
+        run: |
+          export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-standalone.json
+          echo "TEST_OUTPUT_FILE=$TEST_OUTPUT_FILE" >> $GITHUB_ENV
+          make e2e-build-run-sh
+        shell: bash
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@master
+        with:
+          name: ${{ matrix.target_os }}_${{ matrix.target_arch }}_e2e_standalone.json
+          path: ${{ env.TEST_OUTPUT_FILE }}
+
