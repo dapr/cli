@@ -50,7 +50,7 @@ jobs:
           sudo /bin/chmod 544 /Library/PrivilegedHelperTools/com.docker.vmnetd
           sudo /bin/chmod 644 /Library/LaunchDaemons/com.docker.vmnetd.plist
           sudo /bin/launchctl load /Library/LaunchDaemons/com.docker.vmnetd.plist
-          open -g -a Docker.app
+          open -g -a /Applications/Docker.app
           i=0
           while ! docker system info &>/dev/null; do
             (( i++ == 0 )) && printf %s '-- Waiting for Docker to finish starting up...' || printf '.'
