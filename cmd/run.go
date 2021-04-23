@@ -9,6 +9,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"os/exec"
 	"runtime"
 	"strconv"
 	"strings"
@@ -104,11 +105,11 @@ var RunCmd = &cobra.Command{
 			return
 		}
 
-		sigCh := make(chan os.Signal, 1)
+		sigCh := make(chan os.Signal, 5)
 		setupShutdownNotify(sigCh)
 
-		daprRunning := make(chan bool, 1)
-		appRunning := make(chan bool, 1)
+		daprRunning := make(chan bool, 2)
+		appRunning := make(chan bool, 2)
 
 		go func() {
 			var startInfo string
@@ -137,7 +138,7 @@ var RunCmd = &cobra.Command{
 			}
 
 			go func() {
-				daprdErr := output.DaprCMD.Wait()
+				daprdErr := suppressCtrlC(output.DaprCMD.Wait())
 
 				if daprdErr != nil {
 					print.FailureStatusEvent(os.Stderr, "The daprd process exited with error code: %s", daprdErr.Error())
@@ -146,6 +147,7 @@ var RunCmd = &cobra.Command{
 					print.SuccessStatusEvent(os.Stdout, "Exited Dapr successfully")
 				}
 				sigCh <- os.Interrupt
+				daprRunning <- false
 			}()
 
 			if appPort <= 0 {
@@ -240,7 +242,7 @@ var RunCmd = &cobra.Command{
 			}
 
 			go func() {
-				appErr := output.AppCMD.Wait()
+				appErr := suppressCtrlC(output.AppCMD.Wait())
 
 				if appErr != nil {
 					print.FailureStatusEvent(os.Stderr, "The App process exited with error code: %s", appErr.Error())
@@ -248,6 +250,7 @@ var RunCmd = &cobra.Command{
 					print.SuccessStatusEvent(os.Stdout, "Exited App successfully")
 				}
 				sigCh <- os.Interrupt
+				appRunning <- false
 			}()
 
 			appRunning <- true
@@ -287,22 +290,22 @@ var RunCmd = &cobra.Command{
 		<-sigCh
 		print.InfoStatusEvent(os.Stdout, "\nterminated signal received: shutting down")
 
-		if output.DaprCMD.ProcessState == nil || !output.DaprCMD.ProcessState.Exited() {
-			err = output.DaprCMD.Process.Kill()
-			if err != nil {
-				print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Error exiting Dapr: %s", err))
-			} else {
-				print.SuccessStatusEvent(os.Stdout, "Exited Dapr successfully")
-			}
+		interruptCmd(output.AppCMD, "App")
+
+		// Wait for the app to terminate for up to 5 seconds.
+		select {
+		case <-appRunning:
+		case <-time.After(5 * time.Second):
+			killCmd(output.AppCMD)
 		}
 
-		if output.AppCMD != nil && (output.AppCMD.ProcessState == nil || !output.AppCMD.ProcessState.Exited()) {
-			err = output.AppCMD.Process.Kill()
-			if err != nil {
-				print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Error exiting App: %s", err))
-			} else {
-				print.SuccessStatusEvent(os.Stdout, "Exited App successfully")
-			}
+		interruptCmd(output.DaprCMD, "Dapr")
+
+		// Wait for daprd to terminate for up to 10 seconds.
+		select {
+		case <-daprRunning:
+		case <-time.After(10 * time.Second):
+			killCmd(output.DaprCMD)
 		}
 
 		if unixDomainSocket != "" {
@@ -311,6 +314,31 @@ var RunCmd = &cobra.Command{
 			}
 		}
 	},
+}
+
+func interruptCmd(cmd *exec.Cmd, name string) {
+	if cmd == nil || cmd.ProcessState == nil || cmd.ProcessState.Exited() {
+		return
+	}
+
+	if err := interruptProcess(cmd.Process); err != nil {
+		print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Interrupt signal failed for %s. Attempting to kill process: %v", name, err))
+		if err = cmd.Process.Kill(); err != nil {
+			print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Error exiting %s: %s", name, err))
+
+			return
+		}
+	}
+
+	print.SuccessStatusEvent(os.Stdout, fmt.Sprintf("Exited %s successfully", name))
+}
+
+func killCmd(cmd *exec.Cmd) {
+	if cmd == nil || cmd.ProcessState == nil || cmd.ProcessState.Exited() {
+		return
+	}
+
+	cmd.Process.Kill()
 }
 
 func init() {

@@ -382,7 +382,9 @@ func testRun(t *testing.T) {
 		output, err := spawn.Command(daprPath, "run", "--app-id", "testapp", "--unix-domain-socket", "/tmp", "--", "bash", "-c", "curl --unix-socket /tmp/dapr-testapp-http.socket -v -X POST http://unix/v1.0/shutdown; sleep 10; exit 1")
 		t.Log(output)
 		require.NoError(t, err, "run failed")
-		assert.Contains(t, output, "Exited App successfully", "App should be shutdown before it has a chance to return non-zero")
+		// It would be ideal to check that the spawned app existed with a non-zero
+		// exit code, however when sending a SIGINT/CTRL-C to curl, it does not.
+		// In the future we could find a program that returns 0 in this scenario.
 		assert.Contains(t, output, "Exited Dapr successfully")
 	})
 }
@@ -586,9 +588,7 @@ func testInvoke(t *testing.T) {
 			require.NoError(t, err, "dapr stop failed")
 			assert.Contains(t, output, "app stopped successfully: invoke_e2e")
 		}, "run", "--app-id", "invoke_e2e", "--app-port", "9987", "--unix-domain-socket", path)
-
 	}
-
 }
 
 func listOutputCheck(t *testing.T, output string) {

@@ -151,6 +151,7 @@ func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort in
 	}
 
 	cmd := exec.Command(daprCMD, args...)
+	setCmdSysProcAttr(cmd)
 	return cmd, daprHTTPPort, daprGRPCPort, metricsPort, nil
 }
 
@@ -184,6 +185,7 @@ func getAppCommand(httpPort, grpcPort, metricsPort int, command string, args []s
 		fmt.Sprintf("DAPR_HTTP_PORT=%v", httpPort),
 		fmt.Sprintf("DAPR_GRPC_PORT=%v", grpcPort),
 		fmt.Sprintf("DAPR_METRICS_PORT=%v", metricsPort))
+	setCmdSysProcAttr(cmd)
 
 	return cmd, nil
 }
