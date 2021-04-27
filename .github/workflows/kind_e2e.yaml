@@ -123,6 +123,7 @@ jobs:
       run: |
         export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-kind.json
         echo "TEST_OUTPUT_FILE=$TEST_OUTPUT_FILE" >> $GITHUB_ENV
+        export GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
         make e2e-build-run-k8s
       shell: bash
     - name: Upload test results
