@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
 )
 
@@ -33,7 +34,18 @@ type githubRepoReleaseItem struct {
 // GetLatestRelease return the latest release version of dapr.
 func GetLatestRelease(gitHubOrg, gitHubRepo string) (string, error) {
 	releaseURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases", gitHubOrg, gitHubRepo)
-	resp, err := http.Get(releaseURL)
+
+	req, err := http.NewRequest("GET", releaseURL, nil)
+	if err != nil {
+		return "", err
+	}
+
+	githubToken := os.Getenv("GITHUB_TOKEN")
+	if githubToken != "" {
+		req.Header.Add("Authorization", "token "+githubToken)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return "", err
 	}
