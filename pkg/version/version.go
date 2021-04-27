@@ -51,6 +51,10 @@ func GetLatestRelease(gitHubOrg, gitHubRepo string) (string, error) {
 	}
 	defer resp.Body.Close()
 
+	for key, values := range resp.Header {
+		fmt.Printf("GITHUB API RESPONSE HEADER: %s = %v\n", key, values)
+	}
+
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("%s - %s", releaseURL, resp.Status)
 	}
