@@ -33,6 +33,11 @@ dapr publish --publish-app-id myapp --pubsub target --topic sample --data '{"key
 	Run: func(cmd *cobra.Command, args []string) {
 		bytePayload := []byte{}
 		var err error
+		if publishPayloadFile != "" && publishPayload != "" {
+			print.FailureStatusEvent(os.Stdout, "Only one of --data and --data-file allowed in the same publish command")
+			os.Exit(1)
+		}
+
 		if publishPayloadFile != "" {
 			bytePayload, err = ioutil.ReadFile(publishPayloadFile)
 			if err != nil {

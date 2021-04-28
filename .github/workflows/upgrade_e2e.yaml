@@ -118,4 +118,13 @@ jobs:
 
     - name: Run tests
       run: |
+        export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-upgrade-kind.json
+        echo "TEST_OUTPUT_FILE=$TEST_OUTPUT_FILE" >> $GITHUB_ENV
         make e2e-build-run-upgrade
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@master
+      with:
+        name: ${{ matrix.k8s-version }}_${{ matrix.mode }}_e2e_upgrade_k8s.json
+        path: ${{ env.TEST_OUTPUT_FILE }}
