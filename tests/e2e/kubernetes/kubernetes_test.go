@@ -724,7 +724,8 @@ func waitAllPodsRunning(t *testing.T, namespace string, done, podsRunning chan s
 		require.NoError(t, err, "error getting pods list from k8s")
 		count := 0
 		for _, item := range list.Items {
-			if item.Status.Phase == core_v1.PodRunning {
+			// Check pods running, and containers ready
+			if item.Status.Phase == core_v1.PodRunning && len(item.Status.ContainerStatuses) != 0 && item.Status.ContainerStatuses[0].Ready {
 				count += 1
 			}
 		}
