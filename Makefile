@@ -132,13 +132,27 @@ test:
 ################################################################################
 .PHONY: test-e2e-k8s
 test-e2e-k8s:
-	go test -timeout 20m -count=1 -v  -tags=e2e ./tests/e2e/kubernetes/...
+	go test -timeout 20m -count=1 -v  -tags=e2e ./tests/e2e/kubernetes/... -run="TestKubernetes"
 
 ################################################################################
 # Build, E2E Tests for Kubernetes											   #
 ################################################################################
 .PHONY: e2e-build-run-k8s
 e2e-build-run-k8s: build test-e2e-k8s
+
+################################################################################
+# E2E Tests for Kubernetes Upgrade											   #
+################################################################################
+.PHONY: test-e2e-upgrade
+test-e2e-upgrade:
+	go test -timeout 20m -count=1 -v  -tags=e2e ./tests/e2e/kubernetes/... -run="TestUpgradePath"
+
+################################################################################
+# Build, E2E Tests for Kubernetes Upgrade									   #
+################################################################################
+.PHONY: e2e-build-run-upgrade
+e2e-build-run-upgrade: build test-e2e-k8s
+
 
 ################################################################################
 # E2E Tests for Self-Hosted												       #

@@ -755,6 +755,8 @@ func deleteCRD(crds []string) func(*testing.T) {
 // -------------------------------------------------------------------------------------------------
 // All test definitions below this line ------------------------------------------------------------
 
+// Kubernetes tests. Name must be of the format defined in the Makefile. (TestKubernetes***) These tests are run independently.
+
 func TestKubernetesNonHAModeMTLSDisabled(t *testing.T) {
 	// ensure clean env for test
 	ensureCleanEnv(t, currentVersionDetails)
@@ -880,7 +882,9 @@ func TestKubernetesHAModeMTLSEnabled(t *testing.T) {
 	}
 }
 
-func TestKubernetesUpgradeNonHAModeMTLSDisabled(t *testing.T) {
+// Upgrade path tests. Name must be of the format defined in the Makefile. (TestUpgradePath***) These tests are run independently.
+
+func TestUpgradePathNonHAModeMTLSDisabled(t *testing.T) {
 	// Ensure a clean environment
 	uninstall() // does not wait for pod deletion
 	for _, p := range supportedUpgradePaths {
@@ -924,7 +928,7 @@ func TestKubernetesUpgradeNonHAModeMTLSDisabled(t *testing.T) {
 	}
 }
 
-func TestKubernetesUpgradeNonHAModeMTLSEnabled(t *testing.T) {
+func TestUpgradePathNonHAModeMTLSEnabled(t *testing.T) {
 	// Ensure a clean environment
 	uninstall() // does not wait for pod deletion
 	for _, p := range supportedUpgradePaths {
