@@ -160,7 +160,7 @@ test-e2e-upgrade: test-deps
 # Build, E2E Tests for Kubernetes Upgrade									   #
 ################################################################################
 .PHONY: e2e-build-run-upgrade
-e2e-build-run-upgrade: build test-e2e-k8s
+e2e-build-run-upgrade: build test-e2e-upgrade
 
 
 ################################################################################
