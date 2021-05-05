@@ -3,7 +3,7 @@
 # Licensed under the MIT License.
 # ------------------------------------------------------------
 
-name: E2E - KinD
+name: E2E - Upgrade path tests - KinD
 
 on:
   pull_request:
@@ -28,7 +28,7 @@ jobs:
   # shared resource issues.
   #
   kubernetes-e2e:
-    name: E2E tests for K8s (KinD)
+    name: Upgrade path tests (KinD)
     runs-on: ubuntu-latest
     env:
       GOVER: 1.16
@@ -118,14 +118,13 @@ jobs:
 
     - name: Run tests
       run: |
-        export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-kind.json
+        export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-upgrade-kind.json
         echo "TEST_OUTPUT_FILE=$TEST_OUTPUT_FILE" >> $GITHUB_ENV
-        export GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
-        make e2e-build-run-k8s
-      shell: bash
+        make e2e-build-run-upgrade
+
     - name: Upload test results
       if: always()
       uses: actions/upload-artifact@master
       with:
-        name: ${{ matrix.k8s-version }}_${{ matrix.mode }}_e2e_k8s.json
+        name: ${{ matrix.k8s-version }}_${{ matrix.mode }}_e2e_upgrade_k8s.json
         path: ${{ env.TEST_OUTPUT_FILE }}
