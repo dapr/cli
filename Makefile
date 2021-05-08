@@ -59,6 +59,8 @@ endif
 export GOOS ?= $(TARGET_OS_LOCAL)
 export BINARY_EXT ?= $(BINARY_EXT_LOCAL)
 
+TEST_OUTPUT_FILE ?= test_output.json
+
 # Use the variable H to add a header (equivalent to =>) to informational output
 H = $(shell printf "\033[34;1m=>\033[0m")
 
@@ -120,19 +122,26 @@ endif
 .PHONY: release
 release: build archive
 
+.PHONY: test-deps
+test-deps:
+	# The desire here is to download this test dependency without polluting go.mod
+	# In golang >=1.16 there is a new way to do this with `go install gotest.tools/gotestsum@latest`
+	# But this doesn't work with <=1.15, so we do it the old way for now 
+	# (see: https://golang.org/ref/mod#go-install)
+	GO111MODULE=off go get gotest.tools/gotestsum
 ################################################################################
 # Tests																           #
 ################################################################################
 .PHONY: test
-test:
-	go test ./pkg/... $(COVERAGE_OPTS)
+test: test-deps
+	gotestsum --jsonfile $(TEST_OUTPUT_FILE) --format standard-quiet -- ./pkg/... $(COVERAGE_OPTS)
 
 ################################################################################
 # E2E Tests for Kubernetes												       #
 ################################################################################
 .PHONY: test-e2e-k8s
-test-e2e-k8s:
-	go test -count=1 -v -tags=e2e ./tests/e2e/kubernetes/...
+test-e2e-k8s: test-deps
+	gotestsum --jsonfile $(TEST_OUTPUT_FILE) --format standard-verbose -- -timeout 20m -count=1 -tags=e2e ./tests/e2e/kubernetes/... -run="TestKubernetes"
 
 ################################################################################
 # Build, E2E Tests for Kubernetes											   #
@@ -141,11 +150,25 @@ test-e2e-k8s:
 e2e-build-run-k8s: build test-e2e-k8s
 
 ################################################################################
+# E2E Tests for Kubernetes Upgrade											   #
+################################################################################
+.PHONY: test-e2e-upgrade
+test-e2e-upgrade: test-deps
+	gotestsum --jsonfile $(TEST_OUTPUT_FILE) --format standard-verbose -- -timeout 20m -count=1 -tags=e2e ./tests/e2e/kubernetes/... -run="TestUpgradePath"
+
+################################################################################
+# Build, E2E Tests for Kubernetes Upgrade									   #
+################################################################################
+.PHONY: e2e-build-run-upgrade
+e2e-build-run-upgrade: build test-e2e-upgrade
+
+
+################################################################################
 # E2E Tests for Self-Hosted												       #
 ################################################################################
 .PHONY: test-e2e-sh
-test-e2e-sh:
-	go test -count=1 -v -tags=e2e ./tests/e2e/standalone/...
+test-e2e-sh: test-deps
+	gotestsum --jsonfile $(TEST_OUTPUT_FILE) --format standard-verbose -- -count=1 -tags=e2e ./tests/e2e/standalone/...
 
 ################################################################################
 # Build, E2E Tests for Self-Hosted											   #

@@ -177,13 +177,13 @@ var RunCmd = &cobra.Command{
 			outScanner := bufio.NewScanner(stdOutPipe)
 			go func() {
 				for errScanner.Scan() {
-					fmt.Println(print.Blue(fmt.Sprintf("== APP == %s\n", errScanner.Text())))
+					fmt.Println(print.Blue(fmt.Sprintf("== APP == %s", errScanner.Text())))
 				}
 			}()
 
 			go func() {
 				for outScanner.Scan() {
-					fmt.Println(print.Blue(fmt.Sprintf("== APP == %s\n", outScanner.Text())))
+					fmt.Println(print.Blue(fmt.Sprintf("== APP == %s", outScanner.Text())))
 				}
 			}()
 
