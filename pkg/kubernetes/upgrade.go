@@ -84,7 +84,6 @@ func Upgrade(conf UpgradeConfig) error {
 	var issuerKey []byte
 
 	if mtls {
-		fmt.Println("aaaaaa")
 		secret, sErr := getTrustChainSecret()
 		if sErr != nil {
 			return sErr
