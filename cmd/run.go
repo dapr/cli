@@ -111,6 +111,18 @@ var RunCmd = &cobra.Command{
 				os.Exit(1)
 			}
 
+			go func() {
+				daprdErr := output.DaprCMD.Wait()
+
+				if daprdErr != nil {
+					print.FailureStatusEvent(os.Stdout, "The daprd process exited with error code: %s", daprdErr.Error())
+
+				} else {
+					print.SuccessStatusEvent(os.Stdout, "Exited Dapr successfully")
+				}
+				sigCh <- os.Interrupt
+			}()
+
 			if appPort <= 0 {
 				// If app does not listen to port, we can check for Dapr's sidecar health before starting the app.
 				// Otherwise, it creates a deadlock.
@@ -150,39 +162,63 @@ var RunCmd = &cobra.Command{
 			stdErrPipe, pipeErr := output.AppCMD.StderrPipe()
 			if pipeErr != nil {
 				print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error creating stderr for App: %s", err.Error()))
-				os.Exit(1)
+				appRunning <- false
+				return
 			}
 
 			stdOutPipe, pipeErr := output.AppCMD.StdoutPipe()
 			if pipeErr != nil {
 				print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error creating stdout for App: %s", err.Error()))
-				os.Exit(1)
+				appRunning <- false
+				return
 			}
 
 			errScanner := bufio.NewScanner(stdErrPipe)
 			outScanner := bufio.NewScanner(stdOutPipe)
 			go func() {
 				for errScanner.Scan() {
-					fmt.Println(print.Blue(fmt.Sprintf("== APP == %s\n", errScanner.Text())))
+					fmt.Println(print.Blue(fmt.Sprintf("== APP == %s", errScanner.Text())))
 				}
 			}()
 
 			go func() {
 				for outScanner.Scan() {
-					fmt.Println(print.Blue(fmt.Sprintf("== APP == %s\n", outScanner.Text())))
+					fmt.Println(print.Blue(fmt.Sprintf("== APP == %s", outScanner.Text())))
 				}
 			}()
 
 			err = output.AppCMD.Start()
 			if err != nil {
 				print.FailureStatusEvent(os.Stdout, err.Error())
-				os.Exit(1)
+				appRunning <- false
+				return
 			}
+
+			go func() {
+				appErr := output.AppCMD.Wait()
+
+				if appErr != nil {
+					print.FailureStatusEvent(os.Stdout, "The App process exited with error code: %s", appErr.Error())
+				} else {
+					print.SuccessStatusEvent(os.Stdout, "Exited App successfully")
+				}
+				sigCh <- os.Interrupt
+			}()
 
 			appRunning <- true
 		}()
 
-		<-appRunning
+		appRunStatus := <-appRunning
+		if !appRunStatus {
+			// Start App failed, try to stop Dapr and exit.
+			err = output.DaprCMD.Process.Kill()
+			if err != nil {
+				print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Start App failed, try to stop Dapr Error: %s", err))
+			} else {
+				print.SuccessStatusEvent(os.Stdout, "Start App failed, try to stop Dapr successfully")
+			}
+			os.Exit(1)
+		}
 
 		// Metadata API is only available if app has started listening to port, so wait for app to start before calling metadata API.
 		err = metadata.Put(output.DaprHTTPPort, "cliPID", strconv.Itoa(os.Getpid()))
@@ -206,14 +242,16 @@ var RunCmd = &cobra.Command{
 		<-sigCh
 		print.InfoStatusEvent(os.Stdout, "\nterminated signal received: shutting down")
 
-		err = output.DaprCMD.Process.Kill()
-		if err != nil {
-			print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error exiting Dapr: %s", err))
-		} else {
-			print.SuccessStatusEvent(os.Stdout, "Exited Dapr successfully")
+		if output.DaprCMD.ProcessState == nil || !output.DaprCMD.ProcessState.Exited() {
+			err = output.DaprCMD.Process.Kill()
+			if err != nil {
+				print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error exiting Dapr: %s", err))
+			} else {
+				print.SuccessStatusEvent(os.Stdout, "Exited Dapr successfully")
+			}
 		}
 
-		if output.AppCMD != nil {
+		if output.AppCMD != nil && (output.AppCMD.ProcessState == nil || !output.AppCMD.ProcessState.Exited()) {
 			err = output.AppCMD.Process.Kill()
 			if err != nil {
 				print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error exiting App: %s", err))

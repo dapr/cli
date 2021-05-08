@@ -34,7 +34,7 @@ getSystemInfo() {
     OS=$(echo `uname`|tr '[:upper:]' '[:lower:]')
 
     # Most linux distro needs root permission to copy the file to /usr/local/bin
-    if [ "$OS" == "linux" ] && [ "$DAPR_INSTALL_DIR" == "/usr/local/bin" ]; then
+    if [[ "$OS" == "linux" || "$OS" == "darwin" ]] && [ "$DAPR_INSTALL_DIR" == "/usr/local/bin" ]; then
         USE_SUDO="true"
     fi
 }

@@ -21,7 +21,7 @@ jobs:
     name: Build ${{ matrix.target_os }}_${{ matrix.target_arch }} binaries
     runs-on: ${{ matrix.os }}
     env:
-      GOVER: 1.15
+      GOVER: 1.16
       GOLANG_CI_LINT_VER: v1.31
       GOOS: ${{ matrix.target_os }}
       GOARCH: ${{ matrix.target_arch }}
@@ -60,8 +60,16 @@ jobs:
         with:
           version: ${{ env.GOLANG_CI_LINT_VER }}
           only-new-issues: true
+      - name: Run make go.mod check-diff
+        if: matrix.target_arch == 'amd64' && matrix.target_os == 'linux'
+        run: make go.mod check-diff
       - name: Parse release version and set REL_VERSION
         run: python ./.github/scripts/get_release_version.py
+      - name: Setup test output
+        shell: bash
+        run: |
+          export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-unit.json
+          echo "TEST_OUTPUT_FILE=$TEST_OUTPUT_FILE" >> $GITHUB_ENV
       - name: Run make test
         env:
           COVERAGE_OPTS: "-coverprofile=coverage.txt -covermode=atomic"
@@ -83,6 +91,12 @@ jobs:
         with:
           name: cli_drop
           path: ${{ env.ARCHIVE_OUTDIR }}
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@master
+        with:
+          name: ${{ matrix.target_os }}_${{ matrix.target_arch }}_test_unit.json
+          path: ${{ env.TEST_OUTPUT_FILE }}
   publish:
     name: Publish binaries
     needs: build

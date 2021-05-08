@@ -17,7 +17,7 @@ var stopAppID string
 
 var StopCmd = &cobra.Command{
 	Use:   "stop",
-	Short: "Stop Dapr instances and their associated apps. . Supported platforms: Self-hosted",
+	Short: "Stop Dapr instances and their associated apps. Supported platforms: Self-hosted",
 	Example: `
 # Stop Dapr application
 dapr stop --app-id <ID>
@@ -30,6 +30,7 @@ dapr stop --app-id <ID>
 			err := standalone.Stop(appID)
 			if err != nil {
 				print.FailureStatusEvent(os.Stdout, "failed to stop app id %s: %s", appID, err)
+				os.Exit(1)
 			} else {
 				print.SuccessStatusEvent(os.Stdout, "app stopped successfully: %s", appID)
 			}
