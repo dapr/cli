@@ -66,7 +66,6 @@ func Upgrade(conf UpgradeConfig) error {
 	}
 
 	upgradeClient := helm.NewUpgrade(helmConf)
-	upgradeClient.ResetValues = true
 	upgradeClient.Namespace = status[0].Namespace
 	upgradeClient.CleanupOnFail = true
 	upgradeClient.Wait = true
@@ -85,6 +84,7 @@ func Upgrade(conf UpgradeConfig) error {
 	var issuerKey []byte
 
 	if mtls {
+		fmt.Println("aaaaaa")
 		secret, sErr := getTrustChainSecret()
 		if sErr != nil {
 			return sErr
