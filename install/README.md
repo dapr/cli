@@ -41,3 +41,64 @@ wget -q https://raw.githubusercontent.com/dapr/cli/master/install/install.sh -O 
 ```
 wget -q https://raw.githubusercontent.com/dapr/cli/master/install/install.sh -O - | /bin/bash -s <Version>
 ```
+
+## For Users with Poor Network Conditions
+
+You can download resource with the specified resource with some mirror instead of from Github.
+
+### Windows
+
+- Create a `CustomAssetFactory` function to define what the release asset url you want to use
+- Pass `DaprReleaseJsonUrl` as the json result of all releases as <https://api.github.com/repos/dapr/cli/releases>
+- You could use cdn.jsdelivr.net global CDN for you location to download install.ps1
+
+### Get the latest stable version
+
+For example, if you are in Chinese mainland, you use:
+
+- Gitee.com to get latest release.json
+- cnpmjs.org hosted by Alibaba for assets
+- cdn.jsdelivr.net global CDN for install.ps1
+
+```powershell
+function CustomAssetFactory {
+    param (
+        $release
+    )
+    [hashtable]$return = @{}
+    $return.url = "https://github.com.cnpmjs.org/dapr/cli/releases/download/$($release.tag_name)/dapr_windows_amd64.zip"
+    $return.name = "dapr_windows_amd64.zip"
+    $return
+}
+$params = @{
+    CustomAssetFactory = ${function:CustomAssetFactory};
+    DaprReleaseJsonUrl    = "https://gitee.com/dapr-cn/dapr-bin-mirror/raw/main/cli/releases.json";
+}
+$script=iwr -useb https://cdn.jsdelivr.net/gh/dapr/cli/installer/install.ps1;
+$block=[ScriptBlock]::Create(".{$script} $(&{$args} @params)");
+Invoke-Command -ScriptBlock $block
+```
+
+### Get the specific version
+
+For example, if you are in Chinese mainland.
+
+```powershell
+function CustomAssetFactory {
+    param (
+        $release
+    )
+    [hashtable]$return = @{}
+    $return.url = "https://github.com.cnpmjs.org/dapr/cli/releases/download/$($release.tag_name)/dapr_windows_amd64.zip"
+    $return.name = "dapr_windows_amd64.zip"
+    $return
+}
+$params = @{
+    CustomAssetFactory = ${function:CustomAssetFactory};
+    DaprReleaseJsonUrl    = "https://gitee.com/dapr-cn/dapr-bin-mirror/raw/main/cli/releases.json";
+    Version            = <Version>
+}
+$script=iwr -useb https://cdn.jsdelivr.net/gh/dapr/cli/installer/install.ps1;
+$block=[ScriptBlock]::Create(".{$script} $(&{$args} @params)");
+Invoke-Command -ScriptBlock $block
+```
