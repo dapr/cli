@@ -54,7 +54,7 @@ You can download resource with the specified resource with some mirror instead o
 
 ### Get the latest stable version
 
-For example, if you are in Chinese mainland, you use:
+For example, if you are in Chinese mainland, you could use:
 
 - Gitee.com to get latest release.json
 - cnpmjs.org hosted by Alibaba for assets
@@ -80,8 +80,6 @@ Invoke-Command -ScriptBlock $block
 ```
 
 ### Get the specific version
-
-For example, if you are in Chinese mainland.
 
 ```powershell
 function CustomAssetFactory {
