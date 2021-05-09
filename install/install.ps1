@@ -120,7 +120,7 @@ $zipFilePath = $DaprRoot + "\" + $assetName
 Write-Output "Downloading $zipFileUrl ..."
 
 $githubHeader.Accept = "application/octet-stream"
-Invoke-WebRequest -Uri $zipFileUrl -Headers $githubHeader -OutFile $zipFilePath
+Invoke-WebRequest -Headers $githubHeader -Uri $zipFileUrl -OutFile $zipFilePath
 if (!(Test-Path $zipFilePath -PathType Leaf)) {
     throw "Failed to download Dapr Cli binary - $zipFilePath"
 }
