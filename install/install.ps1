@@ -5,8 +5,8 @@
 param (
     [string]$Version,
     [string]$DaprRoot = "c:\dapr",
-    [string]$DaprReleaseJson = "",
-    [string]$CustomAssetPrefix = ""
+    [string]$DaprReleaseJsonUrl = "",
+    [scriptblock]$CustomAssetFactory = $null
 )
 
 Write-Output ""
@@ -60,38 +60,67 @@ if (!(Test-Path $DaprRoot -PathType Container)) {
 }
 
 # Get the list of release from GitHub
-$releaseJson = $DaprReleaseJson
-if (-not $releaseJson) {
-    $releaseJson = "https://api.github.com/repos/${GitHubOrg}/${GitHubRepo}/releases"
+$releaseJsonUrl = $DaprReleaseJsonUrl
+if (!$releaseJsonUrl) {
+    $releaseJsonUrl = "https://api.github.com/repos/${GitHubOrg}/${GitHubRepo}/releases"
 }
 
-$releases = Invoke-RestMethod -Headers $githubHeader -Uri $releaseJson -Method Get
+$releases = Invoke-RestMethod -Headers $githubHeader -Uri $releaseJsonUrl -Method Get
 if ($releases.Count -eq 0) {
     throw "No releases from github.com/dapr/cli repo"
 }
 
-# Filter windows binary and download archive
-if (!$Version) {
-    $windowsAsset = $releases | Where-Object { $_.tag_name -notlike "*rc*" } | Select-Object -First 1 | Select-Object -ExpandProperty assets | Where-Object { $_.name -Like "*windows_amd64.zip" }
-    if (!$windowsAsset) {
-        throw "Cannot find the windows Dapr CLI binary"
+# get latest or spcified version info from releases
+function GetVersionInfo {
+    param (
+        [string]$Version,
+        $Releases
+    )
+    # Filter windows binary and download archive
+    if (!$Version) {
+        $release = $Releases | Where-Object { $_.tag_name -notlike "*rc*" } | Select-Object -First 1
     }
-    $zipFileUrl = $windowsAsset.browser_download_url
-    $assetName = $windowsAsset.name
-} else {
-    $assetName = "dapr_windows_amd64.zip"
-    $zipFileUrl = "https://github.com/${GitHubOrg}/${GitHubRepo}/releases/download/v${Version}/${assetName}"
+    else {
+        $release = $Releases | Where-Object { $_.tag_name -eq "v$Version" } | Select-Object -First 1
+    }
+
+    return $release
 }
 
-if ($CustomAssetPrefix) {
-    $zipFileUrl = $zipFileUrl.Replace("https://github.com/dapr/cli/releases/download", $CustomAssetPrefix)
+# get info about windows asset from release
+function GetWindowsAsset {
+    param (
+        $Release
+    )
+    if ($CustomAssetFactory) {
+        Write-Output "CustomAssetFactory dectected, try to invoke it"
+        return $CustomAssetFactory.Invoke($Release)
+    }
+    else {
+        $windowsAsset = $Release | Select-Object -ExpandProperty assets | Where-Object { $_.name -Like "*windows_amd64.zip" }
+        if (!$windowsAsset) {
+            throw "Cannot find the windows Dapr CLI binary"
+        }
+        [hashtable]$return = @{}
+        $return.url = $windowsAsset.url
+        $return.name = $windowsAsset.name
+        return $return
+    }`
 }
+
+$release = GetVersionInfo -Version $Version -Releases $releases
+if (!$release) {
+    throw "Cannot find the specified Dapr CLI binary version"
+}
+$asset = GetWindowsAsset -Release $release
+$zipFileUrl = $asset.url
+$assetName = $asset.name
 
 $zipFilePath = $DaprRoot + "\" + $assetName
 Write-Output "Downloading $zipFileUrl ..."
 
 $githubHeader.Accept = "application/octet-stream"
-Invoke-WebRequest -Uri $zipFileUrl -OutFile $zipFilePath
+Invoke-WebRequest -Uri $zipFileUrl -Headers $githubHeader -OutFile $zipFilePath
 if (!(Test-Path $zipFilePath -PathType Leaf)) {
     throw "Failed to download Dapr Cli binary - $zipFilePath"
 }
