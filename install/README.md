@@ -44,13 +44,13 @@ wget -q https://raw.githubusercontent.com/dapr/cli/master/install/install.sh -O 
 
 ## For Users with Poor Network Conditions
 
-You can download resource with the specified resource with some mirror instead of from Github.
+You can download resources from a mirror instead of from Github.
 
 ### Windows
 
 - Create a `CustomAssetFactory` function to define what the release asset url you want to use
 - Pass `DaprReleaseJsonUrl` as the json result of all releases as <https://api.github.com/repos/dapr/cli/releases>
-- You could use cdn.jsdelivr.net global CDN for you location to download install.ps1
+- You could use cdn.jsdelivr.net global CDN for your location to download install.ps1
 
 ### Get the latest stable version
 
