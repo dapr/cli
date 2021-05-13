@@ -66,6 +66,7 @@ func Upgrade(conf UpgradeConfig) error {
 	}
 
 	upgradeClient := helm.NewUpgrade(helmConf)
+	upgradeClient.ReuseValues = true
 	upgradeClient.Namespace = status[0].Namespace
 	upgradeClient.CleanupOnFail = true
 	upgradeClient.Wait = true
