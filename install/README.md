@@ -49,7 +49,7 @@ You can download resources from a mirror instead of from Github.
 ### Windows
 
 - Create a `CustomAssetFactory` function to define what the release asset url you want to use
-- Pass `DaprReleaseJsonUrl` as the json result of all releases as <https://api.github.com/repos/dapr/cli/releases>
+- Set `DaprReleaseJsonUrl` to the equivalent of the json representation of all releases at <https://api.github.com/repos/dapr/cli/releases>
 - You could use cdn.jsdelivr.net global CDN for your location to download install.ps1
 
 ### Get the latest stable version
