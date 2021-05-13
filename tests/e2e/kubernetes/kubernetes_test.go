@@ -971,3 +971,90 @@ func TestUpgradePathNonHAModeMTLSEnabled(t *testing.T) {
 		})
 	}
 }
+
+func TestUpgradePathHAModeMTLSDisabled(t *testing.T) {
+	// Ensure a clean environment
+	uninstall() // does not wait for pod deletion
+	for _, p := range supportedUpgradePaths {
+		t.Run(fmt.Sprintf("setup v%s to v%s", p.previous.runtimeVersion, p.next.runtimeVersion), func(t *testing.T) {
+			t.Run("delete CRDs "+p.previous.runtimeVersion, deleteCRD(p.previous.customResourceDefs))
+			t.Run("delete CRDs "+p.next.runtimeVersion, deleteCRD(p.next.customResourceDefs))
+		})
+	}
+
+	for _, p := range supportedUpgradePaths {
+		t.Run(fmt.Sprintf("v%s to v%s", p.previous.runtimeVersion, p.next.runtimeVersion), func(t *testing.T) {
+			installOpts := testOptions{
+				haEnabled:             true,
+				mtlsEnabled:           false,
+				applyComponentChanges: true,
+				checkResourceExists: map[resource]bool{
+					customResourceDefs:  true,
+					clusterRoles:        true,
+					clusterRoleBindings: true,
+				},
+			}
+
+			upgradeOpts := testOptions{
+				haEnabled: true,
+				//TODO Related to https://github.com/dapr/cli/issues/664
+				mtlsEnabled: true,
+				// do not apply changes on upgrade, verify existing components
+				applyComponentChanges: false,
+				checkResourceExists: map[resource]bool{
+					customResourceDefs:  true,
+					clusterRoles:        true,
+					clusterRoleBindings: true,
+				},
+			}
+			tests := getTestsOnUpgrade(p, installOpts, upgradeOpts)
+
+			for _, tc := range tests {
+				t.Run(tc.name, tc.callable)
+			}
+		})
+	}
+}
+
+func TestUpgradePathHAModeMTLSEnabled(t *testing.T) {
+	// Ensure a clean environment
+	uninstall() // does not wait for pod deletion
+	for _, p := range supportedUpgradePaths {
+		t.Run(fmt.Sprintf("setup v%s to v%s", p.previous.runtimeVersion, p.next.runtimeVersion), func(t *testing.T) {
+			t.Run("delete CRDs "+p.previous.runtimeVersion, deleteCRD(p.previous.customResourceDefs))
+			t.Run("delete CRDs "+p.next.runtimeVersion, deleteCRD(p.next.customResourceDefs))
+		})
+	}
+
+	for _, p := range supportedUpgradePaths {
+		t.Run(fmt.Sprintf("v%s to v%s", p.previous.runtimeVersion, p.next.runtimeVersion), func(t *testing.T) {
+			installOpts := testOptions{
+				haEnabled:             true,
+				mtlsEnabled:           true,
+				applyComponentChanges: true,
+				checkResourceExists: map[resource]bool{
+					customResourceDefs:  true,
+					clusterRoles:        true,
+					clusterRoleBindings: true,
+				},
+			}
+
+			upgradeOpts := testOptions{
+				haEnabled:   true,
+				mtlsEnabled: true,
+				// do not apply changes on upgrade, verify existing components
+				applyComponentChanges: false,
+				checkResourceExists: map[resource]bool{
+					customResourceDefs:  true,
+					clusterRoles:        true,
+					clusterRoleBindings: true,
+				},
+			}
+			tests := getTestsOnUpgrade(p, installOpts, upgradeOpts)
+
+			for _, tc := range tests {
+				t.Run(tc.name, tc.callable)
+			}
+		})
+	}
+}
