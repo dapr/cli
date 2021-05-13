@@ -66,7 +66,7 @@ func Upgrade(conf UpgradeConfig) error {
 	}
 
 	upgradeClient := helm.NewUpgrade(helmConf)
-	upgradeClient.ReuseValues = true
+	upgradeClient.ResetValues = true
 	upgradeClient.Namespace = status[0].Namespace
 	upgradeClient.CleanupOnFail = true
 	upgradeClient.Wait = true
@@ -96,7 +96,7 @@ func Upgrade(conf UpgradeConfig) error {
 	}
 
 	ha := highAvailabilityEnabled(status)
-	vals, err = upgradeChartValues(string(ca), string(issuerCert), string(issuerKey), ha, conf.Args)
+	vals, err = upgradeChartValues(string(ca), string(issuerCert), string(issuerKey), ha, mtls, conf.Args)
 	if err != nil {
 		return err
 	}
@@ -146,15 +146,17 @@ func applyCRDs(version string) error {
 	return nil
 }
 
-func upgradeChartValues(ca, issuerCert, issuerKey string, haMode bool, args []string) (map[string]interface{}, error) {
+func upgradeChartValues(ca, issuerCert, issuerKey string, haMode, mtls bool, args []string) (map[string]interface{}, error) {
 	chartVals := map[string]interface{}{}
 	globalVals := args
 
-	if ca != "" && issuerCert != "" && issuerKey != "" {
+	if mtls && ca != "" && issuerCert != "" && issuerKey != "" {
 		globalVals = append(globalVals, fmt.Sprintf("dapr_sentry.tls.root.certPEM=%s", ca),
 			fmt.Sprintf("dapr_sentry.tls.issuer.certPEM=%s", issuerCert),
 			fmt.Sprintf("dapr_sentry.tls.issuer.keyPEM=%s", issuerKey),
 		)
+	} else {
+		globalVals = append(globalVals, "global.mtls.enabled=false")
 	}
 
 	if haMode {
