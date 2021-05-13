@@ -70,7 +70,7 @@ if ($releases.Count -eq 0) {
     throw "No releases from github.com/dapr/cli repo"
 }
 
-# get latest or spcified version info from releases
+# get latest or specified version info from releases
 function GetVersionInfo {
     param (
         [string]$Version,
