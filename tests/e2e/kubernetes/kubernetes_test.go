@@ -909,9 +909,8 @@ func TestUpgradePathNonHAModeMTLSDisabled(t *testing.T) {
 			}
 
 			upgradeOpts := testOptions{
-				haEnabled: false,
-				//TODO Related to https://github.com/dapr/cli/issues/664
-				mtlsEnabled: true,
+				haEnabled:   false,
+				mtlsEnabled: false,
 				// do not apply changes on upgrade, verify existing components
 				applyComponentChanges: false,
 				checkResourceExists: map[resource]bool{
