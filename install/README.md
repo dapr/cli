@@ -96,7 +96,7 @@ $params = @{
     DaprReleaseJsonUrl    = "https://gitee.com/dapr-cn/dapr-bin-mirror/raw/main/cli/releases.json";
     Version            = <Version>
 }
-$script=iwr -useb https://cdn.jsdelivr.net/gh/dapr/cli/installer/install.ps1;
+$script=iwr -useb https://cdn.jsdelivr.net/gh/dapr/cli/install/install.ps1;
 $block=[ScriptBlock]::Create(".{$script} $(&{$args} @params)");
 Invoke-Command -ScriptBlock $block
 ```
