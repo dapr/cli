@@ -36,13 +36,13 @@ func TestHAMode(t *testing.T) {
 }
 
 func TestMTLSChartValues(t *testing.T) {
-	val, err := upgradeChartValues("1", "2", "3", true, []string{})
+	val, err := upgradeChartValues("1", "2", "3", true, true, []string{})
 	assert.NoError(t, err)
 	assert.Len(t, val, 2)
 }
 
 func TestArgsChartValues(t *testing.T) {
-	val, err := upgradeChartValues("1", "2", "3", true, []string{"a=b", "b=c"})
+	val, err := upgradeChartValues("1", "2", "3", true, true, []string{"a=b", "b=c"})
 	assert.NoError(t, err)
 	assert.Len(t, val, 4)
 }
