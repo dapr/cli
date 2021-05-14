@@ -71,7 +71,6 @@ dapr uninstall -k
 
 func init() {
 	UninstallCmd.Flags().BoolVarP(&uninstallKubernetes, "kubernetes", "k", false, "Uninstall Dapr from a Kubernetes cluster")
-	UninstallCmd.Flags().BoolVarP(&uninstallAll, "kubernetes", "k", false, "Uninstall Dapr from a Kubernetes cluster")
 	UninstallCmd.Flags().UintVarP(&timeout, "timeout", "", 300, "The timeout for the Kubernetes uninstall")
 	UninstallCmd.Flags().BoolVar(&uninstallAll, "all", false, "Remove .dapr directory, Redis, Placement and Zipkin containers on local machine, and CRDs on a Kubernetes cluster")
 	UninstallCmd.Flags().String("network", "", "The Docker network from which to remove the Dapr runtime")
