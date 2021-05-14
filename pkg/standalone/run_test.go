@@ -71,19 +71,20 @@ func TestRun(t *testing.T) {
 	defer tearDownRun(t)
 
 	basicConfig := &RunConfig{
-		AppID:           "MyID",
-		AppPort:         3000,
-		HTTPPort:        8000,
-		GRPCPort:        50001,
-		LogLevel:        "WARN",
-		Arguments:       []string{"MyCommand", "--my-arg"},
-		EnableProfiling: false,
-		ProfilePort:     9090,
-		Protocol:        "http",
-		PlacementHost:   "localhost",
-		ComponentsPath:  DefaultComponentsDirPath(),
-		AppSSL:          true,
-		MetricsPort:     9001,
+		AppID:              "MyID",
+		AppPort:            3000,
+		HTTPPort:           8000,
+		GRPCPort:           50001,
+		LogLevel:           "WARN",
+		Arguments:          []string{"MyCommand", "--my-arg"},
+		EnableProfiling:    false,
+		ProfilePort:        9090,
+		Protocol:           "http",
+		PlacementHost:      "localhost",
+		ComponentsPath:     DefaultComponentsDirPath(),
+		AppSSL:             true,
+		MetricsPort:        9001,
+		MaxRequestBodySize: -1,
 	}
 
 	t.Run("run happy http", func(t *testing.T) {
@@ -112,6 +113,7 @@ func TestRun(t *testing.T) {
 		} else {
 			assertArgumentEqual(t, "placement-host-address", "localhost:50005", output.DaprCMD.Args)
 		}
+		assertArgumentEqual(t, "dapr-http-max-request-size", "-1", output.DaprCMD.Args)
 
 		assert.Equal(t, "MyCommand", output.AppCMD.Args[0])
 		assert.Equal(t, "--my-arg", output.AppCMD.Args[1])
@@ -145,6 +147,7 @@ func TestRun(t *testing.T) {
 		} else {
 			assertArgumentEqual(t, "placement-host-address", "localhost:50005", output.DaprCMD.Args)
 		}
+		assertArgumentEqual(t, "dapr-http-max-request-size", "-1", output.DaprCMD.Args)
 
 		assert.Nil(t, output.AppCMD)
 	})

@@ -22,19 +22,20 @@ import (
 )
 
 var (
-	appPort         int
-	profilePort     int
-	appID           string
-	configFile      string
-	port            int
-	grpcPort        int
-	maxConcurrency  int
-	enableProfiling bool
-	logLevel        string
-	protocol        string
-	componentsPath  string
-	appSSL          bool
-	metricsPort     int
+	appPort            int
+	profilePort        int
+	appID              string
+	configFile         string
+	port               int
+	grpcPort           int
+	maxConcurrency     int
+	enableProfiling    bool
+	logLevel           string
+	protocol           string
+	componentsPath     string
+	appSSL             bool
+	metricsPort        int
+	maxRequestBodySize int
 )
 
 const (
@@ -66,21 +67,22 @@ var RunCmd = &cobra.Command{
 		}
 
 		output, err := standalone.Run(&standalone.RunConfig{
-			AppID:           appID,
-			AppPort:         appPort,
-			HTTPPort:        port,
-			GRPCPort:        grpcPort,
-			ConfigFile:      configFile,
-			Arguments:       args,
-			EnableProfiling: enableProfiling,
-			ProfilePort:     profilePort,
-			LogLevel:        logLevel,
-			MaxConcurrency:  maxConcurrency,
-			Protocol:        protocol,
-			PlacementHost:   viper.GetString("placement-host-address"),
-			ComponentsPath:  componentsPath,
-			AppSSL:          appSSL,
-			MetricsPort:     metricsPort,
+			AppID:              appID,
+			AppPort:            appPort,
+			HTTPPort:           port,
+			GRPCPort:           grpcPort,
+			ConfigFile:         configFile,
+			Arguments:          args,
+			EnableProfiling:    enableProfiling,
+			ProfilePort:        profilePort,
+			LogLevel:           logLevel,
+			MaxConcurrency:     maxConcurrency,
+			Protocol:           protocol,
+			PlacementHost:      viper.GetString("placement-host-address"),
+			ComponentsPath:     componentsPath,
+			AppSSL:             appSSL,
+			MetricsPort:        metricsPort,
+			MaxRequestBodySize: maxRequestBodySize,
 		})
 		if err != nil {
 			print.FailureStatusEvent(os.Stdout, err.Error())
@@ -278,5 +280,7 @@ func init() {
 	RunCmd.Flags().BoolVar(&appSSL, "app-ssl", false, "Enable https when Dapr invokes the application")
 	RunCmd.Flags().IntVarP(&metricsPort, "metrics-port", "M", -1, "The port of metrics on dapr")
 	RunCmd.Flags().BoolP("help", "h", false, "Print this help message")
+	RunCmd.Flags().IntVarP(&maxRequestBodySize, "dapr-http-max-request-size", "", -1, "Max size of request body in MB")
+
 	RootCmd.AddCommand(RunCmd)
 }
