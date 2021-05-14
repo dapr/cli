@@ -16,6 +16,7 @@ package kubernetes
 import (
 	"time"
 
+	"github.com/dapr/cli/utils"
 	helm "helm.sh/helm/v3/pkg/action"
 
 	"github.com/dapr/cli/utils"
