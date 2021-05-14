@@ -231,6 +231,14 @@ The default timeout is 300s/5m and can be overridden using the `--timeout` flag.
 $ dapr uninstall -k --timeout 600
 ```
 
+To remove all Dapr Custom Resource Definitions:
+
+```
+$ dapr uninstall -k --all
+```
+
+*Warning: this will remove any components, subscriptions or configurations that are applied in the cluster at the time of deletion.*
+
 ### Upgrade Dapr on Kubernetes
 
 To perform a zero downtime upgrade of the Dapr control plane:
