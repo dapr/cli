@@ -33,14 +33,15 @@ type ListOutput struct {
 
 // runData is a placeholder for collected information linking cli and sidecar.
 type runData struct {
-	cliPID        int
-	sidecarPID    int
-	grpcPort      int
-	httpPort      int
-	appPort       int
-	appID         string
-	appCmd        string
-	enableMetrics bool
+	cliPID             int
+	sidecarPID         int
+	grpcPort           int
+	httpPort           int
+	appPort            int
+	appID              string
+	appCmd             string
+	enableMetrics      bool
+	maxRequestBodySize int
 }
 
 func (d *daprProcess) List() ([]ListOutput, error) {
@@ -118,15 +119,21 @@ func List() ([]ListOutput, error) {
 				continue
 			}
 
+			maxRequestBodySize, err := strconv.Atoi(argumentsMap["--dapr-http-max-request-size"])
+			if err != nil {
+				continue
+			}
+
 			run := runData{
-				cliPID:        cliPID,
-				sidecarPID:    proc.Pid(),
-				grpcPort:      grpcPort,
-				httpPort:      httpPort,
-				appPort:       appPort,
-				appID:         appID,
-				appCmd:        appCmd,
-				enableMetrics: enableMetrics,
+				cliPID:             cliPID,
+				sidecarPID:         proc.Pid(),
+				grpcPort:           grpcPort,
+				httpPort:           httpPort,
+				appPort:            appPort,
+				appID:              appID,
+				appCmd:             appCmd,
+				enableMetrics:      enableMetrics,
+				maxRequestBodySize: maxRequestBodySize,
 			}
 
 			cliToSidecarMap[cliPID] = &run

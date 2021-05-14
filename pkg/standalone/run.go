@@ -25,21 +25,22 @@ const sentryDefaultAddress = "localhost:50001"
 
 // RunConfig represents the application configuration parameters.
 type RunConfig struct {
-	AppID           string
-	AppPort         int
-	HTTPPort        int
-	GRPCPort        int
-	ConfigFile      string
-	Protocol        string
-	Arguments       []string
-	EnableProfiling bool
-	ProfilePort     int
-	LogLevel        string
-	MaxConcurrency  int
-	PlacementHost   string
-	ComponentsPath  string
-	AppSSL          bool
-	MetricsPort     int
+	AppID              string
+	AppPort            int
+	HTTPPort           int
+	GRPCPort           int
+	ConfigFile         string
+	Protocol           string
+	Arguments          []string
+	EnableProfiling    bool
+	ProfilePort        int
+	LogLevel           string
+	MaxConcurrency     int
+	PlacementHost      string
+	ComponentsPath     string
+	AppSSL             bool
+	MetricsPort        int
+	MaxRequestBodySize int
 }
 
 // RunOutput represents the run output.
@@ -51,7 +52,7 @@ type RunOutput struct {
 	AppCMD       *exec.Cmd
 }
 
-func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort int, configFile, protocol string, enableProfiling bool, profilePort int, logLevel string, maxConcurrency int, placementHost string, componentsPath string, appSSL bool, metricsPort int) (*exec.Cmd, int, int, int, error) {
+func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort int, configFile, protocol string, enableProfiling bool, profilePort int, logLevel string, maxConcurrency int, placementHost string, componentsPath string, appSSL bool, metricsPort int, requestBodySize int) (*exec.Cmd, int, int, int, error) {
 	if daprHTTPPort < 0 {
 		port, err := freeport.GetFreePort()
 		if err != nil {
@@ -82,6 +83,10 @@ func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort in
 		maxConcurrency = -1
 	}
 
+	if requestBodySize < 0 {
+		requestBodySize = -1
+	}
+
 	daprCMD := binaryFilePath(defaultDaprBinPath(), "daprd")
 
 	args := []string{
@@ -93,6 +98,7 @@ func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort in
 		"--app-protocol", protocol,
 		"--components-path", componentsPath,
 		"--metrics-port", strconv.Itoa(metricsPort),
+		"--dapr-http-max-request-size", strconv.Itoa(requestBodySize),
 	}
 	if appPort > -1 {
 		args = append(args, "--app-port", strconv.Itoa(appPort))
@@ -199,7 +205,7 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		return nil, err
 	}
 
-	daprCMD, daprHTTPPort, daprGRPCPort, metricsPort, err := getDaprCommand(appID, config.HTTPPort, config.GRPCPort, config.AppPort, config.ConfigFile, config.Protocol, config.EnableProfiling, config.ProfilePort, config.LogLevel, config.MaxConcurrency, config.PlacementHost, config.ComponentsPath, config.AppSSL, config.MetricsPort)
+	daprCMD, daprHTTPPort, daprGRPCPort, metricsPort, err := getDaprCommand(appID, config.HTTPPort, config.GRPCPort, config.AppPort, config.ConfigFile, config.Protocol, config.EnableProfiling, config.ProfilePort, config.LogLevel, config.MaxConcurrency, config.PlacementHost, config.ComponentsPath, config.AppSSL, config.MetricsPort, config.MaxRequestBodySize)
 	if err != nil {
 		return nil, err
 	}
