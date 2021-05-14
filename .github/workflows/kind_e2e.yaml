@@ -6,6 +6,12 @@
 name: E2E - KinD
 
 on:
+  push:
+    branches:
+      - master
+      - release-*
+  schedule:
+    - cron: '0 */3 * * *'
   pull_request:
     branches:
       - master
