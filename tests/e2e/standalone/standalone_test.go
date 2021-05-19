@@ -78,12 +78,6 @@ func TestNegativeScenarios(t *testing.T) {
 		require.Equal(t, "No Dapr instances found.\n", output)
 	})
 
-	t.Run("stop without install", func(t *testing.T) {
-		output, err := spawn.Command(daprPath, "stop", "-a", "test")
-		require.Error(t, err, "expected error status on list without install")
-		require.Contains(t, output, "failed to stop app id test: couldn't find app id test", "expected output to match")
-	})
-
 	t.Run("stop unkonwn flag", func(t *testing.T) {
 		output, err := spawn.Command(daprPath, "stop", "-p", "test")
 		require.Error(t, err, "expected error on stop with unknown flag")
@@ -476,7 +470,6 @@ func testPublish(t *testing.T) {
 			assert.Contains(t, output, "Only one of --data and --data-file allowed in the same publish command")
 
 		})
-
 
 		output, err := spawn.Command(getDaprPath(), "stop", "--app-id", "pub_e2e")
 		t.Log(output)
