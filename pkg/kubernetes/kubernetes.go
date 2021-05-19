@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/dapr/cli/pkg/print"
+	cli_ver "github.com/dapr/cli/pkg/version"
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
@@ -80,6 +81,18 @@ func helmConfig(namespace string) (*helm.Configuration, error) {
 	}
 	err := ac.Init(flags, namespace, "secret", debugLogf)
 	return &ac, err
+}
+
+func getVersion(version string) (string, error) {
+	if version == latestVersion {
+		var err error
+		version, err = cli_ver.GetLatestRelease(cli_ver.DaprGitHubOrg, cli_ver.DaprGitHubRepo)
+		if err != nil {
+			return "", fmt.Errorf("cannot get the latest release version: %s", err)
+		}
+		version = version[1:]
+	}
+	return version, nil
 }
 
 func createTempDir() (string, error) {
@@ -159,7 +172,12 @@ func install(config InitConfiguration) error {
 		return err
 	}
 
-	err = applyCRDs(fmt.Sprintf("v%s", config.Version))
+	version, err := getVersion(config.Version)
+	if err != nil {
+		return err
+	}
+
+	err = applyCRDs(fmt.Sprintf("v%s", version))
 	if err != nil {
 		return err
 	}
