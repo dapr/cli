@@ -159,6 +159,11 @@ func install(config InitConfiguration) error {
 		return err
 	}
 
+	err = applyCRDs(fmt.Sprintf("v%s", config.Version))
+	if err != nil {
+		return err
+	}
+
 	installClient := helm.NewInstall(helmConf)
 	installClient.ReleaseName = daprReleaseName
 	installClient.Namespace = config.Namespace
