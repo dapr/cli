@@ -39,7 +39,7 @@ const (
 	clusterRoleBindings
 
 	daprNamespace           = "dapr-cli-tests"
-	currentRuntimeVersion   = "1.1.1"
+	currentRuntimeVersion   = "1.2.0-rc.3"
 	currentDashboardVersion = "0.6.0"
 )
 
@@ -119,6 +119,70 @@ var (
 			},
 			next: versionDetails{
 				runtimeVersion:      "1.1.1",
+				dashboardVersion:    "0.6.0",
+				clusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+				clusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+				customResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
+			},
+		},
+		{
+			previous: versionDetails{
+				runtimeVersion:      "1.1.1",
+				dashboardVersion:    "0.6.0",
+				clusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+				clusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+				customResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
+			},
+			next: versionDetails{
+				runtimeVersion:      "1.1.2",
+				dashboardVersion:    "0.6.0",
+				clusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+				clusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+				customResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
+			},
+		},
+		{
+			previous: versionDetails{
+				runtimeVersion:      "1.1.2",
+				dashboardVersion:    "0.6.0",
+				clusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+				clusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+				customResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
+			},
+			next: versionDetails{
+				runtimeVersion:      "1.2.0-rc.3",
+				dashboardVersion:    "0.6.0",
+				clusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+				clusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+				customResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
+			},
+		},
+		{
+			previous: versionDetails{
+				runtimeVersion:      "1.1.0",
+				dashboardVersion:    "0.6.0",
+				clusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+				clusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+				customResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
+			},
+			next: versionDetails{
+				runtimeVersion:      "1.2.0-rc.3",
+				dashboardVersion:    "0.6.0",
+				clusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+				clusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+				customResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
+			},
+		},
+		{
+			previous: versionDetails{
+				runtimeVersion:      "1.1.1",
+				dashboardVersion:    "0.6.0",
+				clusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+				clusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+				customResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
+			},
+			next: versionDetails{
+				runtimeVersion:      "1.2.0-rc.3",
 				dashboardVersion:    "0.6.0",
 				clusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
 				clusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
@@ -995,7 +1059,7 @@ func TestUpgradePathHAModeMTLSDisabled(t *testing.T) {
 			}
 
 			upgradeOpts := testOptions{
-				haEnabled: true,
+				haEnabled:   true,
 				mtlsEnabled: false,
 				// do not apply changes on upgrade, verify existing components
 				applyComponentChanges: false,
