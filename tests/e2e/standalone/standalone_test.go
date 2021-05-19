@@ -78,6 +78,12 @@ func TestNegativeScenarios(t *testing.T) {
 		require.Equal(t, "No Dapr instances found.\n", output)
 	})
 
+	t.Run("stop without install", func(t *testing.T) {
+		output, err := spawn.Command(daprPath, "stop", "-a", "test")
+		require.NoError(t, err, "expected no error on stop without install")
+		require.Contains(t, output, "failed to stop app id test: couldn't find app id test", "expected output to match")
+	})
+
 	t.Run("stop unkonwn flag", func(t *testing.T) {
 		output, err := spawn.Command(daprPath, "stop", "-p", "test")
 		require.Error(t, err, "expected error on stop with unknown flag")
