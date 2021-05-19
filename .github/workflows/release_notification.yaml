@@ -14,4 +14,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Notify dapr/homebrew-tap repo
-        run: GITHUB_TOKEN="${{ secrets.RELEASE_USER_TOKEN }}" gh api repos/dapr/homebrew-tap/dispatches -X POST -F event_type=update
+        run: GITHUB_TOKEN="${{ secrets.DAPR_BOT_TOKEN }}" gh api repos/dapr/homebrew-tap/dispatches -X POST -F event_type=update
