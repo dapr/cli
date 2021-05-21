@@ -46,11 +46,6 @@ type VersionDetails struct {
 	ClusterRoles        []string
 	ClusterRoleBindings []string
 }
-type upgradePath struct {
-	Previous VersionDetails
-	Next     VersionDetails
-}
-
 type TestOptions struct {
 	HAEnabled             bool
 	MTLSEnabled           bool
@@ -155,13 +150,13 @@ func MTLSTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 			require.Contains(t, output, "Mutual TLS is enabled in your Kubernetes cluster", "expected output to match")
 		}
 
-		//expiry
+		// expiry
 		output, err = spawn.Command(daprPath, "mtls", "expiry")
 		require.NoError(t, err, "expected no error on querying for mtls expiry")
 		assert.Contains(t, output, "Root certificate expires in", "expected output to contain string")
 		assert.Contains(t, output, "Expiry date:", "expected output to contain string")
 
-		//export
+		// export
 		// check that the dir does not exist now
 		_, err = os.Stat("./certs")
 		if assert.Error(t, err) {
@@ -488,7 +483,6 @@ func uninstallMTLSTest() func(t *testing.T) {
 		output, err := spawn.Command(daprPath, "mtls", "-k")
 		require.Error(t, err, "expected error to be return if dapr not installed")
 		require.Contains(t, output, "error checking mTLS: system configuration not found", "expected output to match")
-		return
 	}
 }
 
@@ -641,7 +635,7 @@ func waitAllPodsRunning(t *testing.T, namespace string, done, podsRunning chan s
 		for _, item := range list.Items {
 			// Check pods running, and containers ready
 			if item.Status.Phase == core_v1.PodRunning && len(item.Status.ContainerStatuses) != 0 && item.Status.ContainerStatuses[0].Ready {
-				count += 1
+				count++
 			}
 		}
 		if len(list.Items) == count {
