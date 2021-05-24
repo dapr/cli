@@ -14,11 +14,6 @@ import (
 	"github.com/dapr/cli/tests/e2e/common"
 )
 
-const (
-	currentRuntimeVersion   = "1.2.0-rc.3"
-	currentDashboardVersion = "0.6.0"
-)
-
 type upgradePath struct {
 	previous common.VersionDetails
 	next     common.VersionDetails
@@ -67,7 +62,7 @@ var (
 				CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
 			},
 			next: common.VersionDetails{
-				RuntimeVersion:      "1.2.0-rc.3",
+				RuntimeVersion:      "1.2.0-rc.5",
 				DashboardVersion:    "0.6.0",
 				ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
 				ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
@@ -83,7 +78,7 @@ var (
 				CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
 			},
 			next: common.VersionDetails{
-				RuntimeVersion:      "1.2.0-rc.3",
+				RuntimeVersion:      "1.2.0-rc.5",
 				DashboardVersion:    "0.6.0",
 				ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
 				ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
@@ -99,7 +94,7 @@ var (
 				CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
 			},
 			next: common.VersionDetails{
-				RuntimeVersion:      "1.2.0-rc.3",
+				RuntimeVersion:      "1.2.0-rc.5",
 				DashboardVersion:    "0.6.0",
 				ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
 				ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
