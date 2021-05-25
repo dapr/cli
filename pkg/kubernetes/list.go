@@ -12,10 +12,10 @@ import (
 
 // ListOutput represents the application ID, application port and creation time.
 type ListOutput struct {
-	AppID   string `csv:"APP ID"`
-	AppPort string `csv:"APP PORT"`
-	Age     string `csv:"AGE"`
-	Created string `csv:"CREATED"`
+	AppID   string `csv:"APP ID"   json:"appId"   yaml:"appId"`
+	AppPort string `csv:"APP PORT" json:"appPort" yaml:"appPort"`
+	Age     string `csv:"AGE"      json:"age"     yaml:"age"`
+	Created string `csv:"CREATED"  json:"created" yaml:"created"`
 }
 
 // List outputs all the applications.
