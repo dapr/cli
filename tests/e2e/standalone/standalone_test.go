@@ -575,9 +575,9 @@ func listOutputCheck(t *testing.T, output string) {
 }
 
 func listJsonOutputCheck(t *testing.T, output string) {
-	var result map[string]interface{};
+	var result map[string]interface{}
 
-	err := json.Unmarshal([]byte(output), &result);
+	err := json.Unmarshal([]byte(output), &result)
 
 	assert.NoError(t, err, "output was not valid JSON")
 
@@ -588,7 +588,7 @@ func listJsonOutputCheck(t *testing.T, output string) {
 }
 
 func listYamlOutputCheck(t *testing.T, output string) {
-	var result map[string]interface{};
+	var result map[string]interface{}
 
 	err := yaml.Unmarshal([]byte(output), &result)
 
