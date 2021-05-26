@@ -18,12 +18,12 @@ import (
 )
 
 var (
-	outputMode string
+	outputFormat string
 )
 
 func outputList(list interface{}) {
-	if (outputMode == "json" || outputMode == "yaml") {
-		err := utils.PrintDetail(os.Stdout, outputMode, list)
+	if (outputFormat == "json" || outputFormat == "yaml") {
+		err := utils.PrintDetail(os.Stdout, outputFormat, list)
 
 		if err != nil {
 			print.FailureStatusEvent(os.Stdout, err.Error())
@@ -51,8 +51,8 @@ dapr list
 dapr list -k
 `,
 	PreRun: func(cmd *cobra.Command, args []string) {
-		if (outputMode != "" && outputMode != "json" && outputMode != "yaml" && outputMode != "table") {
-			print.FailureStatusEvent(os.Stdout, "An invalid output mode was specified.")
+		if (outputFormat != "" && outputFormat != "json" && outputFormat != "yaml" && outputFormat != "table") {
+			print.FailureStatusEvent(os.Stdout, "An invalid output format was specified.")
 			os.Exit(1)
 		}
 	},
@@ -84,7 +84,7 @@ dapr list -k
 
 func init() {
 	ListCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "List all Dapr pods in a Kubernetes cluster")
-	ListCmd.Flags().StringVarP(&outputMode, "output", "o", "", "The format of the list (json, yaml, table (default))")
+	ListCmd.Flags().StringVarP(&outputFormat, "output", "o", "", "The output format of the list. Valid values are: json, yaml, or table (default)")
 	ListCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	RootCmd.AddCommand(ListCmd)
 }
