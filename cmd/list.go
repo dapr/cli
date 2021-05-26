@@ -50,6 +50,12 @@ dapr list
 # List Dapr instances in Kubernetes mode
 dapr list -k
 `,
+	PreRun: func(cmd *cobra.Command, args []string) {
+		if (outputMode != "" && outputMode != "json" && outputMode != "yaml" && outputMode != "table") {
+			print.FailureStatusEvent(os.Stdout, "An invalid output mode was specified.")
+			os.Exit(1)
+		}
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if kubernetesMode {
 			list, err := kubernetes.List()
@@ -78,7 +84,7 @@ dapr list -k
 
 func init() {
 	ListCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "List all Dapr pods in a Kubernetes cluster")
-	ListCmd.Flags().StringVarP(&outputMode, "output", "o", "", "The format of the list (table or json)")
+	ListCmd.Flags().StringVarP(&outputMode, "output", "o", "", "The format of the list (json, yaml, table (default))")
 	ListCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	RootCmd.AddCommand(ListCmd)
 }
