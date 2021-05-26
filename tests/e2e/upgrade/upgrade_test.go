@@ -62,7 +62,7 @@ var (
 				CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
 			},
 			next: common.VersionDetails{
-				RuntimeVersion:      "1.2.0-rc.5",
+				RuntimeVersion:      "1.2.0",
 				DashboardVersion:    "0.6.0",
 				ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
 				ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
@@ -78,7 +78,7 @@ var (
 				CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
 			},
 			next: common.VersionDetails{
-				RuntimeVersion:      "1.2.0-rc.5",
+				RuntimeVersion:      "1.2.0",
 				DashboardVersion:    "0.6.0",
 				ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
 				ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
@@ -94,7 +94,7 @@ var (
 				CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
 			},
 			next: common.VersionDetails{
-				RuntimeVersion:      "1.2.0-rc.5",
+				RuntimeVersion:      "1.2.0",
 				DashboardVersion:    "0.6.0",
 				ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
 				ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
