@@ -20,10 +20,11 @@ require (
 	github.com/olekukonko/tablewriter v0.0.2
 	github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2
 	github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4
-	github.com/shirou/gopsutil v2.20.2+incompatible
+	github.com/shirou/gopsutil v3.21.4+incompatible
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/viper v1.7.0
 	github.com/stretchr/testify v1.7.0
+	github.com/tklauser/go-sysconf v0.3.6 // indirect
 	golang.org/x/sys v0.0.0-20210319071255-635bc2c9138d
 	gopkg.in/yaml.v2 v2.3.0
 	helm.sh/helm/v3 v3.5.3
@@ -40,6 +41,5 @@ replace (
 	github.com/docker/distribution => github.com/docker/distribution v0.0.0-20191216044856-a8371794149d
 	github.com/docker/docker => github.com/moby/moby v17.12.0-ce-rc1.0.20200618181300-9dc6525e6118+incompatible
 	github.com/russross/blackfriday => github.com/russross/blackfriday v1.5.2
-
 	k8s.io/client => github.com/kubernetes-client/go v0.0.0-20190928040339-c757968c4c36
 )
