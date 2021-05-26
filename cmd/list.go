@@ -22,20 +22,20 @@ var (
 )
 
 func outputList(list interface{}) {
-	if (outputFormat == "json" || outputFormat == "yaml") {
+	if outputFormat == "json" || outputFormat == "yaml" {
 		err := utils.PrintDetail(os.Stdout, outputFormat, list)
 
 		if err != nil {
 			print.FailureStatusEvent(os.Stdout, err.Error())
 			os.Exit(1)
 		}
-	} else {	
+	} else {
 		table, err := gocsv.MarshalString(list)
 		if err != nil {
 			print.FailureStatusEvent(os.Stdout, err.Error())
 			os.Exit(1)
 		}
-		
+
 		utils.PrintTable(table)
 	}
 }
@@ -51,7 +51,7 @@ dapr list
 dapr list -k
 `,
 	PreRun: func(cmd *cobra.Command, args []string) {
-		if (outputFormat != "" && outputFormat != "json" && outputFormat != "yaml" && outputFormat != "table") {
+		if outputFormat != "" && outputFormat != "json" && outputFormat != "yaml" && outputFormat != "table" {
 			print.FailureStatusEvent(os.Stdout, "An invalid output format was specified.")
 			os.Exit(1)
 		}
