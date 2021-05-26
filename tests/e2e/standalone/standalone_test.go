@@ -10,6 +10,7 @@ package standalone_test
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -395,7 +396,22 @@ func testList(t *testing.T) {
 		output, err := spawn.Command(getDaprPath(), "list")
 		t.Log(output)
 		require.NoError(t, err, "dapr list failed")
-		listtOutputCheck(t, output)
+		listOutputCheck(t, output)
+
+		output, err = spawn.Command(getDaprPath(), "list", "-o", "table")
+		t.Log(output)
+		require.NoError(t, err, "dapr list failed")
+		listOutputCheck(t, output)
+
+		output, err = spawn.Command(getDaprPath(), "list", "-o", "json")
+		t.Log(output)
+		require.NoError(t, err, "dapr list failed")
+		listJsonOutputCheck(t, output)
+
+		output, err = spawn.Command(getDaprPath(), "list", "-o", "yaml")
+		t.Log(output)
+		require.NoError(t, err, "dapr list failed")
+		listYamlOutputCheck(t, output)
 
 		// We can call stop so as not to wait for the app to time out
 		output, err = spawn.Command(getDaprPath(), "stop", "--app-id", "dapr_e2e_list")
@@ -546,7 +562,7 @@ func testInvoke(t *testing.T) {
 
 }
 
-func listtOutputCheck(t *testing.T, output string) {
+func listOutputCheck(t *testing.T, output string) {
 	lines := strings.Split(output, "\n")[1:] // remove header
 	// only one app is runnning at this time
 	fields := strings.Fields(lines[0])
@@ -556,4 +572,30 @@ func listtOutputCheck(t *testing.T, output string) {
 	assert.Equal(t, "3555", fields[1], "expected http port to match")
 	assert.Equal(t, "4555", fields[2], "expected grpc port to match")
 	assert.Equal(t, "0", fields[3], "expected app port to match")
+}
+
+func listJsonOutputCheck(t *testing.T, output string) {
+	var result map[string]interface{};
+
+	err := json.Unmarshal([]byte(output), &result);
+
+	assert.NoError(t, err, "output was not valid JSON")
+
+	assert.Equal(t, "dapr_e2e_list", result["appId"], "expected name to match")
+	assert.Equal(t, 3555, int(result["httpPort"].(float64)), "expected http port to match")
+	assert.Equal(t, 4555, int(result["grpcPort"].(float64)), "expected grpc port to match")
+	assert.Equal(t, 0, int(result["appPort"].(float64)), "expected app port to match")
+}
+
+func listYamlOutputCheck(t *testing.T, output string) {
+	var result map[string]interface{};
+
+	err := yaml.Unmarshal([]byte(output), &result)
+
+	assert.NoError(t, err, "output was not valid YAML")
+
+	assert.Equal(t, "dapr_e2e_list", result["appId"], "expected name to match")
+	assert.Equal(t, 3555, result["httpPort"], "expected http port to match")
+	assert.Equal(t, 4555, result["grpcPort"], "expected grpc port to match")
+	assert.Equal(t, 0, result["appPort"], "expected app port to match")
 }
