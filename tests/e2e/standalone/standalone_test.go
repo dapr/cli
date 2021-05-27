@@ -413,6 +413,10 @@ func testList(t *testing.T) {
 		require.NoError(t, err, "dapr list failed")
 		listYamlOutputCheck(t, output)
 
+		output, err = spawn.Command(getDaprPath(), "list", "-o", "invalid")
+		t.Log(output)
+		require.Error(t, err, "dapr list should fail with an invalid output format")
+
 		// We can call stop so as not to wait for the app to time out
 		output, err = spawn.Command(getDaprPath(), "stop", "--app-id", "dapr_e2e_list")
 		t.Log(output)
