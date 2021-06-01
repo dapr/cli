@@ -27,12 +27,12 @@ jobs:
 
       # Install Dapr
       - name: Install DAPR CLI
-        run: powershell -Command "iwr -useb https://raw.githubusercontent.com/dapr/cli/master/install/install.ps1 | iex"
+        run: powershell "install/install.ps1"
 
 
       # Init Dapr
       - name: Run a multi-line script
         run: |
-          powershell -Command '$env:Path += ";C:\dapr"'
-          powershell -Command 'dapr init'
+          powershell -Command "$env:Path += ';C:\dapr'"
+          powershell -Command "dapr init"
           
