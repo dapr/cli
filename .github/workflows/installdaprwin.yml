@@ -33,6 +33,6 @@ jobs:
       # Init Dapr
       - name: Run a multi-line script
         run: |
-          powershell -Command "$env:Path += ';C:\dapr'"
-          powershell -Command "dapr init"
+          $env:Path += ";C:\dapr"
+          dapr init
           
