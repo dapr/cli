@@ -35,6 +35,7 @@ jobs:
         uses: Amadevus/pwsh-script@v2.0.1
         with:
           script: |
+            $Env:Path += ";c:\dapr"
             $output=dapr --version
             $runtimeVerified = False
             $cliVerified = False
