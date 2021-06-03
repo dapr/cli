@@ -30,3 +30,32 @@ jobs:
       # Install Dapr
       - name: Install DAPR CLI
         run: powershell "install/install.ps1"
+      
+      - name: Verify installed CLI version
+        uses: Amadevus/pwsh-script@v2.0.1
+        with:
+          script: |
+            $output=dapr --version
+            $runtimeVerified = False
+            $cliVerified = False
+            for($i=0;$i-le $output.length-1;$i++)
+            {
+                if ($output[$i] -eq "Runtime version: n/a")
+                {
+                    $runtimeVerified = True
+                }
+                if ($output[$i] -match "CLI version: ")
+                {
+                    if ($output[$i].split(" ")[2] -ne "n/a")
+                    {
+                        $cliVerified = True
+                    }
+                }
+            }
+            if ($cliVerified && $runtimeVerified)
+            {
+                Write-Output "DAPR is installed and verified.";
+                exit 0
+            } else {
+                exit 1
+            }
