@@ -1,0 +1,62 @@
+# Runs the Dapr Windows Powershell Install Script
+
+name: Run Dapr Windows Install Script
+
+on:
+  push:
+    branches: [ master ]
+    paths:
+      - 'install/**'
+  pull_request:
+    branches: [ master ]
+    paths:
+      - 'install/**'
+  release:
+    types:
+      - created
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  install:
+    runs-on: windows-latest
+
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+
+      # Install Dapr
+      - name: Install DAPR CLI
+        run: powershell "install/install.ps1"
+      
+      - name: Verify installed CLI version
+        uses: Amadevus/pwsh-script@v2.0.1
+        with:
+          script: |
+            $Env:Path += ";c:\dapr"
+            $output=dapr --version
+            $runtimeVerified = False
+            $cliVerified = False
+            for($i=0;$i-le $output.length-1;$i++)
+            {
+                if ($output[$i] -eq "Runtime version: n/a")
+                {
+                    $runtimeVerified = True
+                }
+                if ($output[$i] -match "CLI version: ")
+                {
+                    if ($output[$i].split(" ")[2] -ne "n/a")
+                    {
+                        $cliVerified = True
+                    }
+                }
+            }
+            if ($cliVerified && $runtimeVerified)
+            {
+                Write-Output "DAPR is installed and verified.";
+                exit 0
+            } else {
+                exit 1
+            }
