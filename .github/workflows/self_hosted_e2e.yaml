@@ -47,10 +47,9 @@ jobs:
         uses: actions/checkout@v2
       - name: Install docker - MacOS
         if: matrix.os == 'macos-latest'
-        uses: docker-practice/actions-setup-docker@v1
-        with:
-          docker_buildx: false
-          docker_version: 20.10
+        run: |
+          wget "https://raw.githubusercontent.com/Homebrew/homebrew-cask/aa8301c9b4f3f907d4cbe9ffda43dc76227f238b/Casks/docker.rb"
+          brew install --cask docker.rb
       - name: Run E2E tests 
         run: |
           export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-standalone.json
