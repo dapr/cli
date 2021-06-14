@@ -50,6 +50,9 @@ jobs:
         run: |
           wget "https://raw.githubusercontent.com/Homebrew/homebrew-cask/aa8301c9b4f3f907d4cbe9ffda43dc76227f238b/Casks/docker.rb"
           brew install --cask docker.rb
+          mkdir -p /Users/runner/.docker
+          xattr -d -r com.apple.quarantine /Applications/Docker.app
+          echo "PATH=$PATH" >> $GITHUB_ENV
       - name: Run E2E tests 
         run: |
           export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-standalone.json
