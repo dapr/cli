@@ -48,8 +48,7 @@ jobs:
       - name: Install docker - MacOS
         if: matrix.os == 'macos-latest'
         run: |
-          wget "https://raw.githubusercontent.com/Homebrew/homebrew-cask/aa8301c9b4f3f907d4cbe9ffda43dc76227f238b/Casks/docker.rb"
-          brew install --cask docker.rb
+          brew install docker
           mkdir -p /Users/runner/.docker
           xattr -d -r com.apple.quarantine /Applications/Docker.app
           open -g /Applications/Docker.app
