@@ -49,11 +49,7 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: |
           brew install docker
-          mkdir -p /Users/runner/.docker
-          xattr -d -r com.apple.quarantine /Applications/Docker.app
-          open -g /Applications/Docker.app
           echo "PATH=$PATH" >> $GITHUB_ENV
-
       - name: Run E2E tests 
         run: |
           export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-standalone.json
