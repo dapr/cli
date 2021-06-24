@@ -83,7 +83,8 @@ BASE_PACKAGE_NAME := github.com/dapr/cli
 OUT_DIR := ./dist
 
 BINS_OUT_DIR := $(OUT_DIR)/$(GOOS)_$(GOARCH)/$(BUILDTYPE_DIR)
-LDFLAGS := "-X main.version=$(CLI_VERSION) -X main.apiVersion=$(RUNTIME_API_VERSION)"
+LDFLAGS := "-X main.version=$(CLI_VERSION) -X main.apiVersion=$(RUNTIME_API_VERSION) \
+ -X $(BASE_PACKAGE_NAME)/pkg/standalone.gitcommit=$(GIT_COMMIT) -X $(BASE_PACKAGE_NAME)/pkg/standalone.gitversion=$(GIT_VERSION)"
 
 ################################################################################
 # Target: build                                                                #
