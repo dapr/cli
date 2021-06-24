@@ -36,7 +36,7 @@ type RunConfig struct {
 	ProfilePort        int
 	LogLevel           string
 	MaxConcurrency     int
-	PlacementHost      string
+	PlacementHostAddr  string
 	ComponentsPath     string
 	AppSSL             bool
 	MetricsPort        int
@@ -52,7 +52,7 @@ type RunOutput struct {
 	AppCMD       *exec.Cmd
 }
 
-func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort int, configFile, protocol string, enableProfiling bool, profilePort int, logLevel string, maxConcurrency int, placementHost string, componentsPath string, appSSL bool, metricsPort int, requestBodySize int) (*exec.Cmd, int, int, int, error) {
+func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort int, configFile, protocol string, enableProfiling bool, profilePort int, logLevel string, maxConcurrency int, placementHostAddr string, componentsPath string, appSSL bool, metricsPort int, requestBodySize int) (*exec.Cmd, int, int, int, error) {
 	if daprHTTPPort < 0 {
 		port, err := freeport.GetFreePort()
 		if err != nil {
@@ -105,10 +105,15 @@ func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort in
 	}
 	args = append(args, "--placement-host-address")
 
-	if runtime.GOOS == daprWindowsOS {
-		args = append(args, fmt.Sprintf("%s:6050", placementHost))
+	// if placementHostAddr does not contain port, add default port value
+	if indx := strings.Index(placementHostAddr, ":"); indx == -1 {
+		if runtime.GOOS == daprWindowsOS {
+			args = append(args, fmt.Sprintf("%s:6050", placementHostAddr))
+		} else {
+			args = append(args, fmt.Sprintf("%s:50005", placementHostAddr))
+		}
 	} else {
-		args = append(args, fmt.Sprintf("%s:50005", placementHost))
+		args = append(args, placementHostAddr)
 	}
 
 	if configFile != "" {
@@ -205,7 +210,7 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		return nil, err
 	}
 
-	daprCMD, daprHTTPPort, daprGRPCPort, metricsPort, err := getDaprCommand(appID, config.HTTPPort, config.GRPCPort, config.AppPort, config.ConfigFile, config.Protocol, config.EnableProfiling, config.ProfilePort, config.LogLevel, config.MaxConcurrency, config.PlacementHost, config.ComponentsPath, config.AppSSL, config.MetricsPort, config.MaxRequestBodySize)
+	daprCMD, daprHTTPPort, daprGRPCPort, metricsPort, err := getDaprCommand(appID, config.HTTPPort, config.GRPCPort, config.AppPort, config.ConfigFile, config.Protocol, config.EnableProfiling, config.ProfilePort, config.LogLevel, config.MaxConcurrency, config.PlacementHostAddr, config.ComponentsPath, config.AppSSL, config.MetricsPort, config.MaxRequestBodySize)
 	if err != nil {
 		return nil, err
 	}

@@ -138,6 +138,7 @@ $ dapr init --network dapr-network
 ```
 
 > Note: When installed to a specific Docker network, you will need to add the `--placement-host-address` arguments to `dapr run` commands run in any containers within that network.
+> The format of `--placement-host-address` argument is either `<hostname>` or `<hostname>:<port>`. If the port is omitted, the default port `6050` for Windows and `50005` for Linux/MacOS applies.
 
 ### Uninstall Dapr in a standalone mode
 
