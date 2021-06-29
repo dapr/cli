@@ -80,7 +80,7 @@ func TestRun(t *testing.T) {
 		EnableProfiling:    false,
 		ProfilePort:        9090,
 		Protocol:           "http",
-		PlacementHost:      "localhost",
+		PlacementHostAddr:  "localhost",
 		ComponentsPath:     DefaultComponentsDirPath(),
 		AppSSL:             true,
 		MetricsPort:        9001,
@@ -164,5 +164,15 @@ func TestRun(t *testing.T) {
 		assertArgumentNotEqual(t, "http-port", "-1", output.DaprCMD.Args)
 		assertArgumentNotEqual(t, "grpc-port", "-1", output.DaprCMD.Args)
 		assertArgumentNotEqual(t, "metrics-port", "-1", output.DaprCMD.Args)
+	})
+
+	t.Run("run with specified placement-host port", func(t *testing.T) {
+		basicConfig.PlacementHostAddr = "localhost:12345"
+		output, err := Run(basicConfig)
+
+		assert.Nil(t, err)
+		assert.NotNil(t, output)
+
+		assertArgumentEqual(t, "placement-host-address", "localhost:12345", output.DaprCMD.Args)
 	})
 }
