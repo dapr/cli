@@ -46,6 +46,7 @@ type VersionDetails struct {
 	ClusterRoles        []string
 	ClusterRoleBindings []string
 }
+
 type TestOptions struct {
 	HAEnabled             bool
 	MTLSEnabled           bool
@@ -65,7 +66,8 @@ func UpgradeTest(details VersionDetails) func(t *testing.T) {
 		args := []string{
 			"upgrade", "-k",
 			"--runtime-version", details.RuntimeVersion,
-			"--log-as-json"}
+			"--log-as-json",
+		}
 		output, err := spawn.Command(daprPath, args...)
 		t.Log(output)
 		require.NoError(t, err, "upgrade failed")
@@ -393,6 +395,7 @@ func (v VersionDetails) constructFoundMap(res Resource) map[string]bool {
 	}
 	return foundMap
 }
+
 func getDaprPath() string {
 	distDir := fmt.Sprintf("%s_%s", runtime.GOOS, runtime.GOARCH)
 
@@ -446,7 +449,8 @@ func installTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 			"--wait",
 			"-n", DaprTestNamespace,
 			"--runtime-version", details.RuntimeVersion,
-			"--log-as-json"}
+			"--log-as-json",
+		}
 		if opts.HAEnabled {
 			args = append(args, "--enable-ha")
 		}

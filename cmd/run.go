@@ -118,7 +118,6 @@ var RunCmd = &cobra.Command{
 
 				if daprdErr != nil {
 					print.FailureStatusEvent(os.Stderr, "The daprd process exited with error code: %s", daprdErr.Error())
-
 				} else {
 					print.SuccessStatusEvent(os.Stdout, "Exited Dapr successfully")
 				}

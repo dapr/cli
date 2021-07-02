@@ -6,12 +6,11 @@
 package kubernetes
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
 	"sync"
-
-	"errors"
 
 	"github.com/dapr/cli/pkg/age"
 	"github.com/dapr/cli/pkg/print"

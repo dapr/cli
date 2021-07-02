@@ -17,14 +17,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	outputFormat string
-)
+var outputFormat string
 
 func outputList(list interface{}, length int) {
 	if outputFormat == "json" || outputFormat == "yaml" {
 		err := utils.PrintDetail(os.Stdout, outputFormat, list)
-
 		if err != nil {
 			print.FailureStatusEvent(os.Stdout, err.Error())
 			os.Exit(1)

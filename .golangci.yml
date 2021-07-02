@@ -239,4 +239,3 @@ linters:
     - nlreturn # check for blank line before return statements
     - gci 
     - noctx
-    - gofumpt
