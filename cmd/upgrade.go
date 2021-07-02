@@ -31,7 +31,7 @@ dapr upgrade -k
 			Timeout:        timeout,
 		})
 		if err != nil {
-			print.FailureStatusEvent(os.Stdout, "Failed to upgrade Dapr: %s", err)
+			print.FailureStatusEvent(os.Stderr, "Failed to upgrade Dapr: %s", err)
 			os.Exit(1)
 		}
 		print.SuccessStatusEvent(os.Stdout, "Dapr control plane successfully upgraded to version %s. Make sure your deployments are restarted to pick up the latest sidecar version.", upgradeRuntimeVersion)
