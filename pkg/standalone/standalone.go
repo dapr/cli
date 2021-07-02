@@ -470,6 +470,12 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, bin
 
 	v, err := overrideLastestVersion(version, githubRepo)
 	if err != nil {
+		if githubRepo == cli_ver.DaprGitHubRepo {
+			err = fmt.Errorf("%s. Try specifying --runtime-version=<desired_version>", err)
+		} else if githubRepo == cli_ver.DashboardGitHubRepo {
+			err = fmt.Errorf("%s. Try specifying --dashboard-version=<desired_version>", err)
+		}
+
 		errorChan <- err
 		return
 	}
