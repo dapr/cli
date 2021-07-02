@@ -3,7 +3,7 @@
 # Licensed under the MIT License.
 # ------------------------------------------------------------
 
-name: E2E - Upgrade path tests - KinD
+name: E2E - KinD
 
 on:
   push:
@@ -23,6 +23,17 @@ defaults:
     working-directory: ./src/github.com/dapr/cli
 
 jobs:
+  pre_job:
+    name: Skip Duplicate Actions
+    runs-on: ubuntu-latest
+    outputs:
+      should_skip: ${{ steps.skip_check.outputs.should_skip }}
+    steps:
+      - id: skip_check
+        uses: fkirc/skip-duplicate-actions@v3.4.0
+        with:
+          paths_ignore: '["**.md", ".codecov.yaml", ".github/**/**.yml", "CODEOWNERS"]'
+
   # This workflow runs our e2e tests in a local KinD cluster. Since it
   # does not required a paid cluster and special credentials, it does
   # not require /ok-to-test. That allows contributors to run E2E tests
@@ -34,8 +45,9 @@ jobs:
   # shared resource issues.
   #
   kubernetes-e2e:
-    name: Upgrade path tests (KinD)
+    name: E2E tests for K8s (KinD)
     runs-on: ubuntu-latest
+    needs: pre_job
     env:
       GOVER: 1.16
     strategy:
@@ -69,9 +81,11 @@ jobs:
     steps:
     - name: Set up Go ${{ env.GOVER }}
       uses: actions/setup-go@v2
+      if: ${{ needs.pre_job.outputs.should_skip != 'true' }}
       with:
         go-version: ${{ env.GOVER }}
     - name: Check out code onto GOPATH
+      if: ${{ needs.pre_job.outputs.should_skip != 'true' }}
       uses: actions/checkout@v2
       with:
         path: ./src/github.com/dapr/cli
@@ -85,6 +99,7 @@ jobs:
       #     a local repository speeds up the image pushes into KinD
       #     significantly.
       working-directory: ./
+      if: ${{ needs.pre_job.outputs.should_skip != 'true' }}
       run: |
         cat > kind.yaml <<EOF
         apiVersion: kind.x-k8s.io/v1alpha4
@@ -105,12 +120,14 @@ jobs:
 
     - name: Create KinD Cluster
       uses: helm/kind-action@v1.0.0
+      if: ${{ needs.pre_job.outputs.should_skip != 'true' }}
       with:
         config: kind.yaml
         cluster_name: kind
         version: ${{ matrix.kind-version }}
 
     - name: Get KinD info
+      if: ${{ needs.pre_job.outputs.should_skip != 'true' }}
       run: |
         kubectl cluster-info --context kind-kind
         NODE_IP=$(kubectl get nodes \
@@ -119,18 +136,21 @@ jobs:
         echo "MINIKUBE_NODE_IP=$NODE_IP" >> $GITHUB_ENV
 
     - name: Free up some diskspace
+      if: ${{ needs.pre_job.outputs.should_skip != 'true' }}
       run: |
         docker image prune -a -f
 
     - name: Run tests
+      if: ${{ needs.pre_job.outputs.should_skip != 'true' }}
       run: |
-        export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-upgrade-kind.json
+        export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-kind.json
         echo "TEST_OUTPUT_FILE=$TEST_OUTPUT_FILE" >> $GITHUB_ENV
-        make e2e-build-run-upgrade
-
+        export GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+        make e2e-build-run-k8s
+      shell: bash
     - name: Upload test results
-      if: always()
+      if: needs.pre_job.outputs.should_skip != 'true' && always()
       uses: actions/upload-artifact@master
       with:
-        name: ${{ matrix.k8s-version }}_${{ matrix.mode }}_e2e_upgrade_k8s.json
+        name: ${{ matrix.k8s-version }}_${{ matrix.mode }}_e2e_k8s.json
         path: ${{ env.TEST_OUTPUT_FILE }}

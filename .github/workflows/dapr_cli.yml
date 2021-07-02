@@ -17,8 +17,19 @@ on:
       - master
       - release-*
 jobs:
+  pre_job:
+    name: Skip Duplicate Actions
+    runs-on: ubuntu-latest
+    outputs:
+      should_skip: ${{ steps.skip_check.outputs.should_skip }}
+    steps:
+      - id: skip_check
+        uses: fkirc/skip-duplicate-actions@v3.4.0
+        with:
+          paths_ignore: '["**.md", ".codecov.yaml", ".github/**/**.yml", "CODEOWNERS"]'
   build:
     name: Build ${{ matrix.target_os }}_${{ matrix.target_arch }} binaries
+    needs: pre_job
     runs-on: ${{ matrix.os }}
     env:
       GOVER: 1.16
@@ -54,18 +65,25 @@ jobs:
           go-version: ${{ env.GOVER }}
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
+      - name: Check if need skip
+        id: skip_check
+        uses: fkirc/skip-duplicate-actions@v3.4.0
+        with:
+          paths_ignore: '["**.md", ".codecov.yaml", ".github/**/**.yml", "CODEOWNERS"]'
       - name: Run golangci-lint
-        if: matrix.target_arch == 'amd64' && matrix.target_os == 'linux'
+        if: matrix.target_arch == 'amd64' && matrix.target_os == 'linux' && steps.skip_check.outputs.should_skip != 'true'
         uses: golangci/golangci-lint-action@v2
         with:
           version: ${{ env.GOLANG_CI_LINT_VER }}
           only-new-issues: true
       - name: Run make go.mod check-diff
-        if: matrix.target_arch == 'amd64' && matrix.target_os == 'linux'
+        if: matrix.target_arch == 'amd64' && matrix.target_os == 'linux' && steps.skip_check.outputs.should_skip != 'true'
         run: make go.mod check-diff
       - name: Parse release version and set REL_VERSION
+        if: ${{ steps.skip_check.outputs.should_skip != 'true' }}
         run: python ./.github/scripts/get_release_version.py
       - name: Setup test output
+        if: ${{ steps.skip_check.outputs.should_skip != 'true' }}
         shell: bash
         run: |
           export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-unit.json
@@ -73,26 +91,28 @@ jobs:
       - name: Run make test
         env:
           COVERAGE_OPTS: "-coverprofile=coverage.txt -covermode=atomic"
-        if: matrix.target_arch == 'amd64'
+        if: matrix.target_arch == 'amd64' && steps.skip_check.outputs.should_skip != 'true'
         run: make test
       - name: Codecov
-        if: matrix.target_arch == 'amd64' && matrix.target_os == 'linux'
+        if: matrix.target_arch == 'amd64' && matrix.target_os == 'linux' && steps.skip_check.outputs.should_skip != 'true'
         uses: codecov/codecov-action@v1
       - name: Run make release to build and archive binaries
+        if: needs.pre_job.skip_check.outputs.should_skip != 'true'
         run: |
           mkdir -p ${{ env.ARCHIVE_OUTDIR }}
           make release GOOS=${{ matrix.target_os }} GOARCH=${{ matrix.target_arch }} ARCHIVE_OUT_DIR=${{ env.ARCHIVE_OUTDIR }}
       - name: Create release_version.txt
-        if: matrix.target_arch == 'amd64' && matrix.target_os == 'linux'
+        if: matrix.target_arch == 'amd64' && matrix.target_os == 'linux' && steps.skip_check.outputs.should_skip != 'true'
         run: |
           [ ! -z "${{ env.REL_VERSION }}" ] && echo "${{ env.REL_VERSION }}" > "${{ env.ARCHIVE_OUTDIR }}/release_version.txt"
       - name: upload artifacts
         uses: actions/upload-artifact@master
+        if: ${{ steps.skip_check.outputs.should_skip != 'true' }}
         with:
           name: cli_drop
           path: ${{ env.ARCHIVE_OUTDIR }}
       - name: Upload test results
-        if: always()
+        if: steps.skip_check.outputs.should_skip != 'true' && always()
         uses: actions/upload-artifact@master
         with:
           name: ${{ matrix.target_os }}_${{ matrix.target_arch }}_test_unit.json
@@ -100,7 +120,7 @@ jobs:
   publish:
     name: Publish binaries
     needs: build
-    if: startswith(github.ref, 'refs/tags/v')
+    if: startswith(github.ref, 'refs/tags/v') && needs.pre_job.outputs.should_skip != 'true'
     env:
       ARTIFACT_DIR: ./release
     runs-on: ubuntu-latest

@@ -3,7 +3,7 @@
 # Licensed under the MIT License.
 # ------------------------------------------------------------
 
-name: E2E - KinD
+name: E2E - Upgrade path tests - KinD
 
 on:
   push:
@@ -23,6 +23,17 @@ defaults:
     working-directory: ./src/github.com/dapr/cli
 
 jobs:
+  pre_job:
+    name: Skip Duplicate Actions
+    runs-on: ubuntu-latest
+    outputs:
+      should_skip: ${{ steps.skip_check.outputs.should_skip }}
+    steps:
+      - id: skip_check
+        uses: fkirc/skip-duplicate-actions@v3.4.0
+        with:
+          paths_ignore: '["**.md", ".codecov.yaml", ".github/**/**.yml", "CODEOWNERS"]'
+
   # This workflow runs our e2e tests in a local KinD cluster. Since it
   # does not required a paid cluster and special credentials, it does
   # not require /ok-to-test. That allows contributors to run E2E tests
@@ -34,7 +45,9 @@ jobs:
   # shared resource issues.
   #
   kubernetes-e2e:
-    name: E2E tests for K8s (KinD)
+    name: Upgrade path tests (KinD)
+    needs: pre_job
+    if: ${{ needs.pre_job.outputs.should_skip != 'true' }}
     runs-on: ubuntu-latest
     env:
       GOVER: 1.16
@@ -124,14 +137,13 @@ jobs:
 
     - name: Run tests
       run: |
-        export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-kind.json
+        export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-upgrade-kind.json
         echo "TEST_OUTPUT_FILE=$TEST_OUTPUT_FILE" >> $GITHUB_ENV
-        export GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
-        make e2e-build-run-k8s
-      shell: bash
+        make e2e-build-run-upgrade
+
     - name: Upload test results
       if: always()
       uses: actions/upload-artifact@master
       with:
-        name: ${{ matrix.k8s-version }}_${{ matrix.mode }}_e2e_k8s.json
+        name: ${{ matrix.k8s-version }}_${{ matrix.mode }}_e2e_upgrade_k8s.json
         path: ${{ env.TEST_OUTPUT_FILE }}
