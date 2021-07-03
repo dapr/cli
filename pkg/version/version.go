@@ -12,6 +12,9 @@ import (
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/dapr/cli/pkg/print"
+	yaml "gopkg.in/yaml.v2"
 )
 
 const (
@@ -30,10 +33,34 @@ type githubRepoReleaseItem struct {
 	Draft   bool   `json:"draft"`
 }
 
-// GetLatestRelease return the latest release version of dapr.
-func GetLatestRelease(gitHubOrg, gitHubRepo string) (string, error) {
-	releaseURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases", gitHubOrg, gitHubRepo)
+type helmChartItems struct {
+	Entries struct {
+		Dapr []struct {
+			Version string `yaml:"appVersion"`
+		}
+	}
+}
 
+func GetDashboardVersion() (string, error) {
+	return GetLatestReleaseGithub(fmt.Sprintf("https://api.github.com/repos/%s/%s/releases", DaprGitHubOrg, DashboardGitHubRepo))
+}
+
+func GetDaprVersion() (string, error) {
+	version, err := GetLatestReleaseGithub(fmt.Sprintf("https://api.github.com/repos/%s/%s/releases", DaprGitHubOrg, DaprGitHubRepo))
+
+	if err != nil {
+		print.WarningStatusEvent(os.Stdout, "Failed to get runtime version: '%s'. Trying secondary source", err)
+
+		version, err = GetLatestReleaseHelmChart("https://dapr.github.io/helm-charts/index.yaml")
+		if err != nil {
+			return "", err
+		}
+	}
+
+	return version, nil
+}
+
+func GetVersionFromURL(releaseURL string, parseVersion func(body []byte) (string, error)) (string, error) {
 	req, err := http.NewRequest("GET", releaseURL, nil)
 	if err != nil {
 		return "", err
@@ -59,21 +86,50 @@ func GetLatestRelease(gitHubOrg, gitHubRepo string) (string, error) {
 		return "", err
 	}
 
-	var githubRepoReleases []githubRepoReleaseItem
-	err = json.Unmarshal(body, &githubRepoReleases)
-	if err != nil {
-		return "", err
-	}
+	return parseVersion(body)
+}
 
-	if len(githubRepoReleases) == 0 {
-		return "", fmt.Errorf("no releases")
-	}
-
-	for _, release := range githubRepoReleases {
-		if !strings.Contains(release.TagName, "-rc") {
-			return release.TagName, nil
+// GetLatestReleaseGithub return the latest release version of dapr from GitHub API.
+func GetLatestReleaseGithub(githubURL string) (string, error) {
+	return GetVersionFromURL(githubURL, func(body []byte) (string, error) {
+		var githubRepoReleases []githubRepoReleaseItem
+		err := json.Unmarshal(body, &githubRepoReleases)
+		if err != nil {
+			return "", err
 		}
-	}
 
-	return "", fmt.Errorf("no releases")
+		if len(githubRepoReleases) == 0 {
+			return "", fmt.Errorf("no releases")
+		}
+
+		for _, release := range githubRepoReleases {
+			if !strings.Contains(release.TagName, "-rc") {
+				return release.TagName[1:], nil
+			}
+		}
+
+		return "", fmt.Errorf("no releases")
+	})
+}
+
+// GetLatestReleaseHelmChart return the latest release version of dapr from helm chart static index.yaml.
+func GetLatestReleaseHelmChart(helmChartURL string) (string, error) {
+	return GetVersionFromURL(helmChartURL, func(body []byte) (string, error) {
+		var helmChartReleases helmChartItems
+		err := yaml.Unmarshal(body, &helmChartReleases)
+		if err != nil {
+			return "", err
+		}
+		if len(helmChartReleases.Entries.Dapr) == 0 {
+			return "", fmt.Errorf("no releases")
+		}
+
+		for _, release := range helmChartReleases.Entries.Dapr {
+			if !strings.Contains(release.Version, "-rc") {
+				return release.Version, nil
+			}
+		}
+
+		return "", fmt.Errorf("no releases")
+	})
 }
