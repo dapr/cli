@@ -180,7 +180,10 @@ func List() ([]ListOutput, error) {
 				listRow.Command = utils.TruncateString(run.appCmd, 20)
 			}
 
-			list = append(list, listRow)
+			// filter all dapr instances that do not start sidecar
+			if listRow.HTTPPort != 0 && listRow.GRPCPort != 0 {
+				list = append(list, listRow)
+			}
 		}
 	}
 
