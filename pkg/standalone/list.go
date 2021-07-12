@@ -180,8 +180,8 @@ func List() ([]ListOutput, error) {
 				listRow.Command = utils.TruncateString(run.appCmd, 20)
 			}
 
-			// filter all dapr instances that do not start sidecar
-			if listRow.HTTPPort != 0 && listRow.GRPCPort != 0 {
+			// filter only dashboard instance
+			if listRow.AppID != "" {
 				list = append(list, listRow)
 			}
 		}
