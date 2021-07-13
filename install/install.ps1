@@ -56,6 +56,7 @@ else {
 Write-Output "Creating $DaprRoot directory"
 New-Item -ErrorAction Ignore -Path $DaprRoot -ItemType "directory"
 if (!(Test-Path $DaprRoot -PathType Container)) {
+    Write-Warning "Please visit https://docs.dapr.io/getting-started/install-dapr-cli/ for instructions on how to install without admin rights."
     throw "Cannot create $DaprRoot"
 }
 
