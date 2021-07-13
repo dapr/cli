@@ -69,7 +69,10 @@ runAsRoot() {
         CMD="sudo $CMD"
     fi
 
-    $CMD
+    $CMD || {
+        echo "Please visit https://docs.dapr.io/getting-started/install-dapr-cli/ for instructions on how to install without sudo."
+        exit 1
+    }
 }
 
 checkHttpRequestCLI() {
