@@ -10,9 +10,9 @@ The Dapr CLI allows you to setup Dapr on your local dev machine or on a Kubernet
 
 ### Prerequisites
 
-On default, during initialization the Dapr CLI will install the Dapr binaries as well as setup a developer environment to help you get started easily with Dapr. This environment uses Docker containers, therefore Docker needs to be installed. If you prefer to run Dapr without this environment and no dependency on Docker, after installation of the CLI make sure follow the instructions to initialize Dapr using [slim init](#slim-init).
+On default, during initialization the Dapr CLI will install the Dapr binaries as well as setup a developer environment to help you get started easily with Dapr. This environment uses Docker containers, therefore Docker needs to be installed. If you prefer to run Dapr without this environment and no dependency on Docker, after installation of the CLI make sure to follow the instructions to initialize Dapr using [slim init](#slim-init).
 
-Note, if you are a new user, it is strongly recommended to intall Docker and use the regular init command.
+Note, if you are a new user, it is strongly recommended to install Docker and use the regular init command.
 
 * Install [Docker](https://docs.docker.com/install/)
 
@@ -138,6 +138,7 @@ $ dapr init --network dapr-network
 ```
 
 > Note: When installed to a specific Docker network, you will need to add the `--placement-host-address` arguments to `dapr run` commands run in any containers within that network.
+> The format of `--placement-host-address` argument is either `<hostname>` or `<hostname>:<port>`. If the port is omitted, the default port `6050` for Windows and `50005` for Linux/MacOS applies.
 
 ### Uninstall Dapr in a standalone mode
 
@@ -199,7 +200,7 @@ $ dapr init -k --set global.tag=1.0.0 --set dapr_operator.logLevel=error
 $ dapr init -k -n my-namespace
 ```
 
-#### Installing with a highly avaialable control plane config
+#### Installing with a highly available control plane config
 
 ```
 $ dapr init -k --enable-ha=true
@@ -374,6 +375,13 @@ To list all Dapr instances running in a Kubernetes cluster:
 
 ```
 $ dapr list --kubernetes
+```
+
+To list all Dapr instances but return output as JSON or YAML (e.g. for consumption by other tools):
+
+```
+$ dapr list --output json
+$ dapr list --output yaml
 ```
 
 ### Check system services (control plane) status
