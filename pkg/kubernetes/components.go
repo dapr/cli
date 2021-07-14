@@ -37,16 +37,14 @@ func PrintComponents(name, outputFormat string) error {
 		}
 
 		list, err := client.ComponentsV1alpha1().Components(meta_v1.NamespaceAll).List(meta_v1.ListOptions{})
-		if err != nil {
-			// This means that the Dapr Components CRD is not installed and
-			// therefore no component items exist.
-			if apierrors.IsNotFound(err) {
-				list = &v1alpha1.ComponentList{
-					Items: []v1alpha1.Component{},
-				}
-			} else {
-				return nil, err
+		// This means that the Dapr Components CRD is not installed and
+		// therefore no component items exist.
+		if apierrors.IsNotFound(err) {
+			list = &v1alpha1.ComponentList{
+				Items: []v1alpha1.Component{},
 			}
+		} else if err != nil {
+			return nil, err
 		}
 
 		return list, nil
