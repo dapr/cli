@@ -29,7 +29,7 @@ var crds = []string{
 var crdsFullResources = []string{
 	"components.dapr.io",
 	"configurations.dapr.io",
-	"subscription.dapr.io",
+	"subscriptions.dapr.io",
 }
 
 type UpgradeConfig struct {
