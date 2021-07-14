@@ -6,7 +6,6 @@
 package standalone
 
 import (
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -14,6 +13,7 @@ import (
 	"github.com/dapr/cli/pkg/age"
 	"github.com/dapr/cli/pkg/metadata"
 	"github.com/dapr/cli/utils"
+	"github.com/dapr/dapr/pkg/runtime"
 	ps "github.com/mitchellh/go-ps"
 	process "github.com/shirou/gopsutil/process"
 )
@@ -31,19 +31,6 @@ type ListOutput struct {
 	PID            int    `csv:"PID"       json:"pid"            yaml:"pid"`
 }
 
-// runData is a placeholder for collected information linking cli and sidecar.
-type runData struct {
-	cliPID             int
-	sidecarPID         int
-	grpcPort           int
-	httpPort           int
-	appPort            int
-	appID              string
-	appCmd             string
-	enableMetrics      bool
-	maxRequestBodySize int
-}
-
 func (d *daprProcess) List() ([]ListOutput, error) {
 	return List()
 }
@@ -57,14 +44,12 @@ func List() ([]ListOutput, error) {
 		return nil, err
 	}
 
-	// Links a cli PID to the corresponding sidecar Process.
-	cliToSidecarMap := make(map[int]*runData)
-
-	// Populates the map if all data is available for the sidecar.
+	// Populates the list if all data is available for the sidecar.
 	for _, proc := range processes {
 		executable := strings.ToLower(proc.Executable())
 		if (executable == "daprd") || (executable == "daprd.exe") {
 			procDetails, err := process.NewProcess(int32(proc.Pid()))
+
 			if err != nil {
 				continue
 			}
@@ -84,14 +69,18 @@ func List() ([]ListOutput, error) {
 				argumentsMap[cmdLineItems[i]] = cmdLineItems[i+1]
 			}
 
-			httpPort, err := strconv.Atoi(argumentsMap["--dapr-http-port"])
-			if err != nil {
-				continue
+			httpPort := runtime.DefaultDaprHTTPPort
+			if daprHTTPPort, ok := argumentsMap["--dapr-http-port"]; ok {
+				if iHttpPort, err := strconv.Atoi(daprHTTPPort); err == nil {
+					httpPort = iHttpPort
+				}
 			}
 
-			grpcPort, err := strconv.Atoi(argumentsMap["--dapr-grpc-port"])
-			if err != nil {
-				continue
+			grpcPort := runtime.DefaultDaprAPIGRPCPort
+			if daprGRPCPort, ok := argumentsMap["--dapr-grpc-port"]; ok {
+				if iGrpcPort, err := strconv.Atoi(daprGRPCPort); err == nil {
+					grpcPort = iGrpcPort
+				}
 			}
 
 			appPort, err := strconv.Atoi(argumentsMap["--app-port"])
@@ -116,44 +105,7 @@ func List() ([]ListOutput, error) {
 			// Parse functions return an error on bad input.
 			cliPID, err := strconv.Atoi(cliPIDString)
 			if err != nil {
-				continue
-			}
-
-			maxRequestBodySize, err := strconv.Atoi(argumentsMap["--dapr-http-max-request-size"])
-			if err != nil {
-				continue
-			}
-
-			run := runData{
-				cliPID:             cliPID,
-				sidecarPID:         proc.Pid(),
-				grpcPort:           grpcPort,
-				httpPort:           httpPort,
-				appPort:            appPort,
-				appID:              appID,
-				appCmd:             appCmd,
-				enableMetrics:      enableMetrics,
-				maxRequestBodySize: maxRequestBodySize,
-			}
-
-			cliToSidecarMap[cliPID] = &run
-		}
-	}
-
-	myPID := os.Getpid()
-	// The master list comes from cli processes, even if sidecar is not up.
-	for _, proc := range processes {
-		executable := strings.ToLower(proc.Executable())
-		if (executable == "dapr") || (executable == "dapr.exe") {
-			pID := proc.Pid()
-			if pID == myPID {
-				// Do not display current `dapr list` process.
-				continue
-			}
-
-			procDetails, err := process.NewProcess(int32(pID))
-			if err != nil {
-				continue
+				cliPID = proc.Pid()
 			}
 
 			createUnixTimeMilliseconds, err := procDetails.CreateTime()
@@ -166,24 +118,17 @@ func List() ([]ListOutput, error) {
 			listRow := ListOutput{
 				Created: createTime.Format("2006-01-02 15:04.05"),
 				Age:     age.GetAge(createTime),
-				PID:     proc.Pid(),
+				PID:     cliPID,
 			}
 
-			// Now we use sidecar into to decorate with more info (empty, if sidecar is down).
-			run, ok := cliToSidecarMap[proc.Pid()]
-			if ok {
-				listRow.AppID = run.appID
-				listRow.HTTPPort = run.httpPort
-				listRow.GRPCPort = run.grpcPort
-				listRow.AppPort = run.appPort
-				listRow.MetricsEnabled = run.enableMetrics
-				listRow.Command = utils.TruncateString(run.appCmd, 20)
-			}
+			listRow.AppID = appID
+			listRow.HTTPPort = httpPort
+			listRow.GRPCPort = grpcPort
+			listRow.AppPort = appPort
+			listRow.MetricsEnabled = enableMetrics
+			listRow.Command = utils.TruncateString(appCmd, 20)
 
-			// filter only dashboard instance
-			if listRow.AppID != "" {
-				list = append(list, listRow)
-			}
+			list = append(list, listRow)
 		}
 	}
 
