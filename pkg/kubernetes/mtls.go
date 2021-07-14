@@ -38,16 +38,14 @@ func getSystemConfig() (*v1alpha1.Configuration, error) {
 	}
 
 	configs, err := client.ConfigurationV1alpha1().Configurations(meta_v1.NamespaceAll).List(meta_v1.ListOptions{})
-	if err != nil {
-		// This means that the Dapr Configurations CRD is not installed and
-		// therefore no configuration items exist.
-		if apierrors.IsNotFound(err) {
-			configs = &v1alpha1.ConfigurationList{
-				Items: []v1alpha1.Configuration{},
-			}
-		} else {
-			return nil, err
+	// This means that the Dapr Configurations CRD is not installed and
+	// therefore no configuration items exist.
+	if apierrors.IsNotFound(err) {
+		configs = &v1alpha1.ConfigurationList{
+			Items: []v1alpha1.Configuration{},
 		}
+	} else if err != nil {
+		return nil, err
 	}
 
 	for _, c := range configs.Items {
