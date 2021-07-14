@@ -42,10 +42,9 @@ func PrintConfigurations(name, outputFormat string) error {
 
 		list, err := client.ConfigurationV1alpha1().Configurations(meta_v1.NamespaceAll).List(meta_v1.ListOptions{})
 		if err != nil {
-			// This means that the Dapr Configurations CRD is not installed and there
-			// is are therefore no configuration items.
-			if serr, ok := err.(*apierrors.StatusError); ok &&
-				serr.ErrStatus.Reason == meta_v1.StatusReasonNotFound {
+			// This means that the Dapr Configurations CRD is not installed and
+			// therefore no configuration items exist.
+			if apierrors.IsNotFound(err) {
 				list = &v1alpha1.ConfigurationList{
 					Items: []v1alpha1.Configuration{},
 				}
