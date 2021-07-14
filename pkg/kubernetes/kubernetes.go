@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/dapr/cli/pkg/print"
@@ -90,7 +91,7 @@ func getVersion(version string) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("cannot get the latest release version: %s", err)
 		}
-		version = version[1:]
+		version = strings.TrimPrefix(version, "v")
 	}
 	return version, nil
 }
