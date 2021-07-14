@@ -113,6 +113,13 @@ func TestNegativeScenarios(t *testing.T) {
 		require.Contains(t, output, "WARNING: "+path+" does not exist", "expected output to contain message")
 		require.Contains(t, output, "Dapr has been removed successfully")
 	})
+
+	t.Run("filter dahsboard instance from list", func(t *testing.T) {
+		spawn.Command(daprPath, "dashboard", "-p", "5555")
+		cmd, err := spawn.Command(daprPath, "list")
+		require.NoError(t, err, "expected no error status on list without install")
+		require.Equal(t, "No Dapr instances found.\n", cmd)
+	})
 }
 
 func getDaprPath() string {
