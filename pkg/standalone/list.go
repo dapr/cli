@@ -180,7 +180,10 @@ func List() ([]ListOutput, error) {
 				listRow.Command = utils.TruncateString(run.appCmd, 20)
 			}
 
-			list = append(list, listRow)
+			// filter only dashboard instance
+			if listRow.AppID != "" {
+				list = append(list, listRow)
+			}
 		}
 	}
 

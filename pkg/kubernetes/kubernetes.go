@@ -86,7 +86,7 @@ func helmConfig(namespace string) (*helm.Configuration, error) {
 func getVersion(version string) (string, error) {
 	if version == latestVersion {
 		var err error
-		version, err = cli_ver.GetLatestRelease(cli_ver.DaprGitHubOrg, cli_ver.DaprGitHubRepo)
+		version, err = cli_ver.GetDaprVersion()
 		if err != nil {
 			return "", fmt.Errorf("cannot get the latest release version: %s", err)
 		}
