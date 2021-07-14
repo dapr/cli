@@ -51,6 +51,7 @@ type TestOptions struct {
 	MTLSEnabled           bool
 	ApplyComponentChanges bool
 	CheckResourceExists   map[Resource]bool
+	UninstallAll          bool
 }
 
 type TestCase struct {
@@ -86,13 +87,21 @@ func UpgradeTest(details VersionDetails) func(t *testing.T) {
 	}
 }
 
-func EnsureUninstall() (string, error) {
+func EnsureUninstall(all bool) (string, error) {
 	daprPath := getDaprPath()
 
-	return spawn.Command(daprPath,
-		"uninstall", "-k",
+	var _command [10]string
+	command := append(_command[0:], "uninstall", "-k")
+
+	if all {
+		command = append(command, "--all")
+	}
+
+	command = append(command,
 		"-n", DaprTestNamespace,
 		"--log-as-json")
+
+	return spawn.Command(daprPath, command...)
 }
 
 func DeleteCRD(crds []string) func(*testing.T) {
@@ -127,11 +136,11 @@ func GetTestsOnInstall(details VersionDetails, opts TestOptions) []TestCase {
 
 func GetTestsOnUninstall(details VersionDetails, opts TestOptions) []TestCase {
 	return []TestCase{
-		{"uninstall " + details.RuntimeVersion, uninstallTest()}, // waits for pod deletion
+		{"uninstall " + details.RuntimeVersion, uninstallTest(opts.UninstallAll)}, // waits for pod deletion
 		{"crds exist on uninstall " + details.RuntimeVersion, CRDTest(details, opts)},
 		{"clusterroles not exist " + details.RuntimeVersion, ClusterRolesTest(details, opts)},
 		{"clusterrolebindings not exist " + details.RuntimeVersion, ClusterRoleBindingsTest(details, opts)},
-		{"check components exist on uninstall " + details.RuntimeVersion, componentsTestOnUninstall()},
+		{"check components exist on uninstall " + details.RuntimeVersion, componentsTestOnUninstall(opts.UninstallAll)},
 		{"check mtls error " + details.RuntimeVersion, uninstallMTLSTest()},
 		{"check status error " + details.RuntimeVersion, statusTestOnUninstall()},
 	}
@@ -198,7 +207,7 @@ func ComponentsTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 		t.Log("check applied component exists")
 		output, err := spawn.Command(daprPath, "components", "-k")
 		require.NoError(t, err, "expected no error on calling dapr components")
-		componentOutputCheck(t, output)
+		componentOutputCheck(t, output, false)
 	}
 }
 
@@ -455,9 +464,9 @@ func installTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 	}
 }
 
-func uninstallTest() func(t *testing.T) {
+func uninstallTest(all bool) func(t *testing.T) {
 	return func(t *testing.T) {
-		output, err := EnsureUninstall()
+		output, err := EnsureUninstall(all)
 		t.Log(output)
 		require.NoError(t, err, "uninstall failed")
 		// wait for pods to be deleted completely
@@ -486,7 +495,7 @@ func uninstallMTLSTest() func(t *testing.T) {
 	}
 }
 
-func componentsTestOnUninstall() func(t *testing.T) {
+func componentsTestOnUninstall(all bool) func(t *testing.T) {
 	return func(t *testing.T) {
 		daprPath := getDaprPath()
 		// On Dapr uninstall CRDs are not removed, consequently the components will not be removed
@@ -494,7 +503,12 @@ func componentsTestOnUninstall() func(t *testing.T) {
 		// For now the components remain
 		output, err := spawn.Command(daprPath, "components", "-k")
 		require.NoError(t, err, "expected no error on calling dapr components")
-		componentOutputCheck(t, output)
+		componentOutputCheck(t, output, all)
+
+		// If --all, then the below does not need to run.
+		if all {
+			return
+		}
 
 		// Manually remove components and verify output
 		output, err = spawn.Command("kubectl", "delete", "-f", "../testdata/statestore.yaml")
@@ -519,12 +533,19 @@ func statusTestOnUninstall() func(t *testing.T) {
 	}
 }
 
-func componentOutputCheck(t *testing.T, output string) {
+func componentOutputCheck(t *testing.T, output string, all bool) {
 	lines := strings.Split(output, "\n")[1:] // remove header
 	// for fresh cluster only one component yaml has been applied
 	fields := strings.Fields(lines[0])
+
+	if all {
+		assert.Equal(t, len(fields), 0, "expected at 0 components output")
+
+		return
+	}
+
 	// Fields splits on space, so Created time field might be split again
-	assert.GreaterOrEqual(t, len(fields), 6, "expected at least 6 fields in components outptu")
+	assert.GreaterOrEqual(t, len(fields), 6, "expected at least 6 fields in components output")
 	assert.Equal(t, "statestore", fields[0], "expected name to match")
 	assert.Equal(t, "state.redis", fields[1], "expected type to match")
 	assert.Equal(t, "v1", fields[2], "expected version to match")
