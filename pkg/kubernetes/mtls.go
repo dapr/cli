@@ -11,9 +11,11 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/dapr/dapr/pkg/apis/configuration/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/dapr/dapr/pkg/apis/configuration/v1alpha1"
 )
 
 const (
@@ -37,7 +39,16 @@ func getSystemConfig() (*v1alpha1.Configuration, error) {
 
 	configs, err := client.ConfigurationV1alpha1().Configurations(meta_v1.NamespaceAll).List(meta_v1.ListOptions{})
 	if err != nil {
-		return nil, err
+		// This means that the Dapr Configurations CRD is not installed and there
+		// is are therefore no configuration items.
+		if serr, ok := err.(*apierrors.StatusError); ok &&
+			serr.ErrStatus.Reason == meta_v1.StatusReasonNotFound {
+			configs = &v1alpha1.ConfigurationList{
+				Items: []v1alpha1.Configuration{},
+			}
+		} else {
+			return nil, err
+		}
 	}
 
 	for _, c := range configs.Items {
@@ -45,6 +56,7 @@ func getSystemConfig() (*v1alpha1.Configuration, error) {
 			return &c, nil
 		}
 	}
+
 	return nil, errors.New("system configuration not found")
 }
 
