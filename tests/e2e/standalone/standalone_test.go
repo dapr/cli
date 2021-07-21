@@ -455,6 +455,7 @@ func testList(t *testing.T) {
 		t.Log(output)
 		require.NoError(t, err, "dapr stop failed")
 		assert.Contains(t, output, "app stopped successfully: dapr_e2e_list")
+		cmd.Process.Kill()
 	})
 
 }
