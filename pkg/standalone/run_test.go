@@ -63,6 +63,33 @@ func tearDownRun(t *testing.T) {
 	assert.Equal(t, nil, err, "Unable to delete default config file after running test")
 }
 
+func assertCommonArgs(t *testing.T, basicConfig *RunConfig, output *RunOutput) {
+	assert.NotNil(t, output)
+
+	assert.Equal(t, "MyID", output.AppID)
+	assert.Equal(t, 8000, output.DaprHTTPPort)
+	assert.Equal(t, 50001, output.DaprGRPCPort)
+
+	assert.Contains(t, output.DaprCMD.Args[0], "daprd")
+	assertArgumentEqual(t, "app-id", "MyID", output.DaprCMD.Args)
+	assertArgumentEqual(t, "dapr-http-port", "8000", output.DaprCMD.Args)
+	assertArgumentEqual(t, "dapr-grpc-port", "50001", output.DaprCMD.Args)
+	assertArgumentEqual(t, "log-level", basicConfig.LogLevel, output.DaprCMD.Args)
+	assertArgumentEqual(t, "app-max-concurrency", "-1", output.DaprCMD.Args)
+	assertArgumentEqual(t, "app-protocol", "http", output.DaprCMD.Args)
+	assertArgumentEqual(t, "app-port", "3000", output.DaprCMD.Args)
+	assertArgumentEqual(t, "components-path", DefaultComponentsDirPath(), output.DaprCMD.Args)
+	assertArgumentEqual(t, "app-ssl", "", output.DaprCMD.Args)
+	assertArgumentEqual(t, "metrics-port", "9001", output.DaprCMD.Args)
+	assertArgumentEqual(t, "dapr-http-max-request-size", "-1", output.DaprCMD.Args)
+
+	placementHostAddr := "localhost:50005"
+	if runtime.GOOS == "windows" {
+		placementHostAddr = "localhost:6050"
+	}
+	assertArgumentEqual(t, "placement-host-address", placementHostAddr, output.DaprCMD.Args)
+}
+
 func TestRun(t *testing.T) {
 	// Setup the components directory which is done at init time
 	setupRun(t)
@@ -89,32 +116,9 @@ func TestRun(t *testing.T) {
 
 	t.Run("run happy http", func(t *testing.T) {
 		output, err := Run(basicConfig)
-
 		assert.Nil(t, err)
-		assert.NotNil(t, output)
 
-		assert.Equal(t, "MyID", output.AppID)
-		assert.Equal(t, 8000, output.DaprHTTPPort)
-		assert.Equal(t, 50001, output.DaprGRPCPort)
-
-		assert.Contains(t, output.DaprCMD.Args[0], "daprd")
-		assertArgumentEqual(t, "app-id", "MyID", output.DaprCMD.Args)
-		assertArgumentEqual(t, "dapr-http-port", "8000", output.DaprCMD.Args)
-		assertArgumentEqual(t, "dapr-grpc-port", "50001", output.DaprCMD.Args)
-		assertArgumentEqual(t, "log-level", "WARN", output.DaprCMD.Args)
-		assertArgumentEqual(t, "app-max-concurrency", "-1", output.DaprCMD.Args)
-		assertArgumentEqual(t, "app-protocol", "http", output.DaprCMD.Args)
-		assertArgumentEqual(t, "app-port", "3000", output.DaprCMD.Args)
-		assertArgumentEqual(t, "components-path", DefaultComponentsDirPath(), output.DaprCMD.Args)
-		assertArgumentEqual(t, "app-ssl", "", output.DaprCMD.Args)
-		assertArgumentEqual(t, "metrics-port", "9001", output.DaprCMD.Args)
-		if runtime.GOOS == "windows" {
-			assertArgumentEqual(t, "placement-host-address", "localhost:6050", output.DaprCMD.Args)
-		} else {
-			assertArgumentEqual(t, "placement-host-address", "localhost:50005", output.DaprCMD.Args)
-		}
-		assertArgumentEqual(t, "dapr-http-max-request-size", "-1", output.DaprCMD.Args)
-
+		assertCommonArgs(t, basicConfig, output)
 		assert.Equal(t, "MyCommand", output.AppCMD.Args[0])
 		assert.Equal(t, "--my-arg", output.AppCMD.Args[1])
 	})
@@ -124,31 +128,10 @@ func TestRun(t *testing.T) {
 		basicConfig.LogLevel = "INFO"
 		basicConfig.ConfigFile = DefaultConfigFilePath()
 		output, err := Run(basicConfig)
-
 		assert.Nil(t, err)
-		assert.NotNil(t, output)
 
-		assert.Equal(t, "MyID", output.AppID)
-		assert.Equal(t, 8000, output.DaprHTTPPort)
-		assert.Equal(t, 50001, output.DaprGRPCPort)
-
-		assert.Contains(t, output.DaprCMD.Args[0], "daprd")
-		assertArgumentEqual(t, "app-id", "MyID", output.DaprCMD.Args)
-		assertArgumentEqual(t, "dapr-http-port", "8000", output.DaprCMD.Args)
-		assertArgumentEqual(t, "dapr-grpc-port", "50001", output.DaprCMD.Args)
-		assertArgumentEqual(t, "log-level", "INFO", output.DaprCMD.Args)
-		assertArgumentEqual(t, "app-max-concurrency", "-1", output.DaprCMD.Args)
-		assertArgumentEqual(t, "app-protocol", "http", output.DaprCMD.Args)
-		assertArgumentEqual(t, "app-port", "3000", output.DaprCMD.Args)
+		assertCommonArgs(t, basicConfig, output)
 		assertArgumentEqual(t, "config", DefaultConfigFilePath(), output.DaprCMD.Args)
-		assertArgumentEqual(t, "components-path", DefaultComponentsDirPath(), output.DaprCMD.Args)
-		if runtime.GOOS == "windows" {
-			assertArgumentEqual(t, "placement-host-address", "localhost:6050", output.DaprCMD.Args)
-		} else {
-			assertArgumentEqual(t, "placement-host-address", "localhost:50005", output.DaprCMD.Args)
-		}
-		assertArgumentEqual(t, "dapr-http-max-request-size", "-1", output.DaprCMD.Args)
-
 		assert.Nil(t, output.AppCMD)
 	})
 
