@@ -71,14 +71,14 @@ func List() ([]ListOutput, error) {
 
 			httpPort := runtime.DefaultDaprHTTPPort
 			if daprHTTPPort, ok := argumentsMap["--dapr-http-port"]; ok {
-				if iHttpPort, err := strconv.Atoi(daprHTTPPort); err == nil {
-					httpPort = iHttpPort
+				if iHTTPPort, err := strconv.Atoi(daprHTTPPort); err == nil {
+					httpPort = iHTTPPort
 				}
 			}
 
 			grpcPort := runtime.DefaultDaprAPIGRPCPort
 			if daprGRPCPort, ok := argumentsMap["--dapr-grpc-port"]; ok {
-				if iGrpcPort, err := strconv.Atoi(daprGRPCPort); err == nil {
+				if iGrpcPort, error := strconv.Atoi(daprGRPCPort); error == nil {
 					grpcPort = iGrpcPort
 				}
 			}
