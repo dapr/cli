@@ -170,11 +170,13 @@ func mtlsEndpoint(configFile string) string {
 	return ""
 }
 
-func getAppCommand(httpPort, grpcPort, metricsPort int, command string, args []string) (*exec.Cmd, error) {
+func getAppCommand(appID string, appPort, httpPort, grpcPort, metricsPort int, command string, args []string) (*exec.Cmd, error) {
 	cmd := exec.Command(command, args...)
 	cmd.Env = os.Environ()
 	cmd.Env = append(
 		cmd.Env,
+		fmt.Sprintf("APP_ID=%v", appID),
+		fmt.Sprintf("APP_PORT=%v", appPort),
 		fmt.Sprintf("DAPR_HTTP_PORT=%v", httpPort),
 		fmt.Sprintf("DAPR_GRPC_PORT=%v", grpcPort),
 		fmt.Sprintf("DAPR_METRICS_PORT=%v", metricsPort))
@@ -233,7 +235,7 @@ func Run(config *RunConfig) (*RunOutput, error) {
 			runArgs = config.Arguments[1:]
 		}
 
-		appCMD, err = getAppCommand(daprHTTPPort, daprGRPCPort, metricsPort, cmd, runArgs)
+		appCMD, err = getAppCommand(config.AppID, config.AppPort, daprHTTPPort, daprGRPCPort, metricsPort, cmd, runArgs)
 		if err != nil {
 			return nil, err
 		}

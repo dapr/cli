@@ -6,11 +6,13 @@
 package standalone
 
 import (
+	"fmt"
 	"os"
 	"runtime"
 	"strings"
 	"testing"
 
+	daprEnv "github.com/dapr/dapr/pkg/config/env"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -90,6 +92,41 @@ func assertCommonArgs(t *testing.T, basicConfig *RunConfig, output *RunOutput) {
 	assertArgumentEqual(t, "placement-host-address", placementHostAddr, output.DaprCMD.Args)
 }
 
+func assertAppEnv(t *testing.T, config *RunConfig, output *RunOutput) {
+	envSet := make(map[string]bool)
+	for _, env := range output.AppCMD.Env {
+		envSet[env] = true
+	}
+
+	expectedEnvSet := getEnvSet(config)
+	for _, env := range expectedEnvSet {
+		_, found := envSet[env]
+		if !found {
+			assert.Fail(t, "Missing environment variable. Expected to have "+env)
+
+		}
+	}
+
+}
+
+func getEnvSet(config *RunConfig) []string {
+	set := []string{
+		getEnv(daprEnv.DaprGRPCPort, config.GRPCPort),
+		getEnv(daprEnv.DaprHTTPPort, config.HTTPPort),
+		getEnv(daprEnv.DaprMetricsPort, config.MetricsPort),
+		getEnv(daprEnv.AppID, config.AppID),
+		getEnv(daprEnv.AppPort, config.AppPort),
+	}
+	if config.EnableProfiling {
+		set = append(set, getEnv(daprEnv.DaprProfilePort, config.ProfilePort))
+	}
+	return set
+}
+
+func getEnv(key string, value interface{}) string {
+	return fmt.Sprintf("%s=%v", key, value)
+}
+
 func TestRun(t *testing.T) {
 	// Setup the components directory which is done at init time
 	setupRun(t)
@@ -121,6 +158,7 @@ func TestRun(t *testing.T) {
 		assertCommonArgs(t, basicConfig, output)
 		assert.Equal(t, "MyCommand", output.AppCMD.Args[0])
 		assert.Equal(t, "--my-arg", output.AppCMD.Args[1])
+		assertAppEnv(t, basicConfig, output)
 	})
 
 	t.Run("run without app command", func(t *testing.T) {
