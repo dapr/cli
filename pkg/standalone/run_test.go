@@ -19,6 +19,7 @@ import (
 	"strings"
 	"testing"
 
+	daprEnv "github.com/dapr/dapr/pkg/config/env"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -119,6 +120,41 @@ func getEnvSet(config *RunConfig) []string {
 	}
 	if config.EnableProfiling {
 		set = append(set, getEnv("DAPR_PROFILE_PORT", config.ProfilePort))
+	}
+	return set
+}
+
+func getEnv(key string, value interface{}) string {
+	return fmt.Sprintf("%s=%v", key, value)
+}
+
+func assertAppEnv(t *testing.T, config *RunConfig, output *RunOutput) {
+	envSet := make(map[string]bool)
+	for _, env := range output.AppCMD.Env {
+		envSet[env] = true
+	}
+
+	expectedEnvSet := getEnvSet(config)
+	for _, env := range expectedEnvSet {
+		_, found := envSet[env]
+		if !found {
+			assert.Fail(t, "Missing environment variable. Expected to have "+env)
+
+		}
+	}
+
+}
+
+func getEnvSet(config *RunConfig) []string {
+	set := []string{
+		getEnv(daprEnv.DaprGRPCPort, config.GRPCPort),
+		getEnv(daprEnv.DaprHTTPPort, config.HTTPPort),
+		getEnv(daprEnv.DaprMetricsPort, config.MetricsPort),
+		getEnv(daprEnv.AppID, config.AppID),
+		getEnv(daprEnv.AppPort, config.AppPort),
+	}
+	if config.EnableProfiling {
+		set = append(set, getEnv(daprEnv.DaprProfilePort, config.ProfilePort))
 	}
 	return set
 }
