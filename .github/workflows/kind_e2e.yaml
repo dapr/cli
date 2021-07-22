@@ -45,7 +45,7 @@ jobs:
     name: E2E tests for K8s (KinD)
     runs-on: ubuntu-latest
     env:
-      GOVER: 1.16.6
+      GOVER: 1.16
     strategy:
       fail-fast: false # Keep running if one leg fails.
       matrix:
