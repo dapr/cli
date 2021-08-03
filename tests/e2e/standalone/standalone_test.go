@@ -443,18 +443,20 @@ func testList(t *testing.T) {
 			daprdPath += ".exe"
 		}
 
-		cmd := exec.Command(daprdPath, "--app-id", "dapr_e2e_list", "--dapr-http-port", "3555", "--dapr-grpc-port", "4555", "--app-port", "0")
+		cmd := exec.Command(daprdPath, "--app-id", "daprd_e2e_list", "--dapr-http-port", "3555", "--dapr-grpc-port", "4555", "--app-port", "0")
 		cmd.Start()
 
 		output, err := spawn.Command(getDaprPath(), "list")
 		t.Log(output)
 		require.NoError(t, err, "dapr list failed with daprd instance")
-		listOutputCheck(t, output)
+		listDaprdOutputCheck(t, output)
 
-		output, err = spawn.Command(getDaprPath(), "stop", "--app-id", "dapr_e2e_list")
-		t.Log(output)
-		require.NoError(t, err, "dapr stop failed")
-		assert.Contains(t, output, "app stopped successfully: dapr_e2e_list")
+		if runtime.GOOS != "windows" {
+			output, err = spawn.Command(getDaprPath(), "stop", "--app-id", "daprd_e2e_list")
+			t.Log(output)
+			require.NoError(t, err, "dapr stop failed")
+			assert.Contains(t, output, "app stopped successfully: daprd_e2e_list")
+		}
 		cmd.Process.Kill()
 	})
 
@@ -608,6 +610,18 @@ func listOutputCheck(t *testing.T, output string) {
 	// Fields splits on space, so Created time field might be split again
 	assert.GreaterOrEqual(t, len(fields), 4, "expected at least 4 fields in components outptu")
 	assert.Equal(t, "dapr_e2e_list", fields[0], "expected name to match")
+	assert.Equal(t, "3555", fields[1], "expected http port to match")
+	assert.Equal(t, "4555", fields[2], "expected grpc port to match")
+	assert.Equal(t, "0", fields[3], "expected app port to match")
+}
+
+func listDaprdOutputCheck(t *testing.T, output string) {
+	lines := strings.Split(output, "\n")[1:] // remove header
+	// only one app is runnning at this time
+	fields := strings.Fields(lines[0])
+	// Fields splits on space, so Created time field might be split again
+	assert.GreaterOrEqual(t, len(fields), 4, "expected at least 4 fields in components outptu")
+	assert.Equal(t, "daprd_e2e_list", fields[0], "expected name to match")
 	assert.Equal(t, "3555", fields[1], "expected http port to match")
 	assert.Equal(t, "4555", fields[2], "expected grpc port to match")
 	assert.Equal(t, "0", fields[3], "expected app port to match")
