@@ -18,7 +18,7 @@ func NewDashboardCmd(port int) *exec.Cmd {
 	// Use the default binary install location
 	dashboardPath := defaultDaprBinPath()
 	binaryName := "dashboard"
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == daprWindowsOS {
 		binaryName = "dashboard.exe"
 	}
 
