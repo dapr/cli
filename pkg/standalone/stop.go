@@ -22,7 +22,10 @@ func Stop(appID string) error {
 
 	for _, a := range apps {
 		if a.AppID == appID {
-			pid := fmt.Sprintf("%v", a.PID)
+			pid := fmt.Sprintf("%v", a.CliPID)
+			if pid == "0" {
+				pid = fmt.Sprintf("%v", a.DaprdPID)
+			}
 
 			_, err := utils.RunCmdAndWait("kill", pid)
 

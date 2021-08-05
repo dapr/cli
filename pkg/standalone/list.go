@@ -28,7 +28,8 @@ type ListOutput struct {
 	Command        string `csv:"COMMAND"   json:"command"        yaml:"command"`
 	Age            string `csv:"AGE"       json:"age"            yaml:"age"`
 	Created        string `csv:"CREATED"   json:"created"        yaml:"created"`
-	PID            int    `csv:"PID"       json:"pid"            yaml:"pid"`
+	CliPID         int    `csv:"CLI PID"       json:"cliPid"            yaml:"cliPid"`
+	DaprdPID       int    `csv:"DAPRD PID"       json:"daprdPid"            yaml:"daprdPid"`
 }
 
 func (d *daprProcess) List() ([]ListOutput, error) {
@@ -105,8 +106,9 @@ func List() ([]ListOutput, error) {
 			// Parse functions return an error on bad input.
 			cliPID, err := strconv.Atoi(cliPIDString)
 			if err != nil {
-				cliPID = proc.Pid()
+				cliPID = 0
 			}
+			daprdPid := proc.Pid()
 
 			createUnixTimeMilliseconds, err := procDetails.CreateTime()
 			if err != nil {
@@ -118,7 +120,7 @@ func List() ([]ListOutput, error) {
 			listRow := ListOutput{
 				Created: createTime.Format("2006-01-02 15:04.05"),
 				Age:     age.GetAge(createTime),
-				PID:     cliPID,
+				CliPID:  cliPID,
 			}
 
 			listRow.AppID = appID
@@ -127,6 +129,7 @@ func List() ([]ListOutput, error) {
 			listRow.AppPort = appPort
 			listRow.MetricsEnabled = enableMetrics
 			listRow.Command = utils.TruncateString(appCmd, 20)
+			listRow.DaprdPID = daprdPid
 
 			list = append(list, listRow)
 		}

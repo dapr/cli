@@ -21,7 +21,12 @@ func Stop(appID string) error {
 
 	for _, a := range apps {
 		if a.AppID == appID {
-			eventName, _ := syscall.UTF16FromString(fmt.Sprintf("dapr_cli_%v", a.PID))
+			pid := fmt.Sprintf("dapr_cli_%v", a.CliPID)
+			if pid == "0" {
+				pid = fmt.Sprintf("dapr_cli_%v", a.DaprdPID)
+			}
+			eventName, _ := syscall.UTF16FromString(pid)
+
 			eventHandle, err := windows.OpenEvent(windows.EVENT_MODIFY_STATE, false, &eventName[0])
 			if err != nil {
 				return err
@@ -34,5 +39,3 @@ func Stop(appID string) error {
 
 	return fmt.Errorf("couldn't find app id %s", appID)
 }
-
-
