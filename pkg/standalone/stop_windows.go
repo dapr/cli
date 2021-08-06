@@ -22,8 +22,8 @@ func Stop(appID string) error {
 	for _, a := range apps {
 		if a.AppID == appID {
 			pid := fmt.Sprintf("dapr_cli_%v", a.CliPID)
-			if pid == "0" {
-				pid = fmt.Sprintf("dapr_cli_%v", a.DaprdPID)
+			if a.CliPID == 0 {
+				pid = fmt.Sprintf("dapr_daprd_%v", a.DaprdPID)
 			}
 			eventName, _ := syscall.UTF16FromString(pid)
 
