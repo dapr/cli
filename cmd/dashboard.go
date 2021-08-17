@@ -58,6 +58,9 @@ dapr dashboard -p 9999
 # Port forward to dashboard in Kubernetes 
 dapr dashboard -k 
 
+# Port forward to dashboard in Kubernetes on all addresses in a specified port
+dapr dashboard -k -p 9999 -a 0.0.0.0
+
 # Port forward to dashboard in Kubernetes using a port
 dapr dashboard -k -p 9999
 `,
@@ -174,7 +177,7 @@ dapr dashboard -k -p 9999
 func init() {
 	DashboardCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Opens Dapr dashboard in local browser via local proxy to Kubernetes cluster")
 	DashboardCmd.Flags().BoolVarP(&dashboardVersionCmd, "version", "v", false, "Print the version for Dapr dashboard")
-	DashboardCmd.Flags().StringVarP(&dashboardHost, "address", "a", defaultHost, "Addresses to listen on. Only accepts IP addresses or localhost as a value")
+	DashboardCmd.Flags().StringVarP(&dashboardHost, "address", "a", defaultHost, "Address to listen on. Only accepts IP address or localhost as a value")
 	DashboardCmd.Flags().IntVarP(&dashboardLocalPort, "port", "p", defaultLocalPort, "The local port on which to serve Dapr dashboard")
 	DashboardCmd.Flags().StringVarP(&dashboardNamespace, "namespace", "n", daprSystemNamespace, "The namespace where Dapr dashboard is running")
 	DashboardCmd.Flags().BoolP("help", "h", false, "Print this help message")
