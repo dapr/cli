@@ -185,3 +185,13 @@ func PrintDetail(writer io.Writer, outputFormat string, list interface{}) error 
 	_, err = writer.Write(output)
 	return err
 }
+
+func IsAddressLegal(address string) bool {
+	var isLegal bool
+	if address == "localhost" {
+		isLegal = true
+	} else if net.ParseIP(address) != nil {
+		isLegal = true
+	}
+	return isLegal
+}
