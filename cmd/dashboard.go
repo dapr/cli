@@ -13,6 +13,7 @@ import (
 	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/pkg/standalone"
+	"github.com/dapr/cli/utils"
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 )
@@ -39,6 +40,7 @@ const (
 
 var (
 	dashboardNamespace  string
+	dashboardHost       string
 	dashboardLocalPort  int
 	dashboardVersionCmd bool
 )
@@ -56,6 +58,9 @@ dapr dashboard -p 9999
 # Port forward to dashboard in Kubernetes 
 dapr dashboard -k 
 
+# Port forward to dashboard in Kubernetes on all addresses in a specified port
+dapr dashboard -k -p 9999 -a 0.0.0.0
+
 # Port forward to dashboard in Kubernetes using a port
 dapr dashboard -k -p 9999
 `,
@@ -63,6 +68,11 @@ dapr dashboard -k -p 9999
 		if dashboardVersionCmd {
 			fmt.Println(standalone.GetDashboardVersion())
 			os.Exit(0)
+		}
+
+		if !utils.IsAddressLegal(dashboardHost) {
+			print.FailureStatusEvent(os.Stdout, "Invalid address: %s", dashboardHost)
+			os.Exit(1)
 		}
 
 		if dashboardLocalPort <= 0 {
@@ -119,7 +129,7 @@ dapr dashboard -k -p 9999
 				config,
 				foundNamespace,
 				dashboardSvc,
-				defaultHost,
+				dashboardHost,
 				dashboardLocalPort,
 				remotePort,
 				false,
@@ -142,7 +152,7 @@ dapr dashboard -k -p 9999
 			}()
 
 			// url for dashboard after port forwarding
-			var webURL string = fmt.Sprintf("http://%s:%d", defaultHost, dashboardLocalPort)
+			var webURL string = fmt.Sprintf("http://%s:%d", dashboardHost, dashboardLocalPort)
 
 			print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Dapr dashboard found in namespace:\t%s", foundNamespace))
 			print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Dapr dashboard available at:\t%s\n", webURL))
@@ -167,6 +177,7 @@ dapr dashboard -k -p 9999
 func init() {
 	DashboardCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Opens Dapr dashboard in local browser via local proxy to Kubernetes cluster")
 	DashboardCmd.Flags().BoolVarP(&dashboardVersionCmd, "version", "v", false, "Print the version for Dapr dashboard")
+	DashboardCmd.Flags().StringVarP(&dashboardHost, "address", "a", defaultHost, "Address to listen on. Only accepts IP address or localhost as a value")
 	DashboardCmd.Flags().IntVarP(&dashboardLocalPort, "port", "p", defaultLocalPort, "The local port on which to serve Dapr dashboard")
 	DashboardCmd.Flags().StringVarP(&dashboardNamespace, "namespace", "n", daprSystemNamespace, "The namespace where Dapr dashboard is running")
 	DashboardCmd.Flags().BoolP("help", "h", false, "Print this help message")
