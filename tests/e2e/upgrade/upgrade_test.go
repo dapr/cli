@@ -1,0 +1,314 @@
+// +build e2e
+
+// ------------------------------------------------------------
+// Copyright (c) Microsoft Corporation and Dapr Contributors.
+// Licensed under the MIT License.
+// ------------------------------------------------------------
+
+package upgrade
+
+import (
+	"fmt"
+	"testing"
+
+	"github.com/dapr/cli/tests/e2e/common"
+)
+
+type upgradePath struct {
+	previous common.VersionDetails
+	next     common.VersionDetails
+}
+
+var (
+	supportedUpgradePaths = []upgradePath{
+		{
+			previous: common.VersionDetails{
+				RuntimeVersion:      "1.1.0",
+				DashboardVersion:    "0.6.0",
+				ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+				ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+				CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
+			},
+			next: common.VersionDetails{
+				RuntimeVersion:      "1.1.1",
+				DashboardVersion:    "0.6.0",
+				ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+				ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+				CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
+			},
+		},
+		{
+			previous: common.VersionDetails{
+				RuntimeVersion:      "1.1.1",
+				DashboardVersion:    "0.6.0",
+				ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+				ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+				CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
+			},
+			next: common.VersionDetails{
+				RuntimeVersion:      "1.1.2",
+				DashboardVersion:    "0.6.0",
+				ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+				ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+				CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
+			},
+		},
+		{
+			previous: common.VersionDetails{
+				RuntimeVersion:      "1.1.2",
+				DashboardVersion:    "0.6.0",
+				ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+				ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+				CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
+			},
+			next: common.VersionDetails{
+				RuntimeVersion:      "1.2.0",
+				DashboardVersion:    "0.6.0",
+				ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+				ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+				CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
+			},
+		},
+		{
+			previous: common.VersionDetails{
+				RuntimeVersion:      "1.2.0",
+				DashboardVersion:    "0.6.0",
+				ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+				ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+				CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
+			},
+			next: common.VersionDetails{
+				RuntimeVersion:      "1.3.0",
+				DashboardVersion:    "0.7.0",
+				ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+				ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+				CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
+			},
+		},
+		{
+			previous: common.VersionDetails{
+				RuntimeVersion:      "1.2.2",
+				DashboardVersion:    "0.6.0",
+				ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+				ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+				CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
+			},
+			next: common.VersionDetails{
+				RuntimeVersion:      "1.3.0",
+				DashboardVersion:    "0.7.0",
+				ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+				ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+				CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
+			},
+		},
+	}
+)
+
+func getTestsOnUpgrade(p upgradePath, installOpts, upgradeOpts common.TestOptions) []common.TestCase {
+	tests := []common.TestCase{}
+
+	// install previous version
+	tests = append(tests, common.GetTestsOnInstall(p.previous, installOpts)...)
+
+	details := p.next
+
+	tests = append(tests, []common.TestCase{
+		{"upgrade to " + details.RuntimeVersion, common.UpgradeTest(details)},
+		{"crds exist " + details.RuntimeVersion, common.CRDTest(details, upgradeOpts)},
+		{"clusterroles exist " + details.RuntimeVersion, common.ClusterRolesTest(details, upgradeOpts)},
+		{"clusterrolebindings exist " + details.RuntimeVersion, common.ClusterRoleBindingsTest(details, upgradeOpts)},
+		{"previously applied components exist " + details.RuntimeVersion, common.ComponentsTestOnInstallUpgrade(upgradeOpts)},
+		{"check mtls " + details.RuntimeVersion, common.MTLSTestOnInstallUpgrade(upgradeOpts)},
+		{"status check " + details.RuntimeVersion, common.StatusTestOnInstallUpgrade(details, upgradeOpts)},
+	}...)
+
+	// uninstall
+	tests = append(tests, common.GetTestsOnUninstall(p.next, common.TestOptions{
+		CheckResourceExists: map[common.Resource]bool{
+			// TODO Related to https://github.com/dapr/cli/issues/656
+			common.CustomResourceDefs:  true,
+			common.ClusterRoles:        false,
+			common.ClusterRoleBindings: false,
+		},
+	})...)
+
+	// delete CRDs if exist
+	tests = append(tests, common.TestCase{"delete CRDs " + p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs)})
+	tests = append(tests, common.TestCase{"delete CRDs " + p.next.RuntimeVersion, common.DeleteCRD(p.next.CustomResourceDefs)})
+
+	return tests
+}
+
+// Upgrade path tests.
+
+func TestUpgradePathNonHAModeMTLSDisabled(t *testing.T) {
+	// Ensure a clean environment
+	common.EnsureUninstall(false) // does not wait for pod deletion
+	for _, p := range supportedUpgradePaths {
+		t.Run(fmt.Sprintf("setup v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
+			t.Run("delete CRDs "+p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs))
+			t.Run("delete CRDs "+p.next.RuntimeVersion, common.DeleteCRD(p.next.CustomResourceDefs))
+		})
+	}
+
+	for _, p := range supportedUpgradePaths {
+		t.Run(fmt.Sprintf("v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
+			installOpts := common.TestOptions{
+				HAEnabled:             false,
+				MTLSEnabled:           false,
+				ApplyComponentChanges: true,
+				CheckResourceExists: map[common.Resource]bool{
+					common.CustomResourceDefs:  true,
+					common.ClusterRoles:        true,
+					common.ClusterRoleBindings: true,
+				},
+			}
+
+			upgradeOpts := common.TestOptions{
+				HAEnabled:   false,
+				MTLSEnabled: false,
+				// do not apply changes on upgrade, verify existing components
+				ApplyComponentChanges: false,
+				CheckResourceExists: map[common.Resource]bool{
+					common.CustomResourceDefs:  true,
+					common.ClusterRoles:        true,
+					common.ClusterRoleBindings: true,
+				},
+			}
+			tests := getTestsOnUpgrade(p, installOpts, upgradeOpts)
+
+			for _, tc := range tests {
+				t.Run(tc.Name, tc.Callable)
+			}
+		})
+	}
+}
+
+func TestUpgradePathNonHAModeMTLSEnabled(t *testing.T) {
+	// Ensure a clean environment
+	common.EnsureUninstall(false) // does not wait for pod deletion
+	for _, p := range supportedUpgradePaths {
+		t.Run(fmt.Sprintf("setup v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
+			t.Run("delete CRDs "+p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs))
+			t.Run("delete CRDs "+p.next.RuntimeVersion, common.DeleteCRD(p.next.CustomResourceDefs))
+		})
+	}
+
+	for _, p := range supportedUpgradePaths {
+		t.Run(fmt.Sprintf("v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
+			installOpts := common.TestOptions{
+				HAEnabled:             false,
+				MTLSEnabled:           true,
+				ApplyComponentChanges: true,
+				CheckResourceExists: map[common.Resource]bool{
+					common.CustomResourceDefs:  true,
+					common.ClusterRoles:        true,
+					common.ClusterRoleBindings: true,
+				},
+			}
+
+			upgradeOpts := common.TestOptions{
+				HAEnabled:   false,
+				MTLSEnabled: true,
+				// do not apply changes on upgrade, verify existing components
+				ApplyComponentChanges: false,
+				CheckResourceExists: map[common.Resource]bool{
+					common.CustomResourceDefs:  true,
+					common.ClusterRoles:        true,
+					common.ClusterRoleBindings: true,
+				},
+			}
+			tests := getTestsOnUpgrade(p, installOpts, upgradeOpts)
+
+			for _, tc := range tests {
+				t.Run(tc.Name, tc.Callable)
+			}
+		})
+	}
+}
+
+func TestUpgradePathHAModeMTLSDisabled(t *testing.T) {
+	// Ensure a clean environment
+	common.EnsureUninstall(false) // does not wait for pod deletion
+	for _, p := range supportedUpgradePaths {
+		t.Run(fmt.Sprintf("setup v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
+			t.Run("delete CRDs "+p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs))
+			t.Run("delete CRDs "+p.next.RuntimeVersion, common.DeleteCRD(p.next.CustomResourceDefs))
+		})
+	}
+
+	for _, p := range supportedUpgradePaths {
+		t.Run(fmt.Sprintf("v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
+			installOpts := common.TestOptions{
+				HAEnabled:             true,
+				MTLSEnabled:           false,
+				ApplyComponentChanges: true,
+				CheckResourceExists: map[common.Resource]bool{
+					common.CustomResourceDefs:  true,
+					common.ClusterRoles:        true,
+					common.ClusterRoleBindings: true,
+				},
+			}
+
+			upgradeOpts := common.TestOptions{
+				HAEnabled:   true,
+				MTLSEnabled: false,
+				// do not apply changes on upgrade, verify existing components
+				ApplyComponentChanges: false,
+				CheckResourceExists: map[common.Resource]bool{
+					common.CustomResourceDefs:  true,
+					common.ClusterRoles:        true,
+					common.ClusterRoleBindings: true,
+				},
+			}
+			tests := getTestsOnUpgrade(p, installOpts, upgradeOpts)
+
+			for _, tc := range tests {
+				t.Run(tc.Name, tc.Callable)
+			}
+		})
+	}
+}
+
+func TestUpgradePathHAModeMTLSEnabled(t *testing.T) {
+	// Ensure a clean environment
+	common.EnsureUninstall(false) // does not wait for pod deletion
+	for _, p := range supportedUpgradePaths {
+		t.Run(fmt.Sprintf("setup v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
+			t.Run("delete CRDs "+p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs))
+			t.Run("delete CRDs "+p.next.RuntimeVersion, common.DeleteCRD(p.next.CustomResourceDefs))
+		})
+	}
+
+	for _, p := range supportedUpgradePaths {
+		t.Run(fmt.Sprintf("v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
+			installOpts := common.TestOptions{
+				HAEnabled:             true,
+				MTLSEnabled:           true,
+				ApplyComponentChanges: true,
+				CheckResourceExists: map[common.Resource]bool{
+					common.CustomResourceDefs:  true,
+					common.ClusterRoles:        true,
+					common.ClusterRoleBindings: true,
+				},
+			}
+
+			upgradeOpts := common.TestOptions{
+				HAEnabled:   true,
+				MTLSEnabled: true,
+				// do not apply changes on upgrade, verify existing components
+				ApplyComponentChanges: false,
+				CheckResourceExists: map[common.Resource]bool{
+					common.CustomResourceDefs:  true,
+					common.ClusterRoles:        true,
+					common.ClusterRoleBindings: true,
+				},
+			}
+			tests := getTestsOnUpgrade(p, installOpts, upgradeOpts)
+
+			for _, tc := range tests {
+				t.Run(tc.Name, tc.Callable)
+			}
+		})
+	}
+}

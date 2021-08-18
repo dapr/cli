@@ -22,19 +22,20 @@ import (
 )
 
 var (
-	appPort         int
-	profilePort     int
-	appID           string
-	configFile      string
-	port            int
-	grpcPort        int
-	maxConcurrency  int
-	enableProfiling bool
-	logLevel        string
-	protocol        string
-	componentsPath  string
-	appSSL          bool
-	metricsPort     int
+	appPort            int
+	profilePort        int
+	appID              string
+	configFile         string
+	port               int
+	grpcPort           int
+	maxConcurrency     int
+	enableProfiling    bool
+	logLevel           string
+	protocol           string
+	componentsPath     string
+	appSSL             bool
+	metricsPort        int
+	maxRequestBodySize int
 )
 
 const (
@@ -66,21 +67,22 @@ var RunCmd = &cobra.Command{
 		}
 
 		output, err := standalone.Run(&standalone.RunConfig{
-			AppID:           appID,
-			AppPort:         appPort,
-			HTTPPort:        port,
-			GRPCPort:        grpcPort,
-			ConfigFile:      configFile,
-			Arguments:       args,
-			EnableProfiling: enableProfiling,
-			ProfilePort:     profilePort,
-			LogLevel:        logLevel,
-			MaxConcurrency:  maxConcurrency,
-			Protocol:        protocol,
-			PlacementHost:   viper.GetString("placement-host-address"),
-			ComponentsPath:  componentsPath,
-			AppSSL:          appSSL,
-			MetricsPort:     metricsPort,
+			AppID:              appID,
+			AppPort:            appPort,
+			HTTPPort:           port,
+			GRPCPort:           grpcPort,
+			ConfigFile:         configFile,
+			Arguments:          args,
+			EnableProfiling:    enableProfiling,
+			ProfilePort:        profilePort,
+			LogLevel:           logLevel,
+			MaxConcurrency:     maxConcurrency,
+			Protocol:           protocol,
+			PlacementHostAddr:  viper.GetString("placement-host-address"),
+			ComponentsPath:     componentsPath,
+			AppSSL:             appSSL,
+			MetricsPort:        metricsPort,
+			MaxRequestBodySize: maxRequestBodySize,
 		})
 		if err != nil {
 			print.FailureStatusEvent(os.Stdout, err.Error())
@@ -274,9 +276,11 @@ func init() {
 	RunCmd.Flags().IntVarP(&maxConcurrency, "app-max-concurrency", "", -1, "The concurrency level of the application, otherwise is unlimited")
 	RunCmd.Flags().StringVarP(&protocol, "app-protocol", "P", "http", "The protocol (gRPC or HTTP) Dapr uses to talk to the application")
 	RunCmd.Flags().StringVarP(&componentsPath, "components-path", "d", standalone.DefaultComponentsDirPath(), "The path for components directory")
-	RunCmd.Flags().String("placement-host-address", "localhost", "The host on which the placement service resides")
+	RunCmd.Flags().String("placement-host-address", "localhost", "The address of the placement service. Format is either <hostname> for default port or <hostname>:<port> for custom port")
 	RunCmd.Flags().BoolVar(&appSSL, "app-ssl", false, "Enable https when Dapr invokes the application")
 	RunCmd.Flags().IntVarP(&metricsPort, "metrics-port", "M", -1, "The port of metrics on dapr")
 	RunCmd.Flags().BoolP("help", "h", false, "Print this help message")
+	RunCmd.Flags().IntVarP(&maxRequestBodySize, "dapr-http-max-request-size", "", -1, "Max size of request body in MB")
+
 	RootCmd.AddCommand(RunCmd)
 }

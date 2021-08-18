@@ -36,6 +36,8 @@ else ifeq ($(shell echo $(LOCAL_ARCH) | head -c 5),aarch64)
 	TARGET_ARCH_LOCAL = arm64
 else ifeq ($(shell echo $(LOCAL_ARCH) | head -c 4),armv)
 	TARGET_ARCH_LOCAL = arm
+else ifeq ($(shell echo $(LOCAL_ARCH) | head -c 5),arm64)
+        TARGET_ARCH_LOCAL = arm64
 else
 	TARGET_ARCH_LOCAL = amd64
 endif
@@ -81,7 +83,8 @@ BASE_PACKAGE_NAME := github.com/dapr/cli
 OUT_DIR := ./dist
 
 BINS_OUT_DIR := $(OUT_DIR)/$(GOOS)_$(GOARCH)/$(BUILDTYPE_DIR)
-LDFLAGS := "-X main.version=$(CLI_VERSION) -X main.apiVersion=$(RUNTIME_API_VERSION)"
+LDFLAGS := "-X main.version=$(CLI_VERSION) -X main.apiVersion=$(RUNTIME_API_VERSION) \
+ -X $(BASE_PACKAGE_NAME)/pkg/standalone.gitcommit=$(GIT_COMMIT) -X $(BASE_PACKAGE_NAME)/pkg/standalone.gitversion=$(GIT_VERSION)"
 
 ################################################################################
 # Target: build                                                                #
@@ -141,7 +144,7 @@ test: test-deps
 ################################################################################
 .PHONY: test-e2e-k8s
 test-e2e-k8s: test-deps
-	gotestsum --jsonfile $(TEST_OUTPUT_FILE) --format standard-verbose -- -timeout 20m -count=1 -tags=e2e ./tests/e2e/kubernetes/... -run="TestKubernetes"
+	gotestsum --jsonfile $(TEST_OUTPUT_FILE) --format standard-verbose -- -timeout 20m -count=1 -tags=e2e ./tests/e2e/kubernetes/... 
 
 ################################################################################
 # Build, E2E Tests for Kubernetes											   #
@@ -154,7 +157,7 @@ e2e-build-run-k8s: build test-e2e-k8s
 ################################################################################
 .PHONY: test-e2e-upgrade
 test-e2e-upgrade: test-deps
-	gotestsum --jsonfile $(TEST_OUTPUT_FILE) --format standard-verbose -- -timeout 20m -count=1 -tags=e2e ./tests/e2e/kubernetes/... -run="TestUpgradePath"
+	gotestsum --jsonfile $(TEST_OUTPUT_FILE) --format standard-verbose -- -timeout 30m -count=1 -tags=e2e ./tests/e2e/upgrade/...
 
 ################################################################################
 # Build, E2E Tests for Kubernetes Upgrade									   #

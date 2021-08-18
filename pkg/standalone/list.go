@@ -20,27 +20,28 @@ import (
 
 // ListOutput represents the application ID, application port and creation time.
 type ListOutput struct {
-	AppID          string `csv:"APP ID"`
-	HTTPPort       int    `csv:"HTTP PORT"`
-	GRPCPort       int    `csv:"GRPC PORT"`
-	AppPort        int    `csv:"APP PORT"`
-	MetricsEnabled bool   `csv:"-"` // Not displayed, consumed by dashboard.
-	Command        string `csv:"COMMAND"`
-	Age            string `csv:"AGE"`
-	Created        string `csv:"CREATED"`
-	PID            int
+	AppID          string `csv:"APP ID"    json:"appId"          yaml:"appId"`
+	HTTPPort       int    `csv:"HTTP PORT" json:"httpPort"       yaml:"httpPort"`
+	GRPCPort       int    `csv:"GRPC PORT" json:"grpcPort"       yaml:"grpcPort"`
+	AppPort        int    `csv:"APP PORT"  json:"appPort"        yaml:"appPort"`
+	MetricsEnabled bool   `csv:"-"         json:"metricsEnabled" yaml:"metricsEnabled"` // Not displayed in table, consumed by dashboard.
+	Command        string `csv:"COMMAND"   json:"command"        yaml:"command"`
+	Age            string `csv:"AGE"       json:"age"            yaml:"age"`
+	Created        string `csv:"CREATED"   json:"created"        yaml:"created"`
+	PID            int    `csv:"PID"       json:"pid"            yaml:"pid"`
 }
 
 // runData is a placeholder for collected information linking cli and sidecar.
 type runData struct {
-	cliPID        int
-	sidecarPID    int
-	grpcPort      int
-	httpPort      int
-	appPort       int
-	appID         string
-	appCmd        string
-	enableMetrics bool
+	cliPID             int
+	sidecarPID         int
+	grpcPort           int
+	httpPort           int
+	appPort            int
+	appID              string
+	appCmd             string
+	enableMetrics      bool
+	maxRequestBodySize int
 }
 
 func (d *daprProcess) List() ([]ListOutput, error) {
@@ -118,15 +119,21 @@ func List() ([]ListOutput, error) {
 				continue
 			}
 
+			maxRequestBodySize, err := strconv.Atoi(argumentsMap["--dapr-http-max-request-size"])
+			if err != nil {
+				continue
+			}
+
 			run := runData{
-				cliPID:        cliPID,
-				sidecarPID:    proc.Pid(),
-				grpcPort:      grpcPort,
-				httpPort:      httpPort,
-				appPort:       appPort,
-				appID:         appID,
-				appCmd:        appCmd,
-				enableMetrics: enableMetrics,
+				cliPID:             cliPID,
+				sidecarPID:         proc.Pid(),
+				grpcPort:           grpcPort,
+				httpPort:           httpPort,
+				appPort:            appPort,
+				appID:              appID,
+				appCmd:             appCmd,
+				enableMetrics:      enableMetrics,
+				maxRequestBodySize: maxRequestBodySize,
 			}
 
 			cliToSidecarMap[cliPID] = &run
@@ -173,7 +180,10 @@ func List() ([]ListOutput, error) {
 				listRow.Command = utils.TruncateString(run.appCmd, 20)
 			}
 
-			list = append(list, listRow)
+			// filter only dashboard instance
+			if listRow.AppID != "" {
+				list = append(list, listRow)
+			}
 		}
 	}
 

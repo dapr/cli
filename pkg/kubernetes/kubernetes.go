@@ -11,9 +11,11 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/dapr/cli/pkg/print"
+	cli_ver "github.com/dapr/cli/pkg/version"
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
@@ -80,6 +82,18 @@ func helmConfig(namespace string) (*helm.Configuration, error) {
 	}
 	err := ac.Init(flags, namespace, "secret", debugLogf)
 	return &ac, err
+}
+
+func getVersion(version string) (string, error) {
+	if version == latestVersion {
+		var err error
+		version, err = cli_ver.GetDaprVersion()
+		if err != nil {
+			return "", fmt.Errorf("cannot get the latest release version: %s", err)
+		}
+		version = strings.TrimPrefix(version, "v")
+	}
+	return version, nil
 }
 
 func createTempDir() (string, error) {
@@ -155,6 +169,16 @@ func install(config InitConfiguration) error {
 	}
 
 	daprChart, err := daprChart(config.Version, helmConf)
+	if err != nil {
+		return err
+	}
+
+	version, err := getVersion(config.Version)
+	if err != nil {
+		return err
+	}
+
+	err = applyCRDs(fmt.Sprintf("v%s", version))
 	if err != nil {
 		return err
 	}

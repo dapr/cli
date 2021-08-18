@@ -6,6 +6,12 @@
 name: E2E - Self-hosted
 
 on:
+  push:
+    branches:
+      - master
+      - release-*
+  schedule:
+    - cron: '0 */3 * * *'
   pull_request:
     branches:
       - master
@@ -41,23 +47,10 @@ jobs:
         uses: actions/checkout@v2
       - name: Install docker - MacOS
         if: matrix.os == 'macos-latest'
-        run: |
-          # Taken from https://github.com/actions/virtual-environments/issues/1143#issuecomment-652264388
-          brew install --cask docker
-          xattr -d -r com.apple.quarantine /Applications/Docker.app
-          sudo /bin/cp /Applications/Docker.app/Contents/Library/LaunchServices/com.docker.vmnetd /Library/PrivilegedHelperTools
-          sudo /bin/cp /Applications/Docker.app/Contents/Resources/com.docker.vmnetd.plist /Library/LaunchDaemons/
-          sudo /bin/chmod 544 /Library/PrivilegedHelperTools/com.docker.vmnetd
-          sudo /bin/chmod 644 /Library/LaunchDaemons/com.docker.vmnetd.plist
-          sudo /bin/launchctl load /Library/LaunchDaemons/com.docker.vmnetd.plist
-          open -g -a /Applications/Docker.app
-          i=0
-          while ! docker system info &>/dev/null; do
-            (( i++ == 0 )) && printf %s '-- Waiting for Docker to finish starting up...' || printf '.'
-            sleep 1
-          done
-          (( i )) && printf '\n'
-          echo "-- Docker is ready."
+        uses: docker-practice/actions-setup-docker@v1
+        with:
+          docker_buildx: false
+          docker_version: 20.10
       - name: Run E2E tests 
         run: |
           export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-standalone.json

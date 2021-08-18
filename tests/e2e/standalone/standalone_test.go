@@ -10,6 +10,7 @@ package standalone_test
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -31,8 +32,8 @@ import (
 )
 
 const (
-	daprRuntimeVersion   = "1.1.1"
-	daprDashboardVersion = "0.6.0"
+	daprRuntimeVersion   = "1.3.0"
+	daprDashboardVersion = "0.7.0"
 )
 
 func TestStandaloneInstall(t *testing.T) {
@@ -80,11 +81,11 @@ func TestNegativeScenarios(t *testing.T) {
 
 	t.Run("stop without install", func(t *testing.T) {
 		output, err := spawn.Command(daprPath, "stop", "-a", "test")
-		require.Error(t, err, "expected error status on list without install")
+		require.NoError(t, err, "expected no error on stop without install")
 		require.Contains(t, output, "failed to stop app id test: couldn't find app id test", "expected output to match")
 	})
 
-	t.Run("stop unkonwn flag", func(t *testing.T) {
+	t.Run("stop unknown flag", func(t *testing.T) {
 		output, err := spawn.Command(daprPath, "stop", "-p", "test")
 		require.Error(t, err, "expected error on stop with unknown flag")
 		require.Contains(t, output, "Error: unknown shorthand flag: 'p' in -p\nUsage:", "expected usage to be printed")
@@ -93,7 +94,7 @@ func TestNegativeScenarios(t *testing.T) {
 
 	t.Run("run unknown flags", func(t *testing.T) {
 		output, err := spawn.Command(daprPath, "run", "--flag")
-		require.Error(t, err, "expected error on run unkonwn flag")
+		require.Error(t, err, "expected error on run unknown flag")
 		require.Contains(t, output, "Error: unknown flag: --flag\nUsage:", "expected usage to be printed")
 		require.Contains(t, output, "-a, --app-id string", "expected usage to be printed")
 		require.Contains(t, output, "The id for your application, used for service discovery", "expected usage to be printed")
@@ -111,6 +112,13 @@ func TestNegativeScenarios(t *testing.T) {
 		path = filepath.Join(homeDir, ".dapr")
 		require.Contains(t, output, "WARNING: "+path+" does not exist", "expected output to contain message")
 		require.Contains(t, output, "Dapr has been removed successfully")
+	})
+
+	t.Run("filter dashboard instance from list", func(t *testing.T) {
+		spawn.Command(daprPath, "dashboard", "-p", "5555")
+		cmd, err := spawn.Command(daprPath, "list")
+		require.NoError(t, err, "expected no error status on list without install")
+		require.Equal(t, "No Dapr instances found.\n", cmd)
 	})
 }
 
@@ -395,7 +403,26 @@ func testList(t *testing.T) {
 		output, err := spawn.Command(getDaprPath(), "list")
 		t.Log(output)
 		require.NoError(t, err, "dapr list failed")
-		listtOutputCheck(t, output)
+		listOutputCheck(t, output)
+
+		output, err = spawn.Command(getDaprPath(), "list", "-o", "table")
+		t.Log(output)
+		require.NoError(t, err, "dapr list failed")
+		listOutputCheck(t, output)
+
+		output, err = spawn.Command(getDaprPath(), "list", "-o", "json")
+		t.Log(output)
+		require.NoError(t, err, "dapr list failed")
+		listJsonOutputCheck(t, output)
+
+		output, err = spawn.Command(getDaprPath(), "list", "-o", "yaml")
+		t.Log(output)
+		require.NoError(t, err, "dapr list failed")
+		listYamlOutputCheck(t, output)
+
+		output, err = spawn.Command(getDaprPath(), "list", "-o", "invalid")
+		t.Log(output)
+		require.Error(t, err, "dapr list should fail with an invalid output format")
 
 		// We can call stop so as not to wait for the app to time out
 		output, err = spawn.Command(getDaprPath(), "stop", "--app-id", "dapr_e2e_list")
@@ -462,11 +489,11 @@ func testPublish(t *testing.T) {
 			assert.Equal(t, map[string]interface{}{"cli": "is_working"}, event.Data)
 		})
 
-		t.Run("publish from non-existant file fails", func(t *testing.T) {
+		t.Run("publish from non-existent file fails", func(t *testing.T) {
 			output, err := spawn.Command(daprPath, "publish", "--publish-app-id", "pub_e2e", "--pubsub", "pubsub", "--topic", "sample", "--data-file", "a/file/that/does/not/exist")
 			t.Log(output)
 			assert.Contains(t, output, "Error reading payload from 'a/file/that/does/not/exist'. Error: ")
-			assert.Error(t, err, "a non-existant --data-file should fail with error")
+			assert.Error(t, err, "a non-existent --data-file should fail with error")
 		})
 
 		t.Run("publish only one of data and data-file", func(t *testing.T) {
@@ -476,7 +503,6 @@ func testPublish(t *testing.T) {
 			assert.Contains(t, output, "Only one of --data and --data-file allowed in the same publish command")
 
 		})
-
 
 		output, err := spawn.Command(getDaprPath(), "stop", "--app-id", "pub_e2e")
 		t.Log(output)
@@ -525,10 +551,10 @@ func testInvoke(t *testing.T) {
 			assert.Contains(t, output, "App invoked successfully")
 		})
 
-		t.Run("data from non-existant file fails", func(t *testing.T) {
+		t.Run("data from non-existent file fails", func(t *testing.T) {
 			output, err := spawn.Command(daprPath, "invoke", "--app-id", "invoke_e2e", "--method", "test", "--data-file", "a/file/that/does/not/exist")
 			t.Log(output)
-			assert.Error(t, err, "a non-existant --data-file should fail with error")
+			assert.Error(t, err, "a non-existent --data-file should fail with error")
 			assert.Contains(t, output, "Error reading payload from 'a/file/that/does/not/exist'. Error: ")
 		})
 
@@ -547,7 +573,7 @@ func testInvoke(t *testing.T) {
 
 }
 
-func listtOutputCheck(t *testing.T, output string) {
+func listOutputCheck(t *testing.T, output string) {
 	lines := strings.Split(output, "\n")[1:] // remove header
 	// only one app is runnning at this time
 	fields := strings.Fields(lines[0])
@@ -557,4 +583,30 @@ func listtOutputCheck(t *testing.T, output string) {
 	assert.Equal(t, "3555", fields[1], "expected http port to match")
 	assert.Equal(t, "4555", fields[2], "expected grpc port to match")
 	assert.Equal(t, "0", fields[3], "expected app port to match")
+}
+
+func listJsonOutputCheck(t *testing.T, output string) {
+	var result map[string]interface{}
+
+	err := json.Unmarshal([]byte(output), &result)
+
+	assert.NoError(t, err, "output was not valid JSON")
+
+	assert.Equal(t, "dapr_e2e_list", result["appId"], "expected name to match")
+	assert.Equal(t, 3555, int(result["httpPort"].(float64)), "expected http port to match")
+	assert.Equal(t, 4555, int(result["grpcPort"].(float64)), "expected grpc port to match")
+	assert.Equal(t, 0, int(result["appPort"].(float64)), "expected app port to match")
+}
+
+func listYamlOutputCheck(t *testing.T, output string) {
+	var result map[string]interface{}
+
+	err := yaml.Unmarshal([]byte(output), &result)
+
+	assert.NoError(t, err, "output was not valid YAML")
+
+	assert.Equal(t, "dapr_e2e_list", result["appId"], "expected name to match")
+	assert.Equal(t, 3555, result["httpPort"], "expected http port to match")
+	assert.Equal(t, 4555, result["grpcPort"], "expected grpc port to match")
+	assert.Equal(t, 0, result["appPort"], "expected app port to match")
 }
