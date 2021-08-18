@@ -141,7 +141,7 @@ test-deps:
 ################################################################################
 .PHONY: test
 test: test-deps
-	gotestsum --jsonfile $(TEST_OUTPUT_FILE) --format standard-quiet -- ./pkg/... $(COVERAGE_OPTS)
+	gotestsum --jsonfile $(TEST_OUTPUT_FILE) --format standard-quiet -- ./pkg/... ./utils/... $(COVERAGE_OPTS)
 
 ################################################################################
 # E2E Tests for Kubernetes												       #
