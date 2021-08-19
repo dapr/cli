@@ -768,8 +768,8 @@ func moveFileToPath(filepath string, installLocation string) (string, error) {
 
 	if strings.HasPrefix(fileName, daprRuntimeFilePrefix) && installLocation != "" {
 		color.Set(color.FgYellow)
-		fmt.Printf("\nDapr runtime installed to %s, you may run the following to add it to your path if you want to run daprd directly:\n", destDir)
-		fmt.Printf("    export PATH=$PATH:%s\n", destDir)
+		fmt.Printf("\nDapr runtime installed to %s, you may run the following to add it to your path if you want to run daprd directly:\n", destDir) //nolint
+		fmt.Printf("    export PATH=$PATH:%s\n", destDir)                                                                                            //nolint
 		color.Unset()
 	}
 

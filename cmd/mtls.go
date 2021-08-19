@@ -36,7 +36,7 @@ dapr mtls -k
 		if enabled {
 			status = "enabled"
 		}
-		fmt.Printf("Mutual TLS is %s in your Kubernetes cluster \n", status)
+		fmt.Printf("Mutual TLS is %s in your Kubernetes cluster \n", status) //nolint
 	},
 }
 

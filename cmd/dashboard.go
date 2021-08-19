@@ -61,12 +61,12 @@ dapr dashboard -k -p 9999
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		if dashboardVersionCmd {
-			fmt.Println(standalone.GetDashboardVersion())
+			fmt.Println(standalone.GetDashboardVersion()) //nolint
 			os.Exit(0)
 		}
 
 		if dashboardLocalPort <= 0 {
-			print.FailureStatusEvent(os.Stdout, "Invalid port: %v", dashboardLocalPort)
+			print.FailureStatusEvent(os.Stdout, "Invalid port: %v", dashboardLocalPort) //nolint
 			os.Exit(1)
 		}
 

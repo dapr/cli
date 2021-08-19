@@ -3,7 +3,7 @@
 // Licensed under the MIT License.
 // ------------------------------------------------------------
 
-package print
+package print //nolint
 
 import (
 	"encoding/json"

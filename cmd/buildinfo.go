@@ -20,7 +20,7 @@ var BuildInfoCmd = &cobra.Command{
 dapr build-info
 `,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(standalone.GetBuildInfo(RootCmd.Version))
+		fmt.Println(standalone.GetBuildInfo(RootCmd.Version)) //nolint
 	},
 }
 

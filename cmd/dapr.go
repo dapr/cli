@@ -44,7 +44,7 @@ func Execute(version, apiVersion string) {
 	setVersion()
 
 	if err := RootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		fmt.Println(err) //nolint
 		os.Exit(-1)
 	}
 }

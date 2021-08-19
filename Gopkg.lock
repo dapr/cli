@@ -121,7 +121,7 @@
 
 [[projects]]
   digest = "1:4ddc17aeaa82cb18c5f0a25d7c253a10682f518f4b2558a82869506eec223d76"
-  name = "github.com/docker/distribution"
+  name = "github.com/docker/distribution v0.0.0-20191216044856-a8371794149d"
   packages = [
     "digestset",
     "reference",
