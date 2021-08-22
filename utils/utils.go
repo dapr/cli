@@ -25,6 +25,7 @@ import (
 	"os"
 	"os/exec"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -38,6 +39,10 @@ import (
 
 const (
 	socketFormat = "%s/dapr-%s-%s.socket"
+	ProcTCP      = "/proc/net/tcp"
+	ProcUDP      = "/proc/net/udp"
+	ProcTCP6     = "/proc/net/tcp6"
+	ProcUDP6     = "/proc/net/udp6"
 )
 
 // PrintTable to print in the table format.
@@ -244,4 +249,120 @@ func GetDefaultRegistry(githubContainerRegistryName, dockerContainerRegistryName
 	default:
 		return "", fmt.Errorf("environment variable %q can only be set to %s", "DAPR_DEFAULT_IMAGE_REGISTRY", "GHCR")
 	}
+}
+
+type SocketInfo struct {
+	IP       string
+	Port     int64
+	Protocol string
+}
+
+// Remove empty string from array.
+func removeEmptyStr(array []string) []string {
+	var result []string
+	for _, s := range array {
+		if s != "" {
+			result = append(result, s)
+		}
+	}
+	return result
+}
+
+// Convert hexadecimal to decimal.
+func hexToDec(h string) int64 {
+	d, _ := strconv.ParseInt(h, 16, 32)
+	return d
+}
+
+// Convert the ipv4 to decimal.
+func convertIP(ip string) string {
+	var out string
+
+	// Check ip size if greater than 8 is a ipv6 type.
+	if len(ip) > 8 {
+		i := []string{
+			ip[30:32],
+			ip[28:30],
+			ip[26:28],
+			ip[24:26],
+			ip[22:24],
+			ip[20:22],
+			ip[18:20],
+			ip[16:18],
+			ip[14:16],
+			ip[12:14],
+			ip[10:12],
+			ip[8:10],
+			ip[6:8],
+			ip[4:6],
+			ip[2:4],
+			ip[0:2],
+		}
+		out = fmt.Sprintf("%v%v:%v%v:%v%v:%v%v:%v%v:%v%v:%v%v:%v%v",
+			i[14], i[15], i[13], i[12],
+			i[10], i[11], i[8], i[9],
+			i[6], i[7], i[4], i[5],
+			i[2], i[3], i[0], i[1])
+	} else {
+		i := []int64{
+			hexToDec(ip[6:8]),
+			hexToDec(ip[4:6]),
+			hexToDec(ip[2:4]),
+			hexToDec(ip[0:2]),
+		}
+		out = fmt.Sprintf("%v.%v.%v.%v", i[0], i[1], i[2], i[3])
+	}
+	return out
+}
+
+// Format local ip and port.
+func formatLocalSocket(line string) (string, int64) {
+	lineArray := removeEmptyStr(strings.Split(strings.TrimSpace(line), " "))
+	ipPort := strings.Split(lineArray[1], ":")
+	ip := convertIP(ipPort[0])
+	port := hexToDec(ipPort[1])
+	return ip, port
+}
+
+// Get sockets from tcp or udp file.
+func readSockets(protocol string) ([]string, error) {
+	var procPath string
+	switch protocol {
+	case "tcp":
+		procPath = ProcTCP
+	case "udp":
+		procPath = ProcUDP
+	case "tcp6":
+		procPath = ProcTCP6
+	case "udp6":
+		procPath = ProcUDP6
+	default:
+		err := errors.New(protocol + " is a invalid protocol, tcp and udp only")
+		return nil, err
+	}
+
+	data, err := ioutil.ReadFile(procPath)
+	if err != nil {
+		err = errors.New("read proc file error:" + err.Error())
+		return nil, err
+	}
+	lines := strings.Split(string(data), "\n")
+
+	// Return lines without Header line and blank line on the end.
+	return lines[1 : len(lines)-1], nil
+}
+
+// Get define protocol local socket info.
+func GetDefineProtocolSockets(protocol string) ([]SocketInfo, error) {
+	sockets := []SocketInfo{}
+	tcpData, err := readSockets(protocol)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, line := range tcpData {
+		ip, port := formatLocalSocket(line)
+		sockets = append(sockets, SocketInfo{ip, port, protocol})
+	}
+	return sockets, nil
 }

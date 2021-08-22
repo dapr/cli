@@ -56,3 +56,46 @@ func TestIsAddressLegal(t *testing.T) {
 		assert.Equal(t, a.except, isLegal, "Expected status not equal")
 	}
 }
+
+func TestRemoveEmptyStr(t *testing.T) {
+	StrArray := []struct {
+		strArray []string
+		except   []string
+	}{
+		{[]string{"d", "a", "", "p", "r"}, []string{"d", "a", "p", "r"}},
+		{[]string{""}, []string{}},
+	}
+	for _, s := range StrArray {
+		r := removeEmptyStr(s.strArray)
+		assert.ElementsMatch(t, r, s.except)
+	}
+}
+
+func TestHexToDec(t *testing.T) {
+	hexInfo := []struct {
+		hex    string
+		except int64
+	}{
+		{"8BCD", 35789},
+		{"0016", 22},
+	}
+
+	for _, h := range hexInfo {
+		d := hexToDec(h.hex)
+		assert.Equal(t, d, h.except)
+	}
+}
+
+func TestConvertIP(t *testing.T) {
+	IPInfo := []struct {
+		ip     string
+		except string
+	}{
+		{"0100007F", "127.0.0.1"},
+		{"0289A8C0", "192.168.137.2"},
+	}
+	for _, ipInfo := range IPInfo {
+		r := convertIP(ipInfo.ip)
+		assert.Equal(t, r, ipInfo.except)
+	}
+}
