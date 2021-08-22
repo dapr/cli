@@ -260,7 +260,7 @@ func DashboardForwardTestOnSocket(opts TestOptions) func(t *testing.T) {
 		daprPath := getDaprPath()
 		listenPort := "5555"
 		listenAddress := "0.0.0.0"
-		args := []string{"dashboard", "-k", "-p", listenPort, "-a", listenAddress}
+		args := []string{"dashboard", "-k", "-p", listenPort, "-a", listenAddress, "-n", DaprTestNamespace}
 		cmd := exec.Command(daprPath, args...)
 
 		defer func() {
