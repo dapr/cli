@@ -273,16 +273,19 @@ func DashboardForwardTestOnSocket(opts TestOptions) func(t *testing.T) {
 			cmd.Stderr = os.Stderr
 
 			err := cmd.Start()
-			require.NoError(t, err, "expected no error status on dashboard start")
+			if err != nil {
+				t.Logf("start dapr dashboard error %s", err)
+				return
+			}
 
-			err = cmd.Wait()
-			require.NoError(t, err, "expected no error status on dashboard wait")
+			cmd.Wait()
 		}()
 
 		time.Sleep(3 * time.Second)
 
 		sockets, err := utils.GetDefineProtocolSockets("tcp")
 		require.NoError(t, err, "expected no error status on get sockets")
+
 		var isSocketListen bool
 		for _, socket := range sockets {
 			if socket.IP == listenAddress && strconv.Itoa(int(socket.Port)) == listenPort {
@@ -290,6 +293,7 @@ func DashboardForwardTestOnSocket(opts TestOptions) func(t *testing.T) {
 				break
 			}
 		}
+
 		assert.True(t, isSocketListen)
 	}
 }
