@@ -50,6 +50,12 @@ var ConfigurationsCmd = &cobra.Command{
 	Example: `
 # List Kubernetes Dapr configurations
 dapr configurations -k
+
+# List define namespace Dapr configurations in Kubernetes mode
+dapr configurations -k -n default
+
+# List all namespaces Dapr configurations in Kubernetes mode
+dapr configurations -k --all-namespaces
 `,
 }
 

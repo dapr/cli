@@ -559,10 +559,11 @@ func componentOutputCheck(t *testing.T, output string, all bool) {
 
 	// Fields splits on space, so Created time field might be split again.
 	assert.GreaterOrEqual(t, len(fields), 6, "expected at least 6 fields in components output")
-	assert.Equal(t, "statestore", fields[0], "expected name to match")
-	assert.Equal(t, "state.redis", fields[1], "expected type to match")
-	assert.Equal(t, "v1", fields[2], "expected version to match")
-	assert.Equal(t, "app1", fields[3], "expected scopes to match")
+	assert.Equal(t, "default", fields[0], "expected name to match")
+	assert.Equal(t, "statestore", fields[1], "expected name to match")
+	assert.Equal(t, "state.redis", fields[2], "expected type to match")
+	assert.Equal(t, "v1", fields[3], "expected version to match")
+	assert.Equal(t, "app1", fields[4], "expected scopes to match")
 }
 
 func validatePodsOnInstallUpgrade(t *testing.T, details VersionDetails) {

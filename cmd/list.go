@@ -63,6 +63,12 @@ dapr list
 
 # List Dapr instances in Kubernetes mode
 dapr list -k
+
+# List define namespace Dapr instances in Kubernetes mode
+dapr list -k -n default
+
+# List all namespaces Dapr instances in Kubernetes mode
+dapr list -k --all-namespaces
 `,
 	PreRun: func(cmd *cobra.Command, args []string) {
 		if outputFormat != "" && outputFormat != "json" && outputFormat != "yaml" && outputFormat != "table" {
