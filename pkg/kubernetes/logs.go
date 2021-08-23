@@ -19,6 +19,19 @@ const (
 	appIDContainerArgName = "--app-id"
 )
 
+func findappid(container corev1.Container, appID string, pod corev1.Pod, podName string, foundDaprPod bool) {
+	for i, arg := range container.Args {
+		if arg == appIDContainerArgName {
+			id := container.Args[i+1]
+			if id == appID {
+				podName = pod.Name
+				foundDaprPod = true
+				break
+			}
+		}
+	}
+}
+
 // Logs fetches Dapr sidecar logs from Kubernetes.
 func Logs(appID, podName, namespace string) error {
 	client, err := Client()
@@ -45,16 +58,7 @@ func Logs(appID, podName, namespace string) error {
 			for _, container := range pod.Spec.Containers {
 				if container.Name == daprdContainerName {
 					// find app ID
-					for i, arg := range container.Args {
-						if arg == appIDContainerArgName {
-							id := container.Args[i+1]
-							if id == appID {
-								podName = pod.Name
-								foundDaprPod = true
-								break
-							}
-						}
-					}
+					findappid(container, appID, pod, podName, foundDaprPod)
 				}
 			}
 		}

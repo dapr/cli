@@ -64,7 +64,7 @@ dapr invoke --app-id target --method sample --verb GET
 		if response != "" {
 			fmt.Println(response)
 		}
-		print.SuccessStatusEvent(os.Stdout, "App invoked successfully")
+		print.SuccessStatusEvent(os.Stdout, "App invoked successfully") //nolint
 	},
 }
 

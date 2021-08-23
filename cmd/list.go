@@ -38,7 +38,7 @@ func outputList(list interface{}, length int) {
 
 		// Standalone mode displays a separate message when no instances are found.
 		if !kubernetesMode && length == 0 {
-			fmt.Println("No Dapr instances found.")
+			fmt.Println("No Dapr instances found.") //nolint
 			return
 		}
 

@@ -63,7 +63,7 @@ var RunCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
-			fmt.Println(print.WhiteBold("WARNING: no application command found."))
+			fmt.Println(print.WhiteBold("WARNING: no application command found.")) //nolint
 		}
 
 		output, err := standalone.Run(&standalone.RunConfig{
