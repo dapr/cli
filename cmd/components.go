@@ -20,6 +20,8 @@ import (
 
 	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/pkg/print"
+
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
@@ -32,7 +34,10 @@ var ComponentsCmd = &cobra.Command{
 	Short: "List all Dapr components. Supported platforms: Kubernetes",
 	Run: func(cmd *cobra.Command, args []string) {
 		if kubernetesMode {
-			err := kubernetes.PrintComponents(componentsName, componentsOutputFormat)
+			if allNamespaces {
+				resourceNamespace = meta_v1.NamespaceAll
+			}
+			err := kubernetes.PrintComponents(componentsName, resourceNamespace, componentsOutputFormat)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)
@@ -49,7 +54,9 @@ dapr components -k
 }
 
 func init() {
-	ComponentsCmd.Flags().StringVarP(&componentsName, "name", "n", "", "The components name to be printed (optional)")
+	ComponentsCmd.Flags().BoolVarP(&allNamespaces, "all-namespaces", "A", false, "If true, list all Dapr pods in all namespaces")
+	ComponentsCmd.Flags().StringVarP(&componentsName, "name", "", "", "The components name to be printed (optional)")
+	ComponentsCmd.Flags().StringVarP(&resourceNamespace, "namespace", "n", "default", "List Define namespace pod in a Kubernetes cluster")
 	ComponentsCmd.Flags().StringVarP(&componentsOutputFormat, "output", "o", "list", "Output format (options: json or yaml or list)")
 	ComponentsCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "List all Dapr components in a Kubernetes cluster")
 	ComponentsCmd.Flags().BoolP("help", "h", false, "Print this help message")

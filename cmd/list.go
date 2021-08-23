@@ -24,6 +24,8 @@ import (
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/pkg/standalone"
 	"github.com/dapr/cli/utils"
+
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var outputFormat string
@@ -70,7 +72,11 @@ dapr list -k
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if kubernetesMode {
-			list, err := kubernetes.List()
+			if allNamespaces {
+				resourceNamespace = meta_v1.NamespaceAll
+			}
+
+			list, err := kubernetes.List(resourceNamespace)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)
@@ -95,7 +101,9 @@ dapr list -k
 }
 
 func init() {
+	ListCmd.Flags().BoolVarP(&allNamespaces, "all-namespaces", "A", false, "If true, list all Dapr pods in all namespaces")
 	ListCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "List all Dapr pods in a Kubernetes cluster")
+	ListCmd.Flags().StringVarP(&resourceNamespace, "namespace", "n", "default", "List Define namespace pod in a Kubernetes cluster")
 	ListCmd.Flags().StringVarP(&outputFormat, "output", "o", "", "The output format of the list. Valid values are: json, yaml, or table (default)")
 	ListCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	RootCmd.AddCommand(ListCmd)
