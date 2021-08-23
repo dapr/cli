@@ -60,9 +60,9 @@ dapr components -k --all-namespaces
 }
 
 func init() {
-	ComponentsCmd.Flags().BoolVarP(&allNamespaces, "all-namespaces", "A", false, "If true, list all Dapr pods in all namespaces")
+	ComponentsCmd.Flags().BoolVarP(&allNamespaces, "all-namespaces", "A", false, "If true, list all Dapr components in all namespaces")
 	ComponentsCmd.Flags().StringVarP(&componentsName, "name", "", "", "The components name to be printed (optional)")
-	ComponentsCmd.Flags().StringVarP(&resourceNamespace, "namespace", "n", "default", "List Define namespace pod in a Kubernetes cluster")
+	ComponentsCmd.Flags().StringVarP(&resourceNamespace, "namespace", "n", "default", "List Define namespace components in a Kubernetes cluster")
 	ComponentsCmd.Flags().StringVarP(&componentsOutputFormat, "output", "o", "list", "Output format (options: json or yaml or list)")
 	ComponentsCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "List all Dapr components in a Kubernetes cluster")
 	ComponentsCmd.Flags().BoolP("help", "h", false, "Print this help message")
