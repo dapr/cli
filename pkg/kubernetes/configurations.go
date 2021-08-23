@@ -28,8 +28,8 @@ import (
 )
 
 type configurationsOutput struct {
-	Name           string `csv:"Name"`
 	Namespace      string `csv:"Namespace"`
+	Name           string `csv:"Name"`
 	TracingEnabled bool   `csv:"TRACING-ENABLED"`
 	MetricsEnabled bool   `csv:"METRICS-ENABLED"`
 	Age            string `csv:"AGE"`
