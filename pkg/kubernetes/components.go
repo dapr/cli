@@ -10,6 +10,7 @@ import (
 	"os"
 	"strings"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/dapr/cli/pkg/age"
@@ -35,7 +36,18 @@ func PrintComponents(name, outputFormat string) error {
 			return nil, err
 		}
 
-		return client.ComponentsV1alpha1().Components(meta_v1.NamespaceAll).List(meta_v1.ListOptions{})
+		list, err := client.ComponentsV1alpha1().Components(meta_v1.NamespaceAll).List(meta_v1.ListOptions{})
+		// This means that the Dapr Components CRD is not installed and
+		// therefore no component items exist.
+		if apierrors.IsNotFound(err) {
+			list = &v1alpha1.ComponentList{
+				Items: []v1alpha1.Component{},
+			}
+		} else if err != nil {
+			return nil, err
+		}
+
+		return list, nil
 	}, name, outputFormat)
 }
 

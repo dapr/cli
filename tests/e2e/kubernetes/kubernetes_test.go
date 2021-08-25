@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	currentRuntimeVersion   = "1.2.0"
-	currentDashboardVersion = "0.6.0"
+	currentRuntimeVersion   = "1.3.0"
+	currentDashboardVersion = "0.7.0"
 )
 
 var currentVersionDetails = common.VersionDetails{
@@ -28,8 +28,7 @@ var currentVersionDetails = common.VersionDetails{
 
 func ensureCleanEnv(t *testing.T, details common.VersionDetails) {
 	// Ensure a clean environment
-	common.EnsureUninstall() // does not wait for pod deletion
-	t.Run("delete CRDs "+details.RuntimeVersion, common.DeleteCRD(details.CustomResourceDefs))
+	common.EnsureUninstall(true) // does not wait for pod deletion
 }
 
 func TestKubernetesNonHAModeMTLSDisabled(t *testing.T) {
@@ -143,9 +142,9 @@ func TestKubernetesHAModeMTLSEnabled(t *testing.T) {
 	})...)
 
 	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
+		UninstallAll: true,
 		CheckResourceExists: map[common.Resource]bool{
-			// TODO Related to https://github.com/dapr/cli/issues/656
-			common.CustomResourceDefs:  true,
+			common.CustomResourceDefs:  false,
 			common.ClusterRoles:        false,
 			common.ClusterRoleBindings: false,
 		},
