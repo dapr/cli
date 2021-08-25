@@ -53,7 +53,7 @@ dapr uninstall -k
 		}
 
 		if err != nil {
-			print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error removing Dapr: %s", err))
+			print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Error removing Dapr: %s", err))
 		} else {
 			print.SuccessStatusEvent(os.Stdout, "Dapr has been removed successfully")
 		}
