@@ -85,7 +85,7 @@ var RunCmd = &cobra.Command{
 			MaxRequestBodySize: maxRequestBodySize,
 		})
 		if err != nil {
-			print.FailureStatusEvent(os.Stdout, err.Error())
+			print.FailureStatusEvent(os.Stderr, err.Error())
 			return
 		}
 
@@ -109,7 +109,7 @@ var RunCmd = &cobra.Command{
 
 			err = output.DaprCMD.Start()
 			if err != nil {
-				print.FailureStatusEvent(os.Stdout, err.Error())
+				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)
 			}
 
@@ -117,7 +117,7 @@ var RunCmd = &cobra.Command{
 				daprdErr := output.DaprCMD.Wait()
 
 				if daprdErr != nil {
-					print.FailureStatusEvent(os.Stdout, "The daprd process exited with error code: %s", daprdErr.Error())
+					print.FailureStatusEvent(os.Stderr, "The daprd process exited with error code: %s", daprdErr.Error())
 
 				} else {
 					print.SuccessStatusEvent(os.Stdout, "Exited Dapr successfully")
@@ -163,14 +163,14 @@ var RunCmd = &cobra.Command{
 
 			stdErrPipe, pipeErr := output.AppCMD.StderrPipe()
 			if pipeErr != nil {
-				print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error creating stderr for App: %s", err.Error()))
+				print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Error creating stderr for App: %s", err.Error()))
 				appRunning <- false
 				return
 			}
 
 			stdOutPipe, pipeErr := output.AppCMD.StdoutPipe()
 			if pipeErr != nil {
-				print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error creating stdout for App: %s", err.Error()))
+				print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Error creating stdout for App: %s", err.Error()))
 				appRunning <- false
 				return
 			}
@@ -191,7 +191,7 @@ var RunCmd = &cobra.Command{
 
 			err = output.AppCMD.Start()
 			if err != nil {
-				print.FailureStatusEvent(os.Stdout, err.Error())
+				print.FailureStatusEvent(os.Stderr, err.Error())
 				appRunning <- false
 				return
 			}
@@ -200,7 +200,7 @@ var RunCmd = &cobra.Command{
 				appErr := output.AppCMD.Wait()
 
 				if appErr != nil {
-					print.FailureStatusEvent(os.Stdout, "The App process exited with error code: %s", appErr.Error())
+					print.FailureStatusEvent(os.Stderr, "The App process exited with error code: %s", appErr.Error())
 				} else {
 					print.SuccessStatusEvent(os.Stdout, "Exited App successfully")
 				}
@@ -215,7 +215,7 @@ var RunCmd = &cobra.Command{
 			// Start App failed, try to stop Dapr and exit.
 			err = output.DaprCMD.Process.Kill()
 			if err != nil {
-				print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Start App failed, try to stop Dapr Error: %s", err))
+				print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Start App failed, try to stop Dapr Error: %s", err))
 			} else {
 				print.SuccessStatusEvent(os.Stdout, "Start App failed, try to stop Dapr successfully")
 			}
@@ -247,7 +247,7 @@ var RunCmd = &cobra.Command{
 		if output.DaprCMD.ProcessState == nil || !output.DaprCMD.ProcessState.Exited() {
 			err = output.DaprCMD.Process.Kill()
 			if err != nil {
-				print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error exiting Dapr: %s", err))
+				print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Error exiting Dapr: %s", err))
 			} else {
 				print.SuccessStatusEvent(os.Stdout, "Exited Dapr successfully")
 			}
@@ -256,7 +256,7 @@ var RunCmd = &cobra.Command{
 		if output.AppCMD != nil && (output.AppCMD.ProcessState == nil || !output.AppCMD.ProcessState.Exited()) {
 			err = output.AppCMD.Process.Kill()
 			if err != nil {
-				print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error exiting App: %s", err))
+				print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Error exiting App: %s", err))
 			} else {
 				print.SuccessStatusEvent(os.Stdout, "Exited App successfully")
 			}
