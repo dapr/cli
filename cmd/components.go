@@ -8,9 +8,10 @@ package cmd
 import (
 	"os"
 
+	"github.com/spf13/cobra"
+
 	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/pkg/print"
-	"github.com/spf13/cobra"
 )
 
 var (
