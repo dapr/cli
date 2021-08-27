@@ -32,8 +32,8 @@ import (
 )
 
 const (
-	daprRuntimeVersion   = "1.2.0"
-	daprDashboardVersion = "0.6.0"
+	daprRuntimeVersion   = "1.3.0"
+	daprDashboardVersion = "0.7.0"
 )
 
 func TestStandaloneInstall(t *testing.T) {
@@ -85,7 +85,7 @@ func TestNegativeScenarios(t *testing.T) {
 		require.Contains(t, output, "failed to stop app id test: couldn't find app id test", "expected output to match")
 	})
 
-	t.Run("stop unkonwn flag", func(t *testing.T) {
+	t.Run("stop unknown flag", func(t *testing.T) {
 		output, err := spawn.Command(daprPath, "stop", "-p", "test")
 		require.Error(t, err, "expected error on stop with unknown flag")
 		require.Contains(t, output, "Error: unknown shorthand flag: 'p' in -p\nUsage:", "expected usage to be printed")
@@ -94,7 +94,7 @@ func TestNegativeScenarios(t *testing.T) {
 
 	t.Run("run unknown flags", func(t *testing.T) {
 		output, err := spawn.Command(daprPath, "run", "--flag")
-		require.Error(t, err, "expected error on run unkonwn flag")
+		require.Error(t, err, "expected error on run unknown flag")
 		require.Contains(t, output, "Error: unknown flag: --flag\nUsage:", "expected usage to be printed")
 		require.Contains(t, output, "-a, --app-id string", "expected usage to be printed")
 		require.Contains(t, output, "The id for your application, used for service discovery", "expected usage to be printed")
@@ -112,6 +112,13 @@ func TestNegativeScenarios(t *testing.T) {
 		path = filepath.Join(homeDir, ".dapr")
 		require.Contains(t, output, "WARNING: "+path+" does not exist", "expected output to contain message")
 		require.Contains(t, output, "Dapr has been removed successfully")
+	})
+
+	t.Run("filter dashboard instance from list", func(t *testing.T) {
+		spawn.Command(daprPath, "dashboard", "-p", "5555")
+		cmd, err := spawn.Command(daprPath, "list")
+		require.NoError(t, err, "expected no error status on list without install")
+		require.Equal(t, "No Dapr instances found.\n", cmd)
 	})
 }
 
@@ -482,11 +489,11 @@ func testPublish(t *testing.T) {
 			assert.Equal(t, map[string]interface{}{"cli": "is_working"}, event.Data)
 		})
 
-		t.Run("publish from non-existant file fails", func(t *testing.T) {
+		t.Run("publish from non-existent file fails", func(t *testing.T) {
 			output, err := spawn.Command(daprPath, "publish", "--publish-app-id", "pub_e2e", "--pubsub", "pubsub", "--topic", "sample", "--data-file", "a/file/that/does/not/exist")
 			t.Log(output)
 			assert.Contains(t, output, "Error reading payload from 'a/file/that/does/not/exist'. Error: ")
-			assert.Error(t, err, "a non-existant --data-file should fail with error")
+			assert.Error(t, err, "a non-existent --data-file should fail with error")
 		})
 
 		t.Run("publish only one of data and data-file", func(t *testing.T) {
@@ -544,10 +551,10 @@ func testInvoke(t *testing.T) {
 			assert.Contains(t, output, "App invoked successfully")
 		})
 
-		t.Run("data from non-existant file fails", func(t *testing.T) {
+		t.Run("data from non-existent file fails", func(t *testing.T) {
 			output, err := spawn.Command(daprPath, "invoke", "--app-id", "invoke_e2e", "--method", "test", "--data-file", "a/file/that/does/not/exist")
 			t.Log(output)
-			assert.Error(t, err, "a non-existant --data-file should fail with error")
+			assert.Error(t, err, "a non-existent --data-file should fail with error")
 			assert.Contains(t, output, "Error reading payload from 'a/file/that/does/not/exist'. Error: ")
 		})
 

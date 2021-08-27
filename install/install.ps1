@@ -56,6 +56,7 @@ else {
 Write-Output "Creating $DaprRoot directory"
 New-Item -ErrorAction Ignore -Path $DaprRoot -ItemType "directory"
 if (!(Test-Path $DaprRoot -PathType Container)) {
+    Write-Warning "Please visit https://docs.dapr.io/getting-started/install-dapr-cli/ for instructions on how to install without admin rights."
     throw "Cannot create $DaprRoot"
 }
 
@@ -120,7 +121,10 @@ $zipFilePath = $DaprRoot + "\" + $assetName
 Write-Output "Downloading $zipFileUrl ..."
 
 $githubHeader.Accept = "application/octet-stream"
+$oldProgressPreference = $progressPreference;
+$progressPreference = 'SilentlyContinue';
 Invoke-WebRequest -Headers $githubHeader -Uri $zipFileUrl -OutFile $zipFilePath
+$progressPreference = $oldProgressPreference;
 if (!(Test-Path $zipFilePath -PathType Leaf)) {
     throw "Failed to download Dapr Cli binary - $zipFilePath"
 }
