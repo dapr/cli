@@ -587,7 +587,7 @@ func createSlimConfiguration(wg *sync.WaitGroup, errorChan chan<- error, _, _ st
 func makeDefaultComponentsDir() error {
 	// Make default components directory
 	componentsDir := DefaultComponentsDirPath()
-	_, err := os.Stat(componentsDir)
+	_, err := os.Stat(componentsDir) //nolint
 	if os.IsNotExist(err) {
 		errDir := os.MkdirAll(componentsDir, 0755)
 		if errDir != nil {
