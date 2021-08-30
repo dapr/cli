@@ -30,7 +30,7 @@ dapr logs -k --app-id sample --pod-name target --namespace custom
 	Run: func(cmd *cobra.Command, args []string) {
 		err := kubernetes.Logs(logsAppID, podName, namespace)
 		if err != nil {
-			print.FailureStatusEvent(os.Stdout, err.Error())
+			print.FailureStatusEvent(os.Stderr, err.Error())
 			os.Exit(1)
 		}
 		print.SuccessStatusEvent(os.Stdout, "Fetched logs")

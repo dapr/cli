@@ -67,7 +67,7 @@ dapr list -k
 		if kubernetesMode {
 			list, err := kubernetes.List()
 			if err != nil {
-				print.FailureStatusEvent(os.Stdout, err.Error())
+				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)
 			}
 
@@ -75,7 +75,7 @@ dapr list -k
 		} else {
 			list, err := standalone.List()
 			if err != nil {
-				print.FailureStatusEvent(os.Stdout, err.Error())
+				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)
 			}
 

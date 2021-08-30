@@ -6,11 +6,13 @@
 package kubernetes
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"strconv"
 	"strings"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/dapr/cli/pkg/age"
@@ -38,8 +40,18 @@ func PrintConfigurations(name, outputFormat string) error {
 		if err != nil {
 			return nil, err
 		}
-		//nolint
-		return client.ConfigurationV1alpha1().Configurations(meta_v1.NamespaceAll).List(meta_v1.ListOptions{})
+		list, err := client.ConfigurationV1alpha1().Configurations(meta_v1.NamespaceAll).List(meta_v1.ListOptions{}) //nolint
+		// This means that the Dapr Configurations CRD is not installed and
+		// therefore no configuration items exist.
+		if apierrors.IsNotFound(err) {
+			list = &v1alpha1.ConfigurationList{ //nolint
+				Items: []v1alpha1.Configuration{},
+			}
+		} else if err != nil {
+			return nil, fmt.Errorf("error : %w", err)
+		}
+
+		return list, fmt.Errorf("error : %w", err)
 	}, name, outputFormat)
 }
 

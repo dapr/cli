@@ -104,7 +104,7 @@ func GetLatestReleaseGithub(githubURL string) (string, error) {
 
 		for _, release := range githubRepoReleases {
 			if !strings.Contains(release.TagName, "-rc") {
-				return release.TagName[1:], nil
+				return strings.TrimPrefix(release.TagName, "v"), nil
 			}
 		}
 

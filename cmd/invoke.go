@@ -41,14 +41,14 @@ dapr invoke --app-id target --method sample --verb GET
 		bytePayload := []byte{}
 		var err error
 		if invokeDataFile != "" && invokeData != "" {
-			print.FailureStatusEvent(os.Stdout, "Only one of --data and --data-file allowed in the same invoke command")
+			print.FailureStatusEvent(os.Stderr, "Only one of --data and --data-file allowed in the same invoke command")
 			os.Exit(1)
 		}
 
 		if invokeDataFile != "" {
 			bytePayload, err = ioutil.ReadFile(invokeDataFile)
 			if err != nil {
-				print.FailureStatusEvent(os.Stdout, "Error reading payload from '%s'. Error: %s", invokeDataFile, err)
+				print.FailureStatusEvent(os.Stderr, "Error reading payload from '%s'. Error: %s", invokeDataFile, err)
 				os.Exit(1)
 			}
 		} else if invokeData != "" {

@@ -137,12 +137,12 @@ func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort in
 
 		args = append(
 			args,
-			"--enable-profiling", "true",
+			"--enable-profiling",
 			"--profile-port", strconv.Itoa(profilePort))
 	}
 
 	if appSSL {
-		args = append(args, "--app-ssl", "true")
+		args = append(args, "--app-ssl")
 	}
 
 	cmd := exec.Command(daprCMD, args...)

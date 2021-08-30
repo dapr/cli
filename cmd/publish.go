@@ -34,14 +34,14 @@ dapr publish --publish-app-id myapp --pubsub target --topic sample --data '{"key
 		bytePayload := []byte{}
 		var err error
 		if publishPayloadFile != "" && publishPayload != "" {
-			print.FailureStatusEvent(os.Stdout, "Only one of --data and --data-file allowed in the same publish command")
+			print.FailureStatusEvent(os.Stderr, "Only one of --data and --data-file allowed in the same publish command")
 			os.Exit(1)
 		}
 
 		if publishPayloadFile != "" {
 			bytePayload, err = ioutil.ReadFile(publishPayloadFile)
 			if err != nil {
-				print.FailureStatusEvent(os.Stdout, "Error reading payload from '%s'. Error: %s", publishPayloadFile, err)
+				print.FailureStatusEvent(os.Stderr, "Error reading payload from '%s'. Error: %s", publishPayloadFile, err)
 				os.Exit(1)
 			}
 		} else if publishPayload != "" {
@@ -51,7 +51,7 @@ dapr publish --publish-app-id myapp --pubsub target --topic sample --data '{"key
 		client := standalone.NewClient()
 		err = client.Publish(publishAppID, pubsubName, publishTopic, bytePayload)
 		if err != nil {
-			print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error publishing topic %s: %s", publishTopic, err))
+			print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Error publishing topic %s: %s", publishTopic, err))
 			os.Exit(1)
 		}
 
