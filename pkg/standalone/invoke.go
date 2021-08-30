@@ -18,7 +18,7 @@ import (
 func (s *Standalone) Invoke(appID, method string, data []byte, verb string) (string, error) {
 	list, err := s.process.List()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error : %w", err)
 	}
 
 	for _, lo := range list {
@@ -26,13 +26,13 @@ func (s *Standalone) Invoke(appID, method string, data []byte, verb string) (str
 			url := makeEndpoint(lo, method)
 			req, err := http.NewRequest(verb, url, bytes.NewBuffer(data))
 			if err != nil {
-				return "", err
+				return "", fmt.Errorf("error : %w", err)
 			}
 			req.Header.Set("Content-Type", "application/json")
 
 			r, err := http.DefaultClient.Do(req)
 			if err != nil {
-				return "", err
+				return "", fmt.Errorf("error : %w", err)
 			}
 			defer r.Body.Close()
 			return handleResponse(r)
@@ -49,7 +49,7 @@ func makeEndpoint(lo ListOutput, method string) string {
 func handleResponse(response *http.Response) (string, error) {
 	rb, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error : %w", err)
 	}
 
 	if len(rb) > 0 {

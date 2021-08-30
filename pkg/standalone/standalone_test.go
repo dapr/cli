@@ -14,9 +14,11 @@ import (
 )
 
 func TestStandaloneConfig(t *testing.T) {
+	t.Parallel()
 	testFile := "./test.yaml"
 
 	t.Run("Standalone config", func(t *testing.T) {
+		t.Parallel()
 		expectConfigZipkin := `apiVersion: dapr.io/v1alpha1
 kind: Configuration
 metadata:
@@ -36,6 +38,7 @@ spec:
 	})
 
 	t.Run("Standalone config slim", func(t *testing.T) {
+		t.Parallel()
 		expectConfigSlim := `apiVersion: dapr.io/v1alpha1
 kind: Configuration
 metadata:

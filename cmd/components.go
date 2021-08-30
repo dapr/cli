@@ -18,6 +18,7 @@ var (
 	componentsOutputFormat string
 )
 
+//nolint
 var ComponentsCmd = &cobra.Command{
 	Use:   "components",
 	Short: "List all Dapr components. Supported platforms: Kubernetes",

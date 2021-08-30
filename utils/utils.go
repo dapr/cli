@@ -60,8 +60,7 @@ func WriteTable(writer io.Writer, csvContent string) {
 }
 
 func TruncateString(str string, maxLength int) string {
-	strLength := len(str)
-	if strLength <= maxLength {
+	if len(str) <= maxLength {
 		return str
 	}
 
@@ -73,25 +72,25 @@ func RunCmdAndWait(name string, args ...string) (string, error) {
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error: %w", err)
 	}
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error: %w", err)
 	}
 
 	err = cmd.Start()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error: %w", err)
 	}
 
 	resp, err := ioutil.ReadAll(stdout)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error: %w", err)
 	}
 	errB, err := ioutil.ReadAll(stderr)
 	if err != nil {
-		return "", nil
+		return "", fmt.Errorf("error: %w", err)
 	}
 
 	err = cmd.Wait()
@@ -100,7 +99,7 @@ func RunCmdAndWait(name string, args ...string) (string, error) {
 		if len(errB) > 0 {
 			return "", errors.New(string(errB))
 		}
-		return "", err
+		return "", fmt.Errorf("error: %w", err)
 	}
 
 	return string(resp), nil
@@ -118,7 +117,7 @@ func CreateDirectory(dir string) error {
 	if _, err := os.Stat(dir); !os.IsNotExist(err) {
 		return nil
 	}
-	return os.Mkdir(dir, 0777)
+	return os.Mkdir(dir, 0777) //nolint
 }
 
 // IsDockerInstalled checks whether docker is installed/running.
@@ -145,7 +144,7 @@ func IsDaprListeningOnPort(port int, timeout time.Duration) error {
 
 		if time.Since(start).Seconds() >= timeout.Seconds() {
 			// Give up.
-			return err
+			return fmt.Errorf("failed with error: %w", err)
 		}
 
 		time.Sleep(time.Second)
@@ -155,7 +154,7 @@ func IsDaprListeningOnPort(port int, timeout time.Duration) error {
 func MarshalAndWriteTable(writer io.Writer, in interface{}) error {
 	table, err := gocsv.MarshalString(in)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed with error: %w", err)
 	}
 
 	WriteTable(writer, table)
@@ -179,9 +178,9 @@ func PrintDetail(writer io.Writer, outputFormat string, list interface{}) error 
 		output, err = json.MarshalIndent(obj, "", "  ")
 	}
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	_, err = writer.Write(output)
-	return err
+	return fmt.Errorf("error: %w", err)
 }

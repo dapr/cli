@@ -1,7 +1,7 @@
 // ------------------------------------------------------------
 // Copyright (c) Microsoft Corporation and Dapr Contributors.
 // Licensed under the MIT License.
-// ------------------------------------------------------------
+// ------------------------------------------------------------clear
 
 package kubernetes
 
@@ -55,6 +55,7 @@ func NewStatusClient() (*StatusClient, error) {
 }
 
 // List status for Dapr resources.
+//nolint
 func (s *StatusClient) Status() ([]StatusOutput, error) {
 	client := s.client
 	if client == nil {

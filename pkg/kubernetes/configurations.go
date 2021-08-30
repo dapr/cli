@@ -38,7 +38,7 @@ func PrintConfigurations(name, outputFormat string) error {
 		if err != nil {
 			return nil, err
 		}
-
+		//nolint
 		return client.ConfigurationV1alpha1().Configurations(meta_v1.NamespaceAll).List(meta_v1.ListOptions{})
 	}, name, outputFormat)
 }
@@ -70,7 +70,7 @@ func writeConfigurations(writer io.Writer, getConfigFunc func() (*v1alpha1.Confi
 		return printConfigurationList(writer, filtered)
 	}
 
-	return utils.PrintDetail(writer, outputFormat, filteredSpecs)
+	return utils.PrintDetail(writer, outputFormat, filteredSpecs) //nolint
 }
 
 func printConfigurationList(writer io.Writer, list []v1alpha1.Configuration) error {
@@ -85,7 +85,7 @@ func printConfigurationList(writer io.Writer, list []v1alpha1.Configuration) err
 		})
 	}
 
-	return utils.MarshalAndWriteTable(writer, co)
+	return utils.MarshalAndWriteTable(writer, co) //nolint
 }
 
 func tracingEnabled(spec v1alpha1.TracingSpec) bool {

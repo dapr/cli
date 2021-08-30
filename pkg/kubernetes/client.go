@@ -63,7 +63,7 @@ func getConfig() (*rest.Config, error) {
 
 	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error : %w", err)
 	}
 	return config, nil
 }
@@ -76,7 +76,7 @@ func GetKubeConfigClient() (*rest.Config, *k8s.Clientset, error) {
 	}
 	client, err := k8s.NewForConfig(config)
 	if err != nil {
-		return config, nil, err
+		return config, nil, fmt.Errorf("error : %w", err)
 	}
 	return config, client, nil
 }
@@ -87,7 +87,7 @@ func Client() (*k8s.Clientset, error) {
 	if err != nil {
 		return nil, err
 	}
-	return k8s.NewForConfig(config)
+	return k8s.NewForConfig(config) //nolint
 }
 
 // DaprClient returns a new Kubernetes Dapr client.
@@ -96,7 +96,7 @@ func DaprClient() (scheme.Interface, error) {
 	if err != nil {
 		return nil, err
 	}
-	return scheme.NewForConfig(config)
+	return scheme.NewForConfig(config) //nolint
 }
 
 func homeDir() string {

@@ -28,7 +28,7 @@ const (
 
 type githubRepoReleaseItem struct {
 	URL     string `json:"url"`
-	TagName string `json:"tag_name"`
+	TagName string `json:"tagName"`
 	Name    string `json:"name"`
 	Draft   bool   `json:"draft"`
 }
@@ -63,7 +63,7 @@ func GetDaprVersion() (string, error) {
 func GetVersionFromURL(releaseURL string, parseVersion func(body []byte) (string, error)) (string, error) {
 	req, err := http.NewRequest("GET", releaseURL, nil)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to get item by ID: %w", err)
 	}
 
 	githubToken := os.Getenv("GITHUB_TOKEN")
@@ -73,7 +73,7 @@ func GetVersionFromURL(releaseURL string, parseVersion func(body []byte) (string
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to get item by ID: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -83,7 +83,7 @@ func GetVersionFromURL(releaseURL string, parseVersion func(body []byte) (string
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to get item by ID: %w", err)
 	}
 
 	return parseVersion(body)
@@ -95,7 +95,7 @@ func GetLatestReleaseGithub(githubURL string) (string, error) {
 		var githubRepoReleases []githubRepoReleaseItem
 		err := json.Unmarshal(body, &githubRepoReleases)
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("failed to get item by ID: %w", err)
 		}
 
 		if len(githubRepoReleases) == 0 {
@@ -118,7 +118,7 @@ func GetLatestReleaseHelmChart(helmChartURL string) (string, error) {
 		var helmChartReleases helmChartItems
 		err := yaml.Unmarshal(body, &helmChartReleases)
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("failed to get item by ID: %w", err)
 		}
 		if len(helmChartReleases.Entries.Dapr) == 0 {
 			return "", fmt.Errorf("no releases")

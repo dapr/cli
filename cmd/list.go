@@ -46,6 +46,7 @@ func outputList(list interface{}, length int) {
 	}
 }
 
+//nolint
 var ListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all Dapr instances. Supported platforms: Kubernetes and self-hosted",

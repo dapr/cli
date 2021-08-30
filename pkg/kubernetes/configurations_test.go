@@ -15,6 +15,7 @@ import (
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+//nolint
 func TestConfigurations(t *testing.T) {
 	now := meta_v1.Now()
 	formattedNow := now.Format("2006-01-02 15:04.05")
@@ -39,7 +40,7 @@ func TestConfigurations(t *testing.T) {
 					ObjectMeta: meta_v1.ObjectMeta{
 						Name:              "appConfig",
 						CreationTimestamp: now,
-					},
+					}, //nolint
 					Spec: v1alpha1.ConfigurationSpec{},
 				},
 			},
@@ -65,14 +66,14 @@ func TestConfigurations(t *testing.T) {
 					ObjectMeta: meta_v1.ObjectMeta{
 						Name:              "appConfig",
 						CreationTimestamp: now,
-					},
+					}, //nolint
 					Spec: v1alpha1.ConfigurationSpec{},
 				},
 				{
 					ObjectMeta: meta_v1.ObjectMeta{
 						Name:              "daprsystem",
 						CreationTimestamp: now,
-					},
+					}, //nolint
 					Spec: v1alpha1.ConfigurationSpec{},
 				},
 			},
@@ -202,7 +203,7 @@ func TestConfigurations(t *testing.T) {
 					if len(tc.errString) > 0 {
 						return nil, fmt.Errorf(tc.errString)
 					}
-
+					//nolint
 					return &v1alpha1.ConfigurationList{Items: tc.k8sConfig}, nil
 				}, tc.configName, tc.outputFormat)
 			if tc.errorExpected {

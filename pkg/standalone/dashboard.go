@@ -23,6 +23,7 @@ func NewDashboardCmd(port int) *exec.Cmd {
 	}
 
 	// Construct command to run dashboard
+	//nolint
 	return &exec.Cmd{
 		Path:   filepath.Join(dashboardPath, binaryName),
 		Args:   []string{binaryName, "--port", strconv.Itoa(port)},

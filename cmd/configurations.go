@@ -18,6 +18,7 @@ var (
 	configurationOutputFormat string
 )
 
+//nolint
 var ConfigurationsCmd = &cobra.Command{
 	Use:   "configurations",
 	Short: "List all Dapr configurations. Supported platforms: Kubernetes",

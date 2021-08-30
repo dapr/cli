@@ -11,13 +11,15 @@ import (
 )
 
 func ListPodsInterface(client k8s.Interface, labelSelector map[string]string) (*core_v1.PodList, error) {
+	//nolint
 	opts := v1.ListOptions{}
 	if labelSelector != nil {
 		opts.LabelSelector = labels.FormatLabels(labelSelector)
 	}
-	return client.CoreV1().Pods(v1.NamespaceAll).List(context.TODO(), opts)
+	return client.CoreV1().Pods(v1.NamespaceAll).List(context.TODO(), opts) //nolint
 }
 
+//nolint
 func ListPods(client *k8s.Clientset, namespace string, labelSelector map[string]string) (*core_v1.PodList, error) {
 	opts := v1.ListOptions{}
 	if labelSelector != nil {
@@ -28,6 +30,7 @@ func ListPods(client *k8s.Clientset, namespace string, labelSelector map[string]
 
 // CheckPodExists returns a boolean representing the pod's existence and the namespace that the given pod resides in,
 // or empty if not present in the given namespace.
+//nolint
 func CheckPodExists(client *k8s.Clientset, namespace string, labelSelector map[string]string, deployName string) (bool, string) {
 	opts := v1.ListOptions{}
 	if labelSelector != nil {

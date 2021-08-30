@@ -20,7 +20,7 @@ var (
 	k8s       bool
 )
 
-var LogsCmd = &cobra.Command{
+var LogsCmd = &cobra.Command{ //nolint
 	Use:   "logs",
 	Short: "Get Dapr sidecar logs for an application. Supported platforms: Kubernetes",
 	Example: `

@@ -15,7 +15,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var StatusCmd = &cobra.Command{
+var StatusCmd = &cobra.Command{ //nolint
 	Use:   "status",
 	Short: "Show the health status of Dapr services. Supported platforms: Kubernetes",
 	Example: `

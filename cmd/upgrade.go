@@ -15,7 +15,7 @@ import (
 
 var upgradeRuntimeVersion string
 
-var UpgradeCmd = &cobra.Command{
+var UpgradeCmd = &cobra.Command{ //nolint
 	Use:   "upgrade",
 	Short: "Upgrades a Dapr control plane installation in a cluster. Supported platforms: Kubernetes",
 	Example: `

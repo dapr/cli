@@ -43,6 +43,7 @@ var (
 	dashboardVersionCmd bool
 )
 
+//nolint
 var DashboardCmd = &cobra.Command{
 	Use:   "dashboard",
 	Short: "Start Dapr dashboard. Supported platforms: Kubernetes and self-hosted",
@@ -66,7 +67,7 @@ dapr dashboard -k -p 9999
 		}
 
 		if dashboardLocalPort <= 0 {
-			print.FailureStatusEvent(os.Stdout, "Invalid port: %v", dashboardLocalPort) //nolint
+			print.FailureStatusEvent(os.Stdout, "Invalid port: %v", dashboardLocalPort)
 			os.Exit(1)
 		}
 

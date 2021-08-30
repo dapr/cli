@@ -17,6 +17,7 @@ import (
 	"github.com/spf13/viper"
 )
 
+//nolint
 var RootCmd = &cobra.Command{
 	Use:   "dapr",
 	Short: "Dapr CLI",

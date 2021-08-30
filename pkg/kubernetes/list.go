@@ -34,6 +34,7 @@ func List() ([]ListOutput, error) {
 	for _, p := range podList.Items {
 		for _, c := range p.Spec.Containers {
 			if c.Name == "daprd" {
+				//nolint
 				lo := ListOutput{}
 				for i, a := range c.Args {
 					if a == "--app-port" {

@@ -6,10 +6,12 @@ import (
 )
 
 func GetDefaultConfiguration() v1alpha1.Configuration {
+	//nolint
 	return v1alpha1.Configuration{
 		ObjectMeta: meta_v1.ObjectMeta{
 			Name: "daprsystem",
 		},
+		//nolint
 		Spec: v1alpha1.ConfigurationSpec{
 			MTLSSpec: v1alpha1.MTLSSpec{
 				Enabled:          true,

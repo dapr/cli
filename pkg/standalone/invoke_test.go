@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+//nolint
 func TestInvoke(t *testing.T) {
 	testCases := []struct {
 		name          string
@@ -59,7 +60,7 @@ func TestInvoke(t *testing.T) {
 			resp:         "successful invoke",
 		},
 	}
-
+	//nolint
 	for _, tc := range testCases {
 		t.Run(tc.name+" get", func(t *testing.T) {
 			ts, port := getTestServer(tc.expectedPath, tc.resp)

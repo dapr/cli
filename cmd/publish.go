@@ -23,7 +23,7 @@ var (
 	publishPayloadFile string
 )
 
-var PublishCmd = &cobra.Command{
+var PublishCmd = &cobra.Command{ //nolint
 	Use:   "publish",
 	Short: "Publish a pub-sub event. Supported platforms: Self-hosted",
 	Example: `

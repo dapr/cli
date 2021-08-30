@@ -10,6 +10,7 @@ import (
 )
 
 func TestGetVersionsGithub(t *testing.T) {
+	t.Parallel()
 	// Ensure a clean environment
 
 	tests := []struct {
@@ -82,6 +83,7 @@ func TestGetVersionsGithub(t *testing.T) {
 		},
 	}
 	m := http.NewServeMux()
+	//nolint
 	s := http.Server{Addr: ":12345", Handler: m}
 
 	for _, tc := range tests {
@@ -94,7 +96,7 @@ func TestGetVersionsGithub(t *testing.T) {
 	go func() {
 		s.ListenAndServe()
 	}()
-
+	//nolint
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) {
 			version, err := GetLatestReleaseGithub(fmt.Sprintf("http://localhost:12345%s", tc.Path))
@@ -106,12 +108,14 @@ func TestGetVersionsGithub(t *testing.T) {
 	}
 
 	t.Run("error on 404", func(t *testing.T) {
+		t.Parallel()
 		version, err := GetLatestReleaseGithub("http://localhost:12345/non-existant/path")
 		assert.Equal(t, "", version)
 		assert.EqualError(t, err, "http://localhost:12345/non-existant/path - 404 Not Found")
 	})
 
 	t.Run("error on bad addr", func(t *testing.T) {
+		t.Parallel()
 		version, err := GetLatestReleaseGithub("http://a.super.non.existant.domain/")
 		assert.Equal(t, "", version)
 		assert.EqualError(t, err, "Get \"http://a.super.non.existant.domain/\": dial tcp: lookup a.super.non.existant.domain: no such host")
@@ -120,9 +124,9 @@ func TestGetVersionsGithub(t *testing.T) {
 	s.Shutdown(context.Background())
 }
 
+//nolint
 func TestGetVersionsHelm(t *testing.T) {
 	// Ensure a clean environment
-
 	tests := []struct {
 		Name         string
 		Path         string
@@ -191,6 +195,7 @@ entries:
 		},
 	}
 	m := http.NewServeMux()
+	//nolint
 	s := http.Server{Addr: ":12346", Handler: m}
 
 	for _, tc := range tests {
@@ -203,7 +208,7 @@ entries:
 	go func() {
 		s.ListenAndServe()
 	}()
-
+	//nolint
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) {
 			version, err := GetLatestReleaseHelmChart(fmt.Sprintf("http://localhost:12346%s", tc.Path))

@@ -14,6 +14,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 )
 
+//nolint
 func TestListPodsInterface(t *testing.T) {
 	t.Run("empty list pods", func(t *testing.T) {
 		k8s := fake.NewSimpleClientset()

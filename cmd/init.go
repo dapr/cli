@@ -29,6 +29,7 @@ var (
 	values           []string
 )
 
+//nolint
 var InitCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Install Dapr on supported hosting platforms. Supported platforms: Kubernetes and self-hosted",

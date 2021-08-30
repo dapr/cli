@@ -16,7 +16,7 @@ import (
 	v1alpha1 "github.com/dapr/dapr/pkg/apis/components/v1alpha1"
 )
 
-func TestComponents(t *testing.T) {
+func TestComponents(t *testing.T) { //nolint
 	now := meta_v1.Now()
 	formattedNow := now.Format("2006-01-02 15:04.05")
 	testCases := []struct {
@@ -37,11 +37,12 @@ func TestComponents(t *testing.T) {
 			errorExpected:  false,
 			k8sConfig: []v1alpha1.Component{
 				{
-					ObjectMeta: meta_v1.ObjectMeta{
+
+					ObjectMeta: meta_v1.ObjectMeta{ //nolint
 						Name:              "appConfig",
 						CreationTimestamp: now,
 					},
-					Spec: v1alpha1.ComponentSpec{
+					Spec: v1alpha1.ComponentSpec{ //nolint
 						Type:    "state.redis",
 						Version: "v1",
 					},
@@ -66,21 +67,21 @@ func TestComponents(t *testing.T) {
 			errorExpected:  false,
 			k8sConfig: []v1alpha1.Component{
 				{
-					ObjectMeta: meta_v1.ObjectMeta{
+					ObjectMeta: meta_v1.ObjectMeta{ //nolint
 						Name:              "appConfig",
 						CreationTimestamp: now,
 					},
-					Spec: v1alpha1.ComponentSpec{
+					Spec: v1alpha1.ComponentSpec{ //nolint
 						Type:    "state.redis",
 						Version: "v1",
 					},
 				},
 				{
-					ObjectMeta: meta_v1.ObjectMeta{
+					ObjectMeta: meta_v1.ObjectMeta{ //nolint
 						Name:              "daprsystem",
 						CreationTimestamp: now,
 					},
-					Spec: v1alpha1.ComponentSpec{},
+					Spec: v1alpha1.ComponentSpec{}, //nolint
 				},
 			},
 		},
@@ -93,11 +94,11 @@ func TestComponents(t *testing.T) {
 			errorExpected:  false,
 			k8sConfig: []v1alpha1.Component{
 				{
-					ObjectMeta: meta_v1.ObjectMeta{
+					ObjectMeta: meta_v1.ObjectMeta{ //nolint
 						Name:              "appConfig",
 						CreationTimestamp: now,
 					},
-					Spec: v1alpha1.ComponentSpec{
+					Spec: v1alpha1.ComponentSpec{ //nolint
 						Type:    "state.redis",
 						Version: "v1",
 					},
@@ -113,11 +114,11 @@ func TestComponents(t *testing.T) {
 			errorExpected:  false,
 			k8sConfig: []v1alpha1.Component{
 				{
-					ObjectMeta: meta_v1.ObjectMeta{
+					ObjectMeta: meta_v1.ObjectMeta{ //nolint
 						Name:              "not config",
 						CreationTimestamp: now,
 					},
-					Spec: v1alpha1.ComponentSpec{
+					Spec: v1alpha1.ComponentSpec{ //nolint
 						Type:    "state.redis",
 						Version: "v1",
 					},
@@ -133,11 +134,11 @@ func TestComponents(t *testing.T) {
 			errorExpected:  false,
 			k8sConfig: []v1alpha1.Component{
 				{
-					ObjectMeta: meta_v1.ObjectMeta{
+					ObjectMeta: meta_v1.ObjectMeta{ //nolint
 						Name:              "appConfig",
 						CreationTimestamp: now,
 					},
-					Spec: v1alpha1.ComponentSpec{
+					Spec: v1alpha1.ComponentSpec{ //nolint
 						Type:    "state.redis",
 						Version: "v1",
 					},
@@ -153,21 +154,21 @@ func TestComponents(t *testing.T) {
 			errorExpected:  false,
 			k8sConfig: []v1alpha1.Component{
 				{
-					ObjectMeta: meta_v1.ObjectMeta{
+					ObjectMeta: meta_v1.ObjectMeta{ //nolint
 						Name:              "appConfig1",
 						CreationTimestamp: now,
 					},
-					Spec: v1alpha1.ComponentSpec{
+					Spec: v1alpha1.ComponentSpec{ //nolint
 						Type:    "state.redis",
 						Version: "v1",
 					},
 				},
 				{
-					ObjectMeta: meta_v1.ObjectMeta{
+					ObjectMeta: meta_v1.ObjectMeta{ //nolint
 						Name:              "appConfig2",
 						CreationTimestamp: now,
 					},
-					Spec: v1alpha1.ComponentSpec{
+					Spec: v1alpha1.ComponentSpec{ //nolint
 						Type:    "state.redis",
 						Version: "v1",
 					},
@@ -183,11 +184,11 @@ func TestComponents(t *testing.T) {
 			errorExpected:  false,
 			k8sConfig: []v1alpha1.Component{
 				{
-					ObjectMeta: meta_v1.ObjectMeta{
+					ObjectMeta: meta_v1.ObjectMeta{ //nolint
 						Name:              "appConfig",
 						CreationTimestamp: now,
 					},
-					Spec: v1alpha1.ComponentSpec{
+					Spec: v1alpha1.ComponentSpec{ //nolint
 						Type:    "state.redis",
 						Version: "v1",
 					},
@@ -203,21 +204,21 @@ func TestComponents(t *testing.T) {
 			errorExpected:  false,
 			k8sConfig: []v1alpha1.Component{
 				{
-					ObjectMeta: meta_v1.ObjectMeta{
+					ObjectMeta: meta_v1.ObjectMeta{ //nolint
 						Name:              "appConfig1",
 						CreationTimestamp: now,
 					},
-					Spec: v1alpha1.ComponentSpec{
+					Spec: v1alpha1.ComponentSpec{ //nolint
 						Type:    "state.redis",
 						Version: "v1",
 					},
 				},
 				{
-					ObjectMeta: meta_v1.ObjectMeta{
+					ObjectMeta: meta_v1.ObjectMeta{ //nolint
 						Name:              "appConfig2",
 						CreationTimestamp: now,
 					},
-					Spec: v1alpha1.ComponentSpec{
+					Spec: v1alpha1.ComponentSpec{ //nolint
 						Type:    "state.redis",
 						Version: "v1",
 					},
@@ -225,7 +226,7 @@ func TestComponents(t *testing.T) {
 			},
 		},
 	}
-	for _, tc := range testCases {
+	for _, tc := range testCases { //nolint
 		t.Run(tc.name, func(t *testing.T) {
 			var buff bytes.Buffer
 			err := writeComponents(&buff,
@@ -233,7 +234,7 @@ func TestComponents(t *testing.T) {
 					if len(tc.errString) > 0 {
 						return nil, fmt.Errorf(tc.errString)
 					}
-
+					//nolint
 					return &v1alpha1.ComponentList{Items: tc.k8sConfig}, nil
 				}, tc.configName, tc.outputFormat)
 			if tc.errorExpected {

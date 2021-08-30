@@ -56,6 +56,7 @@ var completionExample = `
 	dapr completion powershell >> $PROFILE
 `
 
+//nolint
 func newCompletionCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "completion",
@@ -77,6 +78,7 @@ func newCompletionCmd() *cobra.Command {
 	return cmd
 }
 
+//nolint
 func newCompletionBashCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "bash",
@@ -91,6 +93,7 @@ func newCompletionBashCmd() *cobra.Command {
 	return cmd
 }
 
+//nolint
 func newCompletionZshCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "zsh",
@@ -104,6 +107,7 @@ func newCompletionZshCmd() *cobra.Command {
 	return cmd
 }
 
+//nolint
 func newCompletionPowerShellCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "powershell",

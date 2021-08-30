@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+//nolint
 var BuildInfoCmd = &cobra.Command{
 	Use:   "build-info",
 	Short: "Print build info of Dapr CLI and runtime",

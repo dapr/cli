@@ -11,7 +11,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+//nolint
 func TestPublish(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name          string
 		publishAppID  string
@@ -98,6 +100,7 @@ func TestPublish(t *testing.T) {
 			},
 		},
 	}
+	//nolint
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			ts, port := getTestServer(tc.expectedPath, tc.resp)

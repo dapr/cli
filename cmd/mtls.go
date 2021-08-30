@@ -18,7 +18,7 @@ import (
 
 var exportPath string
 
-var MTLSCmd = &cobra.Command{
+var MTLSCmd = &cobra.Command{ //nolint
 	Use:   "mtls",
 	Short: "Check if mTLS is enabled. Supported platforms: Kubernetes",
 	Example: `
@@ -40,7 +40,7 @@ dapr mtls -k
 	},
 }
 
-var ExportCMD = &cobra.Command{
+var ExportCMD = &cobra.Command{ //nolint
 	Use:   "export",
 	Short: "Export the root CA, issuer cert and key from Kubernetes to local files",
 	Example: `
@@ -59,7 +59,7 @@ dapr mtls export -o ./certs
 	},
 }
 
-var ExpiryCMD = &cobra.Command{
+var ExpiryCMD = &cobra.Command{ //nolint
 	Use:   "expiry",
 	Short: "Checks the expiry of the root certificate",
 	Example: `
@@ -74,7 +74,7 @@ dapr mtls expiry
 		}
 
 		duration := int(expiry.Sub(time.Now().UTC()).Hours())
-		fmt.Printf("Root certificate expires in %v hours. Expiry date: %s", duration, expiry.String())
+		fmt.Printf("Root certificate expires in %v hours. Expiry date: %s", duration, expiry.String()) // nolint
 	},
 }
 

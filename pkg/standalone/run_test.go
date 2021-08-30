@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+//nolint
 func assertArgumentEqual(t *testing.T, key string, expectedValue string, args []string) {
 	var value string
 	for index, arg := range args {
@@ -30,6 +31,7 @@ func assertArgumentEqual(t *testing.T, key string, expectedValue string, args []
 	assert.Equal(t, expectedValue, value)
 }
 
+//nolint
 func assertArgumentNotEqual(t *testing.T, key string, expectedValue string, args []string) {
 	var value string
 	for index, arg := range args {
@@ -46,6 +48,7 @@ func assertArgumentNotEqual(t *testing.T, key string, expectedValue string, args
 	assert.NotEqual(t, expectedValue, value)
 }
 
+//nolint
 func setupRun(t *testing.T) {
 	componentsDir := DefaultComponentsDirPath()
 	configFile := DefaultConfigFilePath()
@@ -56,20 +59,21 @@ func setupRun(t *testing.T) {
 	assert.Equal(t, nil, err, "Unable to create config file before running test")
 }
 
-func tearDownRun(t *testing.T) {
+func tearDownRun(t *testing.T) { //nolint
 	err := os.RemoveAll(DefaultComponentsDirPath())
 	assert.Equal(t, nil, err, "Unable to delete default components dir after running test")
 	err = os.Remove(DefaultConfigFilePath())
 	assert.Equal(t, nil, err, "Unable to delete default config file after running test")
 }
 
+//nolint
 func TestRun(t *testing.T) {
 	// Setup the components directory which is done at init time
 	setupRun(t)
 
 	// Setup the tearDown routine to run in the end
 	defer tearDownRun(t)
-
+	//nolint
 	basicConfig := &RunConfig{
 		AppID:              "MyID",
 		AppPort:            3000,
@@ -88,6 +92,7 @@ func TestRun(t *testing.T) {
 	}
 
 	t.Run("run happy http", func(t *testing.T) {
+		t.Parallel()
 		output, err := Run(basicConfig)
 
 		assert.Nil(t, err)
@@ -120,6 +125,7 @@ func TestRun(t *testing.T) {
 	})
 
 	t.Run("run without app command", func(t *testing.T) {
+		t.Parallel()
 		basicConfig.Arguments = nil
 		basicConfig.LogLevel = "INFO"
 		basicConfig.ConfigFile = DefaultConfigFilePath()
@@ -153,6 +159,7 @@ func TestRun(t *testing.T) {
 	})
 
 	t.Run("run without port", func(t *testing.T) {
+		t.Parallel()
 		basicConfig.HTTPPort = -1
 		basicConfig.GRPCPort = -1
 		basicConfig.MetricsPort = -1
@@ -165,7 +172,7 @@ func TestRun(t *testing.T) {
 		assertArgumentNotEqual(t, "grpc-port", "-1", output.DaprCMD.Args)
 		assertArgumentNotEqual(t, "metrics-port", "-1", output.DaprCMD.Args)
 	})
-
+	//nolint
 	t.Run("run with specified placement-host port", func(t *testing.T) {
 		basicConfig.PlacementHostAddr = "localhost:12345"
 		output, err := Run(basicConfig)

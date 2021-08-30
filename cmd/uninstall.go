@@ -23,6 +23,7 @@ var (
 )
 
 // UninstallCmd is a command from removing a Dapr installation.
+//nolint
 var UninstallCmd = &cobra.Command{
 	Use:   "uninstall",
 	Short: "Uninstall Dapr runtime. Supported platforms: Kubernetes and self-hosted",

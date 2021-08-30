@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+//nolint
 func TestHAMode(t *testing.T) {
 	t.Run("ha mode", func(t *testing.T) {
 		s := []StatusOutput{
@@ -35,12 +36,14 @@ func TestHAMode(t *testing.T) {
 	})
 }
 
+//nolint
 func TestMTLSChartValues(t *testing.T) {
 	val, err := upgradeChartValues("1", "2", "3", true, true, []string{})
 	assert.NoError(t, err)
 	assert.Len(t, val, 2)
 }
 
+//nolint
 func TestArgsChartValues(t *testing.T) {
 	val, err := upgradeChartValues("1", "2", "3", true, true, []string{"a=b", "b=c"})
 	assert.NoError(t, err)

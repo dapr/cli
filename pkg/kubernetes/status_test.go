@@ -18,11 +18,13 @@ import (
 )
 
 func newTestSimpleK8s(objects ...runtime.Object) *StatusClient {
+	//nolint
 	client := StatusClient{}
 	client.client = fake.NewSimpleClientset(objects...)
 	return &client
 }
 
+//nolint
 func newDaprControlPlanePod(name string, appName string, creationTime time.Time, state v1.ContainerState, ready bool) *v1.Pod {
 	return &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -54,6 +56,7 @@ func newDaprControlPlanePod(name string, appName string, creationTime time.Time,
 	}
 }
 
+//nolint
 func TestStatus(t *testing.T) {
 	t.Run("empty status. dapr not init", func(t *testing.T) {
 		k8s := newTestSimpleK8s()
@@ -66,6 +69,7 @@ func TestStatus(t *testing.T) {
 
 	t.Run("one status waiting", func(t *testing.T) {
 		k8s := newTestSimpleK8s(newDaprControlPlanePod(
+
 			"dapr-dashboard-58877dbc9d-n8qg2", "dapr-dashboard",
 			time.Now(),
 			v1.ContainerState{
@@ -88,6 +92,7 @@ func TestStatus(t *testing.T) {
 
 	t.Run("one status running", func(t *testing.T) {
 		testTime := time.Now()
+		//nolint
 		k8s := newTestSimpleK8s(newDaprControlPlanePod(
 			"dapr-dashboard-58877dbc9d-n8qg2", "dapr-dashboard",
 			testTime.Add(time.Duration(-20)*time.Minute),
@@ -113,7 +118,7 @@ func TestStatus(t *testing.T) {
 
 	t.Run("one status terminated", func(t *testing.T) {
 		testTime := time.Now()
-
+		//nolint
 		k8s := newTestSimpleK8s(newDaprControlPlanePod(
 			"dapr-dashboard-58877dbc9d-n8qg2", "dapr-dashboard",
 			testTime.Add(time.Duration(-20)*time.Minute),
@@ -138,7 +143,7 @@ func TestStatus(t *testing.T) {
 
 	t.Run("one status pending", func(t *testing.T) {
 		testTime := time.Now()
-
+		//nolint
 		pod := newDaprControlPlanePod(
 			"dapr-dashboard-58877dbc9d-n8qg2", "dapr-dashboard",
 			testTime.Add(time.Duration(-20)*time.Minute),
@@ -174,6 +179,7 @@ func TestStatus(t *testing.T) {
 	})
 }
 
+//nolint
 func TestControlPlaneServices(t *testing.T) {
 	controlPlaneServices := []struct {
 		name    string

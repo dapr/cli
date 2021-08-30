@@ -34,7 +34,7 @@ func PrintComponents(name, outputFormat string) error {
 		if err != nil {
 			return nil, err
 		}
-
+		//nolint
 		return client.ComponentsV1alpha1().Components(meta_v1.NamespaceAll).List(meta_v1.ListOptions{})
 	}, name, outputFormat)
 }
@@ -66,7 +66,7 @@ func writeComponents(writer io.Writer, getConfigFunc func() (*v1alpha1.Component
 		return printComponentList(writer, filtered)
 	}
 
-	return utils.PrintDetail(writer, outputFormat, filteredSpecs)
+	return utils.PrintDetail(writer, outputFormat, filteredSpecs) //nolint
 }
 
 func printComponentList(writer io.Writer, list []v1alpha1.Component) error {
@@ -82,5 +82,5 @@ func printComponentList(writer io.Writer, list []v1alpha1.Component) error {
 		})
 	}
 
-	return utils.MarshalAndWriteTable(writer, co)
+	return utils.MarshalAndWriteTable(writer, co) //nolint
 }

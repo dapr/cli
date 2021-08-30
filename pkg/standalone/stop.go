@@ -26,7 +26,7 @@ func Stop(appID string) error {
 
 			_, err := utils.RunCmdAndWait("kill", pid)
 
-			return err
+			return fmt.Errorf("error : %w", err)
 		}
 	}
 

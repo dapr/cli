@@ -58,6 +58,7 @@ type TestCase struct {
 	Callable func(*testing.T)
 }
 
+//nolint
 func UpgradeTest(details VersionDetails) func(t *testing.T) {
 	return func(t *testing.T) {
 		daprPath := getDaprPath()
@@ -88,13 +89,13 @@ func UpgradeTest(details VersionDetails) func(t *testing.T) {
 
 func EnsureUninstall() (string, error) {
 	daprPath := getDaprPath()
-
-	return spawn.Command(daprPath,
+	return spawn.Command(daprPath, //nolint
 		"uninstall", "-k",
 		"-n", DaprTestNamespace,
 		"--log-as-json")
 }
 
+//nolint
 func DeleteCRD(crds []string) func(*testing.T) {
 	return func(t *testing.T) {
 		for _, crd := range crds {
@@ -137,6 +138,7 @@ func GetTestsOnUninstall(details VersionDetails, opts TestOptions) []TestCase {
 	}
 }
 
+//nolint
 func MTLSTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
 		daprPath := getDaprPath()
@@ -184,6 +186,7 @@ func MTLSTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 }
 
 func ComponentsTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
+	//nolint
 	return func(t *testing.T) {
 		daprPath := getDaprPath()
 		// if dapr is installed
@@ -203,6 +206,7 @@ func ComponentsTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 }
 
 func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t *testing.T) {
+	//nolint
 	return func(t *testing.T) {
 		daprPath := getDaprPath()
 		output, err := spawn.Command(daprPath, "status", "-k")
@@ -245,6 +249,7 @@ func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t
 }
 
 func ClusterRoleBindingsTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
+	//nolint
 	return func(t *testing.T) {
 		foundMap := details.constructFoundMap(ClusterRoleBindings)
 		wanted, ok := opts.CheckResourceExists[ClusterRoleBindings]
@@ -261,6 +266,7 @@ func ClusterRoleBindingsTest(details VersionDetails, opts TestOptions) func(t *t
 			list, err := k8sClient.
 				RbacV1().
 				ClusterRoleBindings().
+				//nolint
 				List(ctx, v1.ListOptions{
 					Limit:    100,
 					Continue: listContinue,
@@ -285,6 +291,7 @@ func ClusterRoleBindingsTest(details VersionDetails, opts TestOptions) func(t *t
 	}
 }
 
+//nolint
 func ClusterRolesTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
 		foundMap := details.constructFoundMap(ClusterRoles)
@@ -298,6 +305,7 @@ func ClusterRolesTest(details VersionDetails, opts TestOptions) func(t *testing.
 
 		var listContinue string
 		for {
+			//nolint
 			list, err := k8sClient.RbacV1().ClusterRoles().List(ctx, v1.ListOptions{
 				Limit:    100,
 				Continue: listContinue,
@@ -322,6 +330,7 @@ func ClusterRolesTest(details VersionDetails, opts TestOptions) func(t *testing.
 	}
 }
 
+//nolint
 func CRDTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
 		foundMap := details.constructFoundMap(CustomResourceDefs)
@@ -341,6 +350,7 @@ func CRDTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 			list, err := apiextensionsClientSet.
 				ApiextensionsV1().
 				CustomResourceDefinitions().
+				//nolint
 				List(ctx, v1.ListOptions{
 					Limit:    100,
 					Continue: listContinue,
@@ -415,7 +425,7 @@ func getConfig() (*rest.Config, error) {
 
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get item by ID: %w", err)
 	}
 	return config, nil
 }
@@ -424,11 +434,12 @@ func getConfig() (*rest.Config, error) {
 func getClient() (*k8s.Clientset, error) {
 	config, err := getConfig()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get item by ID: %w", err)
 	}
-	return k8s.NewForConfig(config)
+	return k8s.NewForConfig(config) //nolint
 }
 
+//nolint
 func installTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
 		daprPath := getDaprPath()
@@ -455,6 +466,7 @@ func installTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 	}
 }
 
+//nolint
 func uninstallTest() func(t *testing.T) {
 	return func(t *testing.T) {
 		output, err := EnsureUninstall()
@@ -477,6 +489,7 @@ func uninstallTest() func(t *testing.T) {
 	}
 }
 
+//nolint
 func uninstallMTLSTest() func(t *testing.T) {
 	return func(t *testing.T) {
 		daprPath := getDaprPath()
@@ -487,7 +500,7 @@ func uninstallMTLSTest() func(t *testing.T) {
 }
 
 func componentsTestOnUninstall() func(t *testing.T) {
-	return func(t *testing.T) {
+	return func(t *testing.T) { //nolint
 		daprPath := getDaprPath()
 		// On Dapr uninstall CRDs are not removed, consequently the components will not be removed
 		// TODO Related to https://github.com/dapr/cli/issues/656
@@ -510,7 +523,7 @@ func componentsTestOnUninstall() func(t *testing.T) {
 }
 
 func statusTestOnUninstall() func(t *testing.T) {
-	return func(t *testing.T) {
+	return func(t *testing.T) { //nolint
 		daprPath := getDaprPath()
 		output, err := spawn.Command(daprPath, "status", "-k")
 		t.Log("checking status fails as expected")
@@ -519,7 +532,7 @@ func statusTestOnUninstall() func(t *testing.T) {
 	}
 }
 
-func componentOutputCheck(t *testing.T, output string) {
+func componentOutputCheck(t *testing.T, output string) { //nolint
 	lines := strings.Split(output, "\n")[1:] // remove header
 	// for fresh cluster only one component yaml has been applied
 	fields := strings.Fields(lines[0])
@@ -531,12 +544,13 @@ func componentOutputCheck(t *testing.T, output string) {
 	assert.Equal(t, "app1", fields[3], "expected scopes to match")
 }
 
-func validatePodsOnInstallUpgrade(t *testing.T, details VersionDetails) {
+func validatePodsOnInstallUpgrade(t *testing.T, details VersionDetails) { //nolint
 	ctx := context.Background()
 	ctxt, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	k8sClient, err := getClient()
 	require.NoError(t, err)
+	//nolint
 	list, err := k8sClient.CoreV1().Pods(DaprTestNamespace).List(ctxt, v1.ListOptions{
 		Limit: 100,
 	})
@@ -590,7 +604,7 @@ func validatePodsOnInstallUpgrade(t *testing.T, details VersionDetails) {
 	assert.Empty(t, notFound)
 }
 
-func waitPodDeletion(t *testing.T, done, podsDeleted chan struct{}) {
+func waitPodDeletion(t *testing.T, done, podsDeleted chan struct{}) { //nolint
 	for {
 		select {
 		case <-done: // if timeout was reached
@@ -603,6 +617,7 @@ func waitPodDeletion(t *testing.T, done, podsDeleted chan struct{}) {
 		defer cancel()
 		k8sClient, err := getClient()
 		require.NoError(t, err, "error getting k8s client for pods check")
+		//nolint
 		list, err := k8sClient.CoreV1().Pods(DaprTestNamespace).List(ctxt, v1.ListOptions{
 			Limit: 100,
 		})
@@ -614,7 +629,7 @@ func waitPodDeletion(t *testing.T, done, podsDeleted chan struct{}) {
 	}
 }
 
-func waitAllPodsRunning(t *testing.T, namespace string, done, podsRunning chan struct{}) {
+func waitAllPodsRunning(t *testing.T, namespace string, done, podsRunning chan struct{}) { //nolint
 	for {
 		select {
 		case <-done: // if timeout was reached
@@ -627,6 +642,7 @@ func waitAllPodsRunning(t *testing.T, namespace string, done, podsRunning chan s
 		defer cancel()
 		k8sClient, err := getClient()
 		require.NoError(t, err, "error getting k8s client for pods check")
+		//nolint
 		list, err := k8sClient.CoreV1().Pods(namespace).List(ctxt, v1.ListOptions{
 			Limit: 100,
 		})

@@ -42,6 +42,7 @@ const (
 	runtimeWaitTimeoutInSeconds = 60
 )
 
+//nolint
 var RunCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Run Dapr and (optionally) your application side by side. Supported platforms: Self-hosted",
@@ -179,13 +180,13 @@ var RunCmd = &cobra.Command{
 			outScanner := bufio.NewScanner(stdOutPipe)
 			go func() {
 				for errScanner.Scan() {
-					fmt.Println(print.Blue(fmt.Sprintf("== APP == %s", errScanner.Text())))
+					fmt.Println(print.Blue(fmt.Sprintf("== APP == %s", errScanner.Text()))) //nolint
 				}
 			}()
 
 			go func() {
 				for outScanner.Scan() {
-					fmt.Println(print.Blue(fmt.Sprintf("== APP == %s", outScanner.Text())))
+					fmt.Println(print.Blue(fmt.Sprintf("== APP == %s", outScanner.Text()))) //nolint
 				}
 			}()
 

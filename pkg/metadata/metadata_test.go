@@ -14,6 +14,7 @@ import (
 )
 
 func TestMakeMetadataGetEndpoint(t *testing.T) {
+	t.Parallel()
 	actual := makeMetadataGetEndpoint(9999)
 	assert.Equal(t, fmt.Sprintf("http://127.0.0.1:9999/v%s/metadata", api.RuntimeAPIVersion), actual, "expected strings to match")
 }

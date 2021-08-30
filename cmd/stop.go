@@ -15,7 +15,7 @@ import (
 
 var stopAppID string
 
-var StopCmd = &cobra.Command{
+var StopCmd = &cobra.Command{ //nolint
 	Use:   "stop",
 	Short: "Stop Dapr instances and their associated apps. Supported platforms: Self-hosted",
 	Example: `

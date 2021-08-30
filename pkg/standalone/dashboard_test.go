@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+//nolint
 func TestDashboardRun(t *testing.T) {
 	t.Run("build Cmd", func(t *testing.T) {
 		cmd := NewDashboardCmd(9090)

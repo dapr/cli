@@ -49,6 +49,7 @@ func (d *daprProcess) List() ([]ListOutput, error) {
 }
 
 // List outputs all the applications.
+//nolint
 func List() ([]ListOutput, error) {
 	list := []ListOutput{}
 

@@ -26,6 +26,7 @@ var (
 	invokeDataFile  string
 )
 
+//nolint
 var InvokeCmd = &cobra.Command{
 	Use:   "invoke",
 	Short: "Invoke a method on a given Dapr application. Supported platforms: Self-hosted",
@@ -56,15 +57,15 @@ dapr invoke --app-id target --method sample --verb GET
 		client := standalone.NewClient()
 		response, err := client.Invoke(invokeAppID, invokeAppMethod, bytePayload, invokeVerb)
 		if err != nil {
-			err = fmt.Errorf("error invoking app %s: %s", invokeAppID, err)
+			err = fmt.Errorf("error invoking app %s: %w,", invokeAppID, err)
 			print.FailureStatusEvent(os.Stdout, err.Error())
 			return
 		}
 
 		if response != "" {
-			fmt.Println(response)
+			fmt.Println(response) //nolint
 		}
-		print.SuccessStatusEvent(os.Stdout, "App invoked successfully") //nolint
+		print.SuccessStatusEvent(os.Stdout, "App invoked successfully")
 	},
 }
 

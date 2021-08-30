@@ -35,11 +35,11 @@ require (
 	k8s.io/client-go v0.20.2
 	k8s.io/helm v2.16.10+incompatible
 )
-
-replace (
-	github.com/Azure/go-autorest => github.com/Azure/go-autorest v14.2.0+incompatible //nolint
-	github.com/docker/distribution => github.com/docker/distribution v0.0.0-20191216044856-a8371794149d //nolint
-	github.com/docker/docker => github.com/moby/moby v17.12.0-ce-rc1.0.20200618181300-9dc6525e6118+incompatible //nolint
-	github.com/russross/blackfriday => github.com/russross/blackfriday v1.5.2
-	k8s.io/client => github.com/kubernetes-client/go v0.0.0-20190928040339-c757968c4c36
+//nolint:govet
+replace ( 
+	github.com/Azure/go-autorest => github.com/Azure/go-autorest v14.2.0+incompatible 
+	github.com/docker/distribution => github.com/docker/distribution v0.0.0-20191216044856-a8371794149d 
+	github.com/docker/docker => github.com/moby/moby v17.12.0-ce-rc1.0.20200618181300-9dc6525e6118+incompatible 
+	github.com/russross/blackfriday => github.com/russross/blackfriday v1.5.2 
+	k8s.io/client => github.com/kubernetes-client/go v0.0.0-20190928040339-c757968c4c36 
 )

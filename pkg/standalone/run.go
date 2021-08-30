@@ -52,6 +52,7 @@ type RunOutput struct {
 	AppCMD       *exec.Cmd
 }
 
+//nolint
 func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort int, configFile, protocol string, enableProfiling bool, profilePort int, logLevel string, maxConcurrency int, placementHostAddr string, componentsPath string, appSSL bool, metricsPort int, requestBodySize int) (*exec.Cmd, int, int, int, error) {
 	if daprHTTPPort < 0 {
 		port, err := freeport.GetFreePort()
@@ -182,6 +183,7 @@ func getAppCommand(httpPort, grpcPort, metricsPort int, command string, args []s
 	return cmd, nil
 }
 
+//nolint
 func Run(config *RunConfig) (*RunOutput, error) {
 	appID := config.AppID
 	if appID == "" {

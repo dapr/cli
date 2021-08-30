@@ -97,6 +97,7 @@ func isBinaryInstallationRequired(binaryFilePrefix, installDir string) (bool, er
 }
 
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
+//nolint
 func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool) error {
 	if !slimMode {
 		dockerInstalled := utils.IsDockerInstalled()
@@ -222,12 +223,12 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 func prepareDaprInstallDir(daprBinDir string) error {
 	err := os.MkdirAll(daprBinDir, 0777)
 	if err != nil {
-		return err
+		return fmt.Errorf("error : %w", err)
 	}
 
 	err = os.Chmod(daprBinDir, 0777)
 	if err != nil {
-		return err
+		return fmt.Errorf("error : %w", err)
 	}
 
 	return nil
@@ -276,7 +277,7 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, 
 		if !runError {
 			errorChan <- parseDockerError("Zipkin tracing", err)
 		} else {
-			errorChan <- fmt.Errorf("docker %s failed with: %v", args, err)
+			errorChan <- fmt.Errorf("docker %s failed with: %w", args, err)
 		}
 		return
 	}
@@ -326,7 +327,7 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, d
 		if !runError {
 			errorChan <- parseDockerError("Redis state store", err)
 		} else {
-			errorChan <- fmt.Errorf("docker %s failed with: %v", args, err)
+			errorChan <- fmt.Errorf("docker %s failed with: %w", args, err)
 		}
 		return
 	}
@@ -349,7 +350,7 @@ func confirmContainerIsRunningOrExists(containerName string, isRunning bool) (bo
 
 	// If 'docker ps' failed due to some reason
 	if err != nil {
-		return false, fmt.Errorf("unable to confirm whether %s is running or exists. error\n%v", containerName, err.Error())
+		return false, fmt.Errorf("unable to confirm whether %s is running or exists. %w", containerName, err)
 	}
 	// 'docker ps' worked fine, but the response did not have the container name
 	if response == "" || response != containerName {
@@ -363,7 +364,7 @@ func confirmContainerIsRunningOrExists(containerName string, isRunning bool) (bo
 }
 
 func parseDockerError(component string, err error) error {
-	if exitError, ok := err.(*exec.ExitError); ok {
+	if exitError, ok := err.(*exec.ExitError); ok { //nolint
 		exitCode := exitError.ExitCode()
 		if exitCode == 125 { // see https://github.com/moby/moby/pull/14012
 			return fmt.Errorf("failed to launch %s. Is it already running?", component)
@@ -376,6 +377,7 @@ func parseDockerError(component string, err error) error {
 }
 
 func isContainerRunError(err error) bool {
+	//nolint
 	if exitError, ok := err.(*exec.ExitError); ok {
 		exitCode := exitError.ExitCode()
 		return exitCode == 125
@@ -435,7 +437,7 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 		if !runError {
 			errorChan <- parseDockerError("placement service", err)
 		} else {
-			errorChan <- fmt.Errorf("docker %s failed with: %v", args, err)
+			errorChan <- fmt.Errorf("docker %s failed with: %w", args, err)
 		}
 		return
 	}
@@ -448,14 +450,14 @@ func moveDashboardFiles(extractedFilePath string, dir string) (string, error) {
 	newPath := path_filepath.Join(dir, "web")
 	err := os.Rename(oldPath, newPath)
 	if err != nil {
-		err = fmt.Errorf("failed to move dashboard files: %s", err)
+		err = fmt.Errorf("failed to move dashboard files: %w", err)
 		return "", err
 	}
 
 	// Move binary from /release/<os>/web/dashboard(.exe) to /dashboard(.exe)
 	err = os.Rename(extractedFilePath, path_filepath.Join(dir, path_filepath.Base(extractedFilePath)))
 	if err != nil {
-		err = fmt.Errorf("error moving %s binary to path: %s", path_filepath.Base(extractedFilePath), err)
+		err = fmt.Errorf("error moving %s binary to path: %w", path_filepath.Base(extractedFilePath), err)
 		return "", err
 	}
 
@@ -465,7 +467,7 @@ func moveDashboardFiles(extractedFilePath string, dir string) (string, error) {
 	// Remove the now-empty 'release' directory
 	err = os.RemoveAll(path_filepath.Join(dir, "release"))
 	if err != nil {
-		err = fmt.Errorf("error moving dashboard files: %s", err)
+		err = fmt.Errorf("error moving dashboard files: %w", err)
 		return "", err
 	}
 
@@ -493,11 +495,11 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, bin
 
 	filepath, err := downloadFile(dir, fileURL)
 	if err != nil {
-		errorChan <- fmt.Errorf("error downloading %s binary: %s", binaryFilePrefix, err)
+		errorChan <- fmt.Errorf("error downloading %s binary: %w", binaryFilePrefix, err)
 		return
 	}
 
-	extractedFilePath := ""
+	extractedFilePath := "" //nolint
 
 	if archiveExt == "zip" {
 		extractedFilePath, err = unzip(filepath, dir, binaryFilePrefix)
@@ -506,13 +508,13 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, bin
 	}
 
 	if err != nil {
-		errorChan <- fmt.Errorf("error extracting %s binary: %s", binaryFilePrefix, err)
+		errorChan <- fmt.Errorf("error extracting %s binary: %w", binaryFilePrefix, err)
 		return
 	}
 	err = os.Remove(filepath)
 
 	if err != nil {
-		errorChan <- fmt.Errorf("failed to remove archive: %s", err)
+		errorChan <- fmt.Errorf("failed to remove archive: %w", err)
 		return
 	}
 
@@ -526,13 +528,13 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, bin
 
 	binaryPath, err := moveFileToPath(extractedFilePath, dir)
 	if err != nil {
-		errorChan <- fmt.Errorf("error moving %s binary to path: %s", binaryFilePrefix, err)
+		errorChan <- fmt.Errorf("error moving %s binary to path: %w", binaryFilePrefix, err)
 		return
 	}
 
 	err = makeExecutable(binaryPath)
 	if err != nil {
-		errorChan <- fmt.Errorf("error making %s binary executable: %s", binaryFilePrefix, err)
+		errorChan <- fmt.Errorf("error making %s binary executable: %w", binaryFilePrefix, err)
 		return
 	}
 
@@ -556,17 +558,17 @@ func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error
 
 	err = createRedisPubSub(redisHost, componentsDir)
 	if err != nil {
-		errorChan <- fmt.Errorf("error creating redis pubsub component file: %s", err)
+		errorChan <- fmt.Errorf("error creating redis pubsub component file: %w", err)
 		return
 	}
 	err = createRedisStateStore(redisHost, componentsDir)
 	if err != nil {
-		errorChan <- fmt.Errorf("error creating redis statestore component file: %s", err)
+		errorChan <- fmt.Errorf("error creating redis statestore component file: %w", err)
 		return
 	}
 	err = createDefaultConfiguration(zipkinHost, DefaultConfigFilePath())
 	if err != nil {
-		errorChan <- fmt.Errorf("error creating default configuration file: %s", err)
+		errorChan <- fmt.Errorf("error creating default configuration file: %w", err)
 		return
 	}
 }
@@ -577,7 +579,7 @@ func createSlimConfiguration(wg *sync.WaitGroup, errorChan chan<- error, _, _ st
 	// For --slim we pass empty string so that we do not configure zipkin.
 	err := createDefaultConfiguration("", DefaultConfigFilePath())
 	if err != nil {
-		errorChan <- fmt.Errorf("error creating default configuration file: %s", err)
+		errorChan <- fmt.Errorf("error creating default configuration file: %w", err)
 		return
 	}
 }
@@ -585,11 +587,11 @@ func createSlimConfiguration(wg *sync.WaitGroup, errorChan chan<- error, _, _ st
 func makeDefaultComponentsDir() error {
 	// Make default components directory
 	componentsDir := DefaultComponentsDirPath()
-	_, err := os.Stat(componentsDir)
+	_, err := os.Stat(componentsDir) 
 	if os.IsNotExist(err) {
 		errDir := os.MkdirAll(componentsDir, 0755)
 		if errDir != nil {
-			return fmt.Errorf("error creating default components folder: %s", errDir)
+			return fmt.Errorf("error creating default components folder: %w", errDir)
 		}
 	}
 
@@ -601,7 +603,7 @@ func makeExecutable(filepath string) error {
 	if runtime.GOOS != daprWindowsOS {
 		err := os.Chmod(filepath, 0777)
 		if err != nil {
-			return err
+			return fmt.Errorf("error : %w", err)
 		}
 	}
 
@@ -620,7 +622,7 @@ func sanitizeExtractPath(destination string, filePath string) (string, error) {
 func unzip(filepath, targetDir, binaryFilePrefix string) (string, error) {
 	r, err := zip.OpenReader(filepath)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error : %w", err)
 	}
 	defer r.Close()
 
@@ -641,17 +643,17 @@ func unzip(filepath, targetDir, binaryFilePrefix string) (string, error) {
 		}
 
 		if err = os.MkdirAll(path_filepath.Dir(fpath), os.ModePerm); err != nil {
-			return "", err
+			return "", fmt.Errorf("error : %w", err)
 		}
 
 		outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("error : %w", err)
 		}
 
 		rc, err := f.Open()
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("error : %w", err)
 		}
 
 		// #nosec G110
@@ -661,12 +663,13 @@ func unzip(filepath, targetDir, binaryFilePrefix string) (string, error) {
 		rc.Close()
 
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("error : %w", err)
 		}
 	}
 	return foundBinary, nil
 }
 
+//nolint
 func untar(filepath, targetDir, binaryFilePrefix string) (string, error) {
 	tarFile, err := os.Open(filepath)
 	if err != nil {
@@ -727,6 +730,7 @@ func untar(filepath, targetDir, binaryFilePrefix string) (string, error) {
 	return foundBinary, nil
 }
 
+//nolint
 func moveFileToPath(filepath string, installLocation string) (string, error) {
 	fileName := path_filepath.Base(filepath)
 	destFilePath := ""
@@ -789,7 +793,7 @@ func downloadFile(dir string, url string) (string, error) {
 
 	resp, err := http.Get(url)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error : %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -801,18 +805,19 @@ func downloadFile(dir string, url string) (string, error) {
 
 	out, err := os.Create(filepath)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error : %w", err)
 	}
 	defer out.Close()
 
 	_, err = io.Copy(out, resp.Body)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error : %w", err)
 	}
 
 	return filepath, nil
 }
 
+//nolint
 func createRedisStateStore(redisHost string, componentsPath string) error {
 	redisStore := component{
 		APIVersion: "dapr.io/v1alpha1",
@@ -839,7 +844,7 @@ func createRedisStateStore(redisHost string, componentsPath string) error {
 
 	b, err := yaml.Marshal(&redisStore)
 	if err != nil {
-		return err
+		return fmt.Errorf("error : %w", err)
 	}
 
 	filePath := path_filepath.Join(componentsPath, stateStoreYamlFileName)
@@ -848,6 +853,7 @@ func createRedisStateStore(redisHost string, componentsPath string) error {
 	return err
 }
 
+//nolint
 func createRedisPubSub(redisHost string, componentsPath string) error {
 	redisPubSub := component{
 		APIVersion: "dapr.io/v1alpha1",
@@ -870,7 +876,7 @@ func createRedisPubSub(redisHost string, componentsPath string) error {
 
 	b, err := yaml.Marshal(&redisPubSub)
 	if err != nil {
-		return err
+		return fmt.Errorf("error : %w", err)
 	}
 
 	filePath := path_filepath.Join(componentsPath, pubSubYamlFileName)
@@ -879,6 +885,7 @@ func createRedisPubSub(redisHost string, componentsPath string) error {
 	return err
 }
 
+//nolint
 func createDefaultConfiguration(zipkinHost, filePath string) error {
 	defaultConfig := configuration{
 		APIVersion: "dapr.io/v1alpha1",
@@ -891,12 +898,12 @@ func createDefaultConfiguration(zipkinHost, filePath string) error {
 	}
 	b, err := yaml.Marshal(&defaultConfig)
 	if err != nil {
-		return err
+		return fmt.Errorf("error : %w", err)
 	}
 
 	err = checkAndOverWriteFile(filePath, b)
 
-	return err
+	return fmt.Errorf("error : %w", err)
 }
 
 func checkAndOverWriteFile(filePath string, b []byte) error {
@@ -904,7 +911,7 @@ func checkAndOverWriteFile(filePath string, b []byte) error {
 	if os.IsNotExist(err) {
 		// #nosec G306
 		if err = ioutil.WriteFile(filePath, b, 0644); err != nil {
-			return err
+			return fmt.Errorf("error : %w", err)
 		}
 	}
 	return nil
