@@ -32,7 +32,7 @@ import (
 )
 
 const (
-	daprRuntimeVersion   = "1.3.0"
+	daprRuntimeVersion   = "1.4.0-rc.6"
 	daprDashboardVersion = "0.7.0"
 )
 
