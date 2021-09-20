@@ -32,8 +32,8 @@ import (
 )
 
 const (
-	daprRuntimeVersion   = "1.4.0-rc.6"
-	daprDashboardVersion = "0.7.0"
+	daprRuntimeVersion   = "1.4.0"
+	daprDashboardVersion = "0.8.0"
 )
 
 func TestStandaloneInstall(t *testing.T) {

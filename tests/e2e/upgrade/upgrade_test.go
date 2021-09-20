@@ -55,15 +55,15 @@ var (
 		},
 		{
 			previous: common.VersionDetails{
-				RuntimeVersion:      "1.2.2",
-				DashboardVersion:    "0.6.0",
+				RuntimeVersion:      "1.3.0",
+				DashboardVersion:    "0.7.0",
 				ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
 				ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
 				CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
 			},
 			next: common.VersionDetails{
-				RuntimeVersion:      "1.3.0",
-				DashboardVersion:    "0.7.0",
+				RuntimeVersion:      "1.4.0",
+				DashboardVersion:    "0.8.0",
 				ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
 				ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
 				CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
@@ -71,15 +71,15 @@ var (
 		},
 		{
 			previous: common.VersionDetails{
-				RuntimeVersion:      "1.3.0",
+				RuntimeVersion:      "1.3.1",
 				DashboardVersion:    "0.7.0",
 				ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
 				ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
 				CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
 			},
 			next: common.VersionDetails{
-				RuntimeVersion:      "1.4.0-rc.6",
-				DashboardVersion:    "0.8.0-rc.1",
+				RuntimeVersion:      "1.4.0",
+				DashboardVersion:    "0.8.0",
 				ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
 				ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
 				CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
