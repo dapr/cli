@@ -17,6 +17,7 @@ DAPR_HTTP_REQUEST_CLI=curl
 # GitHub Organization and repo name to download release
 GITHUB_ORG=dapr
 GITHUB_REPO=cli
+GITHUB_ACCESSTOKEN=`echo $GITHUB_OAUTH2_KEY_SECRET`
 
 # Dapr CLI filename
 DAPR_CLI_FILENAME=dapr
@@ -101,7 +102,7 @@ getLatestRelease() {
     local latest_release=""
 
     if [ "$DAPR_HTTP_REQUEST_CLI" == "curl" ]; then
-        latest_release=$(curl -s $daprReleaseUrl | grep \"tag_name\" | grep -v rc | awk 'NR==1{print $2}' |  sed -n 's/\"\(.*\)\",/\1/p')
+        latest_release=$(curl -s -u $GITHUB_ACCESSTOKEN $daprReleaseUrl | grep \"tag_name\" | grep -v rc | awk 'NR==1{print $2}' |  sed -n 's/\"\(.*\)\",/\1/p')
     else
         latest_release=$(wget -q --header="Accept: application/json" -O - $daprReleaseUrl | grep \"tag_name\" | grep -v rc | awk 'NR==1{print $2}' |  sed -n 's/\"\(.*\)\",/\1/p')
     fi

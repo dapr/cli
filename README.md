@@ -35,6 +35,10 @@ powershell -Command "iwr -useb https://raw.githubusercontent.com/dapr/cli/master
 Install the latest linux Dapr CLI to `/usr/local/bin`
 
 ```bash
+# Avoid API rate limit exceeded 
+# https://docs.github.com/en/rest/overview/resources-in-the-rest-api#rate-limiting
+export GITHUB_OAUTH2_KEY_SECRET="my_client_id:my_client_secret"
+
 wget -q https://raw.githubusercontent.com/dapr/cli/master/install/install.sh -O - | /bin/bash
 ```
 
@@ -43,6 +47,10 @@ wget -q https://raw.githubusercontent.com/dapr/cli/master/install/install.sh -O 
 Install the latest darwin Dapr CLI to `/usr/local/bin`
 
 ```bash
+# Avoid API rate limit exceeded 
+# https://docs.github.com/en/rest/overview/resources-in-the-rest-api#rate-limiting
+export GITHUB_OAUTH2_KEY_SECRET="my_client_id:my_client_secret"
+
 curl -fsSL https://raw.githubusercontent.com/dapr/cli/master/install/install.sh | /bin/bash
 ```
 

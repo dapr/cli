@@ -19,6 +19,10 @@ powershell -Command "$script=iwr -useb https://raw.githubusercontent.com/dapr/cl
 ### Get the latest stable version
 
 ```
+# Avoid API rate limit exceeded 
+# https://docs.github.com/en/rest/overview/resources-in-the-rest-api#rate-limiting
+export GITHUB_OAUTH2_KEY_SECRET="my_client_id:my_client_secret"
+
 curl -fsSL https://raw.githubusercontent.com/dapr/cli/master/install/install.sh | /bin/bash
 ```
 
@@ -33,6 +37,10 @@ curl -fsSL https://raw.githubusercontent.com/dapr/cli/master/install/install.sh 
 ### Get the latest stable version
 
 ```
+# Avoid API rate limit exceeded 
+# https://docs.github.com/en/rest/overview/resources-in-the-rest-api#rate-limiting
+export GITHUB_OAUTH2_KEY_SECRET="my_client_id:my_client_secret"
+
 wget -q https://raw.githubusercontent.com/dapr/cli/master/install/install.sh -O - | /bin/bash
 ```
 
