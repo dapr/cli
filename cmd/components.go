@@ -48,7 +48,7 @@ var ComponentsCmd = &cobra.Command{
 		kubernetes.CheckForCertExpiry()
 	},
 	Example: `
-# List Kubernetes Dapr components
+# List default namespace Dapr components in Kubernetes mode
 dapr components -k
 
 # List define namespace Dapr components in Kubernetes mode

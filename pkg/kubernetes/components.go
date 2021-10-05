@@ -38,14 +38,14 @@ type ComponentsOutput struct {
 }
 
 // PrintComponents prints all Dapr components.
-func PrintComponents(name, namesapce, outputFormat string) error {
+func PrintComponents(name, namespace, outputFormat string) error {
 	return writeComponents(os.Stdout, func() (*v1alpha1.ComponentList, error) {
 		client, err := DaprClient()
 		if err != nil {
 			return nil, err
 		}
 
-		list, err := client.ComponentsV1alpha1().Components(namesapce).List(meta_v1.ListOptions{})
+		list, err := client.ComponentsV1alpha1().Components(namespace).List(meta_v1.ListOptions{})
 		// This means that the Dapr Components CRD is not installed and
 		// therefore no component items exist.
 		if apierrors.IsNotFound(err) {

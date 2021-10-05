@@ -48,7 +48,7 @@ var ConfigurationsCmd = &cobra.Command{
 		kubernetes.CheckForCertExpiry()
 	},
 	Example: `
-# List Kubernetes Dapr configurations
+# List default namespace Dapr configurations in Kubernetes mode
 dapr configurations -k
 
 # List define namespace Dapr configurations in Kubernetes mode
