@@ -59,14 +59,6 @@ dapr init -s
 	Run: func(cmd *cobra.Command, args []string) {
 		print.PendingStatusEvent(os.Stdout, "Making the jump to hyperspace...")
 
-		if runtimeVersion == "latest" {
-			runtimeVersionEnv := viper.GetString("runtime_version")
-			if runtimeVersionEnv != "" {
-				runtimeVersion = runtimeVersionEnv
-			}
-		}
-		print.InfoStatusEvent(os.Stdout, "Dapr runtime version: %s", runtimeVersion)
-
 		if kubernetesMode {
 			print.InfoStatusEvent(os.Stdout, "Note: To install Dapr using Helm, see here: https://docs.dapr.io/getting-started/install-dapr-kubernetes/#install-with-helm-advanced\n")
 
@@ -101,12 +93,17 @@ dapr init -s
 }
 
 func init() {
-	viper.BindEnv("runtime_version")
+	defaultRuntimeVersion := "latest"
+	viper.BindEnv("runtime_version_override", "DAPR_RUNTIME_VERSION")
+	runtimeVersionEnv := viper.GetString("runtime_version_override")
+	if runtimeVersionEnv != "" {
+		defaultRuntimeVersion = runtimeVersionEnv
+	}
 	InitCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Deploy Dapr to a Kubernetes cluster")
 	InitCmd.Flags().BoolVarP(&wait, "wait", "", false, "Wait for Kubernetes initialization to complete")
 	InitCmd.Flags().UintVarP(&timeout, "timeout", "", 300, "The wait timeout for the Kubernetes installation")
 	InitCmd.Flags().BoolVarP(&slimMode, "slim", "s", false, "Exclude placement service, Redis and Zipkin containers from self-hosted installation")
-	InitCmd.Flags().StringVarP(&runtimeVersion, "runtime-version", "", "latest", "The version of the Dapr runtime to install, for example: 1.0.0")
+	InitCmd.Flags().StringVarP(&runtimeVersion, "runtime-version", "", defaultRuntimeVersion, "The version of the Dapr runtime to install, for example: 1.0.0")
 	InitCmd.Flags().StringVarP(&dashboardVersion, "dashboard-version", "", "latest", "The version of the Dapr dashboard to install, for example: 1.0.0")
 	InitCmd.Flags().StringVarP(&initNamespace, "namespace", "n", "dapr-system", "The Kubernetes namespace to install Dapr in")
 	InitCmd.Flags().BoolVarP(&enableMTLS, "enable-mtls", "", true, "Enable mTLS in your cluster")
