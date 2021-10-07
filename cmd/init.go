@@ -59,6 +59,14 @@ dapr init -s
 	Run: func(cmd *cobra.Command, args []string) {
 		print.PendingStatusEvent(os.Stdout, "Making the jump to hyperspace...")
 
+		if runtimeVersion == "latest" {
+			runtimeVersionEnv := viper.GetString("runtime_version")
+			if runtimeVersionEnv != "" {
+				runtimeVersion = runtimeVersionEnv
+			}
+		}
+		print.InfoStatusEvent(os.Stdout, "Dapr runtime version: %s", runtimeVersion)
+
 		if kubernetesMode {
 			print.InfoStatusEvent(os.Stdout, "Note: To install Dapr using Helm, see here: https://docs.dapr.io/getting-started/install-dapr-kubernetes/#install-with-helm-advanced\n")
 
@@ -93,6 +101,7 @@ dapr init -s
 }
 
 func init() {
+	viper.BindEnv("runtime_version")
 	InitCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Deploy Dapr to a Kubernetes cluster")
 	InitCmd.Flags().BoolVarP(&wait, "wait", "", false, "Wait for Kubernetes initialization to complete")
 	InitCmd.Flags().UintVarP(&timeout, "timeout", "", 300, "The wait timeout for the Kubernetes installation")
