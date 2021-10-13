@@ -56,8 +56,8 @@ dapr publish --enable-domain-socket --publish-app-id myapp --pubsub target --top
 		client := standalone.NewClient()
 		// TODO(@daixiang0): add Windows support
 		if runtime.GOOS == "windows" && publishSocket != "" {
-			publishSocket = ""
-			print.WarningStatusEvent(os.Stdout, "unix-domain-socket option still does not support Windows!")
+			print.FailureStatusEvent(os.Stderr, "unix-domain-socket option still does not support Windows!")
+			os.Exit(1)
 		}
 		err = client.Publish(publishAppID, pubsubName, publishTopic, bytePayload, publishSocket)
 		if err != nil {
