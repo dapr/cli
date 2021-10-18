@@ -238,7 +238,6 @@ func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t
 		lines := strings.Split(output, "\n")[1:] // remove header of status
 		for _, line := range lines {
 			cols := strings.Fields(strings.TrimSpace(line))
-			fmt.Printf("seachen: %s\n", line)
 			if len(cols) > 6 { // atleast 6 fields are verified from status (Age and created time are not)
 				if toVerify, ok := notFound[cols[0]]; ok { // get by name
 					require.Equal(t, DaprTestNamespace, cols[1], "namespace must match")
