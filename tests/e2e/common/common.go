@@ -236,6 +236,7 @@ func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t
 		}
 
 		lines := strings.Split(output, "\n")[1:] // remove header of status
+		fmt.Printf("cmd: dapr status -k: \n %s\n", output)
 		for _, line := range lines {
 			cols := strings.Fields(strings.TrimSpace(line))
 			if len(cols) > 6 { // atleast 6 fields are verified from status (Age and created time are not)
