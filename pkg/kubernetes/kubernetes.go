@@ -28,12 +28,9 @@ import (
 )
 
 const (
-	daprReleaseName       = "dapr"
-	daprHelmRepo          = "https://dapr.github.io/helm-charts"
-	latestVersion         = "latest"
-	HelmChartRepoURL      = "HELM_CHART_REPO_URL"
-	HelmChartRepoUserName = "HELM_CHART_REPO_USERNAME"
-	HelmChartRepoPasswd   = "HELM_CHART_REPO_PASSWORD"
+	daprReleaseName = "dapr"
+	daprHelmRepo    = "https://dapr.github.io/helm-charts"
+	latestVersion   = "latest"
 )
 
 type InitConfiguration struct {
@@ -118,9 +115,9 @@ func locateChartFile(dirPath string) (string, error) {
 
 func daprChart(version string, config *helm.Configuration) (*chart.Chart, error) {
 	pull := helm.NewPull()
-	pull.RepoURL = utils.GetEnv(HelmChartRepoURL, daprHelmRepo)
-	pull.Username = utils.GetEnv(HelmChartRepoUserName, "")
-	pull.Password = utils.GetEnv(HelmChartRepoPasswd, "")
+	pull.RepoURL = utils.GetEnv("HELM_CHART_REPO_URL", daprHelmRepo)
+	pull.Username = utils.GetEnv("HELM_CHART_REPO_USERNAME", "")
+	pull.Password = utils.GetEnv("HELM_CHART_REPO_PASSWORD", "")
 	pull.Settings = &cli.EnvSettings{}
 
 	if version != latestVersion {

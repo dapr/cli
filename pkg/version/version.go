@@ -25,8 +25,6 @@ const (
 	DaprGitHubRepo = "dapr"
 	// DashboardGitHubRepo is the repo name of dapr dashboard on GitHub.
 	DashboardGitHubRepo = "dashboard"
-	// GithubTokenKey is the token key of accessing dapr hub on Github
-	GithubTokenKey = "GITHUB_TOKEN"
 )
 
 type githubRepoReleaseItem struct {
@@ -69,7 +67,7 @@ func GetVersionFromURL(releaseURL string, parseVersion func(body []byte) (string
 		return "", err
 	}
 
-	githubToken := utils.GetEnv(GithubTokenKey, "")
+	githubToken := utils.GetEnv("GITHUB_TOKEN", "")
 	if githubToken != "" {
 		req.Header.Add("Authorization", "token "+githubToken)
 	}
