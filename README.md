@@ -63,6 +63,16 @@ In self-hosted mode, dapr can be initialized using the CLI  with the placement, 
 #### Initialize Dapr
 ([Prerequisite](#Prerequisites): Docker is available in the environment - recommended)
 
+```shell
+## cli supported environment avaiables about helm chart repo in k8s.
+
+export HELM_CHART_REPO_URL="https://helmchart-repo.xxx.xxx/dapr/dapr"
+export HELM_CHART_REPO_USERNAME="username_xxx"
+export HELM_CHART_REPO_PASSWORD="passwd_xxx"
+
+With the above three params, we can install dapr cluster on the private network.
+```
+
 Use the init command to initialize Dapr. On init, multiple default configuration files and containers are installed along with the dapr runtime binary. Dapr runtime binary is installed under $HOME/.dapr/bin for Mac, Linux and %USERPROFILE%\.dapr\bin for Windows.
 
 ```bash

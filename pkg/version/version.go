@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/dapr/cli/pkg/print"
+	"github.com/dapr/cli/utils"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -24,6 +25,8 @@ const (
 	DaprGitHubRepo = "dapr"
 	// DashboardGitHubRepo is the repo name of dapr dashboard on GitHub.
 	DashboardGitHubRepo = "dashboard"
+	// GithubTokenKey is the token key of accessing dapr hub on Github
+	GithubTokenKey = "GITHUB_TOKEN"
 )
 
 type githubRepoReleaseItem struct {
@@ -66,7 +69,7 @@ func GetVersionFromURL(releaseURL string, parseVersion func(body []byte) (string
 		return "", err
 	}
 
-	githubToken := os.Getenv("GITHUB_TOKEN")
+	githubToken := utils.GetEnv(GithubTokenKey, "")
 	if githubToken != "" {
 		req.Header.Add("Authorization", "token "+githubToken)
 	}

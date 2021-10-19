@@ -195,3 +195,11 @@ func IsAddressLegal(address string) bool {
 	}
 	return isLegal
 }
+
+// GetEnv get value from environment variable.
+func GetEnv(envName string, defaultValue string) string {
+	if val := os.Getenv(envName); val != "" {
+		return val
+	}
+	return defaultValue
+}
