@@ -14,6 +14,7 @@ import (
 
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/utils"
+	version "github.com/hashicorp/go-version"
 	helm "helm.sh/helm/v3/pkg/action"
 	"k8s.io/helm/pkg/strvals"
 )
@@ -107,9 +108,13 @@ func Upgrade(conf UpgradeConfig) error {
 		return err
 	}
 
-	err = applyCRDs(fmt.Sprintf("v%s", conf.RuntimeVersion))
-	if err != nil {
-		return err
+	if !isDowngrade(conf.RuntimeVersion, daprVersion) {
+		err = applyCRDs(fmt.Sprintf("v%s", conf.RuntimeVersion))
+		if err != nil {
+			return err
+		}
+	} else {
+		print.InfoStatusEvent(os.Stdout, "Downgrade detected, skipping CRDs.")
 	}
 
 	listClient := helm.NewList(helmConf)
@@ -175,4 +180,11 @@ func upgradeChartValues(ca, issuerCert, issuerKey string, haMode, mtls bool, arg
 		}
 	}
 	return chartVals, nil
+}
+
+func isDowngrade(targetVersion, existingVersion string) bool {
+	target, _ := version.NewVersion(targetVersion)
+	existing, _ := version.NewVersion(existingVersion)
+
+	return target.LessThan(existing)
 }

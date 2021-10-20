@@ -14,6 +14,7 @@ require (
 	github.com/gocarina/gocsv v0.0.0-20190426105157-2fc85fcf0c07
 	github.com/google/go-cmp v0.5.5 // indirect
 	github.com/hashicorp/go-retryablehttp v0.5.3
+	github.com/hashicorp/go-version v1.3.0
 	github.com/mattn/go-runewidth v0.0.8 // indirect
 	github.com/mitchellh/go-ps v0.0.0-20190716172923-621e5597135b
 	github.com/nightlyone/lockfile v0.0.0-20180618180623-0ad87eef1443
