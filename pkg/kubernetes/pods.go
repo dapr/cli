@@ -23,7 +23,7 @@ func ListPods(client *k8s.Clientset, namespace string, labelSelector map[string]
 	if labelSelector != nil {
 		opts.LabelSelector = labels.FormatLabels(labelSelector)
 	}
-	return client.CoreV1().Pods(v1.NamespaceAll).List(context.TODO(), opts)
+	return client.CoreV1().Pods(namespace).List(context.TODO(), opts)
 }
 
 // CheckPodExists returns a boolean representing the pod's existence and the namespace that the given pod resides in,
