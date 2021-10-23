@@ -12,7 +12,6 @@ import (
 	"os"
 	"os/exec"
 	"reflect"
-	"runtime"
 	"strings"
 
 	"github.com/Pallinder/sillyname-go"
@@ -34,24 +33,22 @@ type RunConfig struct {
 	Protocol           string `arg:"app-protocol"`
 	Arguments          []string
 	EnableProfiling    bool   `arg:"enable-profiling"`
-	ProfilePort        int    `env:"DAPR_PROFILE_PORT" arg:"profile-port"`
+	ProfilePort        int    `arg:"profile-port"`
 	LogLevel           string `arg:"log-level"`
 	MaxConcurrency     int    `arg:"app-max-concurrency"`
-	PlacementHostAddr  string `env:"HOST_ADDRESS" arg:"placement-host-address"`
 	ComponentsPath     string `arg:"components-path"`
 	AppSSL             bool   `arg:"app-ssl"`
 	MetricsPort        int    `env:"DAPR_METRICS_PORT" arg:"metrics-port"`
 	MaxRequestBodySize int    `arg:"dapr-http-max-request-size"`
 }
 
-func (stat *DaprStat) newAppID() (*string, error) {
-	for true {
+func (meta *DaprMeta) newAppID() (*string, error) {
+	for {
 		appID := strings.ReplaceAll(sillyname.GenerateStupidName(), " ", "-")
-		if !stat.idExists(appID) {
+		if !meta.idExists(appID) {
 			return &appID, nil
 		}
 	}
-	return nil, nil
 }
 
 func (config *RunConfig) validateComponentPath() error {
@@ -67,20 +64,7 @@ func (config *RunConfig) validateComponentPath() error {
 	return nil
 }
 
-func (config *RunConfig) validatePlacementHostAddr() error {
-	placementHostAddr := config.PlacementHostAddr
-	if indx := strings.Index(placementHostAddr, ":"); indx == -1 {
-		if runtime.GOOS == daprWindowsOS {
-			placementHostAddr = fmt.Sprintf("%s:6050", placementHostAddr)
-		} else {
-			placementHostAddr = fmt.Sprintf("%s:50005", placementHostAddr)
-		}
-		config.PlacementHostAddr = placementHostAddr
-	}
-	return nil
-}
-
-func (config *RunConfig) validatePort(context string, portPtr *int, stat *DaprStat) error {
+func (config *RunConfig) validatePort(context string, portPtr *int, meta *DaprMeta) error {
 	if *portPtr < 0 {
 		port, err := freeport.GetFreePort()
 		if err != nil {
@@ -90,20 +74,20 @@ func (config *RunConfig) validatePort(context string, portPtr *int, stat *DaprSt
 		return nil
 	}
 
-	if stat.portExists(*portPtr) {
-		return fmt.Errorf("Invalid configuration for %s. Port %v is not available", context, *portPtr)
+	if meta.portExists(*portPtr) {
+		return fmt.Errorf("invalid configuration for %s. Port %v is not available", context, *portPtr)
 	}
 	return nil
 }
 
 func (config *RunConfig) validate() error {
-	stat, err := newDaprStat()
+	meta, err := newDaprMeta()
 	if err != nil {
 		return err
 	}
 
 	if config.AppID == "" {
-		appId, err := stat.newAppID()
+		appId, err := meta.newAppID()
 		if err != nil {
 			return err
 		}
@@ -115,28 +99,27 @@ func (config *RunConfig) validate() error {
 		return err
 	}
 
-	err = config.validatePort("AppPort", &config.AppPort, stat)
+	if meta.portExists(config.AppPort) {
+		return fmt.Errorf("invalid app-port. Port %v is not available", config.AppPort)
+	}
+
+	err = config.validatePort("HTTPPort", &config.HTTPPort, meta)
 	if err != nil {
 		return err
 	}
 
-	err = config.validatePort("HTTPPort", &config.HTTPPort, stat)
+	err = config.validatePort("GRPCPort", &config.GRPCPort, meta)
 	if err != nil {
 		return err
 	}
 
-	err = config.validatePort("GRPCPort", &config.GRPCPort, stat)
-	if err != nil {
-		return err
-	}
-
-	err = config.validatePort("MetricsPort", &config.MetricsPort, stat)
+	err = config.validatePort("MetricsPort", &config.MetricsPort, meta)
 	if err != nil {
 		return err
 	}
 
 	if config.EnableProfiling {
-		err = config.validatePort("ProfilePort", &config.ProfilePort, stat)
+		err = config.validatePort("ProfilePort", &config.ProfilePort, meta)
 		if err != nil {
 			return err
 		}
@@ -149,60 +132,54 @@ func (config *RunConfig) validate() error {
 		config.MaxRequestBodySize = -1
 	}
 
-	err = config.validatePlacementHostAddr()
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
-type DaprStat struct {
+type DaprMeta struct {
 	ExistingIDs   map[string]bool
 	ExistingPorts map[int]bool
 }
 
-func (stat *DaprStat) idExists(id string) bool {
-	_, ok := stat.ExistingIDs[id]
+func (meta *DaprMeta) idExists(id string) bool {
+	_, ok := meta.ExistingIDs[id]
 	return ok
 }
 
-func (stat *DaprStat) portExists(port int) bool {
-	_, ok := stat.ExistingPorts[port]
-	if !ok {
-		available := stat.portAvailable(port)
-		if available {
-			stat.ExistingPorts[port] = true
-			ok = false
-		}
-	}
-	return ok
-}
-
-func (stat *DaprStat) portAvailable(port int) bool {
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%v", port))
-	if err != nil {
+func (meta *DaprMeta) portExists(port int) bool {
+	if port < 0 {
 		return false
 	}
+	_, ok := meta.ExistingPorts[port]
+	if ok {
+		return true
+	}
 
+	// try to listen on the port
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%v", port))
+	if err != nil {
+		return true
+	}
 	listener.Close()
-	return true
+
+	meta.ExistingPorts[port] = true
+	return false
 }
 
-func newDaprStat() (*DaprStat, error) {
-	stat := DaprStat{}
-	stat.ExistingIDs = make(map[string]bool)
-	stat.ExistingPorts = make(map[int]bool)
+func newDaprMeta() (*DaprMeta, error) {
+	meta := DaprMeta{}
+	meta.ExistingIDs = make(map[string]bool)
+	meta.ExistingPorts = make(map[int]bool)
 	dapr, err := List()
 	if err != nil {
 		return nil, err
 	}
 	for _, instance := range dapr {
-		stat.ExistingIDs[instance.AppID] = true
-		stat.ExistingPorts[instance.AppPort] = true
-		stat.ExistingPorts[instance.HTTPPort] = true
-		stat.ExistingPorts[instance.GRPCPort] = true
+		meta.ExistingIDs[instance.AppID] = true
+		meta.ExistingPorts[instance.AppPort] = true
+		meta.ExistingPorts[instance.HTTPPort] = true
+		meta.ExistingPorts[instance.GRPCPort] = true
 	}
-	return &stat, nil
+	return &meta, nil
 }
 func (config *RunConfig) getArgs() []string {
 	args := []string{}
@@ -243,14 +220,18 @@ func (config *RunConfig) getEnv() []string {
 	env := []string{}
 	schema := reflect.ValueOf(*config)
 	for i := 0; i < schema.NumField(); i++ {
-		valueField := schema.Field(i)
+		valueField := schema.Field(i).Interface()
 		typeField := schema.Type().Field(i)
 		key := typeField.Tag.Get("env")
 		if len(key) == 0 {
 			continue
 		}
-		value := reflect.ValueOf(valueField.Interface())
+		if value, ok := valueField.(int); ok && value == 0 {
+			// ignore unset numeric variables
+			continue
+		}
 
+		value := fmt.Sprintf("%v", reflect.ValueOf(valueField))
 		env = append(env, fmt.Sprintf("%s=%v", key, value))
 	}
 	return env
