@@ -8,11 +8,9 @@ package standalone
 import (
 	"fmt"
 	"os"
-	"runtime"
 	"strings"
 	"testing"
 
-	daprEnv "github.com/dapr/dapr/pkg/config/env"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -84,12 +82,6 @@ func assertCommonArgs(t *testing.T, basicConfig *RunConfig, output *RunOutput) {
 	assertArgumentEqual(t, "app-ssl", "", output.DaprCMD.Args)
 	assertArgumentEqual(t, "metrics-port", "9001", output.DaprCMD.Args)
 	assertArgumentEqual(t, "dapr-http-max-request-size", "-1", output.DaprCMD.Args)
-
-	placementHostAddr := "localhost:50005"
-	if runtime.GOOS == "windows" {
-		placementHostAddr = "localhost:6050"
-	}
-	assertArgumentEqual(t, "placement-host-address", placementHostAddr, output.DaprCMD.Args)
 }
 
 func assertAppEnv(t *testing.T, config *RunConfig, output *RunOutput) {
@@ -111,14 +103,16 @@ func assertAppEnv(t *testing.T, config *RunConfig, output *RunOutput) {
 
 func getEnvSet(config *RunConfig) []string {
 	set := []string{
-		getEnv(daprEnv.DaprGRPCPort, config.GRPCPort),
-		getEnv(daprEnv.DaprHTTPPort, config.HTTPPort),
-		getEnv(daprEnv.DaprMetricsPort, config.MetricsPort),
-		getEnv(daprEnv.AppID, config.AppID),
-		getEnv(daprEnv.AppPort, config.AppPort),
+		getEnv("DAPR_GRPC_PORT", config.GRPCPort),
+		getEnv("DAPR_HTTP_PORT", config.HTTPPort),
+		getEnv("DAPR_METRICS_PORT", config.MetricsPort),
+		getEnv("APP_ID", config.AppID),
+	}
+	if config.AppPort > 0 {
+		set = append(set, getEnv("APP_PORT", config.AppPort))
 	}
 	if config.EnableProfiling {
-		set = append(set, getEnv(daprEnv.DaprProfilePort, config.ProfilePort))
+		set = append(set, getEnv("DAPR_PROFILE_PORT", config.ProfilePort))
 	}
 	return set
 }
@@ -144,7 +138,6 @@ func TestRun(t *testing.T) {
 		EnableProfiling:    false,
 		ProfilePort:        9090,
 		Protocol:           "http",
-		PlacementHostAddr:  "localhost",
 		ComponentsPath:     DefaultComponentsDirPath(),
 		AppSSL:             true,
 		MetricsPort:        9001,
@@ -210,13 +203,4 @@ func TestRun(t *testing.T) {
 		assertArgumentNotEqual(t, "metrics-port", "-1", output.DaprCMD.Args)
 	})
 
-	t.Run("run with specified placement-host port", func(t *testing.T) {
-		basicConfig.PlacementHostAddr = "localhost:12345"
-		output, err := Run(basicConfig)
-
-		assert.Nil(t, err)
-		assert.NotNil(t, output)
-
-		assertArgumentEqual(t, "placement-host-address", "localhost:12345", output.DaprCMD.Args)
-	})
 }
