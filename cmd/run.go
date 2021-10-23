@@ -18,7 +18,6 @@ import (
 	"github.com/dapr/cli/pkg/standalone"
 	"github.com/dapr/cli/utils"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var (
@@ -46,21 +45,25 @@ var RunCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Run Dapr and (optionally) your application side by side. Supported platforms: Self-hosted",
 	Example: `
-# Run a .NET application:
-  dapr run --app-id myapp --app-port 5000 -- dotnet run
-# Run a Java application:
-  dapr run --app-id myapp -- java -jar myapp.jar
-# Run a NodeJs application that listens to port 3000:
-  dapr run --app-id myapp --app-port 3000 -- node myapp.js
-# Run a Python application:
-  dapr run --app-id myapp -- python myapp.py
-# Run sidecar only:
-  dapr run --app-id myapp
+# Run a .NET application
+dapr run --app-id myapp --app-port 5000 -- dotnet run
+
+# Run a Java application
+dapr run --app-id myapp -- java -jar myapp.jar
+
+# Run a NodeJs application that listens to port 3000
+dapr run --app-id myapp --app-port 3000 -- node myapp.js
+
+# Run a Python application
+dapr run --app-id myapp -- python myapp.py
+
+# Run sidecar only
+dapr run --app-id myapp
+
+# Run a gRPC application written in Go (listening on port 3000)
+dapr run --app-id myapp --app-port 3000 --app-protocol grpc -- go run main.go
   `,
 	Args: cobra.MinimumNArgs(0),
-	PreRun: func(cmd *cobra.Command, args []string) {
-		viper.BindPFlag("placement-host-address", cmd.Flags().Lookup("placement-host-address"))
-	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
 			fmt.Println(print.WhiteBold("WARNING: no application command found."))
@@ -78,7 +81,6 @@ var RunCmd = &cobra.Command{
 			LogLevel:           logLevel,
 			MaxConcurrency:     maxConcurrency,
 			Protocol:           protocol,
-			PlacementHostAddr:  viper.GetString("placement-host-address"),
 			ComponentsPath:     componentsPath,
 			AppSSL:             appSSL,
 			MetricsPort:        metricsPort,
@@ -276,7 +278,6 @@ func init() {
 	RunCmd.Flags().IntVarP(&maxConcurrency, "app-max-concurrency", "", -1, "The concurrency level of the application, otherwise is unlimited")
 	RunCmd.Flags().StringVarP(&protocol, "app-protocol", "P", "http", "The protocol (gRPC or HTTP) Dapr uses to talk to the application")
 	RunCmd.Flags().StringVarP(&componentsPath, "components-path", "d", standalone.DefaultComponentsDirPath(), "The path for components directory")
-	RunCmd.Flags().String("placement-host-address", "localhost", "The address of the placement service. Format is either <hostname> for default port or <hostname>:<port> for custom port")
 	RunCmd.Flags().BoolVar(&appSSL, "app-ssl", false, "Enable https when Dapr invokes the application")
 	RunCmd.Flags().IntVarP(&metricsPort, "metrics-port", "M", -1, "The port of metrics on dapr")
 	RunCmd.Flags().BoolP("help", "h", false, "Print this help message")
