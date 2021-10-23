@@ -42,11 +42,11 @@ type RunConfig struct {
 	MaxRequestBodySize int    `arg:"dapr-http-max-request-size"`
 }
 
-func (meta *DaprMeta) newAppID() (*string, error) {
+func (meta *DaprMeta) newAppID() string {
 	for {
 		appID := strings.ReplaceAll(sillyname.GenerateStupidName(), " ", "-")
 		if !meta.idExists(appID) {
-			return &appID, nil
+			return appID
 		}
 	}
 }
@@ -87,11 +87,7 @@ func (config *RunConfig) validate() error {
 	}
 
 	if config.AppID == "" {
-		appID, err := meta.newAppID()
-		if err != nil {
-			return err
-		}
-		config.AppID = *appID
+		config.AppID = meta.newAppID()
 	}
 
 	err = config.validateComponentPath()
