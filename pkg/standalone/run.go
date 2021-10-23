@@ -87,11 +87,11 @@ func (config *RunConfig) validate() error {
 	}
 
 	if config.AppID == "" {
-		appId, err := meta.newAppID()
+		appID, err := meta.newAppID()
 		if err != nil {
 			return err
 		}
-		config.AppID = *appId
+		config.AppID = *appID
 	}
 
 	err = config.validateComponentPath()
