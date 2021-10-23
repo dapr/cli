@@ -24,4 +24,5 @@ cli
 
 # CLI's auto-generated components directory
 **/components
-test_*.json
+
+test_output.json

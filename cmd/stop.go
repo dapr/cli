@@ -29,7 +29,7 @@ dapr stop --app-id <ID>
 		for _, appID := range args {
 			err := standalone.Stop(appID)
 			if err != nil {
-				print.FailureStatusEvent(os.Stdout, "failed to stop app id %s: %s", appID, err)
+				print.FailureStatusEvent(os.Stderr, "failed to stop app id %s: %s", appID, err)
 			} else {
 				print.SuccessStatusEvent(os.Stdout, "app stopped successfully: %s", appID)
 			}
