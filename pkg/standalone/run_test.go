@@ -95,10 +95,8 @@ func assertAppEnv(t *testing.T, config *RunConfig, output *RunOutput) {
 		_, found := envSet[env]
 		if !found {
 			assert.Fail(t, "Missing environment variable. Expected to have "+env)
-
 		}
 	}
-
 }
 
 func getEnvSet(config *RunConfig) []string {
