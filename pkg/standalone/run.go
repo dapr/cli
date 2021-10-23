@@ -64,8 +64,8 @@ func (config *RunConfig) validateComponentPath() error {
 	return nil
 }
 
-func (config *RunConfig) validatePort(context string, portPtr *int, meta *DaprMeta) error {
-	if *portPtr < 0 {
+func (config *RunConfig) validatePort(portName string, portPtr *int, meta *DaprMeta) error {
+	if *portPtr <= 0 {
 		port, err := freeport.GetFreePort()
 		if err != nil {
 			return err
@@ -75,7 +75,7 @@ func (config *RunConfig) validatePort(context string, portPtr *int, meta *DaprMe
 	}
 
 	if meta.portExists(*portPtr) {
-		return fmt.Errorf("invalid configuration for %s. Port %v is not available", context, *portPtr)
+		return fmt.Errorf("invalid configuration for %s. Port %v is not available", portName, *portPtr)
 	}
 	return nil
 }
@@ -95,6 +95,9 @@ func (config *RunConfig) validate() error {
 		return err
 	}
 
+	if config.AppPort < 0 {
+		config.AppPort = 0
+	}
 	if meta.portExists(config.AppPort) {
 		return fmt.Errorf("invalid app-port. Port %v is not available", config.AppPort)
 	}
@@ -142,7 +145,7 @@ func (meta *DaprMeta) idExists(id string) bool {
 }
 
 func (meta *DaprMeta) portExists(port int) bool {
-	if port < 0 {
+	if port <= 0 {
 		return false
 	}
 	_, ok := meta.ExistingPorts[port]
