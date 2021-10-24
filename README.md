@@ -61,6 +61,7 @@ Each release of Dapr CLI includes various OSes and architectures. These binary v
 In self-hosted mode, dapr can be initialized using the CLI  with the placement, redis and zipkin containers enabled by default(recommended) or without them which also does not require docker to be available in the environment.
 
 #### Initialize Dapr
+
 ([Prerequisite](#Prerequisites): Docker is available in the environment - recommended)
 
 Use the init command to initialize Dapr. On init, multiple default configuration files and containers are installed along with the dapr runtime binary. Dapr runtime binary is installed under $HOME/.dapr/bin for Mac, Linux and %USERPROFILE%\.dapr\bin for Windows.
@@ -87,6 +88,7 @@ Output should look like so:
 > Note: To see that Dapr has been installed successfully, from a command prompt run the `docker ps` command and check that the `daprio/dapr:latest`,  `dapr_redis` and `dapr_zipkin` container images are all running.
 
 This step creates the following defaults:
+
 1. components folder which is later used during `dapr run` unless the `--components-path` option is provided. For Linux/MacOS, the default components folder path is `$HOME/.dapr/components` and for Windows it is `%USERPROFILE%\.dapr\components`.
 2. component files in the components folder called `pubsub.yaml` and `statestore.yaml`.
 3. default config file `$HOME/.dapr/config.yaml` for Linux/MacOS or for Windows at `%USERPROFILE%\.dapr\config.yaml` to enable tracing on `dapr init` call. Can be overridden with the `--config` flag on `dapr run`.
@@ -146,14 +148,15 @@ Uninstalling will remove daprd binary and the placement container (if installed 
 
 
 ```bash
-$ dapr uninstall
+dapr uninstall
 ```
+
 > For Linux users, if you run your docker cmds with sudo, you need to use "**sudo dapr uninstall**" to remove the containers.
 
 The command above won't remove the redis or zipkin containers by default in case you were using it for other purposes.  It will also not remove the default dapr folder that was created on `dapr init`. To remove all the containers (placement, redis, zipkin) and also the default dapr folder created on init run:
 
 ```bash
-$ dapr uninstall --all
+dapr uninstall --all
 ```
 
 The above command can also be run when Dapr has been installed in a non-docker environment, it will only remove the installed binaries and the default dapr folder in that case.
@@ -167,7 +170,7 @@ The above command can also be run when Dapr has been installed in a non-docker e
 If previously installed to a specific Docker network, Dapr can be uninstalled with the `--network` argument:
 
 ```bash
-$ dapr uninstall --network dapr-network
+dapr uninstall --network dapr-network
 ```
 
 ### Install Dapr on Kubernetes
@@ -176,7 +179,7 @@ The init command will install Dapr to a Kubernetes cluster. For more advanced us
 
 *Note: The default namespace is dapr-system. The installation will appear under the name `dapr` for Helm*
 
-```
+```bash
 $ dapr init -k
 
 ⌛  Making the jump to hyperspace...
@@ -190,52 +193,52 @@ $ dapr init -k
 
 All available [Helm Chart values](https://github.com/dapr/dapr/tree/master/charts/dapr#configuration) can be set by using the `--set` flag:
 
-```
-$ dapr init -k --set global.tag=1.0.0 --set dapr_operator.logLevel=error  
+```bash
+dapr init -k --set global.tag=1.0.0 --set dapr_operator.logLevel=error  
 ```
 
 #### Installing to a custom namespace
 
-```
-$ dapr init -k -n my-namespace
+```bash
+dapr init -k -n my-namespace
 ```
 
 #### Installing with a highly available control plane config
 
-```
-$ dapr init -k --enable-ha=true
+```bash
+dapr init -k --enable-ha=true
 ```
 
 #### Installing with mTLS disabled
 
-```
-$ dapr init -k --enable-mtls=false
+```bash
+dapr init -k --enable-mtls=false
 ```
 
 #### Waiting for the Helm install to complete (default timeout is 300s/5m)
 
-```
-$ dapr init -k --wait --timeout 600
+```bash
+dapr init -k --wait --timeout 600
 ```
 
 #### Uninstall Dapr on Kubernetes
 
 To remove Dapr from your Kubernetes cluster, use the `uninstall` command with `--kubernetes` flag or the `-k` shorthand.
 
-```
-$ dapr uninstall -k
+```bash
+dapr uninstall -k
 ```
 
 The default timeout is 300s/5m and can be overridden using the `--timeout` flag.
 
-```
-$ dapr uninstall -k --timeout 600
+```bash
+dapr uninstall -k --timeout 600
 ```
 
 To remove all Dapr Custom Resource Definitions:
 
-```
-$ dapr uninstall -k --all
+```bash
+dapr uninstall -k --all
 ```
 
 *Warning: this will remove any components, subscriptions or configurations that are applied in the cluster at the time of deletion.*
@@ -244,8 +247,8 @@ $ dapr uninstall -k --all
 
 To perform a zero downtime upgrade of the Dapr control plane:
 
-```
-$ dapr upgrade -k --runtime-version=1.0.0
+```bash
+dapr upgrade -k --runtime-version=1.0.0
 ```
 
 The example above shows how to upgrade from your current version to version `1.0.0`.
@@ -254,8 +257,8 @@ The example above shows how to upgrade from your current version to version `1.0
 
 All available [Helm Chart values](https://github.com/dapr/dapr/tree/master/charts/dapr#configuration) can be set by using the `--set` flag:
 
-```
-$ dapr upgrade -k --runtime-version=1.0.0 --set global.tag=my-tag --set dapr_operator.logLevel=error  
+```bash
+dapr upgrade -k --runtime-version=1.0.0 --set global.tag=my-tag --set dapr_operator.logLevel=error  
 ```
 
 *Note: do not use the `dapr upgrade` command if you're upgrading from 0.x versions of Dapr*
@@ -267,33 +270,33 @@ Logs from both the Dapr Runtime and your app will be displayed in real time!
 
 Example of launching Dapr with a node app:
 
-```
-$ dapr run --app-id nodeapp node app.js
+```bash
+dapr run --app-id nodeapp node app.js
 ```
 
 Example of launching Dapr with a node app listening on port 3000:
 
-```
-$ dapr run --app-id nodeapp --app-port 3000 node app.js
+```bash
+dapr run --app-id nodeapp --app-port 3000 node app.js
 ```
 
 Example of launching Dapr on HTTP port 6000:
 
-```
-$ dapr run --app-id nodeapp --app-port 3000 --dapr-http-port 6000 node app.js
+```bash
+dapr run --app-id nodeapp --app-port 3000 --dapr-http-port 6000 node app.js
 ```
 
 Example of launching Dapr on gRPC port 50002:
 
-```
-$ dapr run --app-id nodeapp --app-port 3000 --dapr-grpc-port 50002 node app.js
+```bash
+dapr run --app-id nodeapp --app-port 3000 --dapr-grpc-port 50002 node app.js
 ```
 
 Example of launching Dapr within a specific Docker network:
 
 ```bash
-$ dapr init --network dapr-network
-$ dapr run --app-id nodeapp --placement-host-address dapr_placement node app.js
+dapr init --network dapr-network
+dapr run --app-id nodeapp --placement-host-address dapr_placement node app.js
 ```
 
 > Note: When in a specific Docker network, the Redis, Zipkin and placement service containers are given specific network aliases, `dapr_redis`, `dapr_zipkin` and `dapr_placement`, respectively. The default configuration files reflect the network alias rather than `localhost` when a docker network is specified.
@@ -302,7 +305,7 @@ $ dapr run --app-id nodeapp --placement-host-address dapr_placement node app.js
 
 If your app uses gRPC instead of HTTP to receive Dapr events, run the CLI with the following command:
 
-```
+```bash
 dapr run --app-id nodeapp --app-protocol grpc --app-port 6000 node app.js
 ```
 
@@ -315,8 +318,8 @@ This sample assumes your app is listening on port 3000.
 
 Launch Dapr and your app:
 
-```
-$ dapr run --app-id nodeapp --app-port 3000 node app.js
+```bash
+dapr run --app-id nodeapp --app-port 3000 node app.js
 ```
 
 Publish a message:
@@ -327,13 +330,15 @@ The `--pubsub` parameter takes in the name of the pub/sub.  The default name of 
 Publish a message:
 
 * Linux/Mac
+
 ```bash
-$ dapr publish --publish-app-id nodeapp --pubsub pubsub --topic myevent --data '{ "name": "yoda" }'
+dapr publish --publish-app-id nodeapp --pubsub pubsub --topic myevent --data '{ "name": "yoda" }'
 ```
 
 * Windows
-```bash
-C:> dapr publish --publish-app-id nodeapp --pubsub pubsub --topic myevent --data "{ \"name\": \"yoda\" }"
+
+```powershell
+dapr publish --publish-app-id nodeapp --pubsub pubsub --topic myevent --data "{ \"name\": \"yoda\" }"
 ```
 
 ### Invoking
@@ -343,83 +348,83 @@ For this sample, we'll assume a node app listening on port 3000 with a ```/mymet
 
 Launch Dapr and your app:
 
-```
-$ dapr run --app-id nodeapp --app-port 3000 node app.js
+```bash
+dapr run --app-id nodeapp --app-port 3000 node app.js
 ```
 
 Note: To choose a non-default components folder, use the --components-path option.
 
 Invoke your app:
 
-```
-$ dapr invoke --app-id nodeapp --method mymethod
+```bash
+dapr invoke --app-id nodeapp --method mymethod
 ```
 
 Specify a verb:
 
 By default, Dapr will use the `POST` verb. If your app uses Dapr for gRPC, you should use `POST`.
 
-```
-$ dapr invoke --app-id nodeapp --method mymethod --verb GET
+```bash
+dapr invoke --app-id nodeapp --method mymethod --verb GET
 ```
 
 ### List
 
 To list all Dapr instances running on your machine:
 
-```
-$ dapr list
+```bash
+dapr list
 ```
 
 To list all Dapr instances running in a Kubernetes cluster:
 
-```
-$ dapr list --kubernetes
+```bash
+dapr list --kubernetes
 ```
 
 To list all Dapr instances but return output as JSON or YAML (e.g. for consumption by other tools):
 
-```
-$ dapr list --output json
-$ dapr list --output yaml
+```bash
+dapr list --output json
+dapr list --output yaml
 ```
 
 ### Check system services (control plane) status
 
 Check Dapr's system services (control plane) health status in a Kubernetes cluster:
 
-```
-$ dapr status --kubernetes
+```bash
+dapr status --kubernetes
 ```
 
 ### Check mTLS status
 
 To check if Mutual TLS is enabled in your Kubernetes cluster:
 
-```
-$ dapr mtls --kubernetes
+```bash
+dapr mtls --kubernetes
 ```
 
 ### Export TLS certificates
 
 To export the root cert, issuer cert and issuer key created by Dapr from a Kubernetes cluster to a local path:
 
-```
-$ dapr mtls export
+```bash
+dapr mtls export
 ```
 
 This will save the certs to the working directory.
 
 To specify a custom directory:
 
-```
-$ dapr mtls export -o certs
+```bash
+dapr mtls export -o certs
 ```
 
 ### Check root certificate expiry
 
-```
-$ dapr mtls expiry
+```bash
+dapr mtls expiry
 ```
 
 This can be used when upgrading to a newer version of Dapr, as it's recommended to carry over the existing certs for a zero downtime upgrade.
@@ -428,16 +433,16 @@ This can be used when upgrading to a newer version of Dapr, as it's recommended 
 
 To list all Dapr components on Kubernetes:
 
-```
-$ dapr components --kubernetes
+```bash
+dapr components --kubernetes
 ```
 
 ### Use non-default Components Path
 
 To use a custom path for component definitions
 
-```
-$ dapr run --components-path [custom path]
+```bash
+dapr run --components-path [custom path]
 ```
 
 
@@ -445,8 +450,8 @@ $ dapr run --components-path [custom path]
 
 To list all Dapr configurations on Kubernetes:
 
-```
-$ dapr configurations --kubernetes
+```bash
+dapr configurations --kubernetes
 ```
 
 ### Stop
@@ -454,42 +459,45 @@ $ dapr configurations --kubernetes
 Use ```dapr list``` to get a list of all running instances.
 To stop a Dapr app on your machine:
 
+```bash
+dapr stop myAppID
 ```
-$ dapr stop myAppID
-```
+
 You can also stop multiple Dapr apps
+
+```bash
+dapr stop myAppID1 myAppID2
 ```
-$ dapr stop myAppID1 myAppID2
-```
+
 ### Enable profiling
 
 In order to enable profiling, use the `enable-profiling` flag:
 
-```
-$ dapr run --app-id nodeapp --app-port 3000 node app.js --enable-profiling
+```bash
+dapr run --app-id nodeapp --app-port 3000 node app.js --enable-profiling
 ```
 
 Dapr will automatically assign a profile port for you.
 If you want to manually assign a profiling port, use the `profile-port` flag:
 
-```
-$ dapr run --app-id nodeapp --app-port 3000 node app.js --enable-profiling --profile-port 7777
+```bash
+dapr run --app-id nodeapp --app-port 3000 node app.js --enable-profiling --profile-port 7777
 ```
 
 ### Set metrics server port
 
 To change the metrics server port used by Dapr, set the `metrics-port` flag:
 
-```
-$ dapr run --app-id nodeapp --app-port 3000 node app.js --metrics-port 5040
+```bash
+dapr run --app-id nodeapp --app-port 3000 node app.js --metrics-port 5040
 ```
 
 ### Set log level
 
 In order to set the Dapr runtime log verbosity level, use the `log-level` flag:
 
-```
-$ dapr run --app-id nodeapp --app-port 3000 node app.js --log-level debug
+```bash
+dapr run --app-id nodeapp --app-port 3000 node app.js --log-level debug
 ```
 
 This sets the Dapr log level to `debug`.
@@ -499,8 +507,8 @@ The default is `info`.
 
 If your app is listening on `https` or has a gRPC TLS configuration enabled, use the following `app-ssl` flag:
 
-```
-$ dapr run --app-id nodeapp --app-port 3000 node app.js --app-ssl
+```bash
+dapr run --app-id nodeapp --app-port 3000 node app.js --app-ssl
 ```
 
 This will have Dapr invoke the app over an insecure SSL channel.
@@ -511,16 +519,16 @@ The default is false.
 
 You can run Dapr's sidecar only (`daprd`) by omitting the application's command in the end:
 
-```
-$ dapr run --app-id myapp --dapr-http-port 3005 --dapr-grpc-port 50001
+```bash
+dapr run --app-id myapp --dapr-http-port 3005 --dapr-grpc-port 50001
 ```
 
 ### Generate shell completion scripts
 
 To generate shell completion scripts:
 
-```
-$ dapr completion
+```bash
+dapr completion
 ```
 
 For more details, please run the command and check the examples to apply to your shell.
