@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"reflect"
+	"runtime"
 	"strings"
 
 	"github.com/Pallinder/sillyname-go"
@@ -36,6 +37,7 @@ type RunConfig struct {
 	ProfilePort        int    `arg:"profile-port"`
 	LogLevel           string `arg:"log-level"`
 	MaxConcurrency     int    `arg:"app-max-concurrency"`
+	PlacementHostAddr  string `arg:"placement-host-address"`
 	ComponentsPath     string `arg:"components-path"`
 	AppSSL             bool   `arg:"app-ssl"`
 	MetricsPort        int    `env:"DAPR_METRICS_PORT" arg:"metrics-port"`
@@ -63,7 +65,18 @@ func (config *RunConfig) validateComponentPath() error {
 	}
 	return nil
 }
-
+func (config *RunConfig) validatePlacementHostAddr() error {
+	placementHostAddr := config.PlacementHostAddr
+	if indx := strings.Index(placementHostAddr, ":"); indx == -1 {
+		if runtime.GOOS == daprWindowsOS {
+			placementHostAddr = fmt.Sprintf("%s:6050", placementHostAddr)
+		} else {
+			placementHostAddr = fmt.Sprintf("%s:50005", placementHostAddr)
+		}
+		config.PlacementHostAddr = placementHostAddr
+	}
+	return nil
+}
 func (config *RunConfig) validatePort(portName string, portPtr *int, meta *DaprMeta) error {
 	if *portPtr <= 0 {
 		port, err := freeport.GetFreePort()
@@ -131,6 +144,10 @@ func (config *RunConfig) validate() error {
 		config.MaxRequestBodySize = -1
 	}
 
+	err = config.validatePlacementHostAddr()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -225,7 +242,7 @@ func (config *RunConfig) getEnv() []string {
 		if len(key) == 0 {
 			continue
 		}
-		if value, ok := valueField.(int); ok && value == 0 {
+		if value, ok := valueField.(int); ok && value <= 0 {
 			// ignore unset numeric variables
 			continue
 		}
