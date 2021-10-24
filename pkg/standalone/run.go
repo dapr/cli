@@ -156,6 +156,10 @@ func (config *RunConfig) validate() error {
 		config.MaxRequestBodySize = -1
 	}
 
+	err = config.validatePlacementHostAddr()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

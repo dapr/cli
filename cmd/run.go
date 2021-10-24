@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	"github.com/dapr/cli/pkg/metadata"
 	"github.com/dapr/cli/pkg/print"
@@ -75,6 +76,9 @@ dapr run --app-id myapp
 dapr run --app-id myapp --app-port 3000 --app-protocol grpc -- go run main.go
   `,
 	Args: cobra.MinimumNArgs(0),
+	PreRun: func(cmd *cobra.Command, args []string) {
+		viper.BindPFlag("placement-host-address", cmd.Flags().Lookup("placement-host-address"))
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
 			fmt.Println(print.WhiteBold("WARNING: no application command found."))
@@ -105,6 +109,7 @@ dapr run --app-id myapp --app-port 3000 --app-protocol grpc -- go run main.go
 			LogLevel:           logLevel,
 			MaxConcurrency:     maxConcurrency,
 			Protocol:           protocol,
+			PlacementHostAddr:  viper.GetString("placement-host-address"),
 			ComponentsPath:     componentsPath,
 			AppSSL:             appSSL,
 			MetricsPort:        metricsPort,
@@ -336,6 +341,7 @@ func init() {
 	RunCmd.Flags().IntVarP(&maxConcurrency, "app-max-concurrency", "", -1, "The concurrency level of the application, otherwise is unlimited")
 	RunCmd.Flags().StringVarP(&protocol, "app-protocol", "P", "http", "The protocol (gRPC or HTTP) Dapr uses to talk to the application")
 	RunCmd.Flags().StringVarP(&componentsPath, "components-path", "d", standalone.DefaultComponentsDirPath(), "The path for components directory")
+	RunCmd.Flags().String("placement-host-address", "localhost", "The address of the placement service. Format is either <hostname> for default port or <hostname>:<port> for custom port")
 	RunCmd.Flags().BoolVar(&appSSL, "app-ssl", false, "Enable https when Dapr invokes the application")
 	RunCmd.Flags().IntVarP(&metricsPort, "metrics-port", "M", -1, "The port of metrics on dapr")
 	RunCmd.Flags().BoolP("help", "h", false, "Print this help message")
