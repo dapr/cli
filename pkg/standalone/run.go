@@ -111,9 +111,6 @@ func (config *RunConfig) validate() error {
 	if config.AppPort < 0 {
 		config.AppPort = 0
 	}
-	if meta.portExists(config.AppPort) {
-		return fmt.Errorf("invalid app-port. Port %v is not available", config.AppPort)
-	}
 
 	err = config.validatePort("HTTPPort", &config.HTTPPort, meta)
 	if err != nil {
