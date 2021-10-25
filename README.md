@@ -523,6 +523,22 @@ To generate shell completion scripts:
 $ dapr completion
 ```
 
+### Enable Unix domain socket
+
+In order to enable Unix domain socket to connect Dapr API server, use the `--unix-domain-socket` flag:
+
+```
+$ dapr run --app-id nodeapp --unix-domain-socket node app.js
+```
+
+Dapr will automatically create a Unix domain socket to connect Dapr API server.
+
+If you want to invoke your app, also use this flag:
+
+```
+$ dapr invoke --app-id nodeapp --unix-domain-socket --method mymethod
+```
+
 For more details, please run the command and check the examples to apply to your shell.
 
 ## Reference for the Dapr CLI
