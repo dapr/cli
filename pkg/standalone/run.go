@@ -41,6 +41,7 @@ type RunConfig struct {
 	AppSSL             bool
 	MetricsPort        int
 	MaxRequestBodySize int
+	UnixDomainSocket   string
 }
 
 // RunOutput represents the run output.
@@ -52,7 +53,8 @@ type RunOutput struct {
 	AppCMD       *exec.Cmd
 }
 
-func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort int, configFile, protocol string, enableProfiling bool, profilePort int, logLevel string, maxConcurrency int, placementHostAddr string, componentsPath string, appSSL bool, metricsPort int, requestBodySize int) (*exec.Cmd, int, int, int, error) {
+func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort int, configFile, protocol string, enableProfiling bool,
+	profilePort int, logLevel string, maxConcurrency int, placementHostAddr string, componentsPath string, appSSL bool, metricsPort int, requestBodySize int, unixDomainSocket string) (*exec.Cmd, int, int, int, error) {
 	if daprHTTPPort < 0 {
 		port, err := freeport.GetFreePort()
 		if err != nil {
@@ -144,6 +146,10 @@ func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort in
 		args = append(args, "--app-ssl")
 	}
 
+	if unixDomainSocket != "" {
+		args = append(args, "--unix-domain-socket", unixDomainSocket)
+	}
+
 	cmd := exec.Command(daprCMD, args...)
 	return cmd, daprHTTPPort, daprGRPCPort, metricsPort, nil
 }
@@ -210,7 +216,7 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		return nil, err
 	}
 
-	daprCMD, daprHTTPPort, daprGRPCPort, metricsPort, err := getDaprCommand(appID, config.HTTPPort, config.GRPCPort, config.AppPort, config.ConfigFile, config.Protocol, config.EnableProfiling, config.ProfilePort, config.LogLevel, config.MaxConcurrency, config.PlacementHostAddr, config.ComponentsPath, config.AppSSL, config.MetricsPort, config.MaxRequestBodySize)
+	daprCMD, daprHTTPPort, daprGRPCPort, metricsPort, err := getDaprCommand(appID, config.HTTPPort, config.GRPCPort, config.AppPort, config.ConfigFile, config.Protocol, config.EnableProfiling, config.ProfilePort, config.LogLevel, config.MaxConcurrency, config.PlacementHostAddr, config.ComponentsPath, config.AppSSL, config.MetricsPort, config.MaxRequestBodySize, config.UnixDomainSocket)
 	if err != nil {
 		return nil, err
 	}

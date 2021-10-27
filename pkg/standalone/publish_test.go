@@ -6,8 +6,11 @@
 package standalone
 
 import (
+	"os"
+	"runtime"
 	"testing"
 
+	"github.com/dapr/cli/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,7 +30,7 @@ func TestPublish(t *testing.T) {
 		errString     string
 	}{
 		{
-			name:          "test empty topic",
+			name:          "test empty appID",
 			publishAppID:  "",
 			payload:       []byte("test"),
 			pubsubName:    "test",
@@ -74,7 +77,7 @@ func TestPublish(t *testing.T) {
 			errorExpected: true,
 		},
 		{
-			name:         "successful call",
+			name:         "successful call not found",
 			publishAppID: "myAppID",
 			pubsubName:   "testPubsubName",
 			topic:        "testTopic",
@@ -98,25 +101,43 @@ func TestPublish(t *testing.T) {
 			},
 		},
 	}
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			ts, port := getTestServer(tc.expectedPath, tc.resp)
-			ts.Start()
-			defer ts.Close()
-			tc.lo.HTTPPort = port
-			client := &Standalone{
-				process: &mockDaprProcess{
-					Lo:  []ListOutput{tc.lo},
-					Err: tc.listErr,
-				},
-			}
-			err := client.Publish(tc.publishAppID, tc.pubsubName, tc.topic, tc.payload)
-			if tc.errorExpected {
-				assert.Error(t, err, "expected an error")
-				assert.Equal(t, tc.errString, err.Error(), "expected error strings to match")
-			} else {
-				assert.NoError(t, err, "expected no error")
-			}
-		})
+	for _, socket := range []string{"", "/tmp"} {
+		// TODO(@daixiang0): add Windows support
+		if runtime.GOOS == "windows" && socket != "" {
+			continue
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				if socket != "" {
+					ts, l := getTestSocketServer(tc.expectedPath, tc.resp, tc.publishAppID, socket)
+					go ts.Serve(l)
+					defer func() {
+						l.Close()
+						for _, protocol := range []string{"http", "grpc"} {
+							os.Remove(utils.GetSocket(socket, tc.publishAppID, protocol))
+						}
+					}()
+				} else {
+					ts, port := getTestServer(tc.expectedPath, tc.resp)
+					ts.Start()
+					defer ts.Close()
+					tc.lo.HTTPPort = port
+				}
+
+				client := &Standalone{
+					process: &mockDaprProcess{
+						Lo:  []ListOutput{tc.lo},
+						Err: tc.listErr,
+					},
+				}
+				err := client.Publish(tc.publishAppID, tc.pubsubName, tc.topic, tc.payload, socket)
+				if tc.errorExpected {
+					assert.Error(t, err, "expected an error")
+					assert.Equal(t, tc.errString, err.Error(), "expected error strings to match")
+				} else {
+					assert.NoError(t, err, "expected no error")
+				}
+			})
+		}
 	}
 }
