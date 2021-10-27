@@ -7,15 +7,18 @@ package standalone
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 
 	"github.com/dapr/cli/pkg/api"
+	"github.com/dapr/cli/utils"
 )
 
 // Invoke is a command to invoke a remote or local dapr instance.
-func (s *Standalone) Invoke(appID, method string, data []byte, verb string) (string, error) {
+func (s *Standalone) Invoke(appID, method string, data []byte, verb string, path string) (string, error) {
 	list, err := s.process.List()
 	if err != nil {
 		return "", err
@@ -30,7 +33,17 @@ func (s *Standalone) Invoke(appID, method string, data []byte, verb string) (str
 			}
 			req.Header.Set("Content-Type", "application/json")
 
-			r, err := http.DefaultClient.Do(req)
+			var httpc http.Client
+
+			if path != "" {
+				httpc.Transport = &http.Transport{
+					DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
+						return net.Dial("unix", utils.GetSocket(path, appID, "http"))
+					},
+				}
+			}
+
+			r, err := httpc.Do(req)
 			if err != nil {
 				return "", err
 			}

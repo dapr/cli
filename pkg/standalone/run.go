@@ -42,6 +42,7 @@ type RunConfig struct {
 	AppSSL             bool   `arg:"app-ssl"`
 	MetricsPort        int    `env:"DAPR_METRICS_PORT" arg:"metrics-port"`
 	MaxRequestBodySize int    `arg:"dapr-http-max-request-size"`
+	UnixDomainSocket   string `arg:"unix-domain-socket"`
 }
 
 func (meta *DaprMeta) newAppID() string {
