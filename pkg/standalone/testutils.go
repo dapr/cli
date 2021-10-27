@@ -88,3 +88,29 @@ func handlerTestPathResp(expectedPath, resp string) http.HandlerFunc {
 		}
 	}
 }
+
+func getTestSocketServer(expectedPath, resp, appID, path string) (*http.Server, net.Listener) {
+	s := &http.Server{
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if expectedPath != "" && r.RequestURI != expectedPath {
+				w.WriteHeader(http.StatusInternalServerError)
+
+				return
+			}
+			if r.Method == http.MethodGet {
+				w.Write([]byte(resp))
+			} else {
+				buf := new(bytes.Buffer)
+				buf.ReadFrom(r.Body)
+				w.Write(buf.Bytes())
+			}
+		}),
+	}
+
+	socket := utils.GetSocket(path, appID, "http")
+	l, err := net.Listen("unix", socket)
+	if err != nil {
+		panic(fmt.Sprintf("httptest: failed to listen on %v: %v", socket, err))
+	}
+	return s, l
+}
