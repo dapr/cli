@@ -379,12 +379,10 @@ func testRun(t *testing.T) {
 
 	t.Run("API shutdown with socket", func(t *testing.T) {
 		// Test that the CLI exits on a daprd shutdown.
-		output, err := spawn.Command(daprPath, "run", "--app-id", "testapp", "--unix-domain-socket", "/tmp", "--", "bash", "-c", "curl --unix-socket /tmp/dapr-testapp-http.socket -v -X POST http://unix/v1.0/shutdown; sleep 10; exit 1")
+		output, err := spawn.Command(daprPath, "run", "--app-id", "testapp", "--unix-domain-socket", "/tmp", "--", "bash", "-c", "curl --unix-socket /tmp/dapr-testapp-http.socket -v -X POST http://unix/v1.0/shutdown; sleep 10; echo -e \"\\nSHOULD_NEVER_GET_EXECUTED\"")
 		t.Log(output)
 		require.NoError(t, err, "run failed")
-		// It would be ideal to check that the spawned app existed with a non-zero
-		// exit code, however when sending a SIGINT/CTRL-C to curl, it does not.
-		// In the future we could find a program that returns 0 in this scenario.
+		assert.NotContains(t, output, "SHOULD_NEVER_GET_EXECUTED", "App should be shutdown before it has a chance to return non-zero")
 		assert.Contains(t, output, "Exited Dapr successfully")
 	})
 }

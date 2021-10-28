@@ -296,7 +296,7 @@ var RunCmd = &cobra.Command{
 		select {
 		case <-appRunning:
 		case <-time.After(5 * time.Second):
-			killCmd(output.AppCMD)
+			killCmd(output.AppCMD) // Second attempt to kill the app process.
 		}
 
 		interruptCmd(output.DaprCMD, "Dapr")
@@ -305,7 +305,7 @@ var RunCmd = &cobra.Command{
 		select {
 		case <-daprRunning:
 		case <-time.After(10 * time.Second):
-			killCmd(output.DaprCMD)
+			killCmd(output.DaprCMD) // Second attempt to kill the Dapr process.
 		}
 
 		if unixDomainSocket != "" {

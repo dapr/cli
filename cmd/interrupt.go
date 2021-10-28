@@ -1,3 +1,4 @@
+//go:build !windows
 // +build !windows
 
 package cmd
@@ -10,7 +11,7 @@ import (
 
 // interruptProcess sends an Interrupt signal to the process.
 func interruptProcess(proc *os.Process) error {
-	return proc.Signal(os.Interrupt)
+	return proc.Signal(syscall.SIGTERM)
 }
 
 func suppressCtrlC(err error) error {
