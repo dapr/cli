@@ -7,15 +7,18 @@ package standalone
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 
 	"github.com/dapr/cli/pkg/api"
+	"github.com/dapr/cli/utils"
 )
 
 // Publish publishes payload to topic in pubsub referenced by pubsubName.
-func (s *Standalone) Publish(publishAppID, pubsubName, topic string, payload []byte) error {
+func (s *Standalone) Publish(publishAppID, pubsubName, topic string, payload []byte, socket string) error {
 	if publishAppID == "" {
 		return errors.New("publishAppID is missing")
 	}
@@ -33,14 +36,25 @@ func (s *Standalone) Publish(publishAppID, pubsubName, topic string, payload []b
 		return err
 	}
 
-	daprHTTPPort, err := getDaprHTTPPort(l, publishAppID)
+	instance, err := getDaprInstance(l, publishAppID)
 	if err != nil {
 		return err
 	}
 
-	url := fmt.Sprintf("http://localhost:%s/v%s/publish/%s/%s", fmt.Sprintf("%v", daprHTTPPort), api.RuntimeAPIVersion, pubsubName, topic)
-	// nolint: gosec
-	r, err := http.Post(url, "application/json", bytes.NewBuffer(payload))
+	url := fmt.Sprintf("http://unix/v%s/publish/%s/%s", api.RuntimeAPIVersion, pubsubName, topic)
+
+	var httpc http.Client
+	if socket != "" {
+		httpc.Transport = &http.Transport{
+			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
+				return net.Dial("unix", utils.GetSocket(socket, publishAppID, "http"))
+			},
+		}
+	} else {
+		url = fmt.Sprintf("http://localhost:%s/v%s/publish/%s/%s", fmt.Sprintf("%v", instance.HTTPPort), api.RuntimeAPIVersion, pubsubName, topic)
+	}
+
+	r, err := httpc.Post(url, "application/json", bytes.NewBuffer(payload))
 	if err != nil {
 		return err
 	}
@@ -52,11 +66,11 @@ func (s *Standalone) Publish(publishAppID, pubsubName, topic string, payload []b
 	return nil
 }
 
-func getDaprHTTPPort(list []ListOutput, publishAppID string) (int, error) {
+func getDaprInstance(list []ListOutput, publishAppID string) (ListOutput, error) {
 	for i := 0; i < len(list); i++ {
 		if list[i].AppID == publishAppID {
-			return list[i].HTTPPort, nil
+			return list[i], nil
 		}
 	}
-	return 0, errors.New("couldn't find a running Dapr instance")
+	return ListOutput{}, errors.New("couldn't find a running Dapr instance")
 }
