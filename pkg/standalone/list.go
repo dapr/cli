@@ -107,7 +107,8 @@ func List() ([]ListOutput, error) {
 			appID := argumentsMap["--app-id"]
 			appCmd := ""
 			cliPIDString := ""
-			appMetadata, err := metadata.Get(httpPort)
+			socket := argumentsMap["--unix-domain-socket"]
+			appMetadata, err := metadata.Get(httpPort, appID, socket)
 			if err == nil {
 				appCmd = appMetadata.Extended["appCommand"]
 				cliPIDString = appMetadata.Extended["cliPID"]
