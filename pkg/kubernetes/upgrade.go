@@ -134,6 +134,9 @@ func Upgrade(conf UpgradeConfig) error {
 
 func highAvailabilityEnabled(status []StatusOutput) bool {
 	for _, s := range status {
+		if s.Name == "dapr-dashboard" {
+			continue
+		}
 		if s.Replicas > 1 {
 			return true
 		}
