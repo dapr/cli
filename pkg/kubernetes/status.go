@@ -6,16 +6,16 @@
 package kubernetes
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
 	"sync"
 
-	"errors"
+	k8s "k8s.io/client-go/kubernetes"
 
 	"github.com/dapr/cli/pkg/age"
 	"github.com/dapr/cli/pkg/print"
-	k8s "k8s.io/client-go/kubernetes"
 )
 
 var controlPlaneLabels = []string{

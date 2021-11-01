@@ -10,8 +10,9 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/dapr/cli/utils"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/dapr/cli/utils"
 )
 
 func TestPublish(t *testing.T) {

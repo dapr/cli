@@ -13,8 +13,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/dapr/cli/pkg/print"
 	yaml "gopkg.in/yaml.v2"
+
+	"github.com/dapr/cli/pkg/print"
 )
 
 const (
@@ -47,7 +48,6 @@ func GetDashboardVersion() (string, error) {
 
 func GetDaprVersion() (string, error) {
 	version, err := GetLatestReleaseGithub(fmt.Sprintf("https://api.github.com/repos/%s/%s/releases", DaprGitHubOrg, DaprGitHubRepo))
-
 	if err != nil {
 		print.WarningStatusEvent(os.Stdout, "Failed to get runtime version: '%s'. Trying secondary source", err)
 

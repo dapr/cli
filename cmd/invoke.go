@@ -12,9 +12,10 @@ import (
 	"os"
 	"runtime"
 
+	"github.com/spf13/cobra"
+
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/pkg/standalone"
-	"github.com/spf13/cobra"
 )
 
 const defaultHTTPVerb = http.MethodPost

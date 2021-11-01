@@ -15,10 +15,10 @@ import (
 	"os"
 	"strings"
 
+	retryablehttp "github.com/hashicorp/go-retryablehttp"
+
 	"github.com/dapr/cli/pkg/api"
 	"github.com/dapr/cli/utils"
-
-	retryablehttp "github.com/hashicorp/go-retryablehttp"
 )
 
 // Get retrieves the metadata of a given app's sidecar.
