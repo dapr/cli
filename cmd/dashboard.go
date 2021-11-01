@@ -10,12 +10,13 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/pkg/browser"
+	"github.com/spf13/cobra"
+
 	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/pkg/standalone"
 	"github.com/dapr/cli/utils"
-	"github.com/pkg/browser"
-	"github.com/spf13/cobra"
 )
 
 const (

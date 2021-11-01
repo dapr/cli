@@ -15,10 +15,11 @@ import (
 	"strings"
 
 	"github.com/Pallinder/sillyname-go"
-	"github.com/dapr/dapr/pkg/components"
-	modes "github.com/dapr/dapr/pkg/config/modes"
 	"github.com/phayes/freeport"
 	"gopkg.in/yaml.v2"
+
+	"github.com/dapr/dapr/pkg/components"
+	modes "github.com/dapr/dapr/pkg/config/modes"
 )
 
 const sentryDefaultAddress = "localhost:50001"

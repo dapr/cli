@@ -11,8 +11,9 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/dapr/cli/utils"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/dapr/cli/utils"
 )
 
 func TestInvoke(t *testing.T) {

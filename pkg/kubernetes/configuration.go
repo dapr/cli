@@ -1,8 +1,9 @@
 package kubernetes
 
 import (
-	v1alpha1 "github.com/dapr/dapr/pkg/apis/configuration/v1alpha1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	v1alpha1 "github.com/dapr/dapr/pkg/apis/configuration/v1alpha1"
 )
 
 func GetDefaultConfiguration() v1alpha1.Configuration {
