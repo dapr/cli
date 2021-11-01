@@ -10,9 +10,10 @@ import (
 	"fmt"
 	"testing"
 
-	v1alpha1 "github.com/dapr/dapr/pkg/apis/configuration/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	v1alpha1 "github.com/dapr/dapr/pkg/apis/configuration/v1alpha1"
 )
 
 func TestConfigurations(t *testing.T) {

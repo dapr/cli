@@ -14,12 +14,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+
 	"github.com/dapr/cli/pkg/metadata"
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/pkg/standalone"
 	"github.com/dapr/cli/utils"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var (
@@ -148,7 +149,6 @@ dapr run --app-id myapp --app-port 3000 --app-protocol grpc -- go run main.go
 
 				if daprdErr != nil {
 					print.FailureStatusEvent(os.Stderr, "The daprd process exited with error code: %s", daprdErr.Error())
-
 				} else {
 					print.SuccessStatusEvent(os.Stdout, "Exited Dapr successfully")
 				}
