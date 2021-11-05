@@ -22,38 +22,6 @@ type upgradePath struct {
 var supportedUpgradePaths = []upgradePath{
 	{
 		previous: common.VersionDetails{
-			RuntimeVersion:      "1.2.0",
-			DashboardVersion:    "0.6.0",
-			ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
-			ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
-			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
-		},
-		next: common.VersionDetails{
-			RuntimeVersion:      "1.3.0",
-			DashboardVersion:    "0.7.0",
-			ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
-			ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
-			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
-		},
-	},
-	{
-		previous: common.VersionDetails{
-			RuntimeVersion:      "1.3.0",
-			DashboardVersion:    "0.7.0",
-			ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
-			ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
-			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
-		},
-		next: common.VersionDetails{
-			RuntimeVersion:      "1.4.0",
-			DashboardVersion:    "0.8.0",
-			ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
-			ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
-			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
-		},
-	},
-	{
-		previous: common.VersionDetails{
 			RuntimeVersion:      "1.3.1",
 			DashboardVersion:    "0.7.0",
 			ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
