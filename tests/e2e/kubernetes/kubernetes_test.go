@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 // ------------------------------------------------------------
@@ -14,7 +15,7 @@ import (
 )
 
 const (
-	currentRuntimeVersion   = "1.5.0-rc.1"
+	currentRuntimeVersion   = "1.5.0-rc.2"
 	currentDashboardVersion = "0.8.0"
 )
 
