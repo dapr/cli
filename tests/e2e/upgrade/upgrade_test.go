@@ -1,4 +1,3 @@
-//go:build e2e
 // +build e2e
 
 // ------------------------------------------------------------
@@ -21,22 +20,6 @@ type upgradePath struct {
 }
 
 var supportedUpgradePaths = []upgradePath{
-	{
-		previous: common.VersionDetails{
-			RuntimeVersion:      "1.1.2",
-			DashboardVersion:    "0.6.0",
-			ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
-			ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
-			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
-		},
-		next: common.VersionDetails{
-			RuntimeVersion:      "1.2.0",
-			DashboardVersion:    "0.6.0",
-			ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
-			ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
-			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
-		},
-	},
 	{
 		previous: common.VersionDetails{
 			RuntimeVersion:      "1.2.0",
