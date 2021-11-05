@@ -68,8 +68,6 @@ dapr invoke --unix-domain-socket --app-id target --method sample --verb GET
 				os.Exit(1)
 			} else {
 				fmt.Println(print.WhiteBold("WARNING: This feature is currently supported only in preview mode"))
-				port = 0
-				grpcPort = 0
 			}
 		}
 

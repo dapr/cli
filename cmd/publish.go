@@ -62,8 +62,6 @@ dapr publish --enable-domain-socket --publish-app-id myapp --pubsub target --top
 				os.Exit(1)
 			} else {
 				fmt.Println(print.WhiteBold("WARNING: This feature is currently supported only in preview mode"))
-				port = 0
-				grpcPort = 0
 			}
 		}
 		err = client.Publish(publishAppID, pubsubName, publishTopic, bytePayload, publishSocket)
