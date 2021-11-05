@@ -76,6 +76,7 @@ var RunCmd = &cobra.Command{
 				os.Exit(1)
 			} else {
 				// use unix domain socket means no port any more
+				fmt.Println(print.WhiteBold("WARNING: This feature is currently supported only in preview mode"))
 				port = 0
 				grpcPort = 0
 			}
