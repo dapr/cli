@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 // ------------------------------------------------------------
@@ -45,7 +46,7 @@ var supportedUpgradePaths = []upgradePath{
 			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
 		},
 		next: common.VersionDetails{
-			RuntimeVersion:      "1.5.0-rc.1",
+			RuntimeVersion:      "1.5.0-rc.2",
 			DashboardVersion:    "0.8.0",
 			ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
 			ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
