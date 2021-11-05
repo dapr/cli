@@ -15,7 +15,7 @@ import (
 
 const (
 	currentRuntimeVersion   = "1.5.0-rc.1"
-	currentDashboardVersion = "0.7.0"
+	currentDashboardVersion = "0.8.0"
 )
 
 var currentVersionDetails = common.VersionDetails{
