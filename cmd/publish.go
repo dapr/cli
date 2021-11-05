@@ -61,7 +61,7 @@ dapr publish --enable-domain-socket --publish-app-id myapp --pubsub target --top
 				print.FailureStatusEvent(os.Stderr, "The unix-domain-socket option is not supported on Windows")
 				os.Exit(1)
 			} else {
-				fmt.Println(print.WhiteBold("WARNING: This feature is currently only supported in preview mode"))
+				print.WarningStatusEvent(os.Stdout, "Unix domain sockets are currently a preview feature")
 			}
 		}
 		err = client.Publish(publishAppID, pubsubName, publishTopic, bytePayload, publishSocket)
