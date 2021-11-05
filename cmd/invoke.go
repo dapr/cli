@@ -62,9 +62,15 @@ dapr invoke --unix-domain-socket --app-id target --method sample --verb GET
 		client := standalone.NewClient()
 
 		// TODO(@daixiang0): add Windows support
-		if runtime.GOOS == "windows" && invokeSocket != "" {
-			print.FailureStatusEvent(os.Stderr, "unix-domain-socket option still does not support Windows!")
-			os.Exit(1)
+		if unixDomainSocket != "" {
+			if runtime.GOOS == "windows" && invokeSocket != "" {
+				print.FailureStatusEvent(os.Stderr, "unix-domain-socket option still does not support Windows!")
+				os.Exit(1)
+			} else {
+				fmt.Println(print.WhiteBold("WARNING: This feature is currently supported only in preview mode"))
+				port = 0
+				grpcPort = 0
+			}
 		}
 
 		response, err := client.Invoke(invokeAppID, invokeAppMethod, bytePayload, invokeVerb, invokeSocket)
