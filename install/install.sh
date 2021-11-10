@@ -40,6 +40,7 @@ getSystemInfo() {
 }
 
 verifySupported() {
+    releaseTag=$1
     local supported=(darwin-amd64 linux-amd64 linux-arm linux-arm64)
     local current_osarch="${OS}-${ARCH}"
 
@@ -51,12 +52,15 @@ verifySupported() {
     done
 
     if [ "$current_osarch" == "darwin-arm64" ]; then
-        echo "The darwin_arm64 arch has no native binary, however you can use the amd64 version so long as you have rosetta installed"
-        echo "Use 'softwareupdate --install-rosetta' to install rosetta if you don't already have it"
-        ARCH="amd64"
-        return
+        if isReleaseAvailable $releaseTag; then
+            return
+        else
+            echo "The darwin_arm64 arch has no native binary for this version of Dapr, however you can use the amd64 version so long as you have rosetta installed"
+            echo "Use 'softwareupdate --install-rosetta' to install rosetta if you don't already have it"
+            ARCH="amd64"
+            return
+        fi
     fi
-
 
     echo "No prebuilt binary for ${current_osarch}"
     exit 1
@@ -133,6 +137,28 @@ downloadFile() {
     fi
 }
 
+isReleaseAvailable() {
+    LATEST_RELEASE_TAG=$1
+
+    DAPR_CLI_ARTIFACT="${DAPR_CLI_FILENAME}_${OS}_${ARCH}.tar.gz"
+    DOWNLOAD_BASE="https://github.com/${GITHUB_ORG}/${GITHUB_REPO}/releases/download"
+    DOWNLOAD_URL="${DOWNLOAD_BASE}/${LATEST_RELEASE_TAG}/${DAPR_CLI_ARTIFACT}"
+
+    if [ "$DAPR_HTTP_REQUEST_CLI" == "curl" ]; then
+        httpstatus=$(curl -sSLI -o /dev/null -w "%{http_code}" "$DOWNLOAD_URL")
+        if [ "$httpstatus" == "200" ]; then
+            return 0
+        fi
+    else
+        wget -q --spider "$DOWNLOAD_URL"
+        exitstatus=$?
+        if [ $exitstatus -eq 0 ]; then
+            return 0
+        fi
+    fi
+    return 1
+}
+
 installFile() {
     tar xf "$ARTIFACT_TMP_FILE" -C "$DAPR_TMP_ROOT"
     local tmp_root_dapr_cli="$DAPR_TMP_ROOT/$DAPR_CLI_FILENAME"
@@ -181,10 +207,7 @@ installCompleted() {
 trap "fail_trap" EXIT
 
 getSystemInfo
-verifySupported
-checkExistingDapr
 checkHttpRequestCLI
-
 
 if [ -z "$1" ]; then
     echo "Getting the latest Dapr CLI..."
@@ -192,6 +215,9 @@ if [ -z "$1" ]; then
 else
     ret_val=v$1
 fi
+
+verifySupported $ret_val
+checkExistingDapr
 
 echo "Installing $ret_val Dapr CLI..."
 
