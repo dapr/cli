@@ -40,6 +40,7 @@ getSystemInfo() {
 }
 
 verifySupported() {
+    releaseTag=$1
     local supported=(darwin-amd64 linux-amd64 linux-arm linux-arm64)
     local current_osarch="${OS}-${ARCH}"
 
@@ -51,7 +52,7 @@ verifySupported() {
     done
 
     if [ "$current_osarch" == "darwin-arm64" ]; then
-        if isReleaseAvailable; then
+        if isReleaseAvailable $releaseTag; then
             return
         else
             echo "The darwin_arm64 arch has no native binary for this version of Dapr, however you can use the amd64 version so long as you have rosetta installed"
@@ -207,9 +208,6 @@ trap "fail_trap" EXIT
 
 getSystemInfo
 checkHttpRequestCLI
-verifySupported
-checkExistingDapr
-
 
 if [ -z "$1" ]; then
     echo "Getting the latest Dapr CLI..."
@@ -217,6 +215,9 @@ if [ -z "$1" ]; then
 else
     ret_val=v$1
 fi
+
+verifySupported $ret_val
+checkExistingDapr
 
 echo "Installing $ret_val Dapr CLI..."
 
