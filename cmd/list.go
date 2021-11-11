@@ -9,22 +9,20 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/gocarina/gocsv"
+	"github.com/spf13/cobra"
+
 	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/pkg/standalone"
 	"github.com/dapr/cli/utils"
-	"github.com/gocarina/gocsv"
-	"github.com/spf13/cobra"
 )
 
-var (
-	outputFormat string
-)
+var outputFormat string
 
 func outputList(list interface{}, length int) {
 	if outputFormat == "json" || outputFormat == "yaml" {
 		err := utils.PrintDetail(os.Stdout, outputFormat, list)
-
 		if err != nil {
 			print.FailureStatusEvent(os.Stdout, err.Error())
 			os.Exit(1)

@@ -11,11 +11,12 @@ import (
 	"strings"
 	"time"
 
+	ps "github.com/mitchellh/go-ps"
+	process "github.com/shirou/gopsutil/process"
+
 	"github.com/dapr/cli/pkg/age"
 	"github.com/dapr/cli/pkg/metadata"
 	"github.com/dapr/cli/utils"
-	ps "github.com/mitchellh/go-ps"
-	process "github.com/shirou/gopsutil/process"
 )
 
 // ListOutput represents the application ID, application port and creation time.

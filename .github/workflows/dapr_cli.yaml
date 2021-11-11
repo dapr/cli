@@ -45,8 +45,6 @@ jobs:
             target_arch: arm64
           - os: macOS-latest
             target_arch: arm
-          - os: macOS-latest
-            target_arch: arm64
     steps:
       - name: Set up Go ${{ env.GOVER }}
         uses: actions/setup-go@v2

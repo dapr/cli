@@ -13,8 +13,9 @@ import (
 	"strings"
 	"sync"
 
-	scheme "github.com/dapr/dapr/pkg/client/clientset/versioned"
 	k8s "k8s.io/client-go/kubernetes"
+
+	scheme "github.com/dapr/dapr/pkg/client/clientset/versioned"
 
 	//  azure auth
 	_ "k8s.io/client-go/plugin/pkg/client/auth/azure"
