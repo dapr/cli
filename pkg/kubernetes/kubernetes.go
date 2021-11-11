@@ -14,8 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dapr/cli/pkg/print"
-	cli_ver "github.com/dapr/cli/pkg/version"
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
@@ -24,6 +22,9 @@ import (
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/helm/pkg/strvals"
+
+	"github.com/dapr/cli/pkg/print"
+	cli_ver "github.com/dapr/cli/pkg/version"
 )
 
 const (

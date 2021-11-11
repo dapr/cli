@@ -8,8 +8,9 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/dapr/cli/pkg/standalone"
 	"github.com/spf13/cobra"
+
+	"github.com/dapr/cli/pkg/standalone"
 )
 
 var BuildInfoCmd = &cobra.Command{

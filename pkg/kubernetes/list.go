@@ -6,8 +6,9 @@
 package kubernetes
 
 import (
-	"github.com/dapr/cli/pkg/age"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/dapr/cli/pkg/age"
 )
 
 // ListOutput represents the application ID, application port and creation time.

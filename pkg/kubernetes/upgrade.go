@@ -12,11 +12,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dapr/cli/pkg/print"
-	"github.com/dapr/cli/utils"
-	version "github.com/hashicorp/go-version"
 	helm "helm.sh/helm/v3/pkg/action"
 	"k8s.io/helm/pkg/strvals"
+
+	"github.com/hashicorp/go-version"
+
+	"github.com/dapr/cli/pkg/print"
+	"github.com/dapr/cli/utils"
 )
 
 const operatorName = "dapr-operator"
