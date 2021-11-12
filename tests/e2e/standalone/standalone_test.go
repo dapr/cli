@@ -253,7 +253,7 @@ func testInstall(t *testing.T) {
 			// Changing version check since there is a log that is output on daprd --version
 			// 2021/11/12 11:10:38 maxprocs: Leaving GOMAXPROCS=12: CPU quota undefined
 			// before the version is output
-			if !assert.Equal(t, version, output) {
+			if !assert.Contains(t, output, version) {
 				return
 			}
 			delete(binaries, bin)
