@@ -62,9 +62,13 @@ dapr invoke --unix-domain-socket --app-id target --method sample --verb GET
 		client := standalone.NewClient()
 
 		// TODO(@daixiang0): add Windows support
-		if runtime.GOOS == "windows" && invokeSocket != "" {
-			print.FailureStatusEvent(os.Stderr, "unix-domain-socket option still does not support Windows!")
-			os.Exit(1)
+		if invokeSocket != "" {
+			if runtime.GOOS == "windows" {
+				print.FailureStatusEvent(os.Stderr, "The unix-domain-socket option is not supported on Windows")
+				os.Exit(1)
+			} else {
+				print.WarningStatusEvent(os.Stdout, "Unix domain sockets are currently a preview feature")
+			}
 		}
 
 		response, err := client.Invoke(invokeAppID, invokeAppMethod, bytePayload, invokeVerb, invokeSocket)
