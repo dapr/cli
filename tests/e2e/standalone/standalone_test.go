@@ -33,8 +33,8 @@ import (
 )
 
 const (
-	daprRuntimeVersion   = "1.4.0"
-	daprDashboardVersion = "0.8.0"
+	daprRuntimeVersion   = "1.5.0"
+	daprDashboardVersion = "0.9.0"
 )
 
 var socketCases = []string{"", "/tmp"}
