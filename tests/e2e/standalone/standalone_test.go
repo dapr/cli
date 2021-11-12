@@ -245,7 +245,7 @@ func testInstall(t *testing.T) {
 				return
 			}
 			// Check version
-			output, err := spawn.Command(file, "--version", "2>/dev/null")
+			output, err := spawn.Command(file, "--version")
 			if !assert.NoError(t, err) {
 				return
 			}
