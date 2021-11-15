@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 
@@ -32,8 +33,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-const kubeConfigDelimiter = ":"
-
 var (
 	doOnce     sync.Once
 	kubeconfig *string
@@ -52,6 +51,10 @@ func getConfig() (*rest.Config, error) {
 		flag.Parse()
 	})
 	kubeConfigEnv := os.Getenv("KUBECONFIG")
+	kubeConfigDelimiter := ":"
+	if runtime.GOOS == "windows" {
+		kubeConfigDelimiter = ";"
+	}
 	delimiterBelongsToPath := strings.Count(*kubeconfig, kubeConfigDelimiter) == 1 && strings.EqualFold(*kubeconfig, kubeConfigEnv)
 
 	if len(kubeConfigEnv) != 0 && !delimiterBelongsToPath {
