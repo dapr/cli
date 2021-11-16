@@ -382,14 +382,13 @@ func testRun(t *testing.T) {
 		assert.Contains(t, output, "Exited Dapr successfully")
 	})
 
-	// t.Run("API shutdown with socket", func(t *testing.T) {
-	// 	// Test that the CLI exits on a daprd shutdown.
-	// 	output, err := spawn.Command(daprPath, "run", "--app-id", "testapp", "--unix-domain-socket", "/tmp", "--", "bash", "-c", "curl --unix-socket /tmp/dapr-testapp-http.socket -v -X POST http://unix/v1.0/shutdown; sleep 10; exit 1")
-	// 	t.Log(output)
-	// 	require.NoError(t, err, "run failed")
-	// 	assert.Contains(t, output, "Exited App successfully", "App should be shutdown before it has a chance to return non-zero")
-	// 	assert.Contains(t, output, "Exited Dapr successfully")
-	// })
+	t.Run("API shutdown with socket", func(t *testing.T) {
+		// Test that the CLI exits on a daprd shutdown.
+		output, err := spawn.Command(daprPath, "run", "--app-id", "testapp", "--unix-domain-socket", "/tmp", "--", "bash", "-c", "curl --unix-socket /tmp/dapr-testapp-http.socket -v -X POST http://unix/v1.0/shutdown; sleep 10; exit 1")
+		t.Log(output)
+		require.NoError(t, err, "run failed")
+		assert.Contains(t, output, "Exited Dapr successfully")
+	})
 }
 
 func executeAgainstRunningDapr(t *testing.T, f func(), daprArgs ...string) {
