@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 // ------------------------------------------------------------
@@ -14,8 +15,8 @@ import (
 )
 
 const (
-	currentRuntimeVersion   = "1.3.0"
-	currentDashboardVersion = "0.7.0"
+	currentRuntimeVersion   = "1.5.0"
+	currentDashboardVersion = "0.9.0"
 )
 
 var currentVersionDetails = common.VersionDetails{
