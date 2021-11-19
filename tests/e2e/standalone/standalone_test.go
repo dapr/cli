@@ -37,9 +37,7 @@ const (
 	daprDashboardVersion = "0.9.0"
 )
 
-// Removing unix domain socket tests till shutdown API with unix domain sockets is fixed.
-// https://github.com/dapr/dapr/issues/3894
-var socketCases = []string{""}
+var socketCases = []string{"", "/tmp"}
 
 func TestStandaloneInstall(t *testing.T) {
 	// Ensure a clean environment.
