@@ -8,6 +8,7 @@ package standalone
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -54,7 +55,22 @@ func (s *Standalone) Publish(publishAppID, pubsubName, topic string, payload []b
 		url = fmt.Sprintf("http://localhost:%s/v%s/publish/%s/%s", fmt.Sprintf("%v", instance.HTTPPort), api.RuntimeAPIVersion, pubsubName, topic)
 	}
 
-	r, err := httpc.Post(url, "application/json", bytes.NewBuffer(payload))
+	contentType := "application/json"
+
+	// Detect publishing with CloudEvents envelope.
+	var cloudEvent map[string]interface{}
+	if json.Unmarshal(payload, &cloudEvent); err == nil {
+		_, hasId := cloudEvent["id"]
+		_, hasSource := cloudEvent["source"]
+		_, hasSpecVersion := cloudEvent["specversion"]
+		_, hasType := cloudEvent["type"]
+		_, hasData := cloudEvent["data"]
+		if hasId && hasSource && hasSpecVersion && hasType && hasData {
+			contentType = "application/cloudevents+json"
+		}
+	}
+
+	r, err := httpc.Post(url, contentType, bytes.NewBuffer(payload))
 	if err != nil {
 		return err
 	}
