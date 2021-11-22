@@ -72,10 +72,11 @@ var RunCmd = &cobra.Command{
 		if unixDomainSocket != "" {
 			// TODO(@daixiang0): add Windows support
 			if runtime.GOOS == "windows" {
-				print.FailureStatusEvent(os.Stderr, "unix-domain-socket option still does not support Windows!")
+				print.FailureStatusEvent(os.Stderr, "The unix-domain-socket option is not supported on Windows")
 				os.Exit(1)
 			} else {
 				// use unix domain socket means no port any more
+				print.WarningStatusEvent(os.Stdout, "Unix domain sockets are currently a preview feature")
 				port = 0
 				grpcPort = 0
 			}
