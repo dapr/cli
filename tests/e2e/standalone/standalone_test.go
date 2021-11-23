@@ -489,7 +489,7 @@ func testPublish(t *testing.T) {
 	daprPath := getDaprPath()
 	for _, path := range socketCases {
 		executeAgainstRunningDapr(t, func() {
-			t.Run(fmt.Sprintf("publish from file with socket %s", path), func(t *testing.T) {
+			t.Run(fmt.Sprintf("publish message from file with socket %s", path), func(t *testing.T) {
 				output, err := spawn.Command(daprPath, "publish", "--publish-app-id", "pub_e2e", "--unix-domain-socket", path, "--pubsub", "pubsub", "--topic", "sample", "--data-file", "../testdata/message.json")
 				t.Log(output)
 				assert.NoError(t, err, "unable to publish from --data-file")
@@ -499,7 +499,7 @@ func testPublish(t *testing.T) {
 				assert.Equal(t, map[string]interface{}{"dapr": "is_great"}, event.Data)
 			})
 
-			t.Run(fmt.Sprintf("publish from file with socket %s", path), func(t *testing.T) {
+			t.Run(fmt.Sprintf("publish cloudevent from file with socket %s", path), func(t *testing.T) {
 				output, err := spawn.Command(daprPath, "publish", "--publish-app-id", "pub_e2e", "--unix-domain-socket", path, "--pubsub", "pubsub", "--topic", "sample", "--data-file", "../testdata/cloudevent.json")
 				t.Log(output)
 				assert.NoError(t, err, "unable to publish from --data-file")
