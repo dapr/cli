@@ -499,6 +499,26 @@ func testPublish(t *testing.T) {
 				assert.Equal(t, map[string]interface{}{"dapr": "is_great"}, event.Data)
 			})
 
+			t.Run(fmt.Sprintf("publish from file with socket %s", path), func(t *testing.T) {
+				output, err := spawn.Command(daprPath, "publish", "--publish-app-id", "pub_e2e", "--unix-domain-socket", path, "--pubsub", "pubsub", "--topic", "sample", "--data-file", "../testdata/cloudevent.json")
+				t.Log(output)
+				assert.NoError(t, err, "unable to publish from --data-file")
+				assert.Contains(t, output, "Event published successfully")
+
+				event := <-events
+				assert.Equal(t, &common.TopicEvent{
+					ID:              "3cc97064-edd1-49f4-b911-c959a7370e68",
+					Source:          "e2e_test",
+					SpecVersion:     "1.0",
+					Type:            "test.v1",
+					DataContentType: "application/json",
+					Subject:         "e2e_subject",
+					PubsubName:      "pubsub",
+					Topic:           "sample",
+					Data:            map[string]interface{}{"dapr": "is_great"},
+				}, event)
+			})
+
 			t.Run(fmt.Sprintf("publish from string with socket %s", path), func(t *testing.T) {
 				output, err := spawn.Command(daprPath, "publish", "--publish-app-id", "pub_e2e", "--unix-domain-socket", path, "--pubsub", "pubsub", "--topic", "sample", "--data", "{\"cli\": \"is_working\"}")
 				t.Log(output)
@@ -521,7 +541,6 @@ func testPublish(t *testing.T) {
 				t.Log(output)
 				assert.Error(t, err, "--data and --data-file should not be allowed together")
 				assert.Contains(t, output, "Only one of --data and --data-file allowed in the same publish command")
-
 			})
 
 			output, err := spawn.Command(getDaprPath(), "stop", "--app-id", "pub_e2e")
