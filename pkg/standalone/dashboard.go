@@ -14,7 +14,7 @@ import (
 )
 
 // NewDashboardCmd creates the command to run dashboard.
-func NewDashboardCmd(port int) *exec.Cmd {
+func NewDashboardCmd(address string, port int) *exec.Cmd {
 	// Use the default binary install location
 	dashboardPath := defaultDaprBinPath()
 	binaryName := "dashboard"
@@ -25,7 +25,7 @@ func NewDashboardCmd(port int) *exec.Cmd {
 	// Construct command to run dashboard
 	return &exec.Cmd{
 		Path:   filepath.Join(dashboardPath, binaryName),
-		Args:   []string{binaryName, "--port", strconv.Itoa(port)},
+		Args:   []string{binaryName, "--address", address, "--port", strconv.Itoa(port)},
 		Dir:    dashboardPath,
 		Stdout: os.Stdout,
 	}

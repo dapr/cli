@@ -13,10 +13,12 @@ import (
 
 func TestDashboardRun(t *testing.T) {
 	t.Run("build Cmd", func(t *testing.T) {
-		cmd := NewDashboardCmd(9090)
+		cmd := NewDashboardCmd("localhost", 9090)
 
 		assert.Contains(t, cmd.Args[0], "dashboard")
-		assert.Equal(t, cmd.Args[1], "--port")
-		assert.Equal(t, cmd.Args[2], "9090")
+		assert.Equal(t, cmd.Args[1], "--address")
+		assert.Equal(t, cmd.Args[2], "localhost")
+		assert.Equal(t, cmd.Args[3], "--port")
+		assert.Equal(t, cmd.Args[4], "9090")
 	})
 }
