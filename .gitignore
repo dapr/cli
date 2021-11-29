@@ -24,4 +24,8 @@ cli
 
 # CLI's auto-generated components directory
 **/components
-test_*.json
+
+test_output.json
+
+# Go Workspaces (introduced in Go 1.18+)
+go.work
