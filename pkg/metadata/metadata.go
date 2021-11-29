@@ -78,6 +78,10 @@ func Put(httpPort int, key, value, appID, socket string) error {
 	}
 
 	defer r.Body.Close()
+	if socket != "" {
+		// Retryablehttp does not close idle socket connections.
+		defer client.HTTPClient.CloseIdleConnections()
+	}
 	return nil
 }
 
