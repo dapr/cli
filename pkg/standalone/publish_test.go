@@ -6,6 +6,8 @@
 package standalone
 
 import (
+	"bytes"
+	"net/http"
 	"os"
 	"runtime"
 	"testing"
@@ -24,9 +26,8 @@ func TestPublish(t *testing.T) {
 		topic         string
 		lo            ListOutput
 		listErr       error
-		expectedPath  string
 		postResponse  string
-		resp          string
+		handler       http.HandlerFunc
 		errorExpected bool
 		errString     string
 	}{
@@ -37,6 +38,7 @@ func TestPublish(t *testing.T) {
 			pubsubName:    "test",
 			errString:     "publishAppID is missing",
 			errorExpected: true,
+			handler:       handlerTestPathResp("", ""),
 		},
 		{
 			name:          "test empty topic",
@@ -45,6 +47,7 @@ func TestPublish(t *testing.T) {
 			pubsubName:    "test",
 			errString:     "topic is missing",
 			errorExpected: true,
+			handler:       handlerTestPathResp("", ""),
 		},
 		{
 			name:          "test empty pubsubName",
@@ -53,6 +56,7 @@ func TestPublish(t *testing.T) {
 			topic:         "test",
 			errString:     "pubsubName is missing",
 			errorExpected: true,
+			handler:       handlerTestPathResp("", ""),
 		},
 		{
 			name:          "test list error",
@@ -63,6 +67,7 @@ func TestPublish(t *testing.T) {
 			listErr:       assert.AnError,
 			errString:     assert.AnError.Error(),
 			errorExpected: true,
+			handler:       handlerTestPathResp("", ""),
 		},
 		{
 			name:         "test empty appID in list output",
@@ -76,6 +81,7 @@ func TestPublish(t *testing.T) {
 			},
 			errString:     "couldn't find a running Dapr instance",
 			errorExpected: true,
+			handler:       handlerTestPathResp("", ""),
 		},
 		{
 			name:         "successful call not found",
@@ -88,6 +94,7 @@ func TestPublish(t *testing.T) {
 			},
 			errString:     "couldn't find a running Dapr instance",
 			errorExpected: true,
+			handler:       handlerTestPathResp("", ""),
 		},
 		{
 			name:         "successful call",
@@ -95,10 +102,35 @@ func TestPublish(t *testing.T) {
 			pubsubName:   "testPubsubName",
 			topic:        "testTopic",
 			payload:      []byte("test payload"),
-			expectedPath: "/v1.0/publish/testPubsubName/testTopic",
 			postResponse: "test payload",
 			lo: ListOutput{
 				AppID: "myAppID",
+			},
+			handler: handlerTestPathResp("/v1.0/publish/testPubsubName/testTopic", ""),
+		},
+		{
+			name:         "successful cloudevent envelope",
+			publishAppID: "myAppID",
+			pubsubName:   "testPubsubName",
+			topic:        "testTopic",
+			payload:      []byte(`{"id": "1234", "source": "test", "specversion": "1.0", "type": "product.v1", "datacontenttype": "application/json", "data": {"id": "test", "description": "Testing 12345"}}`),
+			postResponse: "test payload",
+			lo: ListOutput{
+				AppID: "myAppID",
+			},
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				if r.Header.Get("Content-Type") != "application/cloudevents+json" {
+					w.WriteHeader(http.StatusInternalServerError)
+
+					return
+				}
+				if r.Method == http.MethodGet {
+					w.Write([]byte(""))
+				} else {
+					buf := new(bytes.Buffer)
+					buf.ReadFrom(r.Body)
+					w.Write(buf.Bytes())
+				}
 			},
 		},
 	}
@@ -110,7 +142,7 @@ func TestPublish(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				if socket != "" {
-					ts, l := getTestSocketServer(tc.expectedPath, tc.resp, tc.publishAppID, socket)
+					ts, l := getTestSocketServerFunc(tc.handler, tc.publishAppID, socket)
 					go ts.Serve(l)
 					defer func() {
 						l.Close()
@@ -119,7 +151,7 @@ func TestPublish(t *testing.T) {
 						}
 					}()
 				} else {
-					ts, port := getTestServer(tc.expectedPath, tc.resp)
+					ts, port := getTestServerFunc(tc.handler)
 					ts.Start()
 					defer ts.Close()
 					tc.lo.HTTPPort = port
