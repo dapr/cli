@@ -22,11 +22,12 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/fatih/color"
+	"gopkg.in/yaml.v2"
+
 	"github.com/dapr/cli/pkg/print"
 	cli_ver "github.com/dapr/cli/pkg/version"
 	"github.com/dapr/cli/utils"
-	"github.com/fatih/color"
-	"gopkg.in/yaml.v2"
 )
 
 const (

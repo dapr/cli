@@ -16,10 +16,11 @@ import (
 	"strings"
 
 	"github.com/Pallinder/sillyname-go"
-	"github.com/dapr/dapr/pkg/components"
-	modes "github.com/dapr/dapr/pkg/config/modes"
 	"github.com/phayes/freeport"
 	"gopkg.in/yaml.v2"
+
+	"github.com/dapr/dapr/pkg/components"
+	modes "github.com/dapr/dapr/pkg/config/modes"
 )
 
 const sentryDefaultAddress = "localhost:50001"
@@ -42,6 +43,7 @@ type RunConfig struct {
 	AppSSL             bool   `arg:"app-ssl"`
 	MetricsPort        int    `env:"DAPR_METRICS_PORT" arg:"metrics-port"`
 	MaxRequestBodySize int    `arg:"dapr-http-max-request-size"`
+	UnixDomainSocket   string
 }
 
 func (meta *DaprMeta) newAppID() string {
@@ -262,6 +264,10 @@ type RunOutput struct {
 func getDaprCommand(config *RunConfig) (*exec.Cmd, error) {
 	daprCMD := binaryFilePath(defaultDaprBinPath(), "daprd")
 	args := config.getArgs()
+	if config.UnixDomainSocket != "" {
+		args = append(args, "--unix-domain-socket", config.UnixDomainSocket)
+	}
+
 	cmd := exec.Command(daprCMD, args...)
 	return cmd, nil
 }
