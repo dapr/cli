@@ -9,10 +9,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"runtime"
+
+	"github.com/spf13/cobra"
 
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/pkg/standalone"
-	"github.com/spf13/cobra"
 )
 
 var (
@@ -21,6 +23,7 @@ var (
 	publishTopic       string
 	publishPayload     string
 	publishPayloadFile string
+	publishSocket      string
 )
 
 var PublishCmd = &cobra.Command{
@@ -29,6 +32,9 @@ var PublishCmd = &cobra.Command{
 	Example: `
 # Publish to sample topic in target pubsub via a publishing app
 dapr publish --publish-app-id myapp --pubsub target --topic sample --data '{"key":"value"}'
+
+# Publish to sample topic in target pubsub via a publishing app using Unix domain socket
+dapr publish --enable-domain-socket --publish-app-id myapp --pubsub target --topic sample --data '{"key":"value"}'
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		bytePayload := []byte{}
@@ -49,7 +55,16 @@ dapr publish --publish-app-id myapp --pubsub target --topic sample --data '{"key
 		}
 
 		client := standalone.NewClient()
-		err = client.Publish(publishAppID, pubsubName, publishTopic, bytePayload)
+		// TODO(@daixiang0): add Windows support
+		if publishSocket != "" {
+			if runtime.GOOS == "windows" {
+				print.FailureStatusEvent(os.Stderr, "The unix-domain-socket option is not supported on Windows")
+				os.Exit(1)
+			} else {
+				print.WarningStatusEvent(os.Stdout, "Unix domain sockets are currently a preview feature")
+			}
+		}
+		err = client.Publish(publishAppID, pubsubName, publishTopic, bytePayload, publishSocket)
 		if err != nil {
 			print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Error publishing topic %s: %s", publishTopic, err))
 			os.Exit(1)
@@ -65,6 +80,7 @@ func init() {
 	PublishCmd.Flags().StringVarP(&publishTopic, "topic", "t", "", "The topic to be published to")
 	PublishCmd.Flags().StringVarP(&publishPayload, "data", "d", "", "The JSON serialized data string (optional)")
 	PublishCmd.Flags().StringVarP(&publishPayloadFile, "data-file", "f", "", "A file containing the JSON serialized data (optional)")
+	PublishCmd.Flags().StringVarP(&publishSocket, "unix-domain-socket", "u", "", "Path to a unix domain socket dir. If specified, Dapr API servers will use Unix Domain Sockets")
 	PublishCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	PublishCmd.MarkFlagRequired("publish-app-id")
 	PublishCmd.MarkFlagRequired("topic")

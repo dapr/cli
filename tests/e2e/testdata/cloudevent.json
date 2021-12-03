@@ -1,0 +1,9 @@
+{
+    "id": "3cc97064-edd1-49f4-b911-c959a7370e68",
+    "source": "e2e_test",
+    "specversion": "1.0",
+    "type": "test.v1",
+    "subject": "e2e_subject",
+    "datacontenttype": "application/json",
+    "data": {"dapr": "is_great"}
+}
