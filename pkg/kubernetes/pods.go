@@ -15,6 +15,7 @@ func ListPodsInterface(client k8s.Interface, labelSelector map[string]string) (*
 	if labelSelector != nil {
 		opts.LabelSelector = labels.FormatLabels(labelSelector)
 	}
+	//nolint
 	return client.CoreV1().Pods(v1.NamespaceAll).List(context.TODO(), opts)
 }
 
@@ -23,6 +24,7 @@ func ListPods(client *k8s.Clientset, namespace string, labelSelector map[string]
 	if labelSelector != nil {
 		opts.LabelSelector = labels.FormatLabels(labelSelector)
 	}
+	//nolint
 	return client.CoreV1().Pods(v1.NamespaceAll).List(context.TODO(), opts)
 }
 

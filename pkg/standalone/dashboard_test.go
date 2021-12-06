@@ -12,7 +12,9 @@ import (
 )
 
 func TestDashboardRun(t *testing.T) {
+	t.Parallel()
 	t.Run("build Cmd", func(t *testing.T) {
+		t.Parallel()
 		cmd := NewDashboardCmd(9090)
 
 		assert.Contains(t, cmd.Args[0], "dashboard")

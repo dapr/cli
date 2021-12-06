@@ -25,7 +25,7 @@ const (
 
 type githubRepoReleaseItem struct {
 	URL     string `json:"url"`
-	TagName string `json:"tag_name"`
+	TagName string `json:"tagName"`
 	Name    string `json:"name"`
 	Draft   bool   `json:"draft"`
 }
@@ -36,7 +36,7 @@ func GetLatestRelease(gitHubOrg, gitHubRepo string) (string, error) {
 
 	req, err := http.NewRequest("GET", releaseURL, nil)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error: %w", err)
 	}
 
 	githubToken := os.Getenv("GITHUB_TOKEN")
@@ -46,7 +46,7 @@ func GetLatestRelease(gitHubOrg, gitHubRepo string) (string, error) {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -56,13 +56,13 @@ func GetLatestRelease(gitHubOrg, gitHubRepo string) (string, error) {
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error: %w", err)
 	}
 
 	var githubRepoReleases []githubRepoReleaseItem
 	err = json.Unmarshal(body, &githubRepoReleases)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error: %w", err)
 	}
 
 	if len(githubRepoReleases) == 0 {

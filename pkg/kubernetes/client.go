@@ -63,7 +63,7 @@ func getConfig() (*rest.Config, error) {
 
 	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error: %w", err)
 	}
 	return config, nil
 }
@@ -72,11 +72,11 @@ func getConfig() (*rest.Config, error) {
 func GetKubeConfigClient() (*rest.Config, *k8s.Clientset, error) {
 	config, err := getConfig()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("error: %w", err)
 	}
 	client, err := k8s.NewForConfig(config)
 	if err != nil {
-		return config, nil, err
+		return config, nil, fmt.Errorf("error: %w", err)
 	}
 	return config, client, nil
 }
@@ -85,8 +85,9 @@ func GetKubeConfigClient() (*rest.Config, *k8s.Clientset, error) {
 func Client() (*k8s.Clientset, error) {
 	config, err := getConfig()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error: %w", err)
 	}
+	//nolint
 	return k8s.NewForConfig(config)
 }
 
@@ -94,8 +95,9 @@ func Client() (*k8s.Clientset, error) {
 func DaprClient() (scheme.Interface, error) {
 	config, err := getConfig()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error: %w", err)
 	}
+	//nolint
 	return scheme.NewForConfig(config)
 }
 

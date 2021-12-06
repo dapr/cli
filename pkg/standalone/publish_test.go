@@ -12,6 +12,7 @@ import (
 )
 
 func TestPublish(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name          string
 		publishAppID  string
@@ -98,8 +99,11 @@ func TestPublish(t *testing.T) {
 			},
 		},
 	}
+	//nolint
 	for _, tc := range testCases {
+		t.Parallel()
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			ts, port := getTestServer(tc.expectedPath, tc.resp)
 			ts.Start()
 			defer ts.Close()

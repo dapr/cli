@@ -38,7 +38,7 @@ func PrintConfigurations(name, outputFormat string) error {
 		if err != nil {
 			return nil, err
 		}
-
+		//nolint
 		return client.ConfigurationV1alpha1().Configurations(meta_v1.NamespaceAll).List(meta_v1.ListOptions{})
 	}, name, outputFormat)
 }
@@ -69,7 +69,7 @@ func writeConfigurations(writer io.Writer, getConfigFunc func() (*v1alpha1.Confi
 	if outputFormat == "" || outputFormat == "list" {
 		return printConfigurationList(writer, filtered)
 	}
-
+	//nolint
 	return utils.PrintDetail(writer, outputFormat, filteredSpecs)
 }
 
@@ -84,7 +84,7 @@ func printConfigurationList(writer io.Writer, list []v1alpha1.Configuration) err
 			Age:            age.GetAge(c.CreationTimestamp.Time),
 		})
 	}
-
+	//nolint
 	return utils.MarshalAndWriteTable(writer, co)
 }
 

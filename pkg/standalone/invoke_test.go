@@ -12,6 +12,7 @@ import (
 )
 
 func TestInvoke(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name          string
 		errorExpected bool
@@ -60,8 +61,11 @@ func TestInvoke(t *testing.T) {
 		},
 	}
 
+	//nolint
 	for _, tc := range testCases {
+		t.Parallel()
 		t.Run(tc.name+" get", func(t *testing.T) {
+			t.Parallel()
 			ts, port := getTestServer(tc.expectedPath, tc.resp)
 			ts.Start()
 			defer ts.Close()

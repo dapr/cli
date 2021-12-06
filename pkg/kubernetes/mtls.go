@@ -24,7 +24,7 @@ const (
 func IsMTLSEnabled() (bool, error) {
 	c, err := getSystemConfig()
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("error: %w", err)
 	}
 	return c.Spec.MTLSSpec.Enabled, nil
 }
@@ -32,12 +32,12 @@ func IsMTLSEnabled() (bool, error) {
 func getSystemConfig() (*v1alpha1.Configuration, error) {
 	client, err := DaprClient()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error: %w", err)
 	}
 
 	configs, err := client.ConfigurationV1alpha1().Configurations(meta_v1.NamespaceAll).List(meta_v1.ListOptions{})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error: %w", err)
 	}
 
 	for _, c := range configs.Items {
@@ -55,13 +55,13 @@ func ExportTrustChain(outputDir string) error {
 	if os.IsNotExist(err) {
 		errDir := os.MkdirAll(outputDir, 0755)
 		if errDir != nil {
-			return err
+			return fmt.Errorf("error: %w", err)
 		}
 	}
 
 	secret, err := getTrustChainSecret()
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	ca := secret.Data["ca.crt"]
@@ -70,17 +70,17 @@ func ExportTrustChain(outputDir string) error {
 
 	err = ioutil.WriteFile(filepath.Join(outputDir, "ca.crt"), ca, 0600)
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	err = ioutil.WriteFile(filepath.Join(outputDir, "issuer.crt"), issuerCert, 0600)
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	err = ioutil.WriteFile(filepath.Join(outputDir, "issuer.key"), issuerKey, 0600)
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 	return nil
 }
@@ -88,16 +88,16 @@ func ExportTrustChain(outputDir string) error {
 func getTrustChainSecret() (*corev1.Secret, error) {
 	_, client, err := GetKubeConfigClient()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error: %w", err)
 	}
 
 	c, err := getSystemConfig()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error: %w", err)
 	}
 	res, err := client.CoreV1().Secrets(c.GetNamespace()).List(context.TODO(), meta_v1.ListOptions{})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error: %w", err)
 	}
 
 	for _, i := range res.Items {
@@ -112,14 +112,14 @@ func getTrustChainSecret() (*corev1.Secret, error) {
 func Expiry() (*time.Time, error) {
 	secret, err := getTrustChainSecret()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error: %w", err)
 	}
 
 	caCrt := secret.Data["ca.crt"]
 	block, _ := pem.Decode(caCrt)
 	cert, err := x509.ParseCertificate(block.Bytes)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error: %w", err)
 	}
 	return &cert.NotAfter, nil
 }

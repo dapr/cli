@@ -240,3 +240,7 @@ linters:
     - gci 
     - noctx
     - gofumpt
+    - forbidigo
+    - cyclop
+    - exhaustivestruct
+    - gomoddirectives

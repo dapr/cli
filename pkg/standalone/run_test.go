@@ -15,6 +15,7 @@ import (
 )
 
 func assertArgumentEqual(t *testing.T, key string, expectedValue string, args []string) {
+	t.Helper()
 	var value string
 	for index, arg := range args {
 		if arg == "--"+key {
@@ -31,6 +32,7 @@ func assertArgumentEqual(t *testing.T, key string, expectedValue string, args []
 }
 
 func assertArgumentNotEqual(t *testing.T, key string, expectedValue string, args []string) {
+	t.Helper()
 	var value string
 	for index, arg := range args {
 		if arg == "--"+key {
@@ -47,6 +49,7 @@ func assertArgumentNotEqual(t *testing.T, key string, expectedValue string, args
 }
 
 func setupRun(t *testing.T) {
+	t.Helper()
 	componentsDir := DefaultComponentsDirPath()
 	configFile := DefaultConfigFilePath()
 	err := os.MkdirAll(componentsDir, 0700)
@@ -57,13 +60,16 @@ func setupRun(t *testing.T) {
 }
 
 func tearDownRun(t *testing.T) {
+	t.Helper()
 	err := os.RemoveAll(DefaultComponentsDirPath())
 	assert.Equal(t, nil, err, "Unable to delete default components dir after running test")
 	err = os.Remove(DefaultConfigFilePath())
 	assert.Equal(t, nil, err, "Unable to delete default config file after running test")
 }
 
+//nolint
 func TestRun(t *testing.T) {
+	t.Parallel()
 	// Setup the components directory which is done at init time
 	setupRun(t)
 
@@ -88,6 +94,7 @@ func TestRun(t *testing.T) {
 	}
 
 	t.Run("run happy http", func(t *testing.T) {
+		t.Parallel()
 		output, err := Run(basicConfig)
 
 		assert.Nil(t, err)
@@ -120,6 +127,7 @@ func TestRun(t *testing.T) {
 	})
 
 	t.Run("run without app command", func(t *testing.T) {
+		t.Parallel()
 		basicConfig.Arguments = nil
 		basicConfig.LogLevel = "INFO"
 		basicConfig.ConfigFile = DefaultConfigFilePath()
@@ -153,6 +161,7 @@ func TestRun(t *testing.T) {
 	})
 
 	t.Run("run without port", func(t *testing.T) {
+		t.Parallel()
 		basicConfig.HTTPPort = -1
 		basicConfig.GRPCPort = -1
 		basicConfig.MetricsPort = -1
