@@ -12,11 +12,12 @@ import (
 	"strings"
 	"time"
 
+	ps "github.com/mitchellh/go-ps"
+	process "github.com/shirou/gopsutil/process"
+
 	"github.com/dapr/cli/pkg/age"
 	"github.com/dapr/cli/pkg/metadata"
 	"github.com/dapr/cli/utils"
-	ps "github.com/mitchellh/go-ps"
-	process "github.com/shirou/gopsutil/process"
 )
 
 // ListOutput represents the application ID, application port and creation time.
@@ -108,7 +109,8 @@ func List() ([]ListOutput, error) {
 			appID := argumentsMap["--app-id"]
 			appCmd := ""
 			cliPIDString := ""
-			appMetadata, err := metadata.Get(httpPort)
+			socket := argumentsMap["--unix-domain-socket"]
+			appMetadata, err := metadata.Get(httpPort, appID, socket)
 			if err == nil {
 				appCmd = appMetadata.Extended["appCommand"]
 				cliPIDString = appMetadata.Extended["cliPID"]
@@ -181,7 +183,10 @@ func List() ([]ListOutput, error) {
 				listRow.Command = utils.TruncateString(run.appCmd, 20)
 			}
 
-			list = append(list, listRow)
+			// filter only dashboard instance
+			if listRow.AppID != "" {
+				list = append(list, listRow)
+			}
 		}
 	}
 

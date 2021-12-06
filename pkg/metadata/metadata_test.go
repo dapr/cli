@@ -9,8 +9,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/dapr/cli/pkg/api"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/dapr/cli/pkg/api"
 )
 
 func TestMakeMetadataGetEndpoint(t *testing.T) {

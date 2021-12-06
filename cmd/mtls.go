@@ -11,9 +11,10 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/spf13/cobra"
+
 	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/pkg/print"
-	"github.com/spf13/cobra"
 )
 
 var exportPath string
@@ -28,7 +29,7 @@ dapr mtls -k
 	Run: func(cmd *cobra.Command, args []string) {
 		enabled, err := kubernetes.IsMTLSEnabled()
 		if err != nil {
-			print.FailureStatusEvent(os.Stdout, fmt.Sprintf("error checking mTLS: %s", err))
+			print.FailureStatusEvent(os.Stderr, fmt.Sprintf("error checking mTLS: %s", err))
 			os.Exit(1)
 		}
 
@@ -50,7 +51,7 @@ dapr mtls export -o ./certs
 	Run: func(cmd *cobra.Command, args []string) {
 		err := kubernetes.ExportTrustChain(exportPath)
 		if err != nil {
-			print.FailureStatusEvent(os.Stdout, fmt.Sprintf("error exporting trust chain certs: %s", err))
+			print.FailureStatusEvent(os.Stderr, fmt.Sprintf("error exporting trust chain certs: %s", err))
 			return
 		}
 
@@ -69,7 +70,7 @@ dapr mtls expiry
 	Run: func(cmd *cobra.Command, args []string) {
 		expiry, err := kubernetes.Expiry()
 		if err != nil {
-			print.FailureStatusEvent(os.Stdout, fmt.Sprintf("error getting root cert expiry: %s", err))
+			print.FailureStatusEvent(os.Stderr, fmt.Sprintf("error getting root cert expiry: %s", err))
 			return
 		}
 

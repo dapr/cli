@@ -9,11 +9,12 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+
 	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/pkg/standalone"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var (
@@ -45,7 +46,7 @@ dapr uninstall -k
 
 		if uninstallKubernetes {
 			print.InfoStatusEvent(os.Stdout, "Removing Dapr from your cluster...")
-			err = kubernetes.Uninstall(uninstallNamespace, timeout)
+			err = kubernetes.Uninstall(uninstallNamespace, uninstallAll, timeout)
 		} else {
 			print.InfoStatusEvent(os.Stdout, "Removing Dapr from your machine...")
 			dockerNetwork := viper.GetString("network")
@@ -53,7 +54,7 @@ dapr uninstall -k
 		}
 
 		if err != nil {
-			print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error removing Dapr: %s", err))
+			print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Error removing Dapr: %s", err))
 		} else {
 			print.SuccessStatusEvent(os.Stdout, "Dapr has been removed successfully")
 		}
@@ -63,7 +64,7 @@ dapr uninstall -k
 func init() {
 	UninstallCmd.Flags().BoolVarP(&uninstallKubernetes, "kubernetes", "k", false, "Uninstall Dapr from a Kubernetes cluster")
 	UninstallCmd.Flags().UintVarP(&timeout, "timeout", "", 300, "The timeout for the Kubernetes uninstall")
-	UninstallCmd.Flags().BoolVar(&uninstallAll, "all", false, "Remove .dapr directory, Redis, Placement and Zipkin containers")
+	UninstallCmd.Flags().BoolVar(&uninstallAll, "all", false, "Remove .dapr directory, Redis, Placement and Zipkin containers on local machine, and CRDs on a Kubernetes cluster")
 	UninstallCmd.Flags().String("network", "", "The Docker network from which to remove the Dapr runtime")
 	UninstallCmd.Flags().StringVarP(&uninstallNamespace, "namespace", "n", "dapr-system", "The Kubernetes namespace to uninstall Dapr from")
 	UninstallCmd.Flags().BoolP("help", "h", false, "Print this help message")

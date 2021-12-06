@@ -8,9 +8,10 @@ package cmd
 import (
 	"os"
 
+	"github.com/spf13/cobra"
+
 	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/pkg/print"
-	"github.com/spf13/cobra"
 )
 
 var (
@@ -25,7 +26,7 @@ var ComponentsCmd = &cobra.Command{
 		if kubernetesMode {
 			err := kubernetes.PrintComponents(componentsName, componentsOutputFormat)
 			if err != nil {
-				print.FailureStatusEvent(os.Stdout, err.Error())
+				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)
 			}
 		}

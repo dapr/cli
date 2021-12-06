@@ -113,7 +113,7 @@ func TestRun(t *testing.T) {
 		assertArgumentEqual(t, "app-protocol", "http", output.DaprCMD.Args)
 		assertArgumentEqual(t, "app-port", "3000", output.DaprCMD.Args)
 		assertArgumentEqual(t, "components-path", DefaultComponentsDirPath(), output.DaprCMD.Args)
-		assertArgumentEqual(t, "app-ssl", "true", output.DaprCMD.Args)
+		assertArgumentEqual(t, "app-ssl", "", output.DaprCMD.Args)
 		assertArgumentEqual(t, "metrics-port", "9001", output.DaprCMD.Args)
 		if runtime.GOOS == "windows" {
 			assertArgumentEqual(t, "placement-host-address", "localhost:6050", output.DaprCMD.Args)

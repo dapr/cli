@@ -12,10 +12,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dapr/cli/pkg/print"
-	"github.com/dapr/cli/utils"
 	helm "helm.sh/helm/v3/pkg/action"
 	"k8s.io/helm/pkg/strvals"
+
+	"github.com/hashicorp/go-version"
+
+	"github.com/dapr/cli/pkg/print"
+	"github.com/dapr/cli/utils"
 )
 
 const operatorName = "dapr-operator"
@@ -24,6 +27,12 @@ var crds = []string{
 	"components",
 	"configuration",
 	"subscription",
+}
+
+var crdsFullResources = []string{
+	"components.dapr.io",
+	"configurations.dapr.io",
+	"subscriptions.dapr.io",
 }
 
 type UpgradeConfig struct {
@@ -101,9 +110,13 @@ func Upgrade(conf UpgradeConfig) error {
 		return err
 	}
 
-	err = applyCRDs(fmt.Sprintf("v%s", conf.RuntimeVersion))
-	if err != nil {
-		return err
+	if !isDowngrade(conf.RuntimeVersion, daprVersion) {
+		err = applyCRDs(fmt.Sprintf("v%s", conf.RuntimeVersion))
+		if err != nil {
+			return err
+		}
+	} else {
+		print.InfoStatusEvent(os.Stdout, "Downgrade detected, skipping CRDs.")
 	}
 
 	listClient := helm.NewList(helmConf)
@@ -169,4 +182,11 @@ func upgradeChartValues(ca, issuerCert, issuerKey string, haMode, mtls bool, arg
 		}
 	}
 	return chartVals, nil
+}
+
+func isDowngrade(targetVersion, existingVersion string) bool {
+	target, _ := version.NewVersion(targetVersion)
+	existing, _ := version.NewVersion(existingVersion)
+
+	return target.LessThan(existing)
 }

@@ -22,11 +22,12 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/fatih/color"
+	"gopkg.in/yaml.v2"
+
 	"github.com/dapr/cli/pkg/print"
 	cli_ver "github.com/dapr/cli/pkg/version"
 	"github.com/dapr/cli/utils"
-	"github.com/fatih/color"
-	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -105,6 +106,25 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		}
 	}
 
+	if runtimeVersion == latestVersion {
+		var err error
+		runtimeVersion, err = cli_ver.GetDaprVersion()
+		if err != nil {
+			return fmt.Errorf("cannot get the latest release version: '%s'. Try specifying --runtime-version=<desired_version>", err)
+		}
+	}
+
+	print.InfoStatusEvent(os.Stdout, "Installing runtime version %s", runtimeVersion)
+
+	if dashboardVersion == latestVersion {
+		var err error
+		dashboardVersion, err = cli_ver.GetDashboardVersion()
+		if err != nil {
+			print.WarningStatusEvent(os.Stdout, "cannot get the latest dashboard version: '%s'. Try specifying --dashboard-version=<desired_version>", err)
+			print.WarningStatusEvent(os.Stdout, "continuing, but dashboard will be unavailable")
+		}
+	}
+
 	daprBinDir := defaultDaprBinPath()
 	err := prepareDaprInstallDir(daprBinDir)
 	if err != nil {
@@ -123,9 +143,13 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		// Install 3 binaries in slim mode: daprd, dashboard, placement
 		wg.Add(3)
 		initSteps = append(initSteps, createSlimConfiguration)
-	} else {
+	} else if dashboardVersion != "" {
 		// Install 2 binaries: daprd, dashboard
 		wg.Add(2)
+		initSteps = append(initSteps, createComponentsAndConfiguration, runPlacementService, runRedis, runZipkin)
+	} else {
+		// Install 1 binaries: daprd
+		wg.Add(1)
 		initSteps = append(initSteps, createComponentsAndConfiguration, runPlacementService, runRedis, runZipkin)
 	}
 
@@ -146,7 +170,9 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 	go installBinary(&wg, errorChan, daprBinDir, runtimeVersion, daprRuntimeFilePrefix, dockerNetwork, cli_ver.DaprGitHubRepo)
 
 	// Initialize dashboard binary
-	go installBinary(&wg, errorChan, daprBinDir, dashboardVersion, dashboardFilePrefix, dockerNetwork, cli_ver.DashboardGitHubRepo)
+	if dashboardVersion != "" {
+		go installBinary(&wg, errorChan, daprBinDir, dashboardVersion, dashboardFilePrefix, dockerNetwork, cli_ver.DashboardGitHubRepo)
+	}
 
 	if slimMode {
 		// Initialize placement binary only on slim install
@@ -450,18 +476,6 @@ func moveDashboardFiles(extractedFilePath string, dir string) (string, error) {
 	return extractedFilePath, nil
 }
 
-func overrideLastestVersion(version, repo string) (string, error) {
-	if version == latestVersion {
-		var err error
-		version, err = cli_ver.GetLatestRelease(cli_ver.DaprGitHubOrg, repo)
-		if err != nil {
-			return "", fmt.Errorf("cannot get the latest release version: %w", err)
-		}
-		version = version[1:]
-	}
-	return version, nil
-}
-
 func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, binaryFilePrefix string, dockerNetwork string, githubRepo string) {
 	defer wg.Done()
 
@@ -471,17 +485,11 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, bin
 		archiveExt = "zip"
 	}
 
-	v, err := overrideLastestVersion(version, githubRepo)
-	if err != nil {
-		errorChan <- err
-		return
-	}
-
 	fileURL := fmt.Sprintf(
 		"https://github.com/%s/%s/releases/download/v%s/%s_%s_%s.%s",
 		cli_ver.DaprGitHubOrg,
 		githubRepo,
-		v,
+		version,
 		binaryFilePrefix,
 		runtime.GOOS,
 		runtime.GOARCH,

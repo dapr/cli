@@ -6,21 +6,44 @@
 package metadata
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
+	"os"
 	"strings"
 
-	"github.com/dapr/cli/pkg/api"
 	retryablehttp "github.com/hashicorp/go-retryablehttp"
+
+	"github.com/dapr/cli/pkg/api"
+	"github.com/dapr/cli/utils"
 )
 
 // Get retrieves the metadata of a given app's sidecar.
-func Get(httpPort int) (*api.Metadata, error) {
+func Get(httpPort int, appID, socket string) (*api.Metadata, error) {
 	url := makeMetadataGetEndpoint(httpPort)
-	// nolint:gosec
-	r, err := http.Get(url)
+
+	var httpc http.Client
+	if socket != "" {
+		fileInfo, err := os.Stat(socket)
+		if err != nil {
+			return nil, err
+		}
+
+		if fileInfo.IsDir() {
+			socket = utils.GetSocket(socket, appID, "http")
+		}
+
+		httpc.Transport = &http.Transport{
+			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
+				return net.Dial("unix", socket)
+			},
+		}
+	}
+
+	r, err := httpc.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("error: %w", err)
 	}
@@ -30,9 +53,18 @@ func Get(httpPort int) (*api.Metadata, error) {
 }
 
 // Put sets one metadata attribute on a given app's sidecar.
-func Put(httpPort int, key, value string) error {
+func Put(httpPort int, key, value, appID, socket string) error {
 	client := retryablehttp.NewClient()
 	client.Logger = nil
+
+	if socket != "" {
+		client.HTTPClient.Transport = &http.Transport{
+			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
+				return net.Dial("unix", utils.GetSocket(socket, appID, "http"))
+			},
+		}
+	}
+
 	url := makeMetadataPutEndpoint(httpPort, key)
 
 	req, err := retryablehttp.NewRequest("PUT", url, strings.NewReader(value))
@@ -46,14 +78,24 @@ func Put(httpPort int, key, value string) error {
 	}
 
 	defer r.Body.Close()
+	if socket != "" {
+		// Retryablehttp does not close idle socket connections.
+		defer client.HTTPClient.CloseIdleConnections()
+	}
 	return nil
 }
 
 func makeMetadataGetEndpoint(httpPort int) string {
+	if httpPort == 0 {
+		return fmt.Sprintf("http://unix/v%s/metadata", api.RuntimeAPIVersion)
+	}
 	return fmt.Sprintf("http://127.0.0.1:%v/v%s/metadata", httpPort, api.RuntimeAPIVersion)
 }
 
 func makeMetadataPutEndpoint(httpPort int, key string) string {
+	if httpPort == 0 {
+		return fmt.Sprintf("http://unix/v%s/metadata/%s", api.RuntimeAPIVersion, key)
+	}
 	return fmt.Sprintf("http://127.0.0.1:%v/v%s/metadata/%s", httpPort, api.RuntimeAPIVersion, key)
 }
 

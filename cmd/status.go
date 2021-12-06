@@ -8,11 +8,12 @@ package cmd
 import (
 	"os"
 
+	"github.com/gocarina/gocsv"
+	"github.com/spf13/cobra"
+
 	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/utils"
-	"github.com/gocarina/gocsv"
-	"github.com/spf13/cobra"
 )
 
 var StatusCmd = &cobra.Command{
@@ -25,21 +26,21 @@ dapr status -k
 	Run: func(cmd *cobra.Command, args []string) {
 		sc, err := kubernetes.NewStatusClient()
 		if err != nil {
-			print.FailureStatusEvent(os.Stdout, err.Error())
+			print.FailureStatusEvent(os.Stderr, err.Error())
 			os.Exit(1)
 		}
 		status, err := sc.Status()
 		if err != nil {
-			print.FailureStatusEvent(os.Stdout, err.Error())
+			print.FailureStatusEvent(os.Stderr, err.Error())
 			os.Exit(1)
 		}
 		if len(status) == 0 {
-			print.FailureStatusEvent(os.Stdout, "No status returned. Is Dapr initialized in your cluster?")
+			print.FailureStatusEvent(os.Stderr, "No status returned. Is Dapr initialized in your cluster?")
 			os.Exit(1)
 		}
 		table, err := gocsv.MarshalString(status)
 		if err != nil {
-			print.FailureStatusEvent(os.Stdout, err.Error())
+			print.FailureStatusEvent(os.Stderr, err.Error())
 			os.Exit(1)
 		}
 

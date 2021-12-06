@@ -26,6 +26,10 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+const (
+	socketFormat = "%s/dapr-%s-%s.socket"
+)
+
 // PrintTable to print in the table format.
 func PrintTable(csvContent string) {
 	WriteTable(os.Stdout, csvContent)
@@ -153,6 +157,24 @@ func IsDaprListeningOnPort(port int, timeout time.Duration) error {
 	}
 }
 
+func IsDaprListeningOnSocket(socket string, timeout time.Duration) error {
+	start := time.Now()
+	for {
+		conn, err := net.DialTimeout("unix", socket, timeout)
+		if err == nil {
+			conn.Close()
+			return nil
+		}
+
+		if time.Since(start).Seconds() >= timeout.Seconds() {
+			// Give up.
+			return err
+		}
+
+		time.Sleep(time.Second)
+	}
+}
+
 func MarshalAndWriteTable(writer io.Writer, in interface{}) error {
 	table, err := gocsv.MarshalString(in)
 	if err != nil {
@@ -185,4 +207,18 @@ func PrintDetail(writer io.Writer, outputFormat string, list interface{}) error 
 
 	_, err = writer.Write(output)
 	return fmt.Errorf("error: %w", err)
+}
+
+func IsAddressLegal(address string) bool {
+	var isLegal bool
+	if address == "localhost" {
+		isLegal = true
+	} else if net.ParseIP(address) != nil {
+		isLegal = true
+	}
+	return isLegal
+}
+
+func GetSocket(path, appID, protocol string) string {
+	return fmt.Sprintf(socketFormat, path, appID, protocol)
 }

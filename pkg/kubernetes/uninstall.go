@@ -10,10 +10,12 @@ import (
 	"time"
 
 	helm "helm.sh/helm/v3/pkg/action"
+
+	"github.com/dapr/cli/utils"
 )
 
 // Uninstall removes Dapr from a Kubernetes cluster.
-func Uninstall(namespace string, timeout uint) error {
+func Uninstall(namespace string, uninstallAll bool, timeout uint) error {
 	config, err := helmConfig(namespace)
 	if err != nil {
 		return fmt.Errorf("error: %w", err)
@@ -22,5 +24,19 @@ func Uninstall(namespace string, timeout uint) error {
 	uninstallClient := helm.NewUninstall(config)
 	uninstallClient.Timeout = time.Duration(timeout) * time.Second
 	_, err = uninstallClient.Run(daprReleaseName)
-	return fmt.Errorf("error: %w", err)
+
+	if err != nil {
+		return fmt.Errorf("error: %w", err)
+	}
+
+	if uninstallAll {
+		for _, crd := range crdsFullResources {
+			_, err := utils.RunCmdAndWait("kubectl", "delete", "crd", crd)
+			if err != nil {
+				return fmt.Errorf("error: %w", err)
+			}
+		}
+	}
+
+	return nil
 }

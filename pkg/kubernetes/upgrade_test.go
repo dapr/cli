@@ -51,3 +51,10 @@ func TestArgsChartValues(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, val, 4)
 }
+
+func TestIsDowngrade(t *testing.T) {
+	assert.True(t, isDowngrade("1.3.0", "1.4.0-rc.5"))
+	assert.True(t, isDowngrade("1.3.0", "1.4.0"))
+	assert.False(t, isDowngrade("1.4.0-rc.5", "1.3.0"))
+	assert.False(t, isDowngrade("1.4.0", "1.3.0"))
+}
