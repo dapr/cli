@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	currentRuntimeVersion   = "1.5.1-rc.1"
+	currentRuntimeVersion   = "1.5.1"
 	currentDashboardVersion = "0.9.0"
 )
 
