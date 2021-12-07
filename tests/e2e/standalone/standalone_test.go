@@ -33,13 +33,11 @@ import (
 )
 
 const (
-	daprRuntimeVersion   = "1.5.0"
+	daprRuntimeVersion   = "1.5.1"
 	daprDashboardVersion = "0.9.0"
 )
 
-// Removing unix domain socket tests till shutdown API with unix domain sockets is fixed.
-// https://github.com/dapr/dapr/issues/3894
-var socketCases = []string{""}
+var socketCases = []string{"", "/tmp"}
 
 func TestStandaloneInstall(t *testing.T) {
 	// Ensure a clean environment.
@@ -382,14 +380,13 @@ func testRun(t *testing.T) {
 		assert.Contains(t, output, "Exited Dapr successfully")
 	})
 
-	// t.Run("API shutdown with socket", func(t *testing.T) {
-	// 	// Test that the CLI exits on a daprd shutdown.
-	// 	output, err := spawn.Command(daprPath, "run", "--app-id", "testapp", "--unix-domain-socket", "/tmp", "--", "bash", "-c", "curl --unix-socket /tmp/dapr-testapp-http.socket -v -X POST http://unix/v1.0/shutdown; sleep 10; exit 1")
-	// 	t.Log(output)
-	// 	require.NoError(t, err, "run failed")
-	// 	assert.Contains(t, output, "Exited App successfully", "App should be shutdown before it has a chance to return non-zero")
-	// 	assert.Contains(t, output, "Exited Dapr successfully")
-	// })
+	t.Run("API shutdown with socket", func(t *testing.T) {
+		// Test that the CLI exits on a daprd shutdown.
+		output, err := spawn.Command(daprPath, "run", "--app-id", "testapp", "--unix-domain-socket", "/tmp", "--", "bash", "-c", "curl --unix-socket /tmp/dapr-testapp-http.socket -v -X POST http://unix/v1.0/shutdown; sleep 10; exit 1")
+		t.Log(output)
+		require.NoError(t, err, "run failed")
+		assert.Contains(t, output, "Exited Dapr successfully")
+	})
 }
 
 func executeAgainstRunningDapr(t *testing.T, f func(), daprArgs ...string) {
@@ -489,7 +486,7 @@ func testPublish(t *testing.T) {
 	daprPath := getDaprPath()
 	for _, path := range socketCases {
 		executeAgainstRunningDapr(t, func() {
-			t.Run(fmt.Sprintf("publish from file with socket %s", path), func(t *testing.T) {
+			t.Run(fmt.Sprintf("publish message from file with socket %s", path), func(t *testing.T) {
 				output, err := spawn.Command(daprPath, "publish", "--publish-app-id", "pub_e2e", "--unix-domain-socket", path, "--pubsub", "pubsub", "--topic", "sample", "--data-file", "../testdata/message.json")
 				t.Log(output)
 				assert.NoError(t, err, "unable to publish from --data-file")
@@ -497,6 +494,26 @@ func testPublish(t *testing.T) {
 
 				event := <-events
 				assert.Equal(t, map[string]interface{}{"dapr": "is_great"}, event.Data)
+			})
+
+			t.Run(fmt.Sprintf("publish cloudevent from file with socket %s", path), func(t *testing.T) {
+				output, err := spawn.Command(daprPath, "publish", "--publish-app-id", "pub_e2e", "--unix-domain-socket", path, "--pubsub", "pubsub", "--topic", "sample", "--data-file", "../testdata/cloudevent.json")
+				t.Log(output)
+				assert.NoError(t, err, "unable to publish from --data-file")
+				assert.Contains(t, output, "Event published successfully")
+
+				event := <-events
+				assert.Equal(t, &common.TopicEvent{
+					ID:              "3cc97064-edd1-49f4-b911-c959a7370e68",
+					Source:          "e2e_test",
+					SpecVersion:     "1.0",
+					Type:            "test.v1",
+					DataContentType: "application/json",
+					Subject:         "e2e_subject",
+					PubsubName:      "pubsub",
+					Topic:           "sample",
+					Data:            map[string]interface{}{"dapr": "is_great"},
+				}, event)
 			})
 
 			t.Run(fmt.Sprintf("publish from string with socket %s", path), func(t *testing.T) {
@@ -521,7 +538,6 @@ func testPublish(t *testing.T) {
 				t.Log(output)
 				assert.Error(t, err, "--data and --data-file should not be allowed together")
 				assert.Contains(t, output, "Only one of --data and --data-file allowed in the same publish command")
-
 			})
 
 			output, err := spawn.Command(getDaprPath(), "stop", "--app-id", "pub_e2e")
