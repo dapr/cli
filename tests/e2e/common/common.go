@@ -103,7 +103,7 @@ func EnsureUninstall(all bool) (string, error) {
 	command = append(command,
 		"-n", DaprTestNamespace,
 		"--log-as-json")
-//nolint
+	//nolint
 	return spawn.Command(daprPath, command...)
 }
 
@@ -481,7 +481,7 @@ func installTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 
 func uninstallTest(all bool) func(t *testing.T) {
 	return func(t *testing.T) {
-    t.Helper()
+		t.Helper()
 		output, err := EnsureUninstall(all)
 		t.Log(output)
 		require.NoError(t, err, "uninstall failed")
@@ -552,9 +552,8 @@ func statusTestOnUninstall() func(t *testing.T) {
 	}
 }
 
-
 func componentOutputCheck(t *testing.T, output string, all bool) {
-  t.Helper()
+	t.Helper()
 	lines := strings.Split(output, "\n")[1:] // remove header
 	// for fresh cluster only one component yaml has been applied
 	fields := strings.Fields(lines[0])

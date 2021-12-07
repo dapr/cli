@@ -136,15 +136,15 @@ func TestPublish(t *testing.T) {
 		},
 	}
 
-  //nolint
+	//nolint
 	for _, socket := range []string{"", "/tmp"} {
-    t.Parallel()
+		t.Parallel()
 		// TODO(@daixiang0): add Windows support
 		if runtime.GOOS == "windows" && socket != "" {
 			continue
 		}
 		for _, tc := range testCases {
-      t.Parallel()
+			t.Parallel()
 			t.Run(tc.name, func(t *testing.T) {
 				if socket != "" {
 					ts, l := getTestSocketServerFunc(tc.handler, tc.publishAppID, socket)

@@ -66,14 +66,14 @@ func TestInvoke(t *testing.T) {
 		},
 	}
 
-  //nolint
+	//nolint
 	for _, socket := range []string{"", "/tmp"} {
 		// TODO(@daixiang0): add Windows support
 		if runtime.GOOS == "windows" && socket != "" {
 			continue
 		}
 		for _, tc := range testCases {
-      t.Parallel()
+			t.Parallel()
 			t.Run(fmt.Sprintf("%s get, socket: %v", tc.name, socket), func(t *testing.T) {
 				if socket != "" {
 					ts, l := getTestSocketServer(tc.expectedPath, tc.resp, tc.appID, socket)
