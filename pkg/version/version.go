@@ -21,6 +21,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/hashicorp/go-version"
 	yaml "gopkg.in/yaml.v2"
 
 	"github.com/dapr/cli/pkg/print"
@@ -110,13 +111,23 @@ func GetLatestReleaseGithub(githubURL string) (string, error) {
 			return "", fmt.Errorf("no releases")
 		}
 
+		defaultVersion, _ := version.NewVersion("0.0.0")
+		latestVersion := defaultVersion
+
 		for _, release := range githubRepoReleases {
 			if !strings.Contains(release.TagName, "-rc") {
-				return strings.TrimPrefix(release.TagName, "v"), nil
+				cur, _ := version.NewVersion(strings.TrimPrefix(release.TagName, "v"))
+				if cur.GreaterThan(latestVersion) {
+					latestVersion = cur
+				}
 			}
 		}
 
-		return "", fmt.Errorf("no releases")
+		if latestVersion.Equal(defaultVersion) {
+			return "", fmt.Errorf("no releases")
+		}
+
+		return latestVersion.String(), nil
 	})
 }
 
