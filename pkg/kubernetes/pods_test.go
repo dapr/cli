@@ -15,9 +15,7 @@ import (
 )
 
 func TestListPodsInterface(t *testing.T) {
-	t.Parallel()
 	t.Run("empty list pods", func(t *testing.T) {
-		t.Parallel()
 		k8s := fake.NewSimpleClientset()
 		output, err := ListPodsInterface(k8s, map[string]string{
 			"test": "test",
@@ -27,7 +25,6 @@ func TestListPodsInterface(t *testing.T) {
 		assert.Equal(t, 0, len(output.Items), "Expected length 0")
 	})
 	t.Run("one matching pod", func(t *testing.T) {
-		t.Parallel()
 		k8s := fake.NewSimpleClientset((&v1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:        "test",

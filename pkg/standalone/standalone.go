@@ -110,7 +110,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		var err error
 		runtimeVersion, err = cli_ver.GetDaprVersion()
 		if err != nil {
-			return fmt.Errorf("cannot get the latest release version: '%s'. Try specifying --runtime-version=<desired_version>", err)
+			return fmt.Errorf("cannot get the latest release version: '%w'. Try specifying --runtime-version=<desired_version>", err)
 		}
 	}
 
@@ -589,6 +589,7 @@ func createSlimConfiguration(wg *sync.WaitGroup, errorChan chan<- error, _, _ st
 func makeDefaultComponentsDir() error {
 	// Make default components directory
 	componentsDir := DefaultComponentsDirPath()
+	//nolint
 	_, err := os.Stat(componentsDir)
 	if os.IsNotExist(err) {
 		errDir := os.MkdirAll(componentsDir, 0755)

@@ -168,7 +168,7 @@ func IsDaprListeningOnSocket(socket string, timeout time.Duration) error {
 
 		if time.Since(start).Seconds() >= timeout.Seconds() {
 			// Give up.
-			return err
+			return fmt.Errorf("error: %w", err)
 		}
 
 		time.Sleep(time.Second)

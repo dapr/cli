@@ -38,6 +38,7 @@ func (s *Standalone) Invoke(appID, method string, data []byte, verb string, path
 			if path != "" {
 				httpc.Transport = &http.Transport{
 					DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
+						//nolint
 						return net.Dial("unix", utils.GetSocket(path, appID, "http"))
 					},
 				}

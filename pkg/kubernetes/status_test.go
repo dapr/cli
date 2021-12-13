@@ -55,9 +55,7 @@ func newDaprControlPlanePod(name string, appName string, creationTime time.Time,
 }
 
 func TestStatus(t *testing.T) {
-	t.Parallel()
 	t.Run("empty status. dapr not init", func(t *testing.T) {
-		t.Parallel()
 		k8s := newTestSimpleK8s()
 		status, err := k8s.Status()
 		if err != nil {
@@ -67,7 +65,6 @@ func TestStatus(t *testing.T) {
 	})
 
 	t.Run("one status waiting", func(t *testing.T) {
-		t.Parallel()
 		k8s := newTestSimpleK8s(newDaprControlPlanePod(
 			"dapr-dashboard-58877dbc9d-n8qg2", "dapr-dashboard",
 			time.Now(),
@@ -90,7 +87,6 @@ func TestStatus(t *testing.T) {
 	})
 
 	t.Run("one status running", func(t *testing.T) {
-		t.Parallel()
 		testTime := time.Now()
 		k8s := newTestSimpleK8s(newDaprControlPlanePod(
 			"dapr-dashboard-58877dbc9d-n8qg2", "dapr-dashboard",
@@ -116,7 +112,6 @@ func TestStatus(t *testing.T) {
 	})
 
 	t.Run("one status terminated", func(t *testing.T) {
-		t.Parallel()
 		testTime := time.Now()
 
 		k8s := newTestSimpleK8s(newDaprControlPlanePod(
@@ -142,7 +137,6 @@ func TestStatus(t *testing.T) {
 	})
 
 	t.Run("one status pending", func(t *testing.T) {
-		t.Parallel()
 		testTime := time.Now()
 
 		pod := newDaprControlPlanePod(
@@ -172,7 +166,6 @@ func TestStatus(t *testing.T) {
 	})
 
 	t.Run("one status empty client", func(t *testing.T) {
-		t.Parallel()
 		k8s := &StatusClient{}
 		status, err := k8s.Status()
 		assert.NotNil(t, err, "status should raise an error")
@@ -182,7 +175,6 @@ func TestStatus(t *testing.T) {
 }
 
 func TestControlPlaneServices(t *testing.T) {
-	t.Parallel()
 	controlPlaneServices := []struct {
 		name    string
 		appName string

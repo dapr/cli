@@ -17,7 +17,6 @@ import (
 )
 
 func TestComponents(t *testing.T) {
-	t.Parallel()
 	now := meta_v1.Now()
 	formattedNow := now.Format("2006-01-02 15:04.05")
 	testCases := []struct {
@@ -228,9 +227,7 @@ func TestComponents(t *testing.T) {
 	}
 	//nolint
 	for _, tc := range testCases {
-		t.Parallel()
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
 			var buff bytes.Buffer
 			err := writeComponents(&buff,
 				func() (*v1alpha1.ComponentList, error) {

@@ -116,7 +116,7 @@ func GetLatestReleaseHelmChart(helmChartURL string) (string, error) {
 		var helmChartReleases helmChartItems
 		err := yaml.Unmarshal(body, &helmChartReleases)
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("error: %w", err)
 		}
 		if len(helmChartReleases.Entries.Dapr) == 0 {
 			return "", fmt.Errorf("no releases")

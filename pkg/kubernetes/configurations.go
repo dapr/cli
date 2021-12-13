@@ -6,6 +6,7 @@
 package kubernetes
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"strconv"
@@ -48,17 +49,17 @@ func PrintConfigurations(name, outputFormat string) error {
 				Items: []v1alpha1.Configuration{},
 			}
 		} else if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error: %w", err)
 		}
 
-		return list, err
+		return list, fmt.Errorf("error: %w", err)
 	}, name, outputFormat)
 }
 
 func writeConfigurations(writer io.Writer, getConfigFunc func() (*v1alpha1.ConfigurationList, error), name, outputFormat string) error {
 	confs, err := getConfigFunc()
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	filtered := []v1alpha1.Configuration{}
