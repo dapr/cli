@@ -47,6 +47,7 @@ var (
 	metricsPort        int
 	maxRequestBodySize int
 	unixDomainSocket   string
+	resiliencyFile     string
 )
 
 const (
@@ -108,6 +109,7 @@ var RunCmd = &cobra.Command{
 			MetricsPort:        metricsPort,
 			MaxRequestBodySize: maxRequestBodySize,
 			UnixDomainSocket:   unixDomainSocket,
+			ResiliencyFile:     resiliencyFile,
 		})
 		if err != nil {
 			print.FailureStatusEvent(os.Stderr, err.Error())
@@ -340,6 +342,7 @@ func init() {
 	RunCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	RunCmd.Flags().IntVarP(&maxRequestBodySize, "dapr-http-max-request-size", "", -1, "Max size of request body in MB")
 	RunCmd.Flags().StringVarP(&unixDomainSocket, "unix-domain-socket", "u", "", "Path to a unix domain socket dir. If specified, Dapr API servers will use Unix Domain Sockets")
+	RunCmd.Flags().StringVarP(&resiliencyFile, "resiliency", "", standalone.DefaultResiliencyConfigFilePath(), "Dapr resiliency configuration file")
 
 	RootCmd.AddCommand(RunCmd)
 }

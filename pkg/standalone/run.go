@@ -51,6 +51,7 @@ type RunConfig struct {
 	MetricsPort        int
 	MaxRequestBodySize int
 	UnixDomainSocket   string
+	ResiliencyFile     string
 }
 
 // RunOutput represents the run output.
@@ -63,7 +64,7 @@ type RunOutput struct {
 }
 
 func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort int, configFile, protocol string, enableProfiling bool,
-	profilePort int, logLevel string, maxConcurrency int, placementHostAddr string, componentsPath string, appSSL bool, metricsPort int, requestBodySize int, unixDomainSocket string) (*exec.Cmd, int, int, int, error) {
+	profilePort int, logLevel string, maxConcurrency int, placementHostAddr string, componentsPath string, appSSL bool, metricsPort int, requestBodySize int, unixDomainSocket string, resiliencyFile string) (*exec.Cmd, int, int, int, error) {
 	if daprHTTPPort < 0 {
 		port, err := freeport.GetFreePort()
 		if err != nil {
@@ -159,6 +160,10 @@ func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort in
 		args = append(args, "--unix-domain-socket", unixDomainSocket)
 	}
 
+	if resiliencyFile != "" {
+		args = append(args, "--resiliency", resiliencyFile)
+	}
+
 	cmd := exec.Command(daprCMD, args...)
 	return cmd, daprHTTPPort, daprGRPCPort, metricsPort, nil
 }
@@ -225,7 +230,8 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		return nil, err
 	}
 
-	daprCMD, daprHTTPPort, daprGRPCPort, metricsPort, err := getDaprCommand(appID, config.HTTPPort, config.GRPCPort, config.AppPort, config.ConfigFile, config.Protocol, config.EnableProfiling, config.ProfilePort, config.LogLevel, config.MaxConcurrency, config.PlacementHostAddr, config.ComponentsPath, config.AppSSL, config.MetricsPort, config.MaxRequestBodySize, config.UnixDomainSocket)
+	daprCMD, daprHTTPPort, daprGRPCPort, metricsPort, err := getDaprCommand(appID, config.HTTPPort, config.GRPCPort, config.AppPort, config.ConfigFile, config.Protocol, config.EnableProfiling, config.ProfilePort, config.LogLevel,
+		config.MaxConcurrency, config.PlacementHostAddr, config.ComponentsPath, config.AppSSL, config.MetricsPort, config.MaxRequestBodySize, config.UnixDomainSocket, config.ResiliencyFile)
 	if err != nil {
 		return nil, err
 	}

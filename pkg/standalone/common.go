@@ -20,10 +20,11 @@ import (
 )
 
 const (
-	defaultDaprDirName       = ".dapr"
-	defaultDaprBinDirName    = "bin"
-	defaultComponentsDirName = "components"
-	defaultConfigFileName    = "config.yaml"
+	defaultDaprDirName        = ".dapr"
+	defaultDaprBinDirName     = "bin"
+	defaultComponentsDirName  = "components"
+	defaultConfigFileName     = "config.yaml"
+	defaultResiliencyFileName = "resiliency.yaml"
 )
 
 func defaultDaprDirPath() string {
@@ -49,4 +50,8 @@ func DefaultComponentsDirPath() string {
 
 func DefaultConfigFilePath() string {
 	return path_filepath.Join(defaultDaprDirPath(), defaultConfigFileName)
+}
+
+func DefaultResiliencyConfigFilePath() string {
+	return path_filepath.Join(defaultDaprDirPath(), defaultResiliencyFileName)
 }

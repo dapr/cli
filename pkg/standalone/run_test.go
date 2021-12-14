@@ -93,6 +93,7 @@ func TestRun(t *testing.T) {
 		AppSSL:             true,
 		MetricsPort:        9001,
 		MaxRequestBodySize: -1,
+		ResiliencyFile:     "resiliency.yaml",
 	}
 
 	t.Run("run happy http", func(t *testing.T) {
@@ -116,6 +117,7 @@ func TestRun(t *testing.T) {
 		assertArgumentEqual(t, "components-path", DefaultComponentsDirPath(), output.DaprCMD.Args)
 		assertArgumentEqual(t, "app-ssl", "", output.DaprCMD.Args)
 		assertArgumentEqual(t, "metrics-port", "9001", output.DaprCMD.Args)
+		assertArgumentEqual(t, "resiliency", "resiliency.yaml", output.DaprCMD.Args)
 		if runtime.GOOS == "windows" {
 			assertArgumentEqual(t, "placement-host-address", "localhost:6050", output.DaprCMD.Args)
 		} else {
