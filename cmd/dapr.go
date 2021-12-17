@@ -35,7 +35,7 @@ var RootCmd = &cobra.Command{
    / __  / __ '/ __ \/ ___/
   / /_/ / /_/ / /_/ / /    
   \__,_/\__,_/ .___/_/     
-	      /_/            
+	    /_/            
 									   
 ===============================
 Distributed Application Runtime`,
