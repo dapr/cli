@@ -78,14 +78,17 @@ func (config *RunConfig) validateComponentPath() error {
 
 func (config *RunConfig) validatePlacementHostAddr() error {
 	placementHostAddr := config.PlacementHostAddr
+	if len(placementHostAddr) == 0 {
+		placementHostAddr = "localhost"
+	}
 	if indx := strings.Index(placementHostAddr, ":"); indx == -1 {
 		if runtime.GOOS == daprWindowsOS {
 			placementHostAddr = fmt.Sprintf("%s:6050", placementHostAddr)
 		} else {
 			placementHostAddr = fmt.Sprintf("%s:50005", placementHostAddr)
 		}
-		config.PlacementHostAddr = placementHostAddr
 	}
+	config.PlacementHostAddr = placementHostAddr
 	return nil
 }
 
