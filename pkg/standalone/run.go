@@ -67,6 +67,7 @@ func (config *RunConfig) validateComponentPath() error {
 	}
 	return nil
 }
+
 func (config *RunConfig) validatePlacementHostAddr() error {
 	placementHostAddr := config.PlacementHostAddr
 	if indx := strings.Index(placementHostAddr, ":"); indx == -1 {
@@ -79,6 +80,7 @@ func (config *RunConfig) validatePlacementHostAddr() error {
 	}
 	return nil
 }
+
 func (config *RunConfig) validatePort(portName string, portPtr *int, meta *DaprMeta) error {
 	if *portPtr <= 0 {
 		port, err := freeport.GetFreePort()
@@ -196,6 +198,7 @@ func newDaprMeta() (*DaprMeta, error) {
 	}
 	return &meta, nil
 }
+
 func (config *RunConfig) getArgs() []string {
 	args := []string{}
 	schema := reflect.ValueOf(*config)
