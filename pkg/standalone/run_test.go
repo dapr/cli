@@ -16,6 +16,7 @@ package standalone
 import (
 	"fmt"
 	"os"
+	"runtime"
 	"strings"
 	"testing"
 
