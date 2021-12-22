@@ -1,7 +1,15 @@
-// ------------------------------------------------------------
-// Copyright (c) Microsoft Corporation and Dapr Contributors.
-// Licensed under the MIT License.
-// ------------------------------------------------------------
+/*
+Copyright 2021 The Dapr Authors
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 package cmd
 
@@ -9,16 +17,18 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	"github.com/dapr/cli/pkg/metadata"
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/pkg/standalone"
 	"github.com/dapr/cli/utils"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var (
@@ -36,6 +46,7 @@ var (
 	appSSL             bool
 	metricsPort        int
 	maxRequestBodySize int
+	unixDomainSocket   string
 )
 
 const (
@@ -66,6 +77,19 @@ var RunCmd = &cobra.Command{
 			fmt.Println(print.WhiteBold("WARNING: no application command found."))
 		}
 
+		if unixDomainSocket != "" {
+			// TODO(@daixiang0): add Windows support
+			if runtime.GOOS == "windows" {
+				print.FailureStatusEvent(os.Stderr, "The unix-domain-socket option is not supported on Windows")
+				os.Exit(1)
+			} else {
+				// use unix domain socket means no port any more
+				print.WarningStatusEvent(os.Stdout, "Unix domain sockets are currently a preview feature")
+				port = 0
+				grpcPort = 0
+			}
+		}
+
 		output, err := standalone.Run(&standalone.RunConfig{
 			AppID:              appID,
 			AppPort:            appPort,
@@ -83,6 +107,7 @@ var RunCmd = &cobra.Command{
 			AppSSL:             appSSL,
 			MetricsPort:        metricsPort,
 			MaxRequestBodySize: maxRequestBodySize,
+			UnixDomainSocket:   unixDomainSocket,
 		})
 		if err != nil {
 			print.FailureStatusEvent(os.Stderr, err.Error())
@@ -96,13 +121,21 @@ var RunCmd = &cobra.Command{
 		appRunning := make(chan bool, 1)
 
 		go func() {
-			print.InfoStatusEvent(
-				os.Stdout,
-				fmt.Sprintf(
+			var startInfo string
+			if unixDomainSocket != "" {
+				startInfo = fmt.Sprintf(
+					"Starting Dapr with id %s. HTTP Socket: %v. gRPC Socket: %v.",
+					output.AppID,
+					utils.GetSocket(unixDomainSocket, output.AppID, "http"),
+					utils.GetSocket(unixDomainSocket, output.AppID, "grpc"))
+			} else {
+				startInfo = fmt.Sprintf(
 					"Starting Dapr with id %s. HTTP Port: %v. gRPC Port: %v",
 					output.AppID,
 					output.DaprHTTPPort,
-					output.DaprGRPCPort))
+					output.DaprGRPCPort)
+			}
+			print.InfoStatusEvent(os.Stdout, startInfo)
 
 			output.DaprCMD.Stdout = os.Stdout
 			output.DaprCMD.Stderr = os.Stderr
@@ -118,7 +151,6 @@ var RunCmd = &cobra.Command{
 
 				if daprdErr != nil {
 					print.FailureStatusEvent(os.Stderr, "The daprd process exited with error code: %s", daprdErr.Error())
-
 				} else {
 					print.SuccessStatusEvent(os.Stdout, "Exited Dapr successfully")
 				}
@@ -129,18 +161,38 @@ var RunCmd = &cobra.Command{
 				// If app does not listen to port, we can check for Dapr's sidecar health before starting the app.
 				// Otherwise, it creates a deadlock.
 				sidecarUp := true
-				print.InfoStatusEvent(os.Stdout, "Checking if Dapr sidecar is listening on HTTP port %v", output.DaprHTTPPort)
-				err = utils.IsDaprListeningOnPort(output.DaprHTTPPort, time.Duration(runtimeWaitTimeoutInSeconds)*time.Second)
-				if err != nil {
-					sidecarUp = false
-					print.WarningStatusEvent(os.Stdout, "Dapr sidecar is not listening on HTTP port: %s", err.Error())
-				}
 
-				print.InfoStatusEvent(os.Stdout, "Checking if Dapr sidecar is listening on GRPC port %v", output.DaprGRPCPort)
-				err = utils.IsDaprListeningOnPort(output.DaprGRPCPort, time.Duration(runtimeWaitTimeoutInSeconds)*time.Second)
-				if err != nil {
-					sidecarUp = false
-					print.WarningStatusEvent(os.Stdout, "Dapr sidecar is not listening on GRPC port: %s", err.Error())
+				if unixDomainSocket != "" {
+					httpSocket := utils.GetSocket(unixDomainSocket, output.AppID, "http")
+					print.InfoStatusEvent(os.Stdout, "Checking if Dapr sidecar is listening on HTTP socket %v", httpSocket)
+					err = utils.IsDaprListeningOnSocket(httpSocket, time.Duration(runtimeWaitTimeoutInSeconds)*time.Second)
+					if err != nil {
+						sidecarUp = false
+						print.WarningStatusEvent(os.Stdout, "Dapr sidecar is not listening on HTTP socket: %s", err.Error())
+					}
+
+					grpcSocket := utils.GetSocket(unixDomainSocket, output.AppID, "grpc")
+					print.InfoStatusEvent(os.Stdout, "Checking if Dapr sidecar is listening on GRPC socket %v", grpcSocket)
+					err = utils.IsDaprListeningOnSocket(grpcSocket, time.Duration(runtimeWaitTimeoutInSeconds)*time.Second)
+					if err != nil {
+						sidecarUp = false
+						print.WarningStatusEvent(os.Stdout, "Dapr sidecar is not listening on GRPC socket: %s", err.Error())
+					}
+
+				} else {
+					print.InfoStatusEvent(os.Stdout, "Checking if Dapr sidecar is listening on HTTP port %v", output.DaprHTTPPort)
+					err = utils.IsDaprListeningOnPort(output.DaprHTTPPort, time.Duration(runtimeWaitTimeoutInSeconds)*time.Second)
+					if err != nil {
+						sidecarUp = false
+						print.WarningStatusEvent(os.Stdout, "Dapr sidecar is not listening on HTTP port: %s", err.Error())
+					}
+
+					print.InfoStatusEvent(os.Stdout, "Checking if Dapr sidecar is listening on GRPC port %v", output.DaprGRPCPort)
+					err = utils.IsDaprListeningOnPort(output.DaprGRPCPort, time.Duration(runtimeWaitTimeoutInSeconds)*time.Second)
+					if err != nil {
+						sidecarUp = false
+						print.WarningStatusEvent(os.Stdout, "Dapr sidecar is not listening on GRPC port: %s", err.Error())
+					}
 				}
 
 				if sidecarUp {
@@ -223,7 +275,7 @@ var RunCmd = &cobra.Command{
 		}
 
 		// Metadata API is only available if app has started listening to port, so wait for app to start before calling metadata API.
-		err = metadata.Put(output.DaprHTTPPort, "cliPID", strconv.Itoa(os.Getpid()))
+		err = metadata.Put(output.DaprHTTPPort, "cliPID", strconv.Itoa(os.Getpid()), appID, unixDomainSocket)
 		if err != nil {
 			print.WarningStatusEvent(os.Stdout, "Could not update sidecar metadata for cliPID: %s", err.Error())
 		}
@@ -231,7 +283,7 @@ var RunCmd = &cobra.Command{
 		if output.AppCMD != nil {
 			appCommand := strings.Join(args, " ")
 			print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Updating metadata for app command: %s", appCommand))
-			err = metadata.Put(output.DaprHTTPPort, "appCommand", appCommand)
+			err = metadata.Put(output.DaprHTTPPort, "appCommand", appCommand, appID, unixDomainSocket)
 			if err != nil {
 				print.WarningStatusEvent(os.Stdout, "Could not update sidecar metadata for appCommand: %s", err.Error())
 			} else {
@@ -261,6 +313,12 @@ var RunCmd = &cobra.Command{
 				print.SuccessStatusEvent(os.Stdout, "Exited App successfully")
 			}
 		}
+
+		if unixDomainSocket != "" {
+			for _, s := range []string{"http", "grpc"} {
+				os.Remove(utils.GetSocket(unixDomainSocket, output.AppID, s))
+			}
+		}
 	},
 }
 
@@ -281,6 +339,7 @@ func init() {
 	RunCmd.Flags().IntVarP(&metricsPort, "metrics-port", "M", -1, "The port of metrics on dapr")
 	RunCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	RunCmd.Flags().IntVarP(&maxRequestBodySize, "dapr-http-max-request-size", "", -1, "Max size of request body in MB")
+	RunCmd.Flags().StringVarP(&unixDomainSocket, "unix-domain-socket", "u", "", "Path to a unix domain socket dir. If specified, Dapr API servers will use Unix Domain Sockets")
 
 	RootCmd.AddCommand(RunCmd)
 }
