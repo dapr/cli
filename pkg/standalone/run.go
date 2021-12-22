@@ -51,6 +51,7 @@ type RunConfig struct {
 	MetricsPort        int
 	MaxRequestBodySize int
 	UnixDomainSocket   string
+	AppGraceExit       bool
 }
 
 // RunOutput represents the run output.
@@ -60,6 +61,7 @@ type RunOutput struct {
 	DaprGRPCPort int
 	AppID        string
 	AppCMD       *exec.Cmd
+	AppGraceExit bool
 }
 
 func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort int, configFile, protocol string, enableProfiling bool,
@@ -260,5 +262,6 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		AppID:        appID,
 		DaprHTTPPort: daprHTTPPort,
 		DaprGRPCPort: daprGRPCPort,
+		AppGraceExit: config.AppGraceExit,
 	}, nil
 }
