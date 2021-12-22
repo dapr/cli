@@ -87,8 +87,8 @@ func (config *RunConfig) validatePlacementHostAddr() error {
 		} else {
 			placementHostAddr = fmt.Sprintf("%s:50005", placementHostAddr)
 		}
-		config.PlacementHostAddr = placementHostAddr
 	}
+	config.PlacementHostAddr = placementHostAddr
 	return nil
 }
 
