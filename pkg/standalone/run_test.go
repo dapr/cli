@@ -49,7 +49,7 @@ func assertArgumentNotEqual(t *testing.T, key string, expectedValue string, args
 func setupRun(t *testing.T) {
 	componentsDir := DefaultComponentsDirPath()
 	configFile := DefaultConfigFilePath()
-	err := os.MkdirAll(componentsDir, 0700)
+	err := os.MkdirAll(componentsDir, 0o700)
 	assert.Equal(t, nil, err, "Unable to setup components dir before running test")
 	file, err := os.Create(configFile)
 	file.Close()
@@ -200,5 +200,4 @@ func TestRun(t *testing.T) {
 		assertArgumentNotEqual(t, "grpc-port", "-1", output.DaprCMD.Args)
 		assertArgumentNotEqual(t, "metrics-port", "-1", output.DaprCMD.Args)
 	})
-
 }
