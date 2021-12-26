@@ -16,7 +16,6 @@ package kubernetes
 import (
 	"context"
 	"fmt"
-	"github.com/dapr/cli/pkg/api"
 	"net/url"
 	"strings"
 
@@ -160,7 +159,7 @@ func (a *AppInfo) Request(r *rest.Request, method string, data []byte, verb stri
 		Resource("pods").
 		SubResource("proxy").
 		SetHeader("Content-Type", "application/json").
-		Name(net.JoinSchemeNamePort("", a.PodName, a.HTTPPort))
+		Name(net.JoinSchemeNamePort("", a.PodName, a.AppPort))
 	if data != nil {
 		r = r.Body(data)
 	}
@@ -170,7 +169,7 @@ func (a *AppInfo) Request(r *rest.Request, method string, data []byte, verb stri
 		return nil, fmt.Errorf("error parse method %s: %w", method, err)
 	}
 
-	suffix := fmt.Sprintf("v%s/invoke/%s/method/%s", api.RuntimeAPIVersion, a.AppID, u.Path)
+	suffix := fmt.Sprintf("%s", u.Path)
 	r = r.Suffix(suffix)
 
 	for k, vs := range u.Query() {
