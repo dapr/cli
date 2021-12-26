@@ -22,6 +22,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/pkg/standalone"
 )
@@ -67,7 +68,6 @@ dapr invoke --unix-domain-socket --app-id target --method sample --verb GET
 		} else if invokeData != "" {
 			bytePayload = []byte(invokeData)
 		}
-		client := standalone.NewClient()
 
 		// TODO(@daixiang0): add Windows support
 		if invokeSocket != "" {
@@ -79,11 +79,22 @@ dapr invoke --unix-domain-socket --app-id target --method sample --verb GET
 			}
 		}
 
-		response, err := client.Invoke(invokeAppID, invokeAppMethod, bytePayload, invokeVerb, invokeSocket)
-		if err != nil {
-			err = fmt.Errorf("error invoking app %s: %s", invokeAppID, err)
-			print.FailureStatusEvent(os.Stderr, err.Error())
-			return
+		var response string
+		if kubernetesMode {
+			response, err = kubernetes.Invoke(invokeAppID, invokeAppMethod, bytePayload, invokeVerb)
+			if err != nil {
+				err = fmt.Errorf("error invoking app %s: %s", invokeAppID, err)
+				print.FailureStatusEvent(os.Stderr, err.Error())
+				return
+			}
+		} else {
+			client := standalone.NewClient()
+			response, err = client.Invoke(invokeAppID, invokeAppMethod, bytePayload, invokeVerb, invokeSocket)
+			if err != nil {
+				err = fmt.Errorf("error invoking app %s: %s", invokeAppID, err)
+				print.FailureStatusEvent(os.Stderr, err.Error())
+				return
+			}
 		}
 
 		if response != "" {
@@ -94,6 +105,7 @@ dapr invoke --unix-domain-socket --app-id target --method sample --verb GET
 }
 
 func init() {
+	InvokeCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Invoke a method on a Dapr application in a Kubernetes cluster")
 	InvokeCmd.Flags().StringVarP(&invokeAppID, "app-id", "a", "", "The application id to invoke")
 	InvokeCmd.Flags().StringVarP(&invokeAppMethod, "method", "m", "", "The method to invoke")
 	InvokeCmd.Flags().StringVarP(&invokeData, "data", "d", "", "The JSON serialized data string (optional)")
