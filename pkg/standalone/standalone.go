@@ -118,7 +118,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		var err error
 		runtimeVersion, err = cli_ver.GetDaprVersion()
 		if err != nil {
-			return fmt.Errorf("cannot get the latest release version: '%s'. Try specifying --runtime-version=<desired_version>", err)
+			return fmt.Errorf("cannot get the latest release version: '%w'. Try specifying --runtime-version=<desired_version>", err)
 		}
 	}
 

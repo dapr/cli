@@ -255,3 +255,5 @@ linters:
     - cyclop
     - forbidigo
     - nolintlint
+    - godot
+    - tagliatelle

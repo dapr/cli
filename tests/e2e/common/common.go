@@ -113,7 +113,7 @@ func EnsureUninstall(all bool) (string, error) {
 	command = append(command,
 		"-n", DaprTestNamespace,
 		"--log-as-json")
-
+	//nolint
 	return spawn.Command(daprPath, command...)
 }
 

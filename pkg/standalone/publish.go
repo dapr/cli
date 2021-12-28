@@ -58,6 +58,7 @@ func (s *Standalone) Publish(publishAppID, pubsubName, topic string, payload []b
 	if socket != "" {
 		httpc.Transport = &http.Transport{
 			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
+				//nolint
 				return net.Dial("unix", utils.GetSocket(socket, publishAppID, "http"))
 			},
 		}

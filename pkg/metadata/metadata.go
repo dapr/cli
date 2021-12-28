@@ -37,6 +37,7 @@ func Get(httpPort int, appID, socket string) (*api.Metadata, error) {
 	if socket != "" {
 		fileInfo, err := os.Stat(socket)
 		if err != nil {
+			//nolint
 			return nil, err
 		}
 
@@ -46,6 +47,7 @@ func Get(httpPort int, appID, socket string) (*api.Metadata, error) {
 
 		httpc.Transport = &http.Transport{
 			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
+				//nolint
 				return net.Dial("unix", socket)
 			},
 		}
@@ -68,6 +70,7 @@ func Put(httpPort int, key, value, appID, socket string) error {
 	if socket != "" {
 		client.HTTPClient.Transport = &http.Transport{
 			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
+				//nolint
 				return net.Dial("unix", utils.GetSocket(socket, appID, "http"))
 			},
 		}
