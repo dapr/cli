@@ -446,7 +446,8 @@ func getConfig() (*rest.Config, error) {
 
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
-		return nil, fmt.Errorf("error: %w", err)
+		//nolint
+		return nil, err
 	}
 	return config, nil
 }
@@ -455,7 +456,8 @@ func getConfig() (*rest.Config, error) {
 func getClient() (*k8s.Clientset, error) {
 	config, err := getConfig()
 	if err != nil {
-		return nil, fmt.Errorf("error: %w", err)
+		//nolint
+		return nil, err
 	}
 	//nolint
 	return k8s.NewForConfig(config)
@@ -490,8 +492,8 @@ func installTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 }
 
 func uninstallTest(all bool) func(t *testing.T) {
+	//nolint
 	return func(t *testing.T) {
-		t.Helper()
 		output, err := EnsureUninstall(all)
 		t.Log(output)
 		require.NoError(t, err, "uninstall failed")
@@ -523,8 +525,8 @@ func uninstallMTLSTest() func(t *testing.T) {
 }
 
 func componentsTestOnUninstall(all bool) func(t *testing.T) {
+	//nolint
 	return func(t *testing.T) {
-		t.Helper()
 		daprPath := getDaprPath()
 		// On Dapr uninstall CRDs are not removed, consequently the components will not be removed
 		// TODO Related to https://github.com/dapr/cli/issues/656
