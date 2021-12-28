@@ -1,7 +1,15 @@
-// ------------------------------------------------------------
-// Copyright (c) Microsoft Corporation and Dapr Contributors.
-// Licensed under the MIT License.
-// ------------------------------------------------------------
+/*
+Copyright 2021 The Dapr Authors
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 package kubernetes
 
@@ -11,6 +19,7 @@ import (
 	"os"
 	"strings"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/dapr/cli/pkg/age"
@@ -35,8 +44,19 @@ func PrintComponents(name, outputFormat string) error {
 		if err != nil {
 			return nil, fmt.Errorf("error: %w", err)
 		}
-		//nolint
-		return client.ComponentsV1alpha1().Components(meta_v1.NamespaceAll).List(meta_v1.ListOptions{})
+		list, err := client.ComponentsV1alpha1().Components(meta_v1.NamespaceAll).List(meta_v1.ListOptions{})
+		// This means that the Dapr Components CRD is not installed and
+		// therefore no component items exist.
+		if apierrors.IsNotFound(err) {
+			list = &v1alpha1.ComponentList{
+				Items: []v1alpha1.Component{},
+			}
+		} else if err != nil {
+      //nolint
+			return nil, err
+		}
+
+		return list, nil
 	}, name, outputFormat)
 }
 

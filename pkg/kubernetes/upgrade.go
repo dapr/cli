@@ -1,7 +1,15 @@
-// ------------------------------------------------------------
-// Copyright (c) Microsoft Corporation and Dapr Contributors.
-// Licensed under the MIT License.
-// ------------------------------------------------------------
+/*
+Copyright 2021 The Dapr Authors
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 package kubernetes
 
@@ -12,10 +20,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dapr/cli/pkg/print"
-	"github.com/dapr/cli/utils"
 	helm "helm.sh/helm/v3/pkg/action"
 	"k8s.io/helm/pkg/strvals"
+
+	"github.com/hashicorp/go-version"
+
+	"github.com/dapr/cli/pkg/print"
+	"github.com/dapr/cli/utils"
 )
 
 const operatorName = "dapr-operator"
@@ -24,6 +35,12 @@ var crds = []string{
 	"components",
 	"configuration",
 	"subscription",
+}
+
+var crdsFullResources = []string{
+	"components.dapr.io",
+	"configurations.dapr.io",
+	"subscriptions.dapr.io",
 }
 
 type UpgradeConfig struct {
@@ -101,9 +118,13 @@ func Upgrade(conf UpgradeConfig) error {
 		return fmt.Errorf("error: %w", err)
 	}
 
-	err = applyCRDs(fmt.Sprintf("v%s", conf.RuntimeVersion))
-	if err != nil {
-		return fmt.Errorf("error: %w", err)
+	if !isDowngrade(conf.RuntimeVersion, daprVersion) {
+		err = applyCRDs(fmt.Sprintf("v%s", conf.RuntimeVersion))
+		if err != nil {
+			return fmt.Errorf("error: %w", err)
+		}
+	} else {
+		print.InfoStatusEvent(os.Stdout, "Downgrade detected, skipping CRDs.")
 	}
 
 	listClient := helm.NewList(helmConf)
@@ -169,4 +190,11 @@ func upgradeChartValues(ca, issuerCert, issuerKey string, haMode, mtls bool, arg
 		}
 	}
 	return chartVals, nil
+}
+
+func isDowngrade(targetVersion, existingVersion string) bool {
+	target, _ := version.NewVersion(targetVersion)
+	existing, _ := version.NewVersion(existingVersion)
+
+	return target.LessThan(existing)
 }

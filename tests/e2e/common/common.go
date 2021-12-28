@@ -1,7 +1,15 @@
-// ------------------------------------------------------------
-// Copyright (c) Microsoft Corporation and Dapr Contributors.
-// Licensed under the MIT License.
-// ------------------------------------------------------------
+/*
+Copyright 2021 The Dapr Authors
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 package common
 
@@ -46,11 +54,13 @@ type VersionDetails struct {
 	ClusterRoles        []string
 	ClusterRoleBindings []string
 }
+
 type TestOptions struct {
 	HAEnabled             bool
 	MTLSEnabled           bool
 	ApplyComponentChanges bool
 	CheckResourceExists   map[Resource]bool
+	UninstallAll          bool
 }
 
 type TestCase struct {
@@ -65,7 +75,8 @@ func UpgradeTest(details VersionDetails) func(t *testing.T) {
 		args := []string{
 			"upgrade", "-k",
 			"--runtime-version", details.RuntimeVersion,
-			"--log-as-json"}
+			"--log-as-json",
+		}
 		output, err := spawn.Command(daprPath, args...)
 		t.Log(output)
 		require.NoError(t, err, "upgrade failed")
@@ -87,13 +98,23 @@ func UpgradeTest(details VersionDetails) func(t *testing.T) {
 	}
 }
 
-func EnsureUninstall() (string, error) {
+func EnsureUninstall(all bool) (string, error) {
 	daprPath := getDaprPath()
-	//nolint
-	return spawn.Command(daprPath,
-		"uninstall", "-k",
+
+	var _command [10]string
+  //nolint
+	command := append(_command[0:], "uninstall", "-k")
+
+	if all {
+    //nolint
+		command = append(command, "--all")
+	}
+  //nolint
+	command = append(command,
 		"-n", DaprTestNamespace,
 		"--log-as-json")
+
+	return spawn.Command(daprPath, command...)
 }
 
 func DeleteCRD(crds []string) func(*testing.T) {
@@ -129,11 +150,11 @@ func GetTestsOnInstall(details VersionDetails, opts TestOptions) []TestCase {
 
 func GetTestsOnUninstall(details VersionDetails, opts TestOptions) []TestCase {
 	return []TestCase{
-		{"uninstall " + details.RuntimeVersion, uninstallTest()}, // waits for pod deletion
+		{"uninstall " + details.RuntimeVersion, uninstallTest(opts.UninstallAll)}, // waits for pod deletion
 		{"crds exist on uninstall " + details.RuntimeVersion, CRDTest(details, opts)},
 		{"clusterroles not exist " + details.RuntimeVersion, ClusterRolesTest(details, opts)},
 		{"clusterrolebindings not exist " + details.RuntimeVersion, ClusterRoleBindingsTest(details, opts)},
-		{"check components exist on uninstall " + details.RuntimeVersion, componentsTestOnUninstall()},
+		{"check components exist on uninstall " + details.RuntimeVersion, componentsTestOnUninstall(opts.UninstallAll)},
 		{"check mtls error " + details.RuntimeVersion, uninstallMTLSTest()},
 		{"check status error " + details.RuntimeVersion, statusTestOnUninstall()},
 	}
@@ -202,7 +223,7 @@ func ComponentsTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 		t.Log("check applied component exists")
 		output, err := spawn.Command(daprPath, "components", "-k")
 		require.NoError(t, err, "expected no error on calling dapr components")
-		componentOutputCheck(t, output)
+		componentOutputCheck(t, output, false)
 	}
 }
 
@@ -232,6 +253,7 @@ func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t
 		}
 
 		lines := strings.Split(output, "\n")[1:] // remove header of status
+		t.Logf("dapr status -k infos: \n%s\n", lines)
 		for _, line := range lines {
 			cols := strings.Fields(strings.TrimSpace(line))
 			if len(cols) > 6 { // atleast 6 fields are verified from status (Age and created time are not)
@@ -392,6 +414,7 @@ func (v VersionDetails) constructFoundMap(res Resource) map[string]bool {
 	}
 	return foundMap
 }
+
 func getDaprPath() string {
 	distDir := fmt.Sprintf("%s_%s", runtime.GOOS, runtime.GOARCH)
 
@@ -447,7 +470,8 @@ func installTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 			"--wait",
 			"-n", DaprTestNamespace,
 			"--runtime-version", details.RuntimeVersion,
-			"--log-as-json"}
+			"--log-as-json",
+		}
 		if opts.HAEnabled {
 			args = append(args, "--enable-ha")
 		}
@@ -465,10 +489,10 @@ func installTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 	}
 }
 
-func uninstallTest() func(t *testing.T) {
+func uninstallTest(all bool) func(t *testing.T) {
 	return func(t *testing.T) {
-		t.Helper()
-		output, err := EnsureUninstall()
+    t.Helper()
+		output, err := EnsureUninstall(all)
 		t.Log(output)
 		require.NoError(t, err, "uninstall failed")
 		// wait for pods to be deleted completely
@@ -498,7 +522,7 @@ func uninstallMTLSTest() func(t *testing.T) {
 	}
 }
 
-func componentsTestOnUninstall() func(t *testing.T) {
+func componentsTestOnUninstall(all bool) func(t *testing.T) {
 	return func(t *testing.T) {
 		t.Helper()
 		daprPath := getDaprPath()
@@ -507,7 +531,12 @@ func componentsTestOnUninstall() func(t *testing.T) {
 		// For now the components remain
 		output, err := spawn.Command(daprPath, "components", "-k")
 		require.NoError(t, err, "expected no error on calling dapr components")
-		componentOutputCheck(t, output)
+		componentOutputCheck(t, output, all)
+
+		// If --all, then the below does not need to run.
+		if all {
+			return
+		}
 
 		// Manually remove components and verify output
 		output, err = spawn.Command("kubectl", "delete", "-f", "../testdata/statestore.yaml")
@@ -533,13 +562,20 @@ func statusTestOnUninstall() func(t *testing.T) {
 	}
 }
 
-func componentOutputCheck(t *testing.T, output string) {
-	t.Helper()
+func componentOutputCheck(t *testing.T, output string, all bool) {
+  t.Helper()
 	lines := strings.Split(output, "\n")[1:] // remove header
 	// for fresh cluster only one component yaml has been applied
 	fields := strings.Fields(lines[0])
+
+	if all {
+		assert.Equal(t, len(fields), 0, "expected at 0 components output")
+
+		return
+	}
+
 	// Fields splits on space, so Created time field might be split again
-	assert.GreaterOrEqual(t, len(fields), 6, "expected at least 6 fields in components outptu")
+	assert.GreaterOrEqual(t, len(fields), 6, "expected at least 6 fields in components output")
 	assert.Equal(t, "statestore", fields[0], "expected name to match")
 	assert.Equal(t, "state.redis", fields[1], "expected type to match")
 	assert.Equal(t, "v1", fields[2], "expected version to match")

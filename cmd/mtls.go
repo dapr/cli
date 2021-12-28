@@ -1,7 +1,15 @@
-// ------------------------------------------------------------
-// Copyright (c) Microsoft Corporation and Dapr Contributors.
-// Licensed under the MIT License.
-// ------------------------------------------------------------
+/*
+Copyright 2021 The Dapr Authors
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 package cmd
 
@@ -11,9 +19,10 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/spf13/cobra"
+
 	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/pkg/print"
-	"github.com/spf13/cobra"
 )
 
 var exportPath string
@@ -28,7 +37,7 @@ dapr mtls -k
 	Run: func(cmd *cobra.Command, args []string) {
 		enabled, err := kubernetes.IsMTLSEnabled()
 		if err != nil {
-			print.FailureStatusEvent(os.Stdout, fmt.Sprintf("error checking mTLS: %s", err))
+			print.FailureStatusEvent(os.Stderr, fmt.Sprintf("error checking mTLS: %s", err))
 			os.Exit(1)
 		}
 
@@ -50,7 +59,7 @@ dapr mtls export -o ./certs
 	Run: func(cmd *cobra.Command, args []string) {
 		err := kubernetes.ExportTrustChain(exportPath)
 		if err != nil {
-			print.FailureStatusEvent(os.Stdout, fmt.Sprintf("error exporting trust chain certs: %s", err))
+			print.FailureStatusEvent(os.Stderr, fmt.Sprintf("error exporting trust chain certs: %s", err))
 			return
 		}
 
@@ -69,7 +78,7 @@ dapr mtls expiry
 	Run: func(cmd *cobra.Command, args []string) {
 		expiry, err := kubernetes.Expiry()
 		if err != nil {
-			print.FailureStatusEvent(os.Stdout, fmt.Sprintf("error getting root cert expiry: %s", err))
+			print.FailureStatusEvent(os.Stderr, fmt.Sprintf("error getting root cert expiry: %s", err))
 			return
 		}
 

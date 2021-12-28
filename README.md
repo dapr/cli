@@ -10,9 +10,9 @@ The Dapr CLI allows you to setup Dapr on your local dev machine or on a Kubernet
 
 ### Prerequisites
 
-On default, during initialization the Dapr CLI will install the Dapr binaries as well as setup a developer environment to help you get started easily with Dapr. This environment uses Docker containers, therefore Docker needs to be installed. If you prefer to run Dapr without this environment and no dependency on Docker, after installation of the CLI make sure follow the instructions to initialize Dapr using [slim init](#slim-init).
+On default, during initialization the Dapr CLI will install the Dapr binaries as well as setup a developer environment to help you get started easily with Dapr. This environment uses Docker containers, therefore Docker needs to be installed. If you prefer to run Dapr without this environment and no dependency on Docker, after installation of the CLI make sure to follow the instructions to initialize Dapr using [slim init](#slim-init).
 
-Note, if you are a new user, it is strongly recommended to intall Docker and use the regular init command.
+Note, if you are a new user, it is strongly recommended to install Docker and use the regular init command.
 
 * Install [Docker](https://docs.docker.com/install/)
 
@@ -200,7 +200,7 @@ $ dapr init -k --set global.tag=1.0.0 --set dapr_operator.logLevel=error
 $ dapr init -k -n my-namespace
 ```
 
-#### Installing with a highly avaialable control plane config
+#### Installing with a highly available control plane config
 
 ```
 $ dapr init -k --enable-ha=true
@@ -231,6 +231,14 @@ The default timeout is 300s/5m and can be overridden using the `--timeout` flag.
 ```
 $ dapr uninstall -k --timeout 600
 ```
+
+To remove all Dapr Custom Resource Definitions:
+
+```
+$ dapr uninstall -k --all
+```
+
+*Warning: this will remove any components, subscriptions or configurations that are applied in the cluster at the time of deletion.*
 
 ### Upgrade Dapr on Kubernetes
 
@@ -513,6 +521,22 @@ To generate shell completion scripts:
 
 ```
 $ dapr completion
+```
+
+### Enable Unix domain socket
+
+In order to enable Unix domain socket to connect Dapr API server, use the `--unix-domain-socket` flag:
+
+```
+$ dapr run --app-id nodeapp --unix-domain-socket node app.js
+```
+
+Dapr will automatically create a Unix domain socket to connect Dapr API server.
+
+If you want to invoke your app, also use this flag:
+
+```
+$ dapr invoke --app-id nodeapp --unix-domain-socket --method mymethod
 ```
 
 For more details, please run the command and check the examples to apply to your shell.

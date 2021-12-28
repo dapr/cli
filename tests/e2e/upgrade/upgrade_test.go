@@ -1,9 +1,18 @@
+//go:build e2e
 // +build e2e
 
-// ------------------------------------------------------------
-// Copyright (c) Microsoft Corporation and Dapr Contributors.
-// Licensed under the MIT License.
-// ------------------------------------------------------------
+/*
+Copyright 2021 The Dapr Authors
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 package upgrade
 
@@ -19,90 +28,57 @@ type upgradePath struct {
 	next     common.VersionDetails
 }
 
-var (
-	supportedUpgradePaths = []upgradePath{
-		{
-			previous: common.VersionDetails{
-				RuntimeVersion:      "1.1.0",
-				DashboardVersion:    "0.6.0",
-				ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
-				ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
-				CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
-			},
-			next: common.VersionDetails{
-				RuntimeVersion:      "1.1.1",
-				DashboardVersion:    "0.6.0",
-				ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
-				ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
-				CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
-			},
+var supportedUpgradePaths = []upgradePath{
+	{
+		previous: common.VersionDetails{
+			RuntimeVersion:      "1.3.1",
+			DashboardVersion:    "0.7.0",
+			ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+			ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
 		},
-		{
-			previous: common.VersionDetails{
-				RuntimeVersion:      "1.1.1",
-				DashboardVersion:    "0.6.0",
-				ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
-				ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
-				CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
-			},
-			next: common.VersionDetails{
-				RuntimeVersion:      "1.1.2",
-				DashboardVersion:    "0.6.0",
-				ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
-				ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
-				CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
-			},
+		next: common.VersionDetails{
+			RuntimeVersion:      "1.4.0",
+			DashboardVersion:    "0.8.0",
+			ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+			ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
 		},
-		{
-			previous: common.VersionDetails{
-				RuntimeVersion:      "1.1.2",
-				DashboardVersion:    "0.6.0",
-				ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
-				ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
-				CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
-			},
-			next: common.VersionDetails{
-				RuntimeVersion:      "1.2.0",
-				DashboardVersion:    "0.6.0",
-				ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
-				ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
-				CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
-			},
+	},
+	{
+		previous: common.VersionDetails{
+			RuntimeVersion:      "1.4.4",
+			DashboardVersion:    "0.8.0",
+			ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+			ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
 		},
-		{
-			previous: common.VersionDetails{
-				RuntimeVersion:      "1.1.0",
-				DashboardVersion:    "0.6.0",
-				ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
-				ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
-				CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
-			},
-			next: common.VersionDetails{
-				RuntimeVersion:      "1.2.0",
-				DashboardVersion:    "0.6.0",
-				ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
-				ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
-				CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
-			},
+		next: common.VersionDetails{
+			RuntimeVersion:      "1.5.1",
+			DashboardVersion:    "0.9.0",
+			ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+			ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
 		},
-		{
-			previous: common.VersionDetails{
-				RuntimeVersion:      "1.1.1",
-				DashboardVersion:    "0.6.0",
-				ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
-				ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
-				CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
-			},
-			next: common.VersionDetails{
-				RuntimeVersion:      "1.2.0",
-				DashboardVersion:    "0.6.0",
-				ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
-				ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
-				CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
-			},
+	},
+	// test downgrade
+	{
+		previous: common.VersionDetails{
+			RuntimeVersion:      "1.5.1",
+			DashboardVersion:    "0.9.0",
+			ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+			ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
 		},
-	}
-)
+		next: common.VersionDetails{
+			RuntimeVersion:      "1.4.4",
+			DashboardVersion:    "0.8.0",
+			ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+			ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
+		},
+	},
+}
 
 func getTestsOnUpgrade(p upgradePath, installOpts, upgradeOpts common.TestOptions) []common.TestCase {
 	tests := []common.TestCase{}
@@ -143,7 +119,7 @@ func getTestsOnUpgrade(p upgradePath, installOpts, upgradeOpts common.TestOption
 
 func TestUpgradePathNonHAModeMTLSDisabled(t *testing.T) {
 	// Ensure a clean environment
-	common.EnsureUninstall() // does not wait for pod deletion
+	common.EnsureUninstall(false) // does not wait for pod deletion
 	for _, p := range supportedUpgradePaths {
 		t.Run(fmt.Sprintf("setup v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
 			t.Run("delete CRDs "+p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs))
@@ -186,7 +162,7 @@ func TestUpgradePathNonHAModeMTLSDisabled(t *testing.T) {
 
 func TestUpgradePathNonHAModeMTLSEnabled(t *testing.T) {
 	// Ensure a clean environment
-	common.EnsureUninstall() // does not wait for pod deletion
+	common.EnsureUninstall(false) // does not wait for pod deletion
 	for _, p := range supportedUpgradePaths {
 		t.Run(fmt.Sprintf("setup v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
 			t.Run("delete CRDs "+p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs))
@@ -229,7 +205,7 @@ func TestUpgradePathNonHAModeMTLSEnabled(t *testing.T) {
 
 func TestUpgradePathHAModeMTLSDisabled(t *testing.T) {
 	// Ensure a clean environment
-	common.EnsureUninstall() // does not wait for pod deletion
+	common.EnsureUninstall(false) // does not wait for pod deletion
 	for _, p := range supportedUpgradePaths {
 		t.Run(fmt.Sprintf("setup v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
 			t.Run("delete CRDs "+p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs))
@@ -272,7 +248,7 @@ func TestUpgradePathHAModeMTLSDisabled(t *testing.T) {
 
 func TestUpgradePathHAModeMTLSEnabled(t *testing.T) {
 	// Ensure a clean environment
-	common.EnsureUninstall() // does not wait for pod deletion
+	common.EnsureUninstall(false) // does not wait for pod deletion
 	for _, p := range supportedUpgradePaths {
 		t.Run(fmt.Sprintf("setup v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
 			t.Run("delete CRDs "+p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs))

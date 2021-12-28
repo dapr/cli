@@ -1,7 +1,15 @@
-// ------------------------------------------------------------
-// Copyright (c) Microsoft Corporation and Dapr Contributors.
-// Licensed under the MIT License.
-// ------------------------------------------------------------
+/*
+Copyright 2021 The Dapr Authors
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 package cmd
 
@@ -9,11 +17,12 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+
 	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/pkg/standalone"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var (
@@ -73,7 +82,7 @@ dapr init -s
 			}
 			err := kubernetes.Init(config)
 			if err != nil {
-				print.FailureStatusEvent(os.Stdout, err.Error())
+				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)
 			}
 			print.SuccessStatusEvent(os.Stdout, fmt.Sprintf("Success! Dapr has been installed to namespace %s. To verify, run `dapr status -k' in your terminal. To get started, go here: https://aka.ms/dapr-getting-started", config.Namespace))
@@ -84,7 +93,7 @@ dapr init -s
 			}
 			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode)
 			if err != nil {
-				print.FailureStatusEvent(os.Stdout, err.Error())
+				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)
 			}
 			print.SuccessStatusEvent(os.Stdout, "Success! Dapr is up and running. To get started, go here: https://aka.ms/dapr-getting-started")
@@ -93,11 +102,17 @@ dapr init -s
 }
 
 func init() {
+	defaultRuntimeVersion := "latest"
+	viper.BindEnv("runtime_version_override", "DAPR_RUNTIME_VERSION")
+	runtimeVersionEnv := viper.GetString("runtime_version_override")
+	if runtimeVersionEnv != "" {
+		defaultRuntimeVersion = runtimeVersionEnv
+	}
 	InitCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Deploy Dapr to a Kubernetes cluster")
 	InitCmd.Flags().BoolVarP(&wait, "wait", "", false, "Wait for Kubernetes initialization to complete")
 	InitCmd.Flags().UintVarP(&timeout, "timeout", "", 300, "The wait timeout for the Kubernetes installation")
 	InitCmd.Flags().BoolVarP(&slimMode, "slim", "s", false, "Exclude placement service, Redis and Zipkin containers from self-hosted installation")
-	InitCmd.Flags().StringVarP(&runtimeVersion, "runtime-version", "", "latest", "The version of the Dapr runtime to install, for example: 1.0.0")
+	InitCmd.Flags().StringVarP(&runtimeVersion, "runtime-version", "", defaultRuntimeVersion, "The version of the Dapr runtime to install, for example: 1.0.0")
 	InitCmd.Flags().StringVarP(&dashboardVersion, "dashboard-version", "", "latest", "The version of the Dapr dashboard to install, for example: 1.0.0")
 	InitCmd.Flags().StringVarP(&initNamespace, "namespace", "n", "dapr-system", "The Kubernetes namespace to install Dapr in")
 	InitCmd.Flags().BoolVarP(&enableMTLS, "enable-mtls", "", true, "Enable mTLS in your cluster")

@@ -1,7 +1,15 @@
-// ------------------------------------------------------------
-// Copyright (c) Microsoft Corporation and Dapr Contributors.
-// Licensed under the MIT License.
-// ------------------------------------------------------------
+/*
+Copyright 2021 The Dapr Authors
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 package cmd
 
@@ -10,11 +18,13 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/pkg/browser"
+	"github.com/spf13/cobra"
+
 	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/pkg/standalone"
-	"github.com/pkg/browser"
-	"github.com/spf13/cobra"
+	"github.com/dapr/cli/utils"
 )
 
 const (
@@ -39,6 +49,7 @@ const (
 
 var (
 	dashboardNamespace  string
+	dashboardHost       string
 	dashboardLocalPort  int
 	dashboardVersionCmd bool
 )
@@ -56,6 +67,9 @@ dapr dashboard -p 9999
 # Port forward to dashboard in Kubernetes 
 dapr dashboard -k 
 
+# Port forward to dashboard in Kubernetes on all addresses in a specified port
+dapr dashboard -k -p 9999 -a 0.0.0.0
+
 # Port forward to dashboard in Kubernetes using a port
 dapr dashboard -k -p 9999
 `,
@@ -65,15 +79,20 @@ dapr dashboard -k -p 9999
 			os.Exit(0)
 		}
 
+		if !utils.IsAddressLegal(dashboardHost) {
+			print.FailureStatusEvent(os.Stdout, "Invalid address: %s", dashboardHost)
+			os.Exit(1)
+		}
+
 		if dashboardLocalPort <= 0 {
-			print.FailureStatusEvent(os.Stdout, "Invalid port: %v", dashboardLocalPort)
+			print.FailureStatusEvent(os.Stderr, "Invalid port: %v", dashboardLocalPort)
 			os.Exit(1)
 		}
 
 		if kubernetesMode {
 			config, client, err := kubernetes.GetKubeConfigClient()
 			if err != nil {
-				print.FailureStatusEvent(os.Stdout, "Failed to initialize kubernetes client: %s", err.Error())
+				print.FailureStatusEvent(os.Stderr, "Failed to initialize kubernetes client: %s", err.Error())
 				os.Exit(1)
 			}
 
@@ -105,7 +124,7 @@ dapr dashboard -k -p 9999
 				if ok {
 					print.InfoStatusEvent(os.Stdout, "Dapr dashboard found in namespace: %s. Run dapr dashboard -k -n %s to use this namespace.", nspace, nspace)
 				} else {
-					print.FailureStatusEvent(os.Stdout, "Failed to find Dapr dashboard in cluster. Check status of dapr dashboard in the cluster.")
+					print.FailureStatusEvent(os.Stderr, "Failed to find Dapr dashboard in cluster. Check status of dapr dashboard in the cluster.")
 				}
 				os.Exit(1)
 			}
@@ -119,19 +138,19 @@ dapr dashboard -k -p 9999
 				config,
 				foundNamespace,
 				dashboardSvc,
-				defaultHost,
+				dashboardHost,
 				dashboardLocalPort,
 				remotePort,
 				false,
 			)
 			if err != nil {
-				print.FailureStatusEvent(os.Stdout, "%s\n", err)
+				print.FailureStatusEvent(os.Stderr, "%s\n", err)
 				os.Exit(1)
 			}
 
 			// initialize port forwarding
 			if err = portForward.Init(); err != nil {
-				print.FailureStatusEvent(os.Stdout, "Error in port forwarding: %s\nCheck for `dapr dashboard` running in other terminal sessions, or use the `--port` flag to use a different port.\n", err)
+				print.FailureStatusEvent(os.Stderr, "Error in port forwarding: %s\nCheck for `dapr dashboard` running in other terminal sessions, or use the `--port` flag to use a different port.\n", err)
 				os.Exit(1)
 			}
 
@@ -142,15 +161,15 @@ dapr dashboard -k -p 9999
 			}()
 
 			// url for dashboard after port forwarding
-			var webURL string = fmt.Sprintf("http://%s:%d", defaultHost, dashboardLocalPort)
+			var webURL string = fmt.Sprintf("http://%s:%d", dashboardHost, dashboardLocalPort)
 
 			print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Dapr dashboard found in namespace:\t%s", foundNamespace))
 			print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Dapr dashboard available at:\t%s\n", webURL))
 
 			err = browser.OpenURL(webURL)
 			if err != nil {
-				print.FailureStatusEvent(os.Stdout, "Failed to start Dapr dashboard in browser automatically")
-				print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Visit %s in your browser to view the dashboard", webURL))
+				print.FailureStatusEvent(os.Stderr, "Failed to start Dapr dashboard in browser automatically")
+				print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Visit %s in your browser to view the dashboard", webURL))
 			}
 
 			<-portForward.GetStop()
@@ -158,7 +177,7 @@ dapr dashboard -k -p 9999
 			// Standalone mode
 			err := standalone.NewDashboardCmd(dashboardLocalPort).Run()
 			if err != nil {
-				print.FailureStatusEvent(os.Stdout, "Dapr dashboard not found. Is Dapr installed?")
+				print.FailureStatusEvent(os.Stderr, "Dapr dashboard not found. Is Dapr installed?")
 			}
 		}
 	},
@@ -167,6 +186,7 @@ dapr dashboard -k -p 9999
 func init() {
 	DashboardCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Opens Dapr dashboard in local browser via local proxy to Kubernetes cluster")
 	DashboardCmd.Flags().BoolVarP(&dashboardVersionCmd, "version", "v", false, "Print the version for Dapr dashboard")
+	DashboardCmd.Flags().StringVarP(&dashboardHost, "address", "a", defaultHost, "Address to listen on. Only accepts IP address or localhost as a value")
 	DashboardCmd.Flags().IntVarP(&dashboardLocalPort, "port", "p", defaultLocalPort, "The local port on which to serve Dapr dashboard")
 	DashboardCmd.Flags().StringVarP(&dashboardNamespace, "namespace", "n", daprSystemNamespace, "The namespace where Dapr dashboard is running")
 	DashboardCmd.Flags().BoolP("help", "h", false, "Print this help message")
