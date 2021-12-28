@@ -240,3 +240,11 @@ linters:
     - gci 
     - noctx
     - gofumpt
+    - exhaustivestruct
+    - gomoddirectives
+    - paralleltest
+    - tparallel
+    - wastedassign
+    - cyclop
+    - forbidigo
+    - nolintlint

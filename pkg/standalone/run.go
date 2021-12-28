@@ -56,7 +56,7 @@ func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort in
 	if daprHTTPPort < 0 {
 		port, err := freeport.GetFreePort()
 		if err != nil {
-			return nil, -1, -1, -1, err
+			return nil, -1, -1, -1, fmt.Errorf("error: %w", err)
 		}
 
 		daprHTTPPort = port
@@ -65,7 +65,7 @@ func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort in
 	if daprGRPCPort < 0 {
 		grpcPort, err := freeport.GetFreePort()
 		if err != nil {
-			return nil, -1, -1, -1, err
+			return nil, -1, -1, -1, fmt.Errorf("error: %w", err)
 		}
 
 		daprGRPCPort = grpcPort
@@ -75,7 +75,7 @@ func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort in
 		var err error
 		metricsPort, err = freeport.GetFreePort()
 		if err != nil {
-			return nil, -1, -1, -1, err
+			return nil, -1, -1, -1, fmt.Errorf("error: %w", err)
 		}
 	}
 
@@ -129,7 +129,7 @@ func getDaprCommand(appID string, daprHTTPPort int, daprGRPCPort int, appPort in
 		if profilePort == -1 {
 			pp, err := freeport.GetFreePort()
 			if err != nil {
-				return nil, -1, -1, -1, err
+				return nil, -1, -1, -1, fmt.Errorf("error: %w", err)
 			}
 			profilePort = pp
 		}
@@ -190,12 +190,12 @@ func Run(config *RunConfig) (*RunOutput, error) {
 
 	_, err := os.Stat(config.ComponentsPath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error: %w", err)
 	}
 
 	dapr, err := List()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error: %w", err)
 	}
 
 	for _, a := range dapr {
@@ -207,12 +207,12 @@ func Run(config *RunConfig) (*RunOutput, error) {
 	componentsLoader := components.NewStandaloneComponents(modes.StandaloneConfig{ComponentsPath: config.ComponentsPath})
 	_, err = componentsLoader.LoadComponents()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error: %w", err)
 	}
 
 	daprCMD, daprHTTPPort, daprGRPCPort, metricsPort, err := getDaprCommand(appID, config.HTTPPort, config.GRPCPort, config.AppPort, config.ConfigFile, config.Protocol, config.EnableProfiling, config.ProfilePort, config.LogLevel, config.MaxConcurrency, config.PlacementHostAddr, config.ComponentsPath, config.AppSSL, config.MetricsPort, config.MaxRequestBodySize)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error: %w", err)
 	}
 
 	for _, a := range dapr {
@@ -235,7 +235,7 @@ func Run(config *RunConfig) (*RunOutput, error) {
 
 		appCMD, err = getAppCommand(daprHTTPPort, daprGRPCPort, metricsPort, cmd, runArgs)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error: %w", err)
 		}
 	}
 

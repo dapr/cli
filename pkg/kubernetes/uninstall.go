@@ -6,6 +6,7 @@
 package kubernetes
 
 import (
+	"fmt"
 	"time"
 
 	helm "helm.sh/helm/v3/pkg/action"
@@ -15,11 +16,11 @@ import (
 func Uninstall(namespace string, timeout uint) error {
 	config, err := helmConfig(namespace)
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	uninstallClient := helm.NewUninstall(config)
 	uninstallClient.Timeout = time.Duration(timeout) * time.Second
 	_, err = uninstallClient.Run(daprReleaseName)
-	return err
+	return fmt.Errorf("error: %w", err)
 }

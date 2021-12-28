@@ -1,3 +1,4 @@
+//go:build !windows
 // +build !windows
 
 // ------------------------------------------------------------
@@ -17,7 +18,7 @@ import (
 func Stop(appID string) error {
 	apps, err := List()
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	for _, a := range apps {
@@ -26,7 +27,7 @@ func Stop(appID string) error {
 
 			_, err := utils.RunCmdAndWait("kill", pid)
 
-			return err
+			return fmt.Errorf("error: %w", err)
 		}
 	}
 

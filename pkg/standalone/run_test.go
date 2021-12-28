@@ -15,6 +15,7 @@ import (
 )
 
 func assertArgumentEqual(t *testing.T, key string, expectedValue string, args []string) {
+	t.Helper()
 	var value string
 	for index, arg := range args {
 		if arg == "--"+key {
@@ -31,6 +32,7 @@ func assertArgumentEqual(t *testing.T, key string, expectedValue string, args []
 }
 
 func assertArgumentNotEqual(t *testing.T, key string, expectedValue string, args []string) {
+	t.Helper()
 	var value string
 	for index, arg := range args {
 		if arg == "--"+key {
@@ -47,6 +49,7 @@ func assertArgumentNotEqual(t *testing.T, key string, expectedValue string, args
 }
 
 func setupRun(t *testing.T) {
+	t.Helper()
 	componentsDir := DefaultComponentsDirPath()
 	configFile := DefaultConfigFilePath()
 	err := os.MkdirAll(componentsDir, 0700)
@@ -57,6 +60,7 @@ func setupRun(t *testing.T) {
 }
 
 func tearDownRun(t *testing.T) {
+	t.Helper()
 	err := os.RemoveAll(DefaultComponentsDirPath())
 	assert.Equal(t, nil, err, "Unable to delete default components dir after running test")
 	err = os.Remove(DefaultConfigFilePath())

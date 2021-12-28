@@ -60,6 +60,7 @@ type TestCase struct {
 
 func UpgradeTest(details VersionDetails) func(t *testing.T) {
 	return func(t *testing.T) {
+		t.Helper()
 		daprPath := getDaprPath()
 		args := []string{
 			"upgrade", "-k",
@@ -88,7 +89,7 @@ func UpgradeTest(details VersionDetails) func(t *testing.T) {
 
 func EnsureUninstall() (string, error) {
 	daprPath := getDaprPath()
-
+	//nolint
 	return spawn.Command(daprPath,
 		"uninstall", "-k",
 		"-n", DaprTestNamespace,
@@ -97,6 +98,7 @@ func EnsureUninstall() (string, error) {
 
 func DeleteCRD(crds []string) func(*testing.T) {
 	return func(t *testing.T) {
+		t.Helper()
 		for _, crd := range crds {
 			output, err := spawn.Command("kubectl", "delete", "crd", crd)
 			if err != nil {
@@ -139,6 +141,7 @@ func GetTestsOnUninstall(details VersionDetails, opts TestOptions) []TestCase {
 
 func MTLSTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
+		t.Helper()
 		daprPath := getDaprPath()
 		output, err := spawn.Command(daprPath, "mtls", "-k")
 		require.NoError(t, err, "expected no error on querying for mtls")
@@ -185,6 +188,7 @@ func MTLSTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 
 func ComponentsTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
+		t.Helper()
 		daprPath := getDaprPath()
 		// if dapr is installed
 		if opts.ApplyComponentChanges {
@@ -204,6 +208,7 @@ func ComponentsTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 
 func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
+		t.Helper()
 		daprPath := getDaprPath()
 		output, err := spawn.Command(daprPath, "status", "-k")
 		require.NoError(t, err, "status check failed")
@@ -246,6 +251,7 @@ func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t
 
 func ClusterRoleBindingsTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
+		t.Helper()
 		foundMap := details.constructFoundMap(ClusterRoleBindings)
 		wanted, ok := opts.CheckResourceExists[ClusterRoleBindings]
 		if !ok {
@@ -287,6 +293,7 @@ func ClusterRoleBindingsTest(details VersionDetails, opts TestOptions) func(t *t
 
 func ClusterRolesTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
+		t.Helper()
 		foundMap := details.constructFoundMap(ClusterRoles)
 		wanted, ok := opts.CheckResourceExists[ClusterRoles]
 		if !ok {
@@ -324,6 +331,7 @@ func ClusterRolesTest(details VersionDetails, opts TestOptions) func(t *testing.
 
 func CRDTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
+		t.Helper()
 		foundMap := details.constructFoundMap(CustomResourceDefs)
 		wanted, ok := opts.CheckResourceExists[CustomResourceDefs]
 		if !ok {
@@ -415,7 +423,7 @@ func getConfig() (*rest.Config, error) {
 
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error: %w", err)
 	}
 	return config, nil
 }
@@ -424,13 +432,15 @@ func getConfig() (*rest.Config, error) {
 func getClient() (*k8s.Clientset, error) {
 	config, err := getConfig()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error: %w", err)
 	}
+	//nolint
 	return k8s.NewForConfig(config)
 }
 
 func installTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
+		t.Helper()
 		daprPath := getDaprPath()
 		args := []string{
 			"init", "-k",
@@ -457,6 +467,7 @@ func installTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 
 func uninstallTest() func(t *testing.T) {
 	return func(t *testing.T) {
+		t.Helper()
 		output, err := EnsureUninstall()
 		t.Log(output)
 		require.NoError(t, err, "uninstall failed")
@@ -479,6 +490,7 @@ func uninstallTest() func(t *testing.T) {
 
 func uninstallMTLSTest() func(t *testing.T) {
 	return func(t *testing.T) {
+		t.Helper()
 		daprPath := getDaprPath()
 		output, err := spawn.Command(daprPath, "mtls", "-k")
 		require.Error(t, err, "expected error to be return if dapr not installed")
@@ -488,6 +500,7 @@ func uninstallMTLSTest() func(t *testing.T) {
 
 func componentsTestOnUninstall() func(t *testing.T) {
 	return func(t *testing.T) {
+		t.Helper()
 		daprPath := getDaprPath()
 		// On Dapr uninstall CRDs are not removed, consequently the components will not be removed
 		// TODO Related to https://github.com/dapr/cli/issues/656
@@ -511,6 +524,7 @@ func componentsTestOnUninstall() func(t *testing.T) {
 
 func statusTestOnUninstall() func(t *testing.T) {
 	return func(t *testing.T) {
+		t.Helper()
 		daprPath := getDaprPath()
 		output, err := spawn.Command(daprPath, "status", "-k")
 		t.Log("checking status fails as expected")
@@ -520,6 +534,7 @@ func statusTestOnUninstall() func(t *testing.T) {
 }
 
 func componentOutputCheck(t *testing.T, output string) {
+	t.Helper()
 	lines := strings.Split(output, "\n")[1:] // remove header
 	// for fresh cluster only one component yaml has been applied
 	fields := strings.Fields(lines[0])
@@ -532,6 +547,7 @@ func componentOutputCheck(t *testing.T, output string) {
 }
 
 func validatePodsOnInstallUpgrade(t *testing.T, details VersionDetails) {
+	t.Helper()
 	ctx := context.Background()
 	ctxt, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
@@ -591,6 +607,7 @@ func validatePodsOnInstallUpgrade(t *testing.T, details VersionDetails) {
 }
 
 func waitPodDeletion(t *testing.T, done, podsDeleted chan struct{}) {
+	t.Helper()
 	for {
 		select {
 		case <-done: // if timeout was reached
@@ -615,6 +632,7 @@ func waitPodDeletion(t *testing.T, done, podsDeleted chan struct{}) {
 }
 
 func waitAllPodsRunning(t *testing.T, namespace string, done, podsRunning chan struct{}) {
+	t.Helper()
 	for {
 		select {
 		case <-done: // if timeout was reached

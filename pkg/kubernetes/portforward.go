@@ -44,12 +44,12 @@ func NewPortForward(
 ) (*PortForward, error) {
 	client, err := k8s.NewForConfig(config)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error: %w", err)
 	}
 
 	podList, err := ListPods(client, namespace, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error: %w", err)
 	}
 
 	podName := ""
@@ -91,7 +91,7 @@ func NewPortForward(
 func (pf *PortForward) run() error {
 	transport, upgrader, err := spdy.RoundTripperFor(pf.Config)
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	out := ioutil.Discard
@@ -106,10 +106,10 @@ func (pf *PortForward) run() error {
 
 	fw, err := portforward.NewOnAddresses(dialer, []string{pf.Host}, ports, pf.StopCh, pf.ReadyCh, out, errOut)
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
-	return fw.ForwardPorts()
+	return fmt.Errorf("error: %w", fw.ForwardPorts())
 }
 
 // Init creates and runs a port-forward connection.
@@ -130,7 +130,7 @@ func (pf *PortForward) Init() error {
 
 	// if failure, causing a receive `<-failure` and returns the error
 	case err := <-failure:
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	return nil

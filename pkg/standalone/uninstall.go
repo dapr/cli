@@ -24,7 +24,7 @@ func removeContainers(uninstallPlacementContainer, uninstallAll bool, dockerNetw
 		if err != nil {
 			containerErrs = append(
 				containerErrs,
-				fmt.Errorf("could not remove %s image: %s", daprDockerImageName, err))
+				fmt.Errorf("could not remove %s image: %w", daprDockerImageName, err))
 		}
 	}
 
@@ -51,7 +51,7 @@ func removeDockerContainer(containerErrs []error, containerName, network string)
 	if err != nil {
 		containerErrs = append(
 			containerErrs,
-			fmt.Errorf("could not remove %s container: %s", container, err))
+			fmt.Errorf("could not remove %s container: %w", container, err))
 	}
 	return containerErrs
 }
@@ -64,7 +64,7 @@ func removeDir(dirPath string) error {
 	}
 	print.InfoStatusEvent(os.Stdout, "Removing directory: %s", dirPath)
 	err = os.RemoveAll(dirPath)
-	return err
+	return fmt.Errorf("error: %w", err)
 }
 
 // Uninstall reverts all changes made by init. Deletes all installed containers, removes default dapr folder,
@@ -110,5 +110,5 @@ func Uninstall(uninstallAll bool, dockerNetwork string) error {
 	for _, e := range containerErrs {
 		err = fmt.Errorf("%w \n %s", err, e)
 	}
-	return err
+	return fmt.Errorf("error: %w", err)
 }

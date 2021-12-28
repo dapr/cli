@@ -18,6 +18,7 @@ import (
 func (s *Standalone) Invoke(appID, method string, data []byte, verb string) (string, error) {
 	list, err := s.process.List()
 	if err != nil {
+		//nolint
 		return "", err
 	}
 
@@ -26,12 +27,14 @@ func (s *Standalone) Invoke(appID, method string, data []byte, verb string) (str
 			url := makeEndpoint(lo, method)
 			req, err := http.NewRequest(verb, url, bytes.NewBuffer(data))
 			if err != nil {
+				//nolint
 				return "", err
 			}
 			req.Header.Set("Content-Type", "application/json")
 
 			r, err := http.DefaultClient.Do(req)
 			if err != nil {
+				//nolint
 				return "", err
 			}
 			defer r.Body.Close()
@@ -49,6 +52,7 @@ func makeEndpoint(lo ListOutput, method string) string {
 func handleResponse(response *http.Response) (string, error) {
 	rb, err := ioutil.ReadAll(response.Body)
 	if err != nil {
+		//nolint
 		return "", err
 	}
 

@@ -108,12 +108,12 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 	daprBinDir := defaultDaprBinPath()
 	err := prepareDaprInstallDir(daprBinDir)
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	// confirm if installation is required.
 	if ok, er := isBinaryInstallationRequired(daprRuntimeFilePrefix, daprBinDir); !ok {
-		return er
+		return fmt.Errorf("error: %w", er)
 	}
 
 	var wg sync.WaitGroup
@@ -139,7 +139,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 	// Make default components directory
 	err = makeDefaultComponentsDir()
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	// Initialize daprd binary
@@ -165,7 +165,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 
 	for err := range errorChan {
 		if err != nil {
-			return err
+			return fmt.Errorf("error: %w", err)
 		}
 	}
 
@@ -197,12 +197,12 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 func prepareDaprInstallDir(daprBinDir string) error {
 	err := os.MkdirAll(daprBinDir, 0777)
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	err = os.Chmod(daprBinDir, 0777)
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	return nil
@@ -251,7 +251,7 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, 
 		if !runError {
 			errorChan <- parseDockerError("Zipkin tracing", err)
 		} else {
-			errorChan <- fmt.Errorf("docker %s failed with: %v", args, err)
+			errorChan <- fmt.Errorf("docker %s failed with: %w", args, err)
 		}
 		return
 	}
@@ -301,7 +301,7 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, d
 		if !runError {
 			errorChan <- parseDockerError("Redis state store", err)
 		} else {
-			errorChan <- fmt.Errorf("docker %s failed with: %v", args, err)
+			errorChan <- fmt.Errorf("docker %s failed with: %w", args, err)
 		}
 		return
 	}
@@ -324,6 +324,7 @@ func confirmContainerIsRunningOrExists(containerName string, isRunning bool) (bo
 
 	// If 'docker ps' failed due to some reason
 	if err != nil {
+		//nolint
 		return false, fmt.Errorf("unable to confirm whether %s is running or exists. error\n%v", containerName, err.Error())
 	}
 	// 'docker ps' worked fine, but the response did not have the container name
@@ -338,6 +339,7 @@ func confirmContainerIsRunningOrExists(containerName string, isRunning bool) (bo
 }
 
 func parseDockerError(component string, err error) error {
+	//nolint
 	if exitError, ok := err.(*exec.ExitError); ok {
 		exitCode := exitError.ExitCode()
 		if exitCode == 125 { // see https://github.com/moby/moby/pull/14012
@@ -347,10 +349,11 @@ func parseDockerError(component string, err error) error {
 			return fmt.Errorf("failed to launch %s. Make sure Docker is installed and running", component)
 		}
 	}
-	return err
+	return fmt.Errorf("error: %w", err)
 }
 
 func isContainerRunError(err error) bool {
+	//nolint
 	if exitError, ok := err.(*exec.ExitError); ok {
 		exitCode := exitError.ExitCode()
 		return exitCode == 125
@@ -410,7 +413,7 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 		if !runError {
 			errorChan <- parseDockerError("placement service", err)
 		} else {
-			errorChan <- fmt.Errorf("docker %s failed with: %v", args, err)
+			errorChan <- fmt.Errorf("docker %s failed with: %w", args, err)
 		}
 		return
 	}
@@ -423,15 +426,15 @@ func moveDashboardFiles(extractedFilePath string, dir string) (string, error) {
 	newPath := path_filepath.Join(dir, "web")
 	err := os.Rename(oldPath, newPath)
 	if err != nil {
-		err = fmt.Errorf("failed to move dashboard files: %s", err)
-		return "", err
+		err = fmt.Errorf("failed to move dashboard files: %w", err)
+		return "", fmt.Errorf("error: %w", err)
 	}
 
 	// Move binary from /release/<os>/web/dashboard(.exe) to /dashboard(.exe)
 	err = os.Rename(extractedFilePath, path_filepath.Join(dir, path_filepath.Base(extractedFilePath)))
 	if err != nil {
-		err = fmt.Errorf("error moving %s binary to path: %s", path_filepath.Base(extractedFilePath), err)
-		return "", err
+		err = fmt.Errorf("error moving %s binary to path: %w", path_filepath.Base(extractedFilePath), err)
+		return "", fmt.Errorf("error: %w", err)
 	}
 
 	// Change the extracted binary file path to reflect the move above
@@ -440,8 +443,8 @@ func moveDashboardFiles(extractedFilePath string, dir string) (string, error) {
 	// Remove the now-empty 'release' directory
 	err = os.RemoveAll(path_filepath.Join(dir, "release"))
 	if err != nil {
-		err = fmt.Errorf("error moving dashboard files: %s", err)
-		return "", err
+		err = fmt.Errorf("error moving dashboard files: %w", err)
+		return "", fmt.Errorf("error: %w", err)
 	}
 
 	return extractedFilePath, nil
@@ -452,7 +455,7 @@ func overrideLastestVersion(version, repo string) (string, error) {
 		var err error
 		version, err = cli_ver.GetLatestRelease(cli_ver.DaprGitHubOrg, repo)
 		if err != nil {
-			return "", fmt.Errorf("cannot get the latest release version: %s", err)
+			return "", fmt.Errorf("cannot get the latest release version: %w", err)
 		}
 		version = version[1:]
 	}
@@ -486,7 +489,7 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, bin
 
 	filepath, err := downloadFile(dir, fileURL)
 	if err != nil {
-		errorChan <- fmt.Errorf("error downloading %s binary: %s", binaryFilePrefix, err)
+		errorChan <- fmt.Errorf("error downloading %s binary: %w", binaryFilePrefix, err)
 		return
 	}
 
@@ -499,13 +502,13 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, bin
 	}
 
 	if err != nil {
-		errorChan <- fmt.Errorf("error extracting %s binary: %s", binaryFilePrefix, err)
+		errorChan <- fmt.Errorf("error extracting %s binary: %w", binaryFilePrefix, err)
 		return
 	}
 	err = os.Remove(filepath)
 
 	if err != nil {
-		errorChan <- fmt.Errorf("failed to remove archive: %s", err)
+		errorChan <- fmt.Errorf("failed to remove archive: %w", err)
 		return
 	}
 
@@ -519,13 +522,13 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, bin
 
 	binaryPath, err := moveFileToPath(extractedFilePath, dir)
 	if err != nil {
-		errorChan <- fmt.Errorf("error moving %s binary to path: %s", binaryFilePrefix, err)
+		errorChan <- fmt.Errorf("error moving %s binary to path: %w", binaryFilePrefix, err)
 		return
 	}
 
 	err = makeExecutable(binaryPath)
 	if err != nil {
-		errorChan <- fmt.Errorf("error making %s binary executable: %s", binaryFilePrefix, err)
+		errorChan <- fmt.Errorf("error making %s binary executable: %w", binaryFilePrefix, err)
 		return
 	}
 
@@ -549,17 +552,17 @@ func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error
 
 	err = createRedisPubSub(redisHost, componentsDir)
 	if err != nil {
-		errorChan <- fmt.Errorf("error creating redis pubsub component file: %s", err)
+		errorChan <- fmt.Errorf("error creating redis pubsub component file: %w", err)
 		return
 	}
 	err = createRedisStateStore(redisHost, componentsDir)
 	if err != nil {
-		errorChan <- fmt.Errorf("error creating redis statestore component file: %s", err)
+		errorChan <- fmt.Errorf("error creating redis statestore component file: %w", err)
 		return
 	}
 	err = createDefaultConfiguration(zipkinHost, DefaultConfigFilePath())
 	if err != nil {
-		errorChan <- fmt.Errorf("error creating default configuration file: %s", err)
+		errorChan <- fmt.Errorf("error creating default configuration file: %w", err)
 		return
 	}
 }
@@ -570,7 +573,7 @@ func createSlimConfiguration(wg *sync.WaitGroup, errorChan chan<- error, _, _ st
 	// For --slim we pass empty string so that we do not configure zipkin.
 	err := createDefaultConfiguration("", DefaultConfigFilePath())
 	if err != nil {
-		errorChan <- fmt.Errorf("error creating default configuration file: %s", err)
+		errorChan <- fmt.Errorf("error creating default configuration file: %w", err)
 		return
 	}
 }
@@ -578,11 +581,12 @@ func createSlimConfiguration(wg *sync.WaitGroup, errorChan chan<- error, _, _ st
 func makeDefaultComponentsDir() error {
 	// Make default components directory
 	componentsDir := DefaultComponentsDirPath()
+	//nolint
 	_, err := os.Stat(componentsDir)
 	if os.IsNotExist(err) {
 		errDir := os.MkdirAll(componentsDir, 0755)
 		if errDir != nil {
-			return fmt.Errorf("error creating default components folder: %s", errDir)
+			return fmt.Errorf("error creating default components folder: %w", errDir)
 		}
 	}
 
@@ -594,7 +598,7 @@ func makeExecutable(filepath string) error {
 	if runtime.GOOS != daprWindowsOS {
 		err := os.Chmod(filepath, 0777)
 		if err != nil {
-			return err
+			return fmt.Errorf("error: %w", err)
 		}
 	}
 
@@ -613,7 +617,7 @@ func sanitizeExtractPath(destination string, filePath string) (string, error) {
 func unzip(filepath, targetDir, binaryFilePrefix string) (string, error) {
 	r, err := zip.OpenReader(filepath)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error: %w", err)
 	}
 	defer r.Close()
 
@@ -621,7 +625,7 @@ func unzip(filepath, targetDir, binaryFilePrefix string) (string, error) {
 	for _, f := range r.File {
 		fpath, err := sanitizeExtractPath(targetDir, f.Name)
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("error: %w", err)
 		}
 
 		if strings.HasSuffix(fpath, fmt.Sprintf("%s.exe", binaryFilePrefix)) {
@@ -634,17 +638,17 @@ func unzip(filepath, targetDir, binaryFilePrefix string) (string, error) {
 		}
 
 		if err = os.MkdirAll(path_filepath.Dir(fpath), os.ModePerm); err != nil {
-			return "", err
+			return "", fmt.Errorf("error: %w", err)
 		}
 
 		outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("error: %w", err)
 		}
 
 		rc, err := f.Open()
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("error: %w", err)
 		}
 
 		// #nosec G110
@@ -654,7 +658,7 @@ func unzip(filepath, targetDir, binaryFilePrefix string) (string, error) {
 		rc.Close()
 
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("error: %w", err)
 		}
 	}
 	return foundBinary, nil
@@ -663,13 +667,13 @@ func unzip(filepath, targetDir, binaryFilePrefix string) (string, error) {
 func untar(filepath, targetDir, binaryFilePrefix string) (string, error) {
 	tarFile, err := os.Open(filepath)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error: %w", err)
 	}
 	defer tarFile.Close()
 
 	gzr, err := gzip.NewReader(tarFile)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error: %w", err)
 	}
 	defer gzr.Close()
 
@@ -678,11 +682,11 @@ func untar(filepath, targetDir, binaryFilePrefix string) (string, error) {
 	foundBinary := ""
 	for {
 		header, err := tr.Next()
-
+		//nolint
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			return "", err
+			return "", fmt.Errorf("error: %w", err)
 		} else if header == nil {
 			continue
 		}
@@ -690,26 +694,26 @@ func untar(filepath, targetDir, binaryFilePrefix string) (string, error) {
 		// untar all files in archive
 		path, err := sanitizeExtractPath(targetDir, header.Name)
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("error: %w", err)
 		}
 
 		info := header.FileInfo()
 		if info.IsDir() {
 			if err = os.MkdirAll(path, info.Mode()); err != nil {
-				return "", err
+				return "", fmt.Errorf("error: %w", err)
 			}
 			continue
 		}
 
 		f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("error: %w", err)
 		}
 		defer f.Close()
 
 		// #nosec G110
 		if _, err = io.Copy(f, tr); err != nil {
-			return "", err
+			return "", fmt.Errorf("error: %w", err)
 		}
 
 		// If the found file is the binary that we want to find, save it and return later
@@ -729,12 +733,12 @@ func moveFileToPath(filepath string, installLocation string) (string, error) {
 
 	input, err := ioutil.ReadFile(filepath)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error: %w", err)
 	}
 
 	err = utils.CreateDirectory(destDir)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error: %w", err)
 	}
 
 	// #nosec G306
@@ -742,7 +746,7 @@ func moveFileToPath(filepath string, installLocation string) (string, error) {
 		if runtime.GOOS != daprWindowsOS && strings.Contains(err.Error(), "permission denied") {
 			err = errors.New(err.Error() + " - please run with sudo")
 		}
-		return "", err
+		return "", fmt.Errorf("error: %w", err)
 	}
 
 	if runtime.GOOS == daprWindowsOS {
@@ -752,7 +756,7 @@ func moveFileToPath(filepath string, installLocation string) (string, error) {
 			pathCmd := "[System.Environment]::SetEnvironmentVariable('Path',[System.Environment]::GetEnvironmentVariable('Path','user') + '" + fmt.Sprintf(";%s", destDir) + "', 'user')"
 			_, err := utils.RunCmdAndWait("powershell", pathCmd)
 			if err != nil {
-				return "", err
+				return "", fmt.Errorf("error: %w", err)
 			}
 		}
 
@@ -782,7 +786,7 @@ func downloadFile(dir string, url string) (string, error) {
 
 	resp, err := http.Get(url)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -794,13 +798,13 @@ func downloadFile(dir string, url string) (string, error) {
 
 	out, err := os.Create(filepath)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error: %w", err)
 	}
 	defer out.Close()
 
 	_, err = io.Copy(out, resp.Body)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error: %w", err)
 	}
 
 	return filepath, nil
@@ -832,13 +836,13 @@ func createRedisStateStore(redisHost string, componentsPath string) error {
 
 	b, err := yaml.Marshal(&redisStore)
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	filePath := path_filepath.Join(componentsPath, stateStoreYamlFileName)
 	err = checkAndOverWriteFile(filePath, b)
 
-	return err
+	return fmt.Errorf("error: %w", err)
 }
 
 func createRedisPubSub(redisHost string, componentsPath string) error {
@@ -863,13 +867,13 @@ func createRedisPubSub(redisHost string, componentsPath string) error {
 
 	b, err := yaml.Marshal(&redisPubSub)
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	filePath := path_filepath.Join(componentsPath, pubSubYamlFileName)
 	err = checkAndOverWriteFile(filePath, b)
 
-	return err
+	return fmt.Errorf("error: %w", err)
 }
 
 func createDefaultConfiguration(zipkinHost, filePath string) error {
@@ -884,12 +888,12 @@ func createDefaultConfiguration(zipkinHost, filePath string) error {
 	}
 	b, err := yaml.Marshal(&defaultConfig)
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	err = checkAndOverWriteFile(filePath, b)
 
-	return err
+	return fmt.Errorf("error: %w", err)
 }
 
 func checkAndOverWriteFile(filePath string, b []byte) error {
@@ -897,7 +901,7 @@ func checkAndOverWriteFile(filePath string, b []byte) error {
 	if os.IsNotExist(err) {
 		// #nosec G306
 		if err = ioutil.WriteFile(filePath, b, 0644); err != nil {
-			return err
+			return fmt.Errorf("error: %w", err)
 		}
 	}
 	return nil
