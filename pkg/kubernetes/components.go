@@ -52,7 +52,7 @@ func PrintComponents(name, outputFormat string) error {
 				Items: []v1alpha1.Component{},
 			}
 		} else if err != nil {
-      //nolint
+			//nolint
 			return nil, err
 		}
 

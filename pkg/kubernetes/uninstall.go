@@ -33,7 +33,7 @@ func Uninstall(namespace string, uninstallAll bool, timeout uint) error {
 	uninstallClient.Timeout = time.Duration(timeout) * time.Second
 	_, err = uninstallClient.Run(daprReleaseName)
 	if err != nil {
-    //nolint
+		//nolint
 		return err
 	}
 
@@ -41,7 +41,7 @@ func Uninstall(namespace string, uninstallAll bool, timeout uint) error {
 		for _, crd := range crdsFullResources {
 			_, err := utils.RunCmdAndWait("kubectl", "delete", "crd", crd)
 			if err != nil {
-        //nolint
+				//nolint
 				return err
 			}
 		}

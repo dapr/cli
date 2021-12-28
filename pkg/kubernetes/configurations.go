@@ -56,10 +56,10 @@ func PrintConfigurations(name, outputFormat string) error {
 				Items: []v1alpha1.Configuration{},
 			}
 		} else if err != nil {
-      //nolint
+			//nolint
 			return nil, err
 		}
-    //nolint
+		//nolint
 		return list, err
 	}, name, outputFormat)
 }
