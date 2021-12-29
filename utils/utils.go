@@ -182,6 +182,7 @@ func IsDaprListeningOnSocket(socket string, timeout time.Duration) error {
 
 		if time.Since(start).Seconds() >= timeout.Seconds() {
 			// Give up.
+			//nolint
 			return err
 		}
 

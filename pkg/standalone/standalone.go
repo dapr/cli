@@ -118,7 +118,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		var err error
 		runtimeVersion, err = cli_ver.GetDaprVersion()
 		if err != nil {
-			return fmt.Errorf("cannot get the latest release version: '%s'. Try specifying --runtime-version=<desired_version>", err)
+			return fmt.Errorf("cannot get the latest release version: '%w'. Try specifying --runtime-version=<desired_version>", err)
 		}
 	}
 
@@ -482,18 +482,6 @@ func moveDashboardFiles(extractedFilePath string, dir string) (string, error) {
 	}
 
 	return extractedFilePath, nil
-}
-
-func overrideLastestVersion(version, repo string) (string, error) {
-	if version == latestVersion {
-		var err error
-		version, err = cli_ver.GetLatestRelease(cli_ver.DaprGitHubOrg, repo)
-		if err != nil {
-			return "", fmt.Errorf("cannot get the latest release version: %w", err)
-		}
-		version = version[1:]
-	}
-	return version, nil
 }
 
 func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, binaryFilePrefix string, dockerNetwork string, githubRepo string) {
