@@ -1,7 +1,15 @@
-// ------------------------------------------------------------
-// Copyright (c) Microsoft Corporation and Dapr Contributors.
-// Licensed under the MIT License.
-// ------------------------------------------------------------
+/*
+Copyright 2021 The Dapr Authors
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 package cmd
 
@@ -9,22 +17,20 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/gocarina/gocsv"
+	"github.com/spf13/cobra"
+
 	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/pkg/standalone"
 	"github.com/dapr/cli/utils"
-	"github.com/gocarina/gocsv"
-	"github.com/spf13/cobra"
 )
 
-var (
-	outputFormat string
-)
+var outputFormat string
 
 func outputList(list interface{}, length int) {
 	if outputFormat == "json" || outputFormat == "yaml" {
 		err := utils.PrintDetail(os.Stdout, outputFormat, list)
-
 		if err != nil {
 			print.FailureStatusEvent(os.Stdout, err.Error())
 			os.Exit(1)
@@ -66,7 +72,7 @@ dapr list -k
 		if kubernetesMode {
 			list, err := kubernetes.List()
 			if err != nil {
-				print.FailureStatusEvent(os.Stdout, err.Error())
+				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)
 			}
 
@@ -74,7 +80,7 @@ dapr list -k
 		} else {
 			list, err := standalone.List()
 			if err != nil {
-				print.FailureStatusEvent(os.Stdout, err.Error())
+				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)
 			}
 

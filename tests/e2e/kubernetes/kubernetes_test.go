@@ -1,10 +1,18 @@
 //go:build e2e
 // +build e2e
 
-// ------------------------------------------------------------
-// Copyright (c) Microsoft Corporation and Dapr Contributors.
-// Licensed under the MIT License.
-// ------------------------------------------------------------
+/*
+Copyright 2021 The Dapr Authors
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 package kubernetes_test
 
@@ -15,8 +23,8 @@ import (
 )
 
 const (
-	currentRuntimeVersion   = "1.2.0"
-	currentDashboardVersion = "0.6.0"
+	currentRuntimeVersion   = "1.5.1"
+	currentDashboardVersion = "0.9.0"
 )
 
 var currentVersionDetails = common.VersionDetails{
@@ -29,8 +37,7 @@ var currentVersionDetails = common.VersionDetails{
 
 func ensureCleanEnv(t *testing.T, details common.VersionDetails) {
 	// Ensure a clean environment
-	common.EnsureUninstall() // does not wait for pod deletion
-	t.Run("delete CRDs "+details.RuntimeVersion, common.DeleteCRD(details.CustomResourceDefs))
+	common.EnsureUninstall(true) // does not wait for pod deletion
 }
 
 func TestKubernetesNonHAModeMTLSDisabled(t *testing.T) {
@@ -144,9 +151,9 @@ func TestKubernetesHAModeMTLSEnabled(t *testing.T) {
 	})...)
 
 	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
+		UninstallAll: true,
 		CheckResourceExists: map[common.Resource]bool{
-			// TODO Related to https://github.com/dapr/cli/issues/656
-			common.CustomResourceDefs:  true,
+			common.CustomResourceDefs:  false,
 			common.ClusterRoles:        false,
 			common.ClusterRoleBindings: false,
 		},

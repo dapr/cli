@@ -1,21 +1,32 @@
-// ------------------------------------------------------------
-// Copyright (c) Microsoft Corporation and Dapr Contributors.
-// Licensed under the MIT License.
-// ------------------------------------------------------------
+/*
+Copyright 2021 The Dapr Authors
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 package standalone
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 
 	"github.com/dapr/cli/pkg/api"
+	"github.com/dapr/cli/utils"
 )
 
 // Invoke is a command to invoke a remote or local dapr instance.
-func (s *Standalone) Invoke(appID, method string, data []byte, verb string) (string, error) {
+func (s *Standalone) Invoke(appID, method string, data []byte, verb string, path string) (string, error) {
 	list, err := s.process.List()
 	if err != nil {
 		//nolint
@@ -32,7 +43,17 @@ func (s *Standalone) Invoke(appID, method string, data []byte, verb string) (str
 			}
 			req.Header.Set("Content-Type", "application/json")
 
-			r, err := http.DefaultClient.Do(req)
+			var httpc http.Client
+
+			if path != "" {
+				httpc.Transport = &http.Transport{
+					DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
+						return net.Dial("unix", utils.GetSocket(path, appID, "http"))
+					},
+				}
+			}
+
+			r, err := httpc.Do(req)
 			if err != nil {
 				//nolint
 				return "", err

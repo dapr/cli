@@ -1,7 +1,15 @@
-// ------------------------------------------------------------
-// Copyright (c) Microsoft Corporation and Dapr Contributors.
-// Licensed under the MIT License.
-// ------------------------------------------------------------
+/*
+Copyright 2021 The Dapr Authors
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 package utils
 
@@ -24,6 +32,10 @@ import (
 	"github.com/gocarina/gocsv"
 	"github.com/olekukonko/tablewriter"
 	"gopkg.in/yaml.v2"
+)
+
+const (
+	socketFormat = "%s/dapr-%s-%s.socket"
 )
 
 // PrintTable to print in the table format.
@@ -159,6 +171,24 @@ func IsDaprListeningOnPort(port int, timeout time.Duration) error {
 	}
 }
 
+func IsDaprListeningOnSocket(socket string, timeout time.Duration) error {
+	start := time.Now()
+	for {
+		conn, err := net.DialTimeout("unix", socket, timeout)
+		if err == nil {
+			conn.Close()
+			return nil
+		}
+
+		if time.Since(start).Seconds() >= timeout.Seconds() {
+			// Give up.
+			return err
+		}
+
+		time.Sleep(time.Second)
+	}
+}
+
 func MarshalAndWriteTable(writer io.Writer, in interface{}) error {
 	table, err := gocsv.MarshalString(in)
 	if err != nil {
@@ -194,4 +224,18 @@ func PrintDetail(writer io.Writer, outputFormat string, list interface{}) error 
 	_, err = writer.Write(output)
 	//nolint
 	return err
+}
+
+func IsAddressLegal(address string) bool {
+	var isLegal bool
+	if address == "localhost" {
+		isLegal = true
+	} else if net.ParseIP(address) != nil {
+		isLegal = true
+	}
+	return isLegal
+}
+
+func GetSocket(path, appID, protocol string) string {
+	return fmt.Sprintf(socketFormat, path, appID, protocol)
 }

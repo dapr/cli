@@ -1,10 +1,18 @@
 //go:build e2e
 // +build e2e
 
-// ------------------------------------------------------------
-// Copyright (c) Microsoft Corporation and Dapr Contributors.
-// Licensed under the MIT License.
-// ------------------------------------------------------------
+/*
+Copyright 2021 The Dapr Authors
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 package standalone_test
 
@@ -33,12 +41,14 @@ import (
 )
 
 const (
-	daprRuntimeVersion   = "1.2.0"
-	daprDashboardVersion = "0.6.0"
+	daprRuntimeVersion   = "1.5.1"
+	daprDashboardVersion = "0.9.0"
 )
 
+var socketCases = []string{"", "/tmp"}
+
 func TestStandaloneInstall(t *testing.T) {
-	// Ensure a clean environment
+	// Ensure a clean environment.
 	uninstall()
 
 	tests := []struct {
@@ -86,7 +96,7 @@ func TestNegativeScenarios(t *testing.T) {
 		require.Contains(t, output, "failed to stop app id test: couldn't find app id test", "expected output to match")
 	})
 
-	t.Run("stop unkonwn flag", func(t *testing.T) {
+	t.Run("stop unknown flag", func(t *testing.T) {
 		output, err := spawn.Command(daprPath, "stop", "-p", "test")
 		require.Error(t, err, "expected error on stop with unknown flag")
 		require.Contains(t, output, "Error: unknown shorthand flag: 'p' in -p\nUsage:", "expected usage to be printed")
@@ -95,7 +105,7 @@ func TestNegativeScenarios(t *testing.T) {
 
 	t.Run("run unknown flags", func(t *testing.T) {
 		output, err := spawn.Command(daprPath, "run", "--flag")
-		require.Error(t, err, "expected error on run unkonwn flag")
+		require.Error(t, err, "expected error on run unknown flag")
 		require.Contains(t, output, "Error: unknown flag: --flag\nUsage:", "expected usage to be printed")
 		require.Contains(t, output, "-a, --app-id string", "expected usage to be printed")
 		require.Contains(t, output, "The id for your application, used for service discovery", "expected usage to be printed")
@@ -113,6 +123,13 @@ func TestNegativeScenarios(t *testing.T) {
 		path = filepath.Join(homeDir, ".dapr")
 		require.Contains(t, output, "WARNING: "+path+" does not exist", "expected output to contain message")
 		require.Contains(t, output, "Dapr has been removed successfully")
+	})
+
+	t.Run("filter dashboard instance from list", func(t *testing.T) {
+		spawn.Command(daprPath, "dashboard", "-p", "5555")
+		cmd, err := spawn.Command(daprPath, "list")
+		require.NoError(t, err, "expected no error status on list without install")
+		require.Equal(t, "No Dapr instances found.\n", cmd)
 	})
 }
 
@@ -239,7 +256,10 @@ func testInstall(t *testing.T) {
 				return
 			}
 			output = strings.TrimSpace(output)
-			if !assert.Equal(t, version, output) {
+			// Changing version check since there is a log that is output on daprd --version
+			// 2021/11/12 11:10:38 maxprocs: Leaving GOMAXPROCS=12: CPU quota undefined
+			// before the version is output
+			if !assert.Contains(t, output, version) {
 				return
 			}
 			delete(binaries, bin)
@@ -340,31 +360,41 @@ func testInstall(t *testing.T) {
 func testRun(t *testing.T) {
 	daprPath := getDaprPath()
 
-	t.Run("Normal exit", func(t *testing.T) {
-		output, err := spawn.Command(daprPath, "run", "--", "bash", "-c", "echo test")
-		t.Log(output)
-		require.NoError(t, err, "run failed")
-		assert.Contains(t, output, "Exited App successfully")
-		assert.Contains(t, output, "Exited Dapr successfully")
-	})
+	for _, path := range socketCases {
+		t.Run(fmt.Sprintf("Normal exit, socket: %s", path), func(t *testing.T) {
+			output, err := spawn.Command(daprPath, "run", "--unix-domain-socket", path, "--", "bash", "-c", "echo test")
+			t.Log(output)
+			require.NoError(t, err, "run failed")
+			assert.Contains(t, output, "Exited App successfully")
+			assert.Contains(t, output, "Exited Dapr successfully")
+		})
 
-	t.Run("Error exit", func(t *testing.T) {
-		output, err := spawn.Command(daprPath, "run", "--", "bash", "-c", "exit 1")
-		t.Log(output)
-		require.NoError(t, err, "run failed")
-		assert.Contains(t, output, "The App process exited with error code: exit status 1")
-		assert.Contains(t, output, "Exited Dapr successfully")
-	})
+		t.Run(fmt.Sprintf("Error exit, socket: %s", path), func(t *testing.T) {
+			output, err := spawn.Command(daprPath, "run", "--unix-domain-socket", path, "--", "bash", "-c", "exit 1")
+			t.Log(output)
+			require.NoError(t, err, "run failed")
+			assert.Contains(t, output, "The App process exited with error code: exit status 1")
+			assert.Contains(t, output, "Exited Dapr successfully")
+		})
 
-	t.Run("API shutdown", func(t *testing.T) {
+	}
+
+	t.Run("API shutdown without socket", func(t *testing.T) {
 		// Test that the CLI exits on a daprd shutdown.
-		output, err := spawn.Command(daprPath, "run", "--dapr-http-port", "9999", "--", "bash", "-c", "curl -v http://localhost:9999/v1.0/shutdown; sleep 10; exit 1")
+		output, err := spawn.Command(daprPath, "run", "--dapr-http-port", "9999", "--", "bash", "-c", "curl -v -X POST http://localhost:9999/v1.0/shutdown; sleep 10; exit 1")
 		t.Log(output)
 		require.NoError(t, err, "run failed")
 		assert.Contains(t, output, "Exited App successfully", "App should be shutdown before it has a chance to return non-zero")
 		assert.Contains(t, output, "Exited Dapr successfully")
 	})
 
+	t.Run("API shutdown with socket", func(t *testing.T) {
+		// Test that the CLI exits on a daprd shutdown.
+		output, err := spawn.Command(daprPath, "run", "--app-id", "testapp", "--unix-domain-socket", "/tmp", "--", "bash", "-c", "curl --unix-socket /tmp/dapr-testapp-http.socket -v -X POST http://unix/v1.0/shutdown; sleep 10; exit 1")
+		t.Log(output)
+		require.NoError(t, err, "run failed")
+		assert.Contains(t, output, "Exited Dapr successfully")
+	})
 }
 
 func executeAgainstRunningDapr(t *testing.T, f func(), daprArgs ...string) {
@@ -462,48 +492,68 @@ func testPublish(t *testing.T) {
 	}()
 
 	daprPath := getDaprPath()
-	executeAgainstRunningDapr(t, func() {
-		t.Run("publish from file", func(t *testing.T) {
-			output, err := spawn.Command(daprPath, "publish", "--publish-app-id", "pub_e2e", "--pubsub", "pubsub", "--topic", "sample", "--data-file", "../testdata/message.json")
+	for _, path := range socketCases {
+		executeAgainstRunningDapr(t, func() {
+			t.Run(fmt.Sprintf("publish message from file with socket %s", path), func(t *testing.T) {
+				output, err := spawn.Command(daprPath, "publish", "--publish-app-id", "pub_e2e", "--unix-domain-socket", path, "--pubsub", "pubsub", "--topic", "sample", "--data-file", "../testdata/message.json")
+				t.Log(output)
+				assert.NoError(t, err, "unable to publish from --data-file")
+				assert.Contains(t, output, "Event published successfully")
+
+				event := <-events
+				assert.Equal(t, map[string]interface{}{"dapr": "is_great"}, event.Data)
+			})
+
+			t.Run(fmt.Sprintf("publish cloudevent from file with socket %s", path), func(t *testing.T) {
+				output, err := spawn.Command(daprPath, "publish", "--publish-app-id", "pub_e2e", "--unix-domain-socket", path, "--pubsub", "pubsub", "--topic", "sample", "--data-file", "../testdata/cloudevent.json")
+				t.Log(output)
+				assert.NoError(t, err, "unable to publish from --data-file")
+				assert.Contains(t, output, "Event published successfully")
+
+				event := <-events
+				assert.Equal(t, &common.TopicEvent{
+					ID:              "3cc97064-edd1-49f4-b911-c959a7370e68",
+					Source:          "e2e_test",
+					SpecVersion:     "1.0",
+					Type:            "test.v1",
+					DataContentType: "application/json",
+					Subject:         "e2e_subject",
+					PubsubName:      "pubsub",
+					Topic:           "sample",
+					Data:            map[string]interface{}{"dapr": "is_great"},
+				}, event)
+			})
+
+			t.Run(fmt.Sprintf("publish from string with socket %s", path), func(t *testing.T) {
+				output, err := spawn.Command(daprPath, "publish", "--publish-app-id", "pub_e2e", "--unix-domain-socket", path, "--pubsub", "pubsub", "--topic", "sample", "--data", "{\"cli\": \"is_working\"}")
+				t.Log(output)
+				assert.NoError(t, err, "unable to publish from --data")
+				assert.Contains(t, output, "Event published successfully")
+
+				event := <-events
+				assert.Equal(t, map[string]interface{}{"cli": "is_working"}, event.Data)
+			})
+
+			t.Run(fmt.Sprintf("publish from non-existent file fails with socket %s", path), func(t *testing.T) {
+				output, err := spawn.Command(daprPath, "publish", "--publish-app-id", "pub_e2e", "--unix-domain-socket", path, "--pubsub", "pubsub", "--topic", "sample", "--data-file", "a/file/that/does/not/exist")
+				t.Log(output)
+				assert.Contains(t, output, "Error reading payload from 'a/file/that/does/not/exist'. Error: ")
+				assert.Error(t, err, "a non-existent --data-file should fail with error")
+			})
+
+			t.Run(fmt.Sprintf("publish only one of data and data-file with socket %s", path), func(t *testing.T) {
+				output, err := spawn.Command(daprPath, "publish", "--publish-app-id", "pub_e2e", "--unix-domain-socket", path, "--pubsub", "pubsub", "--topic", "sample", "--data-file", "../testdata/message.json", "--data", "{\"cli\": \"is_working\"}")
+				t.Log(output)
+				assert.Error(t, err, "--data and --data-file should not be allowed together")
+				assert.Contains(t, output, "Only one of --data and --data-file allowed in the same publish command")
+			})
+
+			output, err := spawn.Command(getDaprPath(), "stop", "--app-id", "pub_e2e")
 			t.Log(output)
-			assert.NoError(t, err, "unable to publish from --data-file")
-			assert.Contains(t, output, "Event published successfully")
-
-			event := <-events
-			assert.Equal(t, map[string]interface{}{"dapr": "is_great"}, event.Data)
-		})
-
-		t.Run("publish from string", func(t *testing.T) {
-			output, err := spawn.Command(daprPath, "publish", "--publish-app-id", "pub_e2e", "--pubsub", "pubsub", "--topic", "sample", "--data", "{\"cli\": \"is_working\"}")
-			t.Log(output)
-			assert.NoError(t, err, "unable to publish from --data")
-			assert.Contains(t, output, "Event published successfully")
-
-			event := <-events
-			assert.Equal(t, map[string]interface{}{"cli": "is_working"}, event.Data)
-		})
-
-		t.Run("publish from non-existant file fails", func(t *testing.T) {
-			output, err := spawn.Command(daprPath, "publish", "--publish-app-id", "pub_e2e", "--pubsub", "pubsub", "--topic", "sample", "--data-file", "a/file/that/does/not/exist")
-			t.Log(output)
-			assert.Contains(t, output, "Error reading payload from 'a/file/that/does/not/exist'. Error: ")
-			assert.Error(t, err, "a non-existant --data-file should fail with error")
-		})
-
-		t.Run("publish only one of data and data-file", func(t *testing.T) {
-			output, err := spawn.Command(daprPath, "publish", "--publish-app-id", "pub_e2e", "--pubsub", "pubsub", "--topic", "sample", "--data-file", "../testdata/message.json", "--data", "{\"cli\": \"is_working\"}")
-			t.Log(output)
-			assert.Error(t, err, "--data and --data-file should not be allowed together")
-			assert.Contains(t, output, "Only one of --data and --data-file allowed in the same publish command")
-
-		})
-
-		output, err := spawn.Command(getDaprPath(), "stop", "--app-id", "pub_e2e")
-		t.Log(output)
-		require.NoError(t, err, "dapr stop failed")
-		assert.Contains(t, output, "app stopped successfully: pub_e2e")
-	}, "run", "--app-id", "pub_e2e", "--app-port", "9988")
-
+			require.NoError(t, err, "dapr stop failed")
+			assert.Contains(t, output, "app stopped successfully: pub_e2e")
+		}, "run", "--app-id", "pub_e2e", "--app-port", "9988", "--unix-domain-socket", path)
+	}
 }
 
 func testInvoke(t *testing.T) {
@@ -528,42 +578,45 @@ func testInvoke(t *testing.T) {
 	}()
 
 	daprPath := getDaprPath()
-	executeAgainstRunningDapr(t, func() {
-		t.Run("data from file", func(t *testing.T) {
-			output, err := spawn.Command(daprPath, "invoke", "--app-id", "invoke_e2e", "--method", "test", "--data-file", "../testdata/message.json")
-			t.Log(output)
-			assert.NoError(t, err, "unable to invoke with  --data-file")
-			assert.Contains(t, output, "App invoked successfully")
-			assert.Contains(t, output, "{\"dapr\": \"is_great\"}")
-		})
+	for _, path := range socketCases {
+		executeAgainstRunningDapr(t, func() {
+			t.Run(fmt.Sprintf("data from file with socket %s", path), func(t *testing.T) {
+				output, err := spawn.Command(daprPath, "invoke", "--app-id", "invoke_e2e", "--unix-domain-socket", path, "--method", "test", "--data-file", "../testdata/message.json")
+				t.Log(output)
+				assert.NoError(t, err, "unable to invoke with  --data-file")
+				assert.Contains(t, output, "App invoked successfully")
+				assert.Contains(t, output, "{\"dapr\": \"is_great\"}")
+			})
 
-		t.Run("data from string", func(t *testing.T) {
-			output, err := spawn.Command(daprPath, "invoke", "--app-id", "invoke_e2e", "--method", "test", "--data", "{\"cli\": \"is_working\"}")
-			t.Log(output)
-			assert.NoError(t, err, "unable to invoke with --data")
-			assert.Contains(t, output, "{\"cli\": \"is_working\"}")
-			assert.Contains(t, output, "App invoked successfully")
-		})
+			t.Run(fmt.Sprintf("data from string with socket %s", path), func(t *testing.T) {
+				output, err := spawn.Command(daprPath, "invoke", "--app-id", "invoke_e2e", "--unix-domain-socket", path, "--method", "test", "--data", "{\"cli\": \"is_working\"}")
+				t.Log(output)
+				assert.NoError(t, err, "unable to invoke with --data")
+				assert.Contains(t, output, "{\"cli\": \"is_working\"}")
+				assert.Contains(t, output, "App invoked successfully")
+			})
 
-		t.Run("data from non-existant file fails", func(t *testing.T) {
-			output, err := spawn.Command(daprPath, "invoke", "--app-id", "invoke_e2e", "--method", "test", "--data-file", "a/file/that/does/not/exist")
-			t.Log(output)
-			assert.Error(t, err, "a non-existant --data-file should fail with error")
-			assert.Contains(t, output, "Error reading payload from 'a/file/that/does/not/exist'. Error: ")
-		})
+			t.Run(fmt.Sprintf("data from non-existent file fails with socket %s", path), func(t *testing.T) {
+				output, err := spawn.Command(daprPath, "invoke", "--app-id", "invoke_e2e", "--unix-domain-socket", path, "--method", "test", "--data-file", "a/file/that/does/not/exist")
+				t.Log(output)
+				assert.Error(t, err, "a non-existent --data-file should fail with error")
+				assert.Contains(t, output, "Error reading payload from 'a/file/that/does/not/exist'. Error: ")
+			})
 
-		t.Run("invoke only one of data and data-file", func(t *testing.T) {
-			output, err := spawn.Command(daprPath, "invoke", "--app-id", "invoke_e2e", "--method", "test", "--data-file", "../testdata/message.json", "--data", "{\"cli\": \"is_working\"}")
-			t.Log(output)
-			assert.Error(t, err, "--data and --data-file should not be allowed together")
-			assert.Contains(t, output, "Only one of --data and --data-file allowed in the same invoke command")
-		})
+			t.Run(fmt.Sprintf("invoke only one of data and data-file with socket %s", path), func(t *testing.T) {
+				output, err := spawn.Command(daprPath, "invoke", "--app-id", "invoke_e2e", "--unix-domain-socket", path, "--method", "test", "--data-file", "../testdata/message.json", "--data", "{\"cli\": \"is_working\"}")
+				t.Log(output)
+				assert.Error(t, err, "--data and --data-file should not be allowed together")
+				assert.Contains(t, output, "Only one of --data and --data-file allowed in the same invoke command")
+			})
 
-		output, err := spawn.Command(getDaprPath(), "stop", "--app-id", "invoke_e2e")
-		t.Log(output)
-		require.NoError(t, err, "dapr stop failed")
-		assert.Contains(t, output, "app stopped successfully: invoke_e2e")
-	}, "run", "--app-id", "invoke_e2e", "--app-port", "9987")
+			output, err := spawn.Command(getDaprPath(), "stop", "--app-id", "invoke_e2e")
+			t.Log(output)
+			require.NoError(t, err, "dapr stop failed")
+			assert.Contains(t, output, "app stopped successfully: invoke_e2e")
+		}, "run", "--app-id", "invoke_e2e", "--app-port", "9987", "--unix-domain-socket", path)
+
+	}
 
 }
 
