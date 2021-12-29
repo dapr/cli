@@ -14,7 +14,6 @@ limitations under the License.
 package kubernetes
 
 import (
-	"fmt"
 	"time"
 
 	helm "helm.sh/helm/v3/pkg/action"
@@ -26,7 +25,8 @@ import (
 func Uninstall(namespace string, uninstallAll bool, timeout uint) error {
 	config, err := helmConfig(namespace)
 	if err != nil {
-		return fmt.Errorf("error: %w", err)
+		//nolint
+		return err
 	}
 
 	uninstallClient := helm.NewUninstall(config)
