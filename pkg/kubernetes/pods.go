@@ -37,7 +37,7 @@ func ListPods(client *k8s.Clientset, namespace string, labelSelector map[string]
 	if labelSelector != nil {
 		opts.LabelSelector = labels.FormatLabels(labelSelector)
 	}
-  //nolint
+	//nolint
 	return client.CoreV1().Pods(namespace).List(context.TODO(), opts)
 }
 

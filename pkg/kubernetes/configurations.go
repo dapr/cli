@@ -48,7 +48,7 @@ func PrintConfigurations(name, outputFormat string) error {
 			//nolint
 			return nil, err
 		}
-    //nolint
+		//nolint
 		list, err := client.ConfigurationV1alpha1().Configurations(meta_v1.NamespaceAll).List(meta_v1.ListOptions{})
 		// This means that the Dapr Configurations CRD is not installed and
 		// therefore no configuration items exist.
@@ -57,10 +57,10 @@ func PrintConfigurations(name, outputFormat string) error {
 				Items: []v1alpha1.Configuration{},
 			}
 		} else if err != nil {
-      //nolint
+			//nolint
 			return nil, err
 		}
-    //nolint
+		//nolint
 		return list, err
 	}, name, outputFormat)
 }

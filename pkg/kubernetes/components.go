@@ -44,7 +44,7 @@ func PrintComponents(name, outputFormat string) error {
 			//nolint
 			return nil, err
 		}
-    //nolint
+		//nolint
 		list, err := client.ComponentsV1alpha1().Components(meta_v1.NamespaceAll).List(meta_v1.ListOptions{})
 		// This means that the Dapr Components CRD is not installed and
 		// therefore no component items exist.
@@ -53,7 +53,7 @@ func PrintComponents(name, outputFormat string) error {
 				Items: []v1alpha1.Component{},
 			}
 		} else if err != nil {
-      //nolint
+			//nolint
 			return nil, err
 		}
 
