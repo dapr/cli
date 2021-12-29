@@ -15,7 +15,7 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-func setupShutdownNotify(sigCh chan os.Signal){
+func setupShutdownNotify(sigCh chan os.Signal) {
 	//This will catch Ctrl-C
 	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
 

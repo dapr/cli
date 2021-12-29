@@ -47,7 +47,7 @@ type StatusOutput struct {
 func NewStatusClient() (*StatusClient, error) {
 	clientset, err := Client()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error: %w", err)
 	}
 	return &StatusClient{
 		client: clientset,
@@ -56,6 +56,7 @@ func NewStatusClient() (*StatusClient, error) {
 
 // List status for Dapr resources.
 func (s *StatusClient) Status() ([]StatusOutput, error) {
+	//nolint
 	client := s.client
 	if client == nil {
 		return nil, errors.New("kubernetes client not initialized")

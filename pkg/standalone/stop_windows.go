@@ -34,5 +34,3 @@ func Stop(appID string) error {
 
 	return fmt.Errorf("couldn't find app id %s", appID)
 }
-
-

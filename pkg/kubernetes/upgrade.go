@@ -35,12 +35,12 @@ type UpgradeConfig struct {
 func Upgrade(conf UpgradeConfig) error {
 	sc, err := NewStatusClient()
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	status, err := sc.Status()
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	if len(status) == 0 {
@@ -57,12 +57,12 @@ func Upgrade(conf UpgradeConfig) error {
 
 	helmConf, err := helmConfig(status[0].Namespace)
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	daprChart, err := daprChart(conf.RuntimeVersion, helmConf)
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	upgradeClient := helm.NewUpgrade(helmConf)
@@ -76,7 +76,7 @@ func Upgrade(conf UpgradeConfig) error {
 
 	mtls, err := IsMTLSEnabled()
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	var vals map[string]interface{}
@@ -87,7 +87,7 @@ func Upgrade(conf UpgradeConfig) error {
 	if mtls {
 		secret, sErr := getTrustChainSecret()
 		if sErr != nil {
-			return sErr
+			return fmt.Errorf("error: %w", sErr)
 		}
 
 		ca = secret.Data["ca.crt"]
@@ -98,18 +98,18 @@ func Upgrade(conf UpgradeConfig) error {
 	ha := highAvailabilityEnabled(status)
 	vals, err = upgradeChartValues(string(ca), string(issuerCert), string(issuerKey), ha, mtls, conf.Args)
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	err = applyCRDs(fmt.Sprintf("v%s", conf.RuntimeVersion))
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	listClient := helm.NewList(helmConf)
 	releases, err := listClient.Run()
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	var chart string
@@ -121,7 +121,7 @@ func Upgrade(conf UpgradeConfig) error {
 	}
 
 	if _, err = upgradeClient.Run(chart, daprChart, vals); err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 	return nil
 }
@@ -140,7 +140,7 @@ func applyCRDs(version string) error {
 		url := fmt.Sprintf("https://raw.githubusercontent.com/dapr/dapr/%s/charts/dapr/crds/%s.yaml", version, crd)
 		_, err := utils.RunCmdAndWait("kubectl", "apply", "-f", url)
 		if err != nil {
-			return err
+			return fmt.Errorf("error: %w", err)
 		}
 	}
 	return nil
@@ -165,7 +165,7 @@ func upgradeChartValues(ca, issuerCert, issuerKey string, haMode, mtls bool, arg
 
 	for _, v := range globalVals {
 		if err := strvals.ParseInto(v, chartVals); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error: %w", err)
 		}
 	}
 	return chartVals, nil

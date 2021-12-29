@@ -30,11 +30,13 @@ func (s *Standalone) Publish(publishAppID, pubsubName, topic string, payload []b
 
 	l, err := s.process.List()
 	if err != nil {
+		//nolint
 		return err
 	}
 
 	daprHTTPPort, err := getDaprHTTPPort(l, publishAppID)
 	if err != nil {
+		//nolint
 		return err
 	}
 
@@ -42,6 +44,7 @@ func (s *Standalone) Publish(publishAppID, pubsubName, topic string, payload []b
 	// nolint: gosec
 	r, err := http.Post(url, "application/json", bytes.NewBuffer(payload))
 	if err != nil {
+		//nolint
 		return err
 	}
 	defer r.Body.Close()

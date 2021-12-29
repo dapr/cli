@@ -32,9 +32,10 @@ func PrintComponents(name, outputFormat string) error {
 	return writeComponents(os.Stdout, func() (*v1alpha1.ComponentList, error) {
 		client, err := DaprClient()
 		if err != nil {
+			//nolint
 			return nil, err
 		}
-
+		//nolint
 		return client.ComponentsV1alpha1().Components(meta_v1.NamespaceAll).List(meta_v1.ListOptions{})
 	}, name, outputFormat)
 }
@@ -42,6 +43,7 @@ func PrintComponents(name, outputFormat string) error {
 func writeComponents(writer io.Writer, getConfigFunc func() (*v1alpha1.ComponentList, error), name, outputFormat string) error {
 	confs, err := getConfigFunc()
 	if err != nil {
+		//nolint
 		return err
 	}
 
@@ -65,7 +67,7 @@ func writeComponents(writer io.Writer, getConfigFunc func() (*v1alpha1.Component
 	if outputFormat == "" || outputFormat == "list" {
 		return printComponentList(writer, filtered)
 	}
-
+	//nolint
 	return utils.PrintDetail(writer, outputFormat, filteredSpecs)
 }
 
@@ -81,6 +83,6 @@ func printComponentList(writer io.Writer, list []v1alpha1.Component) error {
 			Scopes:  strings.Join(c.Scopes, ","),
 		})
 	}
-
+	//nolint
 	return utils.MarshalAndWriteTable(writer, co)
 }

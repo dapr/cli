@@ -22,7 +22,7 @@ func Get(httpPort int) (*api.Metadata, error) {
 	// nolint:gosec
 	r, err := http.Get(url)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error: %w", err)
 	}
 
 	defer r.Body.Close()
@@ -37,12 +37,12 @@ func Put(httpPort int, key, value string) error {
 
 	req, err := retryablehttp.NewRequest("PUT", url, strings.NewReader(value))
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	r, err := client.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	defer r.Body.Close()
@@ -60,13 +60,13 @@ func makeMetadataPutEndpoint(httpPort int, key string) string {
 func handleMetadataResponse(response *http.Response) (*api.Metadata, error) {
 	rb, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error: %w", err)
 	}
 
 	var m api.Metadata
 	err = json.Unmarshal(rb, &m)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error: %w", err)
 	}
 	return &m, nil
 }
