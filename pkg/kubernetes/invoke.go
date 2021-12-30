@@ -111,14 +111,12 @@ func ListAppInfos(client k8s.Interface, appIDs ...string) (DaprAppList, error) {
 	l := make(DaprAppList, 0)
 	for _, p := range podList.Items {
 		p := DaprPod(p)
-	FindLoop:
 		for _, c := range p.Spec.Containers {
 			if c.Name == "daprd" {
 				app := getAppInfoFromPod(&p)
 				if fn(app) {
 					l = append(l, app)
 				}
-				break FindLoop
 			}
 		}
 	}
