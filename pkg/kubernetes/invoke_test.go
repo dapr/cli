@@ -28,7 +28,7 @@ import (
 	utiltesting "k8s.io/client-go/util/testing"
 )
 
-func newDaprAppPod(name string, namespace string, appName string, creationTime time.Time, httpPort string, grpcPort string) *v1.Pod {
+func newDaprAppPod(name string, namespace string, appName string, creationTime time.Time, appPort string, httpPort string, grpcPort string) *v1.Pod {
 	return &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,
@@ -60,9 +60,9 @@ func newDaprAppPod(name string, namespace string, appName string, creationTime t
 						"--dapr-public-port",
 						"3501",
 						"--app-port",
-						"8080",
+						appPort,
 						"--app-id",
-						"testAppID",
+						appName,
 						"--control-plane-address",
 						"dapr-api.keel-system.svc.cluster.local:80",
 						"--app-protocol",
@@ -94,7 +94,7 @@ func Test_getAppInfo(t *testing.T) {
 	client := fake.NewSimpleClientset(newDaprAppPod(
 		"testAppPod", "testAppNameSpace",
 		"testAppID", time.Now(),
-		"80801", "80802"))
+		"8080", "80801", "80802"))
 
 	testCases := []struct {
 		name          string
@@ -109,7 +109,7 @@ func Test_getAppInfo(t *testing.T) {
 			errorExpected: false,
 			errString:     "",
 			want: &AppInfo{
-				AppID: "testAppID", AppPort: "80801", PodName: "testAppPod", Namespace: "testAppNameSpace",
+				AppID: "testAppID", HTTPPort: "80801", GRPCPort: "80802", AppPort: "8080", PodName: "testAppPod", Namespace: "testAppNameSpace",
 			},
 		},
 		{
@@ -156,7 +156,7 @@ func Test_invoke(t *testing.T) {
 			method:        "hello",
 			verb:          "GET",
 			data:          nil,
-			URLExpected:   "https://localhost/api/v1/" +
+			URLExpected: "https://localhost/api/v1/" +
 				"namespaces/testAppNameSpace/pods/testAppPod:8080/proxy/" +
 				"hello",
 		},
@@ -189,7 +189,7 @@ func Test_invoke(t *testing.T) {
 			method:        "hello",
 			verb:          "POST",
 			data:          []byte("hello"),
-			URLExpected:   "https://localhost/api/v1/" +
+			URLExpected: "https://localhost/api/v1/" +
 				"namespaces/testAppNameSpace/pods/testAppPod:8080/proxy/" +
 				"hello",
 		},
