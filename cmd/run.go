@@ -57,16 +57,23 @@ var RunCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Run Dapr and (optionally) your application side by side. Supported platforms: Self-hosted",
 	Example: `
-# Run a .NET application:
-  dapr run --app-id myapp --app-port 5000 -- dotnet run
-# Run a Java application:
-  dapr run --app-id myapp -- java -jar myapp.jar
-# Run a NodeJs application that listens to port 3000:
-  dapr run --app-id myapp --app-port 3000 -- node myapp.js
-# Run a Python application:
-  dapr run --app-id myapp -- python myapp.py
-# Run sidecar only:
-  dapr run --app-id myapp
+# Run a .NET application
+dapr run --app-id myapp --app-port 5000 -- dotnet run
+
+# Run a Java application
+dapr run --app-id myapp -- java -jar myapp.jar
+
+# Run a NodeJs application that listens to port 3000
+dapr run --app-id myapp --app-port 3000 -- node myapp.js
+
+# Run a Python application
+dapr run --app-id myapp -- python myapp.py
+
+# Run sidecar only
+dapr run --app-id myapp
+
+# Run a gRPC application written in Go (listening on port 3000)
+dapr run --app-id myapp --app-port 3000 --app-protocol grpc -- go run main.go
   `,
 	Args: cobra.MinimumNArgs(0),
 	PreRun: func(cmd *cobra.Command, args []string) {
