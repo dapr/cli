@@ -1,10 +1,18 @@
 //go:build e2e
 // +build e2e
 
-// ------------------------------------------------------------
-// Copyright (c) Microsoft Corporation and Dapr Contributors.
-// Licensed under the MIT License.
-// ------------------------------------------------------------
+/*
+Copyright 2021 The Dapr Authors
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 package standalone_test
 
@@ -33,13 +41,11 @@ import (
 )
 
 const (
-	daprRuntimeVersion   = "1.5.0"
+	daprRuntimeVersion   = "1.5.1"
 	daprDashboardVersion = "0.9.0"
 )
 
-// Removing unix domain socket tests till shutdown API with unix domain sockets is fixed.
-// https://github.com/dapr/dapr/issues/3894
-var socketCases = []string{""}
+var socketCases = []string{"", "/tmp"}
 
 func TestStandaloneInstall(t *testing.T) {
 	// Ensure a clean environment.
@@ -382,14 +388,13 @@ func testRun(t *testing.T) {
 		assert.Contains(t, output, "Exited Dapr successfully")
 	})
 
-	// t.Run("API shutdown with socket", func(t *testing.T) {
-	// 	// Test that the CLI exits on a daprd shutdown.
-	// 	output, err := spawn.Command(daprPath, "run", "--app-id", "testapp", "--unix-domain-socket", "/tmp", "--", "bash", "-c", "curl --unix-socket /tmp/dapr-testapp-http.socket -v -X POST http://unix/v1.0/shutdown; sleep 10; exit 1")
-	// 	t.Log(output)
-	// 	require.NoError(t, err, "run failed")
-	// 	assert.Contains(t, output, "Exited App successfully", "App should be shutdown before it has a chance to return non-zero")
-	// 	assert.Contains(t, output, "Exited Dapr successfully")
-	// })
+	t.Run("API shutdown with socket", func(t *testing.T) {
+		// Test that the CLI exits on a daprd shutdown.
+		output, err := spawn.Command(daprPath, "run", "--app-id", "testapp", "--unix-domain-socket", "/tmp", "--", "bash", "-c", "curl --unix-socket /tmp/dapr-testapp-http.socket -v -X POST http://unix/v1.0/shutdown; sleep 10; exit 1")
+		t.Log(output)
+		require.NoError(t, err, "run failed")
+		assert.Contains(t, output, "Exited Dapr successfully")
+	})
 }
 
 func executeAgainstRunningDapr(t *testing.T, f func(), daprArgs ...string) {
