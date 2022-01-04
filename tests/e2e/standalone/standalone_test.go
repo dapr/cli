@@ -40,9 +40,9 @@ import (
 	"github.com/docker/docker/client"
 )
 
-const (
-	daprRuntimeVersion   = "1.5.1"
-	daprDashboardVersion = "0.9.0"
+var (
+	daprRuntimeVersion   = os.Getenv("DAPR_RUNTIME_VERSION")
+	daprDashboardVersion = os.Getenv("DAPR_DASHBOARD_VERSION")
 )
 
 var socketCases = []string{"", "/tmp"}
