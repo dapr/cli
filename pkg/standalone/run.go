@@ -66,12 +66,12 @@ func (meta *DaprMeta) newAppID() string {
 func (config *RunConfig) validateComponentPath() error {
 	_, err := os.Stat(config.ComponentsPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 	componentsLoader := components.NewStandaloneComponents(modes.StandaloneConfig{ComponentsPath: config.ComponentsPath})
 	_, err = componentsLoader.LoadComponents()
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 	return nil
 }
@@ -96,7 +96,7 @@ func (config *RunConfig) validatePort(portName string, portPtr *int, meta *DaprM
 	if *portPtr <= 0 {
 		port, err := freeport.GetFreePort()
 		if err != nil {
-			return err
+			return fmt.Errorf("error: %w", err)
 		}
 		*portPtr = port
 		return nil
@@ -111,7 +111,7 @@ func (config *RunConfig) validatePort(portName string, portPtr *int, meta *DaprM
 func (config *RunConfig) validate() error {
 	meta, err := newDaprMeta()
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	if config.AppID == "" {
@@ -120,7 +120,7 @@ func (config *RunConfig) validate() error {
 
 	err = config.validateComponentPath()
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	if config.AppPort < 0 {
@@ -129,23 +129,23 @@ func (config *RunConfig) validate() error {
 
 	err = config.validatePort("HTTPPort", &config.HTTPPort, meta)
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	err = config.validatePort("GRPCPort", &config.GRPCPort, meta)
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	err = config.validatePort("MetricsPort", &config.MetricsPort, meta)
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	if config.EnableProfiling {
 		err = config.validatePort("ProfilePort", &config.ProfilePort, meta)
 		if err != nil {
-			return err
+			return fmt.Errorf("error: %w", err)
 		}
 	}
 
@@ -158,7 +158,7 @@ func (config *RunConfig) validate() error {
 
 	err = config.validatePlacementHostAddr()
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 	return nil
 }
@@ -177,6 +177,7 @@ func (meta *DaprMeta) portExists(port int) bool {
 	if port <= 0 {
 		return false
 	}
+	//nolint
 	_, ok := meta.ExistingPorts[port]
 	if ok {
 		return true
@@ -199,7 +200,7 @@ func newDaprMeta() (*DaprMeta, error) {
 	meta.ExistingPorts = make(map[int]bool)
 	dapr, err := List()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error: %w", err)
 	}
 	for _, instance := range dapr {
 		meta.ExistingIDs[instance.AppID] = true
@@ -325,17 +326,18 @@ func getAppCommand(config *RunConfig) *exec.Cmd {
 }
 
 func Run(config *RunConfig) (*RunOutput, error) {
+	//nolint
 	err := config.validate()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error: %w", err)
 	}
 
 	daprCMD, err := getDaprCommand(config)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error: %w", err)
 	}
 
-	var appCMD *exec.Cmd = getAppCommand(config)
+	var appCMD = getAppCommand(config)
 	return &RunOutput{
 		DaprCMD:      daprCMD,
 		AppCMD:       appCMD,

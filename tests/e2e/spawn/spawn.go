@@ -14,6 +14,7 @@ limitations under the License.
 package spawn
 
 import (
+	"fmt"
 	"os/exec"
 )
 
@@ -23,8 +24,8 @@ func Command(command string, arguments ...string) (string, error) {
 
 	outBytes, err := cmd.CombinedOutput()
 	if err != nil && outBytes == nil {
-		return "", err
+		return "", fmt.Errorf("error: %w", err)
 	}
 
-	return string(outBytes), err
+	return string(outBytes), fmt.Errorf("error: %w", err)
 }

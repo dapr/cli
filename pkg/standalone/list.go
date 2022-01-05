@@ -14,6 +14,7 @@ limitations under the License.
 package standalone
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -63,7 +64,7 @@ func List() ([]ListOutput, error) {
 
 	processes, err := ps.Processes()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error: %w", err)
 	}
 
 	// Links a cli PID to the corresponding sidecar Process.

@@ -57,7 +57,7 @@ func Init(config InitConfiguration) error {
 
 	stopSpinning := print.Spinner(os.Stdout, msg)
 	defer stopSpinning(print.Failure)
-
+	//nolint
 	err := install(config)
 	if err != nil {
 		return err
@@ -71,7 +71,7 @@ func Init(config InitConfiguration) error {
 func createNamespace(namespace string) error {
 	_, client, err := GetKubeConfigClient()
 	if err != nil {
-		return fmt.Errorf("can't connect to a Kubernetes cluster: %v", err)
+		return fmt.Errorf("can't connect to a Kubernetes cluster: %w", err)
 	}
 
 	ns := &v1.Namespace{
@@ -90,7 +90,7 @@ func helmConfig(namespace string) (*helm.Configuration, error) {
 		Namespace: &namespace,
 	}
 	err := ac.Init(flags, namespace, "secret", debugLogf)
-	return &ac, err
+	return &ac, fmt.Errorf("error: %w", err)
 }
 
 func getVersion(version string) (string, error) {
@@ -98,7 +98,7 @@ func getVersion(version string) (string, error) {
 		var err error
 		version, err = cli_ver.GetDaprVersion()
 		if err != nil {
-			return "", fmt.Errorf("cannot get the latest release version: %s", err)
+			return "", fmt.Errorf("cannot get the latest release version: %w", err)
 		}
 		version = strings.TrimPrefix(version, "v")
 	}
@@ -108,7 +108,7 @@ func getVersion(version string) (string, error) {
 func createTempDir() (string, error) {
 	dir, err := ioutil.TempDir("", "dapr")
 	if err != nil {
-		return "", fmt.Errorf("error creating temp dir: %s", err)
+		return "", fmt.Errorf("error creating temp dir: %w", err)
 	}
 	return dir, nil
 }
@@ -116,7 +116,7 @@ func createTempDir() (string, error) {
 func locateChartFile(dirPath string) (string, error) {
 	files, err := ioutil.ReadDir(dirPath)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error: %w", err)
 	}
 	return filepath.Join(dirPath, files[0].Name()), nil
 }
@@ -132,7 +132,7 @@ func daprChart(version string, config *helm.Configuration) (*chart.Chart, error)
 
 	dir, err := createTempDir()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error: %w", err)
 	}
 	defer os.RemoveAll(dir)
 
@@ -140,13 +140,14 @@ func daprChart(version string, config *helm.Configuration) (*chart.Chart, error)
 
 	_, err = pull.Run(daprReleaseName)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error: %w", err)
 	}
 
 	chartPath, err := locateChartFile(dir)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error: %w", err)
 	}
+	//nolint
 	return loader.Load(chartPath)
 }
 
@@ -160,7 +161,7 @@ func chartValues(config InitConfiguration) (map[string]interface{}, error) {
 
 	for _, v := range globalVals {
 		if err := strvals.ParseInto(v, chartVals); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error: %w", err)
 		}
 	}
 	return chartVals, nil
@@ -169,27 +170,27 @@ func chartValues(config InitConfiguration) (map[string]interface{}, error) {
 func install(config InitConfiguration) error {
 	err := createNamespace(config.Namespace)
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	helmConf, err := helmConfig(config.Namespace)
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	daprChart, err := daprChart(config.Version, helmConf)
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	version, err := getVersion(config.Version)
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	err = applyCRDs(fmt.Sprintf("v%s", version))
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	installClient := helm.NewInstall(helmConf)
@@ -200,11 +201,11 @@ func install(config InitConfiguration) error {
 
 	values, err := chartValues(config)
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	if _, err = installClient.Run(daprChart, values); err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 	return nil
 }

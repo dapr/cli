@@ -42,11 +42,13 @@ func (s *Standalone) Publish(publishAppID, pubsubName, topic string, payload []b
 
 	l, err := s.process.List()
 	if err != nil {
+		//nolint
 		return err
 	}
 
 	instance, err := getDaprInstance(l, publishAppID)
 	if err != nil {
+		//nolint
 		return err
 	}
 
@@ -56,6 +58,7 @@ func (s *Standalone) Publish(publishAppID, pubsubName, topic string, payload []b
 	if socket != "" {
 		httpc.Transport = &http.Transport{
 			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
+				//nolint
 				return net.Dial("unix", utils.GetSocket(socket, publishAppID, "http"))
 			},
 		}
@@ -80,6 +83,7 @@ func (s *Standalone) Publish(publishAppID, pubsubName, topic string, payload []b
 
 	r, err := httpc.Post(url, contentType, bytes.NewBuffer(payload))
 	if err != nil {
+		//nolint
 		return err
 	}
 	defer r.Body.Close()

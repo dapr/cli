@@ -130,7 +130,7 @@ func Upgrade(conf UpgradeConfig) error {
 	listClient := helm.NewList(helmConf)
 	releases, err := listClient.Run()
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	var chart string
@@ -142,7 +142,7 @@ func Upgrade(conf UpgradeConfig) error {
 	}
 
 	if _, err = upgradeClient.Run(chart, daprChart, vals); err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 	return nil
 }
@@ -161,7 +161,7 @@ func applyCRDs(version string) error {
 		url := fmt.Sprintf("https://raw.githubusercontent.com/dapr/dapr/%s/charts/dapr/crds/%s.yaml", version, crd)
 		_, err := utils.RunCmdAndWait("kubectl", "apply", "-f", url)
 		if err != nil {
-			return err
+			return fmt.Errorf("error: %w", err)
 		}
 	}
 	return nil
@@ -186,7 +186,7 @@ func upgradeChartValues(ca, issuerCert, issuerKey string, haMode, mtls bool, arg
 
 	for _, v := range globalVals {
 		if err := strvals.ParseInto(v, chartVals); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error: %w", err)
 		}
 	}
 	return chartVals, nil

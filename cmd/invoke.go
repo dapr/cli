@@ -61,7 +61,8 @@ dapr invoke --unix-domain-socket --app-id target --method sample --verb GET
 		if invokeDataFile != "" {
 			bytePayload, err = ioutil.ReadFile(invokeDataFile)
 			if err != nil {
-				print.FailureStatusEvent(os.Stderr, "Error reading payload from '%s'. Error: %s", invokeDataFile, err)
+				//nolint
+				print.FailureStatusEvent(os.Stderr, "Error reading payload from '%s'. Error: %w", invokeDataFile, err)
 				os.Exit(1)
 			}
 		} else if invokeData != "" {
@@ -81,7 +82,7 @@ dapr invoke --unix-domain-socket --app-id target --method sample --verb GET
 
 		response, err := client.Invoke(invokeAppID, invokeAppMethod, bytePayload, invokeVerb, invokeSocket)
 		if err != nil {
-			err = fmt.Errorf("error invoking app %s: %s", invokeAppID, err)
+			err = fmt.Errorf("error invoking app %s: %w", invokeAppID, err)
 			print.FailureStatusEvent(os.Stderr, err.Error())
 			return
 		}

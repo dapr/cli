@@ -110,7 +110,7 @@ func EnsureUninstall(all bool) (string, error) {
 	command = append(command,
 		"-n", DaprTestNamespace,
 		"--log-as-json")
-
+	//nolint
 	return spawn.Command(daprPath, command...)
 }
 
@@ -436,7 +436,7 @@ func getConfig() (*rest.Config, error) {
 
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error: %w", err)
 	}
 	return config, nil
 }
@@ -445,8 +445,9 @@ func getConfig() (*rest.Config, error) {
 func getClient() (*k8s.Clientset, error) {
 	config, err := getConfig()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error: %w", err)
 	}
+	//nolint
 	return k8s.NewForConfig(config)
 }
 

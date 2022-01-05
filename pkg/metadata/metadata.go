@@ -37,7 +37,7 @@ func Get(httpPort int, appID, socket string) (*api.Metadata, error) {
 	if socket != "" {
 		fileInfo, err := os.Stat(socket)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error: %w", err)
 		}
 
 		if fileInfo.IsDir() {
@@ -46,6 +46,7 @@ func Get(httpPort int, appID, socket string) (*api.Metadata, error) {
 
 		httpc.Transport = &http.Transport{
 			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
+				//nolint
 				return net.Dial("unix", socket)
 			},
 		}
@@ -53,7 +54,7 @@ func Get(httpPort int, appID, socket string) (*api.Metadata, error) {
 
 	r, err := httpc.Get(url)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error: %w", err)
 	}
 
 	defer r.Body.Close()
@@ -68,6 +69,7 @@ func Put(httpPort int, key, value, appID, socket string) error {
 	if socket != "" {
 		client.HTTPClient.Transport = &http.Transport{
 			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
+				//nolint
 				return net.Dial("unix", utils.GetSocket(socket, appID, "http"))
 			},
 		}
@@ -77,12 +79,12 @@ func Put(httpPort int, key, value, appID, socket string) error {
 
 	req, err := retryablehttp.NewRequest("PUT", url, strings.NewReader(value))
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	r, err := client.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	defer r.Body.Close()
@@ -110,13 +112,13 @@ func makeMetadataPutEndpoint(httpPort int, key string) string {
 func handleMetadataResponse(response *http.Response) (*api.Metadata, error) {
 	rb, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error: %w", err)
 	}
 
 	var m api.Metadata
 	err = json.Unmarshal(rb, &m)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error: %w", err)
 	}
 	return &m, nil
 }

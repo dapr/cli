@@ -61,6 +61,7 @@ func GetDaprVersion() (string, error) {
 
 		version, err = GetLatestReleaseHelmChart("https://dapr.github.io/helm-charts/index.yaml")
 		if err != nil {
+			//nolint
 			return "", err
 		}
 	}
@@ -71,6 +72,7 @@ func GetDaprVersion() (string, error) {
 func GetVersionFromURL(releaseURL string, parseVersion func(body []byte) (string, error)) (string, error) {
 	req, err := http.NewRequest("GET", releaseURL, nil)
 	if err != nil {
+		//nolint
 		return "", err
 	}
 
@@ -81,6 +83,7 @@ func GetVersionFromURL(releaseURL string, parseVersion func(body []byte) (string
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
+		//nolint
 		return "", err
 	}
 	defer resp.Body.Close()
@@ -91,6 +94,7 @@ func GetVersionFromURL(releaseURL string, parseVersion func(body []byte) (string
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		//nolint
 		return "", err
 	}
 
@@ -103,6 +107,7 @@ func GetLatestReleaseGithub(githubURL string) (string, error) {
 		var githubRepoReleases []githubRepoReleaseItem
 		err := json.Unmarshal(body, &githubRepoReleases)
 		if err != nil {
+			//nolint
 			return "", err
 		}
 
@@ -126,6 +131,7 @@ func GetLatestReleaseHelmChart(helmChartURL string) (string, error) {
 		var helmChartReleases helmChartItems
 		err := yaml.Unmarshal(body, &helmChartReleases)
 		if err != nil {
+			//nolint
 			return "", err
 		}
 		if len(helmChartReleases.Entries.Dapr) == 0 {

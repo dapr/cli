@@ -22,6 +22,7 @@ package rundata
  */
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -30,8 +31,8 @@ import (
 )
 
 var (
-	runDataFile     string = "dapr-run-data.ldj"
-	runDataLockFile string = "dapr-run-data.lock"
+	runDataFile     = "dapr-run-data.ldj"
+	runDataLockFile = "dapr-run-data.lock"
 )
 
 type RunData struct {
@@ -56,7 +57,7 @@ func DeleteRunDataFile() error {
 	runFilePath := filepath.Join(os.TempDir(), runDataFile)
 	err = os.Remove(runFilePath)
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %w", err)
 	}
 
 	return nil
@@ -66,7 +67,7 @@ func tryGetRunDataLock() (*lockfile.Lockfile, error) {
 	lockFile, err := lockfile.New(filepath.Join(os.TempDir(), runDataLockFile))
 	if err != nil {
 		// TODO: Log once we implement logging
-		return nil, err
+		return nil, fmt.Errorf("error: %w", err)
 	}
 
 	for i := 0; i < 10; i++ {
@@ -80,5 +81,5 @@ func tryGetRunDataLock() (*lockfile.Lockfile, error) {
 		time.Sleep(50 * time.Millisecond)
 	}
 
-	return nil, err
+	return nil, fmt.Errorf("error: %w", err)
 }
