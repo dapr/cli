@@ -25,6 +25,7 @@ import (
 
 var (
 	injectTargetResource          string
+	injectAppID                   string
 	injectAppPort                 int
 	injectConfig                  string
 	injectAppProtocol             string
@@ -155,6 +156,9 @@ func readInputsFromFS(path string) ([]io.Reader, error) {
 func getOptionsFromFlags() kubernetes.InjectOptions {
 	// TODO: Use a pointer for int flag where zero is nil not -1
 	o := []kubernetes.InjectOption{}
+	if injectAppID != "" {
+		o = append(o, kubernetes.WithAppID(injectAppID))
+	}
 	if injectConfig != "" {
 		o = append(o, kubernetes.WithConfig(injectConfig))
 	}

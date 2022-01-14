@@ -47,7 +47,7 @@ func NewInjectorOptions(opts ...InjectOption) InjectOptions {
 	return config
 }
 
-func WithAppId(appID string) InjectOption {
+func WithAppID(appID string) InjectOption {
 	return func(config *InjectOptions) {
 		config.appID = &appID
 	}

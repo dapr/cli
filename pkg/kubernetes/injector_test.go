@@ -31,7 +31,7 @@ func TestInject(t *testing.T) {
 					targetName: "mypod",
 					optionFactory: func() InjectOptions {
 						return NewInjectorOptions(
-							WithAppId("test-app"),
+							WithAppID("test-app"),
 						)
 					},
 				},
@@ -46,7 +46,7 @@ func TestInject(t *testing.T) {
 					targetName: "mypod",
 					optionFactory: func() InjectOptions {
 						return NewInjectorOptions(
-							WithAppId("test-app"),
+							WithAppID("test-app"),
 							WithProfileEnabled(),
 							WithLogLevel("info"),
 							WithDaprImage("custom-image"),
@@ -64,7 +64,7 @@ func TestInject(t *testing.T) {
 					targetName: "nodeapp",
 					optionFactory: func() InjectOptions {
 						return NewInjectorOptions(
-							WithAppId("nodeapp"),
+							WithAppID("nodeapp"),
 							WithAppPort(3000),
 						)
 					},
@@ -80,7 +80,7 @@ func TestInject(t *testing.T) {
 					targetName: "nodeapp",
 					optionFactory: func() InjectOptions {
 						return NewInjectorOptions(
-							WithAppId("nodeapp"),
+							WithAppID("nodeapp"),
 							WithAppPort(3000),
 						)
 					},
@@ -96,7 +96,7 @@ func TestInject(t *testing.T) {
 					targetName: "divideapp",
 					optionFactory: func() InjectOptions {
 						return NewInjectorOptions(
-							WithAppId("divideapp"),
+							WithAppID("divideapp"),
 							WithAppPort(4000),
 							WithConfig("appconfig"),
 						)
@@ -113,7 +113,7 @@ func TestInject(t *testing.T) {
 					targetName: "subtractapp",
 					optionFactory: func() InjectOptions {
 						return NewInjectorOptions(
-							WithAppId("subtractapp"),
+							WithAppID("subtractapp"),
 							WithAppPort(80),
 							WithConfig("appconfig"),
 						)
@@ -123,7 +123,7 @@ func TestInject(t *testing.T) {
 					targetName: "addapp",
 					optionFactory: func() InjectOptions {
 						return NewInjectorOptions(
-							WithAppId("addapp"),
+							WithAppID("addapp"),
 							WithAppPort(6000),
 							WithConfig("appconfig"),
 						)
@@ -133,7 +133,7 @@ func TestInject(t *testing.T) {
 					targetName: "multiplyapp",
 					optionFactory: func() InjectOptions {
 						return NewInjectorOptions(
-							WithAppId("multiplyapp"),
+							WithAppID("multiplyapp"),
 							WithAppPort(5000),
 							WithConfig("appconfig"),
 						)
@@ -143,7 +143,7 @@ func TestInject(t *testing.T) {
 					targetName: "divideapp",
 					optionFactory: func() InjectOptions {
 						return NewInjectorOptions(
-							WithAppId("divideapp"),
+							WithAppID("divideapp"),
 							WithAppPort(4000),
 							WithConfig("appconfig"),
 						)
@@ -153,7 +153,7 @@ func TestInject(t *testing.T) {
 					targetName: "calculator-front-end",
 					optionFactory: func() InjectOptions {
 						return NewInjectorOptions(
-							WithAppId("calculator-front-end"),
+							WithAppID("calculator-front-end"),
 							WithAppPort(8080),
 							WithConfig("appconfig"),
 						)
@@ -169,7 +169,7 @@ func TestInject(t *testing.T) {
 				{
 					optionFactory: func() InjectOptions {
 						return NewInjectorOptions(
-							WithAppId("subtractapp"),
+							WithAppID("subtractapp"),
 							WithAppPort(80),
 							WithConfig("appconfig"),
 						)
@@ -185,7 +185,7 @@ func TestInject(t *testing.T) {
 				{
 					optionFactory: func() InjectOptions {
 						return NewInjectorOptions(
-							WithAppId("nodeapp"),
+							WithAppID("nodeapp"),
 							WithAppPort(3000),
 						)
 					},
@@ -266,7 +266,7 @@ func sortDocs(docs []string) {
 func TestGetDaprAnnotations(t *testing.T) {
 	t.Run("get dapr annotations", func(t *testing.T) {
 		config := NewInjectorOptions(
-			WithAppId("test-app"),
+			WithAppID("test-app"),
 			WithMetricsEnabled(),
 			WithMetricsPort(9090),
 			WithAPITokenSecret("test-api-token"),
