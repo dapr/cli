@@ -3,12 +3,15 @@ module github.com/dapr/cli
 go 1.16
 
 require (
+	github.com/Azure/go-autorest/autorest v0.11.21 // indirect
+	github.com/Azure/go-autorest/autorest/adal v0.9.16 // indirect
 	github.com/Pallinder/sillyname-go v0.0.0-20130730142914-97aeae9e6ba1
 	github.com/briandowns/spinner v1.6.1
-	github.com/dapr/dapr v1.5.0-rc.3
+	github.com/dapr/dapr v1.5.1
 	github.com/dapr/go-sdk v1.0.0
 	github.com/docker/docker v17.12.0-ce-rc1.0.20200916142827-bd33bbf0497b+incompatible
 	github.com/emicklei/go-restful v2.10.0+incompatible // indirect
+	github.com/evanphx/json-patch v5.6.0+incompatible
 	github.com/fatih/color v1.10.0
 	github.com/garyburd/redigo v1.6.0 // indirect
 	github.com/gocarina/gocsv v0.0.0-20190426105157-2fc85fcf0c07
@@ -33,6 +36,7 @@ require (
 	k8s.io/cli-runtime v0.20.2
 	k8s.io/client-go v0.20.2
 	k8s.io/helm v2.16.10+incompatible
+	sigs.k8s.io/yaml v1.2.0
 )
 
 replace (

@@ -1,0 +1,289 @@
+/*
+Copyright 2021 The Dapr Authors
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package cmd
+
+import (
+	"io"
+	"os"
+	"path/filepath"
+
+	"github.com/dapr/cli/pkg/kubernetes"
+	"github.com/dapr/cli/pkg/print"
+	"github.com/spf13/cobra"
+)
+
+var (
+	injectTargetResource          string
+	injectAppPort                 int
+	injectConfig                  string
+	injectAppProtocol             string
+	injectEnableProfile           bool
+	injectLogLevel                string
+	injectAPITokenSecret          string
+	injectAppTokenSecret          string
+	injectLogAsJson               bool
+	injectAppMaxConcurrency       int
+	injectEnableMetrics           bool
+	injectMetricsPort             int
+	injectEnableDebug             bool
+	injectEnv                     string
+	injectCPULimit                string
+	injectMemoryLimit             string
+	injectCPURequest              string
+	injectMemoryRequest           string
+	injectListenAddresses         string
+	injectLivenessProbeDelay      int
+	injectLivenessProbeTimeout    int
+	injectLivenessProbePeriod     int
+	injectLivenessProbeThreshold  int
+	injectReadinessProbeDelay     int
+	injectReadinessProbeTimeout   int
+	injectReadinessProbePeriod    int
+	injectReadinessProbeThreshold int
+	injectDaprImage               string
+	injectAppSSL                  bool
+	injectMaxRequestBodySize      int
+	injectHTTPStreamRequestBody   bool
+	injectGracefulShutdownSeconds int
+)
+
+var InjectCmd = &cobra.Command{
+	Use:   "inject [falgs] CONFIG-FILE",
+	Short: "Inject dapr annotations into a Kubernetes configuration. Supported platforms: Kubernetes",
+	Example: `
+# Inject all the deployments in the default namespace.
+kubectl get deploy -o yaml | dapr inject - | kubectl apply -f -
+`,
+	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) < 1 {
+			print.FailureStatusEvent(os.Stderr, "please specify a kubernetes resource file")
+			os.Exit(1)
+		}
+
+		input, err := readInput(args[0])
+		if err != nil {
+			print.FailureStatusEvent(os.Stderr, err.Error())
+			os.Exit(1)
+		}
+
+		var config kubernetes.K8sInjectorConfig
+		if injectTargetResource != "" {
+			config = kubernetes.K8sInjectorConfig{
+				TargetResource: &injectTargetResource,
+			}
+		}
+		injector := kubernetes.NewK8sInjector(config)
+		opts := getOptionsFromFlags()
+		if err := injector.Inject(input, os.Stdout, opts); err != nil {
+			print.FailureStatusEvent(os.Stderr, err.Error())
+			os.Exit(1)
+		}
+	},
+}
+
+func readInput(arg string) ([]io.Reader, error) {
+	var inputs []io.Reader
+	var err error
+	if arg == "-" {
+		// input is from stdin
+		inputs = append(inputs, os.Stdin)
+	} else {
+		// input is from file or dir
+		inputs, err = readInputsFromFS(arg)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return inputs, nil
+}
+
+func readInputsFromFS(path string) ([]io.Reader, error) {
+	stat, err := os.Stat(path)
+	if err != nil {
+		return nil, err
+	}
+
+	if !stat.IsDir() {
+		// input is a file
+		file, err := os.Open(path)
+		if err != nil {
+			return nil, err
+		}
+
+		return []io.Reader{file}, nil
+	}
+
+	// input is a directory
+	var inputs []io.Reader
+	err = filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if info.IsDir() {
+			return nil
+		}
+
+		file, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+
+		inputs = append(inputs, file)
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return inputs, nil
+}
+
+func getOptionsFromFlags() kubernetes.InjectOptions {
+	// TODO: Use a pointer for int flag where zero is nil not -1
+	o := []kubernetes.InjectOption{}
+	if injectConfig != "" {
+		o = append(o, kubernetes.WithConfig(injectConfig))
+	}
+	if injectAppPort != -1 {
+		o = append(o, kubernetes.WithAppPort(injectAppPort))
+	}
+	if injectAppProtocol != "" {
+		o = append(o, kubernetes.WithAppProtocol(injectAppProtocol))
+	}
+	if injectEnableProfile {
+		o = append(o, kubernetes.WithProfileEnabled())
+	}
+	if injectLogLevel != "" {
+		o = append(o, kubernetes.WithLogLevel(injectLogLevel))
+	}
+	if injectAPITokenSecret != "" {
+		o = append(o, kubernetes.WithAPITokenSecret(injectAPITokenSecret))
+	}
+	if injectAppTokenSecret != "" {
+		o = append(o, kubernetes.WithAppTokenSecret(injectAppTokenSecret))
+	}
+	if injectLogAsJson {
+		o = append(o, kubernetes.WithLogAsJson())
+	}
+	if injectAppMaxConcurrency != -1 {
+		o = append(o, kubernetes.WithAppMaxConcurrency(injectAppMaxConcurrency))
+	}
+	if injectEnableMetrics {
+		o = append(o, kubernetes.WithMetricsEnabled())
+	}
+	if injectMetricsPort != -1 {
+		o = append(o, kubernetes.WithMetricsPort(injectMetricsPort))
+	}
+	if injectEnableDebug {
+		o = append(o, kubernetes.WithDebugEnabled())
+	}
+	if injectEnv != "" {
+		o = append(o, kubernetes.WithEnv(injectEnv))
+	}
+	if injectCPULimit != "" {
+		o = append(o, kubernetes.WithCPULimit(injectCPULimit))
+	}
+	if injectMemoryLimit != "" {
+		o = append(o, kubernetes.WithMemoryLimit(injectMemoryLimit))
+	}
+	if injectCPURequest != "" {
+		o = append(o, kubernetes.WithCPURequest(injectCPURequest))
+	}
+	if injectMemoryRequest != "" {
+		o = append(o, kubernetes.WithMemoryRequest(injectMemoryRequest))
+	}
+	if injectListenAddresses != "" {
+		o = append(o, kubernetes.WithListenAddresses(injectListenAddresses))
+	}
+	if injectLivenessProbeDelay != -1 {
+		o = append(o, kubernetes.WithLivenessProbeDelay(injectLivenessProbeDelay))
+	}
+	if injectLivenessProbeTimeout != -1 {
+		o = append(o, kubernetes.WithLivenessProbeTimeout(injectLivenessProbeTimeout))
+	}
+	if injectLivenessProbePeriod != -1 {
+		o = append(o, kubernetes.WithLivenessProbePeriod(injectLivenessProbePeriod))
+	}
+	if injectLivenessProbeThreshold != -1 {
+		o = append(o, kubernetes.WithLivenessProbeThreshold(injectLivenessProbeThreshold))
+	}
+	if injectReadinessProbeDelay != -1 {
+		o = append(o, kubernetes.WithReadinessProbeDelay(injectReadinessProbeDelay))
+	}
+	if injectReadinessProbeTimeout != -1 {
+		o = append(o, kubernetes.WithReadinessProbeTimeout(injectReadinessProbeTimeout))
+	}
+	if injectReadinessProbePeriod != -1 {
+		o = append(o, kubernetes.WithReadinessProbePeriod(injectReadinessProbePeriod))
+	}
+	if injectReadinessProbeThreshold != -1 {
+		o = append(o, kubernetes.WithReadinessProbeThreshold(injectReadinessProbeThreshold))
+	}
+	if injectDaprImage != "" {
+		o = append(o, kubernetes.WithDaprImage(injectDaprImage))
+	}
+	if injectAppSSL {
+		o = append(o, kubernetes.WithAppSSL())
+	}
+	if injectMaxRequestBodySize != -1 {
+		o = append(o, kubernetes.WithMaxRequestBodySize(injectMaxRequestBodySize))
+	}
+	if injectHTTPStreamRequestBody {
+		o = append(o, kubernetes.WithHTTPStreamRequestBody())
+	}
+	if injectGracefulShutdownSeconds != -1 {
+		o = append(o, kubernetes.WithGracefulShutdownSeconds(injectGracefulShutdownSeconds))
+	}
+	return kubernetes.NewInjectorOptions(o...)
+}
+
+func init() {
+	// TODO: Make none present flags nil
+	InjectCmd.Flags().StringVarP(&injectTargetResource, "resource", "r", "", "The resource to target for injection")
+	InjectCmd.Flags().IntVarP(&injectAppPort, "app-port", "p", 0, "The port to expose the app on")
+	InjectCmd.Flags().StringVarP(&injectConfig, "config", "c", "", "The config file to inject")
+	InjectCmd.Flags().StringVar(&injectAppProtocol, "app-protocol", "", "The protocol to use for the app")
+	InjectCmd.Flags().BoolVar(&injectEnableProfile, "enable-profile", false, "Enable profiling")
+	InjectCmd.Flags().StringVar(&injectLogLevel, "log-level", "", "The log level to use")
+	InjectCmd.Flags().StringVar(&injectAPITokenSecret, "api-token-secret", "", "The secret to use for the API token")
+	InjectCmd.Flags().StringVar(&injectAppTokenSecret, "app-token-secret", "", "The secret to use for the app token")
+	InjectCmd.Flags().BoolVar(&injectLogAsJson, "log-as-json", false, "Log as JSON")
+	InjectCmd.Flags().IntVar(&injectAppMaxConcurrency, "app-max-concurrency", -1, "The maximum number of concurrent requests to allow")
+	InjectCmd.Flags().BoolVar(&injectEnableMetrics, "enable-metrics", false, "Enable metrics")
+	InjectCmd.Flags().IntVar(&injectMetricsPort, "metrics-port", -1, "The port to expose the metrics on")
+	InjectCmd.Flags().BoolVar(&injectEnableDebug, "enable-debug", false, "Enable debug")
+	InjectCmd.Flags().StringVar(&injectEnv, "env", "", "Environment variables to set (key value pairs, comma separated)")
+	InjectCmd.Flags().StringVar(&injectCPULimit, "cpu-limit", "", "The CPU limit to set")
+	InjectCmd.Flags().StringVar(&injectMemoryLimit, "memory-limit", "", "The memory limit to set")
+	InjectCmd.Flags().StringVar(&injectCPURequest, "cpu-request", "", "The CPU request to set")
+	InjectCmd.Flags().StringVar(&injectMemoryRequest, "memory-request", "", "The memory request to set")
+	InjectCmd.Flags().StringVar(&injectListenAddresses, "listen-addresses", "", "The addresses to listen on")
+	InjectCmd.Flags().IntVar(&injectLivenessProbeDelay, "liveness-probe-delay", -1, "The delay to use for the liveness probe")
+	InjectCmd.Flags().IntVar(&injectLivenessProbeTimeout, "liveness-probe-timeout", -1, "The timeout to use for the liveness probe")
+	InjectCmd.Flags().IntVar(&injectLivenessProbePeriod, "liveness-probe-period", -1, "The period to use for the liveness probe")
+	InjectCmd.Flags().IntVar(&injectLivenessProbeThreshold, "liveness-probe-threshold", -1, "The threshold to use for the liveness probe")
+	InjectCmd.Flags().IntVar(&injectReadinessProbeDelay, "readiness-probe-delay", -1, "The delay to use for the readiness probe")
+	InjectCmd.Flags().IntVar(&injectReadinessProbeTimeout, "readiness-probe-timeout", -1, "The timeout to use for the readiness probe")
+	InjectCmd.Flags().IntVar(&injectReadinessProbePeriod, "readiness-probe-period", -1, "The period to use for the readiness probe")
+	InjectCmd.Flags().IntVar(&injectReadinessProbeThreshold, "readiness-probe-threshold", -1, "The threshold to use for the readiness probe")
+	InjectCmd.Flags().StringVar(&injectDaprImage, "dapr-image", "", "The image to use for the dapr sidecar container")
+	InjectCmd.Flags().BoolVar(&injectAppSSL, "app-ssl", false, "Enable SSL for the app")
+	InjectCmd.Flags().IntVar(&injectMaxRequestBodySize, "max-request-body-size", -1, "The maximum request body size to use")
+	InjectCmd.Flags().BoolVar(&injectHTTPStreamRequestBody, "http-stream-request-body", false, "Enable streaming request body for HTTP")
+	InjectCmd.Flags().IntVar(&injectGracefulShutdownSeconds, "graceful-shutdown-seconds", -1, "The number of seconds to wait for the app to shutdown")
+	RootCmd.AddCommand(InjectCmd)
+}
