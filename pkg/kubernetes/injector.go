@@ -15,9 +15,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	yamlDecoder "k8s.io/apimachinery/pkg/util/yaml"
-	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/yaml"
 )
 
@@ -68,6 +66,10 @@ const (
 	cronjob     = "cronjob"
 	job         = "job"
 	list        = "list"
+
+	cronjobAnnotationsPath  = "/spec/jobTemplate/spec/template/metadata/annotations"
+	podAnnotationsPath      = "/metadata/annotations"
+	templateAnnotationsPath = "/spec/template/metadata/annotations"
 )
 
 type Injector interface {
@@ -88,7 +90,8 @@ type K8sInjectorConfig struct {
 
 func NewK8sInjector(config K8sInjectorConfig) *K8sInjector {
 	return &K8sInjector{
-		config: config,
+		config:   config,
+		injected: false,
 	}
 }
 
@@ -154,7 +157,7 @@ func (p *K8sInjector) processInput(input io.Reader, out io.Writer, opts InjectOp
 				if err != nil {
 					return err
 				}
-				items = append(items, runtime.RawExtension{Raw: injectedJSON})
+				items = append(items, runtime.RawExtension{Raw: injectedJSON}) // nolint:exhaustivestruct
 			}
 			sourceList.Items = items
 			result, err := yaml.Marshal(sourceList)
@@ -218,61 +221,61 @@ func (p *K8sInjector) injectYAML(input []byte, config InjectOptions) ([]byte, bo
 	var name string
 	switch strings.ToLower(metaType.Kind) {
 	case pod:
-		pod := &corev1.Pod{}
+		pod := &corev1.Pod{} // nolint:exhaustivestruct
 		if err := yaml.Unmarshal(input, pod); err != nil {
 			return nil, false, err
 		}
 		name = pod.Name
 		annotations = pod.Annotations
-		path = "/metadata/annotations"
+		path = podAnnotationsPath
 	case cronjob:
-		cronjob := &batchv1beta1.CronJob{}
+		cronjob := &batchv1beta1.CronJob{} // nolint:exhaustivestruct
 		if err := yaml.Unmarshal(input, cronjob); err != nil {
 			return nil, false, err
 		}
 		name = cronjob.Name
 		annotations = cronjob.Spec.JobTemplate.Spec.Template.Annotations
-		path = "/spec/jobTemplate/spec/template/metadata/annotations"
+		path = cronjobAnnotationsPath
 	case deployment:
-		deployment := &appsv1.Deployment{}
+		deployment := &appsv1.Deployment{} // nolint:exhaustivestruct
 		if err := yaml.Unmarshal(input, deployment); err != nil {
 			return nil, false, err
 		}
 		name = deployment.Name
 		annotations = deployment.Spec.Template.Annotations
-		path = "/spec/template/metadata/annotations"
+		path = templateAnnotationsPath
 	case replicaset:
-		replicaset := &appsv1.ReplicaSet{}
+		replicaset := &appsv1.ReplicaSet{} // nolint:exhaustivestruct
 		if err := yaml.Unmarshal(input, replicaset); err != nil {
 			return nil, false, err
 		}
 		name = replicaset.Name
 		annotations = replicaset.Spec.Template.Annotations
-		path = "/spec/template/metadata/annotations"
+		path = templateAnnotationsPath
 	case job:
-		job := &batchv1.Job{}
+		job := &batchv1.Job{} // nolint:exhaustivestruct
 		if err := yaml.Unmarshal(input, job); err != nil {
 			return nil, false, err
 		}
 		name = job.Name
 		annotations = job.Spec.Template.Annotations
-		path = "/spec/template/metadata/annotations"
+		path = templateAnnotationsPath
 	case statefulset:
-		statefulset := &appsv1.StatefulSet{}
+		statefulset := &appsv1.StatefulSet{} // nolint:exhaustivestruct
 		if err := yaml.Unmarshal(input, statefulset); err != nil {
 			return nil, false, err
 		}
 		name = statefulset.Name
 		annotations = statefulset.Spec.Template.Annotations
-		path = "/spec/template/metadata/annotations"
+		path = templateAnnotationsPath
 	case daemonset:
-		daemonset := &appsv1.DaemonSet{}
+		daemonset := &appsv1.DaemonSet{} // nolint:exhaustivestruct
 		if err := yaml.Unmarshal(input, daemonset); err != nil {
 			return nil, false, err
 		}
 		name = daemonset.Name
 		annotations = daemonset.Spec.Template.Annotations
-		path = "/spec/template/metadata/annotations"
+		path = templateAnnotationsPath
 	default:
 		// No injection needed for this kind.
 		return input, false, nil
@@ -435,28 +438,4 @@ func getDaprAnnotations(config *InjectOptions) map[string]string {
 	}
 
 	return annotations
-}
-
-func getResourceObjectAndGKV(in io.Reader) (runtime.Object, *schema.GroupVersionKind, error) {
-	reader := yamlDecoder.NewYAMLReader(bufio.NewReaderSize(in, 4096))
-	bytes, err := reader.Read()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return scheme.Codecs.UniversalDeserializer().Decode(bytes, nil, nil)
-}
-
-func getAnnotationsFromDeployment(deployment *appsv1.Deployment) (map[string]string, error) {
-	if deployment.Spec.Template.ObjectMeta.Annotations == nil {
-		deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-	}
-	return deployment.Spec.Template.ObjectMeta.Annotations, nil
-}
-
-func getAnnotationsFromPod(pod *corev1.Pod) (map[string]string, error) {
-	if pod.Annotations == nil {
-		pod.Annotations = make(map[string]string)
-	}
-	return pod.Annotations, nil
 }

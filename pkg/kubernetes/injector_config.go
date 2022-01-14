@@ -1,6 +1,6 @@
 package kubernetes
 
-// InjectOptions configurate the injection behavior.
+// InjectOptions configure the injection behavior.
 type InjectOptions struct {
 	appID                   *string
 	metricsEnabled          *bool
@@ -109,7 +109,7 @@ func WithAppTokenSecret(appTokenSecret string) InjectOption {
 	}
 }
 
-func WithLogAsJson() InjectOption {
+func WithLogAsJSON() InjectOption {
 	return func(config *InjectOptions) {
 		enabled := true
 		config.logAsJson = &enabled

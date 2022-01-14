@@ -25,7 +25,7 @@ func TestInject(t *testing.T) {
 		expectedFilePath string
 	}{
 		{
-			testID: "single targetted injection into pod config 1",
+			testID: "single targeted injection into pod config 1",
 			injections: []injection{
 				{
 					targetName: "mypod",
@@ -40,7 +40,7 @@ func TestInject(t *testing.T) {
 			expectedFilePath: "testdata/pod_injected_conf_1.yml",
 		},
 		{
-			testID: "single targetted injection into pod config 2",
+			testID: "single targeted injection into pod config 2",
 			injections: []injection{
 				{
 					targetName: "mypod",
@@ -58,7 +58,7 @@ func TestInject(t *testing.T) {
 			expectedFilePath: "testdata/pod_injected_conf_2.yml",
 		},
 		{
-			testID: "single targetted injection into deployment config 1",
+			testID: "single targeted injection into deployment config 1",
 			injections: []injection{
 				{
 					targetName: "nodeapp",
@@ -90,7 +90,7 @@ func TestInject(t *testing.T) {
 			expectedFilePath: "testdata/deployment_injected_conf_1.yml",
 		},
 		{
-			testID: "single targetted injection into multi config 1",
+			testID: "single targeted injection into multi config 1",
 			injections: []injection{
 				{
 					targetName: "divideapp",
@@ -107,7 +107,7 @@ func TestInject(t *testing.T) {
 			expectedFilePath: "testdata/multi_injected_conf_1.yml",
 		},
 		{
-			testID: "multiple targetted injections into multi config 2",
+			testID: "multiple targeted injections into multi config 2",
 			injections: []injection{
 				{
 					targetName: "subtractapp",
@@ -164,7 +164,7 @@ func TestInject(t *testing.T) {
 			expectedFilePath: "testdata/multi_injected_conf_2.yml",
 		},
 		{
-			testID: "single untargetted injection into multi config 3",
+			testID: "single untargeted injection into multi config 3",
 			injections: []injection{
 				{
 					optionFactory: func() InjectOptions {
@@ -180,7 +180,7 @@ func TestInject(t *testing.T) {
 			expectedFilePath: "testdata/multi_injected_conf_3.yml",
 		},
 		{
-			testID: "single untargetted injection into list config",
+			testID: "single untargeted injection into list config",
 			injections: []injection{
 				{
 					optionFactory: func() InjectOptions {
@@ -282,7 +282,7 @@ func TestGetDaprAnnotations(t *testing.T) {
 			WithConfig("test-config"),
 			WithDebugEnabled(),
 			WithEnv("key=value,key1=value1"),
-			WithLogAsJson(),
+			WithLogAsJSON(),
 			WithListenAddresses("0.0.0.0"),
 			WithDaprImage("test-image"),
 			WithProfileEnabled(),

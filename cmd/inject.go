@@ -33,7 +33,7 @@ var (
 	injectLogLevel                string
 	injectAPITokenSecret          string
 	injectAppTokenSecret          string
-	injectLogAsJson               bool
+	injectLogAsJSON               bool
 	injectAppMaxConcurrency       int
 	injectEnableMetrics           bool
 	injectMetricsPort             int
@@ -180,8 +180,8 @@ func getOptionsFromFlags() kubernetes.InjectOptions {
 	if injectAppTokenSecret != "" {
 		o = append(o, kubernetes.WithAppTokenSecret(injectAppTokenSecret))
 	}
-	if injectLogAsJson {
-		o = append(o, kubernetes.WithLogAsJson())
+	if injectLogAsJSON {
+		o = append(o, kubernetes.WithLogAsJSON())
 	}
 	if injectAppMaxConcurrency != -1 {
 		o = append(o, kubernetes.WithAppMaxConcurrency(injectAppMaxConcurrency))
@@ -266,7 +266,7 @@ func init() {
 	InjectCmd.Flags().StringVar(&injectLogLevel, "log-level", "", "The log level to use")
 	InjectCmd.Flags().StringVar(&injectAPITokenSecret, "api-token-secret", "", "The secret to use for the API token")
 	InjectCmd.Flags().StringVar(&injectAppTokenSecret, "app-token-secret", "", "The secret to use for the app token")
-	InjectCmd.Flags().BoolVar(&injectLogAsJson, "log-as-json", false, "Log as JSON")
+	InjectCmd.Flags().BoolVar(&injectLogAsJSON, "log-as-json", false, "Log as JSON")
 	InjectCmd.Flags().IntVar(&injectAppMaxConcurrency, "app-max-concurrency", -1, "The maximum number of concurrent requests to allow")
 	InjectCmd.Flags().BoolVar(&injectEnableMetrics, "enable-metrics", false, "Enable metrics")
 	InjectCmd.Flags().IntVar(&injectMetricsPort, "metrics-port", -1, "The port to expose the metrics on")
