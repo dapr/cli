@@ -133,6 +133,9 @@ func (p *K8sInjector) processInput(input io.Reader, out io.Writer, opts InjectOp
 			for _, item := range sourceList.Items {
 				var processedYAML []byte
 				if p.injected {
+					// We can only inject dapr into a single resource per execution as the configuration
+					// options are scoped to a single resource e.g. app-id, port, etc. are specific to a
+					// dapr enabled resource. Instead we expect multiple runs to be piped together.
 					processedYAML = item.Raw
 				} else {
 					var injected bool
@@ -140,8 +143,11 @@ func (p *K8sInjector) processInput(input io.Reader, out io.Writer, opts InjectOp
 					if err != nil {
 						return err
 					}
-					// Record that we have injected into a document.
-					p.injected = injected
+
+					if injected {
+						// Record that we have injected into a document.
+						p.injected = injected
+					}
 				}
 
 				injectedJSON, err := yaml.YAMLToJSON(processedYAML)
@@ -168,15 +174,20 @@ func (p *K8sInjector) processInput(input io.Reader, out io.Writer, opts InjectOp
 		} else {
 			var processedYAML []byte
 			if p.injected {
-				processedYAML = bytes // We've already injected during this run so ingore the rest.
+				// We can only inject dapr into a single resource per execution as the configuration
+				// options are scoped to a single resource e.g. app-id, port, etc. are specific to a
+				// dapr enabled resource. Instead we expect multiple runs to be piped together.
+				processedYAML = bytes
 			} else {
 				var injected bool
 				processedYAML, injected, err = p.injectYAML(bytes, opts)
 				if err != nil {
 					return err
 				}
-				// Record that we have injected into a document.
-				p.injected = injected
+				if injected {
+					// Record that we have injected into a document.
+					p.injected = injected
+				}
 			}
 
 			// Insert separator between documents.
