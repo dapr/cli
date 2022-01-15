@@ -134,7 +134,7 @@ func (pf *PortForward) Init() error {
 			return err
 		}
 		if len(ports) == 0 {
-			return fmt.Errorf("")
+			return fmt.Errorf("error ports length")
 		}
 
 		pf.LocalPort = int(ports[0].Local)
