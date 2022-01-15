@@ -15,6 +15,7 @@ type InjectOptions struct {
 	logAsJSON               *bool
 	appMaxConcurrency       *int
 	debugEnabled            *bool
+	debugPort               *int
 	env                     *string
 	cpuLimit                *string
 	memoryLimit             *string
@@ -126,6 +127,12 @@ func WithDebugEnabled() InjectOption {
 	return func(config *InjectOptions) {
 		enabled := true
 		config.debugEnabled = &enabled
+	}
+}
+
+func WithDebugPort(debugPort int) InjectOption {
+	return func(config *InjectOptions) {
+		config.debugPort = &debugPort
 	}
 }
 

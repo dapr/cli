@@ -18,6 +18,16 @@ type injection struct {
 }
 
 func TestInject(t *testing.T) {
+	// Helper function used to order test documents.
+	sortDocs := func(docs []string) {
+		sort.Slice(docs, func(i, j int) bool {
+			if len(docs[i]) == len(docs[j]) {
+				panic("Cannot sort docs with the same length, please ensure tests docs are a unique length.")
+			}
+			return len(docs[i]) < len(docs[j])
+		})
+	}
+
 	configs := []struct {
 		testID           string
 		injections       []injection
@@ -25,7 +35,7 @@ func TestInject(t *testing.T) {
 		expectedFilePath string
 	}{
 		{
-			testID: "single targeted injection into pod config 1 from stdin",
+			testID: "single targeted injection into pod config 1",
 			injections: []injection{
 				{
 					targetName: "mypod",
@@ -254,15 +264,6 @@ func TestInject(t *testing.T) {
 	}
 }
 
-func sortDocs(docs []string) {
-	sort.Slice(docs, func(i, j int) bool {
-		if len(docs[i]) == len(docs[j]) {
-			panic("Cannot sort docs with the same length, please ensure tests docs are a unique length.")
-		}
-		return len(docs[i]) < len(docs[j])
-	})
-}
-
 func TestGetDaprAnnotations(t *testing.T) {
 	t.Run("get dapr annotations", func(t *testing.T) {
 		config := NewInjectorOptions(
@@ -281,6 +282,7 @@ func TestGetDaprAnnotations(t *testing.T) {
 			WithMemoryRequest("256Mi"),
 			WithConfig("test-config"),
 			WithDebugEnabled(),
+			WithDebugPort(9050),
 			WithEnv("key=value,key1=value1"),
 			WithLogAsJSON(),
 			WithListenAddresses("0.0.0.0"),
@@ -296,13 +298,14 @@ func TestGetDaprAnnotations(t *testing.T) {
 			WithLivenessProbePeriod(30),
 			WithLivenessProbeThreshold(15),
 			WithLivenessProbeTimeout(10),
+			WithReadBufferSize(4),
 			WithLogLevel("debug"),
 			WithGracefulShutdownSeconds(10),
 		)
 
 		annotations := getDaprAnnotations(&config)
 
-		assert.Equal(t, annotations[daprEnabledKey], "true")
+		assert.Equal(t, "true", annotations[daprEnabledKey])
 		assert.Equal(t, annotations[daprAppIDKey], "test-app")
 		assert.Equal(t, annotations[daprAppPortKey], "8080")
 		assert.Equal(t, annotations[daprConfigKey], "test-config")
@@ -311,11 +314,12 @@ func TestGetDaprAnnotations(t *testing.T) {
 		assert.Equal(t, annotations[daprLogLevelKey], "debug")
 		assert.Equal(t, annotations[daprAPITokenSecretKey], "test-api-token")
 		assert.Equal(t, annotations[daprAppTokenSecretKey], "test-app-token")
-		assert.Equal(t, annotations[daprLogLevelKey], "true")
-		assert.Equal(t, annotations[daprAppMaxConcurrencyKey], "8")
+		assert.Equal(t, annotations[daprLogAsJSONKey], "true")
+		assert.Equal(t, annotations[daprAppMaxConcurrencyKey], "2")
 		assert.Equal(t, annotations[daprEnableMetricsKey], "true")
 		assert.Equal(t, annotations[daprMetricsPortKey], "9090")
-		assert.Equal(t, annotations[daprDebugPortKey], "true")
+		assert.Equal(t, annotations[daprEnableDebugKey], "true")
+		assert.Equal(t, annotations[daprDebugPortKey], "9050")
 		assert.Equal(t, annotations[daprEnvKey], "key=value,key1=value1")
 		assert.Equal(t, annotations[daprCPULimitKey], "0.5")
 		assert.Equal(t, annotations[daprMemoryLimitKey], "512Mi")
@@ -324,7 +328,7 @@ func TestGetDaprAnnotations(t *testing.T) {
 		assert.Equal(t, annotations[daprListenAddressesKey], "0.0.0.0")
 		assert.Equal(t, annotations[daprLivenessProbeDelayKey], "10")
 		assert.Equal(t, annotations[daprLivenessProbeTimeoutKey], "10")
-		assert.Equal(t, annotations[daprLivenessProbeDelayKey], "30")
+		assert.Equal(t, annotations[daprLivenessProbePeriodKey], "30")
 		assert.Equal(t, annotations[daprLivenessProbeThresholdKey], "15")
 		assert.Equal(t, annotations[daprReadinessProbeDelayKey], "10")
 		assert.Equal(t, annotations[daprReadinessProbeTimeoutKey], "10")
