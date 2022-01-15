@@ -386,6 +386,9 @@ func getDaprAnnotations(config *InjectOptions) map[string]string {
 	if config.debugEnabled != nil {
 		annotations[daprEnableDebugKey] = strconv.FormatBool(*config.debugEnabled)
 	}
+	if config.debugPort != nil {
+		annotations[daprDebugPortKey] = strconv.FormatInt(int64(*config.debugPort), 10)
+	}
 	if config.env != nil {
 		annotations[daprEnvKey] = *config.env
 	}
@@ -436,6 +439,9 @@ func getDaprAnnotations(config *InjectOptions) map[string]string {
 	}
 	if config.maxRequestBodySize != nil {
 		annotations[daprMaxRequestBodySizeKey] = strconv.FormatInt(int64(*config.maxRequestBodySize), 10)
+	}
+	if config.readBufferSize != nil {
+		annotations[daprReadBufferSizeKey] = strconv.FormatInt(int64(*config.readBufferSize), 10)
 	}
 	if config.httpStreamRequestBody != nil {
 		annotations[daprHTTPStreamRequestBodyKey] = strconv.FormatBool(*config.httpStreamRequestBody)

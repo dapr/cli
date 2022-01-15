@@ -264,10 +264,9 @@ func getOptionsFromFlags() kubernetes.InjectOptions {
 }
 
 func init() {
-	// TODO: Make none present flags nil
 	InjectCmd.Flags().StringVarP(&injectTargetResource, "resource", "r", "", "The resource to target for injection")
 	InjectCmd.Flags().StringVarP(&injectAppID, "app-id", "a", "", "The app id to inject")
-	InjectCmd.Flags().IntVarP(&injectAppPort, "app-port", "p", 0, "The port to expose the app on")
+	InjectCmd.Flags().IntVarP(&injectAppPort, "app-port", "p", -1, "The port to expose the app on")
 	InjectCmd.Flags().StringVarP(&injectConfig, "config", "c", "", "The config file to inject")
 	InjectCmd.Flags().StringVar(&injectAppProtocol, "app-protocol", "", "The protocol to use for the app")
 	InjectCmd.Flags().BoolVar(&injectEnableProfile, "enable-profile", false, "Enable profiling")

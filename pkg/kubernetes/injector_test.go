@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -266,79 +267,108 @@ func TestInject(t *testing.T) {
 
 func TestGetDaprAnnotations(t *testing.T) {
 	t.Run("get dapr annotations", func(t *testing.T) {
-		config := NewInjectorOptions(
-			WithAppID("test-app"),
+		appID := "test-app"
+		metricsPort := 9090
+		apiTokenSecret := "test-api-token-secret"
+		appTokenSecret := "test-app-token-secret"
+		appMaxConcurrency := 2
+		appPort := 8080
+		appProtocol := "http"
+		cpuLimit := "0.5"
+		memoryLimit := "512Mi"
+		cpuRequest := "0.1"
+		memoryRequest := "256Mi"
+		config := "appconfig"
+		debugPort := 9091
+		env := "key=value key1=value1"
+		listenAddresses := "0.0.0.0"
+		daprImage := "test-iamge"
+		maxRequestBodySize := 8
+		readBufferSize := 4
+		livenessProbeDelay := 10
+		livenessProbePeriod := 20
+		livenessProbeThreshold := 3
+		livenessProbeTimeout := 30
+		readinessProbeDelay := 40
+		readinessProbePeriod := 50
+		readinessProbeThreshold := 6
+		readinessProbeTimeout := 60
+		logLevel := "debug"
+		gracefulShutdownSeconds := 10
+
+		opts := NewInjectorOptions(
+			WithAppID(appID),
 			WithMetricsEnabled(),
-			WithMetricsPort(9090),
-			WithAPITokenSecret("test-api-token"),
-			WithAppTokenSecret("test-app-token"),
-			WithAppMaxConcurrency(2),
-			WithAppPort(8080),
-			WithAppProtocol("http"),
+			WithMetricsPort(metricsPort),
+			WithAPITokenSecret(apiTokenSecret),
+			WithAppTokenSecret(appTokenSecret),
+			WithAppMaxConcurrency(appMaxConcurrency),
+			WithAppPort(appPort),
+			WithAppProtocol(appProtocol),
 			WithAppSSL(),
-			WithCPULimit("0.5"),
-			WithMemoryLimit("512Mi"),
-			WithCPURequest("0.1"),
-			WithMemoryRequest("256Mi"),
-			WithConfig("test-config"),
+			WithCPULimit(cpuLimit),
+			WithMemoryLimit(memoryLimit),
+			WithCPURequest(cpuRequest),
+			WithMemoryRequest(memoryRequest),
+			WithConfig(config),
 			WithDebugEnabled(),
-			WithDebugPort(9050),
-			WithEnv("key=value,key1=value1"),
+			WithDebugPort(debugPort),
+			WithEnv(env),
 			WithLogAsJSON(),
-			WithListenAddresses("0.0.0.0"),
-			WithDaprImage("test-image"),
+			WithListenAddresses(listenAddresses),
+			WithDaprImage(daprImage),
 			WithProfileEnabled(),
-			WithMaxRequestBodySize(8),
-			WithReadBufferSize(4),
-			WithReadinessProbeDelay(10),
-			WithReadinessProbePeriod(30),
-			WithReadinessProbeThreshold(15),
-			WithReadinessProbeTimeout(10),
-			WithLivenessProbeDelay(10),
-			WithLivenessProbePeriod(30),
-			WithLivenessProbeThreshold(15),
-			WithLivenessProbeTimeout(10),
-			WithReadBufferSize(4),
-			WithLogLevel("debug"),
-			WithGracefulShutdownSeconds(10),
+			WithMaxRequestBodySize(maxRequestBodySize),
+			WithReadBufferSize(readBufferSize),
+			WithReadinessProbeDelay(readinessProbeDelay),
+			WithReadinessProbePeriod(readinessProbePeriod),
+			WithReadinessProbeThreshold(readinessProbeThreshold),
+			WithReadinessProbeTimeout(readinessProbeTimeout),
+			WithLivenessProbeDelay(livenessProbeDelay),
+			WithLivenessProbePeriod(livenessProbePeriod),
+			WithLivenessProbeThreshold(livenessProbeThreshold),
+			WithLivenessProbeTimeout(livenessProbeTimeout),
+			WithLogLevel(logLevel),
+			WithHTTPStreamRequestBody(),
+			WithGracefulShutdownSeconds(gracefulShutdownSeconds),
 		)
 
-		annotations := getDaprAnnotations(&config)
+		annotations := getDaprAnnotations(&opts)
 
 		assert.Equal(t, "true", annotations[daprEnabledKey])
-		assert.Equal(t, annotations[daprAppIDKey], "test-app")
-		assert.Equal(t, annotations[daprAppPortKey], "8080")
-		assert.Equal(t, annotations[daprConfigKey], "test-config")
-		assert.Equal(t, annotations[daprAppProtocolKey], "http")
-		assert.Equal(t, annotations[daprEnableProfilingKey], "true")
-		assert.Equal(t, annotations[daprLogLevelKey], "debug")
-		assert.Equal(t, annotations[daprAPITokenSecretKey], "test-api-token")
-		assert.Equal(t, annotations[daprAppTokenSecretKey], "test-app-token")
-		assert.Equal(t, annotations[daprLogAsJSONKey], "true")
-		assert.Equal(t, annotations[daprAppMaxConcurrencyKey], "2")
-		assert.Equal(t, annotations[daprEnableMetricsKey], "true")
-		assert.Equal(t, annotations[daprMetricsPortKey], "9090")
-		assert.Equal(t, annotations[daprEnableDebugKey], "true")
-		assert.Equal(t, annotations[daprDebugPortKey], "9050")
-		assert.Equal(t, annotations[daprEnvKey], "key=value,key1=value1")
-		assert.Equal(t, annotations[daprCPULimitKey], "0.5")
-		assert.Equal(t, annotations[daprMemoryLimitKey], "512Mi")
-		assert.Equal(t, annotations[daprCPURequestKey], "0.1")
-		assert.Equal(t, annotations[daprMemoryRequestKey], "256Mi")
-		assert.Equal(t, annotations[daprListenAddressesKey], "0.0.0.0")
-		assert.Equal(t, annotations[daprLivenessProbeDelayKey], "10")
-		assert.Equal(t, annotations[daprLivenessProbeTimeoutKey], "10")
-		assert.Equal(t, annotations[daprLivenessProbePeriodKey], "30")
-		assert.Equal(t, annotations[daprLivenessProbeThresholdKey], "15")
-		assert.Equal(t, annotations[daprReadinessProbeDelayKey], "10")
-		assert.Equal(t, annotations[daprReadinessProbeTimeoutKey], "10")
-		assert.Equal(t, annotations[daprReadinessProbePeriodKey], "30")
-		assert.Equal(t, annotations[daprReadinessProbeThresholdKey], "15")
-		assert.Equal(t, annotations[daprImageKey], "test-image")
-		assert.Equal(t, annotations[daprAppSSLKey], "true")
-		assert.Equal(t, annotations[daprMaxRequestBodySizeKey], "8")
-		assert.Equal(t, annotations[daprReadBufferSizeKey], "4")
-		assert.Equal(t, annotations[daprHTTPStreamRequestBodyKey], "true")
-		assert.Equal(t, annotations[daprGracefulShutdownSecondsKey], "10")
+		assert.Equal(t, appID, annotations[daprAppIDKey])
+		assert.Equal(t, fmt.Sprintf("%d", appPort), annotations[daprAppPortKey])
+		assert.Equal(t, config, annotations[daprConfigKey])
+		assert.Equal(t, appProtocol, annotations[daprAppProtocolKey])
+		assert.Equal(t, "true", annotations[daprEnableProfilingKey])
+		assert.Equal(t, logLevel, annotations[daprLogLevelKey])
+		assert.Equal(t, apiTokenSecret, annotations[daprAPITokenSecretKey])
+		assert.Equal(t, appTokenSecret, annotations[daprAppTokenSecretKey])
+		assert.Equal(t, "true", annotations[daprLogAsJSONKey])
+		assert.Equal(t, fmt.Sprintf("%d", appMaxConcurrency), annotations[daprAppMaxConcurrencyKey])
+		assert.Equal(t, "true", annotations[daprEnableMetricsKey])
+		assert.Equal(t, fmt.Sprintf("%d", metricsPort), annotations[daprMetricsPortKey])
+		assert.Equal(t, "true", annotations[daprEnableDebugKey])
+		assert.Equal(t, fmt.Sprintf("%d", debugPort), annotations[daprDebugPortKey])
+		assert.Equal(t, env, annotations[daprEnvKey])
+		assert.Equal(t, cpuLimit, annotations[daprCPULimitKey])
+		assert.Equal(t, memoryLimit, annotations[daprMemoryLimitKey])
+		assert.Equal(t, cpuRequest, annotations[daprCPURequestKey])
+		assert.Equal(t, memoryRequest, annotations[daprMemoryRequestKey])
+		assert.Equal(t, listenAddresses, annotations[daprListenAddressesKey])
+		assert.Equal(t, fmt.Sprintf("%d", livenessProbeDelay), annotations[daprLivenessProbeDelayKey])
+		assert.Equal(t, fmt.Sprintf("%d", livenessProbeTimeout), annotations[daprLivenessProbeTimeoutKey])
+		assert.Equal(t, fmt.Sprintf("%d", livenessProbePeriod), annotations[daprLivenessProbePeriodKey])
+		assert.Equal(t, fmt.Sprintf("%d", livenessProbeThreshold), annotations[daprLivenessProbeThresholdKey])
+		assert.Equal(t, fmt.Sprintf("%d", readinessProbeDelay), annotations[daprReadinessProbeDelayKey])
+		assert.Equal(t, fmt.Sprintf("%d", readinessProbeTimeout), annotations[daprReadinessProbeTimeoutKey])
+		assert.Equal(t, fmt.Sprintf("%d", readinessProbePeriod), annotations[daprReadinessProbePeriodKey])
+		assert.Equal(t, fmt.Sprintf("%d", readinessProbeThreshold), annotations[daprReadinessProbeThresholdKey])
+		assert.Equal(t, daprImage, annotations[daprImageKey])
+		assert.Equal(t, "true", annotations[daprAppSSLKey])
+		assert.Equal(t, fmt.Sprintf("%d", maxRequestBodySize), annotations[daprMaxRequestBodySizeKey])
+		assert.Equal(t, fmt.Sprintf("%d", readBufferSize), annotations[daprReadBufferSizeKey])
+		assert.Equal(t, "true", annotations[daprHTTPStreamRequestBodyKey])
+		assert.Equal(t, fmt.Sprintf("%d", gracefulShutdownSeconds), annotations[daprGracefulShutdownSecondsKey])
 	})
 }
