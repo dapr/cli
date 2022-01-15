@@ -95,6 +95,7 @@ func NewK8sInjector(config K8sInjectorConfig) *K8sInjector {
 	}
 }
 
+// Inject injects dapr annotations into the kubernetes resource.
 func (p *K8sInjector) Inject(inputs []io.Reader, out io.Writer, opts InjectOptions) error {
 	for _, input := range inputs {
 		err := p.processInput(input, out, opts)
@@ -120,7 +121,7 @@ func (p *K8sInjector) processInput(input io.Reader, out io.Writer, opts InjectOp
 			return err
 		}
 
-		// determine type first so that subsequent unmarshal can use correct version.
+		// Check if the input is a list.
 		var metaType metav1.TypeMeta
 		if err = yaml.Unmarshal(bytes, &metaType); err != nil {
 			return err
