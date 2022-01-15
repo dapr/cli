@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"io"
 	"strconv"
 	"strings"
@@ -111,18 +112,20 @@ func (p *K8sInjector) Inject(inputs []io.Reader, out io.Writer, opts InjectOptio
 func (p *K8sInjector) processInput(input io.Reader, out io.Writer, opts InjectOptions) error {
 	reader := yamlDecoder.NewYAMLReader(bufio.NewReaderSize(input, 4096))
 
+	var result []byte
 	iterations := 0
 	// Read from input and process until EOF or error.
 	for {
 		bytes, err := reader.Read()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
 			return err
 		}
 
-		// Check if the input is a list.
+		// Check if the input is a list as
+		// these requires additional processing.
 		var metaType metav1.TypeMeta
 		if err = yaml.Unmarshal(bytes, &metaType); err != nil {
 			return err
@@ -137,24 +140,10 @@ func (p *K8sInjector) processInput(input io.Reader, out io.Writer, opts InjectOp
 			items := []runtime.RawExtension{}
 			for _, item := range sourceList.Items {
 				var processedYAML []byte
-				if p.injected {
-					// We can only inject dapr into a single resource per execution as the configuration
-					// options are scoped to a single resource e.g. app-id, port, etc. are specific to a
-					// dapr enabled resource. Instead we expect multiple runs to be piped together.
-					processedYAML = item.Raw
-				} else {
-					var injected bool
-					processedYAML, injected, err = p.injectYAML(item.Raw, opts)
-					if err != nil {
-						return err
-					}
-
-					if injected {
-						// Record that we have injected into a document.
-						p.injected = injected
-					}
+				processedYAML, err = p.processYAML(item.Raw, opts)
+				if err != nil {
+					return err
 				}
-
 				var injectedJSON []byte
 				injectedJSON, err = yaml.YAMLToJSON(processedYAML)
 				if err != nil {
@@ -163,63 +152,70 @@ func (p *K8sInjector) processInput(input io.Reader, out io.Writer, opts InjectOp
 				items = append(items, runtime.RawExtension{Raw: injectedJSON}) // nolint:exhaustivestruct
 			}
 			sourceList.Items = items
-			var result []byte
 			result, err = yaml.Marshal(sourceList)
 			if err != nil {
 				return err
 			}
-
-			if iterations > 0 {
-				out.Write([]byte("---\n")) // WARN: Will leave trailing separator
-			}
-			_, err = out.Write(result)
-			if err != nil {
-				return err
-			}
-
-			iterations++
 		} else {
 			var processedYAML []byte
-			if p.injected {
-				// We can only inject dapr into a single resource per execution as the configuration
-				// options are scoped to a single resource e.g. app-id, port, etc. are specific to a
-				// dapr enabled resource. Instead we expect multiple runs to be piped together.
-				processedYAML = bytes
-			} else {
-				var injected bool
-				processedYAML, injected, err = p.injectYAML(bytes, opts)
-				if err != nil {
-					return err
-				}
-				if injected {
-					// Record that we have injected into a document.
-					p.injected = injected
-				}
-			}
-
-			// Insert separator between documents.
-			if iterations > 0 {
-				out.Write([]byte("---\n"))
-			}
-			_, err = out.Write(processedYAML)
+			processedYAML, err = p.processYAML(bytes, opts)
 			if err != nil {
 				return err
 			}
-
-			iterations++
+			result = processedYAML
 		}
+
+		// Insert separator between documents.
+		if iterations > 0 {
+			out.Write([]byte("---\n"))
+		}
+
+		// Write result from processing into the writer.
+		_, err = out.Write(result)
+		if err != nil {
+			return err
+		}
+
+		iterations++
 	}
 
 	return nil
 }
 
+func (p *K8sInjector) processYAML(yamlBytes []byte, opts InjectOptions) ([]byte, error) {
+	var err error
+	var processedYAML []byte
+	if p.injected {
+		// We can only inject dapr into a single resource per execution as the configuration
+		// options are scoped to a single resource e.g. app-id, port, etc. are specific to a
+		// dapr enabled resource. Instead we expect multiple runs to be piped together.
+		processedYAML = yamlBytes
+	} else {
+		var injected bool
+		processedYAML, injected, err = p.injectYAML(yamlBytes, opts)
+		if err != nil {
+			return nil, err
+		}
+		if injected {
+			// Record that we have injected into a document.
+			p.injected = injected
+		}
+	}
+	return processedYAML, nil
+}
+
 func (p *K8sInjector) injectYAML(input []byte, config InjectOptions) ([]byte, bool, error) {
-	// We read the metadata again here in case we have extracted a sub resource from a list.
+	// We read the metadata again here so this method is encapsulated.
 	var metaType metav1.TypeMeta
 	if err := yaml.Unmarshal(input, &metaType); err != nil {
 		return nil, false, err
 	}
 
+	// If the input resource is a 'kind' that
+	// we want to inject dapr into, then we
+	// Unmarshal the input into the appropriate
+	// type and set the required fields to build
+	// a patch (path, value, op).
 	var path string
 	var annotations map[string]string
 	var name string
@@ -285,26 +281,31 @@ func (p *K8sInjector) injectYAML(input []byte, config InjectOptions) ([]byte, bo
 		return input, false, nil
 	}
 
-	// TODO: Figure out a better way to do this
+	// TODO: Currently this is where we decide not to
+	// inject dapr into this resource as it isn't the
+	// target we are looking for. This is a bit late
+	// so it would be good to find a earlier place to
+	// do this.
 	if p.config.TargetResource != nil && *p.config.TargetResource != "" {
 		if !strings.EqualFold(*p.config.TargetResource, name) {
 			return input, false, nil
 		}
 	}
 
+	// Get the dapr annotations and set them on the
+	// resources existing annotation map. This will
+	// override any existing conflicting annotations.
 	if annotations == nil {
 		annotations = make(map[string]string)
 	}
-
-	// Get configured dapr annotations.
 	daprAnnotations := getDaprAnnotations(&config)
-
-	// Add dapr annotations to input document annotations.
 	for k, v := range daprAnnotations {
+		// TODO: Should we log when we are overwriting?
+		// if _, exists := annotations[k]; exists {}
 		annotations[k] = v
 	}
 
-	// Create a patch operation for annotations.
+	// Create a patch operation for the annotations.
 	patchOps := []injector.PatchOperation{}
 	patchOps = append(patchOps, injector.PatchOperation{
 		Op:    "add",
@@ -323,7 +324,9 @@ func (p *K8sInjector) injectYAML(input []byte, config InjectOptions) ([]byte, bo
 		return nil, false, err
 	}
 
-	// Convert the input document to JSON, apply the JSON patch, and convert back to YAML.
+	// As we are applying the patch as a json patch,
+	// we have to convert the current YAML resource to
+	// JSON, apply the patch and then convert back.
 	inputAsJSON, err := yaml.YAMLToJSON(input)
 	if err != nil {
 		return nil, false, err

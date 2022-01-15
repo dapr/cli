@@ -40,7 +40,7 @@ type InjectOptions struct {
 type InjectOption func(*InjectOptions)
 
 func NewInjectorOptions(opts ...InjectOption) InjectOptions {
-	config := InjectOptions{}
+	config := InjectOptions{} // nolint:exhaustivestruct
 	for _, opt := range opts {
 		opt(&config)
 	}
