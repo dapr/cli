@@ -12,7 +12,7 @@ type InjectOptions struct {
 	logLevel                *string
 	apiTokenSecret          *string
 	appTokenSecret          *string
-	logAsJson               *bool
+	logAsJSON               *bool
 	appMaxConcurrency       *int
 	debugEnabled            *bool
 	env                     *string
@@ -112,7 +112,7 @@ func WithAppTokenSecret(appTokenSecret string) InjectOption {
 func WithLogAsJSON() InjectOption {
 	return func(config *InjectOptions) {
 		enabled := true
-		config.logAsJson = &enabled
+		config.logAsJSON = &enabled
 	}
 }
 

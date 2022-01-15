@@ -202,7 +202,7 @@ func TestInject(t *testing.T) {
 			assert.NoError(t, err)
 
 			defer func() {
-				err := inputFile.Close()
+				err = inputFile.Close()
 				assert.NoError(t, err)
 			}()
 

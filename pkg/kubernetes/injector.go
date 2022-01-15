@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dapr/dapr/pkg/injector"
 	jsonpatch "github.com/evanphx/json-patch"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -17,6 +16,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	yamlDecoder "k8s.io/apimachinery/pkg/util/yaml"
 	"sigs.k8s.io/yaml"
+
+	"github.com/dapr/dapr/pkg/injector"
 )
 
 const (
@@ -154,14 +155,16 @@ func (p *K8sInjector) processInput(input io.Reader, out io.Writer, opts InjectOp
 					}
 				}
 
-				injectedJSON, err := yaml.YAMLToJSON(processedYAML)
+				var injectedJSON []byte
+				injectedJSON, err = yaml.YAMLToJSON(processedYAML)
 				if err != nil {
 					return err
 				}
 				items = append(items, runtime.RawExtension{Raw: injectedJSON}) // nolint:exhaustivestruct
 			}
 			sourceList.Items = items
-			result, err := yaml.Marshal(sourceList)
+			var result []byte
+			result, err = yaml.Marshal(sourceList)
 			if err != nil {
 				return err
 			}
@@ -365,8 +368,8 @@ func getDaprAnnotations(config *InjectOptions) map[string]string {
 	if config.logLevel != nil {
 		annotations[daprLogLevelKey] = *config.logLevel
 	}
-	if config.logAsJson != nil {
-		annotations[daprLogAsJSONKey] = strconv.FormatBool(*config.logAsJson)
+	if config.logAsJSON != nil {
+		annotations[daprLogAsJSONKey] = strconv.FormatBool(*config.logAsJSON)
 	}
 	if config.apiTokenSecret != nil {
 		annotations[daprAPITokenSecretKey] = *config.apiTokenSecret

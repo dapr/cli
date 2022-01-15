@@ -18,9 +18,10 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/spf13/cobra"
+
 	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/pkg/print"
-	"github.com/spf13/cobra"
 )
 
 var (
@@ -60,11 +61,17 @@ var (
 )
 
 var InjectCmd = &cobra.Command{
-	Use:   "inject [falgs] CONFIG-FILE",
+	Use:   "inject [flags] CONFIG-FILE",
 	Short: "Inject dapr annotations into a Kubernetes configuration. Supported platforms: Kubernetes",
 	Example: `
-# Inject all the deployments in the default namespace.
-kubectl get deploy -o yaml | dapr inject - | kubectl apply -f -
+# Inject the first deployment where label app=node
+kubectl get deploy -l app=node -o yaml | dapr inject - | kubectl apply -f -
+
+# Inject named deployments in a chain
+kubectl get deploy -o yaml | dapr inject -r nodeapp - | dapr inject -r pythonapp | kubectl apply -f -
+
+# Inject named deployments in a file
+dapr inject -r mydeployment.yml | kubectl apply -f -
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) < 1 {
@@ -118,7 +125,8 @@ func readInputsFromFS(path string) ([]io.Reader, error) {
 
 	if !stat.IsDir() {
 		// input is a file
-		file, err := os.Open(path)
+		var file *os.File
+		file, err = os.Open(path)
 		if err != nil {
 			return nil, err
 		}
