@@ -72,6 +72,9 @@ dapr dashboard -k -p 9999 -a 0.0.0.0
 
 # Port forward to dashboard in Kubernetes using a port
 dapr dashboard -k -p 9999
+
+# Port forward to dashboard in Kubernetes using a random port which is free.
+dapr dashboard -k -p 0
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		if dashboardVersionCmd {
