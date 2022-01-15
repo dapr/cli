@@ -14,7 +14,12 @@ limitations under the License.
 package cmd
 
 import (
+	"bytes"
+	"fmt"
 	"io"
+	"io/ioutil"
+	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 
@@ -72,6 +77,9 @@ kubectl get deploy -o yaml | dapr inject -r nodeapp - | dapr inject -r pythonapp
 
 # Inject named deployments in a file
 dapr inject -r mydeployment.yml | kubectl apply -f -
+
+# Inject name deployments from url
+dapr inject -r nodeapp --log-level debug https://raw.githubusercontent.com/dapr/quickstarts/master/hello-kubernetes/deploy/node.yaml | kubectl apply -f -
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) < 1 {
@@ -106,6 +114,23 @@ func readInput(arg string) ([]io.Reader, error) {
 	if arg == "-" {
 		// input is from stdin
 		inputs = append(inputs, os.Stdin)
+	} else if isURL(arg) {
+		resp, err := http.Get(arg)
+		if err != nil {
+			return nil, err
+		}
+		if resp.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("unable to read from %s: %d - %s", arg, resp.StatusCode, resp.Status)
+		}
+
+		var b []byte
+		b, err = ioutil.ReadAll(resp.Body)
+		if err != nil {
+			resp.Body.Close()
+			return nil, err
+		}
+		resp.Body.Close()
+		inputs = append(inputs, bytes.NewReader(b))
 	} else {
 		// input is from file or dir
 		inputs, err = readInputsFromFS(arg)
@@ -115,6 +140,15 @@ func readInput(arg string) ([]io.Reader, error) {
 	}
 
 	return inputs, nil
+}
+
+func isURL(maybeURL string) bool {
+	url, err := url.ParseRequestURI(maybeURL)
+	if err != nil {
+		return false
+	}
+
+	return url.Host != "" && url.Scheme != ""
 }
 
 func readInputsFromFS(path string) ([]io.Reader, error) {
