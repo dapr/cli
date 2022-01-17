@@ -115,22 +115,10 @@ func readInput(arg string) ([]io.Reader, error) {
 		// input is from stdin
 		inputs = append(inputs, os.Stdin)
 	} else if isURL(arg) {
-		resp, err := http.Get(arg)
+		inputs, err = readInputsFromURL(arg)
 		if err != nil {
 			return nil, err
 		}
-		if resp.StatusCode != http.StatusOK {
-			return nil, fmt.Errorf("unable to read from %s: %d - %s", arg, resp.StatusCode, resp.Status)
-		}
-
-		var b []byte
-		b, err = ioutil.ReadAll(resp.Body)
-		if err != nil {
-			resp.Body.Close()
-			return nil, err
-		}
-		resp.Body.Close()
-		inputs = append(inputs, bytes.NewReader(b))
 	} else {
 		// input is from file or dir
 		inputs, err = readInputsFromFS(arg)
@@ -140,6 +128,25 @@ func readInput(arg string) ([]io.Reader, error) {
 	}
 
 	return inputs, nil
+}
+
+func readInputsFromURL(url string) ([]io.Reader, error) {
+	resp, err := http.Get(url) // #nosec
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unable to read from %s: %d - %s", url, resp.StatusCode, resp.Status)
+	}
+
+	var b []byte
+	b, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	reader := bytes.NewReader(b)
+	return []io.Reader{reader}, nil
 }
 
 func isURL(maybeURL string) bool {

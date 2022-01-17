@@ -269,8 +269,8 @@ func TestGetDaprAnnotations(t *testing.T) {
 	t.Run("get dapr annotations", func(t *testing.T) {
 		appID := "test-app"
 		metricsPort := 9090
-		apiTokenSecret := "test-api-token-secret"
-		appTokenSecret := "test-app-token-secret"
+		apiTokenSecret := "test-api-token-secret" // #nosec
+		appTokenSecret := "test-app-token-secret" // #nosec
 		appMaxConcurrency := 2
 		appPort := 8080
 		appProtocol := "http"
