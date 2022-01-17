@@ -69,16 +69,16 @@ var InjectCmd = &cobra.Command{
 	Use:   "inject [flags] CONFIG-FILE",
 	Short: "Inject dapr annotations into a Kubernetes configuration. Supported platforms: Kubernetes",
 	Example: `
-# Inject the first deployment where label app=node
+# Inject the first deployment found in the input
 kubectl get deploy -l app=node -o yaml | dapr inject - | kubectl apply -f -
 
-# Inject named deployments in a chain
+# Inject multiple deployments by name in a chain
 kubectl get deploy -o yaml | dapr inject -r nodeapp - | dapr inject -r pythonapp | kubectl apply -f -
 
-# Inject named deployments in a file
+# Inject deployment from file or directory by name
 dapr inject -r mydeployment.yml | kubectl apply -f -
 
-# Inject name deployments from url
+# Inject deployment from url by name
 dapr inject -r nodeapp --log-level debug https://raw.githubusercontent.com/dapr/quickstarts/master/hello-kubernetes/deploy/node.yaml | kubectl apply -f -
 `,
 	Run: func(cmd *cobra.Command, args []string) {
