@@ -52,6 +52,7 @@ type RunConfig struct {
 	MetricsPort        int    `env:"DAPR_METRICS_PORT" arg:"metrics-port"`
 	MaxRequestBodySize int    `arg:"dapr-http-max-request-size"`
 	UnixDomainSocket   string `arg:"unix-domain-socket"`
+	InternalGRPCPort   int    `arg:"dapr-internal-grpc-port"`
 }
 
 func (meta *DaprMeta) newAppID() string {

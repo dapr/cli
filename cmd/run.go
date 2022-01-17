@@ -16,6 +16,7 @@ package cmd
 import (
 	"bufio"
 	"fmt"
+	"net"
 	"os"
 	"runtime"
 	"strconv"
@@ -97,6 +98,11 @@ dapr run --app-id myapp --app-port 3000 --app-protocol grpc -- go run main.go
 			}
 		}
 
+		internalGrpcPort, err := getFreePort()
+		if err != nil {
+			print.FailureStatusEvent(os.Stderr, err.Error())
+			return
+		}
 		output, err := standalone.Run(&standalone.RunConfig{
 			AppID:              appID,
 			AppPort:            appPort,
@@ -115,6 +121,7 @@ dapr run --app-id myapp --app-port 3000 --app-protocol grpc -- go run main.go
 			MetricsPort:        metricsPort,
 			MaxRequestBodySize: maxRequestBodySize,
 			UnixDomainSocket:   unixDomainSocket,
+			InternalGRPCPort:   internalGrpcPort,
 		})
 		if err != nil {
 			print.FailureStatusEvent(os.Stderr, err.Error())
@@ -349,4 +356,19 @@ func init() {
 	RunCmd.Flags().StringVarP(&unixDomainSocket, "unix-domain-socket", "u", "", "Path to a unix domain socket dir. If specified, Dapr API servers will use Unix Domain Sockets")
 
 	RootCmd.AddCommand(RunCmd)
+}
+
+// GetFreePort asks the kernel for a free open port that is ready to use.
+func getFreePort() (int, error) {
+	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
+	if err != nil {
+		return 0, err
+	}
+
+	l, err := net.ListenTCP("tcp", addr)
+	if err != nil {
+		return 0, err
+	}
+	defer l.Close()
+	return l.Addr().(*net.TCPAddr).Port, nil
 }
