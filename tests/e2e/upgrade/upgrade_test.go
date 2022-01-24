@@ -64,7 +64,7 @@ var supportedUpgradePaths = []upgradePath{
 	// test downgrade
 	{
 		previous: common.VersionDetails{
-			RuntimeVersion:      "1.6.0-rc.2",
+			RuntimeVersion:      "1.6.0-rc.4",
 			DashboardVersion:    "0.9.0",
 			ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
 			ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
@@ -87,7 +87,7 @@ var supportedUpgradePaths = []upgradePath{
 			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
 		},
 		next: common.VersionDetails{
-			RuntimeVersion:      "1.6.0-rc.2",
+			RuntimeVersion:      "1.6.0-rc.4",
 			DashboardVersion:    "0.9.0",
 			ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
 			ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
