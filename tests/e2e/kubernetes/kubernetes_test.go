@@ -17,14 +17,15 @@ limitations under the License.
 package kubernetes_test
 
 import (
+	"os"
 	"testing"
 
 	"github.com/dapr/cli/tests/e2e/common"
 )
 
-const (
-	currentRuntimeVersion   = "1.5.1"
-	currentDashboardVersion = "0.9.0"
+var (
+	currentRuntimeVersion   = os.Getenv("DAPR_RUNTIME_VERSION")
+	currentDashboardVersion = os.Getenv("DAPR_DASHBOARD_VERSION")
 )
 
 var currentVersionDetails = common.VersionDetails{
