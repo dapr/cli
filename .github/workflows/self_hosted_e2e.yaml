@@ -35,7 +35,7 @@ jobs:
       GOARCH: ${{ matrix.target_arch }}
       GOPROXY: https://proxy.golang.org
       ARCHIVE_OUTDIR: dist/archives
-      DAPR_RUNTIME_VERSION: "1.6.0-rc.2"
+      DAPR_RUNTIME_VERSION: "1.6.0"
       DAPR_DASHBOARD_VERSION: 0.9.0
     strategy:
       matrix:
