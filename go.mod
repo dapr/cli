@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/Pallinder/sillyname-go v0.0.0-20130730142914-97aeae9e6ba1
 	github.com/briandowns/spinner v1.6.1
-	github.com/dapr/dapr v1.6.0-rc.2
+	github.com/dapr/dapr v1.6.0
 	github.com/dapr/go-sdk v1.0.0
 	github.com/docker/docker v17.12.0-ce-rc1.0.20200916142827-bd33bbf0497b+incompatible
 	github.com/emicklei/go-restful v2.10.0+incompatible // indirect
