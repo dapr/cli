@@ -176,6 +176,9 @@ installFile() {
         exit 1
     fi
 
+    if [ -f "$DAPR_CLI_FILE" ]; then
+        runAsRoot rm "$DAPR_CLI_FILE"
+    fi
     chmod o+x $tmp_root_dapr_cli
     runAsRoot cp "$tmp_root_dapr_cli" "$DAPR_INSTALL_DIR"
 
