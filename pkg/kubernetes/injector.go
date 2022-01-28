@@ -89,6 +89,10 @@ type K8sInjectorConfig struct {
 	// annotations on that target resource. If it is not set, we will
 	// update the first appropriate resource we find.
 	TargetResource *string
+	// If TargetNamespace is set, we will search for the target resource
+	// in the provided target namespace. If it is not set, we will
+	// just search for the first occurance of the target resource.
+	TargetNamespace *string
 }
 
 func NewK8sInjector(config K8sInjectorConfig) *K8sInjector {
@@ -299,7 +303,14 @@ func (p *K8sInjector) injectYAML(input []byte, config InjectOptions) ([]byte, bo
 	// do this.
 	if p.config.TargetResource != nil && *p.config.TargetResource != "" {
 		if !strings.EqualFold(*p.config.TargetResource, name) {
+			// Not the resource name we're injecting.
 			return input, false, nil
+		}
+		if p.config.TargetNamespace != nil && *p.config.TargetNamespace != "" {
+			if !strings.EqualFold(*p.config.TargetNamespace, ns) {
+				// Not the namespace we're injecting.
+				return input, false, nil
+			}
 		}
 	}
 

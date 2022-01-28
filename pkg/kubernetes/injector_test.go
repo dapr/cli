@@ -30,8 +30,9 @@ var (
 )
 
 type injection struct {
-	targetName    string
-	optionFactory func() InjectOptions
+	targetResource  string
+	targetNamespace string
+	optionFactory   func() InjectOptions
 }
 
 func TestInject(t *testing.T) {
@@ -56,7 +57,7 @@ func TestInject(t *testing.T) {
 			testID: "single targeted injection into pod (config 1)",
 			injections: []injection{
 				{
-					targetName: "mypod",
+					targetResource: "mypod",
 					optionFactory: func() InjectOptions {
 						return NewInjectorOptions(
 							WithAppID("test-app"),
@@ -72,7 +73,7 @@ func TestInject(t *testing.T) {
 			testID: "single targeted injection into pod (config 2)",
 			injections: []injection{
 				{
-					targetName: "mypod",
+					targetResource: "mypod",
 					optionFactory: func() InjectOptions {
 						return NewInjectorOptions(
 							WithAppID("test-app"),
@@ -91,7 +92,7 @@ func TestInject(t *testing.T) {
 			testID: "single targeted injection into pod without an app id in default namespace (config 3)",
 			injections: []injection{
 				{
-					targetName: "mypod",
+					targetResource: "mypod",
 					optionFactory: func() InjectOptions {
 						return NewInjectorOptions()
 					},
@@ -105,7 +106,7 @@ func TestInject(t *testing.T) {
 			testID: "single targeted injection into pod without an app id in a namespace (config 4)",
 			injections: []injection{
 				{
-					targetName: "mypod",
+					targetResource: "mypod",
 					optionFactory: func() InjectOptions {
 						return NewInjectorOptions()
 					},
@@ -119,7 +120,7 @@ func TestInject(t *testing.T) {
 			testID: "single targeted injection into deployment (config 1)",
 			injections: []injection{
 				{
-					targetName: "nodeapp",
+					targetResource: "nodeapp",
 					optionFactory: func() InjectOptions {
 						return NewInjectorOptions(
 							WithAppID("nodeapp"),
@@ -136,7 +137,7 @@ func TestInject(t *testing.T) {
 			testID: "partial injection into deployment (config 2)",
 			injections: []injection{
 				{
-					targetName: "nodeapp",
+					targetResource: "nodeapp",
 					optionFactory: func() InjectOptions {
 						return NewInjectorOptions(
 							WithAppID("nodeapp"),
@@ -153,7 +154,7 @@ func TestInject(t *testing.T) {
 			testID: "single targeted injection into multi (config 1)",
 			injections: []injection{
 				{
-					targetName: "divideapp",
+					targetResource: "divideapp",
 					optionFactory: func() InjectOptions {
 						return NewInjectorOptions(
 							WithAppID("divideapp"),
@@ -171,7 +172,7 @@ func TestInject(t *testing.T) {
 			testID: "multiple targeted injections into multi (config 2)",
 			injections: []injection{
 				{
-					targetName: "subtractapp",
+					targetResource: "subtractapp",
 					optionFactory: func() InjectOptions {
 						return NewInjectorOptions(
 							WithAppID("subtractapp"),
@@ -181,7 +182,7 @@ func TestInject(t *testing.T) {
 					},
 				},
 				{
-					targetName: "addapp",
+					targetResource: "addapp",
 					optionFactory: func() InjectOptions {
 						return NewInjectorOptions(
 							WithAppID("addapp"),
@@ -191,7 +192,7 @@ func TestInject(t *testing.T) {
 					},
 				},
 				{
-					targetName: "multiplyapp",
+					targetResource: "multiplyapp",
 					optionFactory: func() InjectOptions {
 						return NewInjectorOptions(
 							WithAppID("multiplyapp"),
@@ -201,7 +202,7 @@ func TestInject(t *testing.T) {
 					},
 				},
 				{
-					targetName: "divideapp",
+					targetResource: "divideapp",
 					optionFactory: func() InjectOptions {
 						return NewInjectorOptions(
 							WithAppID("divideapp"),
@@ -211,7 +212,7 @@ func TestInject(t *testing.T) {
 					},
 				},
 				{
-					targetName: "calculator-front-end",
+					targetResource: "calculator-front-end",
 					optionFactory: func() InjectOptions {
 						return NewInjectorOptions(
 							WithAppID("calculator-front-end"),
@@ -241,6 +242,23 @@ func TestInject(t *testing.T) {
 			inputFilePath:    path.Join(multiInDir, "raw.yml"),
 			expectedFilePath: path.Join(multiOutDir, "config_3.yml"),
 			// printOutput:      true, // Uncomment to debug.
+		},
+		{
+			testID: "single targeted injection into multi with namespace (config 4)",
+			injections: []injection{
+				{
+					targetResource:  "subtractapp",
+					targetNamespace: "test1",
+					optionFactory: func() InjectOptions {
+						return NewInjectorOptions(
+							WithAppID("subtractapp"),
+						)
+					},
+				},
+			},
+			inputFilePath:    path.Join(multiInDir, "namespace.yml"),
+			expectedFilePath: path.Join(multiOutDir, "config_4.yml"),
+			printOutput:      true, // Uncomment to debug.
 		},
 		{
 			testID: "single untargeted injection into list config",
@@ -275,7 +293,8 @@ func TestInject(t *testing.T) {
 			in := []io.Reader{inputFile}
 			for i, injection := range tt.injections {
 				injector := NewK8sInjector(K8sInjectorConfig{
-					TargetResource: &injection.targetName,
+					TargetResource:  &injection.targetResource,
+					TargetNamespace: &injection.targetNamespace,
 				})
 				injectOptions := injection.optionFactory()
 

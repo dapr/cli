@@ -31,6 +31,7 @@ import (
 
 var (
 	injectTargetResource          string
+	injectTargetNamespace         string
 	injectAppID                   string
 	injectAppPort                 int
 	injectConfig                  string
@@ -76,7 +77,7 @@ kubectl get deploy -l app=node -o yaml | dapr inject - | kubectl apply -f -
 kubectl get deploy -o yaml | dapr inject -r nodeapp - | dapr inject -r pythonapp | kubectl apply -f -
 
 # Inject deployment from file or directory by name
-dapr inject -r mydeployment.yml | kubectl apply -f -
+dapr inject -r nodeapp mydeployment.yml | kubectl apply -f -
 
 # Inject deployment from url by name
 dapr inject -r nodeapp --log-level debug https://raw.githubusercontent.com/dapr/quickstarts/master/hello-kubernetes/deploy/node.yaml | kubectl apply -f -
@@ -97,6 +98,17 @@ dapr inject -r nodeapp --log-level debug https://raw.githubusercontent.com/dapr/
 		if injectTargetResource != "" {
 			config = kubernetes.K8sInjectorConfig{
 				TargetResource: &injectTargetResource,
+			}
+			if injectTargetNamespace != "" {
+				config.TargetNamespace = &injectTargetNamespace
+			}
+		} else {
+			if injectTargetNamespace != "" {
+				// The resource is empty but namespace is set, this
+				// is invalid as we cannot search for a resource
+				// if the identifier isn't provided.
+				print.FailureStatusEvent(os.Stderr, "--resource is required when --namespace is provided.")
+				os.Exit(1)
 			}
 		}
 		injector := kubernetes.NewK8sInjector(config)
@@ -306,6 +318,7 @@ func getOptionsFromFlags() kubernetes.InjectOptions {
 
 func init() {
 	InjectCmd.Flags().StringVarP(&injectTargetResource, "resource", "r", "", "The resource to target for injection")
+	InjectCmd.Flags().StringVarP(&injectTargetNamespace, "namespace", "n", "", "The namespace the resource target is in (can only be set if --resource is also set)")
 	InjectCmd.Flags().StringVarP(&injectAppID, "app-id", "a", "", "The app id to inject")
 	InjectCmd.Flags().IntVarP(&injectAppPort, "app-port", "p", -1, "The port to expose the app on")
 	InjectCmd.Flags().StringVarP(&injectConfig, "config", "c", "", "The config file to inject")
