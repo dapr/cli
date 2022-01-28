@@ -317,8 +317,8 @@ func (p *K8sInjector) injectYAML(input []byte, config InjectOptions) ([]byte, bo
 	}
 
 	// Check if the app id has been set, if not, we'll
-	// use the Kubernetes resource metadata name and kind.
-	// For example: nodeapp-deployment
+	// use the resource metadata namespace, kind and name.
+	// For example: namespace-kind-name.
 	if _, appIDSet := annotations[daprAppIDKey]; !appIDSet {
 		annotations[daprAppIDKey] = fmt.Sprintf("%s-%s-%s", ns, kind, name)
 	}
