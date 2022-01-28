@@ -76,8 +76,8 @@ kubectl get deploy -l app=node -o yaml | dapr inject - | kubectl apply -f -
 # Inject multiple deployments by name in a chain
 kubectl get deploy -o yaml | dapr inject -r nodeapp - | dapr inject -r pythonapp | kubectl apply -f -
 
-# Inject deployment from file or directory by name
-dapr inject -r nodeapp mydeployment.yml | kubectl apply -f -
+# Inject deployment in a specific namespace from file or directory by name
+dapr inject -r nodeapp -n namespace mydeployment.yml | kubectl apply -f -
 
 # Inject deployment from url by name
 dapr inject -r nodeapp --log-level debug https://raw.githubusercontent.com/dapr/quickstarts/master/hello-kubernetes/deploy/node.yaml | kubectl apply -f -
