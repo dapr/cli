@@ -6,11 +6,27 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path"
 	"sort"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+)
+
+const (
+	injectorTestDataDir = "testdata/injector"
+)
+
+var (
+	podInDir         = path.Join(injectorTestDataDir, "pod/in")
+	podOutDir        = path.Join(injectorTestDataDir, "pod/out")
+	deploymentInDir  = path.Join(injectorTestDataDir, "deployment/in")
+	deploymentOutDir = path.Join(injectorTestDataDir, "deployment/out")
+	multiInDir       = path.Join(injectorTestDataDir, "multi/in")
+	multiOutDir      = path.Join(injectorTestDataDir, "multi/out")
+	listInDir        = path.Join(injectorTestDataDir, "list/in")
+	listOutDir       = path.Join(injectorTestDataDir, "list/out")
 )
 
 type injection struct {
@@ -34,9 +50,10 @@ func TestInject(t *testing.T) {
 		injections       []injection
 		inputFilePath    string
 		expectedFilePath string
+		printOutput      bool
 	}{
 		{
-			testID: "single targeted injection into pod config 1",
+			testID: "single targeted injection into pod (config 1)",
 			injections: []injection{
 				{
 					targetName: "mypod",
@@ -47,11 +64,12 @@ func TestInject(t *testing.T) {
 					},
 				},
 			},
-			inputFilePath:    "testdata/pod_raw.yml",
-			expectedFilePath: "testdata/pod_injected_conf_1.yml",
+			inputFilePath:    path.Join(podInDir, "raw.yml"),
+			expectedFilePath: path.Join(podOutDir, "config_1.yml"),
+			// printOutput:      true, // Uncomment to debug.
 		},
 		{
-			testID: "single targeted injection into pod config 2",
+			testID: "single targeted injection into pod (config 2)",
 			injections: []injection{
 				{
 					targetName: "mypod",
@@ -65,11 +83,40 @@ func TestInject(t *testing.T) {
 					},
 				},
 			},
-			inputFilePath:    "testdata/pod_raw.yml",
-			expectedFilePath: "testdata/pod_injected_conf_2.yml",
+			inputFilePath:    path.Join(podInDir, "raw.yml"),
+			expectedFilePath: path.Join(podOutDir, "config_2.yml"),
+			// printOutput:      true, // Uncomment to debug.
 		},
 		{
-			testID: "single targeted injection into deployment config 1",
+			testID: "single targeted injection into pod without an app id in default namespace (config 3)",
+			injections: []injection{
+				{
+					targetName: "mypod",
+					optionFactory: func() InjectOptions {
+						return NewInjectorOptions()
+					},
+				},
+			},
+			inputFilePath:    path.Join(podInDir, "raw.yml"),
+			expectedFilePath: path.Join(podOutDir, "config_3.yml"),
+			// printOutput:      true, // Uncomment to debug.
+		},
+		{
+			testID: "single targeted injection into pod without an app id in a namespace (config 4)",
+			injections: []injection{
+				{
+					targetName: "mypod",
+					optionFactory: func() InjectOptions {
+						return NewInjectorOptions()
+					},
+				},
+			},
+			inputFilePath:    path.Join(podInDir, "namespace.yml"),
+			expectedFilePath: path.Join(podOutDir, "config_4.yml"),
+			// printOutput:      true, // Uncomment to debug.
+		},
+		{
+			testID: "single targeted injection into deployment (config 1)",
 			injections: []injection{
 				{
 					targetName: "nodeapp",
@@ -81,11 +128,12 @@ func TestInject(t *testing.T) {
 					},
 				},
 			},
-			inputFilePath:    "testdata/deployment_raw.yml",
-			expectedFilePath: "testdata/deployment_injected_conf_1.yml",
+			inputFilePath:    path.Join(deploymentInDir, "raw.yml"),
+			expectedFilePath: path.Join(deploymentOutDir, "config_1.yml"),
+			// printOutput:      true, // Uncomment to debug.
 		},
 		{
-			testID: "partial injection into deployment config 1",
+			testID: "partial injection into deployment (config 2)",
 			injections: []injection{
 				{
 					targetName: "nodeapp",
@@ -97,11 +145,12 @@ func TestInject(t *testing.T) {
 					},
 				},
 			},
-			inputFilePath:    "testdata/deployment_partial.yml",
-			expectedFilePath: "testdata/deployment_injected_conf_1.yml",
+			inputFilePath:    path.Join(deploymentInDir, "partial.yml"),
+			expectedFilePath: path.Join(deploymentOutDir, "config_1.yml"),
+			// printOutput:      true, // Uncomment to debug.
 		},
 		{
-			testID: "single targeted injection into multi config 1",
+			testID: "single targeted injection into multi (config 1)",
 			injections: []injection{
 				{
 					targetName: "divideapp",
@@ -114,11 +163,12 @@ func TestInject(t *testing.T) {
 					},
 				},
 			},
-			inputFilePath:    "testdata/multi_raw.yml",
-			expectedFilePath: "testdata/multi_injected_conf_1.yml",
+			inputFilePath:    path.Join(multiInDir, "raw.yml"),
+			expectedFilePath: path.Join(multiOutDir, "config_1.yml"),
+			// printOutput:      true, // Uncomment to debug.
 		},
 		{
-			testID: "multiple targeted injections into multi config 2",
+			testID: "multiple targeted injections into multi (config 2)",
 			injections: []injection{
 				{
 					targetName: "subtractapp",
@@ -171,11 +221,12 @@ func TestInject(t *testing.T) {
 					},
 				},
 			},
-			inputFilePath:    "testdata/multi_raw.yml",
-			expectedFilePath: "testdata/multi_injected_conf_2.yml",
+			inputFilePath:    path.Join(multiInDir, "raw.yml"),
+			expectedFilePath: path.Join(multiOutDir, "config_2.yml"),
+			// printOutput:      true, // Uncomment to debug.
 		},
 		{
-			testID: "single untargeted injection into multi config 3",
+			testID: "single untargeted injection into multi (config 3)",
 			injections: []injection{
 				{
 					optionFactory: func() InjectOptions {
@@ -187,8 +238,9 @@ func TestInject(t *testing.T) {
 					},
 				},
 			},
-			inputFilePath:    "testdata/multi_raw.yml",
-			expectedFilePath: "testdata/multi_injected_conf_3.yml",
+			inputFilePath:    path.Join(multiInDir, "raw.yml"),
+			expectedFilePath: path.Join(multiOutDir, "config_3.yml"),
+			// printOutput:      true, // Uncomment to debug.
 		},
 		{
 			testID: "single untargeted injection into list config",
@@ -202,8 +254,9 @@ func TestInject(t *testing.T) {
 					},
 				},
 			},
-			inputFilePath:    "testdata/list_raw.yml",
-			expectedFilePath: "testdata/list_injected_conf_1.yml",
+			inputFilePath:    path.Join(listInDir, "raw.yml"),
+			expectedFilePath: path.Join(listOutDir, "config_1.yml"),
+			// printOutput:      true, // Uncomment to debug.
 		},
 	}
 
@@ -259,6 +312,9 @@ func TestInject(t *testing.T) {
 			assert.Equal(t, len(expectedDocs), len(outDocs))
 
 			for i := range expectedDocs {
+				if tt.printOutput {
+					t.Logf(outDocs[i])
+				}
 				assert.YAMLEq(t, expectedDocs[i], outDocs[i])
 			}
 		})

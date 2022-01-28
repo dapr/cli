@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"strconv"
 	"strings"
@@ -219,7 +220,10 @@ func (p *K8sInjector) injectYAML(input []byte, config InjectOptions) ([]byte, bo
 	var path string
 	var annotations map[string]string
 	var name string
-	switch strings.ToLower(metaType.Kind) {
+	var ns string
+
+	kind := strings.ToLower(metaType.Kind)
+	switch kind {
 	case pod:
 		pod := &corev1.Pod{} // nolint:exhaustivestruct
 		if err := yaml.Unmarshal(input, pod); err != nil {
@@ -228,6 +232,7 @@ func (p *K8sInjector) injectYAML(input []byte, config InjectOptions) ([]byte, bo
 		name = pod.Name
 		annotations = pod.Annotations
 		path = podAnnotationsPath
+		ns = getNamespaceOrDefault(pod)
 	case cronjob:
 		cronjob := &batchv1beta1.CronJob{} // nolint:exhaustivestruct
 		if err := yaml.Unmarshal(input, cronjob); err != nil {
@@ -236,6 +241,7 @@ func (p *K8sInjector) injectYAML(input []byte, config InjectOptions) ([]byte, bo
 		name = cronjob.Name
 		annotations = cronjob.Spec.JobTemplate.Spec.Template.Annotations
 		path = cronjobAnnotationsPath
+		ns = getNamespaceOrDefault(cronjob)
 	case deployment:
 		deployment := &appsv1.Deployment{} // nolint:exhaustivestruct
 		if err := yaml.Unmarshal(input, deployment); err != nil {
@@ -244,6 +250,7 @@ func (p *K8sInjector) injectYAML(input []byte, config InjectOptions) ([]byte, bo
 		name = deployment.Name
 		annotations = deployment.Spec.Template.Annotations
 		path = templateAnnotationsPath
+		ns = getNamespaceOrDefault(deployment)
 	case replicaset:
 		replicaset := &appsv1.ReplicaSet{} // nolint:exhaustivestruct
 		if err := yaml.Unmarshal(input, replicaset); err != nil {
@@ -252,6 +259,7 @@ func (p *K8sInjector) injectYAML(input []byte, config InjectOptions) ([]byte, bo
 		name = replicaset.Name
 		annotations = replicaset.Spec.Template.Annotations
 		path = templateAnnotationsPath
+		ns = getNamespaceOrDefault(replicaset)
 	case job:
 		job := &batchv1.Job{} // nolint:exhaustivestruct
 		if err := yaml.Unmarshal(input, job); err != nil {
@@ -260,6 +268,7 @@ func (p *K8sInjector) injectYAML(input []byte, config InjectOptions) ([]byte, bo
 		name = job.Name
 		annotations = job.Spec.Template.Annotations
 		path = templateAnnotationsPath
+		ns = getNamespaceOrDefault(job)
 	case statefulset:
 		statefulset := &appsv1.StatefulSet{} // nolint:exhaustivestruct
 		if err := yaml.Unmarshal(input, statefulset); err != nil {
@@ -268,6 +277,7 @@ func (p *K8sInjector) injectYAML(input []byte, config InjectOptions) ([]byte, bo
 		name = statefulset.Name
 		annotations = statefulset.Spec.Template.Annotations
 		path = templateAnnotationsPath
+		ns = getNamespaceOrDefault(statefulset)
 	case daemonset:
 		daemonset := &appsv1.DaemonSet{} // nolint:exhaustivestruct
 		if err := yaml.Unmarshal(input, daemonset); err != nil {
@@ -276,6 +286,7 @@ func (p *K8sInjector) injectYAML(input []byte, config InjectOptions) ([]byte, bo
 		name = daemonset.Name
 		annotations = daemonset.Spec.Template.Annotations
 		path = templateAnnotationsPath
+		ns = getNamespaceOrDefault(daemonset)
 	default:
 		// No injection needed for this kind.
 		return input, false, nil
@@ -303,6 +314,13 @@ func (p *K8sInjector) injectYAML(input []byte, config InjectOptions) ([]byte, bo
 		// TODO: Should we log when we are overwriting?
 		// if _, exists := annotations[k]; exists {}
 		annotations[k] = v
+	}
+
+	// Check if the app id has been set, if not, we'll
+	// use the Kubernetes resource metadata name and kind.
+	// For example: nodeapp-deployment
+	if _, appIDSet := annotations[daprAppIDKey]; !appIDSet {
+		annotations[daprAppIDKey] = fmt.Sprintf("%s-%s-%s", ns, kind, name)
 	}
 
 	// Create a patch operation for the annotations.
@@ -341,6 +359,18 @@ func (p *K8sInjector) injectYAML(input []byte, config InjectOptions) ([]byte, bo
 	}
 
 	return injectedAsYAML, true, nil
+}
+
+type NamespacedObject interface {
+	GetNamespace() string
+}
+
+func getNamespaceOrDefault(obj NamespacedObject) string {
+	ns := obj.GetNamespace()
+	if ns == "" {
+		return "default"
+	}
+	return ns
 }
 
 func getDaprAnnotations(config *InjectOptions) map[string]string {
