@@ -258,7 +258,7 @@ func TestInject(t *testing.T) {
 			},
 			inputFilePath:    path.Join(multiInDir, "namespace.yml"),
 			expectedFilePath: path.Join(multiOutDir, "config_4.yml"),
-			printOutput:      true, // Uncomment to debug.
+			// printOutput:      true, // Uncomment to debug.
 		},
 		{
 			testID: "single untargeted injection into list config",
