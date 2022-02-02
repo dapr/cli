@@ -82,9 +82,9 @@ dapr inject -r nodeapp -n namespace mydeployment.yml | kubectl apply -f -
 # Inject deployment from url by name
 dapr inject -r nodeapp --log-level debug https://raw.githubusercontent.com/dapr/quickstarts/master/hello-kubernetes/deploy/node.yaml | kubectl apply -f -
 
-----------------------------------------
+--------------------------------------------------------------------------------
 WARNING: If an app id is not provided, we will generate one using the format '<namespace>-<kind>-<name>'.
-----------------------------------------
+--------------------------------------------------------------------------------
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) < 1 {
@@ -102,7 +102,7 @@ WARNING: If an app id is not provided, we will generate one using the format '<n
 		if injectTargetResource != "" {
 			config = kubernetes.K8sInjectorConfig{
 				TargetResource: &injectTargetResource,
-			}
+			}  // nolint:exhaustivestruct
 			if injectTargetNamespace != "" {
 				config.TargetNamespace = &injectTargetNamespace
 			}

@@ -91,7 +91,7 @@ type K8sInjectorConfig struct {
 	TargetResource *string
 	// If TargetNamespace is set, we will search for the target resource
 	// in the provided target namespace. If it is not set, we will
-	// just search for the first occurance of the target resource.
+	// just search for the first occurrence of the target resource.
 	TargetNamespace *string
 }
 
