@@ -108,7 +108,7 @@ func isBinaryInstallationRequired(binaryFilePrefix, installDir string) (bool, er
 }
 
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
-func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool, imageRepositoryUrl string) error {
+func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool, imageRepositoryURL string) error {
 	if !slimMode {
 		dockerInstalled := utils.IsDockerInstalled()
 		if !dockerInstalled {
@@ -191,7 +191,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 
 	for _, step := range initSteps {
 		// Run init on the configurations and containers
-		go step(&wg, errorChan, daprBinDir, runtimeVersion, dockerNetwork, imageRepositoryUrl)
+		go step(&wg, errorChan, daprBinDir, runtimeVersion, dockerNetwork, imageRepositoryURL)
 	}
 
 	go func() {
@@ -244,7 +244,7 @@ func prepareDaprInstallDir(daprBinDir string) error {
 	return nil
 }
 
-func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, imageRepositoryUrl string) {
+func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, imageRepositoryURL string) {
 	defer wg.Done()
 
 	zipkinContainerName := utils.CreateContainerName(DaprZipkinContainerName, dockerNetwork)
@@ -261,8 +261,8 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, 
 		args = append(args, "start", zipkinContainerName)
 	} else {
 		imageName := zipkinDockerImageName
-		if imageRepositoryUrl != "" {
-			imageName = fmt.Sprintf("%s/%s", imageRepositoryUrl, imageName)
+		if imageRepositoryURL != "" {
+			imageName = fmt.Sprintf("%s/%s", imageRepositoryURL, imageName)
 		}
 		args = append(args,
 			"run",
@@ -298,7 +298,7 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, 
 	errorChan <- nil
 }
 
-func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, imageRepositoryUrl string) {
+func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, imageRepositoryURL string) {
 	defer wg.Done()
 	redisContainerName := utils.CreateContainerName(DaprRedisContainerName, dockerNetwork)
 
@@ -314,8 +314,8 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, d
 		args = append(args, "start", redisContainerName)
 	} else {
 		imageName := redisDockerImageName
-		if imageRepositoryUrl != "" {
-			imageName = fmt.Sprintf("%s/%s", imageRepositoryUrl, imageName)
+		if imageRepositoryURL != "" {
+			imageName = fmt.Sprintf("%s/%s", imageRepositoryURL, imageName)
 		}
 		args = append(args,
 			"run",
@@ -400,13 +400,13 @@ func isContainerRunError(err error) bool {
 	return false
 }
 
-func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, imageRepositoryUrl string) {
+func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, imageRepositoryURL string) {
 	defer wg.Done()
 	placementContainerName := utils.CreateContainerName(DaprPlacementContainerName, dockerNetwork)
 
 	image := fmt.Sprintf("%s:%s", daprDockerImageName, version)
-	if imageRepositoryUrl != "" {
-		image = fmt.Sprintf("%s/%s", imageRepositoryUrl, image)
+	if imageRepositoryURL != "" {
+		image = fmt.Sprintf("%s/%s", imageRepositoryURL, image)
 	}
 
 	// Use only image for latest version

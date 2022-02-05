@@ -92,12 +92,12 @@ dapr init -s
 			print.SuccessStatusEvent(os.Stdout, fmt.Sprintf("Success! Dapr has been installed to namespace %s. To verify, run `dapr status -k' in your terminal. To get started, go here: https://aka.ms/dapr-getting-started", config.Namespace))
 		} else {
 			dockerNetwork := ""
-			imageRepositoryUrl := ""
+			imageRepositoryURL := ""
 			if !slimMode {
 				dockerNetwork = viper.GetString("network")
-				imageRepositoryUrl = viper.GetString("image-repository")
+				imageRepositoryURL = viper.GetString("image-repository")
 			}
-			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode, imageRepositoryUrl)
+			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode, imageRepositoryURL)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)
