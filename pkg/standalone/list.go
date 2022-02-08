@@ -15,6 +15,7 @@ package standalone
 
 import (
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -38,6 +39,7 @@ type ListOutput struct {
 	Age            string `csv:"AGE"       json:"age"            yaml:"age"`
 	Created        string `csv:"CREATED"   json:"created"        yaml:"created"`
 	PID            int    `csv:"PID"       json:"pid"            yaml:"pid"`
+	ConfigPath     string `csv:"-"         json:"configPath"     yaml:"configPath"` // Not displayed in table, consumed by dashboard.
 }
 
 // runData is a placeholder for collected information linking cli and sidecar.
@@ -51,6 +53,7 @@ type runData struct {
 	appCmd             string
 	enableMetrics      bool
 	maxRequestBodySize int
+	configPath         string
 }
 
 func (d *daprProcess) List() ([]ListOutput, error) {
@@ -113,6 +116,7 @@ func List() ([]ListOutput, error) {
 				// Default is true for metrics.
 				enableMetrics = true
 			}
+
 			appID := argumentsMap["--app-id"]
 			appCmd := ""
 			cliPIDString := ""
@@ -134,6 +138,24 @@ func List() ([]ListOutput, error) {
 				continue
 			}
 
+			// If the "config" flag it's not used, this will contain the default config file.
+			path := argumentsMap["--config"]
+			absoluteConfigPath := ""
+
+			// Get working directory of the process identified by "cliPID", so that we can resolve (relative) config paths.
+			appProcess, err := process.NewProcess(int32(cliPID))
+			if err == nil {
+				appCwd, err := appProcess.Cwd()
+				if err == nil {
+					if !filepath.IsAbs(path) {
+						// Since user specified a relative path, we have to convert it to an absolute one.
+						absoluteConfigPath = filepath.Join(appCwd, path)
+					} else {
+						absoluteConfigPath = path
+					}
+				}
+			}
+
 			run := runData{
 				cliPID:             cliPID,
 				sidecarPID:         proc.Pid(),
@@ -144,6 +166,7 @@ func List() ([]ListOutput, error) {
 				appCmd:             appCmd,
 				enableMetrics:      enableMetrics,
 				maxRequestBodySize: maxRequestBodySize,
+				configPath:         absoluteConfigPath,
 			}
 
 			cliToSidecarMap[cliPID] = &run
@@ -188,6 +211,7 @@ func List() ([]ListOutput, error) {
 				listRow.AppPort = run.appPort
 				listRow.MetricsEnabled = run.enableMetrics
 				listRow.Command = utils.TruncateString(run.appCmd, 20)
+				listRow.ConfigPath = run.configPath
 			}
 
 			// filter only dashboard instance
