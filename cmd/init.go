@@ -49,8 +49,8 @@ var InitCmd = &cobra.Command{
 # Initialize Dapr in self-hosted mode
 dapr init
 
-#Initialize Dapr in self-hosted mode with a provided docker image repository url
-dapr init --image-repository <repository-url>/<image>
+#Initialize Dapr in self-hosted mode with a provided docker image repository. Image looked up as <repository-url>/<image>
+dapr init --image-repository <repository-url>
 
 # Initialize Dapr in Kubernetes
 dapr init -k
