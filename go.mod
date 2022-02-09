@@ -8,7 +8,6 @@ require (
 	github.com/dapr/dapr v1.6.0
 	github.com/dapr/go-sdk v1.0.0
 	github.com/docker/docker v17.12.0-ce-rc1.0.20200916142827-bd33bbf0497b+incompatible
-	github.com/emicklei/go-restful v2.10.0+incompatible // indirect
 	github.com/fatih/color v1.10.0
 	github.com/garyburd/redigo v1.6.0 // indirect
 	github.com/gocarina/gocsv v0.0.0-20190426105157-2fc85fcf0c07
@@ -17,7 +16,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.8 // indirect
 	github.com/mitchellh/go-ps v0.0.0-20190716172923-621e5597135b
 	github.com/nightlyone/lockfile v0.0.0-20180618180623-0ad87eef1443
-	github.com/olekukonko/tablewriter v0.0.2
+	github.com/olekukonko/tablewriter v0.0.4
 	github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2
 	github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4
 	github.com/shirou/gopsutil v3.21.4+incompatible
@@ -26,12 +25,12 @@ require (
 	github.com/stretchr/testify v1.7.0
 	golang.org/x/sys v0.0.0-20211007075335-d3039528d8ac
 	gopkg.in/yaml.v2 v2.4.0
-	helm.sh/helm/v3 v3.5.3
-	k8s.io/api v0.20.2
-	k8s.io/apiextensions-apiserver v0.20.2
-	k8s.io/apimachinery v0.20.2
-	k8s.io/cli-runtime v0.20.2
-	k8s.io/client-go v0.20.2
+	helm.sh/helm/v3 v3.6.1
+	k8s.io/api v0.21.0
+	k8s.io/apiextensions-apiserver v0.21.0
+	k8s.io/apimachinery v0.21.0
+	k8s.io/cli-runtime v0.21.0
+	k8s.io/client-go v0.21.0
 	k8s.io/helm v2.16.10+incompatible
 )
 
