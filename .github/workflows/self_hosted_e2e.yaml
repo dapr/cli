@@ -1,6 +1,14 @@
 # ------------------------------------------------------------
-# Copyright (c) Microsoft Corporation and Dapr Contributors.
-# Licensed under the MIT License.
+# Copyright 2021 The Dapr Authors
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 # ------------------------------------------------------------
 
 name: E2E - Self-hosted
@@ -27,6 +35,8 @@ jobs:
       GOARCH: ${{ matrix.target_arch }}
       GOPROXY: https://proxy.golang.org
       ARCHIVE_OUTDIR: dist/archives
+      DAPR_RUNTIME_VERSION: "1.6.0"
+      DAPR_DASHBOARD_VERSION: 0.9.0
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
@@ -51,6 +61,20 @@ jobs:
         with:
           docker_buildx: false
           docker_version: 20.10
+      - name: Determine latest Dapr Runtime version including Pre-releases
+        if: github.base_ref == 'master'
+        run: |
+          helm repo add dapr https://dapr.github.io/helm-charts/ && helm repo update && export RUNTIME_VERSION=$(helm search repo dapr/dapr --devel --versions | awk '/dapr\/dapr/ {print $3; exit}' )
+          echo "DAPR_RUNTIME_VERSION=$RUNTIME_VERSION" >> $GITHUB_ENV
+          echo "Found $RUNTIME_VERSION"
+        shell: bash
+      - name: Determine latest Dapr Dashboard version including Pre-releases
+        if: github.base_ref == 'master'
+        run: |
+          helm pull dapr/dapr --untar && export DASHBOARD_VERSION=$(cat ./dapr/charts/dapr_dashboard/Chart.yaml | grep version | awk '{ print $2; exit }') && rm -rf dapr
+          echo "DAPR_DASHBOARD_VERSION=$DASHBOARD_VERSION" >> $GITHUB_ENV
+          echo "Found $DASHBOARD_VERSION"
+        shell: bash
       - name: Run E2E tests 
         run: |
           export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-standalone.json
