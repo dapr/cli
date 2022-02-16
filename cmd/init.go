@@ -43,10 +43,14 @@ var InitCmd = &cobra.Command{
 	Short: "Install Dapr on supported hosting platforms. Supported platforms: Kubernetes and self-hosted",
 	PreRun: func(cmd *cobra.Command, args []string) {
 		viper.BindPFlag("network", cmd.Flags().Lookup("network"))
+		viper.BindPFlag("image-repository", cmd.Flags().Lookup("image-repository"))
 	},
 	Example: `
 # Initialize Dapr in self-hosted mode
 dapr init
+
+#Initialize Dapr in self-hosted mode with a provided docker image repository. Image looked up as <repository-url>/<image>
+dapr init --image-repository <repository-url>
 
 # Initialize Dapr in Kubernetes
 dapr init -k
@@ -88,10 +92,12 @@ dapr init -s
 			print.SuccessStatusEvent(os.Stdout, fmt.Sprintf("Success! Dapr has been installed to namespace %s. To verify, run `dapr status -k' in your terminal. To get started, go here: https://aka.ms/dapr-getting-started", config.Namespace))
 		} else {
 			dockerNetwork := ""
+			imageRepositoryURL := ""
 			if !slimMode {
 				dockerNetwork = viper.GetString("network")
+				imageRepositoryURL = viper.GetString("image-repository")
 			}
-			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode)
+			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode, imageRepositoryURL)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)
@@ -108,17 +114,24 @@ func init() {
 	if runtimeVersionEnv != "" {
 		defaultRuntimeVersion = runtimeVersionEnv
 	}
+	defaultDashboardVersion := "latest"
+	viper.BindEnv("dashboard_version_override", "DAPR_DASHBOARD_VERSION")
+	dashboardVersionEnv := viper.GetString("dashboard_version_override")
+	if dashboardVersionEnv != "" {
+		defaultDashboardVersion = dashboardVersionEnv
+	}
 	InitCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Deploy Dapr to a Kubernetes cluster")
 	InitCmd.Flags().BoolVarP(&wait, "wait", "", false, "Wait for Kubernetes initialization to complete")
 	InitCmd.Flags().UintVarP(&timeout, "timeout", "", 300, "The wait timeout for the Kubernetes installation")
 	InitCmd.Flags().BoolVarP(&slimMode, "slim", "s", false, "Exclude placement service, Redis and Zipkin containers from self-hosted installation")
 	InitCmd.Flags().StringVarP(&runtimeVersion, "runtime-version", "", defaultRuntimeVersion, "The version of the Dapr runtime to install, for example: 1.0.0")
-	InitCmd.Flags().StringVarP(&dashboardVersion, "dashboard-version", "", "latest", "The version of the Dapr dashboard to install, for example: 1.0.0")
+	InitCmd.Flags().StringVarP(&dashboardVersion, "dashboard-version", "", defaultDashboardVersion, "The version of the Dapr dashboard to install, for example: 1.0.0")
 	InitCmd.Flags().StringVarP(&initNamespace, "namespace", "n", "dapr-system", "The Kubernetes namespace to install Dapr in")
 	InitCmd.Flags().BoolVarP(&enableMTLS, "enable-mtls", "", true, "Enable mTLS in your cluster")
 	InitCmd.Flags().BoolVarP(&enableHA, "enable-ha", "", false, "Enable high availability (HA) mode")
 	InitCmd.Flags().String("network", "", "The Docker network on which to deploy the Dapr runtime")
 	InitCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	InitCmd.Flags().StringArrayVar(&values, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
+	InitCmd.Flags().String("image-repository", "", "Custom/Private docker image repository url")
 	RootCmd.AddCommand(InitCmd)
 }

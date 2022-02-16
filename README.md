@@ -126,6 +126,13 @@ $ dapr --version
 CLI version: v1.0.0
 Runtime version: v1.0.0
 ```
+#### Install by providing a docker container registry url
+
+You can install Dapr runtime by pulling docker images from a given registry url by using `--image-repository` flag.
+
+```bash
+$ dapr init --image-repository <registry-url>
+```
 
 #### Install to a specific Docker network
 
