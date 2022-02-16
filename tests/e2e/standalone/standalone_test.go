@@ -33,11 +33,12 @@ import (
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
 
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/client"
+
 	"github.com/dapr/cli/tests/e2e/spawn"
 	"github.com/dapr/go-sdk/service/common"
 	daprHttp "github.com/dapr/go-sdk/service/http"
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/client"
 )
 
 var (
