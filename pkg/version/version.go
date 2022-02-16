@@ -24,8 +24,6 @@ import (
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/utils"
 	yaml "gopkg.in/yaml.v2"
-
-	"github.com/dapr/cli/pkg/print"
 )
 
 const (
