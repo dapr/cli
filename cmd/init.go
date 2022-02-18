@@ -36,6 +36,7 @@ var (
 	enableMTLS       bool
 	enableHA         bool
 	values           []string
+	staging          bool
 )
 
 var InitCmd = &cobra.Command{
@@ -90,6 +91,13 @@ dapr init -s
 				os.Exit(1)
 			}
 			print.SuccessStatusEvent(os.Stdout, fmt.Sprintf("Success! Dapr has been installed to namespace %s. To verify, run `dapr status -k' in your terminal. To get started, go here: https://aka.ms/dapr-getting-started", config.Namespace))
+		} else if staging {
+			err := standalone.Stage(runtimeVersion, dashboardVersion)
+			if err != nil {
+				print.FailureStatusEvent(os.Stderr, err.Error())
+				os.Exit(1)
+			}
+			print.SuccessStatusEvent(os.Stdout, "Success! Dapr binaries is prepared.")
 		} else {
 			dockerNetwork := ""
 			imageRepositoryURL := ""
@@ -131,6 +139,7 @@ func init() {
 	InitCmd.Flags().BoolVarP(&enableHA, "enable-ha", "", false, "Enable high availability (HA) mode")
 	InitCmd.Flags().String("network", "", "The Docker network on which to deploy the Dapr runtime")
 	InitCmd.Flags().BoolP("help", "h", false, "Print this help message")
+	InitCmd.Flags().BoolVarP(&staging, "staging", "", false, "Packaging Dapr relevant artifacts into this binary (aka airgap mode)")
 	InitCmd.Flags().StringArrayVar(&values, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
 	InitCmd.Flags().String("image-repository", "", "Custom/Private docker image repository url")
 	RootCmd.AddCommand(InitCmd)

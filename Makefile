@@ -22,6 +22,8 @@ GIT_COMMIT  = $(shell git rev-list -1 HEAD)
 GIT_VERSION = $(shell git describe --always --abbrev=7 --dirty)
 CGO			?= 0
 CLI_BINARY  = dapr
+AIRGAP 		= airgap
+CLI_BINARY_AIRGAP = $(CLI_BINARY)_$(AIRGAP)
 
 ifdef REL_VERSION
 	CLI_VERSION := $(REL_VERSION)
@@ -84,6 +86,8 @@ else
   $(info $(H) Build with debugger information)
 endif
 
+TAGFLAGS=-tags embed
+
 ################################################################################
 # Go build details                                                             #
 ################################################################################
@@ -103,6 +107,14 @@ build: $(CLI_BINARY)
 $(CLI_BINARY):
 	CGO_ENABLED=$(CGO) GOOS=$(GOOS) GOARCH=$(GOARCH) go build $(GCFLAGS) -ldflags $(LDFLAGS) \
 	-o $(BINS_OUT_DIR)/$(CLI_BINARY)$(BINARY_EXT);
+
+.PHONY: build-$(AIRGAP)
+build-$(AIRGAP): $(CLI_BINARY_AIRGAP)
+
+$(CLI_BINARY_AIRGAP): $(CLI_BINARY)
+	$(BINS_OUT_DIR)/$(CLI_BINARY)$(BINARY_EXT) init --staging
+	CGO_ENABLED=$(CGO) GOOS=$(GOOS) GOARCH=$(GOARCH) go build $(TAGFLAGS) $(GCFLAGS) -ldflags $(LDFLAGS) \
+    	-o $(BINS_OUT_DIR)/$(CLI_BINARY_AIRGAP)$(BINARY_EXT);
 
 ################################################################################
 # Target: lint                                                                 #
@@ -127,11 +139,25 @@ archive-$(CLI_BINARY).tar.gz:
 	tar czf "$(ARCHIVE_OUT_DIR)/$(CLI_BINARY)_$(GOOS)_$(GOARCH)$(ARCHIVE_EXT)" -C "$(BINS_OUT_DIR)" "$(CLI_BINARY)$(BINARY_EXT)"
 endif
 
+archive-$(AIRGAP): archive-$(CLI_BINARY_AIRGAP)$(ARCHIVE_EXT)
+ifeq ($(GOOS),windows)
+archive-$(CLI_BINARY_AIRGAP).zip:
+	7z.exe a -tzip "$(ARCHIVE_OUT_DIR)\\$(CLI_BINARY_AIRGAP)_$(GOOS)_$(GOARCH)$(ARCHIVE_EXT)" "$(BINS_OUT_DIR)\\$(CLI_BINARY_AIRGAP)$(BINARY_EXT)"
+else
+archive-$(CLI_BINARY_AIRGAP).tar.gz:
+	chmod +x $(BINS_OUT_DIR)/$(CLI_BINARY_AIRGAP)$(BINARY_EXT)
+	tar czf "$(ARCHIVE_OUT_DIR)/$(CLI_BINARY_AIRGAP)_$(GOOS)_$(GOARCH)$(ARCHIVE_EXT)" -C "$(BINS_OUT_DIR)" "$(CLI_BINARY_AIRGAP)$(BINARY_EXT)"
+endif
+
+
 ################################################################################
 # Target: release                                                              #
 ################################################################################
 .PHONY: release
 release: build archive
+
+.PHONY: release-$(AIRGAP)
+release-$(AIRGAP): build-$(AIRGAP) archive-$(AIRGAP)
 
 .PHONY: test-deps
 test-deps:
