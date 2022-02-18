@@ -15,8 +15,6 @@ package standalone
 
 import (
 	"fmt"
-	"github.com/dapr/cli/pkg/print"
-	cli_ver "github.com/dapr/cli/pkg/version"
 	"io"
 	"net/http"
 	"os"
@@ -24,6 +22,9 @@ import (
 	path_filepath "path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/dapr/cli/pkg/print"
+	cli_ver "github.com/dapr/cli/pkg/version"
 )
 
 const (
@@ -91,12 +92,12 @@ func findRuntimeVersion(ver string) (string, error) {
 }
 
 func prepareDaprInstallDir(daprBinDir string) error {
-	err := os.MkdirAll(daprBinDir, 0777)
+	err := os.MkdirAll(daprBinDir, 0o777)
 	if err != nil {
 		return err
 	}
 
-	err = os.Chmod(daprBinDir, 0777)
+	err = os.Chmod(daprBinDir, 0o777)
 	if err != nil {
 		return err
 	}

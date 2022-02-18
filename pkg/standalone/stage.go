@@ -3,13 +3,14 @@ package standalone
 import (
 	"errors"
 	"fmt"
-	"github.com/dapr/cli/pkg/print"
-	cli_ver "github.com/dapr/cli/pkg/version"
-	"github.com/dapr/cli/utils"
 	"os"
 	path_filepath "path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/dapr/cli/pkg/print"
+	cli_ver "github.com/dapr/cli/pkg/version"
+	"github.com/dapr/cli/utils"
 )
 
 const (
@@ -18,9 +19,7 @@ const (
 	dashboardVerFile = "dashboard.ver"
 )
 
-var (
-	stagingBinDir = path_filepath.Join(stagingBaseDir, defaultDaprBinDirName)
-)
+var stagingBinDir = path_filepath.Join(stagingBaseDir, defaultDaprBinDirName)
 
 func Stage(rv, dv string) error {
 	dockerInstalled := utils.IsDockerInstalled()

@@ -2,12 +2,13 @@ package standalone
 
 import (
 	"fmt"
-	"github.com/dapr/cli/utils"
 	"io"
 	"os"
 	"os/exec"
 	path_filepath "path/filepath"
 	"strings"
+
+	"github.com/dapr/cli/utils"
 )
 
 func loadDocker(in io.Reader) error {
