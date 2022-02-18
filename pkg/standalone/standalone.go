@@ -450,8 +450,10 @@ func moveDashboardFiles(extractedFilePath string, dir string) (string, error) {
 func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, binaryFilePrefix string, dockerNetwork string, githubRepo string) {
 	defer wg.Done()
 
-	var err error
-	var filepath = ""
+	var (
+		err      error
+		filepath string
+	)
 
 	if !isEmbedded {
 		filepath, err = downloadBinary(dir, version, binaryFilePrefix, githubRepo)
