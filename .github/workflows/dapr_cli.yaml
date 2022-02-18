@@ -88,7 +88,6 @@ jobs:
         run: |
           mkdir -p ${{ env.ARCHIVE_OUTDIR }}
           make release GOOS=${{ matrix.target_os }} GOARCH=${{ matrix.target_arch }} ARCHIVE_OUT_DIR=${{ env.ARCHIVE_OUTDIR }}
-          make release-airgap GOOS=${{ matrix.target_os }} GOARCH=${{ matrix.target_arch }} ARCHIVE_OUT_DIR=${{ env.ARCHIVE_OUTDIR }}
       - name: Create release_version.txt
         if: matrix.target_arch == 'amd64' && matrix.target_os == 'linux'
         run: |
