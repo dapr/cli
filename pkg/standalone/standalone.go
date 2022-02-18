@@ -209,7 +209,7 @@ func Init(rv, dv string, dockerNetwork string, slimMode bool, imageRepositoryURL
 	if isEmbedded {
 		msg = "Extracted binaries and completed components set up."
 	}
-	print.SuccessStatusEvent(os.Stdout, "Downloaded binaries and completed components set up.")
+	print.SuccessStatusEvent(os.Stdout, msg)
 	print.InfoStatusEvent(os.Stdout, "%s binary has been installed to %s.", daprRuntimeFilePrefix, daprBinDir)
 	if slimMode {
 		// Print info on placement binary only on slim install

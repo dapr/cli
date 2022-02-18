@@ -166,7 +166,9 @@ func writeVersions(runtimeVersion, dashboardVersion string) error {
 
 func writeFile(filePath string, content string) error {
 	f, err := os.Create(filePath)
-	defer f.Close()
+	defer func() {
+		_ = f.Close()
+	}()
 
 	if err != nil {
 		print.WarningStatusEvent(os.Stdout, "cannot create %s: %v", filePath, err)

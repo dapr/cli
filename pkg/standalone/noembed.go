@@ -5,7 +5,9 @@ package standalone
 
 import "embed"
 
-var binaries embed.FS
-var runtimeVersion string
-var dashboardVersion string
-var isEmbedded = false
+var (
+	binaries         embed.FS
+	runtimeVersion   string
+	dashboardVersion string
+	isEmbedded       = false
+)
