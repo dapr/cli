@@ -64,14 +64,6 @@ In self-hosted mode, dapr can be initialized using the CLI  with the placement, 
 
 ([Prerequisite](#Prerequisites): Docker is available in the environment - recommended)
 
-```shell
-## cli supported environment avaiables about helm chart repo in k8s.
-export HELM_CHART_REPO_URL="https://helmchart-repo.xxx.xxx/dapr/dapr"
-export HELM_CHART_REPO_USERNAME="username_xxx"
-export HELM_CHART_REPO_PASSWORD="passwd_xxx"
-With the above three params, we can install dapr cluster on the private network.
-```
-
 Use the init command to initialize Dapr. On init, multiple default configuration files and containers are installed along with the dapr runtime binary. Dapr runtime binary is installed under $HOME/.dapr/bin for Mac, Linux and %USERPROFILE%\.dapr\bin for Windows.
 
 ```bash
@@ -277,6 +269,14 @@ dapr upgrade -k --runtime-version=1.0.0 --set global.tag=my-tag --set dapr_opera
 ```
 
 *Note: do not use the `dapr upgrade` command if you're upgrading from 0.x versions of Dapr*
+
+### Use Private Helm Repository
+
+export HELM_CHART_REPO_URL="https://helmchart-repo.xxx.xxx/dapr/dapr"
+export HELM_CHART_REPO_USERNAME="username_xxx"
+export HELM_CHART_REPO_PASSWORD="passwd_xxx"
+
+Setting the above parameters will allow `dapr init -k` to install Dapr images from the configured Helm repository.
 
 ### Launch Dapr and your app
 
