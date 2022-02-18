@@ -112,10 +112,9 @@ $(CLI_BINARY):
 build-$(AIRGAP): $(CLI_BINARY_AIRGAP)
 
 $(CLI_BINARY_AIRGAP): $(CLI_BINARY)
-	chmod +x $(BINS_OUT_DIR)/$(CLI_BINARY)$(BINARY_EXT)
 	$(BINS_OUT_DIR)/$(CLI_BINARY)$(BINARY_EXT) init --staging
 	CGO_ENABLED=$(CGO) GOOS=$(GOOS) GOARCH=$(GOARCH) go build $(TAGFLAGS) $(GCFLAGS) -ldflags $(LDFLAGS) \
-    	-o $(BINS_OUT_DIR)/$(CLI_BINARY_AIRGAP)$(BINARY_EXT);
+    	-o $(BINS_OUT_DIR)/$(CLI_BINARY_AIRGAP)$(BINARY_EXT)
 
 ################################################################################
 # Target: lint                                                                 #
