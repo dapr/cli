@@ -44,6 +44,7 @@ dapr upgrade -k
 			os.Exit(1)
 		}
 		print.SuccessStatusEvent(os.Stdout, "Dapr control plane successfully upgraded to version %s. Make sure your deployments are restarted to pick up the latest sidecar version.", upgradeRuntimeVersion)
+		kubernetes.WarnForCertExpiry()
 	},
 }
 

@@ -43,6 +43,7 @@ dapr logs -k --app-id sample --pod-name target --namespace custom
 			os.Exit(1)
 		}
 		print.SuccessStatusEvent(os.Stdout, "Fetched logs")
+		kubernetes.WarnForCertExpiry()
 	},
 }
 

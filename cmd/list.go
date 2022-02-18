@@ -77,6 +77,7 @@ dapr list -k
 			}
 
 			outputList(list, len(list))
+			kubernetes.WarnForCertExpiry()
 		} else {
 			list, err := standalone.List()
 			if err != nil {

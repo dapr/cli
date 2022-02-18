@@ -173,6 +173,7 @@ dapr dashboard -k -p 9999
 			}
 
 			<-portForward.GetStop()
+			kubernetes.WarnForCertExpiry()
 		} else {
 			// Standalone mode
 			err := standalone.NewDashboardCmd(dashboardLocalPort).Run()

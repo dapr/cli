@@ -46,6 +46,7 @@ dapr mtls -k
 			status = "enabled"
 		}
 		fmt.Printf("Mutual TLS is %s in your Kubernetes cluster \n", status)
+		kubernetes.WarnForCertExpiry()
 	},
 }
 
@@ -65,6 +66,7 @@ dapr mtls export -o ./certs
 
 		dir, _ := filepath.Abs(exportPath)
 		print.SuccessStatusEvent(os.Stdout, fmt.Sprintf("Trust certs successfully exported to %s", dir))
+		kubernetes.WarnForCertExpiry()
 	},
 }
 

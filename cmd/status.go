@@ -53,6 +53,7 @@ dapr status -k
 		}
 
 		utils.PrintTable(table)
+		kubernetes.WarnForCertExpiry()
 	},
 }
 

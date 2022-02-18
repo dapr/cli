@@ -24,10 +24,12 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/fatih/color"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/dapr/pkg/apis/configuration/v1alpha1"
 )
 
@@ -105,6 +107,23 @@ func ExportTrustChain(outputDir string) error {
 		return err
 	}
 	return nil
+}
+
+// Check and warn if cert expiry is less than 90 days.
+func WarnForCertExpiry() {
+	expiry, err := Expiry()
+	if err != nil {
+		print.FailureStatusEvent(os.Stderr, fmt.Sprintf("error getting root cert expiry: %s", err))
+		return
+	}
+	daysRemaining := int(expiry.Sub(time.Now().UTC()).Hours() / 24)
+	if daysRemaining < 30 {
+		color.Set(color.FgHiYellow)
+		helpMessage := "Kindly renew to avoid any service interuptions."
+		message := fmt.Sprintf("Root certificate expires in %v days. Expiry date: %s. %s", daysRemaining, expiry.String(), helpMessage)
+		print.WarningStatusEvent(os.Stdout, message)
+		color.Unset()
+	}
 }
 
 func getTrustChainSecret() (*corev1.Secret, error) {

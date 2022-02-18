@@ -37,6 +37,7 @@ var ConfigurationsCmd = &cobra.Command{
 				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)
 			}
+			kubernetes.WarnForCertExpiry()
 		}
 	},
 	Example: `
