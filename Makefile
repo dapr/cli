@@ -22,7 +22,7 @@ GIT_COMMIT  = $(shell git rev-list -1 HEAD)
 GIT_VERSION = $(shell git describe --always --abbrev=7 --dirty)
 CGO			?= 0
 CLI_BINARY  = dapr
-AIRGAP 		= airgap
+AIRGAP = airgap
 CLI_BINARY_AIRGAP = $(CLI_BINARY)_$(AIRGAP)
 
 ifdef REL_VERSION
@@ -112,6 +112,7 @@ $(CLI_BINARY):
 build-$(AIRGAP): $(CLI_BINARY_AIRGAP)
 
 $(CLI_BINARY_AIRGAP): $(CLI_BINARY)
+	chmod +x $(BINS_OUT_DIR)/$(CLI_BINARY)$(BINARY_EXT)
 	$(BINS_OUT_DIR)/$(CLI_BINARY)$(BINARY_EXT) init --staging
 	CGO_ENABLED=$(CGO) GOOS=$(GOOS) GOARCH=$(GOARCH) go build $(TAGFLAGS) $(GCFLAGS) -ldflags $(LDFLAGS) \
     	-o $(BINS_OUT_DIR)/$(CLI_BINARY_AIRGAP)$(BINARY_EXT);
