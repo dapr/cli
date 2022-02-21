@@ -77,7 +77,6 @@ dapr list -k
 			}
 
 			outputList(list, len(list))
-			kubernetes.WarnForCertExpiry()
 		} else {
 			list, err := standalone.List()
 			if err != nil {
@@ -86,6 +85,11 @@ dapr list -k
 			}
 
 			outputList(list, len(list))
+		}
+	},
+	PostRun: func(cmd *cobra.Command, args []string) {
+		if kubernetesMode {
+			kubernetes.CheckForCertExpiry()
 		}
 	},
 }

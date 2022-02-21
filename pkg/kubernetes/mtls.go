@@ -34,8 +34,9 @@ import (
 )
 
 const (
-	systemConfigName      = "daprsystem"
-	trustBundleSecretName = "dapr-trust-bundle" // nolint:gosec
+	systemConfigName         = "daprsystem"
+	trustBundleSecretName    = "dapr-trust-bundle" // nolint:gosec
+	warningDaysForCertExpiry = 30                  // in days
 )
 
 func IsMTLSEnabled() (bool, error) {
@@ -109,18 +110,26 @@ func ExportTrustChain(outputDir string) error {
 	return nil
 }
 
-// Check and warn if cert expiry is less than 90 days.
-func WarnForCertExpiry() {
+// Check and warn if cert expiry is less than `warningDaysForCertExpiry` days.
+func CheckForCertExpiry() {
 	expiry, err := Expiry()
 	if err != nil {
 		print.FailureStatusEvent(os.Stderr, fmt.Sprintf("error getting root cert expiry: %s", err))
 		return
 	}
 	daysRemaining := int(expiry.Sub(time.Now().UTC()).Hours() / 24)
-	if daysRemaining < 30 {
+	if daysRemaining < warningDaysForCertExpiry {
+		warningMessage := ""
+		if daysRemaining == 0 {
+			warningMessage = "Root certificate of your kubernetes cluster expires today"
+		} else if daysRemaining < 0 {
+			warningMessage = "Root certificate your kubernetes cluster already expired"
+		} else {
+			warningMessage = fmt.Sprintf("Root certificate your kubernetes cluster expires in %v days", daysRemaining)
+		}
 		color.Set(color.FgHiYellow)
 		helpMessage := "Kindly renew to avoid any service interuptions."
-		message := fmt.Sprintf("Root certificate expires in %v days. Expiry date: %s. %s", daysRemaining, expiry.String(), helpMessage)
+		message := fmt.Sprintf("%s. Expiry date: %s. \n %s", warningMessage, expiry.Format(time.RFC1123), helpMessage)
 		print.WarningStatusEvent(os.Stdout, message)
 		color.Unset()
 	}

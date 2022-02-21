@@ -515,6 +515,7 @@ func componentsTestOnUninstall(all bool) func(t *testing.T) {
 		// TODO Related to https://github.com/dapr/cli/issues/656
 		// For now the components remain
 		output, err := spawn.Command(daprPath, "components", "-k")
+		t.Log(output)
 		require.NoError(t, err, "expected no error on calling dapr components")
 		componentOutputCheck(t, output, all)
 
@@ -528,6 +529,7 @@ func componentsTestOnUninstall(all bool) func(t *testing.T) {
 		require.NoError(t, err, "expected no error on kubectl apply")
 		require.Equal(t, "component.dapr.io \"statestore\" deleted\n", output, "expected output to match")
 		output, err = spawn.Command(daprPath, "components", "-k")
+		t.Log(output)
 		require.NoError(t, err, "expected no error on calling dapr components")
 		lines := strings.Split(output, "\n")
 
@@ -541,6 +543,7 @@ func statusTestOnUninstall() func(t *testing.T) {
 		daprPath := getDaprPath()
 		output, err := spawn.Command(daprPath, "status", "-k")
 		t.Log("checking status fails as expected")
+		t.Log(output)
 		require.Error(t, err, "status check did not fail as expected")
 		require.Contains(t, output, " No status returned. Is Dapr initialized in your cluster?", "error on message verification")
 	}

@@ -37,8 +37,10 @@ var ConfigurationsCmd = &cobra.Command{
 				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)
 			}
-			kubernetes.WarnForCertExpiry()
 		}
+	},
+	PostRun: func(cmd *cobra.Command, args []string) {
+		kubernetes.CheckForCertExpiry()
 	},
 	Example: `
 # List Kubernetes Dapr configurations

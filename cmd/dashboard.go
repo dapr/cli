@@ -173,13 +173,17 @@ dapr dashboard -k -p 9999
 			}
 
 			<-portForward.GetStop()
-			kubernetes.WarnForCertExpiry()
 		} else {
 			// Standalone mode
 			err := standalone.NewDashboardCmd(dashboardLocalPort).Run()
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, "Dapr dashboard not found. Is Dapr installed?")
 			}
+		}
+	},
+	PostRun: func(cmd *cobra.Command, args []string) {
+		if kubernetesMode {
+			kubernetes.CheckForCertExpiry()
 		}
 	},
 }
