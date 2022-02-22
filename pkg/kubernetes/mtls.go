@@ -24,7 +24,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/fatih/color"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -115,23 +114,24 @@ func CheckForCertExpiry() {
 	expiry, err := Expiry()
 	// The intent is to warn for certificate expiry only when it can be fetched.
 	// Do not show any kind of errors with normal command flow.
-	if err == nil {
-		daysRemaining := int(expiry.Sub(time.Now().UTC()).Hours() / 24)
-		if daysRemaining < warningDaysForCertExpiry {
-			warningMessage := ""
-			if daysRemaining == 0 {
-				warningMessage = "Root certificate of your kubernetes cluster expires today"
-			} else if daysRemaining < 0 {
-				warningMessage = "Root certificate your kubernetes cluster already expired"
-			} else {
-				warningMessage = fmt.Sprintf("Root certificate your kubernetes cluster expires in %v days", daysRemaining)
-			}
-			color.Set(color.FgHiYellow)
-			helpMessage := "Kindly renew to avoid any service interuptions."
-			message := fmt.Sprintf("%s. Expiry date: %s. \n %s", warningMessage, expiry.Format(time.RFC1123), helpMessage)
-			print.WarningStatusEvent(os.Stdout, message)
-			color.Unset()
+	if err != nil {
+		return
+	}
+	daysRemaining := int(expiry.Sub(time.Now().UTC()).Hours() / 24)
+
+	if daysRemaining < warningDaysForCertExpiry {
+		warningMessage := ""
+		switch {
+		case daysRemaining == 0:
+			warningMessage = "Root certificate of your kubernetes cluster expires today"
+		case daysRemaining < 0:
+			warningMessage = "Root certificate your kubernetes cluster already expired"
+		default:
+			warningMessage = fmt.Sprintf("Root certificate your kubernetes cluster expires in %v days", daysRemaining)
 		}
+		helpMessage := "Kindly renew to avoid any service interuptions."
+		print.WarningStatusEvent(os.Stdout,
+			fmt.Sprintf("%s. Expiry date: %s. \n %s", warningMessage, expiry.Format(time.RFC1123), helpMessage))
 	}
 }
 
