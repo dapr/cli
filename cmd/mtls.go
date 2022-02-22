@@ -63,7 +63,7 @@ dapr mtls export -o ./certs
 		err := kubernetes.ExportTrustChain(exportPath)
 		if err != nil {
 			print.FailureStatusEvent(os.Stderr, fmt.Sprintf("error exporting trust chain certs: %s", err))
-			return
+			os.Exit(1)
 		}
 
 		dir, _ := filepath.Abs(exportPath)
