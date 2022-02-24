@@ -167,7 +167,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 
 	var wg sync.WaitGroup
 	errorChan := make(chan error)
-	var initSteps = []func(*sync.WaitGroup, chan<- error, initInfo){
+	initSteps := []func(*sync.WaitGroup, chan<- error, initInfo){
 		createSlimConfiguration,
 		createComponentsAndConfiguration,
 		installDaprRuntime,
@@ -625,19 +625,19 @@ func makeDefaultComponentsDir() error {
 	componentsDir := DefaultComponentsDirPath()
 	_, err := os.Stat(componentsDir)
 	if os.IsNotExist(err) {
-		errDir := os.MkdirAll(componentsDir, 0755)
+		errDir := os.MkdirAll(componentsDir, 0o755)
 		if errDir != nil {
 			return fmt.Errorf("error creating default components folder: %s", errDir)
 		}
 	}
 
-	os.Chmod(componentsDir, 0777)
+	os.Chmod(componentsDir, 0o777)
 	return nil
 }
 
 func makeExecutable(filepath string) error {
 	if runtime.GOOS != daprWindowsOS {
-		err := os.Chmod(filepath, 0777)
+		err := os.Chmod(filepath, 0o777)
 		if err != nil {
 			return err
 		}
@@ -807,7 +807,7 @@ func moveFileToPath(filepath string, installLocation string) (string, error) {
 	}
 
 	// #nosec G306
-	if err = ioutil.WriteFile(destFilePath, input, 0644); err != nil {
+	if err = ioutil.WriteFile(destFilePath, input, 0o644); err != nil {
 		if runtime.GOOS != daprWindowsOS && strings.Contains(err.Error(), "permission denied") {
 			err = errors.New(err.Error() + " - please run with sudo")
 		}
@@ -928,7 +928,7 @@ func checkAndOverWriteFile(filePath string, b []byte) error {
 	_, err := os.Stat(filePath)
 	if os.IsNotExist(err) {
 		// #nosec G306
-		if err = ioutil.WriteFile(filePath, b, 0644); err != nil {
+		if err = ioutil.WriteFile(filePath, b, 0o644); err != nil {
 			return err
 		}
 	}
