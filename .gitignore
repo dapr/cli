@@ -29,6 +29,3 @@ test_output.json
 
 # Go Workspaces (introduced in Go 1.18+)
 go.work
-
-# Downloaded artifacts in airgap mode
-pkg/standalone/staging/

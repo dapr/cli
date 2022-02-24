@@ -16,13 +16,13 @@ package standalone
 import (
 	"archive/tar"
 	"archive/zip"
-	"bytes"
 	"compress/gzip"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path"
 	path_filepath "path/filepath"
@@ -59,6 +59,9 @@ const (
 	DaprZipkinContainerName = "dapr_zipkin"
 
 	errInstallTemplate = "please run `dapr uninstall` first before running `dapr init`"
+
+	daprBinarySubDir  = "dist"
+	dockerImageSubDir = "docker"
 )
 
 type configuration struct {
@@ -95,6 +98,15 @@ type componentMetadataItem struct {
 	Value string `yaml:"value"`
 }
 
+type initInfo struct {
+	fromDir            string
+	slimMode           bool
+	runtimeVersion     string
+	dashboardVersion   string
+	dockerNetwork      string
+	imageRepositoryURL string
+}
+
 // Check if the previous version is already installed.
 func isBinaryInstallationRequired(binaryFilePrefix, installDir string) (bool, error) {
 	binaryPath := binaryFilePath(installDir, binaryFilePrefix)
@@ -108,7 +120,7 @@ func isBinaryInstallationRequired(binaryFilePrefix, installDir string) (bool, er
 }
 
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
-func Init(rv, dv string, dockerNetwork string, slimMode bool, imageRepositoryURL string) error {
+func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool, imageRepositoryURL string, fromDir string) error {
 	if !slimMode {
 		dockerInstalled := utils.IsDockerInstalled()
 		if !dockerInstalled {
@@ -116,22 +128,34 @@ func Init(rv, dv string, dockerNetwork string, slimMode bool, imageRepositoryURL
 		}
 	}
 
-	var err error
-	runtimeVersion, err = findRuntimeVersion(rv)
-	if err != nil {
-		return err
+	if runtimeVersion == latestVersion && fromDir == "" {
+		var err error
+		runtimeVersion, err = cli_ver.GetDaprVersion()
+		if err != nil {
+			return fmt.Errorf("cannot get the latest release version: '%s'. Try specifying --runtime-version=<desired_version>", err)
+		}
 	}
 
 	print.InfoStatusEvent(os.Stdout, "Installing runtime version %s", runtimeVersion)
 
-	dashboardVersion = findDashboardVersion(dv)
+	if dashboardVersion == latestVersion && fromDir == "" {
+		var err error
+		dashboardVersion, err = cli_ver.GetDashboardVersion()
+		if err != nil {
+			print.WarningStatusEvent(os.Stdout, "cannot get the latest dashboard version: '%s'. Try specifying --dashboard-version=<desired_version>", err)
+			print.WarningStatusEvent(os.Stdout, "continuing, but dashboard will be unavailable")
+		}
+	}
 
-	if isEmbedded {
-		print.InfoStatusEvent(os.Stdout, "Init dapr with embedded binaries")
+	if fromDir != "" {
+		v1, v2 := parseVersionFile(fromDir)
+		if v1 != "" && v2 != "" {
+			runtimeVersion, dashboardVersion = v1, v2
+		}
 	}
 
 	daprBinDir := defaultDaprBinPath()
-	err = prepareDaprInstallDir(daprBinDir)
+	err := prepareDaprInstallDir(daprBinDir)
 	if err != nil {
 		return err
 	}
@@ -143,26 +167,22 @@ func Init(rv, dv string, dockerNetwork string, slimMode bool, imageRepositoryURL
 
 	var wg sync.WaitGroup
 	errorChan := make(chan error)
-	var initSteps []func(*sync.WaitGroup, chan<- error, string, string)
-	if slimMode {
-		// Install 3 binaries in slim mode: daprd, dashboard, placement
-		wg.Add(3)
-		initSteps = append(initSteps, createSlimConfiguration)
-	} else if dashboardVersion != "" {
-		// Install 2 binaries: daprd, dashboard
-		wg.Add(2)
-		initSteps = append(initSteps, createComponentsAndConfiguration, runPlacementService, runRedis, runZipkin)
-	} else {
-		// Install 1 binaries: daprd
-		wg.Add(1)
-		initSteps = append(initSteps, createComponentsAndConfiguration, runPlacementService, runRedis, runZipkin)
+	var initSteps = []func(*sync.WaitGroup, chan<- error, initInfo){
+		createSlimConfiguration,
+		createComponentsAndConfiguration,
+		installDaprRuntime,
+		installPlacement,
+		installDashboard,
+		runPlacementService,
+		runRedis,
+		runZipkin,
 	}
 
 	// Init other configurations, containers
 	wg.Add(len(initSteps))
 
 	msg := "Downloading binaries and setting up components..."
-	if isEmbedded {
+	if fromDir != "" {
 		msg = "Extracting binaries and setting up components..."
 	}
 	stopSpinning := print.Spinner(os.Stdout, msg)
@@ -174,22 +194,17 @@ func Init(rv, dv string, dockerNetwork string, slimMode bool, imageRepositoryURL
 		return err
 	}
 
-	// Initialize daprd binary
-	go installBinary(&wg, errorChan, daprBinDir, runtimeVersion, daprRuntimeFilePrefix, dockerNetwork, cli_ver.DaprGitHubRepo)
-
-	// Initialize dashboard binary
-	if dashboardVersion != "" {
-		go installBinary(&wg, errorChan, daprBinDir, dashboardVersion, dashboardFilePrefix, dockerNetwork, cli_ver.DashboardGitHubRepo)
+	info := initInfo{
+		fromDir:            fromDir,
+		slimMode:           slimMode,
+		runtimeVersion:     runtimeVersion,
+		dashboardVersion:   dashboardVersion,
+		dockerNetwork:      dockerNetwork,
+		imageRepositoryURL: imageRepositoryURL,
 	}
-
-	if slimMode {
-		// Initialize placement binary only on slim install
-		go installBinary(&wg, errorChan, daprBinDir, runtimeVersion, placementServiceFilePrefix, dockerNetwork, cli_ver.DaprGitHubRepo)
-	}
-
 	for _, step := range initSteps {
 		// Run init on the configurations and containers
-		go step(&wg, errorChan, dockerNetwork, imageRepositoryURL)
+		go step(&wg, errorChan, info)
 	}
 
 	go func() {
@@ -206,7 +221,7 @@ func Init(rv, dv string, dockerNetwork string, slimMode bool, imageRepositoryURL
 	stopSpinning(print.Success)
 
 	msg = "Downloaded binaries and completed components set up."
-	if isEmbedded {
+	if fromDir != "" {
 		msg = "Extracted binaries and completed components set up."
 	}
 	print.SuccessStatusEvent(os.Stdout, msg)
@@ -231,10 +246,14 @@ func Init(rv, dv string, dockerNetwork string, slimMode bool, imageRepositoryURL
 	return nil
 }
 
-func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, dockerNetwork string, imageRepositoryURL string) {
+func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 	defer wg.Done()
 
-	zipkinContainerName := utils.CreateContainerName(DaprZipkinContainerName, dockerNetwork)
+	if info.slimMode {
+		return
+	}
+
+	zipkinContainerName := utils.CreateContainerName(DaprZipkinContainerName, info.dockerNetwork)
 
 	exists, err := confirmContainerIsRunningOrExists(zipkinContainerName, false)
 	if err != nil {
@@ -247,16 +266,20 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, dockerNetwork string,
 		// do not create container again if it exists
 		args = append(args, "start", zipkinContainerName)
 	} else {
-		err = loadDockerIfNecessary(zipkinDockerImageName)
-		if err != nil {
-			errorChan <- err
-			return
+		imageName := zipkinDockerImageName
+		if info.imageRepositoryURL != "" {
+			imageName = fmt.Sprintf("%s/%s", info.imageRepositoryURL, imageName)
 		}
 
-		imageName := zipkinDockerImageName
-		if imageRepositoryURL != "" {
-			imageName = fmt.Sprintf("%s/%s", imageRepositoryURL, imageName)
+		if info.fromDir != "" {
+			dir := path_filepath.Join(info.fromDir, dockerImageSubDir)
+			err = loadDocker(dir, imageName)
+			if err != nil {
+				errorChan <- err
+				return
+			}
 		}
+
 		args = append(args,
 			"run",
 			"--name", zipkinContainerName,
@@ -264,10 +287,10 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, dockerNetwork string,
 			"-d",
 		)
 
-		if dockerNetwork != "" {
+		if info.dockerNetwork != "" {
 			args = append(
 				args,
-				"--network", dockerNetwork,
+				"--network", info.dockerNetwork,
 				"--network-alias", DaprZipkinContainerName)
 		} else {
 			args = append(
@@ -291,9 +314,14 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, dockerNetwork string,
 	errorChan <- nil
 }
 
-func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dockerNetwork string, imageRepositoryURL string) {
+func runRedis(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 	defer wg.Done()
-	redisContainerName := utils.CreateContainerName(DaprRedisContainerName, dockerNetwork)
+
+	if info.slimMode {
+		return
+	}
+
+	redisContainerName := utils.CreateContainerName(DaprRedisContainerName, info.dockerNetwork)
 
 	exists, err := confirmContainerIsRunningOrExists(redisContainerName, false)
 	if err != nil {
@@ -306,16 +334,20 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dockerNetwork string, 
 		// do not create container again if it exists
 		args = append(args, "start", redisContainerName)
 	} else {
-		err = loadDockerIfNecessary(redisDockerImageName)
-		if err != nil {
-			errorChan <- err
-			return
+		imageName := redisDockerImageName
+		if info.imageRepositoryURL != "" {
+			imageName = fmt.Sprintf("%s/%s", info.imageRepositoryURL, imageName)
 		}
 
-		imageName := redisDockerImageName
-		if imageRepositoryURL != "" {
-			imageName = fmt.Sprintf("%s/%s", imageRepositoryURL, imageName)
+		if info.fromDir != "" {
+			dir := path_filepath.Join(info.fromDir, dockerImageSubDir)
+			err = loadDocker(dir, imageName)
+			if err != nil {
+				errorChan <- err
+				return
+			}
 		}
+
 		args = append(args,
 			"run",
 			"--name", redisContainerName,
@@ -323,10 +355,10 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dockerNetwork string, 
 			"-d",
 		)
 
-		if dockerNetwork != "" {
+		if info.dockerNetwork != "" {
 			args = append(
 				args,
-				"--network", dockerNetwork,
+				"--network", info.dockerNetwork,
 				"--network-alias", DaprRedisContainerName)
 		} else {
 			args = append(
@@ -349,17 +381,22 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dockerNetwork string, 
 	errorChan <- nil
 }
 
-func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dockerNetwork string, imageRepositoryURL string) {
+func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 	defer wg.Done()
-	placementContainerName := utils.CreateContainerName(DaprPlacementContainerName, dockerNetwork)
 
-	image := fmt.Sprintf("%s:%s", daprDockerImageName, runtimeVersion)
-	if imageRepositoryURL != "" {
-		image = fmt.Sprintf("%s/%s", imageRepositoryURL, image)
+	if info.slimMode {
+		return
+	}
+
+	placementContainerName := utils.CreateContainerName(DaprPlacementContainerName, info.dockerNetwork)
+
+	image := fmt.Sprintf("%s:%s", daprDockerImageName, info.runtimeVersion)
+	if info.imageRepositoryURL != "" {
+		image = fmt.Sprintf("%s/%s", info.imageRepositoryURL, image)
 	}
 
 	// Use only image for latest version
-	if runtimeVersion == latestVersion {
+	if info.runtimeVersion == latestVersion {
 		image = daprDockerImageName
 	}
 
@@ -373,10 +410,13 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dockerNetwo
 		return
 	}
 
-	err = loadDockerIfNecessary(image)
-	if err != nil {
-		errorChan <- err
-		return
+	if info.fromDir != "" {
+		dir := path_filepath.Join(info.fromDir, dockerImageSubDir)
+		err = loadDocker(dir, image)
+		if err != nil {
+			errorChan <- err
+			return
+		}
 	}
 
 	args := []string{
@@ -387,9 +427,9 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dockerNetwo
 		"--entrypoint", "./placement",
 	}
 
-	if dockerNetwork != "" {
+	if info.dockerNetwork != "" {
 		args = append(args,
-			"--network", dockerNetwork,
+			"--network", info.dockerNetwork,
 			"--network-alias", DaprPlacementContainerName)
 	} else {
 		osPort := 50005
@@ -447,57 +487,98 @@ func moveDashboardFiles(extractedFilePath string, dir string) (string, error) {
 	return extractedFilePath, nil
 }
 
-func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, binaryFilePrefix string, dockerNetwork string, githubRepo string) {
+func installDaprRuntime(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 	defer wg.Done()
 
+	err := installBinary(info.runtimeVersion, daprRuntimeFilePrefix, cli_ver.DaprGitHubRepo, info.fromDir)
+	if err != nil {
+		errorChan <- err
+	}
+}
+
+func installDashboard(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
+	defer wg.Done()
+	if info.dashboardVersion == "" {
+		return
+	}
+
+	err := installBinary(info.dashboardVersion, dashboardFilePrefix, cli_ver.DashboardGitHubRepo, info.fromDir)
+	if err != nil {
+		errorChan <- err
+	}
+}
+
+func installPlacement(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
+	defer wg.Done()
+
+	if !info.slimMode {
+		return
+	}
+
+	err := installBinary(info.runtimeVersion, placementServiceFilePrefix, cli_ver.DaprGitHubRepo, info.fromDir)
+	if err != nil {
+		errorChan <- err
+	}
+}
+
+func installBinary(version, binaryFilePrefix string, githubRepo string, fromDir string) error {
 	var (
 		err      error
 		filepath string
 	)
 
-	if !isEmbedded {
+	dir := defaultDaprBinPath()
+	if fromDir == "" {
 		filepath, err = downloadBinary(dir, version, binaryFilePrefix, githubRepo)
 		if err != nil {
-			errorChan <- fmt.Errorf("error downloading %s binary: %s", binaryFilePrefix, err)
-			return
+			return fmt.Errorf("error downloading %s binary: %s", binaryFilePrefix, err)
 		}
+	} else {
+		filepath = path_filepath.Join(fromDir, daprBinarySubDir, binaryName(binaryFilePrefix))
 	}
 
 	extractedFilePath, err := extractFile(filepath, dir, binaryFilePrefix)
 	if err != nil {
-		errorChan <- err
-		return
+		return err
+	}
+
+	if fromDir == "" {
+		err = os.Remove(filepath)
+		if err != nil {
+			return fmt.Errorf("failed to remove archive: %s", err)
+		}
 	}
 
 	if binaryFilePrefix == "dashboard" {
 		extractedFilePath, err = moveDashboardFiles(extractedFilePath, dir)
 		if err != nil {
-			errorChan <- err
-			return
+			return err
 		}
 	}
 
 	binaryPath, err := moveFileToPath(extractedFilePath, dir)
 	if err != nil {
-		errorChan <- fmt.Errorf("error moving %s binary to path: %s", binaryFilePrefix, err)
-		return
+		return fmt.Errorf("error moving %s binary to path: %s", binaryFilePrefix, err)
 	}
 
 	err = makeExecutable(binaryPath)
 	if err != nil {
-		errorChan <- fmt.Errorf("error making %s binary executable: %s", binaryFilePrefix, err)
+		return fmt.Errorf("error making %s binary executable: %s", binaryFilePrefix, err)
+	}
+
+	return nil
+}
+
+func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
+	defer wg.Done()
+
+	if info.slimMode {
 		return
 	}
 
-	errorChan <- nil
-}
-
-func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error, dockerNetwork string, _ string) {
-	defer wg.Done()
-
 	redisHost := daprDefaultHost
 	zipkinHost := daprDefaultHost
-	if dockerNetwork != "" {
+	if info.dockerNetwork != "" {
 		// Default to network scoped alias of the container names when a dockerNetwork is specified.
 		redisHost = DaprRedisContainerName
 		zipkinHost = DaprZipkinContainerName
@@ -524,8 +605,12 @@ func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error
 	}
 }
 
-func createSlimConfiguration(wg *sync.WaitGroup, errorChan chan<- error, _ string, _ string) {
+func createSlimConfiguration(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 	defer wg.Done()
+
+	if !info.slimMode {
+		return
+	}
 
 	// For --slim we pass empty string so that we do not configure zipkin.
 	err := createDefaultConfiguration("", DefaultConfigFilePath())
@@ -573,17 +658,9 @@ func sanitizeExtractPath(destination string, filePath string) (string, error) {
 func extractFile(filepath, dir, binaryFilePrefix string) (string, error) {
 	var extractFunc func(string, string, string) (string, error)
 	if archiveExt() == "zip" {
-		if !isEmbedded {
-			extractFunc = unzipExternalFile
-		} else {
-			extractFunc = unzipEmbeddedFile
-		}
+		extractFunc = unzipExternalFile
 	} else {
-		if !isEmbedded {
-			extractFunc = untarExternalFile
-		} else {
-			extractFunc = untarEmbeddedFile
-		}
+		extractFunc = untarExternalFile
 	}
 
 	extractedFilePath, err := extractFunc(filepath, dir, binaryFilePrefix)
@@ -591,47 +668,7 @@ func extractFile(filepath, dir, binaryFilePrefix string) (string, error) {
 		return "", fmt.Errorf("error extracting %s binary: %s", binaryFilePrefix, err)
 	}
 
-	if !isEmbedded {
-		err = os.Remove(filepath)
-		if err != nil {
-			return "", fmt.Errorf("failed to remove archive: %s", err)
-		}
-	}
-
 	return extractedFilePath, nil
-}
-
-func unzipEmbeddedFile(filepath, dir, binaryFilePrefix string) (string, error) {
-	file := binaryStagePath(binaryFilePrefix)
-	f, err := binaries.Open(file)
-	if err != nil {
-		return "", fmt.Errorf("error open embedded file %s: %s", file, err)
-	}
-	defer f.Close()
-
-	var fi fs.FileInfo
-	fi, err = f.Stat()
-	if err != nil {
-		return "", fmt.Errorf("error stat embedded file %s: %s", file, err)
-	}
-
-	var fileBytes []byte
-	fileBytes, err = io.ReadAll(f)
-	if err != nil {
-		return "", fmt.Errorf("error read embedded file %s: %s", file, err)
-	}
-
-	var reader *zip.Reader
-	reader, err = zip.NewReader(bytes.NewReader(fileBytes), fi.Size())
-	if err != nil {
-		return "", fmt.Errorf("error open embedded zip file %s: %s", file, err)
-	}
-
-	return unzip(reader, dir, binaryFilePrefix)
-}
-
-func binaryStagePath(binaryFilePrefix string) string {
-	return path.Join("staging", defaultDaprBinDirName, binaryName(binaryFilePrefix))
 }
 
 func unzipExternalFile(filepath, dir, binaryFilePrefix string) (string, error) {
@@ -686,17 +723,6 @@ func unzip(r *zip.Reader, targetDir string, binaryFilePrefix string) (string, er
 		}
 	}
 	return foundBinary, nil
-}
-
-func untarEmbeddedFile(filepath, dir, binaryFilePrefix string) (string, error) {
-	file := binaryStagePath(binaryFilePrefix)
-	reader, err := binaries.Open(file)
-	if err != nil {
-		return "", fmt.Errorf("error open embedded file %s: %s", file, err)
-	}
-	defer reader.Close()
-
-	return untar(reader, dir, binaryFilePrefix)
 }
 
 func untarExternalFile(filepath, dir, binaryFilePrefix string) (string, error) {
@@ -907,4 +933,94 @@ func checkAndOverWriteFile(filePath string, b []byte) error {
 		}
 	}
 	return nil
+}
+
+func prepareDaprInstallDir(daprBinDir string) error {
+	err := os.MkdirAll(daprBinDir, 0o777)
+	if err != nil {
+		return err
+	}
+
+	err = os.Chmod(daprBinDir, 0o777)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func archiveExt() string {
+	ext := "tar.gz"
+	if runtime.GOOS == daprWindowsOS {
+		ext = "zip"
+	}
+
+	return ext
+}
+
+func downloadBinary(dir, version, binaryFilePrefix, githubRepo string) (string, error) {
+	fileURL := fmt.Sprintf(
+		"https://github.com/%s/%s/releases/download/v%s/%s",
+		cli_ver.DaprGitHubOrg,
+		githubRepo,
+		version,
+		binaryName(binaryFilePrefix))
+
+	return downloadFile(dir, fileURL)
+}
+
+func binaryName(binaryFilePrefix string) string {
+	return fmt.Sprintf("%s_%s_%s.%s", binaryFilePrefix, runtime.GOOS, runtime.GOARCH, archiveExt())
+}
+
+// nolint:gosec
+func downloadFile(dir string, url string) (string, error) {
+	tokens := strings.Split(url, "/")
+	fileName := tokens[len(tokens)-1]
+
+	filepath := path.Join(dir, fileName)
+	_, err := os.Stat(filepath)
+	if os.IsExist(err) {
+		return "", nil
+	}
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == 404 {
+		return "", fmt.Errorf("version not found from url: %s", url)
+	} else if resp.StatusCode != 200 {
+		return "", fmt.Errorf("download failed with %d", resp.StatusCode)
+	}
+
+	out, err := os.Create(filepath)
+	if err != nil {
+		return "", err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	return filepath, nil
+}
+
+func parseVersionFile(fromDir string) (string, string) {
+	bytes, err := ioutil.ReadFile(path_filepath.Join(fromDir, "version.json"))
+	if err != nil {
+		return "", ""
+	}
+
+	var versions map[string]string
+	err = json.Unmarshal(bytes, &versions)
+	if err != nil {
+		return "", ""
+	}
+
+	return versions[daprRuntimeFilePrefix], versions[dashboardFilePrefix]
 }

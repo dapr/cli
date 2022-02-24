@@ -11,7 +11,7 @@ import (
 	"github.com/dapr/cli/utils"
 )
 
-func loadDocker(in io.Reader) error {
+func runDockerLoad(in io.Reader) error {
 	subProcess := exec.Command("docker", "load")
 
 	stdin, err := subProcess.StdinPipe()
@@ -40,18 +40,14 @@ func loadDocker(in io.Reader) error {
 	return nil
 }
 
-func loadDockerIfNecessary(dockerImage string) error {
-	if !isEmbedded {
-		return nil
-	}
-
+func loadDocker(dir string, dockerImage string) error {
 	var imageFile io.Reader
 	var err error
-	imageFile, err = binaries.Open(path_filepath.Join("staging", "images", imageFileName(dockerImage)))
+	imageFile, err = os.Open(path_filepath.Join(dir, imageFileName(dockerImage)))
 	if err != nil {
 		return fmt.Errorf("fail to read docker image file %s: %v", dockerImage, err)
 	}
-	err = loadDocker(imageFile)
+	err = runDockerLoad(imageFile)
 	if err != nil {
 		return fmt.Errorf("fail to load docker image %s: %v", dockerImage, err)
 	}
@@ -107,4 +103,11 @@ func parseDockerError(component string, err error) error {
 		}
 	}
 	return err
+}
+
+func imageFileName(image string) string {
+	filename := image + ".tar.gz"
+	filename = strings.ReplaceAll(filename, "/", "-")
+	filename = strings.ReplaceAll(filename, ":", "-")
+	return filename
 }
