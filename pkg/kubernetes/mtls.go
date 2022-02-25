@@ -28,12 +28,14 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/dapr/pkg/apis/configuration/v1alpha1"
 )
 
 const (
-	systemConfigName      = "daprsystem"
-	trustBundleSecretName = "dapr-trust-bundle" // nolint:gosec
+	systemConfigName         = "daprsystem"
+	trustBundleSecretName    = "dapr-trust-bundle" // nolint:gosec
+	warningDaysForCertExpiry = 30                  // in days
 )
 
 func IsMTLSEnabled() (bool, error) {
@@ -105,6 +107,32 @@ func ExportTrustChain(outputDir string) error {
 		return err
 	}
 	return nil
+}
+
+// Check and warn if cert expiry is less than `warningDaysForCertExpiry` days.
+func CheckForCertExpiry() {
+	expiry, err := Expiry()
+	// The intent is to warn for certificate expiry, only when it can be fetched.
+	// Do not show any kind of errors with normal command flow.
+	if err != nil {
+		return
+	}
+	daysRemaining := int(expiry.Sub(time.Now().UTC()).Hours() / 24)
+
+	if daysRemaining < warningDaysForCertExpiry {
+		warningMessage := ""
+		switch {
+		case daysRemaining == 0:
+			warningMessage = "Dapr root certificate of your Kubernetes cluster expires today."
+		case daysRemaining < 0:
+			warningMessage = "Dapr root certificate of your Kubernetes cluster has expired."
+		default:
+			warningMessage = fmt.Sprintf("Dapr root certificate of your Kubernetes cluster expires in %v days.", daysRemaining)
+		}
+		helpMessage := "Please see docs.dapr.io for certificate renewal instructions to avoid service interruptions."
+		print.WarningStatusEvent(os.Stdout,
+			fmt.Sprintf("%s Expiry date: %s. \n %s", warningMessage, expiry.Format(time.RFC1123), helpMessage))
+	}
 }
 
 func getTrustChainSecret() (*corev1.Secret, error) {
