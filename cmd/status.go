@@ -54,6 +54,9 @@ dapr status -k
 
 		utils.PrintTable(table)
 	},
+	PostRun: func(cmd *cobra.Command, args []string) {
+		kubernetes.CheckForCertExpiry()
+	},
 }
 
 func init() {

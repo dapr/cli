@@ -87,6 +87,11 @@ dapr list -k
 			outputList(list, len(list))
 		}
 	},
+	PostRun: func(cmd *cobra.Command, args []string) {
+		if kubernetesMode {
+			kubernetes.CheckForCertExpiry()
+		}
+	},
 }
 
 func init() {
