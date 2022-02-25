@@ -490,7 +490,7 @@ func uninstallTest(all bool) func(t *testing.T) {
 		go waitPodDeletion(t, done, podsDeleted)
 		select {
 		case <-podsDeleted:
-			t.Log("pods were delted as expected on uninstall")
+			t.Log("pods were deleted as expected on uninstall")
 			return
 		case <-time.After(2 * time.Minute):
 			done <- struct{}{}

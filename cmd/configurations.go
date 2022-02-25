@@ -39,6 +39,9 @@ var ConfigurationsCmd = &cobra.Command{
 			}
 		}
 	},
+	PostRun: func(cmd *cobra.Command, args []string) {
+		kubernetes.CheckForCertExpiry()
+	},
 	Example: `
 # List Kubernetes Dapr configurations
 dapr configurations -k
