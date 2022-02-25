@@ -112,7 +112,7 @@ func ExportTrustChain(outputDir string) error {
 // Check and warn if cert expiry is less than `warningDaysForCertExpiry` days.
 func CheckForCertExpiry() {
 	expiry, err := Expiry()
-	// The intent is to warn for certificate expiry only when it can be fetched.
+	// The intent is to warn for certificate expiry, only when it can be fetched.
 	// Do not show any kind of errors with normal command flow.
 	if err != nil {
 		return
@@ -123,15 +123,15 @@ func CheckForCertExpiry() {
 		warningMessage := ""
 		switch {
 		case daysRemaining == 0:
-			warningMessage = "Root certificate of your kubernetes cluster expires today"
+			warningMessage = "Dapr root certificate of your Kubernetes cluster expires today."
 		case daysRemaining < 0:
-			warningMessage = "Root certificate your kubernetes cluster already expired"
+			warningMessage = "Dapr root certificate of your Kubernetes cluster has expired."
 		default:
-			warningMessage = fmt.Sprintf("Root certificate your kubernetes cluster expires in %v days", daysRemaining)
+			warningMessage = fmt.Sprintf("Dapr root certificate of your Kubernetes cluster expires in %v days.", daysRemaining)
 		}
-		helpMessage := "Kindly renew to avoid any service interuptions."
+		helpMessage := "Please see docs.dapr.io for certificate renewal instructions to avoid service interruptions."
 		print.WarningStatusEvent(os.Stdout,
-			fmt.Sprintf("%s. Expiry date: %s. \n %s", warningMessage, expiry.Format(time.RFC1123), helpMessage))
+			fmt.Sprintf("%s Expiry date: %s. \n %s", warningMessage, expiry.Format(time.RFC1123), helpMessage))
 	}
 }
 
