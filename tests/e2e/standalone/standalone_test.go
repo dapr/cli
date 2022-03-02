@@ -81,7 +81,7 @@ func TestNegativeScenarios(t *testing.T) {
 
 	t.Run("run without install", func(t *testing.T) {
 		output, err := spawn.Command(daprPath, "run", "test")
-		require.NoError(t, err, "expected no error status on run without install")
+		require.Error(t, err, "expected error status on run without install")
 		path := filepath.Join(homeDir, ".dapr", "components")
 		require.Contains(t, output, path+": no such file or directory", "expected output to contain message")
 	})
