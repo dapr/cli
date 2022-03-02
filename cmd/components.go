@@ -39,6 +39,9 @@ var ComponentsCmd = &cobra.Command{
 			}
 		}
 	},
+	PostRun: func(cmd *cobra.Command, args []string) {
+		kubernetes.CheckForCertExpiry()
+	},
 	Example: `
 # List Kubernetes components
 dapr components -k
