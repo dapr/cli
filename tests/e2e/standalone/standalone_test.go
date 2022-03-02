@@ -393,7 +393,7 @@ func testRun(t *testing.T) {
 		t.Run(fmt.Sprintf("Error exit, socket: %s", path), func(t *testing.T) {
 			output, err := spawn.Command(daprPath, "run", "--unix-domain-socket", path, "--", "bash", "-c", "exit 1")
 			t.Log(output)
-			require.NoError(t, err, "run failed")
+			require.Error(t, err, "run failed")
 			assert.Contains(t, output, "The App process exited with error code: exit status 1")
 			assert.Contains(t, output, "Exited Dapr successfully")
 		})
