@@ -118,7 +118,7 @@ dapr run --app-id myapp --app-port 3000 --app-protocol grpc -- go run main.go
 		})
 		if err != nil {
 			print.FailureStatusEvent(os.Stderr, err.Error())
-			return
+			os.Exit(1)
 		}
 
 		sigCh := make(chan os.Signal, 1)
