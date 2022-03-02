@@ -48,7 +48,7 @@ const (
 	daprDefaultHost            = "localhost"
 	pubSubYamlFileName         = "pubsub.yaml"
 	stateStoreYamlFileName     = "statestore.yaml"
-	redisDockerImageName       = "redis"
+	redisDockerImageName       = "redislabs/rejson"
 	zipkinDockerImageName      = "openzipkin/zipkin"
 
 	// DaprPlacementContainerName is the container name of placement service.
