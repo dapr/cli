@@ -586,6 +586,33 @@ If you want to invoke your app, also use this flag:
 $ dapr invoke --app-id nodeapp --unix-domain-socket --method mymethod
 ```
 
+### Enable Unix domain socket
+
+In order to enable Unix domain socket to connect Dapr API server, use the `--unix-domain-socket` flag:
+
+```
+$ dapr run --app-id nodeapp --unix-domain-socket node app.js
+```
+
+Dapr will automatically create a Unix domain socket to connect Dapr API server.
+
+If you want to invoke your app, also use this flag:
+
+```
+$ dapr invoke --app-id nodeapp --unix-domain-socket --method mymethod
+```
+
+### Set API log level
+
+In order to set the Dapr runtime API calls log verbosity level, use the `api-log-level` flag:
+
+```bash
+dapr run --app-id nodeapp --app-port 3000 node app.js --api-log-level info
+```
+
+This sets the Dapr API log level to `info`.
+The default is `debug`.
+
 For more details, please run the command and check the examples to apply to your shell.
 
 ## Reference for the Dapr CLI
