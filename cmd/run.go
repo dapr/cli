@@ -157,6 +157,7 @@ dapr run --app-id myapp --app-port 3000 --app-protocol grpc -- go run main.go
 				daprdErr := output.DaprCMD.Wait()
 
 				if daprdErr != nil {
+					output.DaprErr = daprdErr
 					print.FailureStatusEvent(os.Stderr, "The daprd process exited with error code: %s", daprdErr.Error())
 				} else {
 					print.SuccessStatusEvent(os.Stdout, "Exited Dapr successfully")
@@ -259,6 +260,7 @@ dapr run --app-id myapp --app-port 3000 --app-protocol grpc -- go run main.go
 				appErr := output.AppCMD.Wait()
 
 				if appErr != nil {
+					output.AppErr = appErr
 					print.FailureStatusEvent(os.Stderr, "The App process exited with error code: %s", appErr.Error())
 				} else {
 					print.SuccessStatusEvent(os.Stdout, "Exited App successfully")
@@ -303,7 +305,12 @@ dapr run --app-id myapp --app-port 3000 --app-protocol grpc -- go run main.go
 		<-sigCh
 		print.InfoStatusEvent(os.Stdout, "\nterminated signal received: shutting down")
 
-		if output.DaprCMD.ProcessState == nil || !output.DaprCMD.ProcessState.Exited() {
+		exitWithError := false
+
+		if output.DaprErr != nil {
+			exitWithError = true
+			print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Error exiting Dapr: %s", output.DaprErr))
+		} else if output.DaprCMD.ProcessState == nil || !output.DaprCMD.ProcessState.Exited() {
 			err = output.DaprCMD.Process.Kill()
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Error exiting Dapr: %s", err))
@@ -312,7 +319,10 @@ dapr run --app-id myapp --app-port 3000 --app-protocol grpc -- go run main.go
 			}
 		}
 
-		if output.AppCMD != nil && (output.AppCMD.ProcessState == nil || !output.AppCMD.ProcessState.Exited()) {
+		if output.AppErr != nil {
+			exitWithError = true
+			print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Error exiting App: %s", output.AppErr))
+		} else if output.AppCMD != nil && (output.AppCMD.ProcessState == nil || !output.AppCMD.ProcessState.Exited()) {
 			err = output.AppCMD.Process.Kill()
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Error exiting App: %s", err))
@@ -325,6 +335,10 @@ dapr run --app-id myapp --app-port 3000 --app-protocol grpc -- go run main.go
 			for _, s := range []string{"http", "grpc"} {
 				os.Remove(utils.GetSocket(unixDomainSocket, output.AppID, s))
 			}
+		}
+
+		if exitWithError {
+			os.Exit(1)
 		}
 	},
 }
