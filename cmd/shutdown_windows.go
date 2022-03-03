@@ -24,7 +24,7 @@ import (
 )
 
 func setupShutdownNotify(sigCh chan os.Signal) {
-	//This will catch Ctrl-C
+	// This will catch Ctrl-C
 	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
 
 	// Unlike Linux/Mac, you can't just send a SIGTERM from another process

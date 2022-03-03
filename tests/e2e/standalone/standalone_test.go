@@ -210,7 +210,6 @@ func testInstallWithCustomImageRegsitry(t *testing.T) {
 }
 
 func verifyArtifactsAfterInstall(t *testing.T) {
-
 	// Verify Containers
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	require.NoError(t, err)
@@ -483,12 +482,11 @@ func testStop(t *testing.T) {
 		t.Log(output)
 		require.NoError(t, err, "dapr stop failed")
 		assert.Contains(t, output, "app stopped successfully: dapr_e2e_stop")
-
 	}, "run", "--app-id", "dapr_e2e_stop", "--", "bash", "-c", "sleep 60 ; exit 1")
 }
 
 func testPublish(t *testing.T) {
-	var sub = &common.Subscription{
+	sub := &common.Subscription{
 		PubsubName: "pubsub",
 		Topic:      "sample",
 		Route:      "/orders",
@@ -636,9 +634,7 @@ func testInvoke(t *testing.T) {
 			require.NoError(t, err, "dapr stop failed")
 			assert.Contains(t, output, "app stopped successfully: invoke_e2e")
 		}, "run", "--app-id", "invoke_e2e", "--app-port", "9987", "--unix-domain-socket", path)
-
 	}
-
 }
 
 func listOutputCheck(t *testing.T, output string) {

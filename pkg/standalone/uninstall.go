@@ -88,10 +88,10 @@ func Uninstall(uninstallAll bool, dockerNetwork string) error {
 	daprBinDir := defaultDaprBinPath()
 
 	placementFilePath := binaryFilePath(daprBinDir, placementServiceFilePrefix)
-	_, placementErr := os.Stat(placementFilePath) // check if the placement binary exists
+	_, placementErr := os.Stat(placementFilePath) // check if the placement binary exists.
 	uninstallPlacementContainer := os.IsNotExist(placementErr)
 
-	// Remove .dapr/bin
+	// Remove .dapr/bin.
 	err := removeDir(daprBinDir)
 	if err != nil {
 		print.WarningStatusEvent(os.Stdout, "WARNING: could not delete dapr bin dir: %s", daprBinDir)

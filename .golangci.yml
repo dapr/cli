@@ -246,7 +246,6 @@ linters:
     - exhaustive
     - gci 
     - noctx
-    - gofumpt
     - exhaustivestruct
     - gomoddirectives
     - paralleltest
@@ -254,8 +253,9 @@ linters:
     - wastedassign
     - cyclop
     - forbidigo
-    - nolintlint
-    - godot
     - tagliatelle
     - thelper
     - wrapcheck
+    - varnamelen
+    - forcetypeassert
+    - ireturn

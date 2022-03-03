@@ -65,7 +65,7 @@ func DeleteRunDataFile() error {
 func tryGetRunDataLock() (*lockfile.Lockfile, error) {
 	lockFile, err := lockfile.New(filepath.Join(os.TempDir(), runDataLockFile))
 	if err != nil {
-		// TODO: Log once we implement logging
+		// TODO: Log once we implement logging.
 		return nil, err
 	}
 
