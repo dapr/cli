@@ -81,7 +81,7 @@ dapr invoke --unix-domain-socket --app-id target --method sample --verb GET
 
 		response, err := client.Invoke(invokeAppID, invokeAppMethod, bytePayload, invokeVerb, invokeSocket)
 		if err != nil {
-			err = fmt.Errorf("error invoking app %s: %s", invokeAppID, err)
+			err = fmt.Errorf("error invoking app %s: %w", invokeAppID, err)
 			print.FailureStatusEvent(os.Stderr, err.Error())
 			return
 		}

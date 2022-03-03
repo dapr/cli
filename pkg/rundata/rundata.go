@@ -30,8 +30,8 @@ import (
 )
 
 var (
-	runDataFile     string = "dapr-run-data.ldj"
-	runDataLockFile string = "dapr-run-data.lock"
+	runDataFile     = "dapr-run-data.ldj"
+	runDataLockFile = "dapr-run-data.lock"
 )
 
 type RunData struct {

@@ -72,8 +72,7 @@ func WriteTable(writer io.Writer, csvContent string) {
 }
 
 func TruncateString(str string, maxLength int) string {
-	strLength := len(str)
-	if strLength <= maxLength {
+	if len(str) <= maxLength {
 		return str
 	}
 
@@ -103,6 +102,7 @@ func RunCmdAndWait(name string, args ...string) (string, error) {
 	}
 	errB, err := ioutil.ReadAll(stderr)
 	if err != nil {
+		//nolint
 		return "", nil
 	}
 

@@ -177,6 +177,7 @@ func (meta *DaprMeta) portExists(port int) bool {
 	if port <= 0 {
 		return false
 	}
+	//nolint
 	_, ok := meta.ExistingPorts[port]
 	if ok {
 		return true
@@ -325,6 +326,7 @@ func getAppCommand(config *RunConfig) *exec.Cmd {
 }
 
 func Run(config *RunConfig) (*RunOutput, error) {
+	//nolint
 	err := config.validate()
 	if err != nil {
 		return nil, err
@@ -335,6 +337,7 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		return nil, err
 	}
 
+	//nolint
 	var appCMD *exec.Cmd = getAppCommand(config)
 	return &RunOutput{
 		DaprCMD:      daprCMD,

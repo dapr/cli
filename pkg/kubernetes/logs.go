@@ -40,7 +40,7 @@ func Logs(appID, podName, namespace string) error {
 
 	pods, err := ListPods(client, namespace, nil)
 	if err != nil {
-		return fmt.Errorf("could not get logs %v", err)
+		return fmt.Errorf("could not get logs %w", err)
 	}
 
 	if podName == "" {
@@ -74,12 +74,12 @@ func Logs(appID, podName, namespace string) error {
 	getLogsRequest := client.CoreV1().Pods(namespace).GetLogs(podName, &corev1.PodLogOptions{Container: daprdContainerName, Follow: false})
 	logStream, err := getLogsRequest.Stream(context.TODO())
 	if err != nil {
-		return fmt.Errorf("could not get logs. Please check pod-name (%s). Error - %v", podName, err)
+		return fmt.Errorf("could not get logs. Please check pod-name (%s). Error - %w", podName, err)
 	}
 	defer logStream.Close()
 	_, err = io.Copy(os.Stdout, logStream)
 	if err != nil {
-		return fmt.Errorf("could not get logs %v", err)
+		return fmt.Errorf("could not get logs %w", err)
 	}
 
 	return nil

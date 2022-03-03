@@ -37,7 +37,7 @@ func removeContainers(uninstallPlacementContainer, uninstallAll bool, dockerNetw
 		if err != nil {
 			containerErrs = append(
 				containerErrs,
-				fmt.Errorf("could not remove %s image: %s", daprDockerImageName, err))
+				fmt.Errorf("could not remove %s image: %w", daprDockerImageName, err))
 		}
 	}
 
@@ -64,7 +64,7 @@ func removeDockerContainer(containerErrs []error, containerName, network string)
 	if err != nil {
 		containerErrs = append(
 			containerErrs,
-			fmt.Errorf("could not remove %s container: %s", container, err))
+			fmt.Errorf("could not remove %s container: %w", container, err))
 	}
 	return containerErrs
 }
