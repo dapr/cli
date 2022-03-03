@@ -313,6 +313,7 @@ dapr run --app-id myapp --app-port 3000 --app-protocol grpc -- go run main.go
 		} else if output.DaprCMD.ProcessState == nil || !output.DaprCMD.ProcessState.Exited() {
 			err = output.DaprCMD.Process.Kill()
 			if err != nil {
+				exitWithError = true
 				print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Error exiting Dapr: %s", err))
 			} else {
 				print.SuccessStatusEvent(os.Stdout, "Exited Dapr successfully")
@@ -325,6 +326,7 @@ dapr run --app-id myapp --app-port 3000 --app-protocol grpc -- go run main.go
 		} else if output.AppCMD != nil && (output.AppCMD.ProcessState == nil || !output.AppCMD.ProcessState.Exited()) {
 			err = output.AppCMD.Process.Kill()
 			if err != nil {
+				exitWithError = true
 				print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Error exiting App: %s", err))
 			} else {
 				print.SuccessStatusEvent(os.Stdout, "Exited App successfully")
