@@ -122,7 +122,7 @@ func locateChartFile(dirPath string) (string, error) {
 }
 
 func daprChart(version string, config *helm.Configuration) (*chart.Chart, error) {
-	pull := helm.NewPull()
+	pull := helm.NewPullWithOpts(helm.WithConfig(config))
 	pull.RepoURL = daprHelmRepo
 	pull.Settings = &cli.EnvSettings{}
 
