@@ -631,6 +631,12 @@ func testInvoke(t *testing.T) {
 				assert.Contains(t, output, "Only one of --data and --data-file allowed in the same invoke command")
 			})
 
+			t.Run(fmt.Sprintf("invoke an invalid method %s", path), func(t *testing.T) {
+				output, err := spawn.Command(daprPath, "invoke", "--app-id", "invoke_e2e", "--unix-domain-socket", path, "--method", "doesNotExist")
+				t.Log(output)
+				assert.Error(t, err, "method 'doesNotExist' does not exist")
+			})
+
 			output, err := spawn.Command(getDaprPath(), "stop", "--app-id", "invoke_e2e")
 			t.Log(output)
 			require.NoError(t, err, "dapr stop failed")
