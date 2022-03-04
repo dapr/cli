@@ -635,6 +635,7 @@ func testInvoke(t *testing.T) {
 				output, err := spawn.Command(daprPath, "invoke", "--app-id", "invoke_e2e_2", "--unix-domain-socket", path, "--method", "test")
 				t.Log(output)
 				assert.Error(t, err, "app invoke_e2e_2 should not exist")
+				assert.Contains(t, output, "error invoking app invoke_e2e_2: app ID invoke_e2e_2 not found")
 			})
 
 			output, err := spawn.Command(getDaprPath(), "stop", "--app-id", "invoke_e2e")
