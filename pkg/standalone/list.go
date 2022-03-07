@@ -214,7 +214,7 @@ func List() ([]ListOutput, error) {
 				listRow.ConfigPath = run.configPath
 			}
 
-			// filter only dashboard instance
+			// filter only dashboard instance.
 			if listRow.AppID != "" {
 				list = append(list, listRow)
 			}

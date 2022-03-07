@@ -23,7 +23,7 @@ import (
 )
 
 func TestGetVersionsGithub(t *testing.T) {
-	// Ensure a clean environment
+	// Ensure a clean environment.
 
 	tests := []struct {
 		Name         string
@@ -134,7 +134,7 @@ func TestGetVersionsGithub(t *testing.T) {
 }
 
 func TestGetVersionsHelm(t *testing.T) {
-	// Ensure a clean environment
+	// Ensure a clean environment.
 
 	tests := []struct {
 		Name         string
