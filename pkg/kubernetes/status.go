@@ -64,6 +64,7 @@ func NewStatusClient() (*StatusClient, error) {
 
 // List status for Dapr resources.
 func (s *StatusClient) Status() ([]StatusOutput, error) {
+	//nolint
 	client := s.client
 	if client == nil {
 		return nil, errors.New("kubernetes client not initialized")
@@ -98,7 +99,7 @@ func (s *StatusClient) Status() ([]StatusOutput, error) {
 			version := image[strings.IndexAny(image, ":")+1:]
 			status := ""
 
-			// loop through all replicas and update to Running/Healthy status only if all instances are Running and Healthy
+			// loop through all replicas and update to Running/Healthy status only if all instances are Running and Healthy.
 			healthy := "False"
 			running := true
 
