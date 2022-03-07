@@ -184,6 +184,11 @@ dapr dashboard -k -p 0
 			}
 		}
 	},
+	PostRun: func(cmd *cobra.Command, args []string) {
+		if kubernetesMode {
+			kubernetes.CheckForCertExpiry()
+		}
+	},
 }
 
 func init() {
