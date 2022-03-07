@@ -63,7 +63,7 @@ func GetBuildInfo(version string) string {
 
 	out, err := exec.Command(daprCMD, "--build-info").Output()
 	if err != nil {
-		// try '--version' for older runtime version
+		// try '--version' for older runtime version.
 		out, err = exec.Command(daprCMD, "--version").Output()
 	}
 	if err != nil {

@@ -177,12 +177,13 @@ func (meta *DaprMeta) portExists(port int) bool {
 	if port <= 0 {
 		return false
 	}
+	//nolint
 	_, ok := meta.ExistingPorts[port]
 	if ok {
 		return true
 	}
 
-	// try to listen on the port
+	// try to listen on the port.
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%v", port))
 	if err != nil {
 		return true
@@ -237,7 +238,7 @@ func (config *RunConfig) getArgs() []string {
 	if config.ConfigFile != "" {
 		sentryAddress := mtlsEndpoint(config.ConfigFile)
 		if sentryAddress != "" {
-			// mTLS is enabled locally, set it up
+			// mTLS is enabled locally, set it up.
 			args = append(args, "--enable-mtls", "--sentry-address", sentryAddress)
 		}
 	}
@@ -256,7 +257,7 @@ func (config *RunConfig) getEnv() []string {
 			continue
 		}
 		if value, ok := valueField.(int); ok && value <= 0 {
-			// ignore unset numeric variables
+			// ignore unset numeric variables.
 			continue
 		}
 
@@ -325,6 +326,7 @@ func getAppCommand(config *RunConfig) *exec.Cmd {
 }
 
 func Run(config *RunConfig) (*RunOutput, error) {
+	//nolint
 	err := config.validate()
 	if err != nil {
 		return nil, err
@@ -335,6 +337,7 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		return nil, err
 	}
 
+	//nolint
 	var appCMD *exec.Cmd = getAppCommand(config)
 	return &RunOutput{
 		DaprCMD:      daprCMD,
