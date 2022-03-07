@@ -25,7 +25,10 @@ var (
 	caRootCertificateFile       string
 	issuerPrivateKeyFile        string
 	issuerPublicCertificateFile string
+	newCertDir                  string
+	validUntil                  int
 )
+
 var RenewCertificateCmd = &cobra.Command{
 	Use:   "renew-cert",
 	Short: "Rotates Dapr root certificate of your kubernetes cluster",
@@ -47,8 +50,17 @@ dapr upgrade renew-cert -k --ca-root-certificate <ca.crt> --issuer-private-key <
 				kubernetes.RenewCertificate(caRootCertificateFile, issuerPrivateKeyFile, issuerPublicCertificateFile)
 			} else if certificatePasswordFile != "" {
 				fmt.Println("Reuse root password to generatre th root.pem file")
+				_, err := kubernetes.GenerateNewCertificates(validUntil, newCertDir, certificatePasswordFile)
+				if err != nil {
+					fmt.Errorf("certificate creation failed")
+				}
+
 			} else {
 				fmt.Println("Generate fresh certificate")
+				_, err := kubernetes.GenerateNewCertificates(validUntil, newCertDir, "")
+				if err != nil {
+					fmt.Errorf("certificate creation failed")
+				}
 			}
 		} else {
 			fmt.Println("standalone mode")
@@ -63,5 +75,6 @@ func init() {
 	RenewCertificateCmd.Flags().StringVarP(&caRootCertificateFile, "ca-root-certificate", "", "", "The version of the Dapr runtime to upgrade or downgrade to, for example: 1.0.0")
 	RenewCertificateCmd.Flags().StringVarP(&issuerPrivateKeyFile, "issuer-private-key", "", "", "The version of the Dapr runtime to upgrade or downgrade to, for example: 1.0.0")
 	RenewCertificateCmd.Flags().StringVarP(&issuerPublicCertificateFile, "issuer-public-certificate", "", "", "The version of the Dapr runtime to upgrade or downgrade to, for example: 1.0.0")
-	UpgradeCmd.AddCommand(RenewCertificateCmd)
+	RenewCertificateCmd.Flags().StringVarP(&newCertDir, "cert-dir", "", ".", "The directory path to save the newly created certs")
+	RenewCertificateCmd.Flags().IntVarP(&validUntil, "valid-until", "", 365, "Max days before certificate expires")
 }

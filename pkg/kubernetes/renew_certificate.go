@@ -59,7 +59,7 @@ func RenewCertificate(caRootCertificateFile, issuerPrivateKeyFile, issuerPublicC
 	upgradeClient.Wait = true
 	upgradeClient.Namespace = status[0].Namespace
 
-	vals, err := setCertificateValues(string(ca), string(issuerCert), string(issuerKey))
+	vals, err := createHelmParamsForNewCertificates(string(ca), string(issuerCert), string(issuerKey))
 	if err != nil {
 		return err
 	}
@@ -75,7 +75,7 @@ func RenewCertificate(caRootCertificateFile, issuerPrivateKeyFile, issuerPublicC
 	return nil
 }
 
-func setCertificateValues(ca, issuerCert, issuerKey string) (map[string]interface{}, error) {
+func createHelmParamsForNewCertificates(ca, issuerCert, issuerKey string) (map[string]interface{}, error) {
 	chartVals := map[string]interface{}{}
 	args := []string{}
 
@@ -94,4 +94,10 @@ func setCertificateValues(ca, issuerCert, issuerKey string) (map[string]interfac
 		}
 	}
 	return chartVals, nil
+}
+
+func GenerateNewCertificates(validUntil int, newCertDir, certificatePasswordFile string) (map[string]interface{}, error) {
+	certPaths := map[string]interface{}{}
+
+	return certPaths, nil
 }
