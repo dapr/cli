@@ -30,8 +30,8 @@ import (
 )
 
 var (
-	runDataFile     string = "dapr-run-data.ldj"
-	runDataLockFile string = "dapr-run-data.lock"
+	runDataFile     = "dapr-run-data.ldj"
+	runDataLockFile = "dapr-run-data.lock"
 )
 
 type RunData struct {
@@ -65,7 +65,7 @@ func DeleteRunDataFile() error {
 func tryGetRunDataLock() (*lockfile.Lockfile, error) {
 	lockFile, err := lockfile.New(filepath.Join(os.TempDir(), runDataLockFile))
 	if err != nil {
-		// TODO: Log once we implement logging
+		// TODO: Log once we implement logging.
 		return nil, err
 	}
 

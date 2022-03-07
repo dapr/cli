@@ -84,7 +84,7 @@ func TestPublish(t *testing.T) {
 			topic:        "test",
 			pubsubName:   "test",
 			lo: ListOutput{
-				// empty appID
+				// empty appID.
 				Command: "test",
 			},
 			errString:     "couldn't find a running Dapr instance",
@@ -143,7 +143,7 @@ func TestPublish(t *testing.T) {
 		},
 	}
 	for _, socket := range []string{"", "/tmp"} {
-		// TODO(@daixiang0): add Windows support
+		// TODO(@daixiang0): add Windows support.
 		if runtime.GOOS == "windows" && socket != "" {
 			continue
 		}

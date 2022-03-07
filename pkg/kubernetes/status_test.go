@@ -155,7 +155,7 @@ func TestStatus(t *testing.T) {
 					ExitCode: 1,
 				},
 			}, false)
-		// delete pod's podstatus
+		// delete pod's podstatus.
 		pod.Status.ContainerStatuses = nil
 		pod.Status.Phase = v1.PodPending
 
