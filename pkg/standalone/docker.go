@@ -58,11 +58,11 @@ func loadDocker(dir string, dockerImage string) error {
 	var err error
 	imageFile, err = os.Open(path_filepath.Join(dir, imageFileName(dockerImage)))
 	if err != nil {
-		return fmt.Errorf("fail to read docker image file %s: %v", dockerImage, err)
+		return fmt.Errorf("fail to read docker image file %s: %w", dockerImage, err)
 	}
 	err = runDockerLoad(imageFile)
 	if err != nil {
-		return fmt.Errorf("fail to load docker image %s: %v", dockerImage, err)
+		return fmt.Errorf("fail to load docker image %s: %w", dockerImage, err)
 	}
 
 	return nil
@@ -84,6 +84,7 @@ func confirmContainerIsRunningOrExists(containerName string, isRunning bool) (bo
 
 	// If 'docker ps' failed due to some reason
 	if err != nil {
+		//nolint
 		return false, fmt.Errorf("unable to confirm whether %s is running or exists. error\n%v", containerName, err.Error())
 	}
 	// 'docker ps' worked fine, but the response did not have the container name
@@ -98,6 +99,7 @@ func confirmContainerIsRunningOrExists(containerName string, isRunning bool) (bo
 }
 
 func isContainerRunError(err error) bool {
+	//nolint
 	if exitError, ok := err.(*exec.ExitError); ok {
 		exitCode := exitError.ExitCode()
 		return exitCode == 125
@@ -106,6 +108,7 @@ func isContainerRunError(err error) bool {
 }
 
 func parseDockerError(component string, err error) error {
+	//nolint
 	if exitError, ok := err.(*exec.ExitError); ok {
 		exitCode := exitError.ExitCode()
 		if exitCode == 125 { // see https://github.com/moby/moby/pull/14012

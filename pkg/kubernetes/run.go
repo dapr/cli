@@ -31,5 +31,6 @@ type RunOutput struct {
 
 // Run executes the application based on the run configuration.
 func Run(config *RunConfig) (*RunOutput, error) {
+	//nolint
 	return nil, nil
 }
