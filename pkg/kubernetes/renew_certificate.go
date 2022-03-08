@@ -14,34 +14,82 @@ limitations under the License.
 package kubernetes
 
 import (
+	"crypto/rand"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"time"
 
 	"github.com/dapr/cli/pkg/print"
 	helm "helm.sh/helm/v3/pkg/action"
 	"k8s.io/helm/pkg/strvals"
+
+	"github.com/dapr/dapr/pkg/sentry/certs"
+	"github.com/dapr/dapr/pkg/sentry/csr"
 )
 
-func RenewCertificate(caRootCertificateFile, issuerPrivateKeyFile, issuerPublicCertificateFile string) error {
-	ca, err := ioutil.ReadFile(caRootCertificateFile)
-	if err != nil {
-		return err
-	}
-	issuerCert, err := ioutil.ReadFile(issuerPublicCertificateFile)
-	if err != nil {
-		return err
-	}
-	issuerKey, err := ioutil.ReadFile(issuerPrivateKeyFile)
-	if err != nil {
-		return err
+type RenewCertificateParams struct {
+	RootCertificateFilePath   string
+	IssuerCertificateFilePath string
+	IssuerPrivateKeyFilePath  string
+	RootPrivateKeyFilePath    string
+	ValidUntil                int
+}
+
+func RenewCertificate(conf RenewCertificateParams) error {
+	var rootCertBytes []byte
+	var issuerCertBytes []byte
+	var issuerKeyBytes []byte
+	var err error
+	if conf.RootCertificateFilePath != "" && conf.IssuerCertificateFilePath != "" && conf.IssuerPrivateKeyFilePath != "" {
+		rootCertBytes, issuerCertBytes, issuerKeyBytes, err = parseCertificateFiles(
+			conf.RootCertificateFilePath,
+			conf.IssuerCertificateFilePath,
+			conf.IssuerPrivateKeyFilePath)
+
+		if err != nil {
+			return err
+		}
+	} else {
+		rootCertBytes, issuerCertBytes, issuerKeyBytes, err = GenerateNewCertificates(
+			conf.ValidUntil,
+			conf.RootPrivateKeyFilePath)
+
+		if err != nil {
+			return err
+		}
 	}
 
+	err = renewCertificate(rootCertBytes, issuerCertBytes, issuerKeyBytes)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func parseCertificateFiles(rootCert, issuerCert, issuerKey string) ([]byte, []byte, []byte, error) {
+	rootCertBytes, err := ioutil.ReadFile(rootCert)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	issuerCertBytes, err := ioutil.ReadFile(issuerCert)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	issuerKeyBytes, err := ioutil.ReadFile(issuerKey)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	return rootCertBytes, issuerCertBytes, issuerKeyBytes, nil
+}
+
+func renewCertificate(rootCert, issuerCert, issuerKey []byte) error {
 	status, err := GetDaprResourcesStatus()
 	if err != nil {
 		return err
 	}
-
 	daprVersion := GetDaprVersion(status)
 	print.InfoStatusEvent(os.Stdout, "Dapr control plane version %s detected in namespace %s", daprVersion, status[0].Namespace)
 
@@ -59,7 +107,7 @@ func RenewCertificate(caRootCertificateFile, issuerPrivateKeyFile, issuerPublicC
 	upgradeClient.Wait = true
 	upgradeClient.Namespace = status[0].Namespace
 
-	vals, err := createHelmParamsForNewCertificates(string(ca), string(issuerCert), string(issuerKey))
+	vals, err := createHelmParamsForNewCertificates(string(rootCert), string(issuerCert), string(issuerKey))
 	if err != nil {
 		return err
 	}
@@ -96,8 +144,45 @@ func createHelmParamsForNewCertificates(ca, issuerCert, issuerKey string) (map[s
 	return chartVals, nil
 }
 
-func GenerateNewCertificates(validUntil int, newCertDir, certificatePasswordFile string) (map[string]interface{}, error) {
-	certPaths := map[string]interface{}{}
+func GenerateNewCertificates(validUntil int, certificatePasswordFile string) ([]byte, []byte, []byte, error) {
+	rootKey, err := certs.GenerateECPrivateKey()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	rootCsr, err := csr.GenerateRootCertCSR("dapr.io/sentry", "cluster.local", &rootKey.PublicKey, time.Hour*240, time.Minute*15)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	rootCertBytes, err := x509.CreateCertificate(rand.Reader, rootCsr, rootCsr, &rootKey.PublicKey, rootKey)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	rootCertPem := pem.EncodeToMemory(&pem.Block{Type: certs.Certificate, Bytes: rootCertBytes})
+	rootCert, err := x509.ParseCertificate(rootCertBytes)
+	if err != nil {
+		return nil, nil, nil, err
+	}
 
-	return certPaths, nil
+	issuerKey, err := certs.GenerateECPrivateKey()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	encodedKey, err := x509.MarshalECPrivateKey(issuerKey)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	issuerKeyPem := pem.EncodeToMemory(&pem.Block{Type: certs.ECPrivateKey, Bytes: encodedKey})
+
+	issuerCsr, err := csr.GenerateIssuerCertCSR("cluster.local", &issuerKey.PublicKey, time.Hour*240, time.Minute*15)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	issuerCertBytes, err := x509.CreateCertificate(rand.Reader, issuerCsr, rootCert, &issuerKey.PublicKey, rootKey)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	issuerCertPem := pem.EncodeToMemory(&pem.Block{Type: certs.Certificate, Bytes: issuerCertBytes})
+
+	return rootCertPem, issuerCertPem, issuerKeyPem, nil
 }

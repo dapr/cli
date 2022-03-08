@@ -25,7 +25,6 @@ var (
 	caRootCertificateFile       string
 	issuerPrivateKeyFile        string
 	issuerPublicCertificateFile string
-	newCertDir                  string
 	validUntil                  int
 )
 
@@ -47,17 +46,29 @@ dapr upgrade renew-cert -k --ca-root-certificate <ca.crt> --issuer-private-key <
 	Run: func(cmd *cobra.Command, args []string) {
 		if kubernetesMode {
 			if caRootCertificateFile != "" && issuerPrivateKeyFile != "" && issuerPublicCertificateFile != "" {
-				kubernetes.RenewCertificate(caRootCertificateFile, issuerPrivateKeyFile, issuerPublicCertificateFile)
+				err := kubernetes.RenewCertificate(kubernetes.RenewCertificateParams{
+					RootCertificateFilePath:   caRootCertificateFile,
+					IssuerCertificateFilePath: issuerPrivateKeyFile,
+					IssuerPrivateKeyFilePath:  issuerPublicCertificateFile,
+				})
+				if err != nil {
+					fmt.Errorf("certificate creation failed")
+				}
 			} else if certificatePasswordFile != "" {
 				fmt.Println("Reuse root password to generatre th root.pem file")
-				_, err := kubernetes.GenerateNewCertificates(validUntil, newCertDir, certificatePasswordFile)
+				err := kubernetes.RenewCertificate(kubernetes.RenewCertificateParams{
+					RootPrivateKeyFilePath: certificatePasswordFile,
+					ValidUntil:             validUntil,
+				})
 				if err != nil {
 					fmt.Errorf("certificate creation failed")
 				}
 
 			} else {
 				fmt.Println("Generate fresh certificate")
-				_, err := kubernetes.GenerateNewCertificates(validUntil, newCertDir, "")
+				err := kubernetes.RenewCertificate(kubernetes.RenewCertificateParams{
+					ValidUntil: validUntil,
+				})
 				if err != nil {
 					fmt.Errorf("certificate creation failed")
 				}
@@ -65,7 +76,6 @@ dapr upgrade renew-cert -k --ca-root-certificate <ca.crt> --issuer-private-key <
 		} else {
 			fmt.Println("standalone mode")
 		}
-		fmt.Println("in subcommand renew-certificate")
 	},
 }
 
@@ -75,6 +85,5 @@ func init() {
 	RenewCertificateCmd.Flags().StringVarP(&caRootCertificateFile, "ca-root-certificate", "", "", "The version of the Dapr runtime to upgrade or downgrade to, for example: 1.0.0")
 	RenewCertificateCmd.Flags().StringVarP(&issuerPrivateKeyFile, "issuer-private-key", "", "", "The version of the Dapr runtime to upgrade or downgrade to, for example: 1.0.0")
 	RenewCertificateCmd.Flags().StringVarP(&issuerPublicCertificateFile, "issuer-public-certificate", "", "", "The version of the Dapr runtime to upgrade or downgrade to, for example: 1.0.0")
-	RenewCertificateCmd.Flags().StringVarP(&newCertDir, "cert-dir", "", ".", "The directory path to save the newly created certs")
 	RenewCertificateCmd.Flags().IntVarP(&validUntil, "valid-until", "", 365, "Max days before certificate expires")
 }
