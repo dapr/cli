@@ -52,7 +52,7 @@ func NewPortForward(
 ) (*PortForward, error) {
 	client, err := k8s.NewForConfig(config)
 	if err != nil {
-		return nil, fmt.Errorf("can't creat Clientset: %s", deployName)
+		return nil, fmt.Errorf("can't create Clientset for %q", deployName)
 	}
 
 	podList, err := ListPods(client, namespace, nil)
@@ -100,7 +100,7 @@ func NewPortForward(
 func (pf *PortForward) Init() error {
 	transport, upgrader, err := spdy.RoundTripperFor(pf.Config)
 	if err != nil {
-		return fmt.Errorf("can't connect to a Kubernetes cluster: %v", err)
+		return fmt.Errorf("can not connect to Kubernetes cluster: %w", err)
 	}
 
 	out := ioutil.Discard
@@ -115,7 +115,7 @@ func (pf *PortForward) Init() error {
 
 	fw, err := portforward.NewOnAddresses(dialer, []string{pf.Host}, ports, pf.StopCh, pf.ReadyCh, out, errOut)
 	if err != nil {
-		return fmt.Errorf("can't creat PortForwarder: %w", err)
+		return fmt.Errorf("can not create PortForwarder: %w", err)
 	}
 
 	failure := make(chan error)
@@ -126,14 +126,14 @@ func (pf *PortForward) Init() error {
 	}()
 
 	select {
-	// if `pf.run()` succeeds, block until terminated
+	// if `fw.ForwardPorts()` succeeds, block until terminated
 	case <-pf.ReadyCh:
 		ports, err := fw.GetPorts()
 		if err != nil {
 			return fmt.Errorf("can't get the ports that were forwarded: %w", err)
 		}
 		if len(ports) == 0 {
-			return fmt.Errorf("error ports length")
+			return fmt.Errorf("can not get the ports that were forwarded: error getting ports length")
 		}
 
 		pf.LocalPort = int(ports[0].Local)
