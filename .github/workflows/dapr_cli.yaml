@@ -88,13 +88,6 @@ jobs:
         run: |
           mkdir -p ${{ env.ARCHIVE_OUTDIR }}
           make release GOOS=${{ matrix.target_os }} GOARCH=${{ matrix.target_arch }} ARCHIVE_OUT_DIR=${{ env.ARCHIVE_OUTDIR }}
-      - name: Run archive_dapr_artifacts.sh to archive Dapr artificats
-        if: matrix.target_arch == 'amd64' && matrix.target_os == 'linux'
-        shell: bash
-        run: |
-          chmod +x ./.github/scripts/archive_dapr_artifacts.sh
-          ./.github/scripts/archive_dapr_artifacts.sh -o dapr_artifacts
-          tar czf ${{ env.ARCHIVE_OUTDIR }}/dapr_artifacts.tar.gz -C dapr_artifacts dist docker
       - name: Create release_version.txt
         if: matrix.target_arch == 'amd64' && matrix.target_os == 'linux'
         run: |
