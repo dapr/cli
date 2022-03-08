@@ -15,9 +15,13 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"time"
+
+	"github.com/spf13/cobra"
 
 	"github.com/dapr/cli/pkg/kubernetes"
-	"github.com/spf13/cobra"
+	"github.com/dapr/cli/pkg/print"
 )
 
 var (
@@ -33,50 +37,64 @@ var RenewCertificateCmd = &cobra.Command{
 	Short: "Rotates Dapr root certificate of your kubernetes cluster",
 	Example: `
 # Generates new root and issuer certificates for kubernetest cluster
-dapr upgrade renew-cert -k 
+dapr mtls renew-cert -k --valid-until <no of days>
 
 # Uses existing private root.key to generate new root and issuer certificates for kubernetest cluster
-dapr upgrade renew-cert -k --certificate-password-file myprivatekey.key
+dapr mtls renew-cert -k --certificate-password-file myprivatekey.key --valid-until <no of days>
 
 # Rotates certificate of your kubernetes cluster with provided ca.cert, issuer.crt and issuer.key file path
-dapr upgrade renew-cert -k --ca-root-certificate <ca.crt> --issuer-private-key <issuer.key> --issuer-public-certificate <issuer.crt>
+dapr mtls renew-cert -k --ca-root-certificate <ca.crt> --issuer-private-key <issuer.key> --issuer-public-certificate <issuer.crt>
 
 # See more at: https://docs.dapr.io/getting-started/
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		if kubernetesMode {
+			print.PendingStatusEvent(os.Stdout, "Starting certificate rotation")
 			if caRootCertificateFile != "" && issuerPrivateKeyFile != "" && issuerPublicCertificateFile != "" {
+				print.InfoStatusEvent(os.Stdout, "Using provided certificates")
 				err := kubernetes.RenewCertificate(kubernetes.RenewCertificateParams{
 					RootCertificateFilePath:   caRootCertificateFile,
 					IssuerCertificateFilePath: issuerPrivateKeyFile,
 					IssuerPrivateKeyFilePath:  issuerPublicCertificateFile,
 				})
 				if err != nil {
-					fmt.Errorf("certificate creation failed")
+					logErrorAndExit(err)
 				}
 			} else if certificatePasswordFile != "" {
-				fmt.Println("Reuse root password to generatre th root.pem file")
+				print.InfoStatusEvent(os.Stdout, "Using password file to generate root certificate")
 				err := kubernetes.RenewCertificate(kubernetes.RenewCertificateParams{
 					RootPrivateKeyFilePath: certificatePasswordFile,
-					ValidUntil:             validUntil,
+					ValidUntil:             time.Duration(validUntil * 24),
 				})
 				if err != nil {
-					fmt.Errorf("certificate creation failed")
+					logErrorAndExit(err)
 				}
 
 			} else {
-				fmt.Println("Generate fresh certificate")
+				print.InfoStatusEvent(os.Stdout, "generating fresh certificates")
 				err := kubernetes.RenewCertificate(kubernetes.RenewCertificateParams{
-					ValidUntil: validUntil,
+					ValidUntil: time.Duration(validUntil * 24),
 				})
 				if err != nil {
-					fmt.Errorf("certificate creation failed")
+					logErrorAndExit(err)
 				}
 			}
-		} else {
-			fmt.Println("standalone mode")
 		}
 	},
+	PostRun: func(cmd *cobra.Command, args []string) {
+		expiry, err := kubernetes.Expiry()
+		if err != nil {
+			logErrorAndExit(err)
+		}
+		print.SuccessStatusEvent(os.Stdout,
+			fmt.Sprintf("Certificate rotation is successful! Your new certicate is valid through %s", expiry.Format(time.RFC1123)))
+	},
+}
+
+func logErrorAndExit(err error) {
+	err = fmt.Errorf("certificate rotation failed %s", err)
+	print.FailureStatusEvent(os.Stderr, err.Error())
+	os.Exit(1)
 }
 
 func init() {

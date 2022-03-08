@@ -22,10 +22,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/dapr/cli/pkg/print"
 	helm "helm.sh/helm/v3/pkg/action"
 	"k8s.io/helm/pkg/strvals"
 
+	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/dapr/pkg/sentry/certs"
 	"github.com/dapr/dapr/pkg/sentry/csr"
 )
@@ -35,7 +35,7 @@ type RenewCertificateParams struct {
 	IssuerCertificateFilePath string
 	IssuerPrivateKeyFilePath  string
 	RootPrivateKeyFilePath    string
-	ValidUntil                int
+	ValidUntil                time.Duration
 }
 
 func RenewCertificate(conf RenewCertificateParams) error {
@@ -61,7 +61,7 @@ func RenewCertificate(conf RenewCertificateParams) error {
 			return err
 		}
 	}
-
+	print.InfoStatusEvent(os.Stdout, "Updating certifcates in your Kubernetes cluster")
 	err = renewCertificate(rootCertBytes, issuerCertBytes, issuerKeyBytes)
 	if err != nil {
 		return err
@@ -144,12 +144,12 @@ func createHelmParamsForNewCertificates(ca, issuerCert, issuerKey string) (map[s
 	return chartVals, nil
 }
 
-func GenerateNewCertificates(validUntil int, certificatePasswordFile string) ([]byte, []byte, []byte, error) {
+func GenerateNewCertificates(validUntil time.Duration, certificatePasswordFile string) ([]byte, []byte, []byte, error) {
 	rootKey, err := certs.GenerateECPrivateKey()
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	rootCsr, err := csr.GenerateRootCertCSR("dapr.io/sentry", "cluster.local", &rootKey.PublicKey, time.Hour*240, time.Minute*15)
+	rootCsr, err := csr.GenerateRootCertCSR("dapr.io/sentry", "cluster.local", &rootKey.PublicKey, time.Hour*validUntil, time.Minute*15)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -173,7 +173,7 @@ func GenerateNewCertificates(validUntil int, certificatePasswordFile string) ([]
 	}
 	issuerKeyPem := pem.EncodeToMemory(&pem.Block{Type: certs.ECPrivateKey, Bytes: encodedKey})
 
-	issuerCsr, err := csr.GenerateIssuerCertCSR("cluster.local", &issuerKey.PublicKey, time.Hour*240, time.Minute*15)
+	issuerCsr, err := csr.GenerateIssuerCertCSR("cluster.local", &issuerKey.PublicKey, time.Hour*validUntil, time.Minute*15)
 	if err != nil {
 		return nil, nil, nil, err
 	}
