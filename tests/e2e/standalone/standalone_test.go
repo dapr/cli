@@ -82,7 +82,7 @@ func TestNegativeScenarios(t *testing.T) {
 
 	t.Run("run without install", func(t *testing.T) {
 		output, err := spawn.Command(daprPath, "run", "test")
-		require.NoError(t, err, "expected no error status on run without install")
+		require.Error(t, err, "expected error status on run without install")
 		path := filepath.Join(homeDir, ".dapr", "components")
 		require.Contains(t, output, path+": no such file or directory", "expected output to contain message")
 	})
@@ -407,7 +407,7 @@ func testRun(t *testing.T) {
 		t.Run(fmt.Sprintf("error exit, socket: %s", path), func(t *testing.T) {
 			output, err := spawn.Command(daprPath, "run", "--unix-domain-socket", path, "--", "bash", "-c", "exit 1")
 			t.Log(output)
-			require.NoError(t, err, "run failed")
+			require.Error(t, err, "run failed")
 			assert.Contains(t, output, "The App process exited with error code: exit status 1")
 			assert.Contains(t, output, "Exited Dapr successfully")
 		})
@@ -642,6 +642,13 @@ func testInvoke(t *testing.T) {
 				t.Log(output)
 				assert.Error(t, err, "--data and --data-file should not be allowed together")
 				assert.Contains(t, output, "Only one of --data and --data-file allowed in the same invoke command")
+			})
+
+			t.Run(fmt.Sprintf("invoke an invalid app %s", path), func(t *testing.T) {
+				output, err := spawn.Command(daprPath, "invoke", "--app-id", "invoke_e2e_2", "--unix-domain-socket", path, "--method", "test")
+				t.Log(output)
+				assert.Error(t, err, "app invoke_e2e_2 should not exist")
+				assert.Contains(t, output, "error invoking app invoke_e2e_2: app ID invoke_e2e_2 not found")
 			})
 
 			t.Run(fmt.Sprintf("invoke with an invalid method name %s", path), func(t *testing.T) {

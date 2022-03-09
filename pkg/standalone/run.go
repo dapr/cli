@@ -275,10 +275,12 @@ func (config *RunConfig) getEnv() []string {
 // RunOutput represents the run output.
 type RunOutput struct {
 	DaprCMD      *exec.Cmd
+	DaprErr      error
 	DaprHTTPPort int
 	DaprGRPCPort int
 	AppID        string
 	AppCMD       *exec.Cmd
+	AppErr       error
 }
 
 func getDaprCommand(config *RunConfig) (*exec.Cmd, error) {
@@ -346,7 +348,9 @@ func Run(config *RunConfig) (*RunOutput, error) {
 	var appCMD *exec.Cmd = getAppCommand(config)
 	return &RunOutput{
 		DaprCMD:      daprCMD,
+		DaprErr:      nil,
 		AppCMD:       appCMD,
+		AppErr:       nil,
 		AppID:        config.AppID,
 		DaprHTTPPort: config.HTTPPort,
 		DaprGRPCPort: config.GRPCPort,
