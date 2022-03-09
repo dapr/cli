@@ -27,6 +27,7 @@ import (
 	"github.com/phayes/freeport"
 	"gopkg.in/yaml.v2"
 
+	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/dapr/pkg/components"
 	modes "github.com/dapr/dapr/pkg/config/modes"
 )
@@ -241,6 +242,10 @@ func (config *RunConfig) getArgs() []string {
 			// mTLS is enabled locally, set it up.
 			args = append(args, "--enable-mtls", "--sentry-address", sentryAddress)
 		}
+	}
+
+	if print.IsJSONLogEnabled() {
+		args = append(args, "--log-as-json")
 	}
 
 	return args
