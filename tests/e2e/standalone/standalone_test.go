@@ -58,6 +58,7 @@ func TestStandaloneInstall(t *testing.T) {
 	}{
 		{"test install", testInstall},
 		{"test install from custom registry", testInstallWithCustomImageRegsitry},
+		{"test run log json enabled", testRunLogJSON},
 		{"test run", testRun},
 		{"test stop", testStop},
 		{"test publish", testPublish},
@@ -377,11 +378,25 @@ func verifyArtifactsAfterInstall(t *testing.T) {
 	assert.Empty(t, configs)
 }
 
+func testRunLogJSON(t *testing.T) {
+	daprPath := getDaprPath()
+
+	t.Run(fmt.Sprintf("check JSON log"), func(t *testing.T) {
+		output, err := spawn.Command(daprPath, "run", "--app-id", "logjson", "--log-as-json", "--", "bash", "-c", "echo 'test'")
+		t.Log(output)
+		require.NoError(t, err, "run failed")
+		assert.Contains(t, output, "{\"app_id\":\"logjson\"")
+		assert.Contains(t, output, "\"type\":\"log\"")
+		assert.Contains(t, output, "Exited App successfully")
+		assert.Contains(t, output, "Exited Dapr successfully")
+	})
+}
+
 func testRun(t *testing.T) {
 	daprPath := getDaprPath()
 
 	for _, path := range socketCases {
-		t.Run(fmt.Sprintf("Normal exit, socket: %s", path), func(t *testing.T) {
+		t.Run(fmt.Sprintf("normal exit, socket: %s", path), func(t *testing.T) {
 			output, err := spawn.Command(daprPath, "run", "--unix-domain-socket", path, "--", "bash", "-c", "echo test")
 			t.Log(output)
 			require.NoError(t, err, "run failed")
@@ -389,7 +404,7 @@ func testRun(t *testing.T) {
 			assert.Contains(t, output, "Exited Dapr successfully")
 		})
 
-		t.Run(fmt.Sprintf("Error exit, socket: %s", path), func(t *testing.T) {
+		t.Run(fmt.Sprintf("error exit, socket: %s", path), func(t *testing.T) {
 			output, err := spawn.Command(daprPath, "run", "--unix-domain-socket", path, "--", "bash", "-c", "exit 1")
 			t.Log(output)
 			require.Error(t, err, "run failed")
