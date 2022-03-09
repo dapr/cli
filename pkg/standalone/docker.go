@@ -70,7 +70,7 @@ func loadDocker(dir string, dockerImage string) error {
 
 // check if the container either exists and stopped or is running.
 func confirmContainerIsRunningOrExists(containerName string, isRunning bool) (bool, error) {
-	// e.g. docker ps --filter name=dapr_redis --filter status=running --format {{.Names}}
+	// e.g. docker ps --filter name=dapr_redis --filter status=running --format {{.Names}}.
 
 	args := []string{"ps", "--all", "--filter", "name=" + containerName}
 
@@ -82,12 +82,12 @@ func confirmContainerIsRunningOrExists(containerName string, isRunning bool) (bo
 	response, err := utils.RunCmdAndWait("docker", args...)
 	response = strings.TrimSuffix(response, "\n")
 
-	// If 'docker ps' failed due to some reason
+	// If 'docker ps' failed due to some reason.
 	if err != nil {
 		//nolint
 		return false, fmt.Errorf("unable to confirm whether %s is running or exists. error\n%v", containerName, err.Error())
 	}
-	// 'docker ps' worked fine, but the response did not have the container name
+	// 'docker ps' worked fine, but the response did not have the container name.
 	if response == "" || response != containerName {
 		if isRunning {
 			return false, fmt.Errorf("container %s is not running", containerName)

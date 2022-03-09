@@ -664,7 +664,7 @@ func extractFile(filepath, dir, binaryFilePrefix string) (string, error) {
 
 	extractedFilePath, err := extractFunc(filepath, dir, binaryFilePrefix)
 	if err != nil {
-		return "", fmt.Errorf("error extracting %s binary: %s", binaryFilePrefix, err)
+		return "", fmt.Errorf("error extracting %s binary: %w", binaryFilePrefix, err)
 	}
 
 	return extractedFilePath, nil
@@ -673,7 +673,7 @@ func extractFile(filepath, dir, binaryFilePrefix string) (string, error) {
 func unzipExternalFile(filepath, dir, binaryFilePrefix string) (string, error) {
 	r, err := zip.OpenReader(filepath)
 	if err != nil {
-		return "", fmt.Errorf("error open zip file %s: %s", filepath, err)
+		return "", fmt.Errorf("error open zip file %s: %w", filepath, err)
 	}
 	defer r.Close()
 
