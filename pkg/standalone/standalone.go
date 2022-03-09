@@ -275,7 +275,7 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 			dir := path_filepath.Join(info.fromDir, dockerImageSubDir)
 			err = loadDocker(dir, imageName)
 			if err != nil {
-				print.WarningStatusEvent(os.Stdout, "Docker image %s not available in %s, ignore.", imageName, dir)
+				print.WarningStatusEvent(os.Stdout, "Docker image %s not available in %s directory, ignore.", imageName, dir)
 			}
 		}
 
@@ -342,7 +342,7 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 			dir := path_filepath.Join(info.fromDir, dockerImageSubDir)
 			err = loadDocker(dir, imageName)
 			if err != nil {
-				print.WarningStatusEvent(os.Stdout, "Docker image %s not available in %s, ignore.", imageName, dir)
+				print.WarningStatusEvent(os.Stdout, "Docker image %s not available in %s directory, ignore.", imageName, dir)
 			}
 		}
 
