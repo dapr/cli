@@ -22,6 +22,7 @@ import (
 
 	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/pkg/print"
+	"github.com/dapr/cli/utils"
 )
 
 var (
@@ -30,6 +31,7 @@ var (
 	issuerPrivateKeyFile        string
 	issuerPublicCertificateFile string
 	validUntil                  int
+	restartDaprServices         bool
 )
 
 var RenewCertificateCmd = &cobra.Command{
@@ -37,13 +39,13 @@ var RenewCertificateCmd = &cobra.Command{
 	Short: "Rotates Dapr root certificate of your kubernetes cluster",
 	Example: `
 # Generates new root and issuer certificates for kubernetest cluster
-dapr mtls renew-cert -k --valid-until <no of days>
+dapr mtls renew-cert -k --valid-until <no of days> --restart true
 
 # Uses existing private root.key to generate new root and issuer certificates for kubernetest cluster
-dapr mtls renew-cert -k --certificate-password-file myprivatekey.key --valid-until <no of days>
+dapr mtls renew-cert -k --certificate-password-file myprivatekey.key --valid-until <no of days> --restart true
 
 # Rotates certificate of your kubernetes cluster with provided ca.cert, issuer.crt and issuer.key file path
-dapr mtls renew-cert -k --ca-root-certificate <ca.crt> --issuer-private-key <issuer.key> --issuer-public-certificate <issuer.crt>
+dapr mtls renew-cert -k --ca-root-certificate <ca.crt> --issuer-private-key <issuer.key> --issuer-public-certificate <issuer.crt> --restart true
 
 # See more at: https://docs.dapr.io/getting-started/
 `,
@@ -64,7 +66,7 @@ dapr mtls renew-cert -k --ca-root-certificate <ca.crt> --issuer-private-key <iss
 				print.InfoStatusEvent(os.Stdout, "Using password file to generate root certificate")
 				err := kubernetes.RenewCertificate(kubernetes.RenewCertificateParams{
 					RootPrivateKeyFilePath: certificatePasswordFile,
-					ValidUntil:             time.Duration(validUntil * 24),
+					ValidUntil:             time.Hour * time.Duration(validUntil*24),
 				})
 				if err != nil {
 					logErrorAndExit(err)
@@ -73,7 +75,7 @@ dapr mtls renew-cert -k --ca-root-certificate <ca.crt> --issuer-private-key <iss
 			} else {
 				print.InfoStatusEvent(os.Stdout, "generating fresh certificates")
 				err := kubernetes.RenewCertificate(kubernetes.RenewCertificateParams{
-					ValidUntil: time.Duration(validUntil * 24),
+					ValidUntil: time.Hour * time.Duration(validUntil*24),
 				})
 				if err != nil {
 					logErrorAndExit(err)
@@ -88,13 +90,37 @@ dapr mtls renew-cert -k --ca-root-certificate <ca.crt> --issuer-private-key <iss
 		}
 		print.SuccessStatusEvent(os.Stdout,
 			fmt.Sprintf("Certificate rotation is successful! Your new certicate is valid through %s", expiry.Format(time.RFC1123)))
+
+		if restartDaprServices {
+			restartControlPlaneService("deploy/dapr-sentry", "deploy/dapr-operator", "statefulsets/dapr-placement-server")
+			if err != nil {
+				print.FailureStatusEvent(os.Stdout, err.Error())
+				os.Exit(1)
+			}
+		}
 	},
 }
 
 func logErrorAndExit(err error) {
-	err = fmt.Errorf("certificate rotation failed %s", err)
+	err = fmt.Errorf("certificate rotation failed %w", err)
 	print.FailureStatusEvent(os.Stderr, err.Error())
 	os.Exit(1)
+}
+
+func restartControlPlaneService(names ...string) error {
+	for _, name := range names {
+		print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Restarting %s..", name))
+		_, err := utils.RunCmdAndWait("kubectl", "rollout", "restart", name, "-n", "dapr-system")
+		if err != nil {
+			return err
+		}
+		_, err = utils.RunCmdAndWait("kubectl", "rollout", "status", name, "-n", "dapr-system")
+		if err != nil {
+			return err
+		}
+	}
+	print.SuccessStatusEvent(os.Stdout, "All control plane services have restarted successfully!")
+	return nil
 }
 
 func init() {
@@ -104,4 +130,5 @@ func init() {
 	RenewCertificateCmd.Flags().StringVarP(&issuerPrivateKeyFile, "issuer-private-key", "", "", "The version of the Dapr runtime to upgrade or downgrade to, for example: 1.0.0")
 	RenewCertificateCmd.Flags().StringVarP(&issuerPublicCertificateFile, "issuer-public-certificate", "", "", "The version of the Dapr runtime to upgrade or downgrade to, for example: 1.0.0")
 	RenewCertificateCmd.Flags().IntVarP(&validUntil, "valid-until", "", 365, "Max days before certificate expires")
+	RenewCertificateCmd.Flags().BoolVarP(&restartDaprServices, "restart", "", false, "Restart Dapr control plane services")
 }

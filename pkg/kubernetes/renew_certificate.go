@@ -149,7 +149,7 @@ func GenerateNewCertificates(validUntil time.Duration, certificatePasswordFile s
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	rootCsr, err := csr.GenerateRootCertCSR("dapr.io/sentry", "cluster.local", &rootKey.PublicKey, time.Hour*validUntil, time.Minute*15)
+	rootCsr, err := csr.GenerateRootCertCSR("dapr.io/sentry", "cluster.local", &rootKey.PublicKey, validUntil, time.Minute*15)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -173,7 +173,7 @@ func GenerateNewCertificates(validUntil time.Duration, certificatePasswordFile s
 	}
 	issuerKeyPem := pem.EncodeToMemory(&pem.Block{Type: certs.ECPrivateKey, Bytes: encodedKey})
 
-	issuerCsr, err := csr.GenerateIssuerCertCSR("cluster.local", &issuerKey.PublicKey, time.Hour*validUntil, time.Minute*15)
+	issuerCsr, err := csr.GenerateIssuerCertCSR("cluster.local", &issuerKey.PublicKey, validUntil, time.Minute*15)
 	if err != nil {
 		return nil, nil, nil, err
 	}
