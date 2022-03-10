@@ -34,71 +34,84 @@ var (
 	restartDaprServices         bool
 )
 
-var RenewCertificateCmd = &cobra.Command{
-	Use:   "renew-cert",
-	Short: "Rotates Dapr root certificate of your kubernetes cluster",
-	Example: `
-# Generates new root and issuer certificates for kubernetest cluster
-dapr mtls renew-cert -k --valid-until <no of days> --restart true
+func RenewCertificateCmd() *cobra.Command {
+	command := &cobra.Command{
+		Use:   "renew-certificate",
+		Short: "Rotates Dapr root certificate of your kubernetes cluster",
 
-# Uses existing private root.key to generate new root and issuer certificates for kubernetest cluster
-dapr mtls renew-cert -k --certificate-password-file myprivatekey.key --valid-until <no of days> --restart true
+		Example: `
+# Generates new root and issuer certificates for kubernetes cluster
+dapr mtls renew-certificate -k --valid-until <no of days> --restart
+
+# Uses existing private root.key to generate new root and issuer certificates for kubernetes cluster
+dapr mtls renew-certificate -k --certificate-password-file myprivatekey.key --valid-until <no of days>
 
 # Rotates certificate of your kubernetes cluster with provided ca.cert, issuer.crt and issuer.key file path
-dapr mtls renew-cert -k --ca-root-certificate <ca.crt> --issuer-private-key <issuer.key> --issuer-public-certificate <issuer.crt> --restart true
+dapr mtls renew-certificate -k --ca-root-certificate <ca.crt> --issuer-private-key <issuer.key> --issuer-public-certificate <issuer.crt> --restart
 
 # See more at: https://docs.dapr.io/getting-started/
 `,
-	Run: func(cmd *cobra.Command, args []string) {
-		if kubernetesMode {
-			print.PendingStatusEvent(os.Stdout, "Starting certificate rotation")
-			if caRootCertificateFile != "" && issuerPrivateKeyFile != "" && issuerPublicCertificateFile != "" {
-				print.InfoStatusEvent(os.Stdout, "Using provided certificates")
-				err := kubernetes.RenewCertificate(kubernetes.RenewCertificateParams{
-					RootCertificateFilePath:   caRootCertificateFile,
-					IssuerCertificateFilePath: issuerPrivateKeyFile,
-					IssuerPrivateKeyFilePath:  issuerPublicCertificateFile,
-				})
-				if err != nil {
-					logErrorAndExit(err)
-				}
-			} else if certificatePasswordFile != "" {
-				print.InfoStatusEvent(os.Stdout, "Using password file to generate root certificate")
-				err := kubernetes.RenewCertificate(kubernetes.RenewCertificateParams{
-					RootPrivateKeyFilePath: certificatePasswordFile,
-					ValidUntil:             time.Hour * time.Duration(validUntil*24),
-				})
-				if err != nil {
-					logErrorAndExit(err)
-				}
 
-			} else {
-				print.InfoStatusEvent(os.Stdout, "generating fresh certificates")
-				err := kubernetes.RenewCertificate(kubernetes.RenewCertificateParams{
-					ValidUntil: time.Hour * time.Duration(validUntil*24),
-				})
-				if err != nil {
-					logErrorAndExit(err)
+		Run: func(cmd *cobra.Command, args []string) {
+			if kubernetesMode {
+				print.PendingStatusEvent(os.Stdout, "Starting certificate rotation")
+				if caRootCertificateFile != "" && issuerPrivateKeyFile != "" && issuerPublicCertificateFile != "" {
+					print.InfoStatusEvent(os.Stdout, "Using provided certificates")
+					err := kubernetes.RenewCertificate(kubernetes.RenewCertificateParams{
+						RootCertificateFilePath:   caRootCertificateFile,
+						IssuerCertificateFilePath: issuerPrivateKeyFile,
+						IssuerPrivateKeyFilePath:  issuerPublicCertificateFile,
+					})
+					if err != nil {
+						logErrorAndExit(err)
+					}
+				} else if certificatePasswordFile != "" {
+					print.InfoStatusEvent(os.Stdout, "Using password file to generate root certificate")
+					err := kubernetes.RenewCertificate(kubernetes.RenewCertificateParams{
+						RootPrivateKeyFilePath: certificatePasswordFile,
+						ValidUntil:             time.Hour * time.Duration(validUntil*24),
+					})
+					if err != nil {
+						logErrorAndExit(err)
+					}
+				} else {
+					print.InfoStatusEvent(os.Stdout, "generating fresh certificates")
+					err := kubernetes.RenewCertificate(kubernetes.RenewCertificateParams{
+						ValidUntil: time.Hour * time.Duration(validUntil*24),
+					})
+					if err != nil {
+						logErrorAndExit(err)
+					}
 				}
 			}
-		}
-	},
-	PostRun: func(cmd *cobra.Command, args []string) {
-		expiry, err := kubernetes.Expiry()
-		if err != nil {
-			logErrorAndExit(err)
-		}
-		print.SuccessStatusEvent(os.Stdout,
-			fmt.Sprintf("Certificate rotation is successful! Your new certicate is valid through %s", expiry.Format(time.RFC1123)))
-
-		if restartDaprServices {
-			restartControlPlaneService("deploy/dapr-sentry", "deploy/dapr-operator", "statefulsets/dapr-placement-server")
+		},
+		PostRun: func(cmd *cobra.Command, args []string) {
+			expiry, err := kubernetes.Expiry()
 			if err != nil {
-				print.FailureStatusEvent(os.Stdout, err.Error())
-				os.Exit(1)
+				logErrorAndExit(err)
 			}
-		}
-	},
+			print.SuccessStatusEvent(os.Stdout,
+				fmt.Sprintf("Certificate rotation is successful! Your new certicate is valid through %s", expiry.Format(time.RFC1123)))
+
+			if restartDaprServices {
+				restartControlPlaneService("deploy/dapr-sentry", "deploy/dapr-operator", "statefulsets/dapr-placement-server")
+				if err != nil {
+					print.FailureStatusEvent(os.Stdout, err.Error())
+					os.Exit(1)
+				}
+			}
+		},
+	}
+
+	command.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Upgrades/Renews root certificate of Dapr in a Kubernetes cluster")
+	command.Flags().StringVarP(&certificatePasswordFile, "certificate-password-file", "", "", "The version of the Dapr runtime to upgrade or downgrade to, for example: 1.0.0")
+	command.Flags().StringVarP(&caRootCertificateFile, "ca-root-certificate", "", "", "The version of the Dapr runtime to upgrade or downgrade to, for example: 1.0.0")
+	command.Flags().StringVarP(&issuerPrivateKeyFile, "issuer-private-key", "", "", "The version of the Dapr runtime to upgrade or downgrade to, for example: 1.0.0")
+	command.Flags().StringVarP(&issuerPublicCertificateFile, "issuer-public-certificate", "", "", "The version of the Dapr runtime to upgrade or downgrade to, for example: 1.0.0")
+	command.Flags().IntVarP(&validUntil, "valid-until", "", 365, "Max days before certificate expires")
+	command.Flags().BoolVarP(&restartDaprServices, "restart", "", false, "Restart Dapr control plane services")
+	command.MarkFlagRequired("kubernetes")
+	return command
 }
 
 func logErrorAndExit(err error) {
@@ -112,23 +125,13 @@ func restartControlPlaneService(names ...string) error {
 		print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Restarting %s..", name))
 		_, err := utils.RunCmdAndWait("kubectl", "rollout", "restart", name, "-n", "dapr-system")
 		if err != nil {
-			return err
+			return fmt.Errorf("error in restarting deployment %s. Error is %w", name, err)
 		}
 		_, err = utils.RunCmdAndWait("kubectl", "rollout", "status", name, "-n", "dapr-system")
 		if err != nil {
-			return err
+			return fmt.Errorf("error in checking status for deployment %s. Error is %w", name, err)
 		}
 	}
 	print.SuccessStatusEvent(os.Stdout, "All control plane services have restarted successfully!")
 	return nil
-}
-
-func init() {
-	RenewCertificateCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Upgrades/Renews root certificate of Dapr in a Kubernetes cluster")
-	RenewCertificateCmd.Flags().StringVarP(&certificatePasswordFile, "certificate-password-file", "", "", "The version of the Dapr runtime to upgrade or downgrade to, for example: 1.0.0")
-	RenewCertificateCmd.Flags().StringVarP(&caRootCertificateFile, "ca-root-certificate", "", "", "The version of the Dapr runtime to upgrade or downgrade to, for example: 1.0.0")
-	RenewCertificateCmd.Flags().StringVarP(&issuerPrivateKeyFile, "issuer-private-key", "", "", "The version of the Dapr runtime to upgrade or downgrade to, for example: 1.0.0")
-	RenewCertificateCmd.Flags().StringVarP(&issuerPublicCertificateFile, "issuer-public-certificate", "", "", "The version of the Dapr runtime to upgrade or downgrade to, for example: 1.0.0")
-	RenewCertificateCmd.Flags().IntVarP(&validUntil, "valid-until", "", 365, "Max days before certificate expires")
-	RenewCertificateCmd.Flags().BoolVarP(&restartDaprServices, "restart", "", false, "Restart Dapr control plane services")
 }

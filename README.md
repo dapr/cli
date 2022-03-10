@@ -437,6 +437,23 @@ dapr mtls expiry
 
 This can be used when upgrading to a newer version of Dapr, as it's recommended to carry over the existing certs for a zero downtime upgrade.
 
+### Renew Dapr certificates of a kubernetes cluster with one of the 3 ways mentioned below:
+Renew certificate by generating new root and issuer certificates
+
+```bash
+dapr mtls renew-certificate -k --valid-until <no of days> --restart
+```
+Use existing private root.key to generate new root and issuer certificates
+
+```bash
+dapr mtls renew-certificate -k --certificate-password-file myprivatekey.key --valid-until <no of days>
+```
+Use user provided ca.crt, issuer.crt and issuer.key
+
+```bash
+dapr mtls renew-certificate -k --ca-root-certificate <ca.crt> --issuer-private-key <issuer.key> --issuer-public-certificate <issuer.crt> --restart
+```
+
 ### List Components
 
 To list all Dapr components on Kubernetes:

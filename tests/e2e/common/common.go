@@ -157,6 +157,15 @@ func GetTestsOnUninstall(details VersionDetails, opts TestOptions) []TestCase {
 	}
 }
 
+func GetTestsPostCertificateRenewal(details VersionDetails, opts TestOptions) []TestCase {
+	return []TestCase{
+		{"crds exist " + details.RuntimeVersion, CRDTest(details, opts)},
+		{"clusterroles exist " + details.RuntimeVersion, ClusterRolesTest(details, opts)},
+		{"clusterrolebindings exist " + details.RuntimeVersion, ClusterRoleBindingsTest(details, opts)},
+		{"status check " + details.RuntimeVersion, StatusTestOnInstallUpgrade(details, opts)},
+	}
+}
+
 func MTLSTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
 		daprPath := getDaprPath()
@@ -382,6 +391,90 @@ func CRDTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 
 		for name, found := range foundMap {
 			assert.Equal(t, wanted, found, "cluster role binding %s, found = %t, wanted = %t", name, found, wanted)
+		}
+	}
+}
+
+func GenerateNewCertAndRenew(details VersionDetails) func(t *testing.T) {
+	return func(t *testing.T) {
+		daprPath := getDaprPath()
+		err := exportCurrentCertificate(daprPath)
+		require.NoError(t, err, "expected no error on certificate exporting")
+
+		output, err := spawn.Command(daprPath, "mtls", "renew-certificate", "-k", "--valid-until", "20", "--restart")
+		t.Log(output)
+		require.NoError(t, err, "expected no error on certificate renewal")
+		assert.Contains(t, output, "Certificate rotation is successful!")
+	}
+}
+
+func exportCurrentCertificate(daprPath string) error {
+	_, err := os.Stat("./certs")
+	if err != nil {
+		os.RemoveAll("./certs")
+	}
+	_, err = spawn.Command(daprPath, "mtls", "export", "-o", "./certs")
+
+	if err != nil {
+		return fmt.Errorf("error in exporting certificate %w", err)
+	}
+	_, err = os.Stat("./certs/ca.crt")
+	if err != nil {
+		return fmt.Errorf("error in exporting certificate %w", err)
+	}
+	_, err = os.Stat("./certs/issuer.crt")
+	if err != nil {
+		return fmt.Errorf("error in exporting certificate %w", err)
+	}
+	_, err = os.Stat("./certs/issuer.key")
+	if err != nil {
+		return fmt.Errorf("error in exporting certificate %w", err)
+	}
+	return nil
+}
+
+func UseProvidedNewCertAndRenew(details VersionDetails) func(t *testing.T) {
+	return func(t *testing.T) {
+		daprPath := getDaprPath()
+		args := []string{
+			"mtls", "renew-certificate", "-k",
+			"--ca-root-certificate", "./certs/ca.crt",
+			"--issuer-private-key", "./certs/issuer.key",
+			"--issuer-public-certificate", "./certs/issuer.crt",
+			"--restart",
+		}
+		output, err := spawn.Command(daprPath, args...)
+		t.Log(output)
+		require.NoError(t, err, "expected no error on certificate renewal")
+		assert.Contains(t, output, "Certificate rotation is successful!")
+
+		// remove cert directory created earlier.
+		os.RemoveAll("./certs")
+	}
+}
+
+func CheckMTLSStatus(details VersionDetails, opts TestOptions, shouldWarningExist bool) func(t *testing.T) {
+	return func(t *testing.T) {
+		daprPath := getDaprPath()
+		output, err := spawn.Command(daprPath, "mtls", "-k")
+		require.NoError(t, err, "expected no error on querying for mtls")
+		if !opts.MTLSEnabled {
+			t.Log("check mtls disabled")
+			require.Contains(t, output, "Mutual TLS is disabled in your Kubernetes cluster", "expected output to match")
+		} else {
+			t.Log("check mtls enabled")
+			require.Contains(t, output, "Mutual TLS is enabled in your Kubernetes cluster", "expected output to match")
+		}
+		output, err = spawn.Command(daprPath, "status", "-k")
+		require.NoError(t, err, "status check failed")
+		if shouldWarningExist {
+			assert.Contains(t, output, "Dapr root certificate of your Kubernetes cluster expires in", "expected output to contain string")
+			assert.Contains(t, output, "Expiry date:", "expected output to contain string")
+			assert.Contains(t, output, "Please see docs.dapr.io for certificate renewal instructions to avoid service interruptions")
+		} else {
+			assert.NotContains(t, output, "Dapr root certificate of your Kubernetes cluster expires in", "expected output to contain string")
+			assert.NotContains(t, output, "Expiry date:", "expected output to contain string")
+			assert.NotContains(t, output, "Please see docs.dapr.io for certificate renewal instructions to avoid service interruptions")
 		}
 	}
 }

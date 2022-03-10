@@ -165,3 +165,103 @@ func TestKubernetesHAModeMTLSEnabled(t *testing.T) {
 		t.Run(tc.Name, tc.Callable)
 	}
 }
+
+// Test for certificate renewal
+
+func TestRenewCertificateMTLSEnabled(t *testing.T) {
+	common.EnsureUninstall(true)
+
+	tests := []common.TestCase{}
+	var installOpts = common.TestOptions{
+		HAEnabled:             false,
+		MTLSEnabled:           true,
+		ApplyComponentChanges: true,
+		CheckResourceExists: map[common.Resource]bool{
+			common.CustomResourceDefs:  true,
+			common.ClusterRoles:        true,
+			common.ClusterRoleBindings: true,
+		},
+	}
+
+	tests = append(tests, common.GetTestsOnInstall(currentVersionDetails, installOpts)...)
+
+	// tests for certifcate renewal with newly generated certificates.
+	tests = append(tests, []common.TestCase{
+		{"Renew certificate which expires in less than 30 days", common.GenerateNewCertAndRenew(currentVersionDetails)},
+	}...)
+	tests = append(tests, common.GetTestsPostCertificateRenewal(currentVersionDetails, installOpts)...)
+	tests = append(tests, []common.TestCase{
+		{"Cert Expiry warning message check " + currentVersionDetails.RuntimeVersion, common.CheckMTLSStatus(currentVersionDetails, installOpts, true)},
+	}...)
+
+	// tests for certificate renewal with provided certificates.
+	tests = append(tests, []common.TestCase{
+		{"Renew certificate which expires in after 30 days", common.UseProvidedNewCertAndRenew(currentVersionDetails)},
+	}...)
+	tests = append(tests, common.GetTestsPostCertificateRenewal(currentVersionDetails, installOpts)...)
+	tests = append(tests, []common.TestCase{
+		{"Cert Expiry no warning message check " + currentVersionDetails.RuntimeVersion, common.CheckMTLSStatus(currentVersionDetails, installOpts, false)},
+	}...)
+
+	// teardown everything
+	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
+		CheckResourceExists: map[common.Resource]bool{
+			common.CustomResourceDefs:  true,
+			common.ClusterRoles:        false,
+			common.ClusterRoleBindings: false,
+		},
+	})...)
+
+	for _, tc := range tests {
+		t.Run(tc.Name, tc.Callable)
+	}
+}
+
+func TestRenewCertificateMTLSDisabled(t *testing.T) {
+	common.EnsureUninstall(true)
+
+	tests := []common.TestCase{}
+	var installOpts = common.TestOptions{
+		HAEnabled:             false,
+		MTLSEnabled:           false,
+		ApplyComponentChanges: true,
+		CheckResourceExists: map[common.Resource]bool{
+			common.CustomResourceDefs:  true,
+			common.ClusterRoles:        true,
+			common.ClusterRoleBindings: true,
+		},
+	}
+
+	tests = append(tests, common.GetTestsOnInstall(currentVersionDetails, installOpts)...)
+
+	// tests for certifcate renewal with newly generated certificates.
+	tests = append(tests, []common.TestCase{
+		{"Renew certificate which expires in less than 30 days", common.GenerateNewCertAndRenew(currentVersionDetails)},
+	}...)
+	tests = append(tests, common.GetTestsPostCertificateRenewal(currentVersionDetails, installOpts)...)
+	tests = append(tests, []common.TestCase{
+		{"Cert Expiry warning message check " + currentVersionDetails.RuntimeVersion, common.CheckMTLSStatus(currentVersionDetails, installOpts, true)},
+	}...)
+
+	// tests for certificate renewal with provided certificates.
+	tests = append(tests, []common.TestCase{
+		{"Renew certificate which expires in after 30 days", common.UseProvidedNewCertAndRenew(currentVersionDetails)},
+	}...)
+	tests = append(tests, common.GetTestsPostCertificateRenewal(currentVersionDetails, installOpts)...)
+	tests = append(tests, []common.TestCase{
+		{"Cert Expiry no warning message check " + currentVersionDetails.RuntimeVersion, common.CheckMTLSStatus(currentVersionDetails, installOpts, false)},
+	}...)
+
+	// teardown everything
+	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
+		CheckResourceExists: map[common.Resource]bool{
+			common.CustomResourceDefs:  true,
+			common.ClusterRoles:        false,
+			common.ClusterRoleBindings: false,
+		},
+	})...)
+
+	for _, tc := range tests {
+		t.Run(tc.Name, tc.Callable)
+	}
+}
