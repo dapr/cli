@@ -130,10 +130,10 @@ func (pf *PortForward) Init() error {
 	case <-pf.ReadyCh:
 		ports, err := fw.GetPorts()
 		if err != nil {
-			return fmt.Errorf("can't get the ports that were forwarded: %w", err)
+			return fmt.Errorf("can not get the local and remote ports: %w", err)
 		}
 		if len(ports) == 0 {
-			return fmt.Errorf("can not get the ports that were forwarded: error getting ports length")
+			return fmt.Errorf("can not get the local and remote ports: error getting ports length")
 		}
 
 		pf.LocalPort = int(ports[0].Local)
