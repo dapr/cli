@@ -128,10 +128,10 @@ func getEnv(key string, value interface{}) string {
 }
 
 func TestRun(t *testing.T) {
-	// Setup the components directory which is done at init time
+	// Setup the components directory which is done at init time.
 	setupRun(t)
 
-	// Setup the tearDown routine to run in the end
+	// Setup the tearDown routine to run in the end.
 	defer tearDownRun(t)
 
 	basicConfig := &RunConfig{

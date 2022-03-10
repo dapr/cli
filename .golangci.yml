@@ -246,3 +246,16 @@ linters:
     - exhaustive
     - gci 
     - noctx
+    - exhaustivestruct
+    - gomoddirectives
+    - paralleltest
+    - tparallel
+    - wastedassign
+    - cyclop
+    - forbidigo
+    - tagliatelle
+    - thelper
+    - wrapcheck
+    - varnamelen
+    - forcetypeassert
+    - ireturn
