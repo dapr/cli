@@ -75,16 +75,16 @@ const (
 	templateAnnotationsPath = "/spec/template/metadata/annotations"
 )
 
-type Injector interface {
-	Inject(io.Reader, io.Writer) error
+type Annotator interface {
+	Annotate(io.Reader, io.Writer) error
 }
 
-type K8sInjector struct {
-	config   K8sInjectorConfig
-	injected bool
+type K8sAnnotator struct {
+	config    K8sAnnotatorConfig
+	annotated bool
 }
 
-type K8sInjectorConfig struct {
+type K8sAnnotatorConfig struct {
 	// If TargetResource is set, we will search for it and then inject
 	// annotations on that target resource. If it is not set, we will
 	// update the first appropriate resource we find.
@@ -95,15 +95,15 @@ type K8sInjectorConfig struct {
 	TargetNamespace *string
 }
 
-func NewK8sInjector(config K8sInjectorConfig) *K8sInjector {
-	return &K8sInjector{
-		config:   config,
-		injected: false,
+func NewK8sAnnotator(config K8sAnnotatorConfig) *K8sAnnotator {
+	return &K8sAnnotator{
+		config:    config,
+		annotated: false,
 	}
 }
 
-// Inject injects dapr annotations into the kubernetes resource.
-func (p *K8sInjector) Inject(inputs []io.Reader, out io.Writer, opts InjectOptions) error {
+// Annotate injects dapr annotations into the kubernetes resource.
+func (p *K8sAnnotator) Annotate(inputs []io.Reader, out io.Writer, opts AnnotateOptions) error {
 	for _, input := range inputs {
 		err := p.processInput(input, out, opts)
 		if err != nil {
@@ -114,7 +114,7 @@ func (p *K8sInjector) Inject(inputs []io.Reader, out io.Writer, opts InjectOptio
 	return nil
 }
 
-func (p *K8sInjector) processInput(input io.Reader, out io.Writer, opts InjectOptions) error {
+func (p *K8sAnnotator) processInput(input io.Reader, out io.Writer, opts AnnotateOptions) error {
 	reader := yamlDecoder.NewYAMLReader(bufio.NewReaderSize(input, 4096))
 
 	var result []byte
@@ -149,12 +149,12 @@ func (p *K8sInjector) processInput(input io.Reader, out io.Writer, opts InjectOp
 				if err != nil {
 					return err
 				}
-				var injectedJSON []byte
-				injectedJSON, err = yaml.YAMLToJSON(processedYAML)
+				var annotatedJSON []byte
+				annotatedJSON, err = yaml.YAMLToJSON(processedYAML)
 				if err != nil {
 					return err
 				}
-				items = append(items, runtime.RawExtension{Raw: injectedJSON}) // nolint:exhaustivestruct
+				items = append(items, runtime.RawExtension{Raw: annotatedJSON}) // nolint:exhaustivestruct
 			}
 			sourceList.Items = items
 			result, err = yaml.Marshal(sourceList)
@@ -187,29 +187,29 @@ func (p *K8sInjector) processInput(input io.Reader, out io.Writer, opts InjectOp
 	return nil
 }
 
-func (p *K8sInjector) processYAML(yamlBytes []byte, opts InjectOptions) ([]byte, error) {
+func (p *K8sAnnotator) processYAML(yamlBytes []byte, opts AnnotateOptions) ([]byte, error) {
 	var err error
 	var processedYAML []byte
-	if p.injected {
+	if p.annotated {
 		// We can only inject dapr into a single resource per execution as the configuration
 		// options are scoped to a single resource e.g. app-id, port, etc. are specific to a
 		// dapr enabled resource. Instead we expect multiple runs to be piped together.
 		processedYAML = yamlBytes
 	} else {
-		var injected bool
-		processedYAML, injected, err = p.injectYAML(yamlBytes, opts)
+		var annotated bool
+		processedYAML, annotated, err = p.annotateYAML(yamlBytes, opts)
 		if err != nil {
 			return nil, err
 		}
-		if injected {
+		if annotated {
 			// Record that we have injected into a document.
-			p.injected = injected
+			p.annotated = annotated
 		}
 	}
 	return processedYAML, nil
 }
 
-func (p *K8sInjector) injectYAML(input []byte, config InjectOptions) ([]byte, bool, error) {
+func (p *K8sAnnotator) annotateYAML(input []byte, config AnnotateOptions) ([]byte, bool, error) {
 	// We read the metadata again here so this method is encapsulated.
 	var metaType metav1.TypeMeta
 	if err := yaml.Unmarshal(input, &metaType); err != nil {
@@ -292,23 +292,23 @@ func (p *K8sInjector) injectYAML(input []byte, config InjectOptions) ([]byte, bo
 		path = templateAnnotationsPath
 		ns = getNamespaceOrDefault(daemonset)
 	default:
-		// No injection needed for this kind.
+		// No annotation needed for this kind.
 		return input, false, nil
 	}
 
 	// TODO: Currently this is where we decide not to
-	// inject dapr into this resource as it isn't the
+	// annotate dapr on this resource as it isn't the
 	// target we are looking for. This is a bit late
 	// so it would be good to find a earlier place to
 	// do this.
 	if p.config.TargetResource != nil && *p.config.TargetResource != "" {
 		if !strings.EqualFold(*p.config.TargetResource, name) {
-			// Not the resource name we're injecting.
+			// Not the resource name we're annotating.
 			return input, false, nil
 		}
 		if p.config.TargetNamespace != nil && *p.config.TargetNamespace != "" {
 			if !strings.EqualFold(*p.config.TargetNamespace, ns) {
-				// Not the namespace we're injecting.
+				// Not the namespace we're annotating.
 				return input, false, nil
 			}
 		}
@@ -360,16 +360,16 @@ func (p *K8sInjector) injectYAML(input []byte, config InjectOptions) ([]byte, bo
 	if err != nil {
 		return nil, false, err
 	}
-	injectedAsJSON, err := patch.Apply(inputAsJSON)
+	annotatedAsJSON, err := patch.Apply(inputAsJSON)
 	if err != nil {
 		return nil, false, err
 	}
-	injectedAsYAML, err := yaml.JSONToYAML(injectedAsJSON)
+	annotatedAsYAML, err := yaml.JSONToYAML(annotatedAsJSON)
 	if err != nil {
 		return nil, false, err
 	}
 
-	return injectedAsYAML, true, nil
+	return annotatedAsYAML, true, nil
 }
 
 type NamespacedObject interface {
@@ -384,7 +384,7 @@ func getNamespaceOrDefault(obj NamespacedObject) string {
 	return ns
 }
 
-func getDaprAnnotations(config *InjectOptions) map[string]string {
+func getDaprAnnotations(config *AnnotateOptions) map[string]string {
 	annotations := make(map[string]string)
 
 	annotations[daprEnabledKey] = "true"

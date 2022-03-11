@@ -15,27 +15,27 @@ import (
 )
 
 const (
-	injectorTestDataDir = "testdata/injector"
+	annotatorTestDataDir = "testdata/annotator"
 )
 
 var (
-	podInDir         = path.Join(injectorTestDataDir, "pod/in")
-	podOutDir        = path.Join(injectorTestDataDir, "pod/out")
-	deploymentInDir  = path.Join(injectorTestDataDir, "deployment/in")
-	deploymentOutDir = path.Join(injectorTestDataDir, "deployment/out")
-	multiInDir       = path.Join(injectorTestDataDir, "multi/in")
-	multiOutDir      = path.Join(injectorTestDataDir, "multi/out")
-	listInDir        = path.Join(injectorTestDataDir, "list/in")
-	listOutDir       = path.Join(injectorTestDataDir, "list/out")
+	podInDir         = path.Join(annotatorTestDataDir, "pod/in")
+	podOutDir        = path.Join(annotatorTestDataDir, "pod/out")
+	deploymentInDir  = path.Join(annotatorTestDataDir, "deployment/in")
+	deploymentOutDir = path.Join(annotatorTestDataDir, "deployment/out")
+	multiInDir       = path.Join(annotatorTestDataDir, "multi/in")
+	multiOutDir      = path.Join(annotatorTestDataDir, "multi/out")
+	listInDir        = path.Join(annotatorTestDataDir, "list/in")
+	listOutDir       = path.Join(annotatorTestDataDir, "list/out")
 )
 
-type injection struct {
+type annotation struct {
 	targetResource  string
 	targetNamespace string
-	optionFactory   func() InjectOptions
+	optionFactory   func() AnnotateOptions
 }
 
-func TestInject(t *testing.T) {
+func TestAnnotate(t *testing.T) {
 	// Helper function used to order test documents.
 	sortDocs := func(docs []string) {
 		sort.Slice(docs, func(i, j int) bool {
@@ -48,18 +48,18 @@ func TestInject(t *testing.T) {
 
 	configs := []struct {
 		testID           string
-		injections       []injection
+		annotations      []annotation
 		inputFilePath    string
 		expectedFilePath string
 		printOutput      bool
 	}{
 		{
-			testID: "single targeted injection into pod (config 1)",
-			injections: []injection{
+			testID: "single targeted annotation of a pod (config 1)",
+			annotations: []annotation{
 				{
 					targetResource: "mypod",
-					optionFactory: func() InjectOptions {
-						return NewInjectorOptions(
+					optionFactory: func() AnnotateOptions {
+						return NewAnnotateOptions(
 							WithAppID("test-app"),
 						)
 					},
@@ -70,12 +70,12 @@ func TestInject(t *testing.T) {
 			// printOutput:      true, // Uncomment to debug.
 		},
 		{
-			testID: "single targeted injection into pod (config 2)",
-			injections: []injection{
+			testID: "single targeted annotation of a pod (config 2)",
+			annotations: []annotation{
 				{
 					targetResource: "mypod",
-					optionFactory: func() InjectOptions {
-						return NewInjectorOptions(
+					optionFactory: func() AnnotateOptions {
+						return NewAnnotateOptions(
 							WithAppID("test-app"),
 							WithProfileEnabled(),
 							WithLogLevel("info"),
@@ -89,12 +89,12 @@ func TestInject(t *testing.T) {
 			// printOutput:      true, // Uncomment to debug.
 		},
 		{
-			testID: "single targeted injection into pod without an app id in default namespace (config 3)",
-			injections: []injection{
+			testID: "single targeted annotation of a pod without an app id in default namespace (config 3)",
+			annotations: []annotation{
 				{
 					targetResource: "mypod",
-					optionFactory: func() InjectOptions {
-						return NewInjectorOptions()
+					optionFactory: func() AnnotateOptions {
+						return NewAnnotateOptions()
 					},
 				},
 			},
@@ -103,12 +103,12 @@ func TestInject(t *testing.T) {
 			// printOutput:      true, // Uncomment to debug.
 		},
 		{
-			testID: "single targeted injection into pod without an app id in a namespace (config 4)",
-			injections: []injection{
+			testID: "single targeted annotation of a pod without an app id in a namespace (config 4)",
+			annotations: []annotation{
 				{
 					targetResource: "mypod",
-					optionFactory: func() InjectOptions {
-						return NewInjectorOptions()
+					optionFactory: func() AnnotateOptions {
+						return NewAnnotateOptions()
 					},
 				},
 			},
@@ -117,12 +117,12 @@ func TestInject(t *testing.T) {
 			// printOutput:      true, // Uncomment to debug.
 		},
 		{
-			testID: "single targeted injection into deployment (config 1)",
-			injections: []injection{
+			testID: "single targeted annotation of a deployment (config 1)",
+			annotations: []annotation{
 				{
 					targetResource: "nodeapp",
-					optionFactory: func() InjectOptions {
-						return NewInjectorOptions(
+					optionFactory: func() AnnotateOptions {
+						return NewAnnotateOptions(
 							WithAppID("nodeapp"),
 							WithAppPort(3000),
 						)
@@ -134,12 +134,12 @@ func TestInject(t *testing.T) {
 			// printOutput:      true, // Uncomment to debug.
 		},
 		{
-			testID: "partial injection into deployment (config 2)",
-			injections: []injection{
+			testID: "partial annotation of a deployment (config 2)",
+			annotations: []annotation{
 				{
 					targetResource: "nodeapp",
-					optionFactory: func() InjectOptions {
-						return NewInjectorOptions(
+					optionFactory: func() AnnotateOptions {
+						return NewAnnotateOptions(
 							WithAppID("nodeapp"),
 							WithAppPort(3000),
 						)
@@ -151,12 +151,12 @@ func TestInject(t *testing.T) {
 			// printOutput:      true, // Uncomment to debug.
 		},
 		{
-			testID: "single targeted injection into multi (config 1)",
-			injections: []injection{
+			testID: "single targeted annotation of multiple resources (config 1)",
+			annotations: []annotation{
 				{
 					targetResource: "divideapp",
-					optionFactory: func() InjectOptions {
-						return NewInjectorOptions(
+					optionFactory: func() AnnotateOptions {
+						return NewAnnotateOptions(
 							WithAppID("divideapp"),
 							WithAppPort(4000),
 							WithConfig("appconfig"),
@@ -169,12 +169,12 @@ func TestInject(t *testing.T) {
 			// printOutput:      true, // Uncomment to debug.
 		},
 		{
-			testID: "multiple targeted injections into multi (config 2)",
-			injections: []injection{
+			testID: "multiple targeted annotations of multiple resources (config 2)",
+			annotations: []annotation{
 				{
 					targetResource: "subtractapp",
-					optionFactory: func() InjectOptions {
-						return NewInjectorOptions(
+					optionFactory: func() AnnotateOptions {
+						return NewAnnotateOptions(
 							WithAppID("subtractapp"),
 							WithAppPort(80),
 							WithConfig("appconfig"),
@@ -183,8 +183,8 @@ func TestInject(t *testing.T) {
 				},
 				{
 					targetResource: "addapp",
-					optionFactory: func() InjectOptions {
-						return NewInjectorOptions(
+					optionFactory: func() AnnotateOptions {
+						return NewAnnotateOptions(
 							WithAppID("addapp"),
 							WithAppPort(6000),
 							WithConfig("appconfig"),
@@ -193,8 +193,8 @@ func TestInject(t *testing.T) {
 				},
 				{
 					targetResource: "multiplyapp",
-					optionFactory: func() InjectOptions {
-						return NewInjectorOptions(
+					optionFactory: func() AnnotateOptions {
+						return NewAnnotateOptions(
 							WithAppID("multiplyapp"),
 							WithAppPort(5000),
 							WithConfig("appconfig"),
@@ -203,8 +203,8 @@ func TestInject(t *testing.T) {
 				},
 				{
 					targetResource: "divideapp",
-					optionFactory: func() InjectOptions {
-						return NewInjectorOptions(
+					optionFactory: func() AnnotateOptions {
+						return NewAnnotateOptions(
 							WithAppID("divideapp"),
 							WithAppPort(4000),
 							WithConfig("appconfig"),
@@ -213,8 +213,8 @@ func TestInject(t *testing.T) {
 				},
 				{
 					targetResource: "calculator-front-end",
-					optionFactory: func() InjectOptions {
-						return NewInjectorOptions(
+					optionFactory: func() AnnotateOptions {
+						return NewAnnotateOptions(
 							WithAppID("calculator-front-end"),
 							WithAppPort(8080),
 							WithConfig("appconfig"),
@@ -227,11 +227,11 @@ func TestInject(t *testing.T) {
 			// printOutput:      true, // Uncomment to debug.
 		},
 		{
-			testID: "single untargeted injection into multi (config 3)",
-			injections: []injection{
+			testID: "single untargeted annotations of multiple resources (config 3)",
+			annotations: []annotation{
 				{
-					optionFactory: func() InjectOptions {
-						return NewInjectorOptions(
+					optionFactory: func() AnnotateOptions {
+						return NewAnnotateOptions(
 							WithAppID("subtractapp"),
 							WithAppPort(80),
 							WithConfig("appconfig"),
@@ -244,13 +244,13 @@ func TestInject(t *testing.T) {
 			// printOutput:      true, // Uncomment to debug.
 		},
 		{
-			testID: "single targeted injection into multi with namespace (config 4)",
-			injections: []injection{
+			testID: "single targeted annotations of multiple resources with a namespace (config 4)",
+			annotations: []annotation{
 				{
 					targetResource:  "subtractapp",
 					targetNamespace: "test1",
-					optionFactory: func() InjectOptions {
-						return NewInjectorOptions(
+					optionFactory: func() AnnotateOptions {
+						return NewAnnotateOptions(
 							WithAppID("subtractapp"),
 						)
 					},
@@ -261,11 +261,11 @@ func TestInject(t *testing.T) {
 			// printOutput:      true, // Uncomment to debug.
 		},
 		{
-			testID: "single untargeted injection into list config",
-			injections: []injection{
+			testID: "single untargeted annotations of a list config",
+			annotations: []annotation{
 				{
-					optionFactory: func() InjectOptions {
-						return NewInjectorOptions(
+					optionFactory: func() AnnotateOptions {
+						return NewAnnotateOptions(
 							WithAppID("nodeapp"),
 							WithAppPort(3000),
 						)
@@ -288,22 +288,23 @@ func TestInject(t *testing.T) {
 				assert.NoError(t, err)
 			}()
 
-			// Iterate through all the injections and pipe them together.
+			// Iterate through all the annotations and pipe them together.
 			var out bytes.Buffer
 			in := []io.Reader{inputFile}
-			for i, injection := range tt.injections {
-				injector := NewK8sInjector(K8sInjectorConfig{
-					TargetResource:  &injection.targetResource,
-					TargetNamespace: &injection.targetNamespace,
+			for i, annotation := range tt.annotations {
+				annotator := NewK8sAnnotator(K8sAnnotatorConfig{
+					TargetResource:  &annotation.targetResource,
+					TargetNamespace: &annotation.targetNamespace,
 				})
-				injectOptions := injection.optionFactory()
+				annotateOptions := annotation.optionFactory()
 
 				out.Reset()
-				err = injector.Inject(in, &out, injectOptions)
+				err = annotator.Annotate(in, &out, annotateOptions)
 				assert.NoError(t, err)
 
-				// if it isn't the last injection then set input to this injection output.
-				if i != len(tt.injections)-1 {
+				// if it isn't the last annotation then set input to this annotation output
+				// to support testing chained resources.
+				if i != len(tt.annotations)-1 {
 					outReader := strings.NewReader(out.String())
 					in = []io.Reader{outReader}
 				}
@@ -325,7 +326,7 @@ func TestInject(t *testing.T) {
 			// length instead. This isn't perfect as additional character may be included but
 			// as long as we have enough spread between the documents we should be ok to use this
 			// to get an order. sortDocs will panic if it tries to compare content that is the
-			// same length as we would lose ordering.
+			// same length as we would lose ordering but invalid orders are still possible.
 			sortDocs(outDocs)
 			sortDocs(expectedDocs)
 			assert.Equal(t, len(expectedDocs), len(outDocs))
@@ -371,7 +372,7 @@ func TestGetDaprAnnotations(t *testing.T) {
 		logLevel := "debug"
 		gracefulShutdownSeconds := 10
 
-		opts := NewInjectorOptions(
+		opts := NewAnnotateOptions(
 			WithAppID(appID),
 			WithMetricsEnabled(),
 			WithMetricsPort(metricsPort),
