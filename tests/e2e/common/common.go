@@ -119,7 +119,7 @@ func DeleteCRD(crds []string) func(*testing.T) {
 		for _, crd := range crds {
 			output, err := spawn.Command("kubectl", "delete", "crd", crd)
 			if err != nil {
-				// CRD already deleted and not found
+				// CRD already deleted and not found.
 				require.Contains(t, output, "Error from server (NotFound)")
 				continue
 			} else {
@@ -130,7 +130,7 @@ func DeleteCRD(crds []string) func(*testing.T) {
 	}
 }
 
-// Get Test Cases
+// Get Test Cases.
 
 func GetTestsOnInstall(details VersionDetails, opts TestOptions) []TestCase {
 	return []TestCase{
@@ -146,7 +146,7 @@ func GetTestsOnInstall(details VersionDetails, opts TestOptions) []TestCase {
 
 func GetTestsOnUninstall(details VersionDetails, opts TestOptions) []TestCase {
 	return []TestCase{
-		{"uninstall " + details.RuntimeVersion, uninstallTest(opts.UninstallAll)}, // waits for pod deletion
+		{"uninstall " + details.RuntimeVersion, uninstallTest(opts.UninstallAll)}, // waits for pod deletion.
 		{"crds exist on uninstall " + details.RuntimeVersion, CRDTest(details, opts)},
 		{"clusterroles not exist " + details.RuntimeVersion, ClusterRolesTest(details, opts)},
 		{"clusterrolebindings not exist " + details.RuntimeVersion, ClusterRoleBindingsTest(details, opts)},
@@ -169,14 +169,14 @@ func MTLSTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 			require.Contains(t, output, "Mutual TLS is enabled in your Kubernetes cluster", "expected output to match")
 		}
 
-		// expiry
+		// expiry.
 		output, err = spawn.Command(daprPath, "mtls", "expiry")
 		require.NoError(t, err, "expected no error on querying for mtls expiry")
 		assert.Contains(t, output, "Root certificate expires in", "expected output to contain string")
 		assert.Contains(t, output, "Expiry date:", "expected output to contain string")
 
 		// export
-		// check that the dir does not exist now
+		// check that the dir does not exist now.
 		_, err = os.Stat("./certs")
 		if assert.Error(t, err) {
 			assert.True(t, os.IsNotExist(err), err.Error())
@@ -186,7 +186,7 @@ func MTLSTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 		require.NoError(t, err, "expected no error on mtls export")
 		require.Contains(t, output, "Trust certs successfully exported to", "expected output to contain string")
 
-		// check export success
+		// check export success.
 		_, err = os.Stat("./certs")
 		require.NoError(t, err, "expected directory to exist")
 		_, err = os.Stat("./certs/ca.crt")
@@ -205,9 +205,9 @@ func MTLSTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 func ComponentsTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
 		daprPath := getDaprPath()
-		// if dapr is installed
+		// if dapr is installed.
 		if opts.ApplyComponentChanges {
-			// apply any changes to the component
+			// apply any changes to the component.
 			t.Log("apply component changes")
 			output, err := spawn.Command("kubectl", "apply", "-f", "../testdata/statestore.yaml")
 			require.NoError(t, err, "expected no error on kubectl apply")
@@ -245,12 +245,12 @@ func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t
 			}
 		}
 
-		lines := strings.Split(output, "\n")[1:] // remove header of status
+		lines := strings.Split(output, "\n")[1:] // remove header of status.
 		t.Logf("dapr status -k infos: \n%s\n", lines)
 		for _, line := range lines {
 			cols := strings.Fields(strings.TrimSpace(line))
-			if len(cols) > 6 { // atleast 6 fields are verified from status (Age and created time are not)
-				if toVerify, ok := notFound[cols[0]]; ok { // get by name
+			if len(cols) > 6 { // atleast 6 fields are verified from status (Age and created time are not).
+				if toVerify, ok := notFound[cols[0]]; ok { // get by name.
 					require.Equal(t, DaprTestNamespace, cols[1], "namespace must match")
 					require.Equal(t, "True", cols[2], "healthly field must be true")
 					require.Equal(t, "Running", cols[3], "pods must be Running")
@@ -385,7 +385,7 @@ func CRDTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 	}
 }
 
-// Unexported functions
+// Unexported functions.
 
 func (v VersionDetails) constructFoundMap(res Resource) map[string]bool {
 	foundMap := map[string]bool{}
@@ -415,7 +415,7 @@ func homeDir() string {
 	if h := os.Getenv("HOME"); h != "" {
 		return h
 	}
-	return os.Getenv("USERPROFILE") // windows
+	return os.Getenv("USERPROFILE") // windows.
 }
 
 func getConfig() (*rest.Config, error) {
@@ -482,15 +482,15 @@ func uninstallTest(all bool) func(t *testing.T) {
 		output, err := EnsureUninstall(all)
 		t.Log(output)
 		require.NoError(t, err, "uninstall failed")
-		// wait for pods to be deleted completely
-		// needed to verify status checks fails correctly
+		// wait for pods to be deleted completely.
+		// needed to verify status checks fails correctly.
 		podsDeleted := make(chan struct{})
 		done := make(chan struct{})
 		t.Log("waiting for pods to be deleted completely")
 		go waitPodDeletion(t, done, podsDeleted)
 		select {
 		case <-podsDeleted:
-			t.Log("pods were delted as expected on uninstall")
+			t.Log("pods were deleted as expected on uninstall")
 			return
 		case <-time.After(2 * time.Minute):
 			done <- struct{}{}
@@ -511,9 +511,9 @@ func uninstallMTLSTest() func(t *testing.T) {
 func componentsTestOnUninstall(all bool) func(t *testing.T) {
 	return func(t *testing.T) {
 		daprPath := getDaprPath()
-		// On Dapr uninstall CRDs are not removed, consequently the components will not be removed
-		// TODO Related to https://github.com/dapr/cli/issues/656
-		// For now the components remain
+		// On Dapr uninstall CRDs are not removed, consequently the components will not be removed.
+		// TODO Related to https://github.com/dapr/cli/issues/656.
+		// For now the components remain.
 		output, err := spawn.Command(daprPath, "components", "-k")
 		require.NoError(t, err, "expected no error on calling dapr components")
 		componentOutputCheck(t, output, all)
@@ -523,7 +523,7 @@ func componentsTestOnUninstall(all bool) func(t *testing.T) {
 			return
 		}
 
-		// Manually remove components and verify output
+		// Manually remove components and verify output.
 		output, err = spawn.Command("kubectl", "delete", "-f", "../testdata/statestore.yaml")
 		require.NoError(t, err, "expected no error on kubectl apply")
 		require.Equal(t, "component.dapr.io \"statestore\" deleted\n", output, "expected output to match")
@@ -531,7 +531,7 @@ func componentsTestOnUninstall(all bool) func(t *testing.T) {
 		require.NoError(t, err, "expected no error on calling dapr components")
 		lines := strings.Split(output, "\n")
 
-		// An extra empty line is there in output
+		// An extra empty line is there in output.
 		require.Equal(t, 2, len(lines), "expected only header of the output to remain")
 	}
 }
@@ -547,8 +547,8 @@ func statusTestOnUninstall() func(t *testing.T) {
 }
 
 func componentOutputCheck(t *testing.T, output string, all bool) {
-	lines := strings.Split(output, "\n")[1:] // remove header
-	// for fresh cluster only one component yaml has been applied
+	lines := strings.Split(output, "\n")[1:] // remove header.
+	// for fresh cluster only one component yaml has been applied.
 	fields := strings.Fields(lines[0])
 
 	if all {
@@ -557,7 +557,7 @@ func componentOutputCheck(t *testing.T, output string, all bool) {
 		return
 	}
 
-	// Fields splits on space, so Created time field might be split again
+	// Fields splits on space, so Created time field might be split again.
 	assert.GreaterOrEqual(t, len(fields), 6, "expected at least 6 fields in components output")
 	assert.Equal(t, "statestore", fields[0], "expected name to match")
 	assert.Equal(t, "state.redis", fields[1], "expected type to match")
@@ -627,7 +627,7 @@ func validatePodsOnInstallUpgrade(t *testing.T, details VersionDetails) {
 func waitPodDeletion(t *testing.T, done, podsDeleted chan struct{}) {
 	for {
 		select {
-		case <-done: // if timeout was reached
+		case <-done: // if timeout was reached.
 			return
 		default:
 			break
@@ -651,7 +651,7 @@ func waitPodDeletion(t *testing.T, done, podsDeleted chan struct{}) {
 func waitAllPodsRunning(t *testing.T, namespace string, done, podsRunning chan struct{}) {
 	for {
 		select {
-		case <-done: // if timeout was reached
+		case <-done: // if timeout was reached.
 			return
 		default:
 			break
@@ -667,7 +667,7 @@ func waitAllPodsRunning(t *testing.T, namespace string, done, podsRunning chan s
 		require.NoError(t, err, "error getting pods list from k8s")
 		count := 0
 		for _, item := range list.Items {
-			// Check pods running, and containers ready
+			// Check pods running, and containers ready.
 			if item.Status.Phase == core_v1.PodRunning && len(item.Status.ContainerStatuses) != 0 && item.Status.ContainerStatuses[0].Ready {
 				count++
 			}

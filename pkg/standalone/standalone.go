@@ -48,6 +48,8 @@ const (
 	daprDefaultHost            = "localhost"
 	pubSubYamlFileName         = "pubsub.yaml"
 	stateStoreYamlFileName     = "statestore.yaml"
+	redisDockerImageName       = "redislabs/rejson"
+	zipkinDockerImageName      = "openzipkin/zipkin"
 
 	// DaprPlacementContainerName is the container name of placement service.
 	DaprPlacementContainerName = "dapr_placement"
@@ -106,7 +108,7 @@ func isBinaryInstallationRequired(binaryFilePrefix, installDir string) (bool, er
 }
 
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
-func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool) error {
+func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool, imageRepositoryURL string) error {
 	if !slimMode {
 		dockerInstalled := utils.IsDockerInstalled()
 		if !dockerInstalled {
@@ -118,7 +120,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		var err error
 		runtimeVersion, err = cli_ver.GetDaprVersion()
 		if err != nil {
-			return fmt.Errorf("cannot get the latest release version: '%s'. Try specifying --runtime-version=<desired_version>", err)
+			return fmt.Errorf("cannot get the latest release version: '%w'. Try specifying --runtime-version=<desired_version>", err)
 		}
 	}
 
@@ -146,50 +148,50 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 
 	var wg sync.WaitGroup
 	errorChan := make(chan error)
-	initSteps := []func(*sync.WaitGroup, chan<- error, string, string, string){}
+	initSteps := []func(*sync.WaitGroup, chan<- error, string, string, string, string){}
 	if slimMode {
-		// Install 3 binaries in slim mode: daprd, dashboard, placement
+		// Install 3 binaries in slim mode: daprd, dashboard, placement.
 		wg.Add(3)
 		initSteps = append(initSteps, createSlimConfiguration)
 	} else if dashboardVersion != "" {
-		// Install 2 binaries: daprd, dashboard
+		// Install 2 binaries: daprd, dashboard.
 		wg.Add(2)
 		initSteps = append(initSteps, createComponentsAndConfiguration, runPlacementService, runRedis, runZipkin)
 	} else {
-		// Install 1 binaries: daprd
+		// Install 1 binaries: daprd.
 		wg.Add(1)
 		initSteps = append(initSteps, createComponentsAndConfiguration, runPlacementService, runRedis, runZipkin)
 	}
 
-	// Init other configurations, containers
+	// Init other configurations, containers.
 	wg.Add(len(initSteps))
 
 	msg := "Downloading binaries and setting up components..."
 	stopSpinning := print.Spinner(os.Stdout, msg)
 	defer stopSpinning(print.Failure)
 
-	// Make default components directory
+	// Make default components directory.
 	err = makeDefaultComponentsDir()
 	if err != nil {
 		return err
 	}
 
-	// Initialize daprd binary
+	// Initialize daprd binary.
 	go installBinary(&wg, errorChan, daprBinDir, runtimeVersion, daprRuntimeFilePrefix, dockerNetwork, cli_ver.DaprGitHubRepo)
 
-	// Initialize dashboard binary
+	// Initialize dashboard binary.
 	if dashboardVersion != "" {
 		go installBinary(&wg, errorChan, daprBinDir, dashboardVersion, dashboardFilePrefix, dockerNetwork, cli_ver.DashboardGitHubRepo)
 	}
 
 	if slimMode {
-		// Initialize placement binary only on slim install
+		// Initialize placement binary only on slim install.
 		go installBinary(&wg, errorChan, daprBinDir, runtimeVersion, placementServiceFilePrefix, dockerNetwork, cli_ver.DaprGitHubRepo)
 	}
 
 	for _, step := range initSteps {
-		// Run init on the configurations and containers
-		go step(&wg, errorChan, daprBinDir, runtimeVersion, dockerNetwork)
+		// Run init on the configurations and containers.
+		go step(&wg, errorChan, daprBinDir, runtimeVersion, dockerNetwork, imageRepositoryURL)
 	}
 
 	go func() {
@@ -209,7 +211,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 	print.SuccessStatusEvent(os.Stdout, msg)
 	print.InfoStatusEvent(os.Stdout, "%s binary has been installed to %s.", daprRuntimeFilePrefix, daprBinDir)
 	if slimMode {
-		// Print info on placement binary only on slim install
+		// Print info on placement binary only on slim install.
 		print.InfoStatusEvent(os.Stdout, "%s binary has been installed to %s.", placementServiceFilePrefix, daprBinDir)
 	} else {
 		dockerContainerNames := []string{DaprPlacementContainerName, DaprRedisContainerName, DaprZipkinContainerName}
@@ -229,12 +231,12 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 }
 
 func prepareDaprInstallDir(daprBinDir string) error {
-	err := os.MkdirAll(daprBinDir, 0777)
+	err := os.MkdirAll(daprBinDir, 0o777)
 	if err != nil {
 		return err
 	}
 
-	err = os.Chmod(daprBinDir, 0777)
+	err = os.Chmod(daprBinDir, 0o777)
 	if err != nil {
 		return err
 	}
@@ -242,7 +244,7 @@ func prepareDaprInstallDir(daprBinDir string) error {
 	return nil
 }
 
-func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string) {
+func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, imageRepositoryURL string) {
 	defer wg.Done()
 
 	zipkinContainerName := utils.CreateContainerName(DaprZipkinContainerName, dockerNetwork)
@@ -255,9 +257,13 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, 
 	args := []string{}
 
 	if exists {
-		// do not create container again if it exists
+		// do not create container again if it exists.
 		args = append(args, "start", zipkinContainerName)
 	} else {
+		imageName := zipkinDockerImageName
+		if imageRepositoryURL != "" {
+			imageName = fmt.Sprintf("%s/%s", imageRepositoryURL, imageName)
+		}
 		args = append(args,
 			"run",
 			"--name", zipkinContainerName,
@@ -276,7 +282,7 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, 
 				"-p", "9411:9411")
 		}
 
-		args = append(args, "openzipkin/zipkin")
+		args = append(args, imageName)
 	}
 	_, err = utils.RunCmdAndWait("docker", args...)
 
@@ -285,16 +291,15 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, 
 		if !runError {
 			errorChan <- parseDockerError("Zipkin tracing", err)
 		} else {
-			errorChan <- fmt.Errorf("docker %s failed with: %v", args, err)
+			errorChan <- fmt.Errorf("docker %s failed with: %w", args, err)
 		}
 		return
 	}
 	errorChan <- nil
 }
 
-func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string) {
+func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, imageRepositoryURL string) {
 	defer wg.Done()
-
 	redisContainerName := utils.CreateContainerName(DaprRedisContainerName, dockerNetwork)
 
 	exists, err := confirmContainerIsRunningOrExists(redisContainerName, false)
@@ -305,9 +310,13 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, d
 	args := []string{}
 
 	if exists {
-		// do not create container again if it exists
+		// do not create container again if it exists.
 		args = append(args, "start", redisContainerName)
 	} else {
+		imageName := redisDockerImageName
+		if imageRepositoryURL != "" {
+			imageName = fmt.Sprintf("%s/%s", imageRepositoryURL, imageName)
+		}
 		args = append(args,
 			"run",
 			"--name", redisContainerName,
@@ -325,8 +334,7 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, d
 				args,
 				"-p", "6379:6379")
 		}
-
-		args = append(args, "redis")
+		args = append(args, imageName)
 	}
 	_, err = utils.RunCmdAndWait("docker", args...)
 
@@ -335,7 +343,7 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, d
 		if !runError {
 			errorChan <- parseDockerError("Redis state store", err)
 		} else {
-			errorChan <- fmt.Errorf("docker %s failed with: %v", args, err)
+			errorChan <- fmt.Errorf("docker %s failed with: %w", args, err)
 		}
 		return
 	}
@@ -344,7 +352,7 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, d
 
 // check if the container either exists and stopped or is running.
 func confirmContainerIsRunningOrExists(containerName string, isRunning bool) (bool, error) {
-	// e.g. docker ps --filter name=dapr_redis --filter status=running --format {{.Names}}
+	// e.g. docker ps --filter name=dapr_redis --filter status=running --format {{.Names}}.
 
 	args := []string{"ps", "--all", "--filter", "name=" + containerName}
 
@@ -356,11 +364,12 @@ func confirmContainerIsRunningOrExists(containerName string, isRunning bool) (bo
 	response, err := utils.RunCmdAndWait("docker", args...)
 	response = strings.TrimSuffix(response, "\n")
 
-	// If 'docker ps' failed due to some reason
+	// If 'docker ps' failed due to some reason.
 	if err != nil {
+		//nolint
 		return false, fmt.Errorf("unable to confirm whether %s is running or exists. error\n%v", containerName, err.Error())
 	}
-	// 'docker ps' worked fine, but the response did not have the container name
+	// 'docker ps' worked fine, but the response did not have the container name.
 	if response == "" || response != containerName {
 		if isRunning {
 			return false, fmt.Errorf("container %s is not running", containerName)
@@ -372,9 +381,10 @@ func confirmContainerIsRunningOrExists(containerName string, isRunning bool) (bo
 }
 
 func parseDockerError(component string, err error) error {
+	//nolint
 	if exitError, ok := err.(*exec.ExitError); ok {
 		exitCode := exitError.ExitCode()
-		if exitCode == 125 { // see https://github.com/moby/moby/pull/14012
+		if exitCode == 125 { // see https://github.com/moby/moby/pull/14012.
 			return fmt.Errorf("failed to launch %s. Is it already running?", component)
 		}
 		if exitCode == 127 {
@@ -385,6 +395,7 @@ func parseDockerError(component string, err error) error {
 }
 
 func isContainerRunError(err error) bool {
+	//nolint
 	if exitError, ok := err.(*exec.ExitError); ok {
 		exitCode := exitError.ExitCode()
 		return exitCode == 125
@@ -392,13 +403,16 @@ func isContainerRunError(err error) bool {
 	return false
 }
 
-func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string) {
+func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, version string, dockerNetwork string, imageRepositoryURL string) {
 	defer wg.Done()
 	placementContainerName := utils.CreateContainerName(DaprPlacementContainerName, dockerNetwork)
 
 	image := fmt.Sprintf("%s:%s", daprDockerImageName, version)
+	if imageRepositoryURL != "" {
+		image = fmt.Sprintf("%s/%s", imageRepositoryURL, image)
+	}
 
-	// Use only image for latest version
+	// Use only image for latest version.
 	if version == latestVersion {
 		image = daprDockerImageName
 	}
@@ -444,7 +458,7 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 		if !runError {
 			errorChan <- parseDockerError("placement service", err)
 		} else {
-			errorChan <- fmt.Errorf("docker %s failed with: %v", args, err)
+			errorChan <- fmt.Errorf("docker %s failed with: %w", args, err)
 		}
 		return
 	}
@@ -452,29 +466,29 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, dir, versio
 }
 
 func moveDashboardFiles(extractedFilePath string, dir string) (string, error) {
-	// Move /release/os/web directory to /web
+	// Move /release/os/web directory to /web.
 	oldPath := path_filepath.Join(path_filepath.Dir(extractedFilePath), "web")
 	newPath := path_filepath.Join(dir, "web")
 	err := os.Rename(oldPath, newPath)
 	if err != nil {
-		err = fmt.Errorf("failed to move dashboard files: %s", err)
+		err = fmt.Errorf("failed to move dashboard files: %w", err)
 		return "", err
 	}
 
-	// Move binary from /release/<os>/web/dashboard(.exe) to /dashboard(.exe)
+	// Move binary from /release/<os>/web/dashboard(.exe) to /dashboard(.exe).
 	err = os.Rename(extractedFilePath, path_filepath.Join(dir, path_filepath.Base(extractedFilePath)))
 	if err != nil {
-		err = fmt.Errorf("error moving %s binary to path: %s", path_filepath.Base(extractedFilePath), err)
+		err = fmt.Errorf("error moving %s binary to path: %w", path_filepath.Base(extractedFilePath), err)
 		return "", err
 	}
 
-	// Change the extracted binary file path to reflect the move above
+	// Change the extracted binary file path to reflect the move above.
 	extractedFilePath = path_filepath.Join(dir, path_filepath.Base(extractedFilePath))
 
-	// Remove the now-empty 'release' directory
+	// Remove the now-empty 'release' directory.
 	err = os.RemoveAll(path_filepath.Join(dir, "release"))
 	if err != nil {
-		err = fmt.Errorf("error moving dashboard files: %s", err)
+		err = fmt.Errorf("error moving dashboard files: %w", err)
 		return "", err
 	}
 
@@ -502,10 +516,9 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, bin
 
 	filepath, err := downloadFile(dir, fileURL)
 	if err != nil {
-		errorChan <- fmt.Errorf("error downloading %s binary: %s", binaryFilePrefix, err)
+		errorChan <- fmt.Errorf("error downloading %s binary: %w", binaryFilePrefix, err)
 		return
 	}
-
 	extractedFilePath := ""
 
 	if archiveExt == "zip" {
@@ -513,15 +526,14 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, bin
 	} else {
 		extractedFilePath, err = untar(filepath, dir, binaryFilePrefix)
 	}
-
 	if err != nil {
-		errorChan <- fmt.Errorf("error extracting %s binary: %s", binaryFilePrefix, err)
+		errorChan <- fmt.Errorf("error extracting %s binary: %w", binaryFilePrefix, err)
 		return
 	}
 	err = os.Remove(filepath)
 
 	if err != nil {
-		errorChan <- fmt.Errorf("failed to remove archive: %s", err)
+		errorChan <- fmt.Errorf("failed to remove archive: %w", err)
 		return
 	}
 
@@ -535,20 +547,20 @@ func installBinary(wg *sync.WaitGroup, errorChan chan<- error, dir, version, bin
 
 	binaryPath, err := moveFileToPath(extractedFilePath, dir)
 	if err != nil {
-		errorChan <- fmt.Errorf("error moving %s binary to path: %s", binaryFilePrefix, err)
+		errorChan <- fmt.Errorf("error moving %s binary to path: %w", binaryFilePrefix, err)
 		return
 	}
 
 	err = makeExecutable(binaryPath)
 	if err != nil {
-		errorChan <- fmt.Errorf("error making %s binary executable: %s", binaryFilePrefix, err)
+		errorChan <- fmt.Errorf("error making %s binary executable: %w", binaryFilePrefix, err)
 		return
 	}
 
 	errorChan <- nil
 }
 
-func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error, _, _ string, dockerNetwork string) {
+func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error, _, _ string, dockerNetwork string, _ string) {
 	defer wg.Done()
 
 	redisHost := daprDefaultHost
@@ -560,55 +572,56 @@ func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error
 	}
 	var err error
 
-	// Make default components directory
+	// Make default components directory.
 	componentsDir := DefaultComponentsDirPath()
 
 	err = createRedisPubSub(redisHost, componentsDir)
 	if err != nil {
-		errorChan <- fmt.Errorf("error creating redis pubsub component file: %s", err)
+		errorChan <- fmt.Errorf("error creating redis pubsub component file: %w", err)
 		return
 	}
 	err = createRedisStateStore(redisHost, componentsDir)
 	if err != nil {
-		errorChan <- fmt.Errorf("error creating redis statestore component file: %s", err)
+		errorChan <- fmt.Errorf("error creating redis statestore component file: %w", err)
 		return
 	}
 	err = createDefaultConfiguration(zipkinHost, DefaultConfigFilePath())
 	if err != nil {
-		errorChan <- fmt.Errorf("error creating default configuration file: %s", err)
+		errorChan <- fmt.Errorf("error creating default configuration file: %w", err)
 		return
 	}
 }
 
-func createSlimConfiguration(wg *sync.WaitGroup, errorChan chan<- error, _, _ string, _ string) {
+func createSlimConfiguration(wg *sync.WaitGroup, errorChan chan<- error, _, _ string, _ string, _ string) {
 	defer wg.Done()
 
 	// For --slim we pass empty string so that we do not configure zipkin.
 	err := createDefaultConfiguration("", DefaultConfigFilePath())
 	if err != nil {
-		errorChan <- fmt.Errorf("error creating default configuration file: %s", err)
+		errorChan <- fmt.Errorf("error creating default configuration file: %w", err)
 		return
 	}
 }
 
 func makeDefaultComponentsDir() error {
-	// Make default components directory
+	// Make default components directory.
 	componentsDir := DefaultComponentsDirPath()
+	//nolint
 	_, err := os.Stat(componentsDir)
 	if os.IsNotExist(err) {
-		errDir := os.MkdirAll(componentsDir, 0755)
+		errDir := os.MkdirAll(componentsDir, 0o755)
 		if errDir != nil {
-			return fmt.Errorf("error creating default components folder: %s", errDir)
+			return fmt.Errorf("error creating default components folder: %w", errDir)
 		}
 	}
 
-	os.Chmod(componentsDir, 0777)
+	os.Chmod(componentsDir, 0o777)
 	return nil
 }
 
 func makeExecutable(filepath string) error {
 	if runtime.GOOS != daprWindowsOS {
-		err := os.Chmod(filepath, 0777)
+		err := os.Chmod(filepath, 0o777)
 		if err != nil {
 			return err
 		}
@@ -694,7 +707,7 @@ func untar(filepath, targetDir, binaryFilePrefix string) (string, error) {
 	foundBinary := ""
 	for {
 		header, err := tr.Next()
-
+		//nolint
 		if err == io.EOF {
 			break
 		} else if err != nil {
@@ -703,7 +716,7 @@ func untar(filepath, targetDir, binaryFilePrefix string) (string, error) {
 			continue
 		}
 
-		// untar all files in archive
+		// untar all files in archive.
 		path, err := sanitizeExtractPath(targetDir, header.Name)
 		if err != nil {
 			return "", err
@@ -728,7 +741,7 @@ func untar(filepath, targetDir, binaryFilePrefix string) (string, error) {
 			return "", err
 		}
 
-		// If the found file is the binary that we want to find, save it and return later
+		// If the found file is the binary that we want to find, save it and return later.
 		if strings.HasSuffix(header.Name, binaryFilePrefix) {
 			foundBinary = path
 		}
@@ -754,7 +767,7 @@ func moveFileToPath(filepath string, installLocation string) (string, error) {
 	}
 
 	// #nosec G306
-	if err = ioutil.WriteFile(destFilePath, input, 0644); err != nil {
+	if err = ioutil.WriteFile(destFilePath, input, 0o644); err != nil {
 		if runtime.GOOS != daprWindowsOS && strings.Contains(err.Error(), "permission denied") {
 			err = errors.New(err.Error() + " - please run with sudo")
 		}
@@ -912,7 +925,7 @@ func checkAndOverWriteFile(filePath string, b []byte) error {
 	_, err := os.Stat(filePath)
 	if os.IsNotExist(err) {
 		// #nosec G306
-		if err = ioutil.WriteFile(filePath, b, 0644); err != nil {
+		if err = ioutil.WriteFile(filePath, b, 0o644); err != nil {
 			return err
 		}
 	}

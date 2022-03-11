@@ -45,6 +45,9 @@ dapr upgrade -k
 		}
 		print.SuccessStatusEvent(os.Stdout, "Dapr control plane successfully upgraded to version %s. Make sure your deployments are restarted to pick up the latest sidecar version.", upgradeRuntimeVersion)
 	},
+	PostRun: func(cmd *cobra.Command, args []string) {
+		kubernetes.CheckForCertExpiry()
+	},
 }
 
 func init() {
