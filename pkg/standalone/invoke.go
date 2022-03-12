@@ -68,6 +68,10 @@ func makeEndpoint(lo ListOutput, method string) string {
 }
 
 func handleResponse(response *http.Response) (string, error) {
+	if response.StatusCode < 200 || response.StatusCode >= 400 {
+		return "", fmt.Errorf("%s", response.Status)
+	}
+
 	rb, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		return "", err
