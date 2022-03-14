@@ -27,6 +27,7 @@ import (
 	"github.com/phayes/freeport"
 	"gopkg.in/yaml.v2"
 
+	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/dapr/pkg/components"
 	modes "github.com/dapr/dapr/pkg/config/modes"
 )
@@ -243,6 +244,10 @@ func (config *RunConfig) getArgs() []string {
 		}
 	}
 
+	if print.IsJSONLogEnabled() {
+		args = append(args, "--log-as-json")
+	}
+
 	return args
 }
 
@@ -270,10 +275,12 @@ func (config *RunConfig) getEnv() []string {
 // RunOutput represents the run output.
 type RunOutput struct {
 	DaprCMD      *exec.Cmd
+	DaprErr      error
 	DaprHTTPPort int
 	DaprGRPCPort int
 	AppID        string
 	AppCMD       *exec.Cmd
+	AppErr       error
 }
 
 func getDaprCommand(config *RunConfig) (*exec.Cmd, error) {
@@ -341,7 +348,9 @@ func Run(config *RunConfig) (*RunOutput, error) {
 	var appCMD *exec.Cmd = getAppCommand(config)
 	return &RunOutput{
 		DaprCMD:      daprCMD,
+		DaprErr:      nil,
 		AppCMD:       appCMD,
+		AppErr:       nil,
 		AppID:        config.AppID,
 		DaprHTTPPort: config.HTTPPort,
 		DaprGRPCPort: config.GRPCPort,
