@@ -249,7 +249,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 	defer wg.Done()
 
-	if info.slimMode {
+	if info.slimMode || info.fromDir != "" {
 		return
 	}
 
@@ -269,14 +269,6 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 		imageName := zipkinDockerImageName
 		if info.imageRepositoryURL != "" {
 			imageName = fmt.Sprintf("%s/%s", info.imageRepositoryURL, imageName)
-		}
-
-		if info.fromDir != "" {
-			dir := path_filepath.Join(info.fromDir, dockerImageSubDir)
-			err = loadDocker(dir, imageName)
-			if err != nil {
-				print.WarningStatusEvent(os.Stdout, "Docker image %s not available in %s directory, ignore.", imageName, dir)
-			}
 		}
 
 		args = append(args,
@@ -316,7 +308,7 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 func runRedis(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 	defer wg.Done()
 
-	if info.slimMode {
+	if info.slimMode || info.fromDir != "" {
 		return
 	}
 
@@ -336,14 +328,6 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 		imageName := redisDockerImageName
 		if info.imageRepositoryURL != "" {
 			imageName = fmt.Sprintf("%s/%s", info.imageRepositoryURL, imageName)
-		}
-
-		if info.fromDir != "" {
-			dir := path_filepath.Join(info.fromDir, dockerImageSubDir)
-			err = loadDocker(dir, imageName)
-			if err != nil {
-				print.WarningStatusEvent(os.Stdout, "Docker image %s not available in %s directory, ignore.", imageName, dir)
-			}
 		}
 
 		args = append(args,
