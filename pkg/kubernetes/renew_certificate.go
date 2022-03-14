@@ -36,6 +36,7 @@ type RenewCertificateParams struct {
 	IssuerPrivateKeyFilePath  string
 	RootPrivateKeyFilePath    string
 	ValidUntil                time.Duration
+	Timeout                   uint
 }
 
 func RenewCertificate(conf RenewCertificateParams) error {
@@ -62,7 +63,7 @@ func RenewCertificate(conf RenewCertificateParams) error {
 		}
 	}
 	print.InfoStatusEvent(os.Stdout, "Updating certifcates in your Kubernetes cluster")
-	err = renewCertificate(rootCertBytes, issuerCertBytes, issuerKeyBytes)
+	err = renewCertificate(rootCertBytes, issuerCertBytes, issuerKeyBytes, conf.Timeout)
 	if err != nil {
 		return err
 	}
@@ -85,7 +86,7 @@ func parseCertificateFiles(rootCert, issuerCert, issuerKey string) ([]byte, []by
 	return rootCertBytes, issuerCertBytes, issuerKeyBytes, nil
 }
 
-func renewCertificate(rootCert, issuerCert, issuerKey []byte) error {
+func renewCertificate(rootCert, issuerCert, issuerKey []byte, timeout uint) error {
 	status, err := GetDaprResourcesStatus()
 	if err != nil {
 		return err
@@ -105,6 +106,7 @@ func renewCertificate(rootCert, issuerCert, issuerKey []byte) error {
 	upgradeClient := helm.NewUpgrade(helmConf)
 	upgradeClient.ReuseValues = true
 	upgradeClient.Wait = true
+	upgradeClient.Timeout = time.Duration(timeout) * time.Second
 	upgradeClient.Namespace = status[0].Namespace
 
 	vals, err := createHelmParamsForNewCertificates(string(rootCert), string(issuerCert), string(issuerKey))

@@ -30,7 +30,7 @@ var (
 	caRootCertificateFile       string
 	issuerPrivateKeyFile        string
 	issuerPublicCertificateFile string
-	validUntil                  int
+	validUntil                  uint
 	restartDaprServices         bool
 )
 
@@ -61,6 +61,7 @@ dapr mtls renew-certificate -k --ca-root-certificate <ca.crt> --issuer-private-k
 						RootCertificateFilePath:   caRootCertificateFile,
 						IssuerCertificateFilePath: issuerPrivateKeyFile,
 						IssuerPrivateKeyFilePath:  issuerPublicCertificateFile,
+						Timeout:                   timeout,
 					})
 					if err != nil {
 						logErrorAndExit(err)
@@ -70,6 +71,7 @@ dapr mtls renew-certificate -k --ca-root-certificate <ca.crt> --issuer-private-k
 					err := kubernetes.RenewCertificate(kubernetes.RenewCertificateParams{
 						RootPrivateKeyFilePath: certificatePasswordFile,
 						ValidUntil:             time.Hour * time.Duration(validUntil*24),
+						Timeout:                timeout,
 					})
 					if err != nil {
 						logErrorAndExit(err)
@@ -78,6 +80,7 @@ dapr mtls renew-certificate -k --ca-root-certificate <ca.crt> --issuer-private-k
 					print.InfoStatusEvent(os.Stdout, "generating fresh certificates")
 					err := kubernetes.RenewCertificate(kubernetes.RenewCertificateParams{
 						ValidUntil: time.Hour * time.Duration(validUntil*24),
+						Timeout:    timeout,
 					})
 					if err != nil {
 						logErrorAndExit(err)
@@ -103,13 +106,14 @@ dapr mtls renew-certificate -k --ca-root-certificate <ca.crt> --issuer-private-k
 		},
 	}
 
-	command.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Upgrades/Renews root certificate of Dapr in a Kubernetes cluster")
-	command.Flags().StringVarP(&certificatePasswordFile, "certificate-password-file", "", "", "The version of the Dapr runtime to upgrade or downgrade to, for example: 1.0.0")
-	command.Flags().StringVarP(&caRootCertificateFile, "ca-root-certificate", "", "", "The version of the Dapr runtime to upgrade or downgrade to, for example: 1.0.0")
-	command.Flags().StringVarP(&issuerPrivateKeyFile, "issuer-private-key", "", "", "The version of the Dapr runtime to upgrade or downgrade to, for example: 1.0.0")
-	command.Flags().StringVarP(&issuerPublicCertificateFile, "issuer-public-certificate", "", "", "The version of the Dapr runtime to upgrade or downgrade to, for example: 1.0.0")
-	command.Flags().IntVarP(&validUntil, "valid-until", "", 365, "Max days before certificate expires")
+	command.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Renews root and issuer certificates of Dapr in a Kubernetes cluster")
+	command.Flags().StringVarP(&certificatePasswordFile, "certificate-password-file", "", "", "The root.key file which is used to generate root certificate")
+	command.Flags().StringVarP(&caRootCertificateFile, "ca-root-certificate", "", "", "The root certificate file")
+	command.Flags().StringVarP(&issuerPrivateKeyFile, "issuer-private-key", "", "", "The issuer certificate private key")
+	command.Flags().StringVarP(&issuerPublicCertificateFile, "issuer-public-certificate", "", "", "The issuer certificate")
+	command.Flags().UintVarP(&validUntil, "valid-until", "", 365, "Max days before certificate expires")
 	command.Flags().BoolVarP(&restartDaprServices, "restart", "", false, "Restart Dapr control plane services")
+	command.Flags().UintVarP(&timeout, "timeout", "", 300, "The timeout for the certificate renewal")
 	command.MarkFlagRequired("kubernetes")
 	return command
 }
