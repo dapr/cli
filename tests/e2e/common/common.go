@@ -46,6 +46,10 @@ const (
 )
 
 const DaprTestNamespace = "dapr-cli-tests"
+const (
+	numberOfExpectedPodsHAMode    = 13
+	numberOfExpectedPodsNonHAMode = 5
+)
 
 type VersionDetails struct {
 	RuntimeVersion      string
@@ -68,7 +72,7 @@ type TestCase struct {
 	Callable func(*testing.T)
 }
 
-func UpgradeTest(details VersionDetails) func(t *testing.T) {
+func UpgradeTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
 		daprPath := getDaprPath()
 		args := []string{
@@ -83,7 +87,7 @@ func UpgradeTest(details VersionDetails) func(t *testing.T) {
 		done := make(chan struct{})
 		podsRunning := make(chan struct{})
 
-		go waitAllPodsRunning(t, DaprTestNamespace, done, podsRunning)
+		go waitAllPodsRunning(t, DaprTestNamespace, opts.HAEnabled, done, podsRunning)
 		select {
 		case <-podsRunning:
 			t.Logf("verified all pods running in namespace %s are running after upgrade", DaprTestNamespace)
@@ -92,7 +96,6 @@ func UpgradeTest(details VersionDetails) func(t *testing.T) {
 			t.Logf("timeout verifying all pods running in namespace %s", DaprTestNamespace)
 			t.FailNow()
 		}
-
 		validatePodsOnInstallUpgrade(t, details)
 	}
 }
@@ -244,7 +247,7 @@ func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t
 				"dapr-operator":         {details.RuntimeVersion, "3"},
 			}
 		}
-
+		t.Log(output)
 		lines := strings.Split(output, "\n")[1:] // remove header of status.
 		t.Logf("dapr status -k infos: \n%s\n", lines)
 		for _, line := range lines {
@@ -648,7 +651,7 @@ func waitPodDeletion(t *testing.T, done, podsDeleted chan struct{}) {
 	}
 }
 
-func waitAllPodsRunning(t *testing.T, namespace string, done, podsRunning chan struct{}) {
+func waitAllPodsRunning(t *testing.T, namespace string, haEnabled bool, done, podsRunning chan struct{}) {
 	for {
 		select {
 		case <-done: // if timeout was reached.
@@ -665,14 +668,24 @@ func waitAllPodsRunning(t *testing.T, namespace string, done, podsRunning chan s
 			Limit: 100,
 		})
 		require.NoError(t, err, "error getting pods list from k8s")
-		count := 0
+		countOfReadyPods := 0
 		for _, item := range list.Items {
 			// Check pods running, and containers ready.
-			if item.Status.Phase == core_v1.PodRunning && len(item.Status.ContainerStatuses) != 0 && item.Status.ContainerStatuses[0].Ready {
-				count++
+			if item.Status.Phase == core_v1.PodRunning && len(item.Status.ContainerStatuses) != 0 {
+				size := len(item.Status.ContainerStatuses)
+				for _, status := range item.Status.ContainerStatuses {
+					if status.Ready {
+						size--
+					}
+				}
+				if size == 0 {
+					countOfReadyPods++
+				}
 			}
 		}
-		if len(list.Items) == count {
+		if haEnabled && len(list.Items) == countOfReadyPods && countOfReadyPods == numberOfExpectedPodsHAMode {
+			podsRunning <- struct{}{}
+		} else if !haEnabled && len(list.Items) == countOfReadyPods && countOfReadyPods == numberOfExpectedPodsNonHAMode {
 			podsRunning <- struct{}{}
 		}
 		time.Sleep(15 * time.Second)
