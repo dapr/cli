@@ -40,13 +40,11 @@ import (
 type Resource int
 
 const (
+	DaprTestNamespace           = "dapr-cli-tests"
 	CustomResourceDefs Resource = iota
 	ClusterRoles
 	ClusterRoleBindings
-)
 
-const DaprTestNamespace = "dapr-cli-tests"
-const (
 	numHAPods    = 13
 	numNonHAPods = 5
 )
@@ -247,7 +245,6 @@ func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t
 				"dapr-operator":         {details.RuntimeVersion, "3"},
 			}
 		}
-		t.Log(output)
 		lines := strings.Split(output, "\n")[1:] // remove header of status.
 		t.Logf("dapr status -k infos: \n%s\n", lines)
 		for _, line := range lines {
