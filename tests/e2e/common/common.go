@@ -532,7 +532,7 @@ func componentsTestOnUninstall(all bool) func(t *testing.T) {
 		lines := strings.Split(output, "\n")
 
 		// An extra empty line is there in output.
-		require.Equal(t, 2, len(lines), "expected only header of the output to remain")
+		require.Equal(t, 4, len(lines), "expected header and warning message of the output to remain")
 	}
 }
 
@@ -547,7 +547,7 @@ func statusTestOnUninstall() func(t *testing.T) {
 }
 
 func componentOutputCheck(t *testing.T, output string, all bool) {
-	lines := strings.Split(output, "\n")[1:] // remove header.
+	lines := strings.Split(output, "\n")[2:] // remove header and first warning message.
 	// for fresh cluster only one component yaml has been applied.
 	fields := strings.Fields(lines[0])
 
