@@ -547,7 +547,9 @@ func statusTestOnUninstall() func(t *testing.T) {
 }
 
 func componentOutputCheck(t *testing.T, output string, all bool) {
+	output = strings.TrimSpace(output)       // remove empty string.
 	lines := strings.Split(output, "\n")[2:] // remove header and first warning message.
+	lines = lines[:len(lines)-1]
 	// for fresh cluster only one component yaml has been applied.
 	fields := strings.Fields(lines[0])
 
