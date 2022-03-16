@@ -16,6 +16,7 @@ package kubernetes
 import (
 	"io"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -93,6 +94,10 @@ func writeConfigurations(writer io.Writer, getConfigFunc func() (*v1alpha1.Confi
 		return printConfigurationList(writer, filtered)
 	}
 
+	// filteredSpecs sort by namespace.
+	sort.Slice(filteredSpecs, func(i, j int) bool {
+		return filteredSpecs[i].Namespace > filteredSpecs[j].Namespace
+	})
 	return utils.PrintDetail(writer, outputFormat, filteredSpecs)
 }
 
@@ -109,6 +114,10 @@ func printConfigurationList(writer io.Writer, list []v1alpha1.Configuration) err
 		})
 	}
 
+	// co sort by namespace.
+	sort.Slice(co, func(i, j int) bool {
+		return co[i].Namespace > co[j].Namespace
+	})
 	return utils.MarshalAndWriteTable(writer, co)
 }
 

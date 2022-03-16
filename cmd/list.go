@@ -61,7 +61,7 @@ var ListCmd = &cobra.Command{
 # List Dapr instances in self-hosted mode
 dapr list
 
-# List Dapr instances in Kubernetes mode
+# List all namespace Dapr instances in Kubernetes mode
 dapr list -k
 
 # List define namespace Dapr instances in Kubernetes mode
@@ -80,6 +80,9 @@ dapr list -k --all-namespaces
 		if kubernetesMode {
 			if allNamespaces {
 				resourceNamespace = meta_v1.NamespaceAll
+			} else if resourceNamespace == "" {
+				resourceNamespace = meta_v1.NamespaceAll
+				print.WarningStatusEvent(os.Stdout, "From next release(or after 2 releases), behavior can be changed to query only \"default\" namespace.")
 			}
 
 			list, err := kubernetes.List(resourceNamespace)
@@ -109,7 +112,7 @@ dapr list -k --all-namespaces
 func init() {
 	ListCmd.Flags().BoolVarP(&allNamespaces, "all-namespaces", "A", false, "If true, list all Dapr pods in all namespaces")
 	ListCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "List all Dapr pods in a Kubernetes cluster")
-	ListCmd.Flags().StringVarP(&resourceNamespace, "namespace", "n", "default", "List define namespace pod in a Kubernetes cluster")
+	ListCmd.Flags().StringVarP(&resourceNamespace, "namespace", "n", "", "List define namespace pod in a Kubernetes cluster")
 	ListCmd.Flags().StringVarP(&outputFormat, "output", "o", "", "The output format of the list. Valid values are: json, yaml, or table (default)")
 	ListCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	RootCmd.AddCommand(ListCmd)

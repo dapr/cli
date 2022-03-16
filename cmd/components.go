@@ -36,6 +36,9 @@ var ComponentsCmd = &cobra.Command{
 		if kubernetesMode {
 			if allNamespaces {
 				resourceNamespace = meta_v1.NamespaceAll
+			} else if resourceNamespace == "" {
+				resourceNamespace = meta_v1.NamespaceAll
+				print.WarningStatusEvent(os.Stdout, "From next release(or after 2 releases), behavior can be changed to query only \"default\" namespace.")
 			}
 			err := kubernetes.PrintComponents(componentsName, resourceNamespace, componentsOutputFormat)
 			if err != nil {
@@ -48,11 +51,14 @@ var ComponentsCmd = &cobra.Command{
 		kubernetes.CheckForCertExpiry()
 	},
 	Example: `
-# List default namespace Dapr components in Kubernetes mode
+# List all namespace Dapr components in Kubernetes mode
 dapr components -k
 
 # List define namespace Dapr components in Kubernetes mode
 dapr components -k -n default
+
+# Print define name Dapr components in Kubernetes mode
+dapr components -k -N target
 
 # List all namespaces Dapr components in Kubernetes mode
 dapr components -k --all-namespaces
@@ -61,8 +67,8 @@ dapr components -k --all-namespaces
 
 func init() {
 	ComponentsCmd.Flags().BoolVarP(&allNamespaces, "all-namespaces", "A", false, "If true, list all Dapr components in all namespaces")
-	ComponentsCmd.Flags().StringVarP(&componentsName, "name", "", "", "The components name to be printed (optional)")
-	ComponentsCmd.Flags().StringVarP(&resourceNamespace, "namespace", "n", "default", "List Define namespace components in a Kubernetes cluster")
+	ComponentsCmd.Flags().StringVarP(&componentsName, "name", "N", "", "The components name to be printed (optional)")
+	ComponentsCmd.Flags().StringVarP(&resourceNamespace, "namespace", "n", "", "List all namespace components in a Kubernetes cluster")
 	ComponentsCmd.Flags().StringVarP(&componentsOutputFormat, "output", "o", "list", "Output format (options: json or yaml or list)")
 	ComponentsCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "List all Dapr components in a Kubernetes cluster")
 	ComponentsCmd.Flags().BoolP("help", "h", false, "Print this help message")

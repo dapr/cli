@@ -14,6 +14,8 @@ limitations under the License.
 package kubernetes
 
 import (
+	"sort"
+
 	"github.com/dapr/cli/pkg/age"
 )
 
@@ -60,5 +62,9 @@ func List(namespace string) ([]ListOutput, error) {
 		}
 	}
 
+	// list sort by namespace.
+	sort.Slice(l, func(i, j int) bool {
+		return l[i].Namespace > l[j].Namespace
+	})
 	return l, nil
 }

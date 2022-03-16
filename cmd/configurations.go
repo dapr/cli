@@ -36,6 +36,9 @@ var ConfigurationsCmd = &cobra.Command{
 		if kubernetesMode {
 			if allNamespaces {
 				resourceNamespace = meta_v1.NamespaceAll
+			} else if resourceNamespace == "" {
+				resourceNamespace = meta_v1.NamespaceAll
+				print.WarningStatusEvent(os.Stdout, "From next release(or after 2 releases), behavior can be changed to query only \"default\" namespace.")
 			}
 			err := kubernetes.PrintConfigurations(configurationName, resourceNamespace, configurationOutputFormat)
 			if err != nil {
@@ -48,11 +51,14 @@ var ConfigurationsCmd = &cobra.Command{
 		kubernetes.CheckForCertExpiry()
 	},
 	Example: `
-# List default namespace Dapr configurations in Kubernetes mode
+# List all namespace Dapr configurations in Kubernetes mode
 dapr configurations -k
 
 # List define namespace Dapr configurations in Kubernetes mode
 dapr configurations -k -n default
+
+# Print define name Dapr configurations in Kubernetes mode
+dapr configurations -k -N target
 
 # List all namespaces Dapr configurations in Kubernetes mode
 dapr configurations -k --all-namespaces
@@ -61,8 +67,8 @@ dapr configurations -k --all-namespaces
 
 func init() {
 	ConfigurationsCmd.Flags().BoolVarP(&allNamespaces, "all-namespaces", "A", false, "If true, list all Dapr configurations in all namespaces")
-	ConfigurationsCmd.Flags().StringVarP(&configurationName, "name", "", "", "The configuration name to be printed (optional)")
-	ConfigurationsCmd.Flags().StringVarP(&resourceNamespace, "namespace", "n", "default", "List Define namespace configurations in a Kubernetes cluster")
+	ConfigurationsCmd.Flags().StringVarP(&configurationName, "name", "N", "", "The configuration name to be printed (optional)")
+	ConfigurationsCmd.Flags().StringVarP(&resourceNamespace, "namespace", "n", "", "List Define namespace configurations in a Kubernetes cluster")
 	ConfigurationsCmd.Flags().StringVarP(&configurationOutputFormat, "output", "o", "list", "Output format (options: json or yaml or list)")
 	ConfigurationsCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "List all Dapr configurations in a Kubernetes cluster")
 	ConfigurationsCmd.Flags().BoolP("help", "h", false, "Print this help message")
