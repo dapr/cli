@@ -547,17 +547,20 @@ func statusTestOnUninstall() func(t *testing.T) {
 }
 
 func componentOutputCheck(t *testing.T, output string, all bool) {
-	output = strings.TrimSpace(output)       // remove empty string.
-	lines := strings.Split(output, "\n")[2:] // remove header and first warning message.
-	lines = lines[:len(lines)-1]
-	// for fresh cluster only one component yaml has been applied.
-	fields := strings.Fields(lines[0])
+	output = strings.TrimSpace(output) // remove empty string.
+	lines := strings.Split(output, "\n")
 
 	if all {
-		assert.Equal(t, len(fields), 0, "expected at 0 components output")
-
+		assert.Equal(t, len(lines), 3, "expected at 0 components and 3 message items")
 		return
 	}
+
+	lines = strings.Split(output, "\n")[2:] // remove header and first warning message.
+	if len(lines) > 1 {
+		lines = lines[:len(lines)-1] // remove latest warning message.
+	}
+	// for fresh cluster only one component yaml has been applied.
+	fields := strings.Fields(lines[0])
 
 	// Fields splits on space, so Created time field might be split again.
 	assert.GreaterOrEqual(t, len(fields), 6, "expected at least 6 fields in components output")
