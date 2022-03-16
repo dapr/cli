@@ -47,8 +47,8 @@ const (
 
 const DaprTestNamespace = "dapr-cli-tests"
 const (
-	numberOfExpectedPodsHAMode    = 13
-	numberOfExpectedPodsNonHAMode = 5
+	numHAPods    = 13
+	numNonHAPods = 5
 )
 
 type VersionDetails struct {
@@ -683,11 +683,10 @@ func waitAllPodsRunning(t *testing.T, namespace string, haEnabled bool, done, po
 				}
 			}
 		}
-		if haEnabled && len(list.Items) == countOfReadyPods && countOfReadyPods == numberOfExpectedPodsHAMode {
-			podsRunning <- struct{}{}
-		} else if !haEnabled && len(list.Items) == countOfReadyPods && countOfReadyPods == numberOfExpectedPodsNonHAMode {
+		if len(list.Items) == countOfReadyPods && ((haEnabled && countOfReadyPods == numHAPods) || (!haEnabled && countOfReadyPods == numNonHAPods)) {
 			podsRunning <- struct{}{}
 		}
+
 		time.Sleep(15 * time.Second)
 	}
 }
