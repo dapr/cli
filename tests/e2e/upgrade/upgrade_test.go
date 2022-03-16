@@ -105,7 +105,7 @@ func getTestsOnUpgrade(p upgradePath, installOpts, upgradeOpts common.TestOption
 	details := p.next
 
 	tests = append(tests, []common.TestCase{
-		{"upgrade to " + details.RuntimeVersion, common.UpgradeTest(details)},
+		{"upgrade to " + details.RuntimeVersion, common.UpgradeTest(details, upgradeOpts)},
 		{"crds exist " + details.RuntimeVersion, common.CRDTest(details, upgradeOpts)},
 		{"clusterroles exist " + details.RuntimeVersion, common.ClusterRolesTest(details, upgradeOpts)},
 		{"clusterrolebindings exist " + details.RuntimeVersion, common.ClusterRoleBindingsTest(details, upgradeOpts)},

@@ -651,6 +651,13 @@ func testInvoke(t *testing.T) {
 				assert.Contains(t, output, "error invoking app invoke_e2e_2: app ID invoke_e2e_2 not found")
 			})
 
+			t.Run(fmt.Sprintf("invoke with an invalid method name %s", path), func(t *testing.T) {
+				output, err := spawn.Command(daprPath, "invoke", "--app-id", "invoke_e2e", "--unix-domain-socket", path, "--method", "test2")
+				t.Log(output)
+				assert.Error(t, err, "method test2 should not exist")
+				assert.Contains(t, output, "error invoking app invoke_e2e: 404 Not Found")
+			})
+
 			output, err := spawn.Command(getDaprPath(), "stop", "--app-id", "invoke_e2e")
 			t.Log(output)
 			require.NoError(t, err, "dapr stop failed")
