@@ -211,6 +211,7 @@ func ComponentsTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 			// apply any changes to the component.
 			t.Log("apply component changes")
 			output, err := spawn.Command("kubectl", "apply", "-f", "../testdata/statestore.yaml")
+			t.Log(output)
 			require.NoError(t, err, "expected no error on kubectl apply")
 			require.Equal(t, "component.dapr.io/statestore created\ncomponent.dapr.io/statestore created\n", output, "expceted output to match")
 		}
@@ -549,6 +550,9 @@ func statusTestOnUninstall() func(t *testing.T) {
 func componentOutputCheck(t *testing.T, output string, all bool) {
 	output = strings.TrimSpace(output) // remove empty string.
 	lines := strings.Split(output, "\n")
+	for i, line := range lines {
+		t.Logf("num:%d line:%+v", i, line)
+	}
 
 	if all {
 		assert.Equal(t, len(lines), 3, "expected at 0 components and 3 message items")
