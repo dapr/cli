@@ -213,7 +213,7 @@ func ComponentsTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 			output, err := spawn.Command("kubectl", "apply", "-f", "../testdata/statestore.yaml")
 			t.Log(output)
 			require.NoError(t, err, "expected no error on kubectl apply")
-			require.Equal(t, "component.dapr.io/statestore created\ncomponent.dapr.io/statestore created\n", output, "expceted output to match")
+			require.Equal(t, "component.dapr.io/statestore created\nnamespace/test created\ncomponent.dapr.io/statestore created\n", output, "expceted output to match")
 		}
 
 		t.Log("check applied component exists")
@@ -527,7 +527,7 @@ func componentsTestOnUninstall(all bool) func(t *testing.T) {
 		// Manually remove components and verify output.
 		output, err = spawn.Command("kubectl", "delete", "-f", "../testdata/statestore.yaml")
 		require.NoError(t, err, "expected no error on kubectl apply")
-		require.Equal(t, "component.dapr.io \"statestore\" deleted\ncomponent.dapr.io \"statestore\" deleted\n", output, "expected output to match")
+		require.Equal(t, "component.dapr.io \"statestore\" deleted\nnamespace \"test\" deleted\ncomponent.dapr.io \"statestore\" deleted\n", output, "expected output to match")
 		output, err = spawn.Command(daprPath, "components", "-k")
 		require.NoError(t, err, "expected no error on calling dapr components")
 		lines := strings.Split(output, "\n")
@@ -564,15 +564,15 @@ func componentOutputCheck(t *testing.T, output string, all bool) {
 		lines = lines[:len(lines)-1] // remove latest warning message.
 	}
 
-	assert.Equal(t, len(lines), 2, "expect at 2 componets") // default and dapr-system namespace components.
+	assert.Equal(t, len(lines), 2, "expect at 2 componets") // default and test namespace components.
 
 	// for fresh cluster only one component yaml has been applied.
-	defaultFields := strings.Fields(lines[0])
-	daprSystemFields := strings.Fields(lines[1])
+	testNsFields := strings.Fields(lines[0])
+	defaultNsFields := strings.Fields(lines[1])
 
 	// Fields splits on space, so Created time field might be split again.
-	defineComponentOutputCheck(t, defaultFields, "default")
-	defineComponentOutputCheck(t, daprSystemFields, "dapr-system")
+	defineComponentOutputCheck(t, testNsFields, "test")
+	defineComponentOutputCheck(t, defaultNsFields, "default")
 }
 
 func defineComponentOutputCheck(t *testing.T, fields []string, namespace string) {
