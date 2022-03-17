@@ -30,7 +30,7 @@ This document helps you get started developing Dapr CLI. If you find any problem
     ```bash
     choco install git -y --package-parameters="/GitAndUnixToolsOnPath /WindowsTerminal /NoShellIntegration"
     ```
-4. [MinGW](http://www.mingw.org/)
+4. [MinGW](https://www.mingw-w64.org/)
   Install [MinGW with chocolatey](https://chocolatey.org/packages/mingw) and ensure that MinGW bin directory is in PATH environment variable
 
     ```bash
