@@ -212,7 +212,7 @@ func ComponentsTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 			t.Log("apply component changes")
 			output, err := spawn.Command("kubectl", "apply", "-f", "../testdata/statestore.yaml")
 			require.NoError(t, err, "expected no error on kubectl apply")
-			require.Equal(t, "component.dapr.io/statestore created\n", output, "expceted output to match")
+			require.Equal(t, "component.dapr.io/statestore created\ncomponent.dapr.io/statestore created\n", output, "expceted output to match")
 		}
 
 		t.Log("check applied component exists")
@@ -526,7 +526,7 @@ func componentsTestOnUninstall(all bool) func(t *testing.T) {
 		// Manually remove components and verify output.
 		output, err = spawn.Command("kubectl", "delete", "-f", "../testdata/statestore.yaml")
 		require.NoError(t, err, "expected no error on kubectl apply")
-		require.Equal(t, "component.dapr.io \"statestore\" deleted\n", output, "expected output to match")
+		require.Equal(t, "component.dapr.io \"statestore\" deleted\ncomponent.dapr.io \"statestore\" deleted\n", output, "expected output to match")
 		output, err = spawn.Command(daprPath, "components", "-k")
 		require.NoError(t, err, "expected no error on calling dapr components")
 		lines := strings.Split(output, "\n")
@@ -559,12 +559,21 @@ func componentOutputCheck(t *testing.T, output string, all bool) {
 	if len(lines) > 1 {
 		lines = lines[:len(lines)-1] // remove latest warning message.
 	}
+
+	assert.Equal(t, len(lines), 2, "expect at 2 componets") // default and dapr-system namespace components.
+
 	// for fresh cluster only one component yaml has been applied.
-	fields := strings.Fields(lines[0])
+	defaultFields := strings.Fields(lines[0])
+	daprSystemFields := strings.Fields(lines[1])
 
 	// Fields splits on space, so Created time field might be split again.
+	defineComponentOutputCheck(t, defaultFields, "default")
+	defineComponentOutputCheck(t, daprSystemFields, "dapr-system")
+}
+
+func defineComponentOutputCheck(t *testing.T, fields []string, namespace string) {
 	assert.GreaterOrEqual(t, len(fields), 6, "expected at least 6 fields in components output")
-	assert.Equal(t, "default", fields[0], "expected name to match")
+	assert.Equal(t, namespace, fields[0], "expected name to match")
 	assert.Equal(t, "statestore", fields[1], "expected name to match")
 	assert.Equal(t, "state.redis", fields[2], "expected type to match")
 	assert.Equal(t, "v1", fields[3], "expected version to match")
