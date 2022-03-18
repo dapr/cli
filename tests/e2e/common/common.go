@@ -559,10 +559,7 @@ func componentOutputCheck(t *testing.T, output string, all bool) {
 		return
 	}
 
-	lines = strings.Split(output, "\n")[2:] // remove header and first warning message.
-	if len(lines) > 1 {
-		lines = lines[:len(lines)-1] // remove latest warning message.
-	}
+	lines = strings.Split(output, "\n")[3:] // remove header and warning message.
 
 	assert.Equal(t, len(lines), 2, "expect at 2 componets") // default and test namespace components.
 

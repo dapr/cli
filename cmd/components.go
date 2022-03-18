@@ -34,11 +34,15 @@ var ComponentsCmd = &cobra.Command{
 	Short: "List all Dapr components. Supported platforms: Kubernetes",
 	Run: func(cmd *cobra.Command, args []string) {
 		if kubernetesMode {
+			print.WarningStatusEvent(os.Stdout, "In future releases, this command will only query the \"default\" namespace by default. Please use the -n (namespace) flag, for specific namespace, or -A (all-namespaces) flag for all namespaces.")
 			if allNamespaces {
 				resourceNamespace = meta_v1.NamespaceAll
 			} else if resourceNamespace == "" {
 				resourceNamespace = meta_v1.NamespaceAll
 				print.WarningStatusEvent(os.Stdout, "From next release(or after 2 releases), behavior can be changed to query only \"default\" namespace.")
+			}
+			if componentsName != "" {
+				print.WarningStatusEvent(os.Stdout, "From next release(or after 2 releases), behavior can be changed to treat it as \"namespace\".")
 			}
 			err := kubernetes.PrintComponents(componentsName, resourceNamespace, componentsOutputFormat)
 			if err != nil {
@@ -55,10 +59,10 @@ var ComponentsCmd = &cobra.Command{
 dapr components -k
 
 # List define namespace Dapr components in Kubernetes mode
-dapr components -k -n default
+dapr components -k --namespace default
 
 # Print define name Dapr components in Kubernetes mode
-dapr components -k -N target
+dapr components -k -n target
 
 # List all namespaces Dapr components in Kubernetes mode
 dapr components -k --all-namespaces
@@ -67,8 +71,8 @@ dapr components -k --all-namespaces
 
 func init() {
 	ComponentsCmd.Flags().BoolVarP(&allNamespaces, "all-namespaces", "A", false, "If true, list all Dapr components in all namespaces")
-	ComponentsCmd.Flags().StringVarP(&componentsName, "name", "N", "", "The components name to be printed (optional)")
-	ComponentsCmd.Flags().StringVarP(&resourceNamespace, "namespace", "n", "", "List all namespace components in a Kubernetes cluster")
+	ComponentsCmd.Flags().StringVarP(&componentsName, "name", "n", "", "The components name to be printed (optional)")
+	ComponentsCmd.Flags().StringVarP(&resourceNamespace, "namespace", "", "", "List all namespace components in a Kubernetes cluster")
 	ComponentsCmd.Flags().StringVarP(&componentsOutputFormat, "output", "o", "list", "Output format (options: json or yaml or list)")
 	ComponentsCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "List all Dapr components in a Kubernetes cluster")
 	ComponentsCmd.Flags().BoolP("help", "h", false, "Print this help message")

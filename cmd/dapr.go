@@ -56,10 +56,6 @@ func Execute(version, apiVersion string) {
 		fmt.Println(err)
 		os.Exit(-1)
 	}
-
-	if kubernetesMode {
-		print.WarningStatusEvent(os.Stdout, "In future releases, this command will only query the \"default\" namespace by default. Please use the -n (namespace) flag, for specific namespace, or -A (all-namespaces) flag for all namespaces.")
-	}
 }
 
 func setVersion() {
