@@ -231,7 +231,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		print.InfoStatusEvent(os.Stdout, "%s binary has been installed to %s.", placementServiceFilePrefix, daprBinDir)
 	} else {
 		dockerContainerNames := []string{DaprPlacementContainerName, DaprRedisContainerName, DaprZipkinContainerName}
-		// Skip redis and zipkin in local installation mode
+		// Skip redis and zipkin in local installation mode.
 		if fromDir != "" {
 			dockerContainerNames = []string{DaprPlacementContainerName}
 		}
