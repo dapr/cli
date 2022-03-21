@@ -26,7 +26,7 @@ import (
 )
 
 var (
-	certificatePasswordFile     string
+	privateKey                  string
 	caRootCertificateFile       string
 	issuerPrivateKeyFile        string
 	issuerPublicCertificateFile string
@@ -66,10 +66,10 @@ dapr mtls renew-certificate -k --ca-root-certificate <ca.crt> --issuer-private-k
 					if err != nil {
 						logErrorAndExit(err)
 					}
-				} else if certificatePasswordFile != "" {
+				} else if privateKey != "" {
 					print.InfoStatusEvent(os.Stdout, "Using password file to generate root certificate")
 					err := kubernetes.RenewCertificate(kubernetes.RenewCertificateParams{
-						RootPrivateKeyFilePath: certificatePasswordFile,
+						RootPrivateKeyFilePath: privateKey,
 						ValidUntil:             time.Hour * time.Duration(validUntil*24),
 						Timeout:                timeout,
 					})
@@ -107,7 +107,7 @@ dapr mtls renew-certificate -k --ca-root-certificate <ca.crt> --issuer-private-k
 	}
 
 	command.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Renews root and issuer certificates of Dapr in a Kubernetes cluster")
-	command.Flags().StringVarP(&certificatePasswordFile, "certificate-password-file", "", "", "The root.key file which is used to generate root certificate")
+	command.Flags().StringVarP(&privateKey, "private-key", "", "", "The root.key file which is used to generate root certificate")
 	command.Flags().StringVarP(&caRootCertificateFile, "ca-root-certificate", "", "", "The root certificate file")
 	command.Flags().StringVarP(&issuerPrivateKeyFile, "issuer-private-key", "", "", "The issuer certificate private key")
 	command.Flags().StringVarP(&issuerPublicCertificateFile, "issuer-public-certificate", "", "", "The issuer certificate")

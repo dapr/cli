@@ -14,6 +14,7 @@ limitations under the License.
 package kubernetes
 
 import (
+	"crypto/ecdsa"
 	"crypto/rand"
 	"crypto/x509"
 	"encoding/pem"
@@ -146,10 +147,23 @@ func createHelmParamsForNewCertificates(ca, issuerCert, issuerKey string) (map[s
 	return chartVals, nil
 }
 
-func GenerateNewCertificates(validUntil time.Duration, certificatePasswordFile string) ([]byte, []byte, []byte, error) {
-	rootKey, err := certs.GenerateECPrivateKey()
-	if err != nil {
-		return nil, nil, nil, err
+func GenerateNewCertificates(validUntil time.Duration, privateKeyFile string) ([]byte, []byte, []byte, error) {
+	var rootKey *ecdsa.PrivateKey
+	if privateKeyFile != "" {
+		privateKeyBytes, err := ioutil.ReadFile(privateKeyFile)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		rootKey, err = x509.ParseECPrivateKey(privateKeyBytes)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+	} else {
+		var err error
+		rootKey, err = certs.GenerateECPrivateKey()
+		if err != nil {
+			return nil, nil, nil, err
+		}
 	}
 	rootCsr, err := csr.GenerateRootCertCSR("dapr.io/sentry", "cluster.local", &rootKey.PublicKey, validUntil, time.Minute*15)
 	if err != nil {
