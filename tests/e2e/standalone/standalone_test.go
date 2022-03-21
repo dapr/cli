@@ -202,7 +202,7 @@ func testInstallWithCustomImageRegsitry(t *testing.T) {
 	// Uninstall the previously installed Dapr
 	uninstall()
 	daprPath := getDaprPath()
-	output, err := spawn.Command(daprPath, "init", "--runtime-version", daprRuntimeVersion, "--image-repository", dockerImageCustomRegistry, "--log-as-json")
+	output, err := spawn.Command(daprPath, "init", "--runtime-version", daprRuntimeVersion, "--image-registry", dockerImageCustomRegistry, "--log-as-json")
 	t.Log(output)
 	require.NoError(t, err, "init failed")
 
