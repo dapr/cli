@@ -151,6 +151,8 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		v1, v2 := parseVersionFile(fromDir)
 		if v1 != "" && v2 != "" {
 			runtimeVersion, dashboardVersion = v1, v2
+		} else {
+			return fmt.Errorf("runtime and dashboard versions cannot be parsed from version file in directory")
 		}
 	}
 

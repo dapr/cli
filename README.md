@@ -442,7 +442,13 @@ This can be used when upgrading to a newer version of Dapr, as it's recommended 
 To list all Dapr components on Kubernetes:
 
 ```bash
-dapr components --kubernetes
+dapr components --kubernetes --all-namespaces
+```
+
+To list Dapr components in `target-namespace` namespace on Kubernetes:
+
+```bash
+dapr components --kubernetes --namespace target-namespace
 ```
 
 ### Use non-default Components Path
@@ -459,7 +465,13 @@ dapr run --components-path [custom path]
 To list all Dapr configurations on Kubernetes:
 
 ```bash
-dapr configurations --kubernetes
+dapr configurations --kubernetes --all-namespaces
+```
+
+To list Dapr configurations in `target-namespace` namespace on Kubernetes:
+
+```bash
+dapr configurations --kubernetes --namespace target-namespace
 ```
 
 ### Stop
@@ -537,22 +549,6 @@ To generate shell completion scripts:
 
 ```bash
 dapr completion
-```
-
-### Enable Unix domain socket
-
-In order to enable Unix domain socket to connect Dapr API server, use the `--unix-domain-socket` flag:
-
-```
-$ dapr run --app-id nodeapp --unix-domain-socket node app.js
-```
-
-Dapr will automatically create a Unix domain socket to connect Dapr API server.
-
-If you want to invoke your app, also use this flag:
-
-```
-$ dapr invoke --app-id nodeapp --unix-domain-socket --method mymethod
 ```
 
 ### Enable Unix domain socket

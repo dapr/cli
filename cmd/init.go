@@ -70,6 +70,9 @@ dapr init -k --runtime-version 0.10.0
 # Initialize Dapr in slim self-hosted mode
 dapr init -s
 
+# Initialize Dapr from a directory (installer-bundle installation) (Preview feature)
+dapr init --from-dir <path-to-directory>
+
 # See more at: https://docs.dapr.io/getting-started/
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -99,6 +102,9 @@ dapr init -s
 			if !slimMode {
 				dockerNetwork = viper.GetString("network")
 				imageRepositoryURL = viper.GetString("image-repository")
+			}
+			if fromDir != "" {
+				print.WarningStatusEvent(os.Stdout, "Local bundle installation using from-dir flag is currently a preview feature.")
 			}
 			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode, imageRepositoryURL, fromDir)
 			if err != nil {
