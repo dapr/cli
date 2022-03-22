@@ -26,16 +26,19 @@ import (
 )
 
 var (
-	kubernetesMode   bool
-	wait             bool
-	timeout          uint
-	slimMode         bool
-	runtimeVersion   string
-	dashboardVersion string
-	initNamespace    string
-	enableMTLS       bool
-	enableHA         bool
-	values           []string
+	kubernetesMode    bool
+	wait              bool
+	timeout           uint
+	slimMode          bool
+	runtimeVersion    string
+	dashboardVersion  string
+	allNamespaces     bool
+	initNamespace     string
+	resourceNamespace string
+	enableMTLS        bool
+	enableHA          bool
+	values            []string
+	fromDir           string
 )
 
 var InitCmd = &cobra.Command{
@@ -97,7 +100,7 @@ dapr init -s
 				dockerNetwork = viper.GetString("network")
 				imageRepositoryURL = viper.GetString("image-repository")
 			}
-			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode, imageRepositoryURL)
+			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode, imageRepositoryURL, fromDir)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)
@@ -130,6 +133,7 @@ func init() {
 	InitCmd.Flags().BoolVarP(&enableMTLS, "enable-mtls", "", true, "Enable mTLS in your cluster")
 	InitCmd.Flags().BoolVarP(&enableHA, "enable-ha", "", false, "Enable high availability (HA) mode")
 	InitCmd.Flags().String("network", "", "The Docker network on which to deploy the Dapr runtime")
+	InitCmd.Flags().StringVarP(&fromDir, "from-dir", "", "", "Use Dapr artifacts from local directory instead of from network to init")
 	InitCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	InitCmd.Flags().StringArrayVar(&values, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
 	InitCmd.Flags().String("image-repository", "", "Custom/Private docker image repository url")

@@ -40,13 +40,14 @@ func TestConfigurations(t *testing.T) {
 			name:           "List one config",
 			configName:     "",
 			outputFormat:   "",
-			expectedOutput: "  NAME       TRACING-ENABLED  METRICS-ENABLED  AGE  CREATED              \n  appConfig  false            false            0s   " + formattedNow + "  \n",
+			expectedOutput: "  NAMESPACE  NAME       TRACING-ENABLED  METRICS-ENABLED  AGE  CREATED              \n  default    appConfig  false            false            0s   " + formattedNow + "  \n",
 			errString:      "",
 			errorExpected:  false,
 			k8sConfig: []v1alpha1.Configuration{
 				{
 					ObjectMeta: meta_v1.ObjectMeta{
 						Name:              "appConfig",
+						Namespace:         "default",
 						CreationTimestamp: now,
 					},
 					Spec: v1alpha1.ConfigurationSpec{},
@@ -66,13 +67,14 @@ func TestConfigurations(t *testing.T) {
 			name:           "Filters out daprsystem",
 			configName:     "",
 			outputFormat:   "",
-			expectedOutput: "  NAME       TRACING-ENABLED  METRICS-ENABLED  AGE  CREATED              \n  appConfig  false            false            0s   " + formattedNow + "  \n",
+			expectedOutput: "  NAMESPACE  NAME       TRACING-ENABLED  METRICS-ENABLED  AGE  CREATED              \n  default    appConfig  false            false            0s   " + formattedNow + "  \n",
 			errString:      "",
 			errorExpected:  false,
 			k8sConfig: []v1alpha1.Configuration{
 				{
 					ObjectMeta: meta_v1.ObjectMeta{
 						Name:              "appConfig",
+						Namespace:         "default",
 						CreationTimestamp: now,
 					},
 					Spec: v1alpha1.ConfigurationSpec{},
@@ -80,6 +82,7 @@ func TestConfigurations(t *testing.T) {
 				{
 					ObjectMeta: meta_v1.ObjectMeta{
 						Name:              "daprsystem",
+						Namespace:         "default",
 						CreationTimestamp: now,
 					},
 					Spec: v1alpha1.ConfigurationSpec{},
@@ -90,13 +93,14 @@ func TestConfigurations(t *testing.T) {
 			name:           "Name does match",
 			configName:     "appConfig",
 			outputFormat:   "list",
-			expectedOutput: "  NAME       TRACING-ENABLED  METRICS-ENABLED  AGE  CREATED              \n  appConfig  false            false            0s   " + formattedNow + "  \n",
+			expectedOutput: "  NAMESPACE  NAME       TRACING-ENABLED  METRICS-ENABLED  AGE  CREATED              \n  default    appConfig  false            false            0s   " + formattedNow + "  \n",
 			errString:      "",
 			errorExpected:  false,
 			k8sConfig: []v1alpha1.Configuration{
 				{
 					ObjectMeta: meta_v1.ObjectMeta{
 						Name:              "appConfig",
+						Namespace:         "default",
 						CreationTimestamp: now,
 					},
 					Spec: v1alpha1.ConfigurationSpec{},
@@ -107,13 +111,14 @@ func TestConfigurations(t *testing.T) {
 			name:           "Name does not match",
 			configName:     "appConfig",
 			outputFormat:   "list",
-			expectedOutput: "  NAME  TRACING-ENABLED  METRICS-ENABLED  AGE  CREATED  \n",
+			expectedOutput: "  NAMESPACE  NAME  TRACING-ENABLED  METRICS-ENABLED  AGE  CREATED  \n",
 			errString:      "",
 			errorExpected:  false,
 			k8sConfig: []v1alpha1.Configuration{
 				{
 					ObjectMeta: meta_v1.ObjectMeta{
 						Name:              "not config",
+						Namespace:         "default",
 						CreationTimestamp: now,
 					},
 					Spec: v1alpha1.ConfigurationSpec{},
@@ -124,13 +129,14 @@ func TestConfigurations(t *testing.T) {
 			name:           "Yaml one config",
 			configName:     "",
 			outputFormat:   "yaml",
-			expectedOutput: "name: appConfig\nspec:\n  httppipelinespec:\n    handlers: []\n  tracingspec:\n    samplingrate: \"\"\n    zipkin:\n      endpointaddresss: \"\"\n  metricspec:\n    enabled: false\n  mtlsspec:\n    enabled: false\n    workloadcertttl: \"\"\n    allowedclockskew: \"\"\n  secrets:\n    scopes: []\n  accesscontrolspec:\n    defaultAction: \"\"\n    trustDomain: \"\"\n    policies: []\n  nameresolutionspec:\n    component: \"\"\n    version: \"\"\n    configuration:\n      json:\n        raw: []\n  features: []\n  apispec:\n    allowed: []\n",
+			expectedOutput: "name: appConfig\nnamespace: default\nspec:\n  httppipelinespec:\n    handlers: []\n  tracingspec:\n    samplingrate: \"\"\n    zipkin:\n      endpointaddresss: \"\"\n  metricspec:\n    enabled: false\n  mtlsspec:\n    enabled: false\n    workloadcertttl: \"\"\n    allowedclockskew: \"\"\n  secrets:\n    scopes: []\n  accesscontrolspec:\n    defaultAction: \"\"\n    trustDomain: \"\"\n    policies: []\n  nameresolutionspec:\n    component: \"\"\n    version: \"\"\n    configuration:\n      json:\n        raw: []\n  features: []\n  apispec:\n    allowed: []\n",
 			errString:      "",
 			errorExpected:  false,
 			k8sConfig: []v1alpha1.Configuration{
 				{
 					ObjectMeta: meta_v1.ObjectMeta{
 						Name:              "appConfig",
+						Namespace:         "default",
 						CreationTimestamp: now,
 					},
 					Spec: v1alpha1.ConfigurationSpec{},
@@ -141,13 +147,14 @@ func TestConfigurations(t *testing.T) {
 			name:           "Yaml two configs",
 			configName:     "",
 			outputFormat:   "yaml",
-			expectedOutput: "- name: appConfig1\n  spec:\n    httppipelinespec:\n      handlers: []\n    tracingspec:\n      samplingrate: \"\"\n      zipkin:\n        endpointaddresss: \"\"\n    metricspec:\n      enabled: false\n    mtlsspec:\n      enabled: false\n      workloadcertttl: \"\"\n      allowedclockskew: \"\"\n    secrets:\n      scopes: []\n    accesscontrolspec:\n      defaultAction: \"\"\n      trustDomain: \"\"\n      policies: []\n    nameresolutionspec:\n      component: \"\"\n      version: \"\"\n      configuration:\n        json:\n          raw: []\n    features: []\n    apispec:\n      allowed: []\n- name: appConfig2\n  spec:\n    httppipelinespec:\n      handlers: []\n    tracingspec:\n      samplingrate: \"\"\n      zipkin:\n        endpointaddresss: \"\"\n    metricspec:\n      enabled: false\n    mtlsspec:\n      enabled: false\n      workloadcertttl: \"\"\n      allowedclockskew: \"\"\n    secrets:\n      scopes: []\n    accesscontrolspec:\n      defaultAction: \"\"\n      trustDomain: \"\"\n      policies: []\n    nameresolutionspec:\n      component: \"\"\n      version: \"\"\n      configuration:\n        json:\n          raw: []\n    features: []\n    apispec:\n      allowed: []\n",
+			expectedOutput: "- name: appConfig1\n  namespace: default\n  spec:\n    httppipelinespec:\n      handlers: []\n    tracingspec:\n      samplingrate: \"\"\n      zipkin:\n        endpointaddresss: \"\"\n    metricspec:\n      enabled: false\n    mtlsspec:\n      enabled: false\n      workloadcertttl: \"\"\n      allowedclockskew: \"\"\n    secrets:\n      scopes: []\n    accesscontrolspec:\n      defaultAction: \"\"\n      trustDomain: \"\"\n      policies: []\n    nameresolutionspec:\n      component: \"\"\n      version: \"\"\n      configuration:\n        json:\n          raw: []\n    features: []\n    apispec:\n      allowed: []\n- name: appConfig2\n  namespace: default\n  spec:\n    httppipelinespec:\n      handlers: []\n    tracingspec:\n      samplingrate: \"\"\n      zipkin:\n        endpointaddresss: \"\"\n    metricspec:\n      enabled: false\n    mtlsspec:\n      enabled: false\n      workloadcertttl: \"\"\n      allowedclockskew: \"\"\n    secrets:\n      scopes: []\n    accesscontrolspec:\n      defaultAction: \"\"\n      trustDomain: \"\"\n      policies: []\n    nameresolutionspec:\n      component: \"\"\n      version: \"\"\n      configuration:\n        json:\n          raw: []\n    features: []\n    apispec:\n      allowed: []\n",
 			errString:      "",
 			errorExpected:  false,
 			k8sConfig: []v1alpha1.Configuration{
 				{
 					ObjectMeta: meta_v1.ObjectMeta{
 						Name:              "appConfig1",
+						Namespace:         "default",
 						CreationTimestamp: now,
 					},
 					Spec: v1alpha1.ConfigurationSpec{},
@@ -155,6 +162,7 @@ func TestConfigurations(t *testing.T) {
 				{
 					ObjectMeta: meta_v1.ObjectMeta{
 						Name:              "appConfig2",
+						Namespace:         "default",
 						CreationTimestamp: now,
 					},
 					Spec: v1alpha1.ConfigurationSpec{},
@@ -165,13 +173,14 @@ func TestConfigurations(t *testing.T) {
 			name:           "Json one config",
 			configName:     "",
 			outputFormat:   "json",
-			expectedOutput: "{\n  \"name\": \"appConfig\",\n  \"spec\": {\n    \"httpPipeline\": {\n      \"handlers\": null\n    },\n    \"tracing\": {\n      \"samplingRate\": \"\",\n      \"zipkin\": {\n        \"endpointAddress\": \"\"\n      }\n    },\n    \"metric\": {\n      \"enabled\": false\n    },\n    \"mtls\": {\n      \"enabled\": false,\n      \"workloadCertTTL\": \"\",\n      \"allowedClockSkew\": \"\"\n    },\n    \"secrets\": {\n      \"scopes\": null\n    },\n    \"accessControl\": {\n      \"defaultAction\": \"\",\n      \"trustDomain\": \"\",\n      \"policies\": null\n    },\n    \"nameResolution\": {\n      \"component\": \"\",\n      \"version\": \"\",\n      \"configuration\": null\n    },\n    \"api\": {}\n  }\n}",
+			expectedOutput: "{\n  \"name\": \"appConfig\",\n  \"namespace\": \"default\",\n  \"spec\": {\n    \"httpPipeline\": {\n      \"handlers\": null\n    },\n    \"tracing\": {\n      \"samplingRate\": \"\",\n      \"zipkin\": {\n        \"endpointAddress\": \"\"\n      }\n    },\n    \"metric\": {\n      \"enabled\": false\n    },\n    \"mtls\": {\n      \"enabled\": false,\n      \"workloadCertTTL\": \"\",\n      \"allowedClockSkew\": \"\"\n    },\n    \"secrets\": {\n      \"scopes\": null\n    },\n    \"accessControl\": {\n      \"defaultAction\": \"\",\n      \"trustDomain\": \"\",\n      \"policies\": null\n    },\n    \"nameResolution\": {\n      \"component\": \"\",\n      \"version\": \"\",\n      \"configuration\": null\n    },\n    \"api\": {}\n  }\n}",
 			errString:      "",
 			errorExpected:  false,
 			k8sConfig: []v1alpha1.Configuration{
 				{
 					ObjectMeta: meta_v1.ObjectMeta{
 						Name:              "appConfig",
+						Namespace:         "default",
 						CreationTimestamp: now,
 					},
 					Spec: v1alpha1.ConfigurationSpec{},
@@ -182,13 +191,14 @@ func TestConfigurations(t *testing.T) {
 			name:           "Json two configs",
 			configName:     "",
 			outputFormat:   "json",
-			expectedOutput: "[\n  {\n    \"name\": \"appConfig1\",\n    \"spec\": {\n      \"httpPipeline\": {\n        \"handlers\": null\n      },\n      \"tracing\": {\n        \"samplingRate\": \"\",\n        \"zipkin\": {\n          \"endpointAddress\": \"\"\n        }\n      },\n      \"metric\": {\n        \"enabled\": false\n      },\n      \"mtls\": {\n        \"enabled\": false,\n        \"workloadCertTTL\": \"\",\n        \"allowedClockSkew\": \"\"\n      },\n      \"secrets\": {\n        \"scopes\": null\n      },\n      \"accessControl\": {\n        \"defaultAction\": \"\",\n        \"trustDomain\": \"\",\n        \"policies\": null\n      },\n      \"nameResolution\": {\n        \"component\": \"\",\n        \"version\": \"\",\n        \"configuration\": null\n      },\n      \"api\": {}\n    }\n  },\n  {\n    \"name\": \"appConfig2\",\n    \"spec\": {\n      \"httpPipeline\": {\n        \"handlers\": null\n      },\n      \"tracing\": {\n        \"samplingRate\": \"\",\n        \"zipkin\": {\n          \"endpointAddress\": \"\"\n        }\n      },\n      \"metric\": {\n        \"enabled\": false\n      },\n      \"mtls\": {\n        \"enabled\": false,\n        \"workloadCertTTL\": \"\",\n        \"allowedClockSkew\": \"\"\n      },\n      \"secrets\": {\n        \"scopes\": null\n      },\n      \"accessControl\": {\n        \"defaultAction\": \"\",\n        \"trustDomain\": \"\",\n        \"policies\": null\n      },\n      \"nameResolution\": {\n        \"component\": \"\",\n        \"version\": \"\",\n        \"configuration\": null\n      },\n      \"api\": {}\n    }\n  }\n]",
+			expectedOutput: "[\n  {\n    \"name\": \"appConfig1\",\n    \"namespace\": \"default\",\n    \"spec\": {\n      \"httpPipeline\": {\n        \"handlers\": null\n      },\n      \"tracing\": {\n        \"samplingRate\": \"\",\n        \"zipkin\": {\n          \"endpointAddress\": \"\"\n        }\n      },\n      \"metric\": {\n        \"enabled\": false\n      },\n      \"mtls\": {\n        \"enabled\": false,\n        \"workloadCertTTL\": \"\",\n        \"allowedClockSkew\": \"\"\n      },\n      \"secrets\": {\n        \"scopes\": null\n      },\n      \"accessControl\": {\n        \"defaultAction\": \"\",\n        \"trustDomain\": \"\",\n        \"policies\": null\n      },\n      \"nameResolution\": {\n        \"component\": \"\",\n        \"version\": \"\",\n        \"configuration\": null\n      },\n      \"api\": {}\n    }\n  },\n  {\n    \"name\": \"appConfig2\",\n    \"namespace\": \"default\",\n    \"spec\": {\n      \"httpPipeline\": {\n        \"handlers\": null\n      },\n      \"tracing\": {\n        \"samplingRate\": \"\",\n        \"zipkin\": {\n          \"endpointAddress\": \"\"\n        }\n      },\n      \"metric\": {\n        \"enabled\": false\n      },\n      \"mtls\": {\n        \"enabled\": false,\n        \"workloadCertTTL\": \"\",\n        \"allowedClockSkew\": \"\"\n      },\n      \"secrets\": {\n        \"scopes\": null\n      },\n      \"accessControl\": {\n        \"defaultAction\": \"\",\n        \"trustDomain\": \"\",\n        \"policies\": null\n      },\n      \"nameResolution\": {\n        \"component\": \"\",\n        \"version\": \"\",\n        \"configuration\": null\n      },\n      \"api\": {}\n    }\n  }\n]",
 			errString:      "",
 			errorExpected:  false,
 			k8sConfig: []v1alpha1.Configuration{
 				{
 					ObjectMeta: meta_v1.ObjectMeta{
 						Name:              "appConfig1",
+						Namespace:         "default",
 						CreationTimestamp: now,
 					},
 					Spec: v1alpha1.ConfigurationSpec{},
@@ -196,6 +206,7 @@ func TestConfigurations(t *testing.T) {
 				{
 					ObjectMeta: meta_v1.ObjectMeta{
 						Name:              "appConfig2",
+						Namespace:         "default",
 						CreationTimestamp: now,
 					},
 					Spec: v1alpha1.ConfigurationSpec{},
