@@ -196,7 +196,7 @@ func TestRenewCertificateMTLSEnabled(t *testing.T) {
 
 	// tests for certificate renewal with provided certificates.
 	tests = append(tests, []common.TestCase{
-		{"Renew certificate which expires in after 30 days", common.UseProvidedNewCertAndRenew(currentVersionDetails)},
+		{"Renew certificate which expires in after 30 days", common.UseProvidedNewCertAndRenew(currentVersionDetails, installOpts)},
 	}...)
 	tests = append(tests, common.GetTestsPostCertificateRenewal(currentVersionDetails, installOpts)...)
 	tests = append(tests, []common.TestCase{
@@ -245,7 +245,7 @@ func TestRenewCertificateMTLSDisabled(t *testing.T) {
 
 	// tests for certificate renewal with provided certificates.
 	tests = append(tests, []common.TestCase{
-		{"Renew certificate which expires in after 30 days", common.UseProvidedNewCertAndRenew(currentVersionDetails)},
+		{"Renew certificate which expires in after 30 days", common.UseProvidedNewCertAndRenew(currentVersionDetails, installOpts)},
 	}...)
 	tests = append(tests, common.GetTestsPostCertificateRenewal(currentVersionDetails, installOpts)...)
 	tests = append(tests, []common.TestCase{

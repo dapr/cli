@@ -44,7 +44,7 @@ func RenewCertificateCmd() *cobra.Command {
 dapr mtls renew-certificate -k --valid-until <no of days> --restart
 
 # Uses existing private root.key to generate new root and issuer certificates for kubernetes cluster
-dapr mtls renew-certificate -k --certificate-password-file myprivatekey.key --valid-until <no of days>
+dapr mtls renew-certificate -k --private-key myprivatekey.key --valid-until <no of days>
 
 # Rotates certificate of your kubernetes cluster with provided ca.cert, issuer.crt and issuer.key file path
 dapr mtls renew-certificate -k --ca-root-certificate <ca.crt> --issuer-private-key <issuer.key> --issuer-public-certificate <issuer.crt> --restart
