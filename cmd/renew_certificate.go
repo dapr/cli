@@ -59,8 +59,8 @@ dapr mtls renew-certificate -k --ca-root-certificate <ca.crt> --issuer-private-k
 					print.InfoStatusEvent(os.Stdout, "Using provided certificates")
 					err := kubernetes.RenewCertificate(kubernetes.RenewCertificateParams{
 						RootCertificateFilePath:   caRootCertificateFile,
-						IssuerCertificateFilePath: issuerPrivateKeyFile,
-						IssuerPrivateKeyFilePath:  issuerPublicCertificateFile,
+						IssuerCertificateFilePath: issuerPublicCertificateFile,
+						IssuerPrivateKeyFilePath:  issuerPrivateKeyFile,
 						Timeout:                   timeout,
 					})
 					if err != nil {

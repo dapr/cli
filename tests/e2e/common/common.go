@@ -219,10 +219,13 @@ func ComponentsTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 		if opts.ApplyComponentChanges {
 			// apply any changes to the component.
 			t.Log("apply component changes")
-			output, err := spawn.Command("kubectl", "apply", "-f", "../testdata/statestore.yaml")
+			output, err := spawn.Command("kubectl", "apply", "-f", "../testdata/namespace.yaml")
 			t.Log(output)
 			require.NoError(t, err, "expected no error on kubectl apply")
-			require.Equal(t, "component.dapr.io/statestore created\nnamespace/test created\ncomponent.dapr.io/statestore created\n", output, "expceted output to match")
+			output, err = spawn.Command("kubectl", "apply", "-f", "../testdata/statestore.yaml")
+			t.Log(output)
+			require.NoError(t, err, "expected no error on kubectl apply")
+			require.Equal(t, "component.dapr.io/statestore created\ncomponent.dapr.io/statestore created\n", output, "expceted output to match")
 		}
 
 		t.Log("check applied component exists")
@@ -398,6 +401,8 @@ func CRDTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 func GenerateNewCertAndRenew(details VersionDetails, opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
 		daprPath := getDaprPath()
+		err := exportCurrentCertificate(daprPath)
+		require.NoError(t, err, "expected no error on certificate exporting")
 
 		output, err := spawn.Command(daprPath, "mtls", "renew-certificate", "-k", "--valid-until", "20", "--restart")
 		t.Log(output)
@@ -416,6 +421,26 @@ func GenerateNewCertAndRenew(details VersionDetails, opts TestOptions) func(t *t
 			t.FailNow()
 		}
 		assert.Contains(t, output, "Certificate rotation is successful!")
+	}
+}
+
+func UseProvidedNewCertAndRenew(details VersionDetails) func(t *testing.T) {
+	return func(t *testing.T) {
+		daprPath := getDaprPath()
+		args := []string{
+			"mtls", "renew-certificate", "-k",
+			"--ca-root-certificate", "./certs/ca.crt",
+			"--issuer-private-key", "./certs/issuer.key",
+			"--issuer-public-certificate", "./certs/issuer.crt",
+			"--restart",
+		}
+		output, err := spawn.Command(daprPath, args...)
+		t.Log(output)
+		require.NoError(t, err, "expected no error on certificate renewal")
+		assert.Contains(t, output, "Certificate rotation is successful!")
+
+		// remove cert directory created earlier.
+		os.RemoveAll("./certs")
 	}
 }
 
@@ -580,13 +605,19 @@ func componentsTestOnUninstall(all bool) func(t *testing.T) {
 
 		// If --all, then the below does not need to run.
 		if all {
+			output, err = spawn.Command("kubectl", "delete", "-f", "../testdata/namespace.yaml")
+			require.NoError(t, err, "expected no error on kubectl delete")
+			t.Log(output)
 			return
 		}
 
 		// Manually remove components and verify output.
 		output, err = spawn.Command("kubectl", "delete", "-f", "../testdata/statestore.yaml")
 		require.NoError(t, err, "expected no error on kubectl apply")
-		require.Equal(t, "component.dapr.io \"statestore\" deleted\nnamespace \"test\" deleted\ncomponent.dapr.io \"statestore\" deleted\n", output, "expected output to match")
+		require.Equal(t, "component.dapr.io \"statestore\" deleted\ncomponent.dapr.io \"statestore\" deleted\n", output, "expected output to match")
+		output, err = spawn.Command("kubectl", "delete", "-f", "../testdata/namespace.yaml")
+		require.NoError(t, err, "expected no error on kubectl delete")
+		t.Log(output)
 		output, err = spawn.Command(daprPath, "components", "-k")
 		require.NoError(t, err, "expected no error on calling dapr components")
 		lines := strings.Split(output, "\n")
@@ -761,4 +792,29 @@ func waitAllPodsRunning(t *testing.T, namespace string, haEnabled bool, done, po
 
 		time.Sleep(15 * time.Second)
 	}
+}
+
+func exportCurrentCertificate(daprPath string) error {
+	_, err := os.Stat("./certs")
+	if err != nil {
+		os.RemoveAll("./certs")
+	}
+	_, err = spawn.Command(daprPath, "mtls", "export", "-o", "./certs")
+
+	if err != nil {
+		return fmt.Errorf("error in exporting certificate %w", err)
+	}
+	_, err = os.Stat("./certs/ca.crt")
+	if err != nil {
+		return fmt.Errorf("error in exporting certificate %w", err)
+	}
+	_, err = os.Stat("./certs/issuer.crt")
+	if err != nil {
+		return fmt.Errorf("error in exporting certificate %w", err)
+	}
+	_, err = os.Stat("./certs/issuer.key")
+	if err != nil {
+		return fmt.Errorf("error in exporting certificate %w", err)
+	}
+	return nil
 }

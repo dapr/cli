@@ -152,8 +152,9 @@ func TestKubernetesHAModeMTLSEnabled(t *testing.T) {
 	})...)
 
 	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
+		UninstallAll: true,
 		CheckResourceExists: map[common.Resource]bool{
-			common.CustomResourceDefs:  true,
+			common.CustomResourceDefs:  false,
 			common.ClusterRoles:        false,
 			common.ClusterRoleBindings: false,
 		},
@@ -191,6 +192,15 @@ func TestRenewCertificateMTLSEnabled(t *testing.T) {
 	tests = append(tests, common.GetTestsPostCertificateRenewal(currentVersionDetails, installOpts)...)
 	tests = append(tests, []common.TestCase{
 		{"Cert Expiry warning message check " + currentVersionDetails.RuntimeVersion, common.CheckMTLSStatus(currentVersionDetails, installOpts, true)},
+	}...)
+
+	// tests for certificate renewal with provided certificates.
+	tests = append(tests, []common.TestCase{
+		{"Renew certificate which expires in after 30 days", common.UseProvidedNewCertAndRenew(currentVersionDetails)},
+	}...)
+	tests = append(tests, common.GetTestsPostCertificateRenewal(currentVersionDetails, installOpts)...)
+	tests = append(tests, []common.TestCase{
+		{"Cert Expiry no warning message check " + currentVersionDetails.RuntimeVersion, common.CheckMTLSStatus(currentVersionDetails, installOpts, false)},
 	}...)
 
 	// teardown everything
@@ -231,6 +241,15 @@ func TestRenewCertificateMTLSDisabled(t *testing.T) {
 	tests = append(tests, common.GetTestsPostCertificateRenewal(currentVersionDetails, installOpts)...)
 	tests = append(tests, []common.TestCase{
 		{"Cert Expiry warning message check " + currentVersionDetails.RuntimeVersion, common.CheckMTLSStatus(currentVersionDetails, installOpts, true)},
+	}...)
+
+	// tests for certificate renewal with provided certificates.
+	tests = append(tests, []common.TestCase{
+		{"Renew certificate which expires in after 30 days", common.UseProvidedNewCertAndRenew(currentVersionDetails)},
+	}...)
+	tests = append(tests, common.GetTestsPostCertificateRenewal(currentVersionDetails, installOpts)...)
+	tests = append(tests, []common.TestCase{
+		{"Cert Expiry no warning message check " + currentVersionDetails.RuntimeVersion, common.CheckMTLSStatus(currentVersionDetails, installOpts, false)},
 	}...)
 
 	// teardown everything
