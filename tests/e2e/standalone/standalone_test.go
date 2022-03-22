@@ -59,6 +59,7 @@ func TestStandaloneInstall(t *testing.T) {
 	}{
 		{"test install", testInstall},
 		{"test install from custom registry", testInstallWithCustomImageRegsitry},
+		{"test run log json enabled", testRunLogJSON},
 		{"test run", testRun},
 		{"test stop", testStop},
 		{"test publish", testPublish},
@@ -82,7 +83,7 @@ func TestNegativeScenarios(t *testing.T) {
 
 	t.Run("run without install", func(t *testing.T) {
 		output, err := spawn.Command(daprPath, "run", "test")
-		require.NoError(t, err, "expected no error status on run without install")
+		require.Error(t, err, "expected error status on run without install")
 		path := filepath.Join(homeDir, ".dapr", "components")
 		require.Contains(t, output, path+": no such file or directory", "expected output to contain message")
 	})
@@ -211,7 +212,6 @@ func testInstallWithCustomImageRegsitry(t *testing.T) {
 }
 
 func verifyArtifactsAfterInstall(t *testing.T) {
-
 	// Verify Containers
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	require.NoError(t, err)
@@ -379,11 +379,25 @@ func verifyArtifactsAfterInstall(t *testing.T) {
 	assert.Empty(t, configs)
 }
 
+func testRunLogJSON(t *testing.T) {
+	daprPath := getDaprPath()
+
+	t.Run(fmt.Sprintf("check JSON log"), func(t *testing.T) {
+		output, err := spawn.Command(daprPath, "run", "--app-id", "logjson", "--log-as-json", "--", "bash", "-c", "echo 'test'")
+		t.Log(output)
+		require.NoError(t, err, "run failed")
+		assert.Contains(t, output, "{\"app_id\":\"logjson\"")
+		assert.Contains(t, output, "\"type\":\"log\"")
+		assert.Contains(t, output, "Exited App successfully")
+		assert.Contains(t, output, "Exited Dapr successfully")
+	})
+}
+
 func testRun(t *testing.T) {
 	daprPath := getDaprPath()
 
 	for _, path := range socketCases {
-		t.Run(fmt.Sprintf("Normal exit, socket: %s", path), func(t *testing.T) {
+		t.Run(fmt.Sprintf("normal exit, socket: %s", path), func(t *testing.T) {
 			output, err := spawn.Command(daprPath, "run", "--unix-domain-socket", path, "--", "bash", "-c", "echo test")
 			t.Log(output)
 			require.NoError(t, err, "run failed")
@@ -391,10 +405,10 @@ func testRun(t *testing.T) {
 			assert.Contains(t, output, "Exited Dapr successfully")
 		})
 
-		t.Run(fmt.Sprintf("Error exit, socket: %s", path), func(t *testing.T) {
+		t.Run(fmt.Sprintf("error exit, socket: %s", path), func(t *testing.T) {
 			output, err := spawn.Command(daprPath, "run", "--unix-domain-socket", path, "--", "bash", "-c", "exit 1")
 			t.Log(output)
-			require.NoError(t, err, "run failed")
+			require.Error(t, err, "run failed")
 			assert.Contains(t, output, "The App process exited with error code: exit status 1")
 			assert.Contains(t, output, "Exited Dapr successfully")
 		})
@@ -484,12 +498,11 @@ func testStop(t *testing.T) {
 		t.Log(output)
 		require.NoError(t, err, "dapr stop failed")
 		assert.Contains(t, output, "app stopped successfully: dapr_e2e_stop")
-
 	}, "run", "--app-id", "dapr_e2e_stop", "--", "bash", "-c", "sleep 60 ; exit 1")
 }
 
 func testPublish(t *testing.T) {
-	var sub = &common.Subscription{
+	sub := &common.Subscription{
 		PubsubName: "pubsub",
 		Topic:      "sample",
 		Route:      "/orders",
@@ -632,14 +645,26 @@ func testInvoke(t *testing.T) {
 				assert.Contains(t, output, "Only one of --data and --data-file allowed in the same invoke command")
 			})
 
+			t.Run(fmt.Sprintf("invoke an invalid app %s", path), func(t *testing.T) {
+				output, err := spawn.Command(daprPath, "invoke", "--app-id", "invoke_e2e_2", "--unix-domain-socket", path, "--method", "test")
+				t.Log(output)
+				assert.Error(t, err, "app invoke_e2e_2 should not exist")
+				assert.Contains(t, output, "error invoking app invoke_e2e_2: app ID invoke_e2e_2 not found")
+			})
+
+			t.Run(fmt.Sprintf("invoke with an invalid method name %s", path), func(t *testing.T) {
+				output, err := spawn.Command(daprPath, "invoke", "--app-id", "invoke_e2e", "--unix-domain-socket", path, "--method", "test2")
+				t.Log(output)
+				assert.Error(t, err, "method test2 should not exist")
+				assert.Contains(t, output, "error invoking app invoke_e2e: 404 Not Found")
+			})
+
 			output, err := spawn.Command(getDaprPath(), "stop", "--app-id", "invoke_e2e")
 			t.Log(output)
 			require.NoError(t, err, "dapr stop failed")
 			assert.Contains(t, output, "app stopped successfully: invoke_e2e")
 		}, "run", "--app-id", "invoke_e2e", "--app-port", "9987", "--unix-domain-socket", path)
-
 	}
-
 }
 
 func listOutputCheck(t *testing.T, output string) {

@@ -72,8 +72,7 @@ func WriteTable(writer io.Writer, csvContent string) {
 }
 
 func TruncateString(str string, maxLength int) string {
-	strLength := len(str)
-	if strLength <= maxLength {
+	if len(str) <= maxLength {
 		return str
 	}
 
@@ -103,12 +102,13 @@ func RunCmdAndWait(name string, args ...string) (string, error) {
 	}
 	errB, err := ioutil.ReadAll(stderr)
 	if err != nil {
+		//nolint
 		return "", nil
 	}
 
 	err = cmd.Wait()
 	if err != nil {
-		// in case of error, capture the exact message
+		// in case of error, capture the exact message.
 		if len(errB) > 0 {
 			return "", errors.New(string(errB))
 		}
@@ -130,7 +130,7 @@ func CreateDirectory(dir string) error {
 	if _, err := os.Stat(dir); !os.IsNotExist(err) {
 		return nil
 	}
-	return os.Mkdir(dir, 0777)
+	return os.Mkdir(dir, 0o777)
 }
 
 // IsDockerInstalled checks whether docker is installed/running.

@@ -58,7 +58,7 @@ func Init(config InitConfiguration) error {
 
 	stopSpinning := print.Spinner(os.Stdout, msg)
 	defer stopSpinning(print.Failure)
-
+	//nolint
 	err := install(config)
 	if err != nil {
 		return err
@@ -72,7 +72,7 @@ func Init(config InitConfiguration) error {
 func createNamespace(namespace string) error {
 	_, client, err := GetKubeConfigClient()
 	if err != nil {
-		return fmt.Errorf("can't connect to a Kubernetes cluster: %v", err)
+		return fmt.Errorf("can't connect to a Kubernetes cluster: %w", err)
 	}
 
 	ns := &v1.Namespace{
@@ -99,7 +99,7 @@ func getVersion(version string) (string, error) {
 		var err error
 		version, err = cli_ver.GetDaprVersion()
 		if err != nil {
-			return "", fmt.Errorf("cannot get the latest release version: %s", err)
+			return "", fmt.Errorf("cannot get the latest release version: %w", err)
 		}
 		version = strings.TrimPrefix(version, "v")
 	}
@@ -109,7 +109,7 @@ func getVersion(version string) (string, error) {
 func createTempDir() (string, error) {
 	dir, err := ioutil.TempDir("", "dapr")
 	if err != nil {
-		return "", fmt.Errorf("error creating temp dir: %s", err)
+		return "", fmt.Errorf("error creating temp dir: %w", err)
 	}
 	return dir, nil
 }
@@ -123,10 +123,11 @@ func locateChartFile(dirPath string) (string, error) {
 }
 
 func daprChart(version string, config *helm.Configuration) (*chart.Chart, error) {
-	pull := helm.NewPull()
+	pull := helm.NewPullWithOpts(helm.WithConfig(config))
 	pull.RepoURL = utils.GetEnv("HELM_CHART_REPO_URL", daprHelmRepo)
 	pull.Username = utils.GetEnv("HELM_CHART_REPO_USERNAME", "")
 	pull.Password = utils.GetEnv("HELM_CHART_REPO_PASSWORD", "")
+
 	pull.Settings = &cli.EnvSettings{}
 
 	if version != latestVersion {
