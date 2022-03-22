@@ -97,7 +97,7 @@ dapr mtls renew-certificate -k --ca-root-certificate <ca.crt> --issuer-private-k
 				fmt.Sprintf("Certificate rotation is successful! Your new certicate is valid through %s", expiry.Format(time.RFC1123)))
 
 			if restartDaprServices {
-				restartControlPlaneService("deploy/dapr-sentry", "deploy/dapr-operator", "statefulsets/dapr-placement-server")
+				restartControlPlaneService()
 				if err != nil {
 					print.FailureStatusEvent(os.Stdout, err.Error())
 					os.Exit(1)
@@ -124,18 +124,31 @@ func logErrorAndExit(err error) {
 	os.Exit(1)
 }
 
-func restartControlPlaneService(names ...string) error {
-	for _, name := range names {
+func restartControlPlaneService() error {
+	controlPlaneServices := []string{"deploy/dapr-sentry", "deploy/dapr-operator", "statefulsets/dapr-placement-server"}
+	namespace, err := getDaprNamespace()
+	if err != nil {
+		print.FailureStatusEvent(os.Stdout, "Failed to fetch Dapr namespace")
+	}
+	for _, name := range controlPlaneServices {
 		print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Restarting %s..", name))
-		_, err := utils.RunCmdAndWait("kubectl", "rollout", "restart", name, "-n", "dapr-system")
+		_, err := utils.RunCmdAndWait("kubectl", "rollout", "restart", name, "-n", namespace)
 		if err != nil {
 			return fmt.Errorf("error in restarting deployment %s. Error is %w", name, err)
 		}
-		_, err = utils.RunCmdAndWait("kubectl", "rollout", "status", name, "-n", "dapr-system")
+		_, err = utils.RunCmdAndWait("kubectl", "rollout", "status", name, "-n", namespace)
 		if err != nil {
 			return fmt.Errorf("error in checking status for deployment %s. Error is %w", name, err)
 		}
 	}
 	print.SuccessStatusEvent(os.Stdout, "All control plane services have restarted successfully!")
 	return nil
+}
+
+func getDaprNamespace() (string, error) {
+	status, err := kubernetes.GetDaprResourcesStatus()
+	if err != nil {
+		return "", err
+	}
+	return status[0].Namespace, nil
 }

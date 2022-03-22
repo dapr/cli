@@ -152,9 +152,8 @@ func TestKubernetesHAModeMTLSEnabled(t *testing.T) {
 	})...)
 
 	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
-		UninstallAll: true,
 		CheckResourceExists: map[common.Resource]bool{
-			common.CustomResourceDefs:  false,
+			common.CustomResourceDefs:  true,
 			common.ClusterRoles:        false,
 			common.ClusterRoleBindings: false,
 		},
