@@ -533,7 +533,7 @@ func componentsTestOnUninstall(all bool) func(t *testing.T) {
 		lines := strings.Split(output, "\n")
 
 		// An extra empty line is there in output.
-		require.Equal(t, 4, len(lines), "expected header and warning message of the output to remain")
+		require.Equal(t, 3, len(lines), "expected header and warning message of the output to remain")
 	}
 }
 
@@ -555,24 +555,24 @@ func componentOutputCheck(t *testing.T, output string, all bool) {
 	}
 
 	if all {
-		assert.Equal(t, len(lines), 3, "expected at 0 components and 3 message items")
+		assert.Equal(t, 2, len(lines), "expected at 0 components and 2 output lines")
 		return
 	}
 
-	lines = strings.Split(output, "\n")[3:] // remove header and warning message.
+	lines = strings.Split(output, "\n")[2:] // remove header and warning message.
 
-	assert.Equal(t, len(lines), 2, "expect at 2 componets") // default and test namespace components.
+	assert.Equal(t, 2, len(lines), "expected 2 componets") // default and test namespace components.
 
 	// for fresh cluster only one component yaml has been applied.
 	testNsFields := strings.Fields(lines[0])
 	defaultNsFields := strings.Fields(lines[1])
 
 	// Fields splits on space, so Created time field might be split again.
-	defineComponentOutputCheck(t, testNsFields, "test")
-	defineComponentOutputCheck(t, defaultNsFields, "default")
+	namespaceComponentOutputCheck(t, testNsFields, "test")
+	namespaceComponentOutputCheck(t, defaultNsFields, "default")
 }
 
-func defineComponentOutputCheck(t *testing.T, fields []string, namespace string) {
+func namespaceComponentOutputCheck(t *testing.T, fields []string, namespace string) {
 	assert.GreaterOrEqual(t, len(fields), 6, "expected at least 6 fields in components output")
 	assert.Equal(t, namespace, fields[0], "expected name to match")
 	assert.Equal(t, "statestore", fields[1], "expected name to match")

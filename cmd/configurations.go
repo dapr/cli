@@ -34,15 +34,11 @@ var ConfigurationsCmd = &cobra.Command{
 	Short: "List all Dapr configurations. Supported platforms: Kubernetes",
 	Run: func(cmd *cobra.Command, args []string) {
 		if kubernetesMode {
-			print.WarningStatusEvent(os.Stdout, "In future releases, this command will only query the \"default\" namespace by default. Please use the -n (namespace) flag, for specific namespace, or -A (all-namespaces) flag for all namespaces.")
+			print.WarningStatusEvent(os.Stdout, "In future releases, this command will only query the \"default\" namespace by default. Please use the --namespace flag for a specific namespace, or the --all-namespaces (-A) flag for all namespaces.")
 			if allNamespaces {
 				resourceNamespace = meta_v1.NamespaceAll
 			} else if resourceNamespace == "" {
 				resourceNamespace = meta_v1.NamespaceAll
-				print.WarningStatusEvent(os.Stdout, "From next release(or after 2 releases), behavior can be changed to query only \"default\" namespace.")
-			}
-			if configurationName != "" {
-				print.WarningStatusEvent(os.Stdout, "From next release(or after 2 releases), behavior can be changed to treat it as \"namespace\".")
 			}
 			err := kubernetes.PrintConfigurations(configurationName, resourceNamespace, configurationOutputFormat)
 			if err != nil {
@@ -55,16 +51,16 @@ var ConfigurationsCmd = &cobra.Command{
 		kubernetes.CheckForCertExpiry()
 	},
 	Example: `
-# List all namespace Dapr configurations in Kubernetes mode
+# List Dapr configurations in all namespaces in Kubernetes mode
 dapr configurations -k
 
-# List define namespace Dapr configurations in Kubernetes mode
+# List Dapr configurations in specific namespace in Kubernetes mode
 dapr configurations -k --namespace default
 
-# Print define name Dapr configurations in Kubernetes mode
+# Print specific Dapr configuration in Kubernetes mode
 dapr configurations -k -n target
 
-# List all namespaces Dapr configurations in Kubernetes mode
+# List Dapr configurations in all namespaces in Kubernetes mode
 dapr configurations -k --all-namespaces
 `,
 }
