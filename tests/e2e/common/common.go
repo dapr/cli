@@ -40,12 +40,14 @@ import (
 type Resource int
 
 const (
+	DaprTestNamespace           = "dapr-cli-tests"
 	CustomResourceDefs Resource = iota
 	ClusterRoles
 	ClusterRoleBindings
-)
 
-const DaprTestNamespace = "dapr-cli-tests"
+	numHAPods    = 13
+	numNonHAPods = 5
+)
 
 type VersionDetails struct {
 	RuntimeVersion      string
@@ -68,7 +70,7 @@ type TestCase struct {
 	Callable func(*testing.T)
 }
 
-func UpgradeTest(details VersionDetails) func(t *testing.T) {
+func UpgradeTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
 		daprPath := getDaprPath()
 		args := []string{
@@ -83,7 +85,7 @@ func UpgradeTest(details VersionDetails) func(t *testing.T) {
 		done := make(chan struct{})
 		podsRunning := make(chan struct{})
 
-		go waitAllPodsRunning(t, DaprTestNamespace, done, podsRunning)
+		go waitAllPodsRunning(t, DaprTestNamespace, opts.HAEnabled, done, podsRunning)
 		select {
 		case <-podsRunning:
 			t.Logf("verified all pods running in namespace %s are running after upgrade", DaprTestNamespace)
@@ -92,7 +94,6 @@ func UpgradeTest(details VersionDetails) func(t *testing.T) {
 			t.Logf("timeout verifying all pods running in namespace %s", DaprTestNamespace)
 			t.FailNow()
 		}
-
 		validatePodsOnInstallUpgrade(t, details)
 	}
 }
@@ -210,8 +211,9 @@ func ComponentsTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 			// apply any changes to the component.
 			t.Log("apply component changes")
 			output, err := spawn.Command("kubectl", "apply", "-f", "../testdata/statestore.yaml")
+			t.Log(output)
 			require.NoError(t, err, "expected no error on kubectl apply")
-			require.Equal(t, "component.dapr.io/statestore created\n", output, "expceted output to match")
+			require.Equal(t, "component.dapr.io/statestore created\nnamespace/test created\ncomponent.dapr.io/statestore created\n", output, "expceted output to match")
 		}
 
 		t.Log("check applied component exists")
@@ -244,7 +246,6 @@ func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t
 				"dapr-operator":         {details.RuntimeVersion, "3"},
 			}
 		}
-
 		lines := strings.Split(output, "\n")[1:] // remove header of status.
 		t.Logf("dapr status -k infos: \n%s\n", lines)
 		for _, line := range lines {
@@ -526,13 +527,13 @@ func componentsTestOnUninstall(all bool) func(t *testing.T) {
 		// Manually remove components and verify output.
 		output, err = spawn.Command("kubectl", "delete", "-f", "../testdata/statestore.yaml")
 		require.NoError(t, err, "expected no error on kubectl apply")
-		require.Equal(t, "component.dapr.io \"statestore\" deleted\n", output, "expected output to match")
+		require.Equal(t, "component.dapr.io \"statestore\" deleted\nnamespace \"test\" deleted\ncomponent.dapr.io \"statestore\" deleted\n", output, "expected output to match")
 		output, err = spawn.Command(daprPath, "components", "-k")
 		require.NoError(t, err, "expected no error on calling dapr components")
 		lines := strings.Split(output, "\n")
 
 		// An extra empty line is there in output.
-		require.Equal(t, 2, len(lines), "expected only header of the output to remain")
+		require.Equal(t, 4, len(lines), "expected header and warning message of the output to remain")
 	}
 }
 
@@ -547,22 +548,37 @@ func statusTestOnUninstall() func(t *testing.T) {
 }
 
 func componentOutputCheck(t *testing.T, output string, all bool) {
-	lines := strings.Split(output, "\n")[1:] // remove header.
-	// for fresh cluster only one component yaml has been applied.
-	fields := strings.Fields(lines[0])
+	output = strings.TrimSpace(output) // remove empty string.
+	lines := strings.Split(output, "\n")
+	for i, line := range lines {
+		t.Logf("num:%d line:%+v", i, line)
+	}
 
 	if all {
-		assert.Equal(t, len(fields), 0, "expected at 0 components output")
-
+		assert.Equal(t, len(lines), 3, "expected at 0 components and 3 message items")
 		return
 	}
 
+	lines = strings.Split(output, "\n")[3:] // remove header and warning message.
+
+	assert.Equal(t, len(lines), 2, "expect at 2 componets") // default and test namespace components.
+
+	// for fresh cluster only one component yaml has been applied.
+	testNsFields := strings.Fields(lines[0])
+	defaultNsFields := strings.Fields(lines[1])
+
 	// Fields splits on space, so Created time field might be split again.
+	defineComponentOutputCheck(t, testNsFields, "test")
+	defineComponentOutputCheck(t, defaultNsFields, "default")
+}
+
+func defineComponentOutputCheck(t *testing.T, fields []string, namespace string) {
 	assert.GreaterOrEqual(t, len(fields), 6, "expected at least 6 fields in components output")
-	assert.Equal(t, "statestore", fields[0], "expected name to match")
-	assert.Equal(t, "state.redis", fields[1], "expected type to match")
-	assert.Equal(t, "v1", fields[2], "expected version to match")
-	assert.Equal(t, "app1", fields[3], "expected scopes to match")
+	assert.Equal(t, namespace, fields[0], "expected name to match")
+	assert.Equal(t, "statestore", fields[1], "expected name to match")
+	assert.Equal(t, "state.redis", fields[2], "expected type to match")
+	assert.Equal(t, "v1", fields[3], "expected version to match")
+	assert.Equal(t, "app1", fields[4], "expected scopes to match")
 }
 
 func validatePodsOnInstallUpgrade(t *testing.T, details VersionDetails) {
@@ -648,7 +664,7 @@ func waitPodDeletion(t *testing.T, done, podsDeleted chan struct{}) {
 	}
 }
 
-func waitAllPodsRunning(t *testing.T, namespace string, done, podsRunning chan struct{}) {
+func waitAllPodsRunning(t *testing.T, namespace string, haEnabled bool, done, podsRunning chan struct{}) {
 	for {
 		select {
 		case <-done: // if timeout was reached.
@@ -665,16 +681,25 @@ func waitAllPodsRunning(t *testing.T, namespace string, done, podsRunning chan s
 			Limit: 100,
 		})
 		require.NoError(t, err, "error getting pods list from k8s")
-		count := 0
+		countOfReadyPods := 0
 		for _, item := range list.Items {
 			// Check pods running, and containers ready.
-			if item.Status.Phase == core_v1.PodRunning && len(item.Status.ContainerStatuses) != 0 && item.Status.ContainerStatuses[0].Ready {
-				count++
+			if item.Status.Phase == core_v1.PodRunning && len(item.Status.ContainerStatuses) != 0 {
+				size := len(item.Status.ContainerStatuses)
+				for _, status := range item.Status.ContainerStatuses {
+					if status.Ready {
+						size--
+					}
+				}
+				if size == 0 {
+					countOfReadyPods++
+				}
 			}
 		}
-		if len(list.Items) == count {
+		if len(list.Items) == countOfReadyPods && ((haEnabled && countOfReadyPods == numHAPods) || (!haEnabled && countOfReadyPods == numNonHAPods)) {
 			podsRunning <- struct{}{}
 		}
+
 		time.Sleep(15 * time.Second)
 	}
 }
