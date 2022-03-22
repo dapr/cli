@@ -16,6 +16,7 @@ package kubernetes
 import (
 	"io"
 	"os"
+	"sort"
 	"strings"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -28,23 +29,24 @@ import (
 
 // ComponentsOutput represent a Dapr component.
 type ComponentsOutput struct {
-	Name    string `csv:"Name"`
-	Type    string `csv:"Type"`
-	Version string `csv:"VERSION"`
-	Scopes  string `csv:"SCOPES"`
-	Created string `csv:"CREATED"`
-	Age     string `csv:"AGE"`
+	Namespace string `csv:"Namespace"`
+	Name      string `csv:"Name"`
+	Type      string `csv:"Type"`
+	Version   string `csv:"VERSION"`
+	Scopes    string `csv:"SCOPES"`
+	Created   string `csv:"CREATED"`
+	Age       string `csv:"AGE"`
 }
 
 // PrintComponents prints all Dapr components.
-func PrintComponents(name, outputFormat string) error {
+func PrintComponents(name, namespace, outputFormat string) error {
 	return writeComponents(os.Stdout, func() (*v1alpha1.ComponentList, error) {
 		client, err := DaprClient()
 		if err != nil {
 			return nil, err
 		}
 
-		list, err := client.ComponentsV1alpha1().Components(meta_v1.NamespaceAll).List(meta_v1.ListOptions{})
+		list, err := client.ComponentsV1alpha1().Components(namespace).List(meta_v1.ListOptions{})
 		// This means that the Dapr Components CRD is not installed and
 		// therefore no component items exist.
 		if apierrors.IsNotFound(err) {
@@ -76,8 +78,9 @@ func writeComponents(writer io.Writer, getConfigFunc func() (*v1alpha1.Component
 		if name == "" || strings.EqualFold(confName, name) {
 			filtered = append(filtered, c)
 			filteredSpecs = append(filteredSpecs, configurationDetailedOutput{
-				Name: confName,
-				Spec: c.Spec,
+				Name:      confName,
+				Namespace: c.GetNamespace(),
+				Spec:      c.Spec,
 			})
 		}
 	}
@@ -86,6 +89,10 @@ func writeComponents(writer io.Writer, getConfigFunc func() (*v1alpha1.Component
 		return printComponentList(writer, filtered)
 	}
 
+	// filteredSpecs sort by namespace.
+	sort.Slice(filteredSpecs, func(i, j int) bool {
+		return filteredSpecs[i].Namespace > filteredSpecs[j].Namespace
+	})
 	return utils.PrintDetail(writer, outputFormat, filteredSpecs)
 }
 
@@ -93,14 +100,19 @@ func printComponentList(writer io.Writer, list []v1alpha1.Component) error {
 	co := []ComponentsOutput{}
 	for _, c := range list {
 		co = append(co, ComponentsOutput{
-			Name:    c.GetName(),
-			Type:    c.Spec.Type,
-			Created: c.CreationTimestamp.Format("2006-01-02 15:04.05"),
-			Age:     age.GetAge(c.CreationTimestamp.Time),
-			Version: c.Spec.Version,
-			Scopes:  strings.Join(c.Scopes, ","),
+			Name:      c.GetName(),
+			Namespace: c.GetNamespace(),
+			Type:      c.Spec.Type,
+			Created:   c.CreationTimestamp.Format("2006-01-02 15:04.05"),
+			Age:       age.GetAge(c.CreationTimestamp.Time),
+			Version:   c.Spec.Version,
+			Scopes:    strings.Join(c.Scopes, ","),
 		})
 	}
 
+	// co sort by namespace.
+	sort.Slice(co, func(i, j int) bool {
+		return co[i].Namespace > co[j].Namespace
+	})
 	return utils.MarshalAndWriteTable(writer, co)
 }
