@@ -446,7 +446,7 @@ dapr mtls renew-certificate -k --valid-until <no of days> --restart
 Use existing private root.key to generate new root and issuer certificates
 
 ```bash
-dapr mtls renew-certificate -k --certificate-password-file myprivatekey.key --valid-until <no of days>
+dapr mtls renew-certificate -k --private-key myprivatekey.key --valid-until <no of days>
 ```
 Use user provided ca.crt, issuer.crt and issuer.key
 

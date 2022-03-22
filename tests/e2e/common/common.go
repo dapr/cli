@@ -395,61 +395,27 @@ func CRDTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 	}
 }
 
-func GenerateNewCertAndRenew(details VersionDetails) func(t *testing.T) {
+func GenerateNewCertAndRenew(details VersionDetails, opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
 		daprPath := getDaprPath()
-		err := exportCurrentCertificate(daprPath)
-		require.NoError(t, err, "expected no error on certificate exporting")
 
 		output, err := spawn.Command(daprPath, "mtls", "renew-certificate", "-k", "--valid-until", "20", "--restart")
 		t.Log(output)
 		require.NoError(t, err, "expected no error on certificate renewal")
-		assert.Contains(t, output, "Certificate rotation is successful!")
-	}
-}
 
-func exportCurrentCertificate(daprPath string) error {
-	_, err := os.Stat("./certs")
-	if err != nil {
-		os.RemoveAll("./certs")
-	}
-	_, err = spawn.Command(daprPath, "mtls", "export", "-o", "./certs")
+		done := make(chan struct{})
+		podsRunning := make(chan struct{})
 
-	if err != nil {
-		return fmt.Errorf("error in exporting certificate %w", err)
-	}
-	_, err = os.Stat("./certs/ca.crt")
-	if err != nil {
-		return fmt.Errorf("error in exporting certificate %w", err)
-	}
-	_, err = os.Stat("./certs/issuer.crt")
-	if err != nil {
-		return fmt.Errorf("error in exporting certificate %w", err)
-	}
-	_, err = os.Stat("./certs/issuer.key")
-	if err != nil {
-		return fmt.Errorf("error in exporting certificate %w", err)
-	}
-	return nil
-}
-
-func UseProvidedNewCertAndRenew(details VersionDetails) func(t *testing.T) {
-	return func(t *testing.T) {
-		daprPath := getDaprPath()
-		args := []string{
-			"mtls", "renew-certificate", "-k",
-			"--ca-root-certificate", "./certs/ca.crt",
-			"--issuer-private-key", "./certs/issuer.key",
-			"--issuer-public-certificate", "./certs/issuer.crt",
-			"--restart",
+		go waitAllPodsRunning(t, DaprTestNamespace, opts.HAEnabled, done, podsRunning)
+		select {
+		case <-podsRunning:
+			t.Logf("verified all pods running in namespace %s are running after certficate change", DaprTestNamespace)
+		case <-time.After(2 * time.Minute):
+			done <- struct{}{}
+			t.Logf("timeout verifying all pods running in namespace %s", DaprTestNamespace)
+			t.FailNow()
 		}
-		output, err := spawn.Command(daprPath, args...)
-		t.Log(output)
-		require.NoError(t, err, "expected no error on certificate renewal")
 		assert.Contains(t, output, "Certificate rotation is successful!")
-
-		// remove cert directory created earlier.
-		os.RemoveAll("./certs")
 	}
 }
 
