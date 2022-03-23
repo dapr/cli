@@ -1060,7 +1060,7 @@ func getDefaultRegistry() string {
 			imageRegistryName = dockerContainerRegistryName
 		default:
 			print.FailureStatusEvent(os.Stdout,
-				fmt.Sprintf("Environment varibale %s can only be set to %s and %s", "DEFAULT_IMAGE_REGISTRY_MODE", "GHCR", "DOCKERHUB"))
+				fmt.Sprintf("Environment variable %s can only be set to %s and %s", "DEFAULT_IMAGE_REGISTRY_MODE", "GHCR", "DOCKERHUB"))
 			os.Exit(1)
 		}
 	}
