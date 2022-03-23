@@ -41,8 +41,10 @@ import (
 )
 
 var (
-	daprRuntimeVersion   = os.Getenv("DAPR_RUNTIME_VERSION")
-	daprDashboardVersion = os.Getenv("DAPR_DASHBOARD_VERSION")
+	daprRuntimeVersion         = os.Getenv("DAPR_RUNTIME_VERSION")
+	daprDashboardVersion       = os.Getenv("DAPR_DASHBOARD_VERSION")
+	dockerImageCustomRegistry  = os.Getenv("CUSTOM_IMAGE_REGISTRY")
+	defaultImgPullRegistryMode = os.Getenv("DEFAULT_IMAGE_REGISTRY_MODE")
 )
 
 var socketCases = []string{"", "/tmp"}
@@ -56,6 +58,7 @@ func TestStandaloneInstall(t *testing.T) {
 		phase func(*testing.T)
 	}{
 		{"test install", testInstall},
+		{"test install from custom registry", testInstallWithCustomImageRegsitry},
 		{"test run log json enabled", testRunLogJSON},
 		{"test run", testRun},
 		{"test stop", testStop},
@@ -190,6 +193,21 @@ func testInstall(t *testing.T) {
 	require.NoError(t, err, "init failed")
 
 	// verify all artifacts(conatiners, binaries, configs) after successfull install
+	verifyArtifactsAfterInstall(t)
+}
+
+func testInstallWithCustomImageRegsitry(t *testing.T) {
+	if dockerImageCustomRegistry == "" {
+		t.Skip("Custom image registry is not set, skipping the test for now..")
+	}
+	// Uninstall the previously installed Dapr
+	uninstall()
+	daprPath := getDaprPath()
+	output, err := spawn.Command(daprPath, "init", "--runtime-version", daprRuntimeVersion, "--image-registry", dockerImageCustomRegistry, "--log-as-json")
+	t.Log(output)
+	require.NoError(t, err, "init failed")
+
+	// verify all artifacts after successfull install
 	verifyArtifactsAfterInstall(t)
 }
 
