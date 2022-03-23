@@ -127,3 +127,13 @@ func imageFileName(image string) string {
 	filename = strings.ReplaceAll(filename, ":", "-")
 	return filename
 }
+
+func IsImageInGHCR(imageName string) bool {
+	args := []string{
+		"image",
+		"inspect",
+		imageName,
+	}
+	_, err := utils.RunCmdAndWait("docker", args...)
+	return err == nil
+}
