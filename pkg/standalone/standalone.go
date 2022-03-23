@@ -52,7 +52,7 @@ const (
 	zipkinDockerImageName      = "openzipkin/zipkin"
 
 	githubContainerRegistryName = "ghcr"
-	ghcrURL                     = "ghcr.io/dapr"
+	ghcrURI                     = "ghcr.io/dapr"
 	daprGhcrImageName           = "dapr"
 	dockerContainerRegistryName = "dockerhub"
 	redisGhcrImageName          = "3rdparty/redis"
@@ -286,14 +286,14 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 		// do not create container again if it exists.
 		args = append(args, "start", zipkinContainerName)
 	} else {
-		if info.imageRegistryURL != "" && info.imageRegistryURL != ghcrURL && info.imageRegistryURL != "docker.io" {
+		if info.imageRegistryURL != "" && info.imageRegistryURL != ghcrURI && info.imageRegistryURL != "docker.io" {
 			imageName = fmt.Sprintf("%s/%s/%s", info.imageRegistryURL, "dapr", zipkinGhcrImageName)
 		} else if defaultImageRegistryName == githubContainerRegistryName && info.imageRegistryURL == "" {
-			imageName = fmt.Sprintf("%s/%s", ghcrURL, zipkinGhcrImageName)
+			imageName = fmt.Sprintf("%s/%s", ghcrURI, zipkinGhcrImageName)
 		} else if defaultImageRegistryName == dockerContainerRegistryName && info.imageRegistryURL == "" {
 			imageName = zipkinDockerImageName
 		} else {
-			err = fmt.Errorf("either %s or Env variable %s not set properly", "--image-registry", "DAPR_SWITCH_IMAGE_REGISTRY")
+			err = fmt.Errorf("either %s or Env variable %s not set properly", "--image-registry", "DAPR_DEFAULT_IMAGE_REGISTRY")
 			errorChan <- err
 			return
 		}
@@ -353,14 +353,14 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 		// do not create container again if it exists.
 		args = append(args, "start", redisContainerName)
 	} else {
-		if info.imageRegistryURL != "" && info.imageRegistryURL != ghcrURL && info.imageRegistryURL != "docker.io" {
+		if info.imageRegistryURL != "" && info.imageRegistryURL != ghcrURI && info.imageRegistryURL != "docker.io" {
 			imageName = fmt.Sprintf("%s/%s/%s", info.imageRegistryURL, "dapr", redisGhcrImageName)
 		} else if defaultImageRegistryName == githubContainerRegistryName && info.imageRegistryURL == "" {
-			imageName = fmt.Sprintf("%s/%s", ghcrURL, redisGhcrImageName)
+			imageName = fmt.Sprintf("%s/%s", ghcrURI, redisGhcrImageName)
 		} else if defaultImageRegistryName == dockerContainerRegistryName && info.imageRegistryURL == "" {
 			imageName = redisDockerImageName
 		} else {
-			err = fmt.Errorf("either %s or Env variable %s not set properly", "--image-registry", "DAPR_SWITCH_IMAGE_REGISTRY")
+			err = fmt.Errorf("either %s or Env variable %s not set properly", "--image-registry", "DAPR_DEFAULT_IMAGE_REGISTRY")
 			errorChan <- err
 			return
 		}
@@ -409,19 +409,19 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 
 	var image string
 
-	if info.imageRegistryURL != "" && info.imageRegistryURL != ghcrURL && info.imageRegistryURL != "docker.io" {
+	if info.imageRegistryURL != "" && info.imageRegistryURL != ghcrURI && info.imageRegistryURL != "docker.io" {
 		image = getPlacementImageWithTag(daprGhcrImageName, info.runtimeVersion)
 		image = fmt.Sprintf("%s/%s/%s", info.imageRegistryURL, "dapr", image)
 	} else if defaultImageRegistryName == githubContainerRegistryName && info.imageRegistryURL == "" {
 		image = getPlacementImageWithTag(daprGhcrImageName, info.runtimeVersion)
-		image = fmt.Sprintf("%s/%s", ghcrURL, image)
+		image = fmt.Sprintf("%s/%s", ghcrURI, image)
 		if !IsImageInGHCR(image) {
 			image = getPlacementImageWithTag(daprDockerImageName, info.runtimeVersion)
 		}
 	} else if defaultImageRegistryName == dockerContainerRegistryName && info.imageRegistryURL == "" {
 		image = getPlacementImageWithTag(daprDockerImageName, info.runtimeVersion)
 	} else {
-		err := fmt.Errorf("either %s or Env variable %s not set properly", "--image-registry", "DAPR_SWITCH_IMAGE_REGISTRY")
+		err := fmt.Errorf("either %s or Env variable %s not set properly", "--image-registry", "DAPR_DEFAULT_IMAGE_REGISTRY")
 		errorChan <- err
 		return
 	}
@@ -1058,7 +1058,7 @@ func parseVersionFile(fromDir string) (string, string) {
 }
 
 func getDefaultRegistry() error {
-	val := strings.ToLower(os.Getenv("DAPR_SWITCH_IMAGE_REGISTRY"))
+	val := strings.ToLower(os.Getenv("DAPR_DEFAULT_IMAGE_REGISTRY"))
 	switch val {
 	case "":
 		defaultImageRegistryName = githubContainerRegistryName
