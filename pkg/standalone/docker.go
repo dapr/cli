@@ -128,10 +128,9 @@ func imageFileName(image string) string {
 	return filename
 }
 
-func IsImageInGHCR(imageName string) bool {
+func TryPullImage(imageName string) bool {
 	args := []string{
-		"image",
-		"inspect",
+		"pull",
 		imageName,
 	}
 	_, err := utils.RunCmdAndWait("docker", args...)

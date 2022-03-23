@@ -142,7 +142,7 @@ func TestPrivateRegistry(t *testing.T) {
 		name  string
 		phase func(*testing.T)
 	}{
-		{"test install", testInstallWithPrivateRegsitry},
+		{"test install fails", testInstallWithPrivateRegsitry},
 	}
 
 	for _, tc := range tests {
