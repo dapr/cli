@@ -133,7 +133,8 @@ func isBinaryInstallationRequired(binaryFilePrefix, installDir string) (bool, er
 
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
 func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool, imageRegistryURL string, fromDir string) error {
-	err := getDefaultRegistry()
+	var err error
+	defaultImageRegistryName, err = utils.GetDefaultRegistry(githubContainerRegistryName, dockerContainerRegistryName)
 	if err != nil {
 		return err
 	}
@@ -1054,22 +1055,6 @@ func parseVersionFile(fromDir string) (string, string) {
 	}
 
 	return versions[daprRuntimeFilePrefix], versions[dashboardFilePrefix]
-}
-
-func getDefaultRegistry() error {
-	var err error
-	val := strings.ToLower(os.Getenv("DAPR_DEFAULT_IMAGE_REGISTRY"))
-	switch val {
-	case "":
-		print.InfoStatusEvent(os.Stdout, "Images will be pulled from GitHub container registry")
-		defaultImageRegistryName = githubContainerRegistryName
-	case dockerContainerRegistryName:
-		print.InfoStatusEvent(os.Stdout, "Images will be pulled from DockerHub")
-		defaultImageRegistryName = dockerContainerRegistryName
-	default:
-		err = fmt.Errorf("environment variable %s can only be set to %s", "DAPR_DEFAULT_IMAGE_REGISTRY", "DOCKERHUB")
-	}
-	return err
 }
 
 func getPlacementImageWithTag(name, version string) string {

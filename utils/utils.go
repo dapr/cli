@@ -28,6 +28,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dapr/cli/pkg/print"
+
 	"github.com/docker/docker/client"
 	"github.com/gocarina/gocsv"
 	"github.com/olekukonko/tablewriter"
@@ -228,4 +230,18 @@ func IsAddressLegal(address string) bool {
 
 func GetSocket(path, appID, protocol string) string {
 	return fmt.Sprintf(socketFormat, path, appID, protocol)
+}
+
+func GetDefaultRegistry(githubContainerRegistryName, dockerContainerRegistryName string) (string, error) {
+	val := strings.ToLower(os.Getenv("DAPR_DEFAULT_IMAGE_REGISTRY"))
+	switch val {
+	case "":
+		print.InfoStatusEvent(os.Stdout, "Images will be pulled from GitHub container registry")
+		return githubContainerRegistryName, nil
+	case dockerContainerRegistryName:
+		print.InfoStatusEvent(os.Stdout, "Images will be pulled from DockerHub")
+		return dockerContainerRegistryName, nil
+	default:
+		return "", fmt.Errorf("environment variable %s can only be set to %s", "DAPR_DEFAULT_IMAGE_REGISTRY", "DOCKERHUB")
+	}
 }
