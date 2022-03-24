@@ -127,3 +127,12 @@ func imageFileName(image string) string {
 	filename = strings.ReplaceAll(filename, ":", "-")
 	return filename
 }
+
+func TryPullImage(imageName string) bool {
+	args := []string{
+		"pull",
+		imageName,
+	}
+	_, err := utils.RunCmdAndWait("docker", args...)
+	return err == nil
+}

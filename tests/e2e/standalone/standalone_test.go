@@ -41,9 +41,8 @@ import (
 )
 
 var (
-	daprRuntimeVersion        = os.Getenv("DAPR_RUNTIME_VERSION")
-	daprDashboardVersion      = os.Getenv("DAPR_DASHBOARD_VERSION")
-	dockerImageCustomRegistry = os.Getenv("CUSTOM_IMAGE_REGISTRY")
+	daprRuntimeVersion   = os.Getenv("DAPR_RUNTIME_VERSION")
+	daprDashboardVersion = os.Getenv("DAPR_DASHBOARD_VERSION")
 )
 
 var socketCases = []string{"", "/tmp"}
@@ -57,7 +56,6 @@ func TestStandaloneInstall(t *testing.T) {
 		phase func(*testing.T)
 	}{
 		{"test install", testInstall},
-		{"test install from custom registry", testInstallWithCustomImageRegsitry},
 		{"test run log json enabled", testRunLogJSON},
 		{"test run", testRun},
 		{"test stop", testStop},
@@ -136,6 +134,22 @@ func TestNegativeScenarios(t *testing.T) {
 	})
 }
 
+func TestPrivateRegistry(t *testing.T) {
+	// Ensure a clean environment.
+	uninstall()
+
+	tests := []struct {
+		name  string
+		phase func(*testing.T)
+	}{
+		{"test install fails", testInstallWithPrivateRegsitry},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, tc.phase)
+	}
+}
+
 func getDaprPath() string {
 	distDir := fmt.Sprintf("%s_%s", runtime.GOOS, runtime.GOARCH)
 
@@ -195,19 +209,11 @@ func testInstall(t *testing.T) {
 	verifyArtifactsAfterInstall(t)
 }
 
-func testInstallWithCustomImageRegsitry(t *testing.T) {
-	if dockerImageCustomRegistry == "" {
-		t.Skip("Custom image registry is not set, skipping the test for now..")
-	}
-	// Uninstall the previously installed Dapr
-	uninstall()
+func testInstallWithPrivateRegsitry(t *testing.T) {
 	daprPath := getDaprPath()
-	output, err := spawn.Command(daprPath, "init", "--runtime-version", daprRuntimeVersion, "--image-repository", dockerImageCustomRegistry, "--log-as-json")
+	output, err := spawn.Command(daprPath, "init", "--runtime-version", daprRuntimeVersion, "--image-registry", "smplregistry.io/owner", "--log-as-json")
 	t.Log(output)
-	require.NoError(t, err, "init failed")
-
-	// verify all artifacts after successfull install
-	verifyArtifactsAfterInstall(t)
+	require.Error(t, err, "init failed")
 }
 
 func verifyArtifactsAfterInstall(t *testing.T) {

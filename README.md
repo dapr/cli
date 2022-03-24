@@ -129,10 +129,12 @@ Runtime version: v1.0.0
 ```
 #### Install by providing a docker container registry url
 
-You can install Dapr runtime by pulling docker images from a given registry url by using `--image-repository` flag.
+You can install Dapr runtime by pulling docker images from a given private registry uri by using `--image-registry` flag.
+> Note: This command expects that images have been hosted like example.io/<username>/dapr/dapr:<tag>, example.io/<username>/dapr/3rdparty/redis:<tag>, example.io/<username>/dapr/3rdparty/zipkin:<tag>
 
 ```bash
-$ dapr init --image-repository <registry-url>
+# Example of pulling images from a private registry.
+$ dapr init --image-registry example.io/<username>
 ```
 
 #### Install to a specific Docker network

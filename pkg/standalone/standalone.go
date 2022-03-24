@@ -51,6 +51,13 @@ const (
 	redisDockerImageName       = "redislabs/rejson"
 	zipkinDockerImageName      = "openzipkin/zipkin"
 
+	githubContainerRegistryName = "ghcr"
+	ghcrURI                     = "ghcr.io/dapr"
+	daprGhcrImageName           = "dapr"
+	dockerContainerRegistryName = "dockerhub"
+	redisGhcrImageName          = "3rdparty/redis"
+	zipkinGhcrImageName         = "3rdparty/zipkin"
+
 	// DaprPlacementContainerName is the container name of placement service.
 	DaprPlacementContainerName = "dapr_placement"
 	// DaprRedisContainerName is the container name of redis.
@@ -62,6 +69,11 @@ const (
 
 	daprBinarySubDir  = "dist"
 	dockerImageSubDir = "docker"
+)
+
+var (
+	defaultImageRegistryName string
+	privateRegTemplateString = "%s/dapr/%s"
 )
 
 type configuration struct {
@@ -99,12 +111,12 @@ type componentMetadataItem struct {
 }
 
 type initInfo struct {
-	fromDir            string
-	slimMode           bool
-	runtimeVersion     string
-	dashboardVersion   string
-	dockerNetwork      string
-	imageRepositoryURL string
+	fromDir          string
+	slimMode         bool
+	runtimeVersion   string
+	dashboardVersion string
+	dockerNetwork    string
+	imageRegistryURL string
 }
 
 // Check if the previous version is already installed.
@@ -120,16 +132,20 @@ func isBinaryInstallationRequired(binaryFilePrefix, installDir string) (bool, er
 }
 
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
-func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool, imageRepositoryURL string, fromDir string) error {
+func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool, imageRegistryURL string, fromDir string) error {
+	var err error
 	if !slimMode {
 		dockerInstalled := utils.IsDockerInstalled()
 		if !dockerInstalled {
 			return errors.New("could not connect to Docker. Docker may not be installed or running")
 		}
+		defaultImageRegistryName, err = utils.GetDefaultRegistry(githubContainerRegistryName, dockerContainerRegistryName)
+		if err != nil {
+			return err
+		}
 	}
 
 	if runtimeVersion == latestVersion && fromDir == "" {
-		var err error
 		runtimeVersion, err = cli_ver.GetDaprVersion()
 		if err != nil {
 			return fmt.Errorf("cannot get the latest release version: '%w'. Try specifying --runtime-version=<desired_version>", err)
@@ -139,7 +155,6 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 	print.InfoStatusEvent(os.Stdout, "Installing runtime version %s", runtimeVersion)
 
 	if dashboardVersion == latestVersion && fromDir == "" {
-		var err error
 		dashboardVersion, err = cli_ver.GetDashboardVersion()
 		if err != nil {
 			print.WarningStatusEvent(os.Stdout, "cannot get the latest dashboard version: '%s'. Try specifying --dashboard-version=<desired_version>", err)
@@ -157,7 +172,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 	}
 
 	daprBinDir := defaultDaprBinPath()
-	err := prepareDaprInstallDir(daprBinDir)
+	err = prepareDaprInstallDir(daprBinDir)
 	if err != nil {
 		return err
 	}
@@ -197,12 +212,12 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 	}
 
 	info := initInfo{
-		fromDir:            fromDir,
-		slimMode:           slimMode,
-		runtimeVersion:     runtimeVersion,
-		dashboardVersion:   dashboardVersion,
-		dockerNetwork:      dockerNetwork,
-		imageRepositoryURL: imageRepositoryURL,
+		fromDir:          fromDir,
+		slimMode:         slimMode,
+		runtimeVersion:   runtimeVersion,
+		dashboardVersion: dashboardVersion,
+		dockerNetwork:    dockerNetwork,
+		imageRegistryURL: imageRegistryURL,
 	}
 	for _, step := range initSteps {
 		// Run init on the configurations and containers.
@@ -268,13 +283,22 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 	}
 	args := []string{}
 
+	var imageName string
+
 	if exists {
 		// do not create container again if it exists.
 		args = append(args, "start", zipkinContainerName)
 	} else {
-		imageName := zipkinDockerImageName
-		if info.imageRepositoryURL != "" {
-			imageName = fmt.Sprintf("%s/%s", info.imageRepositoryURL, imageName)
+		if info.imageRegistryURL != "" && info.imageRegistryURL != ghcrURI && info.imageRegistryURL != "docker.io" {
+			imageName = fmt.Sprintf(privateRegTemplateString, info.imageRegistryURL, zipkinGhcrImageName)
+		} else if defaultImageRegistryName == githubContainerRegistryName && info.imageRegistryURL == "" {
+			imageName = fmt.Sprintf("%s/%s", ghcrURI, zipkinGhcrImageName)
+		} else if defaultImageRegistryName == dockerContainerRegistryName && info.imageRegistryURL == "" {
+			imageName = zipkinDockerImageName
+		} else {
+			err = fmt.Errorf("either %s or Env variable %s not set properly", "--image-registry", "DAPR_DEFAULT_IMAGE_REGISTRY")
+			errorChan <- err
+			return
 		}
 
 		args = append(args,
@@ -327,13 +351,21 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 	}
 	args := []string{}
 
+	var imageName string
 	if exists {
 		// do not create container again if it exists.
 		args = append(args, "start", redisContainerName)
 	} else {
-		imageName := redisDockerImageName
-		if info.imageRepositoryURL != "" {
-			imageName = fmt.Sprintf("%s/%s", info.imageRepositoryURL, imageName)
+		if info.imageRegistryURL != "" && info.imageRegistryURL != ghcrURI && info.imageRegistryURL != "docker.io" {
+			imageName = fmt.Sprintf(privateRegTemplateString, info.imageRegistryURL, redisGhcrImageName)
+		} else if defaultImageRegistryName == githubContainerRegistryName && info.imageRegistryURL == "" {
+			imageName = fmt.Sprintf("%s/%s", ghcrURI, redisGhcrImageName)
+		} else if defaultImageRegistryName == dockerContainerRegistryName && info.imageRegistryURL == "" {
+			imageName = redisDockerImageName
+		} else {
+			err = fmt.Errorf("either %s or Env variable %s not set properly", "--image-registry", "DAPR_DEFAULT_IMAGE_REGISTRY")
+			errorChan <- err
+			return
 		}
 
 		args = append(args,
@@ -378,14 +410,24 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 
 	placementContainerName := utils.CreateContainerName(DaprPlacementContainerName, info.dockerNetwork)
 
-	image := fmt.Sprintf("%s:%s", daprDockerImageName, info.runtimeVersion)
-	if info.imageRepositoryURL != "" {
-		image = fmt.Sprintf("%s/%s", info.imageRepositoryURL, image)
-	}
+	var image string
 
-	// Use only image for latest version.
-	if info.runtimeVersion == latestVersion {
-		image = daprDockerImageName
+	if info.imageRegistryURL != "" && info.imageRegistryURL != ghcrURI && info.imageRegistryURL != "docker.io" {
+		image = getPlacementImageWithTag(daprGhcrImageName, info.runtimeVersion)
+		image = fmt.Sprintf(privateRegTemplateString, info.imageRegistryURL, image)
+	} else if defaultImageRegistryName == githubContainerRegistryName && info.imageRegistryURL == "" {
+		image = getPlacementImageWithTag(daprGhcrImageName, info.runtimeVersion)
+		image = fmt.Sprintf("%s/%s", ghcrURI, image)
+		if !TryPullImage(image) {
+			print.InfoStatusEvent(os.Stdout, "Placement image not found in Github container registry, pulling it from Docker Hub")
+			image = getPlacementImageWithTag(daprDockerImageName, info.runtimeVersion)
+		}
+	} else if defaultImageRegistryName == dockerContainerRegistryName && info.imageRegistryURL == "" {
+		image = getPlacementImageWithTag(daprDockerImageName, info.runtimeVersion)
+	} else {
+		err := fmt.Errorf("either %s or Env variable %s not set properly", "--image-registry", "DAPR_DEFAULT_IMAGE_REGISTRY")
+		errorChan <- err
+		return
 	}
 
 	exists, err := confirmContainerIsRunningOrExists(placementContainerName, false)
@@ -1012,4 +1054,11 @@ func parseVersionFile(fromDir string) (string, string) {
 	}
 
 	return versions[daprRuntimeFilePrefix], versions[dashboardFilePrefix]
+}
+
+func getPlacementImageWithTag(name, version string) string {
+	if version == latestVersion {
+		return name
+	}
+	return fmt.Sprintf("%s:%s", name, version)
 }

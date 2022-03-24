@@ -46,14 +46,14 @@ var InitCmd = &cobra.Command{
 	Short: "Install Dapr on supported hosting platforms. Supported platforms: Kubernetes and self-hosted",
 	PreRun: func(cmd *cobra.Command, args []string) {
 		viper.BindPFlag("network", cmd.Flags().Lookup("network"))
-		viper.BindPFlag("image-repository", cmd.Flags().Lookup("image-repository"))
+		viper.BindPFlag("image-registry", cmd.Flags().Lookup("image-registry"))
 	},
 	Example: `
 # Initialize Dapr in self-hosted mode
 dapr init
 
-#Initialize Dapr in self-hosted mode with a provided docker image repository. Image looked up as <repository-url>/<image>
-dapr init --image-repository <repository-url>
+#Initialize Dapr in self-hosted mode with a provided docker image registry. Image looked up as <registry-url>/<image>
+dapr init --image-registry <registry-url>
 
 # Initialize Dapr in Kubernetes
 dapr init -k
@@ -98,15 +98,18 @@ dapr init --from-dir <path-to-directory>
 			print.SuccessStatusEvent(os.Stdout, fmt.Sprintf("Success! Dapr has been installed to namespace %s. To verify, run `dapr status -k' in your terminal. To get started, go here: https://aka.ms/dapr-getting-started", config.Namespace))
 		} else {
 			dockerNetwork := ""
-			imageRepositoryURL := ""
+			imageRegistryURL := ""
 			if !slimMode {
 				dockerNetwork = viper.GetString("network")
-				imageRepositoryURL = viper.GetString("image-repository")
+				imageRegistryURL = viper.GetString("image-registry")
 			}
 			if fromDir != "" {
 				print.WarningStatusEvent(os.Stdout, "Local bundle installation using from-dir flag is currently a preview feature.")
 			}
-			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode, imageRepositoryURL, fromDir)
+			if imageRegistryURL != "" {
+				print.WarningStatusEvent(os.Stdout, "Flag --image-registry is a preview feature and is subject to change. It is only available from CLI version 1.7 onwards.")
+			}
+			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode, imageRegistryURL, fromDir)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)
@@ -142,6 +145,6 @@ func init() {
 	InitCmd.Flags().StringVarP(&fromDir, "from-dir", "", "", "Use Dapr artifacts from local directory instead of from network to init")
 	InitCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	InitCmd.Flags().StringArrayVar(&values, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
-	InitCmd.Flags().String("image-repository", "", "Custom/Private docker image repository url")
+	InitCmd.Flags().String("image-registry", "", "Custom/Private docker image repository url")
 	RootCmd.AddCommand(InitCmd)
 }
