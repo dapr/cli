@@ -134,15 +134,14 @@ func isBinaryInstallationRequired(binaryFilePrefix, installDir string) (bool, er
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
 func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool, imageRegistryURL string, fromDir string) error {
 	var err error
-	defaultImageRegistryName, err = utils.GetDefaultRegistry(githubContainerRegistryName, dockerContainerRegistryName)
-	if err != nil {
-		return err
-	}
-
 	if !slimMode {
 		dockerInstalled := utils.IsDockerInstalled()
 		if !dockerInstalled {
 			return errors.New("could not connect to Docker. Docker may not be installed or running")
+		}
+		defaultImageRegistryName, err = utils.GetDefaultRegistry(githubContainerRegistryName, dockerContainerRegistryName)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -420,7 +419,7 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		image = getPlacementImageWithTag(daprGhcrImageName, info.runtimeVersion)
 		image = fmt.Sprintf("%s/%s", ghcrURI, image)
 		if !TryPullImage(image) {
-			print.InfoStatusEvent(os.Stdout, "Placement image not found in GHCR, pulling it from DockerHub")
+			print.InfoStatusEvent(os.Stdout, "Placement image not found in Github container registry, pulling it from Docker Hub")
 			image = getPlacementImageWithTag(daprDockerImageName, info.runtimeVersion)
 		}
 	} else if defaultImageRegistryName == dockerContainerRegistryName && info.imageRegistryURL == "" {
