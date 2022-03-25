@@ -77,7 +77,10 @@ jobs:
           echo "Found $DASHBOARD_VERSION"
         shell: bash
       - name: Run E2E tests with GHCR
-        if: github.event.schedule != '0 0 * * *'
+        # only runs once in a day
+        if: github.event.schedule == '0 0 * * *'
+        env:
+          DAPR_DEFAULT_IMAGE_REGISTRY: ghcr
         run: |
           export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-standalone.json
           echo "TEST_OUTPUT_FILE=$TEST_OUTPUT_FILE" >> $GITHUB_ENV
@@ -85,10 +88,7 @@ jobs:
           make e2e-build-run-sh
         shell: bash
       - name: Run E2E tests with Docker hub
-        # only runs once in a day
-        if: github.event.schedule == '0 0 * * *'
-        env:
-          DAPR_DEFAULT_IMAGE_REGISTRY: dockerhub
+        if: github.event.schedule != '0 0 * * *'
         run: |
           export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-standalone.json
           echo "TEST_OUTPUT_FILE=$TEST_OUTPUT_FILE" >> $GITHUB_ENV

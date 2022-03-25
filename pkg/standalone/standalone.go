@@ -123,6 +123,7 @@ type daprImageInfo struct {
 	ghcrImageName      string
 	dockerHubImageName string
 	imageRegistryURL   string
+	imageRegistryName  string
 }
 
 // Check if the previous version is already installed.
@@ -299,6 +300,7 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 			ghcrImageName:      zipkinGhcrImageName,
 			dockerHubImageName: zipkinDockerImageName,
 			imageRegistryURL:   info.imageRegistryURL,
+			imageRegistryName:  defaultImageRegistryName,
 		})
 		if err != nil {
 			errorChan <- err
@@ -364,6 +366,7 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 			ghcrImageName:      redisGhcrImageName,
 			dockerHubImageName: redisDockerImageName,
 			imageRegistryURL:   info.imageRegistryURL,
+			imageRegistryName:  defaultImageRegistryName,
 		})
 		if err != nil {
 			errorChan <- err
@@ -416,6 +419,7 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		ghcrImageName:      daprGhcrImageName,
 		dockerHubImageName: daprDockerImageName,
 		imageRegistryURL:   info.imageRegistryURL,
+		imageRegistryName:  defaultImageRegistryName,
 	})
 	if err != nil {
 		errorChan <- err
@@ -1066,12 +1070,17 @@ func getPlacementImageWithTag(name, version string) string {
 func resolveImageURI(imageInfo daprImageInfo) (string, error) {
 	if imageInfo.imageRegistryURL != "" {
 		if imageInfo.imageRegistryURL == ghcrURI || imageInfo.imageRegistryURL == "docker.io" {
-			err := fmt.Errorf("either %s or Env variable %q not set properly", "--image-registry", "DAPR_DEFAULT_IMAGE_REGISTRY")
+			err := fmt.Errorf("flag %s not set correctly", "--image-registry")
 			return "", err
 		}
 		return fmt.Sprintf(privateRegTemplateString, imageInfo.imageRegistryURL, imageInfo.ghcrImageName), nil
-	} else if defaultImageRegistryName == dockerContainerRegistryName {
-		return imageInfo.dockerHubImageName, nil
 	}
-	return fmt.Sprintf("%s/%s", ghcrURI, imageInfo.ghcrImageName), nil
+	switch imageInfo.imageRegistryName {
+	case dockerContainerRegistryName:
+		return imageInfo.dockerHubImageName, nil
+	case githubContainerRegistryName:
+		return fmt.Sprintf("%s/%s", ghcrURI, imageInfo.ghcrImageName), nil
+	default:
+		return "", errors.New("imageRegistryName not set correctly")
+	}
 }
