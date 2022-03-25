@@ -18,6 +18,7 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -154,7 +155,11 @@ func GenerateNewCertificates(validUntil time.Duration, privateKeyFile string) ([
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		rootKey, err = x509.ParseECPrivateKey(privateKeyBytes)
+		privateKeyPemBlock, _ := pem.Decode(privateKeyBytes)
+		if privateKeyPemBlock == nil {
+			return nil, nil, nil, errors.New("provided private key file is not pem encoded")
+		}
+		rootKey, err = x509.ParseECPrivateKey(privateKeyPemBlock.Bytes)
 		if err != nil {
 			return nil, nil, nil, err
 		}

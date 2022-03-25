@@ -424,6 +424,34 @@ func GenerateNewCertAndRenew(details VersionDetails, opts TestOptions) func(t *t
 	}
 }
 
+func UseProvidedPrivateKeyAndRenewCerts(details VersionDetails, opts TestOptions) func(t *testing.T) {
+	return func(t *testing.T) {
+		daprPath := getDaprPath()
+		args := []string{
+			"mtls", "renew-certificate", "-k",
+			"--private-key", "../testdata/example-root.key",
+			"--valid-until", "20",
+		}
+		output, err := spawn.Command(daprPath, args...)
+		t.Log(output)
+		require.NoError(t, err, "expected no error on certificate renewal")
+
+		done := make(chan struct{})
+		podsRunning := make(chan struct{})
+
+		go waitAllPodsRunning(t, DaprTestNamespace, opts.HAEnabled, done, podsRunning)
+		select {
+		case <-podsRunning:
+			t.Logf("verified all pods running in namespace %s are running after certficate change", DaprTestNamespace)
+		case <-time.After(2 * time.Minute):
+			done <- struct{}{}
+			t.Logf("timeout verifying all pods running in namespace %s", DaprTestNamespace)
+			t.FailNow()
+		}
+		assert.Contains(t, output, "Certificate rotation is successful!")
+	}
+}
+
 func UseProvidedNewCertAndRenew(details VersionDetails, opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
 		daprPath := getDaprPath()

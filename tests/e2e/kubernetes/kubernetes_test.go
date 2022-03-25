@@ -265,3 +265,44 @@ func TestRenewCertificateMTLSDisabled(t *testing.T) {
 		t.Run(tc.Name, tc.Callable)
 	}
 }
+
+func TestRenewCertWithPrivateKey(t *testing.T) {
+	common.EnsureUninstall(true)
+
+	tests := []common.TestCase{}
+	var installOpts = common.TestOptions{
+		HAEnabled:             false,
+		MTLSEnabled:           true,
+		ApplyComponentChanges: true,
+		CheckResourceExists: map[common.Resource]bool{
+			common.CustomResourceDefs:  true,
+			common.ClusterRoles:        true,
+			common.ClusterRoleBindings: true,
+		},
+	}
+
+	tests = append(tests, common.GetTestsOnInstall(currentVersionDetails, installOpts)...)
+
+	// tests for certifcate renewal with newly generated certificates when pem encoded private root.key file is provided
+	tests = append(tests, []common.TestCase{
+		{"Renew certificate which expires in less than 30 days", common.UseProvidedPrivateKeyAndRenewCerts(currentVersionDetails, installOpts)},
+	}...)
+
+	tests = append(tests, common.GetTestsPostCertificateRenewal(currentVersionDetails, installOpts)...)
+	tests = append(tests, []common.TestCase{
+		{"Cert Expiry warning message check " + currentVersionDetails.RuntimeVersion, common.CheckMTLSStatus(currentVersionDetails, installOpts, true)},
+	}...)
+
+	// teardown everything
+	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
+		CheckResourceExists: map[common.Resource]bool{
+			common.CustomResourceDefs:  true,
+			common.ClusterRoles:        false,
+			common.ClusterRoleBindings: false,
+		},
+	})...)
+
+	for _, tc := range tests {
+		t.Run(tc.Name, tc.Callable)
+	}
+}
