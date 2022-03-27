@@ -47,6 +47,9 @@ dapr mtls -k
 		}
 		fmt.Printf("Mutual TLS is %s in your Kubernetes cluster \n", status)
 	},
+	PostRun: func(cmd *cobra.Command, args []string) {
+		kubernetes.CheckForCertExpiry()
+	},
 }
 
 var ExportCMD = &cobra.Command{
@@ -60,11 +63,14 @@ dapr mtls export -o ./certs
 		err := kubernetes.ExportTrustChain(exportPath)
 		if err != nil {
 			print.FailureStatusEvent(os.Stderr, fmt.Sprintf("error exporting trust chain certs: %s", err))
-			return
+			os.Exit(1)
 		}
 
 		dir, _ := filepath.Abs(exportPath)
 		print.SuccessStatusEvent(os.Stdout, fmt.Sprintf("Trust certs successfully exported to %s", dir))
+	},
+	PostRun: func(cmd *cobra.Command, args []string) {
+		kubernetes.CheckForCertExpiry()
 	},
 }
 
@@ -95,5 +101,6 @@ func init() {
 	MTLSCmd.MarkFlagRequired("kubernetes")
 	MTLSCmd.AddCommand(ExportCMD)
 	MTLSCmd.AddCommand(ExpiryCMD)
+	MTLSCmd.AddCommand(RenewCertificateCmd())
 	RootCmd.AddCommand(MTLSCmd)
 }

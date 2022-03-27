@@ -26,16 +26,19 @@ import (
 )
 
 var (
-	kubernetesMode   bool
-	wait             bool
-	timeout          uint
-	slimMode         bool
-	runtimeVersion   string
-	dashboardVersion string
-	initNamespace    string
-	enableMTLS       bool
-	enableHA         bool
-	values           []string
+	kubernetesMode    bool
+	wait              bool
+	timeout           uint
+	slimMode          bool
+	runtimeVersion    string
+	dashboardVersion  string
+	allNamespaces     bool
+	initNamespace     string
+	resourceNamespace string
+	enableMTLS        bool
+	enableHA          bool
+	values            []string
+	fromDir           string
 )
 
 var InitCmd = &cobra.Command{
@@ -43,14 +46,14 @@ var InitCmd = &cobra.Command{
 	Short: "Install Dapr on supported hosting platforms. Supported platforms: Kubernetes and self-hosted",
 	PreRun: func(cmd *cobra.Command, args []string) {
 		viper.BindPFlag("network", cmd.Flags().Lookup("network"))
-		viper.BindPFlag("image-repository", cmd.Flags().Lookup("image-repository"))
+		viper.BindPFlag("image-registry", cmd.Flags().Lookup("image-registry"))
 	},
 	Example: `
 # Initialize Dapr in self-hosted mode
 dapr init
 
-#Initialize Dapr in self-hosted mode with a provided docker image repository. Image looked up as <repository-url>/<image>
-dapr init --image-repository <repository-url>
+#Initialize Dapr in self-hosted mode with a provided docker image registry. Image looked up as <registry-url>/<image>
+dapr init --image-registry <registry-url>
 
 # Initialize Dapr in Kubernetes
 dapr init -k
@@ -66,6 +69,9 @@ dapr init -k --runtime-version 0.10.0
 
 # Initialize Dapr in slim self-hosted mode
 dapr init -s
+
+# Initialize Dapr from a directory (installer-bundle installation) (Preview feature)
+dapr init --from-dir <path-to-directory>
 
 # See more at: https://docs.dapr.io/getting-started/
 `,
@@ -92,12 +98,18 @@ dapr init -s
 			print.SuccessStatusEvent(os.Stdout, fmt.Sprintf("Success! Dapr has been installed to namespace %s. To verify, run `dapr status -k' in your terminal. To get started, go here: https://aka.ms/dapr-getting-started", config.Namespace))
 		} else {
 			dockerNetwork := ""
-			imageRepositoryURL := ""
+			imageRegistryURL := ""
 			if !slimMode {
 				dockerNetwork = viper.GetString("network")
-				imageRepositoryURL = viper.GetString("image-repository")
+				imageRegistryURL = viper.GetString("image-registry")
 			}
-			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode, imageRepositoryURL)
+			if fromDir != "" {
+				print.WarningStatusEvent(os.Stdout, "Local bundle installation using from-dir flag is currently a preview feature.")
+			}
+			if imageRegistryURL != "" {
+				print.WarningStatusEvent(os.Stdout, "Flag --image-registry is a preview feature and is subject to change. It is only available from CLI version 1.7 onwards.")
+			}
+			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode, imageRegistryURL, fromDir)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)
@@ -130,8 +142,9 @@ func init() {
 	InitCmd.Flags().BoolVarP(&enableMTLS, "enable-mtls", "", true, "Enable mTLS in your cluster")
 	InitCmd.Flags().BoolVarP(&enableHA, "enable-ha", "", false, "Enable high availability (HA) mode")
 	InitCmd.Flags().String("network", "", "The Docker network on which to deploy the Dapr runtime")
+	InitCmd.Flags().StringVarP(&fromDir, "from-dir", "", "", "Use Dapr artifacts from local directory instead of from network to init")
 	InitCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	InitCmd.Flags().StringArrayVar(&values, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
-	InitCmd.Flags().String("image-repository", "", "Custom/Private docker image repository url")
+	InitCmd.Flags().String("image-registry", "", "Custom/Private docker image repository url")
 	RootCmd.AddCommand(InitCmd)
 }

@@ -20,6 +20,7 @@ on:
       - release-*
   schedule:
     - cron: '0 */3 * * *'
+    - cron: '0 0 * * *'
   pull_request:
     branches:
       - master
@@ -37,7 +38,6 @@ jobs:
       ARCHIVE_OUTDIR: dist/archives
       DAPR_RUNTIME_VERSION: "1.6.0"
       DAPR_DASHBOARD_VERSION: 0.9.0
-      CUSTOM_IMAGE_REGISTRY: docker.io
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
@@ -76,7 +76,19 @@ jobs:
           echo "DAPR_DASHBOARD_VERSION=$DASHBOARD_VERSION" >> $GITHUB_ENV
           echo "Found $DASHBOARD_VERSION"
         shell: bash
-      - name: Run E2E tests 
+      - name: Run E2E tests with GHCR
+        if: github.event.schedule != '0 0 * * *'
+        run: |
+          export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-standalone.json
+          echo "TEST_OUTPUT_FILE=$TEST_OUTPUT_FILE" >> $GITHUB_ENV
+          export GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+          make e2e-build-run-sh
+        shell: bash
+      - name: Run E2E tests with Docker hub
+        # only runs once in a day
+        if: github.event.schedule == '0 0 * * *'
+        env:
+          DAPR_DEFAULT_IMAGE_REGISTRY: dockerhub
         run: |
           export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-standalone.json
           echo "TEST_OUTPUT_FILE=$TEST_OUTPUT_FILE" >> $GITHUB_ENV

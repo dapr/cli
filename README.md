@@ -3,6 +3,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/dapr/cli)](https://goreportcard.com/report/github.com/dapr/cli)
 [![Build Status](https://github.com/dapr/cli/workflows/dapr_cli/badge.svg)](https://github.com/dapr/cli/actions?workflow=dapr_cli)
 [![codecov](https://codecov.io/gh/dapr/cli/branch/master/graph/badge.svg)](https://codecov.io/gh/dapr/cli)
+[![FOSSA Status](https://app.fossa.com/api/projects/custom%2B162%2Fgithub.com%2Fdapr%2Fcli.svg?type=shield)](https://app.fossa.com/projects/custom%2B162%2Fgithub.com%2Fdapr%2Fcli?ref=badge_shield)
 
 The Dapr CLI allows you to setup Dapr on your local dev machine or on a Kubernetes cluster, provides debugging support, launches and manages Dapr instances.
 
@@ -128,10 +129,12 @@ Runtime version: v1.0.0
 ```
 #### Install by providing a docker container registry url
 
-You can install Dapr runtime by pulling docker images from a given registry url by using `--image-repository` flag.
+You can install Dapr runtime by pulling docker images from a given private registry uri by using `--image-registry` flag.
+> Note: This command expects that images have been hosted like example.io/<username>/dapr/dapr:<tag>, example.io/<username>/dapr/3rdparty/redis:<tag>, example.io/<username>/dapr/3rdparty/zipkin:<tag>
 
 ```bash
-$ dapr init --image-repository <registry-url>
+# Example of pulling images from a private registry.
+$ dapr init --image-registry example.io/<username>
 ```
 
 #### Install to a specific Docker network
@@ -436,12 +439,35 @@ dapr mtls expiry
 
 This can be used when upgrading to a newer version of Dapr, as it's recommended to carry over the existing certs for a zero downtime upgrade.
 
+### Renew Dapr certificates of a kubernetes cluster with one of the 3 ways mentioned below:
+Renew certificate by generating new root and issuer certificates
+
+```bash
+dapr mtls renew-certificate -k --valid-until <no of days> --restart
+```
+Use existing private root.key to generate new root and issuer certificates
+
+```bash
+dapr mtls renew-certificate -k --private-key myprivatekey.key --valid-until <no of days>
+```
+Use user provided ca.crt, issuer.crt and issuer.key
+
+```bash
+dapr mtls renew-certificate -k --ca-root-certificate <ca.crt> --issuer-private-key <issuer.key> --issuer-public-certificate <issuer.crt> --restart
+```
+
 ### List Components
 
 To list all Dapr components on Kubernetes:
 
 ```bash
-dapr components --kubernetes
+dapr components --kubernetes --all-namespaces
+```
+
+To list Dapr components in `target-namespace` namespace on Kubernetes:
+
+```bash
+dapr components --kubernetes --namespace target-namespace
 ```
 
 ### Use non-default Components Path
@@ -458,7 +484,13 @@ dapr run --components-path [custom path]
 To list all Dapr configurations on Kubernetes:
 
 ```bash
-dapr configurations --kubernetes
+dapr configurations --kubernetes --all-namespaces
+```
+
+To list Dapr configurations in `target-namespace` namespace on Kubernetes:
+
+```bash
+dapr configurations --kubernetes --namespace target-namespace
 ```
 
 ### Stop
@@ -536,22 +568,6 @@ To generate shell completion scripts:
 
 ```bash
 dapr completion
-```
-
-### Enable Unix domain socket
-
-In order to enable Unix domain socket to connect Dapr API server, use the `--unix-domain-socket` flag:
-
-```
-$ dapr run --app-id nodeapp --unix-domain-socket node app.js
-```
-
-Dapr will automatically create a Unix domain socket to connect Dapr API server.
-
-If you want to invoke your app, also use this flag:
-
-```
-$ dapr invoke --app-id nodeapp --unix-domain-socket --method mymethod
 ```
 
 ### Enable Unix domain socket
