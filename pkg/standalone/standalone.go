@@ -48,7 +48,7 @@ const (
 	daprDefaultHost            = "localhost"
 	pubSubYamlFileName         = "pubsub.yaml"
 	stateStoreYamlFileName     = "statestore.yaml"
-	redisDockerImageName       = "redislabs/rejson"
+	redisDockerImageName       = "redis"
 	zipkinDockerImageName      = "openzipkin/zipkin"
 
 	githubContainerRegistryName = "ghcr"
