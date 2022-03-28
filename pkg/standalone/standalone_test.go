@@ -60,3 +60,175 @@ spec: {}
 
 	os.Remove(testFile)
 }
+
+func TestResolveImageWithGHCR(t *testing.T) {
+	expectedRedisImageName := "ghcr.io/dapr/3rdparty/redis"
+	expectedZipkinImageName := "ghcr.io/dapr/3rdparty/zipkin"
+	expectedPlacementImageName := "ghcr.io/dapr/dapr"
+
+	redisImageInfo := daprImageInfo{
+		ghcrImageName:      redisGhcrImageName,
+		dockerHubImageName: redisDockerImageName,
+		imageRegistryURL:   "",
+		imageRegistryName:  "ghcr",
+	}
+	zipkinImageInfo := daprImageInfo{
+		ghcrImageName:      zipkinGhcrImageName,
+		dockerHubImageName: zipkinDockerImageName,
+		imageRegistryURL:   "",
+		imageRegistryName:  "ghcr",
+	}
+	placementImageInfo := daprImageInfo{
+		ghcrImageName:      daprGhcrImageName,
+		dockerHubImageName: daprDockerImageName,
+		imageRegistryURL:   "",
+		imageRegistryName:  "ghcr",
+	}
+
+	tests := []struct {
+		name      string
+		args      daprImageInfo
+		expect    string
+		expectErr bool
+	}{
+		{"Test Redis image name", redisImageInfo, expectedRedisImageName, false},
+		{"Test Zipkin image name", zipkinImageInfo, expectedZipkinImageName, false},
+		{"Test Dapr image name", placementImageInfo, expectedPlacementImageName, false},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got, err := resolveImageURI(test.args)
+			assert.Equal(t, test.expectErr, err != nil)
+			assert.Equal(t, test.expect, got)
+		})
+	}
+}
+
+func TestResolveImageWithDockerHub(t *testing.T) {
+	expectedRedisImageName := "redis"
+	expectedZipkinImageName := "openzipkin/zipkin"
+	expectedPlacementImageName := "daprio/dapr"
+
+	redisImageInfo := daprImageInfo{
+		ghcrImageName:      redisGhcrImageName,
+		dockerHubImageName: redisDockerImageName,
+		imageRegistryURL:   "",
+		imageRegistryName:  "dockerhub",
+	}
+	zipkinImageInfo := daprImageInfo{
+		ghcrImageName:      zipkinGhcrImageName,
+		dockerHubImageName: zipkinDockerImageName,
+		imageRegistryURL:   "",
+		imageRegistryName:  "dockerhub",
+	}
+	placementImageInfo := daprImageInfo{
+		ghcrImageName:      daprGhcrImageName,
+		dockerHubImageName: daprDockerImageName,
+		imageRegistryURL:   "",
+		imageRegistryName:  "dockerhub",
+	}
+
+	tests := []struct {
+		name      string
+		args      daprImageInfo
+		expect    string
+		expectErr bool
+	}{
+		{"Test Redis image name", redisImageInfo, expectedRedisImageName, false},
+		{"Test Zipkin image name", zipkinImageInfo, expectedZipkinImageName, false},
+		{"Test Dapr image name", placementImageInfo, expectedPlacementImageName, false},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got, err := resolveImageURI(test.args)
+			assert.Equal(t, test.expectErr, err != nil)
+			assert.Equal(t, test.expect, got)
+		})
+	}
+}
+
+func TestResolveImageWithPrivateRegistry(t *testing.T) {
+	expectedRedisImageName := "docker.io/username/dapr/3rdparty/redis"
+	expectedZipkinImageName := "docker.io/username/dapr/3rdparty/zipkin"
+	expectedPlacementImageName := "docker.io/username/dapr/dapr"
+
+	redisImageInfo := daprImageInfo{
+		ghcrImageName:      redisGhcrImageName,
+		dockerHubImageName: redisDockerImageName,
+		imageRegistryURL:   "docker.io/username",
+		imageRegistryName:  "",
+	}
+	zipkinImageInfo := daprImageInfo{
+		ghcrImageName:      zipkinGhcrImageName,
+		dockerHubImageName: zipkinDockerImageName,
+		imageRegistryURL:   "docker.io/username",
+		imageRegistryName:  "",
+	}
+	placementImageInfo := daprImageInfo{
+		ghcrImageName:      daprGhcrImageName,
+		dockerHubImageName: daprDockerImageName,
+		imageRegistryURL:   "docker.io/username",
+		imageRegistryName:  "",
+	}
+
+	tests := []struct {
+		name      string
+		args      daprImageInfo
+		expect    string
+		expectErr bool
+	}{
+		{"Test Redis image name", redisImageInfo, expectedRedisImageName, false},
+		{"Test Zipkin image name", zipkinImageInfo, expectedZipkinImageName, false},
+		{"Test Dapr image name", placementImageInfo, expectedPlacementImageName, false},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got, err := resolveImageURI(test.args)
+			assert.Equal(t, test.expectErr, err != nil)
+			assert.Equal(t, test.expect, got)
+		})
+	}
+}
+
+func TestResolveImageErr(t *testing.T) {
+	redisImageInfo := daprImageInfo{
+		ghcrImageName:      redisGhcrImageName,
+		dockerHubImageName: redisDockerImageName,
+		imageRegistryURL:   "docker.io",
+		imageRegistryName:  "",
+	}
+	zipkinImageInfo := daprImageInfo{
+		ghcrImageName:      zipkinGhcrImageName,
+		dockerHubImageName: zipkinDockerImageName,
+		imageRegistryURL:   ghcrURI,
+		imageRegistryName:  "",
+	}
+	placementImageInfo := daprImageInfo{
+		ghcrImageName:      daprGhcrImageName,
+		dockerHubImageName: daprDockerImageName,
+		imageRegistryURL:   "",
+		imageRegistryName:  "value_other_than_dockerhub_or_ghcr",
+	}
+
+	tests := []struct {
+		name      string
+		args      daprImageInfo
+		expect    string
+		expectErr bool
+	}{
+		{"Test Redis image name", redisImageInfo, "", true},
+		{"Test Zipkin image name", zipkinImageInfo, "", true},
+		{"Test Dapr image name", placementImageInfo, "", true},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got, err := resolveImageURI(test.args)
+			assert.Equal(t, test.expectErr, err != nil)
+			assert.Equal(t, test.expect, got)
+		})
+	}
+}
