@@ -239,7 +239,7 @@ func GetDefaultRegistry(githubContainerRegistryName, dockerContainerRegistryName
 		print.InfoStatusEvent(os.Stdout, "Container images will be pulled from Docker Hub")
 		return dockerContainerRegistryName, nil
 	case githubContainerRegistryName:
-		print.InfoStatusEvent(os.Stdout, "Container images will be pulled from GitHub container registry")
+		print.InfoStatusEvent(os.Stdout, "Container images will be pulled from Dapr GitHub container registry")
 		return githubContainerRegistryName, nil
 	default:
 		return "", fmt.Errorf("environment variable %q can only be set to %s", "DAPR_DEFAULT_IMAGE_REGISTRY", "GHCR")
