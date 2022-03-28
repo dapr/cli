@@ -62,7 +62,7 @@ spec: {}
 }
 
 func TestResolveImageWithGHCR(t *testing.T) {
-	expectedRedisImageName := "ghcr.io/dapr/3rdparty/rejson"
+	expectedRedisImageName := "ghcr.io/dapr/3rdparty/redis"
 	expectedZipkinImageName := "ghcr.io/dapr/3rdparty/zipkin"
 	expectedPlacementImageName := "ghcr.io/dapr/dapr"
 
@@ -150,7 +150,7 @@ func TestResolveImageWithDockerHub(t *testing.T) {
 }
 
 func TestResolveImageWithPrivateRegistry(t *testing.T) {
-	expectedRedisImageName := "docker.io/username/dapr/3rdparty/rejson"
+	expectedRedisImageName := "docker.io/username/dapr/3rdparty/redis"
 	expectedZipkinImageName := "docker.io/username/dapr/3rdparty/zipkin"
 	expectedPlacementImageName := "docker.io/username/dapr/dapr"
 

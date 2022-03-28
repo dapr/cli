@@ -55,7 +55,7 @@ const (
 	ghcrURI                     = "ghcr.io/dapr"
 	daprGhcrImageName           = "dapr"
 	dockerContainerRegistryName = "dockerhub"
-	redisGhcrImageName          = "3rdparty/rejson"
+	redisGhcrImageName          = "3rdparty/redis"
 	zipkinGhcrImageName         = "3rdparty/zipkin"
 
 	// DaprPlacementContainerName is the container name of placement service.
