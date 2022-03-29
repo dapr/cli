@@ -461,7 +461,7 @@ func testRunEnableApiLogging(t *testing.T) {
 	args := []string{
 		"run",
 		"--app-id", "enableApiLogging_info",
-		"--enable-api-logging", true,
+		"--enable-api-logging",
 		"--log-level", "info",
 		"--", "bash", "-c", "echo 'test'",
 	}
@@ -478,8 +478,6 @@ func testRunEnableApiLogging(t *testing.T) {
 	args = []string{
 		"run",
 		"--app-id", "enableApiLogging_info",
-		"--enable-api-logging", false,
-		"--log-level", "debug",
 		"--", "bash", "-c", "echo 'test'",
 	}
 
