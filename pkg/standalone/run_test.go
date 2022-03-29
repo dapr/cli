@@ -90,7 +90,6 @@ func assertCommonArgs(t *testing.T, basicConfig *RunConfig, output *RunOutput) {
 	assertArgumentEqual(t, "app-ssl", "", output.DaprCMD.Args)
 	assertArgumentEqual(t, "metrics-port", "9001", output.DaprCMD.Args)
 	assertArgumentEqual(t, "dapr-http-max-request-size", "-1", output.DaprCMD.Args)
-	assertArgumentEqual(t, "api-log-level", basicConfig.APILogLevel, output.DaprCMD.Args)
 }
 
 func assertAppEnv(t *testing.T, config *RunConfig, output *RunOutput) {
@@ -149,7 +148,7 @@ func TestRun(t *testing.T) {
 		AppSSL:             true,
 		MetricsPort:        9001,
 		MaxRequestBodySize: -1,
-		APILogLevel:        "INFO",
+		EnableApiLogging:   true,
 	}
 
 	t.Run("run happy http", func(t *testing.T) {
@@ -165,7 +164,7 @@ func TestRun(t *testing.T) {
 	t.Run("run without app command", func(t *testing.T) {
 		basicConfig.Arguments = nil
 		basicConfig.LogLevel = "INFO"
-		basicConfig.APILogLevel = "INFO"
+		basicConfig.EnableApiLogging = true
 		basicConfig.ConfigFile = DefaultConfigFilePath()
 		output, err := Run(basicConfig)
 		assert.Nil(t, err)
