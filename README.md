@@ -150,8 +150,8 @@ $ dapr init --from-dir <path-to-bundle-location>
 
 > Note: Dapr Installer bundle just contains the placement container apart from the binaries and so `zipkin` and `redis` are not enabled by default. You can pull the images locally either from network or private registry and run as follows:
 ```bash
-1. docker run --name "dapr_zipkin" --restart always -d -p 9411:9411 openzipkin/zipkin
-2. docker run --name "dapr_redis" --restart always -d -p 6379:6379 redis
+docker run --name "dapr_zipkin" --restart always -d -p 9411:9411 openzipkin/zipkin
+docker run --name "dapr_redis" --restart always -d -p 6379:6379 redis
 ```
 
 Alternatively to the above, you can also have slim installation as well to install dapr without running any Docker containers in airgap mode.
