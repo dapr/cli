@@ -144,7 +144,7 @@ jobs:
     - name: Determine latest Dapr Dashboard version including Pre-releases
       if: github.base_ref == 'master'
       run: |
-        helm pull dapr/dapr --untar && export DASHBOARD_VERSION=$(cat ./dapr/charts/dapr_dashboard/Chart.yaml | grep version | awk '{ print $2; exit }') && rm -rf dapr
+        curl -L -o dapr.tgz https://github.com/dapr/helm-charts/raw/master/$DAPR_TGZ && tar -xzf dapr.tgz && export DASHBOARD_VERSION=$(cat ./dapr/charts/dapr_dashboard/Chart.yaml | grep version | awk '{ print $2; exit }') && rm -rf dapr
         echo "DAPR_DASHBOARD_VERSION=$DASHBOARD_VERSION" >> $GITHUB_ENV
         echo "Found $DASHBOARD_VERSION"
       shell: bash
