@@ -70,6 +70,24 @@ func TestStandaloneInstall(t *testing.T) {
 	}
 }
 
+func TestApiLogLevel(t *testing.T) {
+	// Ensure a clean environment.
+	uninstall()
+
+	tests := []struct {
+		name  string
+		phase func(*testing.T)
+	}{
+		{"test install", testInstall},
+		{"test run api log level", testRunApiLogLevel},
+		{"test uninstall", testUninstall},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, tc.phase)
+	}
+}
+
 func TestNegativeScenarios(t *testing.T) {
 	// Ensure a clean environment
 	uninstall()
@@ -434,6 +452,43 @@ func testRun(t *testing.T) {
 		output, err := spawn.Command(daprPath, "run", "--app-id", "testapp", "--unix-domain-socket", "/tmp", "--", "bash", "-c", "curl --unix-socket /tmp/dapr-testapp-http.socket -v -X POST http://unix/v1.0/shutdown; sleep 10; exit 1")
 		t.Log(output)
 		require.NoError(t, err, "run failed")
+		assert.Contains(t, output, "Exited Dapr successfully")
+	})
+}
+
+func testRunApiLogLevel(t *testing.T) {
+	daprPath := getDaprPath()
+	args := []string{
+		"run",
+		"--app-id", "apiloglevel_info",
+		"--api-log-level", "info",
+		"--log-level", "info",
+		"--", "bash", "-c", "echo 'test'",
+	}
+
+	t.Run(fmt.Sprintf("check apiloglevel flag info mode"), func(t *testing.T) {
+		output, err := spawn.Command(daprPath, args...)
+		t.Log(output)
+		require.NoError(t, err, "run failed")
+		assert.Contains(t, output, "level=info msg=\"HTTP API Called: PUT /v1.0/metadata/appCommand\"")
+		assert.Contains(t, output, "Exited App successfully")
+		assert.Contains(t, output, "Exited Dapr successfully")
+	})
+
+	args = []string{
+		"run",
+		"--app-id", "apiloglevel_debug",
+		"--api-log-level", "debug",
+		"--log-level", "debug",
+		"--", "bash", "-c", "echo 'test'",
+	}
+
+	t.Run(fmt.Sprintf("check apiloglevel flag debug mode"), func(t *testing.T) {
+		output, err := spawn.Command(daprPath, args...)
+		t.Log(output)
+		require.NoError(t, err, "run failed")
+		assert.Contains(t, output, "level=debug msg=\"HTTP API Called: PUT /v1.0/metadata/appCommand\"")
+		assert.Contains(t, output, "Exited App successfully")
 		assert.Contains(t, output, "Exited Dapr successfully")
 	})
 }
