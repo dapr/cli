@@ -137,6 +137,28 @@ You can install Dapr runtime by pulling docker images from a given private regis
 $ dapr init --image-registry example.io/<username>
 ```
 
+#### Install in airgap environment
+
+You can install Dapr runtime in airgap(offline) environment using pre-downloaded [installer bundle](https://github.com/dapr/installer-bundle/releases). You need to download the archived bundle beforehand (e.g. daprbundle_linux_amd64.tar.gz, daprbundle_windows_amd64.zip) and unpack it. Thereafter use the `--from-dir` flag in init command pointing to the bundle location to initialize dapr.
+
+```bash
+# Initializing dapr in airgap environment
+$ dapr init --from-dir <path-to-bundle-location>
+```
+
+> Note: Assuming extracted bundle directory path is $HOME/daprbundle, <path-to-bundle-location> should be $HOME/daprbundle.
+
+> Note: Dapr Installer bundle just contains the placement container apart from the binaries and so `zipkin` and `redis` are not enabled by default. You can pull the images locally either from network or private registry and run as follows:
+```bash
+1. docker run --name "dapr_zipkin" --restart always -d -p 9411:9411 openzipkin/zipkin
+2. docker run --name "dapr_redis" --restart always -d -p 6379:6379 redis
+```
+
+Alternatively to the above, you can also have slim installation as well to install dapr without running any Docker containers in airgap mode.
+```bash
+$ dapr init --slim --from-dir <path-to-bundle-location>
+```
+
 #### Install to a specific Docker network
 
 You can install the Dapr runtime to a specific Docker network in order to isolate it from the local machine (e.g. to use Dapr from *within* a Docker container).
