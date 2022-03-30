@@ -70,7 +70,7 @@ func TestStandaloneInstall(t *testing.T) {
 	}
 }
 
-func TestApiLogLevel(t *testing.T) {
+func TestEnableAPILogging(t *testing.T) {
 	// Ensure a clean environment.
 	uninstall()
 
@@ -79,7 +79,7 @@ func TestApiLogLevel(t *testing.T) {
 		phase func(*testing.T)
 	}{
 		{"test install", testInstall},
-		{"test run api log level", testRunApiLogLevel},
+		{"test run enable api logging", testRunEnableAPILogging},
 		{"test uninstall", testUninstall},
 	}
 
@@ -456,17 +456,17 @@ func testRun(t *testing.T) {
 	})
 }
 
-func testRunApiLogLevel(t *testing.T) {
+func testRunEnableAPILogging(t *testing.T) {
 	daprPath := getDaprPath()
 	args := []string{
 		"run",
-		"--app-id", "apiloglevel_info",
-		"--api-log-level", "info",
+		"--app-id", "enableApiLogging_info",
+		"--enable-api-logging",
 		"--log-level", "info",
 		"--", "bash", "-c", "echo 'test'",
 	}
 
-	t.Run(fmt.Sprintf("check apiloglevel flag info mode"), func(t *testing.T) {
+	t.Run(fmt.Sprintf("check enableAPILogging flag in enabled mode"), func(t *testing.T) {
 		output, err := spawn.Command(daprPath, args...)
 		t.Log(output)
 		require.NoError(t, err, "run failed")
@@ -477,19 +477,17 @@ func testRunApiLogLevel(t *testing.T) {
 
 	args = []string{
 		"run",
-		"--app-id", "apiloglevel_debug",
-		"--api-log-level", "debug",
-		"--log-level", "debug",
+		"--app-id", "enableApiLogging_info",
 		"--", "bash", "-c", "echo 'test'",
 	}
 
-	t.Run(fmt.Sprintf("check apiloglevel flag debug mode"), func(t *testing.T) {
+	t.Run(fmt.Sprintf("check enableAPILogging flag in disabled mode"), func(t *testing.T) {
 		output, err := spawn.Command(daprPath, args...)
 		t.Log(output)
 		require.NoError(t, err, "run failed")
-		assert.Contains(t, output, "level=debug msg=\"HTTP API Called: PUT /v1.0/metadata/appCommand\"")
 		assert.Contains(t, output, "Exited App successfully")
 		assert.Contains(t, output, "Exited Dapr successfully")
+		assert.NotContains(t, output, "level=info msg=\"HTTP API Called: PUT /v1.0/metadata/appCommand\"")
 	})
 }
 
