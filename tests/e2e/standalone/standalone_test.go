@@ -70,7 +70,7 @@ func TestStandaloneInstall(t *testing.T) {
 	}
 }
 
-func TestEnableApiLogging(t *testing.T) {
+func TestEnableAPILogging(t *testing.T) {
 	// Ensure a clean environment.
 	uninstall()
 
@@ -79,7 +79,7 @@ func TestEnableApiLogging(t *testing.T) {
 		phase func(*testing.T)
 	}{
 		{"test install", testInstall},
-		{"test run enable api logging", testRunEnableApiLogging},
+		{"test run enable api logging", testRunEnableAPILogging},
 		{"test uninstall", testUninstall},
 	}
 
@@ -466,7 +466,7 @@ func testRunEnableApiLogging(t *testing.T) {
 		"--", "bash", "-c", "echo 'test'",
 	}
 
-	t.Run(fmt.Sprintf("check enableApiLogging flag in enabled mode"), func(t *testing.T) {
+	t.Run(fmt.Sprintf("check enableAPILogging flag in enabled mode"), func(t *testing.T) {
 		output, err := spawn.Command(daprPath, args...)
 		t.Log(output)
 		require.NoError(t, err, "run failed")
@@ -481,13 +481,13 @@ func testRunEnableApiLogging(t *testing.T) {
 		"--", "bash", "-c", "echo 'test'",
 	}
 
-	t.Run(fmt.Sprintf("check enableApiLogging flag in disabled mode"), func(t *testing.T) {
+	t.Run(fmt.Sprintf("check enableAPILogging flag in disabled mode"), func(t *testing.T) {
 		output, err := spawn.Command(daprPath, args...)
 		t.Log(output)
 		require.NoError(t, err, "run failed")
 		assert.Contains(t, output, "Exited App successfully")
 		assert.Contains(t, output, "Exited Dapr successfully")
-		assert.NotContains(t, output, "level=debug msg=\"HTTP API Called: PUT /v1.0/metadata/appCommand\"")
+		assert.NotContains(t, output, "level=info msg=\"HTTP API Called: PUT /v1.0/metadata/appCommand\"")
 	})
 }
 
