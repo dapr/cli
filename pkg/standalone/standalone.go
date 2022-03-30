@@ -146,7 +146,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		if !dockerInstalled {
 			return errors.New("could not connect to Docker. Docker may not be installed or running")
 		}
-		if imageRegistryURL == "" {
+		if useDefaultReg(imageRegistryURL, fromDir) {
 			defaultImageRegistryName, err = utils.GetDefaultRegistry(githubContainerRegistryName, dockerContainerRegistryName)
 			if err != nil {
 				return err
@@ -417,19 +417,20 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 
 	placementContainerName := utils.CreateContainerName(DaprPlacementContainerName, info.dockerNetwork)
 
-	image, err := resolveImageURI(daprImageInfo{
+	imgInfo := daprImageInfo{
 		ghcrImageName:      daprGhcrImageName,
 		dockerHubImageName: daprDockerImageName,
 		imageRegistryURL:   info.imageRegistryURL,
 		imageRegistryName:  defaultImageRegistryName,
-	})
+	}
+	image, err := resolveImageURI(imgInfo)
 	if err != nil {
 		errorChan <- err
 		return
 	}
 	image = getPlacementImageWithTag(image, info.runtimeVersion)
 
-	if info.imageRegistryURL == "" && defaultImageRegistryName == githubContainerRegistryName {
+	if checkFallbackImg(imgInfo) {
 		if !TryPullImage(image) {
 			print.InfoStatusEvent(os.Stdout, "Placement image not found in Github container registry, pulling it from Docker Hub")
 			image = getPlacementImageWithTag(daprDockerImageName, info.runtimeVersion)
@@ -1067,6 +1068,20 @@ func getPlacementImageWithTag(name, version string) string {
 		return name
 	}
 	return fmt.Sprintf("%s:%s", name, version)
+}
+
+func checkFallbackImg(imageInfo daprImageInfo) bool {
+	if imageInfo.imageRegistryURL != "" {
+		return false
+	}
+	return imageInfo.imageRegistryName == githubContainerRegistryName
+}
+
+func useDefaultReg(privateReg, fromDir string) bool {
+	if privateReg != "" || fromDir != "" {
+		return false
+	}
+	return true
 }
 
 func resolveImageURI(imageInfo daprImageInfo) (string, error) {

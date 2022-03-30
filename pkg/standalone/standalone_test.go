@@ -232,3 +232,96 @@ func TestResolveImageErr(t *testing.T) {
 		})
 	}
 }
+
+func TestCheckFallbackImg(t *testing.T) {
+	daprImgWithPrivateRegAndDefAsDocker := daprImageInfo{
+		ghcrImageName:      daprGhcrImageName,
+		dockerHubImageName: daprDockerImageName,
+		imageRegistryURL:   "example.io/user",
+		imageRegistryName:  "dockerhub",
+	}
+	daprImgWithPrivateRegAndDefAsGHCR := daprImageInfo{
+		ghcrImageName:      daprGhcrImageName,
+		dockerHubImageName: daprDockerImageName,
+		imageRegistryURL:   "example.io/user",
+		imageRegistryName:  "ghcr",
+	}
+	daprImgWithPrivateRegAndNoDef := daprImageInfo{
+		ghcrImageName:      daprGhcrImageName,
+		dockerHubImageName: daprDockerImageName,
+		imageRegistryURL:   "example.io/user",
+		imageRegistryName:  "",
+	}
+	daprImgWithDefAsDocker := daprImageInfo{
+		ghcrImageName:      daprGhcrImageName,
+		dockerHubImageName: daprDockerImageName,
+		imageRegistryURL:   "",
+		imageRegistryName:  "dockerhub",
+	}
+	daprImgWithDefAsGHCR := daprImageInfo{
+		ghcrImageName:      daprGhcrImageName,
+		dockerHubImageName: daprDockerImageName,
+		imageRegistryURL:   "",
+		imageRegistryName:  "ghcr",
+	}
+
+	tests := []struct {
+		name   string
+		args   daprImageInfo
+		expect bool
+	}{
+		{"checkFallbackImg() with private registry and def as Docker Hub", daprImgWithPrivateRegAndDefAsDocker, false},
+		{"checkFallbackImg() with private registry and def as GHCR", daprImgWithPrivateRegAndDefAsGHCR, false},
+		{"checkFallbackImg() with private registry with no Def", daprImgWithPrivateRegAndNoDef, false},
+		{"checkFallbackImg() with no private registry and def as Docker Hub", daprImgWithDefAsDocker, false},
+		{"checkFallbackImg() with no private registry and def as GHCR", daprImgWithDefAsGHCR, true},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := checkFallbackImg(test.args)
+			assert.Equal(t, test.expect, got)
+		})
+	}
+}
+
+func TestUseDefReg(t *testing.T) {
+	type testArgs struct {
+		privateReg string
+		fromDir    string
+	}
+	testObj1 := testArgs{
+		privateReg: "example.io/user",
+		fromDir:    "",
+	}
+	testObj2 := testArgs{
+		privateReg: "example.io/user",
+		fromDir:    "somedir",
+	}
+	testObj3 := testArgs{
+		privateReg: "",
+		fromDir:    "somedir",
+	}
+	testObj4 := testArgs{
+		privateReg: "",
+		fromDir:    "",
+	}
+
+	tests := []struct {
+		name   string
+		args   testArgs
+		expect bool
+	}{
+		{"useDefaultReg() with private registry", testObj1, false},
+		{"useDefaultReg() with private registry and airgap mode", testObj2, false},
+		{"useDefaultReg() in air gap mode", testObj3, false},
+		{"useDefaultReg() with no private registry and no airgap mode", testObj4, true},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := useDefaultReg(test.args.privateReg, test.args.fromDir)
+			assert.Equal(t, test.expect, got)
+		})
+	}
+}
