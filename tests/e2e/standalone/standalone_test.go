@@ -487,6 +487,7 @@ func testRunEnableApiLogging(t *testing.T) {
 		require.NoError(t, err, "run failed")
 		assert.Contains(t, output, "Exited App successfully")
 		assert.Contains(t, output, "Exited Dapr successfully")
+		assert.NotContains(t, output, "level=debug msg=\"HTTP API Called: PUT /v1.0/metadata/appCommand\"")
 	})
 }
 
