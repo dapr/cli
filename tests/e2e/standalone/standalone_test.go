@@ -456,7 +456,7 @@ func testRun(t *testing.T) {
 	})
 }
 
-func testRunEnableApiLogging(t *testing.T) {
+func testRunEnableAPILogging(t *testing.T) {
 	daprPath := getDaprPath()
 	args := []string{
 		"run",
