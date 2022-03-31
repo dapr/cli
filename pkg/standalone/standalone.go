@@ -147,8 +147,8 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 			return errors.New("could not connect to Docker. Docker may not be installed or running")
 		}
 
-		// Initialize default registry only if it is not airgap mode or from private registries.
-		if len(strings.TrimSpace(imageRegistryURL)) == 0 && len(strings.TrimSpace(fromDir)) == 0 {
+		// Initialize default registry only if it is not from private registries.
+		if len(strings.TrimSpace(imageRegistryURL)) == 0 {
 			defaultImageRegistryName, err = utils.GetDefaultRegistry(githubContainerRegistryName, dockerContainerRegistryName)
 			if err != nil {
 				return err
