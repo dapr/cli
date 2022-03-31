@@ -430,7 +430,7 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 	}
 	image = getPlacementImageWithTag(image, info.runtimeVersion)
 
-	if checkFallbackImg(imgInfo) {
+	if checkFallbackImg(imgInfo, info.fromDir) {
 		if !TryPullImage(image) {
 			print.InfoStatusEvent(os.Stdout, "Placement image not found in Github container registry, pulling it from Docker Hub")
 			image = getPlacementImageWithTag(daprDockerImageName, info.runtimeVersion)
@@ -1070,8 +1070,8 @@ func getPlacementImageWithTag(name, version string) string {
 	return fmt.Sprintf("%s:%s", name, version)
 }
 
-func checkFallbackImg(imageInfo daprImageInfo) bool {
-	if imageInfo.imageRegistryURL != "" {
+func checkFallbackImg(imageInfo daprImageInfo, fromDir string) bool {
+	if imageInfo.imageRegistryURL != "" || fromDir != "" {
 		return false
 	}
 	return imageInfo.imageRegistryName == githubContainerRegistryName

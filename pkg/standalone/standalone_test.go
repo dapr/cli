@@ -266,20 +266,23 @@ func TestCheckFallbackImg(t *testing.T) {
 	}
 
 	tests := []struct {
-		name   string
-		args   daprImageInfo
-		expect bool
+		name      string
+		imageInfo daprImageInfo
+		fromDir   string
+		expect    bool
 	}{
-		{"checkFallbackImg() with private registry and def as Docker Hub", daprImgWithPrivateRegAndDefAsDocker, false},
-		{"checkFallbackImg() with private registry and def as GHCR", daprImgWithPrivateRegAndDefAsGHCR, false},
-		{"checkFallbackImg() with private registry with no Def", daprImgWithPrivateRegAndNoDef, false},
-		{"checkFallbackImg() with no private registry and def as Docker Hub", daprImgWithDefAsDocker, false},
-		{"checkFallbackImg() with no private registry and def as GHCR", daprImgWithDefAsGHCR, true},
+		{"checkFallbackImg() with private registry and def as Docker Hub", daprImgWithPrivateRegAndDefAsDocker, "", false},
+		{"checkFallbackImg() with private registry and def as GHCR", daprImgWithPrivateRegAndDefAsGHCR, "", false},
+		{"checkFallbackImg() with private registry with no Def", daprImgWithPrivateRegAndNoDef, "", false},
+		{"checkFallbackImg() with no private registry and def as Docker Hub", daprImgWithDefAsDocker, "", false},
+		{"checkFallbackImg() with no private registry and def as GHCR", daprImgWithDefAsGHCR, "", true},
+		{"checkFallbackImg() airgap mode with no private registry and def as GHCR", daprImgWithDefAsGHCR, "testDir", false},
+		{"checkFallbackImg() airgap mode with no private registry and def as Docker Hub", daprImgWithDefAsDocker, "testDir", false},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got := checkFallbackImg(test.args)
+			got := checkFallbackImg(test.imageInfo, test.fromDir)
 			assert.Equal(t, test.expect, got)
 		})
 	}
