@@ -146,7 +146,9 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		if !dockerInstalled {
 			return errors.New("could not connect to Docker. Docker may not be installed or running")
 		}
-		if useDefaultReg(imageRegistryURL, fromDir) {
+
+		// Initialise default registry only if it is not airgap mode or init for private registries.
+		if len(strings.TrimSpace(imageRegistryURL)) == 0 && len(strings.TrimSpace(fromDir)) == 0 {
 			defaultImageRegistryName, err = utils.GetDefaultRegistry(githubContainerRegistryName, dockerContainerRegistryName)
 			if err != nil {
 				return err
@@ -430,7 +432,7 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 	}
 	image = getPlacementImageWithTag(image, info.runtimeVersion)
 
-	if checkFallbackImg(imgInfo, info.fromDir) {
+	if checkFallbackImgForPlacement(imgInfo, info.fromDir) {
 		if !TryPullImage(image) {
 			print.InfoStatusEvent(os.Stdout, "Placement image not found in Github container registry, pulling it from Docker Hub")
 			image = getPlacementImageWithTag(daprDockerImageName, info.runtimeVersion)
@@ -1070,18 +1072,11 @@ func getPlacementImageWithTag(name, version string) string {
 	return fmt.Sprintf("%s:%s", name, version)
 }
 
-func checkFallbackImg(imageInfo daprImageInfo, fromDir string) bool {
+func checkFallbackImgForPlacement(imageInfo daprImageInfo, fromDir string) bool {
 	if imageInfo.imageRegistryURL != "" || fromDir != "" {
 		return false
 	}
 	return imageInfo.imageRegistryName == githubContainerRegistryName
-}
-
-func useDefaultReg(privateReg, fromDir string) bool {
-	if privateReg != "" || fromDir != "" {
-		return false
-	}
-	return true
 }
 
 func resolveImageURI(imageInfo daprImageInfo) (string, error) {
