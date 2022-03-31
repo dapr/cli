@@ -146,9 +146,13 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		if !dockerInstalled {
 			return errors.New("could not connect to Docker. Docker may not be installed or running")
 		}
-		defaultImageRegistryName, err = utils.GetDefaultRegistry(githubContainerRegistryName, dockerContainerRegistryName)
-		if err != nil {
-			return err
+
+		// Initialize default registry only if it is not airgap mode or from private registries.
+		if len(strings.TrimSpace(imageRegistryURL)) == 0 && len(strings.TrimSpace(fromDir)) == 0 {
+			defaultImageRegistryName, err = utils.GetDefaultRegistry(githubContainerRegistryName, dockerContainerRegistryName)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -415,19 +419,20 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 
 	placementContainerName := utils.CreateContainerName(DaprPlacementContainerName, info.dockerNetwork)
 
-	image, err := resolveImageURI(daprImageInfo{
+	imgInfo := daprImageInfo{
 		ghcrImageName:      daprGhcrImageName,
 		dockerHubImageName: daprDockerImageName,
 		imageRegistryURL:   info.imageRegistryURL,
 		imageRegistryName:  defaultImageRegistryName,
-	})
+	}
+	image, err := resolveImageURI(imgInfo)
 	if err != nil {
 		errorChan <- err
 		return
 	}
 	image = getPlacementImageWithTag(image, info.runtimeVersion)
 
-	if defaultImageRegistryName == githubContainerRegistryName {
+	if checkFallbackImgForPlacement(imgInfo, info.fromDir) {
 		if !TryPullImage(image) {
 			print.InfoStatusEvent(os.Stdout, "Placement image not found in Github container registry, pulling it from Docker Hub")
 			image = getPlacementImageWithTag(daprDockerImageName, info.runtimeVersion)
@@ -1065,6 +1070,15 @@ func getPlacementImageWithTag(name, version string) string {
 		return name
 	}
 	return fmt.Sprintf("%s:%s", name, version)
+}
+
+// Try for fallback image from docker iff this init flow is using GHCR as default registry.
+// TODO: We may want to remove this logic completely after next couple of releases.
+func checkFallbackImgForPlacement(imageInfo daprImageInfo, fromDir string) bool {
+	if imageInfo.imageRegistryURL != "" || fromDir != "" {
+		return false
+	}
+	return imageInfo.imageRegistryName == githubContainerRegistryName
 }
 
 func resolveImageURI(imageInfo daprImageInfo) (string, error) {
