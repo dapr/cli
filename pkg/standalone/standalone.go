@@ -147,7 +147,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 			return errors.New("could not connect to Docker. Docker may not be installed or running")
 		}
 
-		// Initialise default registry only if it is not airgap mode or init for private registries.
+		// Initialize default registry only if it is not airgap mode or from private registries.
 		if len(strings.TrimSpace(imageRegistryURL)) == 0 && len(strings.TrimSpace(fromDir)) == 0 {
 			defaultImageRegistryName, err = utils.GetDefaultRegistry(githubContainerRegistryName, dockerContainerRegistryName)
 			if err != nil {
@@ -1072,6 +1072,8 @@ func getPlacementImageWithTag(name, version string) string {
 	return fmt.Sprintf("%s:%s", name, version)
 }
 
+// Try for fallback image from docker iff this init flow is using GHCR as default registry.
+// TODO: We may want to remove this logic completely after next couple of releases.
 func checkFallbackImgForPlacement(imageInfo daprImageInfo, fromDir string) bool {
 	if imageInfo.imageRegistryURL != "" || fromDir != "" {
 		return false
