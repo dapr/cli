@@ -610,14 +610,13 @@ $ dapr invoke --app-id nodeapp --unix-domain-socket --method mymethod
 
 ### Set API log level
 
-In order to set the Dapr runtime API calls log verbosity level, use the `api-log-level` flag:
+In order to set the Dapr runtime to log API calls with `INFO` log verbosity, use the `enable-api-logging` flag:
 
 ```bash
-dapr run --app-id nodeapp --app-port 3000 node app.js --api-log-level info
+dapr run --app-id nodeapp --app-port 3000 node app.js enable-api-logging
 ```
 
-This sets the Dapr API log level to `info`.
-The default is `debug`.
+The default is `false`.
 
 For more details, please run the command and check the examples to apply to your shell.
 
