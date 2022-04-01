@@ -190,7 +190,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 	if isAirGapInit {
 		bundleDet = bundleDetails{}
 		detailsFilePath := path_filepath.Join(fromDir, bundleDetailsFileName)
-		err = bundleDet.readAndparseDetails(detailsFilePath)
+		err = bundleDet.readAndParseDetails(detailsFilePath)
 		if err != nil {
 			return fmt.Errorf("error parsing details file from bundle location: %w", err)
 		}

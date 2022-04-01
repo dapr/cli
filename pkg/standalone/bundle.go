@@ -33,7 +33,7 @@ type bundleDetails struct {
 }
 
 // readAndParseDetails reads the file in detailsFilePath and tries to parse it into the bundleDetails struct.
-func (b *bundleDetails) readAndparseDetails(detailsFilePath string) error {
+func (b *bundleDetails) readAndParseDetails(detailsFilePath string) error {
 	bytes, err := ioutil.ReadFile(detailsFilePath)
 	if err != nil {
 		return err
