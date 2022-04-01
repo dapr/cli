@@ -48,7 +48,7 @@ dapr mtls renew-certificate -k --valid-until <no of days> --restart
 dapr mtls renew-certificate -k --private-key myprivatekey.key --valid-until <no of days>
 
 # Rotates certificate of your kubernetes cluster with provided ca.cert, issuer.crt and issuer.key file path
-dapr mtls renew-certificate -k --ca-root-certificate <ca.crt> --issuer-private-key <issuer.key> --issuer-public-certificate <issuer.crt> --restart
+dapr mtls renew-certificate -k --ca-root-certificate <root.pem> --issuer-private-key <issuer.key> --issuer-public-certificate <issuer.pem> --restart
 
 # See more at: https://docs.dapr.io/getting-started/
 `,
@@ -63,12 +63,13 @@ dapr mtls renew-certificate -k --ca-root-certificate <ca.crt> --issuer-private-k
 			if kubernetesMode {
 				print.PendingStatusEvent(os.Stdout, "Starting certificate rotation")
 				if rootcertFlag || issuerKeyFlag || issuerCertFlag {
-					print.InfoStatusEvent(os.Stdout, "Using provided certificates")
 					flagArgsEmpty := checkReqFlagArgsEmpty(caRootCertificateFile, issuerPrivateKeyFile, issuerPublicCertificateFile)
 					if flagArgsEmpty {
-						err = fmt.Errorf("required flags %q, %q and %q not present", "ca-root-certificate", "issuer-private-key", "issuer-public-certificate")
+						err = fmt.Errorf("all required flags for this certificate rotation path, %q, %q and %q are not present",
+							"ca-root-certificate", "issuer-private-key", "issuer-public-certificate")
 						logErrorAndExit(err)
 					}
+					print.InfoStatusEvent(os.Stdout, "Using provided certificates")
 					err = kubernetes.RenewCertificate(kubernetes.RenewCertificateParams{
 						RootCertificateFilePath:   caRootCertificateFile,
 						IssuerCertificateFilePath: issuerPublicCertificateFile,
@@ -79,12 +80,12 @@ dapr mtls renew-certificate -k --ca-root-certificate <ca.crt> --issuer-private-k
 						logErrorAndExit(err)
 					}
 				} else if pkFlag {
-					print.InfoStatusEvent(os.Stdout, "Using password file to generate root certificate")
 					flagArgsEmpty := checkReqFlagArgsEmpty(privateKey)
 					if flagArgsEmpty {
-						err = fmt.Errorf("required flag %q not present", "privateKey")
+						err = fmt.Errorf("%q flag has incorrect value", "privateKey")
 						logErrorAndExit(err)
 					}
+					print.InfoStatusEvent(os.Stdout, "Using password file to generate root certificate")
 					err = kubernetes.RenewCertificate(kubernetes.RenewCertificateParams{
 						RootPrivateKeyFilePath: privateKey,
 						ValidUntil:             time.Hour * time.Duration(validUntil*24),
@@ -145,7 +146,7 @@ func checkReqFlagArgsEmpty(params ...string) bool {
 }
 
 func logErrorAndExit(err error) {
-	err = fmt.Errorf("certificate rotation failed! %w", err)
+	err = fmt.Errorf("certificate rotation failed: %w", err)
 	print.FailureStatusEvent(os.Stderr, err.Error())
 	os.Exit(1)
 }
