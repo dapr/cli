@@ -16,6 +16,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -53,11 +54,22 @@ dapr mtls renew-certificate -k --ca-root-certificate <ca.crt> --issuer-private-k
 `,
 
 		Run: func(cmd *cobra.Command, args []string) {
+			var err error
+			pkFlag := cmd.Flags().Lookup("private-key").Changed
+			rootcertFlag := cmd.Flags().Lookup("ca-root-certificate").Changed
+			issuerKeyFlag := cmd.Flags().Lookup("issuer-private-key").Changed
+			issuerCertFlag := cmd.Flags().Lookup("issuer-public-certificate").Changed
+
 			if kubernetesMode {
 				print.PendingStatusEvent(os.Stdout, "Starting certificate rotation")
-				if caRootCertificateFile != "" && issuerPrivateKeyFile != "" && issuerPublicCertificateFile != "" {
+				if rootcertFlag || issuerKeyFlag || issuerCertFlag {
 					print.InfoStatusEvent(os.Stdout, "Using provided certificates")
-					err := kubernetes.RenewCertificate(kubernetes.RenewCertificateParams{
+					flagArgsEmpty := checkReqFlagArgsEmpty(caRootCertificateFile, issuerPrivateKeyFile, issuerPublicCertificateFile)
+					if flagArgsEmpty {
+						err = fmt.Errorf("required flags %q, %q and %q not present", "ca-root-certificate", "issuer-private-key", "issuer-public-certificate")
+						logErrorAndExit(err)
+					}
+					err = kubernetes.RenewCertificate(kubernetes.RenewCertificateParams{
 						RootCertificateFilePath:   caRootCertificateFile,
 						IssuerCertificateFilePath: issuerPublicCertificateFile,
 						IssuerPrivateKeyFilePath:  issuerPrivateKeyFile,
@@ -66,9 +78,14 @@ dapr mtls renew-certificate -k --ca-root-certificate <ca.crt> --issuer-private-k
 					if err != nil {
 						logErrorAndExit(err)
 					}
-				} else if privateKey != "" {
+				} else if pkFlag {
 					print.InfoStatusEvent(os.Stdout, "Using password file to generate root certificate")
-					err := kubernetes.RenewCertificate(kubernetes.RenewCertificateParams{
+					flagArgsEmpty := checkReqFlagArgsEmpty(privateKey)
+					if flagArgsEmpty {
+						err = fmt.Errorf("required flag %q not present", "privateKey")
+						logErrorAndExit(err)
+					}
+					err = kubernetes.RenewCertificate(kubernetes.RenewCertificateParams{
 						RootPrivateKeyFilePath: privateKey,
 						ValidUntil:             time.Hour * time.Duration(validUntil*24),
 						Timeout:                timeout,
@@ -78,7 +95,7 @@ dapr mtls renew-certificate -k --ca-root-certificate <ca.crt> --issuer-private-k
 					}
 				} else {
 					print.InfoStatusEvent(os.Stdout, "generating fresh certificates")
-					err := kubernetes.RenewCertificate(kubernetes.RenewCertificateParams{
+					err = kubernetes.RenewCertificate(kubernetes.RenewCertificateParams{
 						ValidUntil: time.Hour * time.Duration(validUntil*24),
 						Timeout:    timeout,
 					})
@@ -118,8 +135,17 @@ dapr mtls renew-certificate -k --ca-root-certificate <ca.crt> --issuer-private-k
 	return command
 }
 
+func checkReqFlagArgsEmpty(params ...string) bool {
+	for _, val := range params {
+		if len(strings.TrimSpace(val)) == 0 {
+			return true
+		}
+	}
+	return false
+}
+
 func logErrorAndExit(err error) {
-	err = fmt.Errorf("certificate rotation failed %w", err)
+	err = fmt.Errorf("certificate rotation failed! %w", err)
 	print.FailureStatusEvent(os.Stderr, err.Error())
 	os.Exit(1)
 }
