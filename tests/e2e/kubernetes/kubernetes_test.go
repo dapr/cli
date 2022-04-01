@@ -31,7 +31,7 @@ var (
 // ensureCleanEnv function needs to be called in every Test function.
 // sets necessary variable values and uninstalls any previously installed `dapr`.
 func ensureCleanEnv(t *testing.T) {
-	currentRuntimeVersion, currentDashboardVersion = common.GetFromEnvVar(t)
+	currentRuntimeVersion, currentDashboardVersion = common.GetVersionsFromEnv(t)
 
 	currentVersionDetails = common.VersionDetails{
 		RuntimeVersion:      currentRuntimeVersion,

@@ -51,7 +51,7 @@ var socketCases = []string{"", "/tmp"}
 func TestStandaloneInstall(t *testing.T) {
 	// Ensure a clean environment.
 	uninstall()
-	daprRuntimeVersion, daprDashboardVersion = testCommon.GetFromEnvVar(t)
+	daprRuntimeVersion, daprDashboardVersion = testCommon.GetVersionsFromEnv(t)
 
 	tests := []struct {
 		name  string
@@ -75,7 +75,7 @@ func TestStandaloneInstall(t *testing.T) {
 func TestEnableAPILogging(t *testing.T) {
 	// Ensure a clean environment.
 	uninstall()
-	daprRuntimeVersion, daprDashboardVersion = testCommon.GetFromEnvVar(t)
+	daprRuntimeVersion, daprDashboardVersion = testCommon.GetVersionsFromEnv(t)
 
 	tests := []struct {
 		name  string
@@ -94,7 +94,7 @@ func TestEnableAPILogging(t *testing.T) {
 func TestNegativeScenarios(t *testing.T) {
 	// Ensure a clean environment
 	uninstall()
-	daprRuntimeVersion, daprDashboardVersion = testCommon.GetFromEnvVar(t)
+	daprRuntimeVersion, daprDashboardVersion = testCommon.GetVersionsFromEnv(t)
 	daprPath := getDaprPath()
 
 	homeDir, err := os.UserHomeDir()
@@ -165,7 +165,7 @@ func TestNegativeScenarios(t *testing.T) {
 func TestPrivateRegistry(t *testing.T) {
 	// Ensure a clean environment.
 	uninstall()
-	daprRuntimeVersion, daprDashboardVersion = testCommon.GetFromEnvVar(t)
+	daprRuntimeVersion, daprDashboardVersion = testCommon.GetVersionsFromEnv(t)
 
 	tests := []struct {
 		name  string

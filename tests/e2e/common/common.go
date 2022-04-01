@@ -70,7 +70,7 @@ type TestCase struct {
 	Callable func(*testing.T)
 }
 
-// GetFromEnvVar will return values from required environment variables,
+// GetVersionsFromEnv will return values from required environment variables,
 // if environment variables are not set it fails the test.
 func GetVersionsFromEnv(t *testing.T) (daprRuntimeVersion string, daprDashboardVersion string) {
 	if runtimeVersion, ok := os.LookupEnv("DAPR_RUNTIME_VERSION"); ok {
