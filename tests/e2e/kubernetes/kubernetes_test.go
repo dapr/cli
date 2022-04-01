@@ -23,10 +23,7 @@ import (
 	"github.com/dapr/cli/tests/e2e/common"
 )
 
-var (
-	currentRuntimeVersion   = os.Getenv("DAPR_RUNTIME_VERSION")
-	currentDashboardVersion = os.Getenv("DAPR_DASHBOARD_VERSION")
-)
+var currentRuntimeVersion, currentDashboardVersion = common.GetFromEnvVar(t)
 
 var currentVersionDetails = common.VersionDetails{
 	RuntimeVersion:      currentRuntimeVersion,
@@ -172,7 +169,7 @@ func TestRenewCertificateMTLSEnabled(t *testing.T) {
 	common.EnsureUninstall(true)
 
 	tests := []common.TestCase{}
-	var installOpts = common.TestOptions{
+	installOpts := common.TestOptions{
 		HAEnabled:             false,
 		MTLSEnabled:           true,
 		ApplyComponentChanges: true,
@@ -221,7 +218,7 @@ func TestRenewCertificateMTLSDisabled(t *testing.T) {
 	common.EnsureUninstall(true)
 
 	tests := []common.TestCase{}
-	var installOpts = common.TestOptions{
+	installOpts := common.TestOptions{
 		HAEnabled:             false,
 		MTLSEnabled:           false,
 		ApplyComponentChanges: true,
@@ -270,7 +267,7 @@ func TestRenewCertWithPrivateKey(t *testing.T) {
 	common.EnsureUninstall(true)
 
 	tests := []common.TestCase{}
-	var installOpts = common.TestOptions{
+	installOpts := common.TestOptions{
 		HAEnabled:             false,
 		MTLSEnabled:           true,
 		ApplyComponentChanges: true,

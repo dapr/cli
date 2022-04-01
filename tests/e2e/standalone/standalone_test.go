@@ -33,6 +33,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
 
+	testCommon "github.com/dapr/cli/tests/e2e/common"
 	"github.com/dapr/cli/tests/e2e/spawn"
 	"github.com/dapr/go-sdk/service/common"
 	daprHttp "github.com/dapr/go-sdk/service/http"
@@ -47,24 +48,10 @@ var (
 
 var socketCases = []string{"", "/tmp"}
 
-// setFromEnvVar will set local var values from required environment variables, if not fail the test.
-func setFromEnvVar(t *testing.T) {
-	if runtimeVersion, ok := os.LookupEnv("DAPR_RUNTIME_VERSION"); ok {
-		daprRuntimeVersion = runtimeVersion
-	} else {
-		t.Fatalf("env var \"DAPR_RUNTIME_VERSION\" not set")
-	}
-	if dashboardVersion, ok := os.LookupEnv("DAPR_DASHBOARD_VERSION"); ok {
-		daprDashboardVersion = dashboardVersion
-	} else {
-		t.Fatalf("env var \"DAPR_DASHBOARD_VERSION\" not set")
-	}
-}
-
 func TestStandaloneInstall(t *testing.T) {
 	// Ensure a clean environment.
 	uninstall()
-	setFromEnvVar(t)
+	daprRuntimeVersion, daprDashboardVersion = testCommon.GetFromEnvVar(t)
 
 	tests := []struct {
 		name  string
@@ -88,7 +75,7 @@ func TestStandaloneInstall(t *testing.T) {
 func TestEnableAPILogging(t *testing.T) {
 	// Ensure a clean environment.
 	uninstall()
-	setFromEnvVar(t)
+	daprRuntimeVersion, daprDashboardVersion = testCommon.GetFromEnvVar(t)
 
 	tests := []struct {
 		name  string
@@ -107,7 +94,7 @@ func TestEnableAPILogging(t *testing.T) {
 func TestNegativeScenarios(t *testing.T) {
 	// Ensure a clean environment
 	uninstall()
-	setFromEnvVar(t)
+	daprRuntimeVersion, daprDashboardVersion = testCommon.GetFromEnvVar(t)
 	daprPath := getDaprPath()
 
 	homeDir, err := os.UserHomeDir()
@@ -178,7 +165,7 @@ func TestNegativeScenarios(t *testing.T) {
 func TestPrivateRegistry(t *testing.T) {
 	// Ensure a clean environment.
 	uninstall()
-	setFromEnvVar(t)
+	daprRuntimeVersion, daprDashboardVersion = testCommon.GetFromEnvVar(t)
 
 	tests := []struct {
 		name  string
