@@ -282,7 +282,25 @@ func TestCheckFallbackImg(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got := checkFallbackImgForPlacement(test.imageInfo, test.fromDir)
+			got := useGHCR(test.imageInfo, test.fromDir)
+			assert.Equal(t, test.expect, got)
+		})
+	}
+}
+
+func TestIsAirGapInit(t *testing.T) {
+	tests := []struct {
+		name    string
+		fromDir string
+		expect  bool
+	}{
+		{"empty string", "", false},
+		{"string with spaces", "   ", false},
+		{"string with value", "./local-dir", true},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := isAirGapInit(test.fromDir)
 			assert.Equal(t, test.expect, got)
 		})
 	}

@@ -41,15 +41,30 @@ import (
 )
 
 var (
-	daprRuntimeVersion   = os.Getenv("DAPR_RUNTIME_VERSION")
-	daprDashboardVersion = os.Getenv("DAPR_DASHBOARD_VERSION")
+	daprRuntimeVersion   string
+	daprDashboardVersion string
 )
 
 var socketCases = []string{"", "/tmp"}
 
+// setFromEnvVar will set local var values from required environment variables, if not fail the test.
+func setFromEnvVar(t *testing.T) {
+	if runtimeVersion, ok := os.LookupEnv("DAPR_RUNTIME_VERSION"); ok {
+		daprRuntimeVersion = runtimeVersion
+	} else {
+		t.Fatalf("env var \"DAPR_RUNTIME_VERSION\" not set")
+	}
+	if dashboardVersion, ok := os.LookupEnv("DAPR_DASHBOARD_VERSION"); ok {
+		daprDashboardVersion = dashboardVersion
+	} else {
+		t.Fatalf("env var \"DAPR_DASHBOARD_VERSION\" not set")
+	}
+}
+
 func TestStandaloneInstall(t *testing.T) {
 	// Ensure a clean environment.
 	uninstall()
+	setFromEnvVar(t)
 
 	tests := []struct {
 		name  string
@@ -73,6 +88,7 @@ func TestStandaloneInstall(t *testing.T) {
 func TestEnableAPILogging(t *testing.T) {
 	// Ensure a clean environment.
 	uninstall()
+	setFromEnvVar(t)
 
 	tests := []struct {
 		name  string
@@ -91,6 +107,7 @@ func TestEnableAPILogging(t *testing.T) {
 func TestNegativeScenarios(t *testing.T) {
 	// Ensure a clean environment
 	uninstall()
+	setFromEnvVar(t)
 	daprPath := getDaprPath()
 
 	homeDir, err := os.UserHomeDir()
@@ -146,15 +163,22 @@ func TestNegativeScenarios(t *testing.T) {
 
 	t.Run("filter dashboard instance from list", func(t *testing.T) {
 		spawn.Command(daprPath, "dashboard", "-p", "5555")
-		cmd, err := spawn.Command(daprPath, "list")
+		output, err := spawn.Command(daprPath, "list")
 		require.NoError(t, err, "expected no error status on list without install")
-		require.Equal(t, "No Dapr instances found.\n", cmd)
+		require.Equal(t, "No Dapr instances found.\n", output)
+	})
+
+	t.Run("error if both --from-dir and --image-registry given", func(t *testing.T) {
+		output, err := spawn.Command(daprPath, "init", "--image-registry", "localhost:5000", "--from-dir", "./local-dir")
+		require.Error(t, err, "expected error if both flags are given")
+		require.Contains(t, output, "both --image-registry and --from-dir flags cannot be given at the same time")
 	})
 }
 
 func TestPrivateRegistry(t *testing.T) {
 	// Ensure a clean environment.
 	uninstall()
+	setFromEnvVar(t)
 
 	tests := []struct {
 		name  string

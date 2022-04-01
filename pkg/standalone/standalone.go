@@ -17,7 +17,6 @@ import (
 	"archive/tar"
 	"archive/zip"
 	"compress/gzip"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -39,24 +38,34 @@ import (
 )
 
 const (
-	daprDockerImageName        = "daprio/dapr"
 	daprRuntimeFilePrefix      = "daprd"
 	dashboardFilePrefix        = "dashboard"
 	placementServiceFilePrefix = "placement"
-	daprWindowsOS              = "windows"
-	latestVersion              = "latest"
-	daprDefaultHost            = "localhost"
-	pubSubYamlFileName         = "pubsub.yaml"
-	stateStoreYamlFileName     = "statestore.yaml"
-	redisDockerImageName       = "redis"
-	zipkinDockerImageName      = "openzipkin/zipkin"
 
+	daprWindowsOS = "windows"
+
+	latestVersion   = "latest"
+	daprDefaultHost = "localhost"
+
+	pubSubYamlFileName     = "pubsub.yaml"
+	stateStoreYamlFileName = "statestore.yaml"
+
+	// used when DAPR_DEFAULT_IMAGE_REGISTRY is not set.
+	dockerContainerRegistryName = "dockerhub"
+	daprDockerImageName         = "daprio/dapr"
+	redisDockerImageName        = "redis"
+	zipkinDockerImageName       = "openzipkin/zipkin"
+
+	// used when DAPR_DEFAULT_IMAGE_REGISTRY is set as GHCR.
 	githubContainerRegistryName = "ghcr"
 	ghcrURI                     = "ghcr.io/dapr"
 	daprGhcrImageName           = "dapr"
-	dockerContainerRegistryName = "dockerhub"
 	redisGhcrImageName          = "3rdparty/redis"
 	zipkinGhcrImageName         = "3rdparty/zipkin"
+
+	// used when --from-dir flag is specified.
+	daprBinarySubDir = "dist"
+	daprImageSubDir  = "docker"
 
 	// DaprPlacementContainerName is the container name of placement service.
 	DaprPlacementContainerName = "dapr_placement"
@@ -66,9 +75,6 @@ const (
 	DaprZipkinContainerName = "dapr_zipkin"
 
 	errInstallTemplate = "please run `dapr uninstall` first before running `dapr init`"
-
-	daprBinarySubDir  = "dist"
-	dockerImageSubDir = "docker"
 )
 
 var (
@@ -112,6 +118,7 @@ type componentMetadataItem struct {
 
 type initInfo struct {
 	fromDir          string
+	bundleDet        *bundleDetails
 	slimMode         bool
 	runtimeVersion   string
 	dashboardVersion string
@@ -141,14 +148,16 @@ func isBinaryInstallationRequired(binaryFilePrefix, installDir string) (bool, er
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
 func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool, imageRegistryURL string, fromDir string) error {
 	var err error
+	var bundleDet bundleDetails
 	if !slimMode {
+		// If --slim installation is not requested, check if docker is installed.
 		dockerInstalled := utils.IsDockerInstalled()
 		if !dockerInstalled {
 			return errors.New("could not connect to Docker. Docker may not be installed or running")
 		}
 
-		// Initialize default registry only if it is not airgap mode or from private registries.
-		if len(strings.TrimSpace(imageRegistryURL)) == 0 && len(strings.TrimSpace(fromDir)) == 0 {
+		// Initialize default registry only if --slim or --image-registry or --from-dir are not given.
+		if len(strings.TrimSpace(imageRegistryURL)) == 0 && !isAirGapInit(fromDir) {
 			defaultImageRegistryName, err = utils.GetDefaultRegistry(githubContainerRegistryName, dockerContainerRegistryName)
 			if err != nil {
 				return err
@@ -156,16 +165,16 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		}
 	}
 
-	if runtimeVersion == latestVersion && fromDir == "" {
+	// Set runtime version.
+
+	if runtimeVersion == latestVersion && !isAirGapInit(fromDir) {
 		runtimeVersion, err = cli_ver.GetDaprVersion()
 		if err != nil {
 			return fmt.Errorf("cannot get the latest release version: '%w'. Try specifying --runtime-version=<desired_version>", err)
 		}
 	}
 
-	print.InfoStatusEvent(os.Stdout, "Installing runtime version %s", runtimeVersion)
-
-	if dashboardVersion == latestVersion && fromDir == "" {
+	if dashboardVersion == latestVersion && !isAirGapInit(fromDir) {
 		dashboardVersion, err = cli_ver.GetDashboardVersion()
 		if err != nil {
 			print.WarningStatusEvent(os.Stdout, "cannot get the latest dashboard version: '%s'. Try specifying --dashboard-version=<desired_version>", err)
@@ -173,14 +182,27 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		}
 	}
 
-	if fromDir != "" {
-		v1, v2 := parseVersionFile(fromDir)
-		if v1 != "" && v2 != "" {
-			runtimeVersion, dashboardVersion = v1, v2
-		} else {
-			return fmt.Errorf("runtime and dashboard versions cannot be parsed from version file in directory")
+	// If --from-dir flag is given try parsing the details from the expected details file in the specified directory.
+	if isAirGapInit(fromDir) {
+		bundleDet = bundleDetails{}
+		detailsFilePath := path_filepath.Join(fromDir, bundleDetailsFileName)
+		err = bundleDet.parseDetails(detailsFilePath)
+		if err != nil {
+			return fmt.Errorf("error parsing details file from bundle location: %w", err)
 		}
+
+		// Set runtime and dashboard versions from the bundle details parsed.
+
+		runtimeVersion = *bundleDet.RuntimeVersion
+		dashboardVersion = *bundleDet.DashboardVersion
 	}
+
+	// At this point the runtimeVersion variable is parsed either from the details file if --fromDir is specified or
+	// got from running the command cli_ver.GetRuntimeVersion().
+
+	// After this point runtimeVersion will not be latest string but rather actual version.
+
+	print.InfoStatusEvent(os.Stdout, "Installing runtime version %s", runtimeVersion)
 
 	daprBinDir := defaultDaprBinPath()
 	err = prepareDaprInstallDir(daprBinDir)
@@ -210,7 +232,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 	wg.Add(len(initSteps))
 
 	msg := "Downloading binaries and setting up components..."
-	if fromDir != "" {
+	if isAirGapInit(fromDir) {
 		msg = "Extracting binaries and setting up components..."
 	}
 	stopSpinning := print.Spinner(os.Stdout, msg)
@@ -223,6 +245,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 	}
 
 	info := initInfo{
+		bundleDet:        &bundleDet, // will be nil if fromDir is empty, so must be used in conjunction with fromDir.
 		fromDir:          fromDir,
 		slimMode:         slimMode,
 		runtimeVersion:   runtimeVersion,
@@ -249,7 +272,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 	stopSpinning(print.Success)
 
 	msg = "Downloaded binaries and completed components set up."
-	if fromDir != "" {
+	if isAirGapInit(fromDir) {
 		msg = "Extracted binaries and completed components set up."
 	}
 	print.SuccessStatusEvent(os.Stdout, msg)
@@ -260,7 +283,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 	} else {
 		dockerContainerNames := []string{DaprPlacementContainerName, DaprRedisContainerName, DaprZipkinContainerName}
 		// Skip redis and zipkin in local installation mode.
-		if fromDir != "" {
+		if isAirGapInit(fromDir) {
 			dockerContainerNames = []string{DaprPlacementContainerName}
 		}
 		for _, container := range dockerContainerNames {
@@ -281,7 +304,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 	defer wg.Done()
 
-	if info.slimMode || info.fromDir != "" {
+	if info.slimMode || isAirGapInit(info.fromDir) {
 		return
 	}
 
@@ -348,7 +371,7 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 func runRedis(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 	defer wg.Done()
 
-	if info.slimMode || info.fromDir != "" {
+	if info.slimMode || isAirGapInit(info.fromDir) {
 		return
 	}
 
@@ -419,26 +442,6 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 
 	placementContainerName := utils.CreateContainerName(DaprPlacementContainerName, info.dockerNetwork)
 
-	imgInfo := daprImageInfo{
-		ghcrImageName:      daprGhcrImageName,
-		dockerHubImageName: daprDockerImageName,
-		imageRegistryURL:   info.imageRegistryURL,
-		imageRegistryName:  defaultImageRegistryName,
-	}
-	image, err := resolveImageURI(imgInfo)
-	if err != nil {
-		errorChan <- err
-		return
-	}
-	image = getPlacementImageWithTag(image, info.runtimeVersion)
-
-	if checkFallbackImgForPlacement(imgInfo, info.fromDir) {
-		if !TryPullImage(image) {
-			print.InfoStatusEvent(os.Stdout, "Placement image not found in Github container registry, pulling it from Docker Hub")
-			image = getPlacementImageWithTag(daprDockerImageName, info.runtimeVersion)
-		}
-	}
-
 	exists, err := confirmContainerIsRunningOrExists(placementContainerName, false)
 
 	if err != nil {
@@ -448,10 +451,27 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		errorChan <- fmt.Errorf("%s container exists or is running. %s", placementContainerName, errInstallTemplate)
 		return
 	}
+	var image string
 
-	if info.fromDir != "" {
-		dir := path_filepath.Join(info.fromDir, dockerImageSubDir)
-		err = loadDocker(dir, image)
+	imgInfo := daprImageInfo{
+		ghcrImageName:      daprGhcrImageName,
+		dockerHubImageName: daprDockerImageName,
+		imageRegistryURL:   info.imageRegistryURL,
+		imageRegistryName:  defaultImageRegistryName,
+	}
+
+	if isAirGapInit(info.fromDir) {
+		// if --from-dir flag is given load the image details from the installer-bundle.
+		dir := path_filepath.Join(info.fromDir, daprImageSubDir)
+		image = info.bundleDet.getPlacementImageName()
+		err = loadDocker(dir, info.bundleDet.getPlacementImageFileName())
+		if err != nil {
+			errorChan <- err
+			return
+		}
+	} else {
+		// otherwise load the image from the specified repository.
+		image, err = getPlacementImageName(imgInfo, info)
 		if err != nil {
 			errorChan <- err
 			return
@@ -529,7 +549,7 @@ func moveDashboardFiles(extractedFilePath string, dir string) (string, error) {
 func installDaprRuntime(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 	defer wg.Done()
 
-	err := installBinary(info.runtimeVersion, daprRuntimeFilePrefix, cli_ver.DaprGitHubRepo, info.fromDir)
+	err := installBinary(info.runtimeVersion, daprRuntimeFilePrefix, cli_ver.DaprGitHubRepo, info)
 	if err != nil {
 		errorChan <- err
 	}
@@ -541,7 +561,7 @@ func installDashboard(wg *sync.WaitGroup, errorChan chan<- error, info initInfo)
 		return
 	}
 
-	err := installBinary(info.dashboardVersion, dashboardFilePrefix, cli_ver.DashboardGitHubRepo, info.fromDir)
+	err := installBinary(info.dashboardVersion, dashboardFilePrefix, cli_ver.DashboardGitHubRepo, info)
 	if err != nil {
 		errorChan <- err
 	}
@@ -554,26 +574,27 @@ func installPlacement(wg *sync.WaitGroup, errorChan chan<- error, info initInfo)
 		return
 	}
 
-	err := installBinary(info.runtimeVersion, placementServiceFilePrefix, cli_ver.DaprGitHubRepo, info.fromDir)
+	err := installBinary(info.runtimeVersion, placementServiceFilePrefix, cli_ver.DaprGitHubRepo, info)
 	if err != nil {
 		errorChan <- err
 	}
 }
 
-func installBinary(version, binaryFilePrefix string, githubRepo string, fromDir string) error {
+// installBinary installs the daprd, placement or dashboard binaries and associated files inside the default dapr bin directory.
+func installBinary(version, binaryFilePrefix, githubRepo string, info initInfo) error {
 	var (
 		err      error
 		filepath string
 	)
 
 	dir := defaultDaprBinPath()
-	if fromDir == "" {
+	if isAirGapInit(info.fromDir) {
+		filepath = path_filepath.Join(info.fromDir, daprBinarySubDir, binaryName(binaryFilePrefix))
+	} else {
 		filepath, err = downloadBinary(dir, version, binaryFilePrefix, githubRepo)
 		if err != nil {
 			return fmt.Errorf("error downloading %s binary: %w", binaryFilePrefix, err)
 		}
-	} else {
-		filepath = path_filepath.Join(fromDir, daprBinarySubDir, binaryName(binaryFilePrefix))
 	}
 
 	extractedFilePath, err := extractFile(filepath, dir, binaryFilePrefix)
@@ -581,7 +602,8 @@ func installBinary(version, binaryFilePrefix string, githubRepo string, fromDir 
 		return err
 	}
 
-	if fromDir == "" {
+	// remove downloaded archive from the default dapr bin path.
+	if !isAirGapInit(info.fromDir) {
 		err = os.Remove(filepath)
 		if err != nil {
 			return fmt.Errorf("failed to remove archive: %w", err)
@@ -1050,19 +1072,24 @@ func downloadFile(dir string, url string) (string, error) {
 	return filepath, nil
 }
 
-func parseVersionFile(fromDir string) (string, string) {
-	bytes, err := ioutil.ReadFile(path_filepath.Join(fromDir, "version.json"))
+// getPlacementImageName returns the resolved placement image name for online `dapr init`.
+// It can either be resolved to the image-registry if given, otherwise GitHub container registry if
+// selected or fallback to Docker Hub.
+func getPlacementImageName(imageInfo daprImageInfo, info initInfo) (string, error) {
+	image, err := resolveImageURI(imageInfo)
 	if err != nil {
-		return "", ""
+		return "", err
 	}
 
-	var versions map[string]string
-	err = json.Unmarshal(bytes, &versions)
-	if err != nil {
-		return "", ""
-	}
+	image = getPlacementImageWithTag(image, info.runtimeVersion)
 
-	return versions[daprRuntimeFilePrefix], versions[dashboardFilePrefix]
+	// if default registry is GHCR and the image is not available in or cannot be pulled from GHCR
+	// fallback to using dockerhub.
+	if useGHCR(imageInfo, info.fromDir) && !tryPullImage(image) {
+		print.InfoStatusEvent(os.Stdout, "Placement image not found in Github container registry, pulling it from Docker Hub")
+		image = getPlacementImageWithTag(daprDockerImageName, info.runtimeVersion)
+	}
+	return image, nil
 }
 
 func getPlacementImageWithTag(name, version string) string {
@@ -1072,9 +1099,9 @@ func getPlacementImageWithTag(name, version string) string {
 	return fmt.Sprintf("%s:%s", name, version)
 }
 
-// Try for fallback image from docker iff this init flow is using GHCR as default registry.
+// useGHCR returns true iff default registry is set as GHCR and --image-registry and --from-dir flags are not set.
 // TODO: We may want to remove this logic completely after next couple of releases.
-func checkFallbackImgForPlacement(imageInfo daprImageInfo, fromDir string) bool {
+func useGHCR(imageInfo daprImageInfo, fromDir string) bool {
 	if imageInfo.imageRegistryURL != "" || fromDir != "" {
 		return false
 	}
@@ -1084,7 +1111,7 @@ func checkFallbackImgForPlacement(imageInfo daprImageInfo, fromDir string) bool 
 func resolveImageURI(imageInfo daprImageInfo) (string, error) {
 	if imageInfo.imageRegistryURL != "" {
 		if imageInfo.imageRegistryURL == ghcrURI || imageInfo.imageRegistryURL == "docker.io" {
-			err := fmt.Errorf("flag %s not set correctly", "--image-registry")
+			err := fmt.Errorf("flag --image-registry not set correctly. It cannot be %q or \"docker.io\"", ghcrURI)
 			return "", err
 		}
 		return fmt.Sprintf(privateRegTemplateString, imageInfo.imageRegistryURL, imageInfo.ghcrImageName), nil
@@ -1095,6 +1122,11 @@ func resolveImageURI(imageInfo daprImageInfo) (string, error) {
 	case githubContainerRegistryName:
 		return fmt.Sprintf("%s/%s", ghcrURI, imageInfo.ghcrImageName), nil
 	default:
-		return "", errors.New("imageRegistryName not set correctly")
+		return "", fmt.Errorf("imageRegistryName not set correctly %s", imageInfo.imageRegistryName)
 	}
+}
+
+// isAirGapInit checks if fromDir is specified. If so the init flow is considered to be an offline init.
+func isAirGapInit(fromDir string) bool {
+	return len(strings.TrimSpace(fromDir)) != 0
 }
