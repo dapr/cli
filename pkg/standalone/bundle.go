@@ -44,7 +44,8 @@ func (b *bundleDetails) readAndParseDetails(detailsFilePath string) error {
 		return err
 	}
 	if isStringNilOrEmpty(b.RuntimeVersion) || isStringNilOrEmpty(b.DashboardVersion) ||
-		isStringNilOrEmpty(b.DaprImageName) || isStringNilOrEmpty(b.DaprImageFileName) {
+		isStringNilOrEmpty(b.DaprImageName) || isStringNilOrEmpty(b.DaprImageFileName) ||
+		isStringNilOrEmpty(b.BinarySubDir) || isStringNilOrEmpty(b.ImageSubDir) {
 		return fmt.Errorf("required fields are missing in %s", detailsFilePath)
 	}
 	return nil

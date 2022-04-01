@@ -53,6 +53,7 @@ func TestParseDetailsMissingDetails(t *testing.T) {
 		"daprd" : "1.7.0-rc.2",
 		"dashboard": "0.10.0-rc.2",
 		"cli": "1.7.0-rc.2",
+		"daprImageName": "daprio/dapr:1.7.2-rc.2"
 		"daprImageFileName": "daprio-dapr-1.7.2-rc.2.tar.gz"
 	}`
 	f, err := os.CreateTemp("", "*-details.json")

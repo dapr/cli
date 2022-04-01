@@ -63,10 +63,6 @@ const (
 	redisGhcrImageName          = "3rdparty/redis"
 	zipkinGhcrImageName         = "3rdparty/zipkin"
 
-	// used when --from-dir flag is specified.
-	daprBinarySubDir = "dist"
-	daprImageSubDir  = "docker"
-
 	// DaprPlacementContainerName is the container name of placement service.
 	DaprPlacementContainerName = "dapr_placement"
 	// DaprRedisContainerName is the container name of redis.
@@ -249,7 +245,8 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 	}
 
 	info := initInfo{
-		bundleDet:        &bundleDet, // will be nil if fromDir is empty, so must be used in conjunction with fromDir.
+		// values in bundleDet can be nil if fromDir is empty, so must be used in conjunction with fromDir.
+		bundleDet:        &bundleDet,
 		fromDir:          fromDir,
 		slimMode:         slimMode,
 		runtimeVersion:   runtimeVersion,
@@ -466,7 +463,7 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 
 	if isAirGapInit {
 		// if --from-dir flag is given load the image details from the installer-bundle.
-		dir := path_filepath.Join(info.fromDir, daprImageSubDir)
+		dir := path_filepath.Join(info.fromDir, *info.bundleDet.ImageSubDir)
 		image = info.bundleDet.getPlacementImageName()
 		err = loadDocker(dir, info.bundleDet.getPlacementImageFileName())
 		if err != nil {
@@ -593,7 +590,7 @@ func installBinary(version, binaryFilePrefix, githubRepo string, info initInfo) 
 
 	dir := defaultDaprBinPath()
 	if isAirGapInit {
-		filepath = path_filepath.Join(info.fromDir, daprBinarySubDir, binaryName(binaryFilePrefix))
+		filepath = path_filepath.Join(info.fromDir, *info.bundleDet.BinarySubDir, binaryName(binaryFilePrefix))
 	} else {
 		filepath, err = downloadBinary(dir, version, binaryFilePrefix, githubRepo)
 		if err != nil {
@@ -1113,7 +1110,7 @@ func useGHCR(imageInfo daprImageInfo, fromDir string) bool {
 }
 
 func resolveImageURI(imageInfo daprImageInfo) (string, error) {
-	if imageInfo.imageRegistryURL != "" {
+	if strings.TrimSpace(imageInfo.imageRegistryURL) != "" {
 		if imageInfo.imageRegistryURL == ghcrURI || imageInfo.imageRegistryURL == "docker.io" {
 			err := fmt.Errorf("flag --image-registry not set correctly. It cannot be %q or \"docker.io\"", ghcrURI)
 			return "", err
