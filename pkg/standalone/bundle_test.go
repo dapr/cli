@@ -38,7 +38,7 @@ func TestParseDetails(t *testing.T) {
 	f.WriteString(correctDetails)
 	f.Close()
 	bd := bundleDetails{}
-	err = bd.parseDetails(f.Name())
+	err = bd.readAndparseDetails(f.Name())
 	assert.NoError(t, err, "expected no error on parsing correct details in file")
 	assert.Equal(t, "1.7.0-rc.2", *bd.RuntimeVersion, "expected versions to match")
 	assert.Equal(t, "0.10.0-rc.2", *bd.DashboardVersion, "expected versions to match")
@@ -63,7 +63,29 @@ func TestParseDetailsMissingDetails(t *testing.T) {
 	f.WriteString(missingDetails)
 	f.Close()
 	bd := bundleDetails{}
-	err = bd.parseDetails(f.Name())
+	err = bd.readAndparseDetails(f.Name())
+	assert.Error(t, err, "expected error on parsing missing details in file")
+}
+
+func TestParseDetailsEmptyDetails(t *testing.T) {
+	missingDetails := `{
+		"daprd" : "",
+		"dashboard": "",
+		"cli": "1.7.0-rc.2",
+		"daprBinarySubDir": "dist",
+		"dockerImageSubDir": "docker",
+		"daprImageName": "daprio/dapr:1.7.2-rc.2",
+		"daprImageFileName": "daprio-dapr-1.7.2-rc.2.tar.gz"
+	}`
+	f, err := os.CreateTemp("", "*-details.json")
+	if err != nil {
+		t.Fatalf("error creating temp directory for testing: %s", err)
+	}
+	defer os.Remove(f.Name())
+	f.WriteString(missingDetails)
+	f.Close()
+	bd := bundleDetails{}
+	err = bd.readAndparseDetails(f.Name())
 	assert.Error(t, err, "expected error on parsing missing details in file")
 }
 
@@ -75,6 +97,6 @@ func TestParseDetailsMissingFile(t *testing.T) {
 	f.Close()
 	os.Remove(f.Name())
 	bd := bundleDetails{}
-	err = bd.parseDetails(f.Name())
+	err = bd.readAndparseDetails(f.Name())
 	assert.Error(t, err, "expected error on parsing missing details file")
 }

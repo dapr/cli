@@ -300,8 +300,8 @@ func TestIsAirGapInit(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got := isAirGapInit(test.fromDir)
-			assert.Equal(t, test.expect, got)
+			setAirGapInit(test.fromDir)
+			assert.Equal(t, test.expect, isAirGapInit)
 		})
 	}
 }

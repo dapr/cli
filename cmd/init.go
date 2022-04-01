@@ -111,7 +111,7 @@ dapr init --from-dir <path-to-directory>
 				os.Exit(1)
 			}
 			if len(strings.TrimSpace(fromDir)) != 0 {
-				print.WarningStatusEvent(os.Stdout, "Local bundle installation using from-dir flag is currently a preview feature.")
+				print.WarningStatusEvent(os.Stdout, "Local bundle installation using --from-dir flag is currently a preview feature and is subject to change. It is only available from CLI version 1.7 onwards.")
 			}
 			if len(strings.TrimSpace(imageRegistryURL)) != 0 {
 				print.WarningStatusEvent(os.Stdout, "Flag --image-registry is a preview feature and is subject to change. It is only available from CLI version 1.7 onwards.")

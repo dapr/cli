@@ -17,6 +17,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"strings"
 )
 
 const bundleDetailsFileName = "details.json"
@@ -31,7 +32,8 @@ type bundleDetails struct {
 	DaprImageFileName *string `json:"daprImageFileName"`
 }
 
-func (b *bundleDetails) parseDetails(detailsFilePath string) error {
+// readAndParseDetails reads the file in detailsFilePath and tries to parse it into the bundleDetails struct.
+func (b *bundleDetails) readAndparseDetails(detailsFilePath string) error {
 	bytes, err := ioutil.ReadFile(detailsFilePath)
 	if err != nil {
 		return err
@@ -41,10 +43,15 @@ func (b *bundleDetails) parseDetails(detailsFilePath string) error {
 	if err != nil {
 		return err
 	}
-	if b.RuntimeVersion == nil || b.DashboardVersion == nil || b.DaprImageName == nil || b.DaprImageFileName == nil {
+	if isStringNilOrEmpty(b.RuntimeVersion) || isStringNilOrEmpty(b.DashboardVersion) ||
+		isStringNilOrEmpty(b.DaprImageName) || isStringNilOrEmpty(b.DaprImageFileName) {
 		return fmt.Errorf("required fields are missing in %s", detailsFilePath)
 	}
 	return nil
+}
+
+func isStringNilOrEmpty(val *string) bool {
+	return val == nil || strings.TrimSpace(*val) == ""
 }
 
 func (b *bundleDetails) getPlacementImageName() string {

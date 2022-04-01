@@ -80,6 +80,7 @@ const (
 var (
 	defaultImageRegistryName string
 	privateRegTemplateString = "%s/dapr/%s"
+	isAirGapInit             bool
 )
 
 type configuration struct {
@@ -149,6 +150,9 @@ func isBinaryInstallationRequired(binaryFilePrefix, installDir string) (bool, er
 func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool, imageRegistryURL string, fromDir string) error {
 	var err error
 	var bundleDet bundleDetails
+	fromDir = strings.TrimSpace(fromDir)
+	// AirGap init flow is true when fromDir var is set i.e. --from-dir flag has value.
+	setAirGapInit(fromDir)
 	if !slimMode {
 		// If --slim installation is not requested, check if docker is installed.
 		dockerInstalled := utils.IsDockerInstalled()
@@ -156,8 +160,8 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 			return errors.New("could not connect to Docker. Docker may not be installed or running")
 		}
 
-		// Initialize default registry only if --slim or --image-registry or --from-dir are not given.
-		if len(strings.TrimSpace(imageRegistryURL)) == 0 && !isAirGapInit(fromDir) {
+		// Initialize default registry only if any of --slim or --image-registry or --from-dir are not given.
+		if len(strings.TrimSpace(imageRegistryURL)) == 0 && !isAirGapInit {
 			defaultImageRegistryName, err = utils.GetDefaultRegistry(githubContainerRegistryName, dockerContainerRegistryName)
 			if err != nil {
 				return err
@@ -167,14 +171,14 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 
 	// Set runtime version.
 
-	if runtimeVersion == latestVersion && !isAirGapInit(fromDir) {
+	if runtimeVersion == latestVersion && !isAirGapInit {
 		runtimeVersion, err = cli_ver.GetDaprVersion()
 		if err != nil {
 			return fmt.Errorf("cannot get the latest release version: '%w'. Try specifying --runtime-version=<desired_version>", err)
 		}
 	}
 
-	if dashboardVersion == latestVersion && !isAirGapInit(fromDir) {
+	if dashboardVersion == latestVersion && !isAirGapInit {
 		dashboardVersion, err = cli_ver.GetDashboardVersion()
 		if err != nil {
 			print.WarningStatusEvent(os.Stdout, "cannot get the latest dashboard version: '%s'. Try specifying --dashboard-version=<desired_version>", err)
@@ -183,10 +187,10 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 	}
 
 	// If --from-dir flag is given try parsing the details from the expected details file in the specified directory.
-	if isAirGapInit(fromDir) {
+	if isAirGapInit {
 		bundleDet = bundleDetails{}
 		detailsFilePath := path_filepath.Join(fromDir, bundleDetailsFileName)
-		err = bundleDet.parseDetails(detailsFilePath)
+		err = bundleDet.readAndparseDetails(detailsFilePath)
 		if err != nil {
 			return fmt.Errorf("error parsing details file from bundle location: %w", err)
 		}
@@ -232,7 +236,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 	wg.Add(len(initSteps))
 
 	msg := "Downloading binaries and setting up components..."
-	if isAirGapInit(fromDir) {
+	if isAirGapInit {
 		msg = "Extracting binaries and setting up components..."
 	}
 	stopSpinning := print.Spinner(os.Stdout, msg)
@@ -272,7 +276,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 	stopSpinning(print.Success)
 
 	msg = "Downloaded binaries and completed components set up."
-	if isAirGapInit(fromDir) {
+	if isAirGapInit {
 		msg = "Extracted binaries and completed components set up."
 	}
 	print.SuccessStatusEvent(os.Stdout, msg)
@@ -283,7 +287,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 	} else {
 		dockerContainerNames := []string{DaprPlacementContainerName, DaprRedisContainerName, DaprZipkinContainerName}
 		// Skip redis and zipkin in local installation mode.
-		if isAirGapInit(fromDir) {
+		if isAirGapInit {
 			dockerContainerNames = []string{DaprPlacementContainerName}
 		}
 		for _, container := range dockerContainerNames {
@@ -304,7 +308,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 	defer wg.Done()
 
-	if info.slimMode || isAirGapInit(info.fromDir) {
+	if info.slimMode || isAirGapInit {
 		return
 	}
 
@@ -371,7 +375,7 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 func runRedis(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 	defer wg.Done()
 
-	if info.slimMode || isAirGapInit(info.fromDir) {
+	if info.slimMode || isAirGapInit {
 		return
 	}
 
@@ -460,7 +464,7 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		imageRegistryName:  defaultImageRegistryName,
 	}
 
-	if isAirGapInit(info.fromDir) {
+	if isAirGapInit {
 		// if --from-dir flag is given load the image details from the installer-bundle.
 		dir := path_filepath.Join(info.fromDir, daprImageSubDir)
 		image = info.bundleDet.getPlacementImageName()
@@ -588,7 +592,7 @@ func installBinary(version, binaryFilePrefix, githubRepo string, info initInfo) 
 	)
 
 	dir := defaultDaprBinPath()
-	if isAirGapInit(info.fromDir) {
+	if isAirGapInit {
 		filepath = path_filepath.Join(info.fromDir, daprBinarySubDir, binaryName(binaryFilePrefix))
 	} else {
 		filepath, err = downloadBinary(dir, version, binaryFilePrefix, githubRepo)
@@ -603,7 +607,7 @@ func installBinary(version, binaryFilePrefix, githubRepo string, info initInfo) 
 	}
 
 	// remove downloaded archive from the default dapr bin path.
-	if !isAirGapInit(info.fromDir) {
+	if !isAirGapInit {
 		err = os.Remove(filepath)
 		if err != nil {
 			return fmt.Errorf("failed to remove archive: %w", err)
@@ -1126,7 +1130,8 @@ func resolveImageURI(imageInfo daprImageInfo) (string, error) {
 	}
 }
 
-// isAirGapInit checks if fromDir is specified. If so the init flow is considered to be an offline init.
-func isAirGapInit(fromDir string) bool {
-	return len(strings.TrimSpace(fromDir)) != 0
+// setAirGapInit is used to set the bool value.
+func setAirGapInit(fromDir string) {
+	// mostly this is used for unit testing aprat from one use in Init() function.
+	isAirGapInit = (len(strings.TrimSpace(fromDir)) != 0)
 }
