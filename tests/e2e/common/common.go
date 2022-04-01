@@ -502,6 +502,50 @@ func UseProvidedNewCertAndRenew(details VersionDetails, opts TestOptions) func(t
 	}
 }
 
+func NegativeScenarioForCertRenew() func(t *testing.T) {
+	return func(t *testing.T) {
+		daprPath := getDaprPath()
+		args := []string{
+			"mtls", "renew-certificate", "-k",
+			"--ca-root-certificate", "invalid_cert_file.pem",
+		}
+		output, err := spawn.Command(daprPath, args...)
+		t.Log(output)
+		require.Error(t, err, "expected error on certificate renewal")
+		assert.Contains(t, output, "certificate rotation failed: all required flags for this certificate rotation path")
+
+		args = []string{
+			"mtls", "renew-certificate", "-k",
+			"--ca-root-certificate", "invalid_cert_file.pem",
+			"--issuer-private-key", "invalid_cert_key.pem",
+			"--issuer-public-certificate", "invalid_cert_file.pem",
+		}
+		output, err = spawn.Command(daprPath, args...)
+		t.Log(output)
+		require.Error(t, err, "expected error on certificate renewal")
+		assert.Contains(t, output, "certificate rotation failed: open invalid_cert_file.pem: no such file or directory")
+
+		args = []string{
+			"mtls", "renew-certificate", "-k",
+			"--ca-root-certificate", "invalid_cert_file.pem",
+			"--private-key", "invalid_root_key.pem",
+		}
+		output, err = spawn.Command(daprPath, args...)
+		t.Log(output)
+		require.Error(t, err, "expected error on certificate renewal")
+		assert.Contains(t, output, "certificate rotation failed: all required flags for this certificate rotation path")
+
+		args = []string{
+			"mtls", "renew-certificate", "-k",
+			"--private-key", "invalid_root_key.pem",
+		}
+		output, err = spawn.Command(daprPath, args...)
+		t.Log(output)
+		require.Error(t, err, "expected error on certificate renewal")
+		assert.Contains(t, output, "certificate rotation failed: open invalid_root_key.pem: no such file or directory")
+	}
+}
+
 func CheckMTLSStatus(details VersionDetails, opts TestOptions, shouldWarningExist bool) func(t *testing.T) {
 	return func(t *testing.T) {
 		daprPath := getDaprPath()

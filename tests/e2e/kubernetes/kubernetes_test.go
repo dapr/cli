@@ -312,3 +312,39 @@ func TestRenewCertWithPrivateKey(t *testing.T) {
 		t.Run(tc.Name, tc.Callable)
 	}
 }
+
+func TestRenewCertWithIncorrectFlags(t *testing.T) {
+	common.EnsureUninstall(true)
+
+	tests := []common.TestCase{}
+	var installOpts = common.TestOptions{
+		HAEnabled:             false,
+		MTLSEnabled:           true,
+		ApplyComponentChanges: true,
+		CheckResourceExists: map[common.Resource]bool{
+			common.CustomResourceDefs:  true,
+			common.ClusterRoles:        true,
+			common.ClusterRoleBindings: true,
+		},
+	}
+
+	tests = append(tests, common.GetTestsOnInstall(currentVersionDetails, installOpts)...)
+
+	// tests for certifcate renewal with incorrect set of flags provided.
+	tests = append(tests, []common.TestCase{
+		{"Renew certificate with incorrect flags", common.NegativeScenarioForCertRenew()},
+	}...)
+
+	// teardown everything
+	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
+		CheckResourceExists: map[common.Resource]bool{
+			common.CustomResourceDefs:  true,
+			common.ClusterRoles:        false,
+			common.ClusterRoleBindings: false,
+		},
+	})...)
+
+	for _, tc := range tests {
+		t.Run(tc.Name, tc.Callable)
+	}
+}
