@@ -165,7 +165,10 @@ func Expiry() (*time.Time, error) {
 		return nil, err
 	}
 
-	caCrt := secret.Data["ca.crt"]
+	caCrt, ok := secret.Data["ca.crt"]
+	if !ok {
+		return nil, errors.New("root certificate not loaded yet, please try again in few minutes")
+	}
 	block, _ := pem.Decode(caCrt)
 	cert, err := x509.ParseCertificate(block.Bytes)
 	if err != nil {
