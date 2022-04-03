@@ -40,6 +40,7 @@ var (
 	enableHA          bool
 	values            []string
 	fromDir           string
+	containerRuntime  string
 )
 
 var InitCmd = &cobra.Command{
@@ -130,7 +131,7 @@ dapr init --from-dir <path-to-directory>
 			if len(imageRegistryURI) != 0 {
 				warnForPrivateRegFeat()
 			}
-			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode, imageRegistryURI, fromDir)
+			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode, imageRegistryURL, fromDir, containerRuntime)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)
@@ -170,6 +171,7 @@ func init() {
 	InitCmd.Flags().StringVarP(&fromDir, "from-dir", "", "", "Use Dapr artifacts from local directory for self-hosted installation")
 	InitCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	InitCmd.Flags().StringArrayVar(&values, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
-	InitCmd.Flags().String("image-registry", "", "Custom/Private docker image repository URL")
+	InitCmd.Flags().String("image-registry", "", "Custom/Private docker image repository url")
+	InitCmd.Flags().StringVarP(&containerRuntime, "container-runtime", "", "docker", "The container runtime to use (defaults to docker)")
 	RootCmd.AddCommand(InitCmd)
 }

@@ -35,6 +35,37 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+type ContainerRuntime string
+
+const (
+	DOCKER ContainerRuntime = "docker"
+	PODMAN ContainerRuntime = "podman"
+)
+
+var (
+	selectedContainerRuntime = DOCKER
+)
+
+func SetContainerRuntime(containerRuntime string) {
+	if containerRuntime == string(PODMAN) {
+		selectedContainerRuntime = PODMAN
+	} else {
+		selectedContainerRuntime = DOCKER
+	}
+}
+
+func GetContainerRuntime() ContainerRuntime {
+	return selectedContainerRuntime
+}
+
+func GetContainerRuntimeCmd() string {
+	if selectedContainerRuntime == PODMAN {
+		return string(PODMAN)
+	}
+
+	return string(DOCKER)
+}
+
 const (
 	socketFormat = "%s/dapr-%s-%s.socket"
 )
@@ -143,6 +174,14 @@ func IsDockerInstalled() bool {
 	}
 	_, err = cli.Ping(context.Background())
 	return err == nil
+}
+
+func IsPodmanInstalled() bool {
+	cmd := exec.Command("podman", "version")
+	if err := cmd.Run(); err != nil {
+		return false
+	}
+	return true
 }
 
 // IsDaprListeningOnPort checks if Dapr is litening to a given port.

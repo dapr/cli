@@ -25,7 +25,8 @@ import (
 )
 
 func runDockerLoad(in io.Reader) error {
-	subProcess := exec.Command("docker", "load")
+	runtimeCmd := utils.GetContainerRuntimeCmd()
+	subProcess := exec.Command(runtimeCmd, "load")
 
 	stdin, err := subProcess.StdinPipe()
 	if err != nil {
@@ -78,8 +79,9 @@ func confirmContainerIsRunningOrExists(containerName string, isRunning bool) (bo
 		args = append(args, "--filter", "status=running")
 	}
 
+	runtimeCmd := utils.GetContainerRuntimeCmd()
 	args = append(args, "--format", "{{.Names}}")
-	response, err := utils.RunCmdAndWait("docker", args...)
+	response, err := utils.RunCmdAndWait(runtimeCmd, args...)
 	response = strings.TrimSuffix(response, "\n")
 
 	// If 'docker ps' failed due to some reason.
@@ -122,10 +124,11 @@ func parseDockerError(component string, err error) error {
 }
 
 func tryPullImage(imageName string) bool {
+	runtimeCmd := utils.GetContainerRuntimeCmd()
 	args := []string{
 		"pull",
 		imageName,
 	}
-	_, err := utils.RunCmdAndWait("docker", args...)
+	_, err := utils.RunCmdAndWait(runtimeCmd, args...)
 	return err == nil
 }
