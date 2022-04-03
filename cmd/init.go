@@ -39,6 +39,7 @@ var (
 	enableHA          bool
 	values            []string
 	fromDir           string
+	containerRuntime  string
 )
 
 var InitCmd = &cobra.Command{
@@ -109,7 +110,7 @@ dapr init --from-dir <path-to-directory>
 			if imageRegistryURL != "" {
 				print.WarningStatusEvent(os.Stdout, "Flag --image-registry is a preview feature and is subject to change. It is only available from CLI version 1.7 onwards.")
 			}
-			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode, imageRegistryURL, fromDir)
+			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode, imageRegistryURL, fromDir, containerRuntime)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)
@@ -146,5 +147,6 @@ func init() {
 	InitCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	InitCmd.Flags().StringArrayVar(&values, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
 	InitCmd.Flags().String("image-registry", "", "Custom/Private docker image repository url")
+	InitCmd.Flags().StringVarP(&containerRuntime, "container-runtime", "", "docker", "The container runtime to use (defaults to docker)")
 	RootCmd.AddCommand(InitCmd)
 }

@@ -28,9 +28,9 @@ func removeContainers(uninstallPlacementContainer, uninstallAll bool, dockerNetw
 
 	if uninstallPlacementContainer {
 		containerErrs = removeDockerContainer(containerErrs, DaprPlacementContainerName, dockerNetwork)
-
+		var runtimeCmd = utils.GetContainerRuntimeCmd()
 		_, err = utils.RunCmdAndWait(
-			"docker", "rmi",
+			runtimeCmd, "rmi",
 			"--force",
 			daprDockerImageName)
 
@@ -57,8 +57,9 @@ func removeDockerContainer(containerErrs []error, containerName, network string)
 		return containerErrs
 	}
 	print.InfoStatusEvent(os.Stdout, "Removing container: %s", container)
+	var runtimeCmd = utils.GetContainerRuntimeCmd()
 	_, err := utils.RunCmdAndWait(
-		"docker", "rm",
+		runtimeCmd, "rm",
 		"--force",
 		container)
 	if err != nil {
@@ -82,7 +83,7 @@ func removeDir(dirPath string) error {
 
 // Uninstall reverts all changes made by init. Deletes all installed containers, removes default dapr folder,
 // removes the installed binary and unsets env variables.
-func Uninstall(uninstallAll bool, dockerNetwork string) error {
+func Uninstall(uninstallAll bool, dockerNetwork string, containerRuntime string) error {
 	var containerErrs []error
 	daprDefaultDir := defaultDaprDirPath()
 	daprBinDir := defaultDaprBinPath()
@@ -98,7 +99,7 @@ func Uninstall(uninstallAll bool, dockerNetwork string) error {
 	}
 
 	dockerInstalled := false
-	dockerInstalled = utils.IsDockerInstalled()
+	dockerInstalled = utils.IsDockerInstalled() || utils.IsPodmanInstalled()
 	if dockerInstalled {
 		containerErrs = removeContainers(uninstallPlacementContainer, uninstallAll, dockerNetwork)
 	}

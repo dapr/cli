@@ -139,12 +139,16 @@ func isBinaryInstallationRequired(binaryFilePrefix, installDir string) (bool, er
 }
 
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
-func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool, imageRegistryURL string, fromDir string) error {
+func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool, imageRegistryURL string, fromDir string, containerRuntime string) error {
 	var err error
+	utils.SetContainerRuntime(containerRuntime)
 	if !slimMode {
-		dockerInstalled := utils.IsDockerInstalled()
-		if !dockerInstalled {
-			return errors.New("could not connect to Docker. Docker may not be installed or running")
+
+		if utils.GetContainerRuntime() == utils.DOCKER {
+			dockerInstalled := utils.IsDockerInstalled()
+			if !dockerInstalled {
+				return errors.New("could not connect to Docker. Docker may not be installed or running")
+			}
 		}
 		defaultImageRegistryName, err = utils.GetDefaultRegistry(githubContainerRegistryName, dockerContainerRegistryName)
 		if err != nil {
@@ -327,14 +331,15 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 
 		args = append(args, imageName)
 	}
-	_, err = utils.RunCmdAndWait("docker", args...)
+	var runtimeCmd = utils.GetContainerRuntimeCmd()
+	_, err = utils.RunCmdAndWait(runtimeCmd, args...)
 
 	if err != nil {
 		runError := isContainerRunError(err)
 		if !runError {
 			errorChan <- parseDockerError("Zipkin tracing", err)
 		} else {
-			errorChan <- fmt.Errorf("docker %s failed with: %w", args, err)
+			errorChan <- fmt.Errorf("%s %s failed with: %w", runtimeCmd, args, err)
 		}
 		return
 	}
@@ -392,14 +397,15 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 		}
 		args = append(args, imageName)
 	}
-	_, err = utils.RunCmdAndWait("docker", args...)
+	var runtimeCmd = utils.GetContainerRuntimeCmd()
+	_, err = utils.RunCmdAndWait(runtimeCmd, args...)
 
 	if err != nil {
 		runError := isContainerRunError(err)
 		if !runError {
 			errorChan <- parseDockerError("Redis state store", err)
 		} else {
-			errorChan <- fmt.Errorf("docker %s failed with: %w", args, err)
+			errorChan <- fmt.Errorf("%s %s failed with: %w", runtimeCmd, args, err)
 		}
 		return
 	}
@@ -477,14 +483,15 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 
 	args = append(args, image)
 
-	_, err = utils.RunCmdAndWait("docker", args...)
+	var runtimeCmd = utils.GetContainerRuntimeCmd()
+	_, err = utils.RunCmdAndWait(runtimeCmd, args...)
 
 	if err != nil {
 		runError := isContainerRunError(err)
 		if !runError {
 			errorChan <- parseDockerError("placement service", err)
 		} else {
-			errorChan <- fmt.Errorf("docker %s failed with: %w", args, err)
+			errorChan <- fmt.Errorf("%s %s failed with: %w", runtimeCmd, args, err)
 		}
 		return
 	}

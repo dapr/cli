@@ -152,6 +152,19 @@ $ dapr init --network dapr-network
 > Note: When installed to a specific Docker network, you will need to add the `--placement-host-address` arguments to `dapr run` commands run in any containers within that network.
 > The format of `--placement-host-address` argument is either `<hostname>` or `<hostname>:<port>`. If the port is omitted, the default port `6050` for Windows and `50005` for Linux/MacOS applies.
 
+#### Install with a specific container runtime
+
+You can install the Dapr runtime using a specific container runtime
+environment such as Docker or Podman by passing along the
+`--container-runtime` argument:
+
+```bash
+# Install Dapr with Podman
+$ dapr init --container-runtime podman
+```
+
+> Note: The default container runtime is Docker.
+
 ### Uninstall Dapr in a standalone mode
 
 Uninstalling will remove daprd binary and the placement container (if installed with Docker or the placement binary if not).
@@ -181,6 +194,16 @@ If previously installed to a specific Docker network, Dapr can be uninstalled wi
 
 ```bash
 dapr uninstall --network dapr-network
+```
+
+#### Uninstall Dapr from a specific container runtime
+
+You can uninstall Dapr from a specific container runtime
+environment by passing along the `--container-runtime` argument:
+
+```bash
+# Uninstall Dapr from Podman container runtime
+$ dapr uninstall --container-runtime podman
 ```
 
 ### Install Dapr on Kubernetes
