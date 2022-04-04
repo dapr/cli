@@ -53,16 +53,16 @@ func runDockerLoad(in io.Reader) error {
 	return nil
 }
 
-func loadDocker(dir string, dockerImage string) error {
+func loadDocker(dir string, dockerImageFileName string) error {
 	var imageFile io.Reader
 	var err error
-	imageFile, err = os.Open(path_filepath.Join(dir, imageFileName(dockerImage)))
+	imageFile, err = os.Open(path_filepath.Join(dir, dockerImageFileName))
 	if err != nil {
-		return fmt.Errorf("fail to read docker image file %s: %w", dockerImage, err)
+		return fmt.Errorf("fail to read docker image file %s: %w", dockerImageFileName, err)
 	}
 	err = runDockerLoad(imageFile)
 	if err != nil {
-		return fmt.Errorf("fail to load docker image %s: %w", dockerImage, err)
+		return fmt.Errorf("fail to load docker image from file %s: %w", dockerImageFileName, err)
 	}
 
 	return nil
@@ -121,14 +121,7 @@ func parseDockerError(component string, err error) error {
 	return err
 }
 
-func imageFileName(image string) string {
-	filename := image + ".tar.gz"
-	filename = strings.ReplaceAll(filename, "/", "-")
-	filename = strings.ReplaceAll(filename, ":", "-")
-	return filename
-}
-
-func TryPullImage(imageName string) bool {
+func tryPullImage(imageName string) bool {
 	args := []string{
 		"pull",
 		imageName,

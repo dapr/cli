@@ -17,33 +17,36 @@ limitations under the License.
 package kubernetes_test
 
 import (
-	"os"
 	"testing"
 
 	"github.com/dapr/cli/tests/e2e/common"
 )
 
 var (
-	currentRuntimeVersion   = os.Getenv("DAPR_RUNTIME_VERSION")
-	currentDashboardVersion = os.Getenv("DAPR_DASHBOARD_VERSION")
+	currentRuntimeVersion   string
+	currentDashboardVersion string
+	currentVersionDetails   common.VersionDetails
 )
 
-var currentVersionDetails = common.VersionDetails{
-	RuntimeVersion:      currentRuntimeVersion,
-	DashboardVersion:    currentDashboardVersion,
-	CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
-	ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
-	ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
-}
+// ensureCleanEnv function needs to be called in every Test function.
+// sets necessary variable values and uninstalls any previously installed `dapr`.
+func ensureCleanEnv(t *testing.T) {
+	currentRuntimeVersion, currentDashboardVersion = common.GetVersionsFromEnv(t)
 
-func ensureCleanEnv(t *testing.T, details common.VersionDetails) {
+	currentVersionDetails = common.VersionDetails{
+		RuntimeVersion:      currentRuntimeVersion,
+		DashboardVersion:    currentDashboardVersion,
+		CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
+		ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+		ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+	}
 	// Ensure a clean environment
 	common.EnsureUninstall(true) // does not wait for pod deletion
 }
 
 func TestKubernetesNonHAModeMTLSDisabled(t *testing.T) {
 	// ensure clean env for test
-	ensureCleanEnv(t, currentVersionDetails)
+	ensureCleanEnv(t)
 
 	// setup tests
 	tests := []common.TestCase{}
@@ -74,7 +77,7 @@ func TestKubernetesNonHAModeMTLSDisabled(t *testing.T) {
 
 func TestKubernetesHAModeMTLSDisabled(t *testing.T) {
 	// ensure clean env for test
-	ensureCleanEnv(t, currentVersionDetails)
+	ensureCleanEnv(t)
 
 	// setup tests
 	tests := []common.TestCase{}
@@ -105,7 +108,7 @@ func TestKubernetesHAModeMTLSDisabled(t *testing.T) {
 
 func TestKubernetesNonHAModeMTLSEnabled(t *testing.T) {
 	// ensure clean env for test
-	ensureCleanEnv(t, currentVersionDetails)
+	ensureCleanEnv(t)
 
 	// setup tests
 	tests := []common.TestCase{}
@@ -136,7 +139,7 @@ func TestKubernetesNonHAModeMTLSEnabled(t *testing.T) {
 
 func TestKubernetesHAModeMTLSEnabled(t *testing.T) {
 	// ensure clean env for test
-	ensureCleanEnv(t, currentVersionDetails)
+	ensureCleanEnv(t)
 
 	// setup tests
 	tests := []common.TestCase{}
@@ -169,10 +172,11 @@ func TestKubernetesHAModeMTLSEnabled(t *testing.T) {
 // Test for certificate renewal
 
 func TestRenewCertificateMTLSEnabled(t *testing.T) {
-	common.EnsureUninstall(true)
+	// ensure clean env for test
+	ensureCleanEnv(t)
 
 	tests := []common.TestCase{}
-	var installOpts = common.TestOptions{
+	installOpts := common.TestOptions{
 		HAEnabled:             false,
 		MTLSEnabled:           true,
 		ApplyComponentChanges: true,
@@ -218,10 +222,11 @@ func TestRenewCertificateMTLSEnabled(t *testing.T) {
 }
 
 func TestRenewCertificateMTLSDisabled(t *testing.T) {
-	common.EnsureUninstall(true)
+	// ensure clean env for test
+	ensureCleanEnv(t)
 
 	tests := []common.TestCase{}
-	var installOpts = common.TestOptions{
+	installOpts := common.TestOptions{
 		HAEnabled:             false,
 		MTLSEnabled:           false,
 		ApplyComponentChanges: true,
@@ -267,10 +272,11 @@ func TestRenewCertificateMTLSDisabled(t *testing.T) {
 }
 
 func TestRenewCertWithPrivateKey(t *testing.T) {
-	common.EnsureUninstall(true)
+	// ensure clean env for test
+	ensureCleanEnv(t)
 
 	tests := []common.TestCase{}
-	var installOpts = common.TestOptions{
+	installOpts := common.TestOptions{
 		HAEnabled:             false,
 		MTLSEnabled:           true,
 		ApplyComponentChanges: true,
