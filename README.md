@@ -139,7 +139,7 @@ dapr init --image-registry example.io/<username>
 
 #### Install in airgap environment
 
-You can install Dapr runtime in airgap(offline) environment using pre-downloaded [installer bundle](https://github.com/dapr/installer-bundle/releases). You need to download the archived bundle beforehand (e.g. daprbundle_linux_amd64.tar.gz, daprbundle_windows_amd64.zip) and unpack it. Thereafter use the `--from-dir` flag in init command pointing to the bundle location to initialize dapr.
+You can install Dapr runtime in airgap (offline) environment using a pre-downloaded [installer bundle](https://github.com/dapr/installer-bundle/releases). You need to download the archived bundle for your OS beforehand (e.g., daprbundle_linux_amd64.tar.gz,) and unpack it. Thereafter use the `--from-dir` flag in the init command to point to the extracted bundle location to initialize Dapr.
 
 ```bash
 # Initializing dapr in airgap environment
