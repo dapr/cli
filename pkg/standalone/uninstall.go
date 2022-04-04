@@ -98,6 +98,7 @@ func Uninstall(uninstallAll bool, dockerNetwork string, containerRuntime string)
 		print.WarningStatusEvent(os.Stdout, "WARNING: could not delete dapr bin dir: %s", daprBinDir)
 	}
 
+	utils.SetContainerRuntime(containerRuntime)
 	dockerInstalled := false
 	dockerInstalled = utils.IsDockerInstalled() || utils.IsPodmanInstalled()
 	if dockerInstalled {

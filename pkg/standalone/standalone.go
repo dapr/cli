@@ -144,12 +144,11 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 	utils.SetContainerRuntime(containerRuntime)
 	if !slimMode {
 
-		if utils.GetContainerRuntime() == utils.DOCKER {
-			dockerInstalled := utils.IsDockerInstalled()
-			if !dockerInstalled {
-				return errors.New("could not connect to Docker. Docker may not be installed or running")
-			}
+		dockerInstalled := utils.IsDockerInstalled() || utils.IsPodmanInstalled()
+		if !dockerInstalled {
+			return errors.New("could not connect to Docker. Docker may not be installed or running")
 		}
+
 		defaultImageRegistryName, err = utils.GetDefaultRegistry(githubContainerRegistryName, dockerContainerRegistryName)
 		if err != nil {
 			return err
@@ -273,7 +272,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 				print.InfoStatusEvent(os.Stdout, "%s container is running.", containerName)
 			}
 		}
-		print.InfoStatusEvent(os.Stdout, "Use `docker ps` to check running containers.")
+		print.InfoStatusEvent(os.Stdout, "Use `%s ps` to check running containers.", utils.GetContainerRuntimeCmd())
 	}
 	return nil
 }
