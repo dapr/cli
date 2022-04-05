@@ -70,6 +70,22 @@ type TestCase struct {
 	Callable func(*testing.T)
 }
 
+// GetVersionsFromEnv will return values from required environment variables,
+// if environment variables are not set it fails the test.
+func GetVersionsFromEnv(t *testing.T) (daprRuntimeVersion string, daprDashboardVersion string) {
+	if runtimeVersion, ok := os.LookupEnv("DAPR_RUNTIME_VERSION"); ok {
+		daprRuntimeVersion = runtimeVersion
+	} else {
+		t.Fatalf("env var \"DAPR_RUNTIME_VERSION\" not set")
+	}
+	if dashboardVersion, ok := os.LookupEnv("DAPR_DASHBOARD_VERSION"); ok {
+		daprDashboardVersion = dashboardVersion
+	} else {
+		t.Fatalf("env var \"DAPR_DASHBOARD_VERSION\" not set")
+	}
+	return
+}
+
 func UpgradeTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
 		daprPath := getDaprPath()
