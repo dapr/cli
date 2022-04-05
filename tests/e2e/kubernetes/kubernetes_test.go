@@ -172,7 +172,7 @@ func TestRenewCertificateMTLSEnabled(t *testing.T) {
 	common.EnsureUninstall(true)
 
 	tests := []common.TestCase{}
-	var installOpts = common.TestOptions{
+	installOpts := common.TestOptions{
 		HAEnabled:             false,
 		MTLSEnabled:           true,
 		ApplyComponentChanges: true,
@@ -221,7 +221,7 @@ func TestRenewCertificateMTLSDisabled(t *testing.T) {
 	common.EnsureUninstall(true)
 
 	tests := []common.TestCase{}
-	var installOpts = common.TestOptions{
+	installOpts := common.TestOptions{
 		HAEnabled:             false,
 		MTLSEnabled:           false,
 		ApplyComponentChanges: true,
@@ -270,7 +270,7 @@ func TestRenewCertWithPrivateKey(t *testing.T) {
 	common.EnsureUninstall(true)
 
 	tests := []common.TestCase{}
-	var installOpts = common.TestOptions{
+	installOpts := common.TestOptions{
 		HAEnabled:             false,
 		MTLSEnabled:           true,
 		ApplyComponentChanges: true,

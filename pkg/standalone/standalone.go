@@ -143,7 +143,6 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 	var err error
 	utils.SetContainerRuntime(containerRuntime)
 	if !slimMode {
-
 		dockerInstalled := utils.IsDockerInstalled() || utils.IsPodmanInstalled()
 		if !dockerInstalled {
 			return errors.New("could not connect to Docker. Docker may not be installed or running")
@@ -330,7 +329,7 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 
 		args = append(args, imageName)
 	}
-	var runtimeCmd = utils.GetContainerRuntimeCmd()
+	runtimeCmd := utils.GetContainerRuntimeCmd()
 	_, err = utils.RunCmdAndWait(runtimeCmd, args...)
 
 	if err != nil {
@@ -396,7 +395,7 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 		}
 		args = append(args, imageName)
 	}
-	var runtimeCmd = utils.GetContainerRuntimeCmd()
+	runtimeCmd := utils.GetContainerRuntimeCmd()
 	_, err = utils.RunCmdAndWait(runtimeCmd, args...)
 
 	if err != nil {
@@ -482,7 +481,7 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 
 	args = append(args, image)
 
-	var runtimeCmd = utils.GetContainerRuntimeCmd()
+	runtimeCmd := utils.GetContainerRuntimeCmd()
 	_, err = utils.RunCmdAndWait(runtimeCmd, args...)
 
 	if err != nil {

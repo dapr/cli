@@ -28,7 +28,7 @@ func removeContainers(uninstallPlacementContainer, uninstallAll bool, dockerNetw
 
 	if uninstallPlacementContainer {
 		containerErrs = removeDockerContainer(containerErrs, DaprPlacementContainerName, dockerNetwork)
-		var runtimeCmd = utils.GetContainerRuntimeCmd()
+		runtimeCmd := utils.GetContainerRuntimeCmd()
 		_, err = utils.RunCmdAndWait(
 			runtimeCmd, "rmi",
 			"--force",
@@ -57,7 +57,7 @@ func removeDockerContainer(containerErrs []error, containerName, network string)
 		return containerErrs
 	}
 	print.InfoStatusEvent(os.Stdout, "Removing container: %s", container)
-	var runtimeCmd = utils.GetContainerRuntimeCmd()
+	runtimeCmd := utils.GetContainerRuntimeCmd()
 	_, err := utils.RunCmdAndWait(
 		runtimeCmd, "rm",
 		"--force",

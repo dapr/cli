@@ -43,9 +43,7 @@ const (
 	PODMAN ContainerRuntime = "podman"
 )
 
-var (
-	selectedContainerRuntime = DOCKER
-)
+var selectedContainerRuntime = DOCKER
 
 func SetContainerRuntime(containerRuntime string) {
 	if containerRuntime == string(PODMAN) {
