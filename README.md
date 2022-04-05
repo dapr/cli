@@ -142,6 +142,7 @@ dapr init --image-registry example.io/<username>
 You can install Dapr runtime in airgap (offline) environment using a pre-downloaded [installer bundle](https://github.com/dapr/installer-bundle/releases). You need to download the archived bundle for your OS beforehand (e.g., daprbundle_linux_amd64.tar.gz,) and unpack it. Thereafter use the local Dapr CLI binary in the bundle with `--from-dir` flag in the init command to point to the extracted bundle location to initialize Dapr.
 
 Move to the bundle directory and run the following command:
+
 ```bash
 # Initializing dapr in airgap environment
 ./dapr init --from-dir .
@@ -159,8 +160,9 @@ docker run --name "dapr_redis" --restart always -d -p 6379:6379 redis
 ```
 
 Alternatively to the above, you can also have slim installation as well to install dapr without running any Docker containers in airgap mode.   
+
 ```bash
-dapr init --slim --from-dir <path-to-bundle-location>
+./dapr init --slim --from-dir .
 ```
 
 #### Install to a specific Docker network
