@@ -16,6 +16,7 @@ package kubernetes
 import (
 	"io"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -28,6 +29,7 @@ import (
 )
 
 type configurationsOutput struct {
+	Namespace      string `csv:"Namespace"`
 	Name           string `csv:"Name"`
 	TracingEnabled bool   `csv:"TRACING-ENABLED"`
 	MetricsEnabled bool   `csv:"METRICS-ENABLED"`
@@ -36,19 +38,20 @@ type configurationsOutput struct {
 }
 
 type configurationDetailedOutput struct {
-	Name string      `json:"name" yaml:"name"`
-	Spec interface{} `json:"spec" yaml:"spec"`
+	Name      string      `json:"name" yaml:"name"`
+	Namespace string      `json:"namespace" yaml:"namespace"`
+	Spec      interface{} `json:"spec" yaml:"spec"`
 }
 
 // PrintConfigurations prints all Dapr configurations.
-func PrintConfigurations(name, outputFormat string) error {
+func PrintConfigurations(name, namespace, outputFormat string) error {
 	return writeConfigurations(os.Stdout, func() (*v1alpha1.ConfigurationList, error) {
 		client, err := DaprClient()
 		if err != nil {
 			return nil, err
 		}
 
-		list, err := client.ConfigurationV1alpha1().Configurations(meta_v1.NamespaceAll).List(meta_v1.ListOptions{})
+		list, err := client.ConfigurationV1alpha1().Configurations(namespace).List(meta_v1.ListOptions{})
 		// This means that the Dapr Configurations CRD is not installed and
 		// therefore no configuration items exist.
 		if apierrors.IsNotFound(err) {
@@ -80,8 +83,9 @@ func writeConfigurations(writer io.Writer, getConfigFunc func() (*v1alpha1.Confi
 		if name == "" || strings.EqualFold(confName, name) {
 			filtered = append(filtered, c)
 			filteredSpecs = append(filteredSpecs, configurationDetailedOutput{
-				Name: confName,
-				Spec: c.Spec,
+				Name:      confName,
+				Namespace: c.GetNamespace(),
+				Spec:      c.Spec,
 			})
 		}
 	}
@@ -90,6 +94,10 @@ func writeConfigurations(writer io.Writer, getConfigFunc func() (*v1alpha1.Confi
 		return printConfigurationList(writer, filtered)
 	}
 
+	// filteredSpecs sort by namespace.
+	sort.Slice(filteredSpecs, func(i, j int) bool {
+		return filteredSpecs[i].Namespace > filteredSpecs[j].Namespace
+	})
 	return utils.PrintDetail(writer, outputFormat, filteredSpecs)
 }
 
@@ -99,12 +107,17 @@ func printConfigurationList(writer io.Writer, list []v1alpha1.Configuration) err
 		co = append(co, configurationsOutput{
 			TracingEnabled: tracingEnabled(c.Spec.TracingSpec),
 			Name:           c.GetName(),
+			Namespace:      c.GetNamespace(),
 			MetricsEnabled: c.Spec.MetricSpec.Enabled,
 			Created:        c.CreationTimestamp.Format("2006-01-02 15:04.05"),
 			Age:            age.GetAge(c.CreationTimestamp.Time),
 		})
 	}
 
+	// co sort by namespace.
+	sort.Slice(co, func(i, j int) bool {
+		return co[i].Namespace > co[j].Namespace
+	})
 	return utils.MarshalAndWriteTable(writer, co)
 }
 

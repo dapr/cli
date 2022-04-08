@@ -44,6 +44,9 @@ dapr logs -k --app-id sample --pod-name target --namespace custom
 		}
 		print.SuccessStatusEvent(os.Stdout, "Fetched logs")
 	},
+	PostRun: func(cmd *cobra.Command, args []string) {
+		kubernetes.CheckForCertExpiry()
+	},
 }
 
 func init() {

@@ -14,27 +14,28 @@ limitations under the License.
 package kubernetes
 
 import (
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sort"
 
 	"github.com/dapr/cli/pkg/age"
 )
 
 // ListOutput represents the application ID, application port and creation time.
 type ListOutput struct {
-	AppID   string `csv:"APP ID"   json:"appId"   yaml:"appId"`
-	AppPort string `csv:"APP PORT" json:"appPort" yaml:"appPort"`
-	Age     string `csv:"AGE"      json:"age"     yaml:"age"`
-	Created string `csv:"CREATED"  json:"created" yaml:"created"`
+	Namespace string `csv:"NAMESPACE" json:"namespace" yaml:"namespace"`
+	AppID     string `csv:"APP ID"    json:"appId"     yaml:"appId"`
+	AppPort   string `csv:"APP PORT"  json:"appPort"   yaml:"appPort"`
+	Age       string `csv:"AGE"       json:"age"       yaml:"age"`
+	Created   string `csv:"CREATED"   json:"created"   yaml:"created"`
 }
 
 // List outputs all the applications.
-func List() ([]ListOutput, error) {
+func List(namespace string) ([]ListOutput, error) {
 	client, err := Client()
 	if err != nil {
 		return nil, err
 	}
 
-	podList, err := ListPods(client, meta_v1.NamespaceAll, nil)
+	podList, err := ListPods(client, namespace, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -53,6 +54,7 @@ func List() ([]ListOutput, error) {
 						lo.AppID = id
 					}
 				}
+				lo.Namespace = p.GetNamespace()
 				lo.Created = p.CreationTimestamp.Format("2006-01-02 15:04.05")
 				lo.Age = age.GetAge(p.CreationTimestamp.Time)
 				l = append(l, lo)
@@ -60,5 +62,9 @@ func List() ([]ListOutput, error) {
 		}
 	}
 
+	// list sort by namespace.
+	sort.Slice(l, func(i, j int) bool {
+		return l[i].Namespace > l[j].Namespace
+	})
 	return l, nil
 }

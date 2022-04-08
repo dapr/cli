@@ -128,10 +128,10 @@ func getEnv(key string, value interface{}) string {
 }
 
 func TestRun(t *testing.T) {
-	// Setup the components directory which is done at init time
+	// Setup the components directory which is done at init time.
 	setupRun(t)
 
-	// Setup the tearDown routine to run in the end
+	// Setup the tearDown routine to run in the end.
 	defer tearDownRun(t)
 
 	basicConfig := &RunConfig{
@@ -148,6 +148,7 @@ func TestRun(t *testing.T) {
 		AppSSL:             true,
 		MetricsPort:        9001,
 		MaxRequestBodySize: -1,
+		EnableAPILogging:   true,
 	}
 
 	t.Run("run happy http", func(t *testing.T) {
@@ -163,6 +164,7 @@ func TestRun(t *testing.T) {
 	t.Run("run without app command", func(t *testing.T) {
 		basicConfig.Arguments = nil
 		basicConfig.LogLevel = "INFO"
+		basicConfig.EnableAPILogging = true
 		basicConfig.ConfigFile = DefaultConfigFilePath()
 		output, err := Run(basicConfig)
 		assert.Nil(t, err)

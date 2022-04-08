@@ -40,13 +40,14 @@ func TestComponents(t *testing.T) {
 			name:           "List one config",
 			configName:     "",
 			outputFormat:   "",
-			expectedOutput: "  NAME       TYPE         VERSION  SCOPES  CREATED              AGE  \n  appConfig  state.redis  v1               " + formattedNow + "  0s   \n",
+			expectedOutput: "  NAMESPACE  NAME       TYPE         VERSION  SCOPES  CREATED              AGE  \n  default    appConfig  state.redis  v1               " + formattedNow + "  0s   \n",
 			errString:      "",
 			errorExpected:  false,
 			k8sConfig: []v1alpha1.Component{
 				{
 					ObjectMeta: meta_v1.ObjectMeta{
 						Name:              "appConfig",
+						Namespace:         "default",
 						CreationTimestamp: now,
 					},
 					Spec: v1alpha1.ComponentSpec{
@@ -69,13 +70,14 @@ func TestComponents(t *testing.T) {
 			name:           "Filters out daprsystem",
 			configName:     "",
 			outputFormat:   "",
-			expectedOutput: "  NAME       TYPE         VERSION  SCOPES  CREATED              AGE  \n  appConfig  state.redis  v1               " + formattedNow + "  0s   \n",
+			expectedOutput: "  NAMESPACE  NAME       TYPE         VERSION  SCOPES  CREATED              AGE  \n  default    appConfig  state.redis  v1               " + formattedNow + "  0s   \n",
 			errString:      "",
 			errorExpected:  false,
 			k8sConfig: []v1alpha1.Component{
 				{
 					ObjectMeta: meta_v1.ObjectMeta{
 						Name:              "appConfig",
+						Namespace:         "default",
 						CreationTimestamp: now,
 					},
 					Spec: v1alpha1.ComponentSpec{
@@ -96,13 +98,14 @@ func TestComponents(t *testing.T) {
 			name:           "Name does match",
 			configName:     "appConfig",
 			outputFormat:   "list",
-			expectedOutput: "  NAME       TYPE         VERSION  SCOPES  CREATED              AGE  \n  appConfig  state.redis  v1               " + formattedNow + "  0s   \n",
+			expectedOutput: "  NAMESPACE  NAME       TYPE         VERSION  SCOPES  CREATED              AGE  \n  default    appConfig  state.redis  v1               " + formattedNow + "  0s   \n",
 			errString:      "",
 			errorExpected:  false,
 			k8sConfig: []v1alpha1.Component{
 				{
 					ObjectMeta: meta_v1.ObjectMeta{
 						Name:              "appConfig",
+						Namespace:         "default",
 						CreationTimestamp: now,
 					},
 					Spec: v1alpha1.ComponentSpec{
@@ -116,7 +119,7 @@ func TestComponents(t *testing.T) {
 			name:           "Name does not match",
 			configName:     "appConfig",
 			outputFormat:   "list",
-			expectedOutput: "  NAME  TYPE  VERSION  SCOPES  CREATED  AGE  \n",
+			expectedOutput: "  NAMESPACE  NAME  TYPE  VERSION  SCOPES  CREATED  AGE  \n",
 			errString:      "",
 			errorExpected:  false,
 			k8sConfig: []v1alpha1.Component{
@@ -136,7 +139,7 @@ func TestComponents(t *testing.T) {
 			name:           "Yaml one config",
 			configName:     "",
 			outputFormat:   "yaml",
-			expectedOutput: "name: appConfig\nspec:\n  type: state.redis\n  version: v1\n  ignoreerrors: false\n  metadata: []\n  inittimeout: \"\"\n",
+			expectedOutput: "name: appConfig\nnamespace: \"\"\nspec:\n  type: state.redis\n  version: v1\n  ignoreerrors: false\n  metadata: []\n  inittimeout: \"\"\n",
 			errString:      "",
 			errorExpected:  false,
 			k8sConfig: []v1alpha1.Component{
@@ -156,7 +159,7 @@ func TestComponents(t *testing.T) {
 			name:           "Yaml two configs",
 			configName:     "",
 			outputFormat:   "yaml",
-			expectedOutput: "- name: appConfig1\n  spec:\n    type: state.redis\n    version: v1\n    ignoreerrors: false\n    metadata: []\n    inittimeout: \"\"\n- name: appConfig2\n  spec:\n    type: state.redis\n    version: v1\n    ignoreerrors: false\n    metadata: []\n    inittimeout: \"\"\n",
+			expectedOutput: "- name: appConfig1\n  namespace: \"\"\n  spec:\n    type: state.redis\n    version: v1\n    ignoreerrors: false\n    metadata: []\n    inittimeout: \"\"\n- name: appConfig2\n  namespace: \"\"\n  spec:\n    type: state.redis\n    version: v1\n    ignoreerrors: false\n    metadata: []\n    inittimeout: \"\"\n",
 			errString:      "",
 			errorExpected:  false,
 			k8sConfig: []v1alpha1.Component{
@@ -186,7 +189,7 @@ func TestComponents(t *testing.T) {
 			name:           "Json one config",
 			configName:     "",
 			outputFormat:   "json",
-			expectedOutput: "{\n  \"name\": \"appConfig\",\n  \"spec\": {\n    \"type\": \"state.redis\",\n    \"version\": \"v1\",\n    \"ignoreErrors\": false,\n    \"metadata\": null,\n    \"initTimeout\": \"\"\n  }\n}",
+			expectedOutput: "{\n  \"name\": \"appConfig\",\n  \"namespace\": \"\",\n  \"spec\": {\n    \"type\": \"state.redis\",\n    \"version\": \"v1\",\n    \"ignoreErrors\": false,\n    \"metadata\": null,\n    \"initTimeout\": \"\"\n  }\n}",
 			errString:      "",
 			errorExpected:  false,
 			k8sConfig: []v1alpha1.Component{
@@ -206,7 +209,7 @@ func TestComponents(t *testing.T) {
 			name:           "Json two configs",
 			configName:     "",
 			outputFormat:   "json",
-			expectedOutput: "[\n  {\n    \"name\": \"appConfig1\",\n    \"spec\": {\n      \"type\": \"state.redis\",\n      \"version\": \"v1\",\n      \"ignoreErrors\": false,\n      \"metadata\": null,\n      \"initTimeout\": \"\"\n    }\n  },\n  {\n    \"name\": \"appConfig2\",\n    \"spec\": {\n      \"type\": \"state.redis\",\n      \"version\": \"v1\",\n      \"ignoreErrors\": false,\n      \"metadata\": null,\n      \"initTimeout\": \"\"\n    }\n  }\n]",
+			expectedOutput: "[\n  {\n    \"name\": \"appConfig1\",\n    \"namespace\": \"\",\n    \"spec\": {\n      \"type\": \"state.redis\",\n      \"version\": \"v1\",\n      \"ignoreErrors\": false,\n      \"metadata\": null,\n      \"initTimeout\": \"\"\n    }\n  },\n  {\n    \"name\": \"appConfig2\",\n    \"namespace\": \"\",\n    \"spec\": {\n      \"type\": \"state.redis\",\n      \"version\": \"v1\",\n      \"ignoreErrors\": false,\n      \"metadata\": null,\n      \"initTimeout\": \"\"\n    }\n  }\n]",
 			errString:      "",
 			errorExpected:  false,
 			k8sConfig: []v1alpha1.Component{
