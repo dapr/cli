@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/Pallinder/sillyname-go v0.0.0-20130730142914-97aeae9e6ba1
 	github.com/briandowns/spinner v1.6.1
-	github.com/dapr/dapr v1.7.0-rc.1
+	github.com/dapr/dapr v1.7.0
 	github.com/dapr/go-sdk v1.0.0
 	github.com/docker/docker v20.10.12+incompatible
 	github.com/fatih/color v1.13.0

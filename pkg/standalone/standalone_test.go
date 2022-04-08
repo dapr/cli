@@ -232,3 +232,76 @@ func TestResolveImageErr(t *testing.T) {
 		})
 	}
 }
+
+func TestCheckFallbackImg(t *testing.T) {
+	daprImgWithPrivateRegAndDefAsDocker := daprImageInfo{
+		ghcrImageName:      daprGhcrImageName,
+		dockerHubImageName: daprDockerImageName,
+		imageRegistryURL:   "example.io/user",
+		imageRegistryName:  "dockerhub",
+	}
+	daprImgWithPrivateRegAndDefAsGHCR := daprImageInfo{
+		ghcrImageName:      daprGhcrImageName,
+		dockerHubImageName: daprDockerImageName,
+		imageRegistryURL:   "example.io/user",
+		imageRegistryName:  "ghcr",
+	}
+	daprImgWithPrivateRegAndNoDef := daprImageInfo{
+		ghcrImageName:      daprGhcrImageName,
+		dockerHubImageName: daprDockerImageName,
+		imageRegistryURL:   "example.io/user",
+		imageRegistryName:  "",
+	}
+	daprImgWithDefAsDocker := daprImageInfo{
+		ghcrImageName:      daprGhcrImageName,
+		dockerHubImageName: daprDockerImageName,
+		imageRegistryURL:   "",
+		imageRegistryName:  "dockerhub",
+	}
+	daprImgWithDefAsGHCR := daprImageInfo{
+		ghcrImageName:      daprGhcrImageName,
+		dockerHubImageName: daprDockerImageName,
+		imageRegistryURL:   "",
+		imageRegistryName:  "ghcr",
+	}
+
+	tests := []struct {
+		name      string
+		imageInfo daprImageInfo
+		fromDir   string
+		expect    bool
+	}{
+		{"checkFallbackImg() with private registry and def as Docker Hub", daprImgWithPrivateRegAndDefAsDocker, "", false},
+		{"checkFallbackImg() with private registry and def as GHCR", daprImgWithPrivateRegAndDefAsGHCR, "", false},
+		{"checkFallbackImg() with private registry with no Def", daprImgWithPrivateRegAndNoDef, "", false},
+		{"checkFallbackImg() with no private registry and def as Docker Hub", daprImgWithDefAsDocker, "", false},
+		{"checkFallbackImg() with no private registry and def as GHCR", daprImgWithDefAsGHCR, "", true},
+		{"checkFallbackImg() airgap mode with no private registry and def as GHCR", daprImgWithDefAsGHCR, "testDir", false},
+		{"checkFallbackImg() airgap mode with no private registry and def as Docker Hub", daprImgWithDefAsDocker, "testDir", false},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := useGHCR(test.imageInfo, test.fromDir)
+			assert.Equal(t, test.expect, got)
+		})
+	}
+}
+
+func TestIsAirGapInit(t *testing.T) {
+	tests := []struct {
+		name    string
+		fromDir string
+		expect  bool
+	}{
+		{"empty string", "", false},
+		{"string with spaces", "   ", false},
+		{"string with value", "./local-dir", true},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			setAirGapInit(test.fromDir)
+			assert.Equal(t, test.expect, isAirGapInit)
+		})
+	}
+}

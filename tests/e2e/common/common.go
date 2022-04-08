@@ -70,6 +70,22 @@ type TestCase struct {
 	Callable func(*testing.T)
 }
 
+// GetVersionsFromEnv will return values from required environment variables,
+// if environment variables are not set it fails the test.
+func GetVersionsFromEnv(t *testing.T) (daprRuntimeVersion string, daprDashboardVersion string) {
+	if runtimeVersion, ok := os.LookupEnv("DAPR_RUNTIME_VERSION"); ok {
+		daprRuntimeVersion = runtimeVersion
+	} else {
+		t.Fatalf("env var \"DAPR_RUNTIME_VERSION\" not set")
+	}
+	if dashboardVersion, ok := os.LookupEnv("DAPR_DASHBOARD_VERSION"); ok {
+		daprDashboardVersion = dashboardVersion
+	} else {
+		t.Fatalf("env var \"DAPR_DASHBOARD_VERSION\" not set")
+	}
+	return
+}
+
 func UpgradeTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
 		daprPath := getDaprPath()
@@ -483,6 +499,50 @@ func UseProvidedNewCertAndRenew(details VersionDetails, opts TestOptions) func(t
 
 		// remove cert directory created earlier.
 		os.RemoveAll("./certs")
+	}
+}
+
+func NegativeScenarioForCertRenew() func(t *testing.T) {
+	return func(t *testing.T) {
+		daprPath := getDaprPath()
+		args := []string{
+			"mtls", "renew-certificate", "-k",
+			"--ca-root-certificate", "invalid_cert_file.pem",
+		}
+		output, err := spawn.Command(daprPath, args...)
+		t.Log(output)
+		require.Error(t, err, "expected error on certificate renewal")
+		assert.Contains(t, output, "certificate rotation failed: all required flags for this certificate rotation path")
+
+		args = []string{
+			"mtls", "renew-certificate", "-k",
+			"--ca-root-certificate", "invalid_cert_file.pem",
+			"--issuer-private-key", "invalid_cert_key.pem",
+			"--issuer-public-certificate", "invalid_cert_file.pem",
+		}
+		output, err = spawn.Command(daprPath, args...)
+		t.Log(output)
+		require.Error(t, err, "expected error on certificate renewal")
+		assert.Contains(t, output, "certificate rotation failed: open invalid_cert_file.pem: no such file or directory")
+
+		args = []string{
+			"mtls", "renew-certificate", "-k",
+			"--ca-root-certificate", "invalid_cert_file.pem",
+			"--private-key", "invalid_root_key.pem",
+		}
+		output, err = spawn.Command(daprPath, args...)
+		t.Log(output)
+		require.Error(t, err, "expected error on certificate renewal")
+		assert.Contains(t, output, "certificate rotation failed: all required flags for this certificate rotation path")
+
+		args = []string{
+			"mtls", "renew-certificate", "-k",
+			"--private-key", "invalid_root_key.pem",
+		}
+		output, err = spawn.Command(daprPath, args...)
+		t.Log(output)
+		require.Error(t, err, "expected error on certificate renewal")
+		assert.Contains(t, output, "certificate rotation failed: open invalid_root_key.pem: no such file or directory")
 	}
 }
 

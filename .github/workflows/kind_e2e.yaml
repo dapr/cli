@@ -46,9 +46,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GOVER: 1.17
-      DAPR_RUNTIME_VERSION: 1.7.0-rc.1
-      DAPR_DASHBOARD_VERSION: 0.10.0-rc.1
-      DAPR_TGZ: dapr-1.7.0-rc.1.tgz
+      DAPR_RUNTIME_VERSION: 1.7.0
+      DAPR_DASHBOARD_VERSION: 0.10.0
+      DAPR_TGZ: dapr-1.7.0.tgz
     strategy:
       fail-fast: false # Keep running if one leg fails.
       matrix:

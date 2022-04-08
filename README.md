@@ -120,10 +120,10 @@ You can install or upgrade to a specific version of the Dapr runtime using `dapr
 
 ```bash
 # Install v1.0.0 runtime
-$ dapr init --runtime-version 1.0.0
+dapr init --runtime-version 1.0.0
 
 # Check the versions of CLI and runtime
-$ dapr --version
+dapr --version
 CLI version: v1.0.0
 Runtime version: v1.0.0
 ```
@@ -134,7 +134,35 @@ You can install Dapr runtime by pulling docker images from a given private regis
 
 ```bash
 # Example of pulling images from a private registry.
-$ dapr init --image-registry example.io/<username>
+dapr init --image-registry example.io/<username>
+```
+
+#### Install in airgap environment
+
+You can install Dapr runtime in airgap (offline) environment using a pre-downloaded [installer bundle](https://github.com/dapr/installer-bundle/releases). You need to download the archived bundle for your OS beforehand (e.g., daprbundle_linux_amd64.tar.gz,) and unpack it. Thereafter use the local Dapr CLI binary in the bundle with `--from-dir` flag in the init command to point to the extracted bundle location to initialize Dapr.
+
+Move to the bundle directory and run the following command:
+
+```bash
+# Initializing dapr in airgap environment
+./dapr init --from-dir .
+```
+
+> For windows, use `.\dapr.exe` to point to the local Dapr CLI binary.
+
+> If you are not running the above command from the bundle directory, provide the full path to bundle directory as input. For example, assuming the bundle directory path is $HOME/daprbundle, run `$HOME/daprbundle/dapr init --from-dir $HOME/daprbundle` to have the same behavior.
+
+> Note: Dapr Installer bundle just contains the placement container apart from the binaries and so `zipkin` and `redis` are not enabled by default. You can pull the images locally either from network or private registry and run as follows:
+
+```bash
+docker run --name "dapr_zipkin" --restart always -d -p 9411:9411 openzipkin/zipkin
+docker run --name "dapr_redis" --restart always -d -p 6379:6379 redis
+```
+
+Alternatively to the above, you can also have slim installation as well to install dapr without running any Docker containers in airgap mode.   
+
+```bash
+./dapr init --slim --from-dir .
 ```
 
 #### Install to a specific Docker network
@@ -143,10 +171,10 @@ You can install the Dapr runtime to a specific Docker network in order to isolat
 
 ```bash
 # Create Docker network
-$ docker network create dapr-network
+docker network create dapr-network
 
 # Install Dapr to the network
-$ dapr init --network dapr-network
+dapr init --network dapr-network
 ```
 
 > Note: When installed to a specific Docker network, you will need to add the `--placement-host-address` arguments to `dapr run` commands run in any containers within that network.
@@ -190,8 +218,12 @@ The init command will install Dapr to a Kubernetes cluster. For more advanced us
 *Note: The default namespace is dapr-system. The installation will appear under the name `dapr` for Helm*
 
 ```bash
-$ dapr init -k
+dapr init -k
+```
 
+Output should look like as follows:
+
+```
 ⌛  Making the jump to hyperspace...
 ℹ️  Note: To install Dapr using Helm, see here:  https://docs.dapr.io/getting-started/install-dapr/#install-with-helm-advanced
 
@@ -575,7 +607,7 @@ dapr completion
 In order to enable Unix domain socket to connect Dapr API server, use the `--unix-domain-socket` flag:
 
 ```
-$ dapr run --app-id nodeapp --unix-domain-socket node app.js
+dapr run --app-id nodeapp --unix-domain-socket node app.js
 ```
 
 Dapr will automatically create a Unix domain socket to connect Dapr API server.
@@ -583,19 +615,18 @@ Dapr will automatically create a Unix domain socket to connect Dapr API server.
 If you want to invoke your app, also use this flag:
 
 ```
-$ dapr invoke --app-id nodeapp --unix-domain-socket --method mymethod
+dapr invoke --app-id nodeapp --unix-domain-socket --method mymethod
 ```
 
 ### Set API log level
 
-In order to set the Dapr runtime API calls log verbosity level, use the `api-log-level` flag:
+In order to set the Dapr runtime to log API calls with `INFO` log verbosity, use the `enable-api-logging` flag:
 
 ```bash
-dapr run --app-id nodeapp --app-port 3000 node app.js --api-log-level info
+dapr run --app-id nodeapp --app-port 3000 node app.js enable-api-logging
 ```
 
-This sets the Dapr API log level to `info`.
-The default is `debug`.
+The default is `false`.
 
 For more details, please run the command and check the examples to apply to your shell.
 

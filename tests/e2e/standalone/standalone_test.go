@@ -33,6 +33,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
 
+	testCommon "github.com/dapr/cli/tests/e2e/common"
 	"github.com/dapr/cli/tests/e2e/spawn"
 	"github.com/dapr/go-sdk/service/common"
 	daprHttp "github.com/dapr/go-sdk/service/http"
@@ -41,8 +42,8 @@ import (
 )
 
 var (
-	daprRuntimeVersion   = os.Getenv("DAPR_RUNTIME_VERSION")
-	daprDashboardVersion = os.Getenv("DAPR_DASHBOARD_VERSION")
+	daprRuntimeVersion   string
+	daprDashboardVersion string
 )
 
 var socketCases = []string{"", "/tmp"}
@@ -50,6 +51,7 @@ var socketCases = []string{"", "/tmp"}
 func TestStandaloneInstall(t *testing.T) {
 	// Ensure a clean environment.
 	uninstall()
+	daprRuntimeVersion, daprDashboardVersion = testCommon.GetVersionsFromEnv(t)
 
 	tests := []struct {
 		name  string
@@ -70,16 +72,17 @@ func TestStandaloneInstall(t *testing.T) {
 	}
 }
 
-func TestApiLogLevel(t *testing.T) {
+func TestEnableAPILogging(t *testing.T) {
 	// Ensure a clean environment.
 	uninstall()
+	daprRuntimeVersion, daprDashboardVersion = testCommon.GetVersionsFromEnv(t)
 
 	tests := []struct {
 		name  string
 		phase func(*testing.T)
 	}{
 		{"test install", testInstall},
-		{"test run api log level", testRunApiLogLevel},
+		{"test run enable api logging", testRunEnableAPILogging},
 		{"test uninstall", testUninstall},
 	}
 
@@ -91,6 +94,7 @@ func TestApiLogLevel(t *testing.T) {
 func TestNegativeScenarios(t *testing.T) {
 	// Ensure a clean environment
 	uninstall()
+	daprRuntimeVersion, daprDashboardVersion = testCommon.GetVersionsFromEnv(t)
 	daprPath := getDaprPath()
 
 	homeDir, err := os.UserHomeDir()
@@ -146,15 +150,22 @@ func TestNegativeScenarios(t *testing.T) {
 
 	t.Run("filter dashboard instance from list", func(t *testing.T) {
 		spawn.Command(daprPath, "dashboard", "-p", "5555")
-		cmd, err := spawn.Command(daprPath, "list")
+		output, err := spawn.Command(daprPath, "list")
 		require.NoError(t, err, "expected no error status on list without install")
-		require.Equal(t, "No Dapr instances found.\n", cmd)
+		require.Equal(t, "No Dapr instances found.\n", output)
+	})
+
+	t.Run("error if both --from-dir and --image-registry given", func(t *testing.T) {
+		output, err := spawn.Command(daprPath, "init", "--image-registry", "localhost:5000", "--from-dir", "./local-dir")
+		require.Error(t, err, "expected error if both flags are given")
+		require.Contains(t, output, "both --image-registry and --from-dir flags cannot be given at the same time")
 	})
 }
 
 func TestPrivateRegistry(t *testing.T) {
 	// Ensure a clean environment.
 	uninstall()
+	daprRuntimeVersion, daprDashboardVersion = testCommon.GetVersionsFromEnv(t)
 
 	tests := []struct {
 		name  string
@@ -456,17 +467,17 @@ func testRun(t *testing.T) {
 	})
 }
 
-func testRunApiLogLevel(t *testing.T) {
+func testRunEnableAPILogging(t *testing.T) {
 	daprPath := getDaprPath()
 	args := []string{
 		"run",
-		"--app-id", "apiloglevel_info",
-		"--api-log-level", "info",
+		"--app-id", "enableApiLogging_info",
+		"--enable-api-logging",
 		"--log-level", "info",
 		"--", "bash", "-c", "echo 'test'",
 	}
 
-	t.Run(fmt.Sprintf("check apiloglevel flag info mode"), func(t *testing.T) {
+	t.Run(fmt.Sprintf("check enableAPILogging flag in enabled mode"), func(t *testing.T) {
 		output, err := spawn.Command(daprPath, args...)
 		t.Log(output)
 		require.NoError(t, err, "run failed")
@@ -477,19 +488,17 @@ func testRunApiLogLevel(t *testing.T) {
 
 	args = []string{
 		"run",
-		"--app-id", "apiloglevel_debug",
-		"--api-log-level", "debug",
-		"--log-level", "debug",
+		"--app-id", "enableApiLogging_info",
 		"--", "bash", "-c", "echo 'test'",
 	}
 
-	t.Run(fmt.Sprintf("check apiloglevel flag debug mode"), func(t *testing.T) {
+	t.Run(fmt.Sprintf("check enableAPILogging flag in disabled mode"), func(t *testing.T) {
 		output, err := spawn.Command(daprPath, args...)
 		t.Log(output)
 		require.NoError(t, err, "run failed")
-		assert.Contains(t, output, "level=debug msg=\"HTTP API Called: PUT /v1.0/metadata/appCommand\"")
 		assert.Contains(t, output, "Exited App successfully")
 		assert.Contains(t, output, "Exited Dapr successfully")
+		assert.NotContains(t, output, "level=info msg=\"HTTP API Called: PUT /v1.0/metadata/appCommand\"")
 	})
 }
 
