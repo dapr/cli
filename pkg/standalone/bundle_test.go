@@ -22,13 +22,13 @@ import (
 
 func TestParseDetails(t *testing.T) {
 	correctDetails := `{
-		"daprd" : "1.7.0-rc.2",
-		"dashboard": "0.10.0-rc.2",
-		"cli": "1.7.0-rc.2",
+		"daprd" : "1.7.0",
+		"dashboard": "0.10.0",
+		"cli": "1.7.0",
 		"daprBinarySubDir": "dist",
 		"dockerImageSubDir": "docker",
-		"daprImageName": "daprio/dapr:1.7.2-rc.2",
-		"daprImageFileName": "daprio-dapr-1.7.2-rc.2.tar.gz"
+		"daprImageName": "daprio/dapr:1.7.2",
+		"daprImageFileName": "daprio-dapr-1.7.2.tar.gz"
 	}`
 	f, err := os.CreateTemp("", "*-details.json")
 	if err != nil {
@@ -40,21 +40,21 @@ func TestParseDetails(t *testing.T) {
 	bd := bundleDetails{}
 	err = bd.readAndParseDetails(f.Name())
 	assert.NoError(t, err, "expected no error on parsing correct details in file")
-	assert.Equal(t, "1.7.0-rc.2", *bd.RuntimeVersion, "expected versions to match")
-	assert.Equal(t, "0.10.0-rc.2", *bd.DashboardVersion, "expected versions to match")
+	assert.Equal(t, "1.7.0", *bd.RuntimeVersion, "expected versions to match")
+	assert.Equal(t, "0.10.0", *bd.DashboardVersion, "expected versions to match")
 	assert.Equal(t, "dist", *bd.BinarySubDir, "expected value to match")
 	assert.Equal(t, "docker", *bd.ImageSubDir, "expected value to match")
-	assert.Equal(t, "daprio/dapr:1.7.2-rc.2", bd.getPlacementImageName(), "expected value to match")
-	assert.Equal(t, "daprio-dapr-1.7.2-rc.2.tar.gz", bd.getPlacementImageFileName(), "expected value to match")
+	assert.Equal(t, "daprio/dapr:1.7.2", bd.getPlacementImageName(), "expected value to match")
+	assert.Equal(t, "daprio-dapr-1.7.2.tar.gz", bd.getPlacementImageFileName(), "expected value to match")
 }
 
 func TestParseDetailsMissingDetails(t *testing.T) {
 	missingDetails := `{
-		"daprd" : "1.7.0-rc.2",
-		"dashboard": "0.10.0-rc.2",
-		"cli": "1.7.0-rc.2",
-		"daprImageName": "daprio/dapr:1.7.2-rc.2"
-		"daprImageFileName": "daprio-dapr-1.7.2-rc.2.tar.gz"
+		"daprd" : "1.7.0",
+		"dashboard": "0.10.0",
+		"cli": "1.7.0",
+		"daprImageName": "daprio/dapr:1.7.2"
+		"daprImageFileName": "daprio-dapr-1.7.2.tar.gz"
 	}`
 	f, err := os.CreateTemp("", "*-details.json")
 	if err != nil {
@@ -72,11 +72,11 @@ func TestParseDetailsEmptyDetails(t *testing.T) {
 	missingDetails := `{
 		"daprd" : "",
 		"dashboard": "",
-		"cli": "1.7.0-rc.2",
+		"cli": "1.7.0",
 		"daprBinarySubDir": "dist",
 		"dockerImageSubDir": "docker",
-		"daprImageName": "daprio/dapr:1.7.2-rc.2",
-		"daprImageFileName": "daprio-dapr-1.7.2-rc.2.tar.gz"
+		"daprImageName": "daprio/dapr:1.7.2",
+		"daprImageFileName": "daprio-dapr-1.7.2.tar.gz"
 	}`
 	f, err := os.CreateTemp("", "*-details.json")
 	if err != nil {
