@@ -43,10 +43,11 @@ var InvokeCmd = &cobra.Command{
 	Short: "Invoke a method on a given Dapr application. Supported platforms: Kubernetes and self-hosted",
 	Example: `
 # Invoke a sample method on target app with POST Verb in self-hosted mode
-dapr invoke --app-id target --method sample --data '{"key":"value"}
+dapr invoke --app-id target --method sample --data '{"key":"value"}'
 
 # Invoke a sample method on target app with in Kubernetes
-dapr invoke -k --app-id target --method sample --data '{"key":"value"}
+dapr invoke -k --app-id target --method sample --data '{"key":"value"}'
+
 
 # Invoke a sample method on target app with GET Verb in self-hosted mode
 dapr invoke --app-id target --method sample --verb GET
