@@ -259,3 +259,4 @@ linters:
     - varnamelen
     - forcetypeassert
     - ireturn
+    - golint
