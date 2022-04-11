@@ -1,7 +1,15 @@
-// ------------------------------------------------------------
-// Copyright (c) Microsoft Corporation and Dapr Contributors.
-// Licensed under the MIT License.
-// ------------------------------------------------------------
+/*
+Copyright 2021 The Dapr Authors
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 package version
 
@@ -13,8 +21,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/dapr/cli/pkg/print"
+	"github.com/hashicorp/go-version"
 	yaml "gopkg.in/yaml.v2"
+
+	"github.com/dapr/cli/pkg/print"
 )
 
 const (
@@ -47,7 +57,6 @@ func GetDashboardVersion() (string, error) {
 
 func GetDaprVersion() (string, error) {
 	version, err := GetLatestReleaseGithub(fmt.Sprintf("https://api.github.com/repos/%s/%s/releases", DaprGitHubOrg, DaprGitHubRepo))
-
 	if err != nil {
 		print.WarningStatusEvent(os.Stdout, "Failed to get runtime version: '%s'. Trying secondary source", err)
 
@@ -102,13 +111,23 @@ func GetLatestReleaseGithub(githubURL string) (string, error) {
 			return "", fmt.Errorf("no releases")
 		}
 
+		defaultVersion, _ := version.NewVersion("0.0.0")
+		latestVersion := defaultVersion
+
 		for _, release := range githubRepoReleases {
 			if !strings.Contains(release.TagName, "-rc") {
-				return strings.TrimPrefix(release.TagName, "v"), nil
+				cur, _ := version.NewVersion(strings.TrimPrefix(release.TagName, "v"))
+				if cur.GreaterThan(latestVersion) {
+					latestVersion = cur
+				}
 			}
 		}
 
-		return "", fmt.Errorf("no releases")
+		if latestVersion.Equal(defaultVersion) {
+			return "", fmt.Errorf("no releases")
+		}
+
+		return latestVersion.String(), nil
 	})
 }
 

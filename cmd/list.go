@@ -1,7 +1,15 @@
-// ------------------------------------------------------------
-// Copyright (c) Microsoft Corporation and Dapr Contributors.
-// Licensed under the MIT License.
-// ------------------------------------------------------------
+/*
+Copyright 2021 The Dapr Authors
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 package cmd
 
@@ -9,22 +17,22 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/gocarina/gocsv"
+	"github.com/spf13/cobra"
+
 	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/pkg/standalone"
 	"github.com/dapr/cli/utils"
-	"github.com/gocarina/gocsv"
-	"github.com/spf13/cobra"
+
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var (
-	outputFormat string
-)
+var outputFormat string
 
 func outputList(list interface{}, length int) {
 	if outputFormat == "json" || outputFormat == "yaml" {
 		err := utils.PrintDetail(os.Stdout, outputFormat, list)
-
 		if err != nil {
 			print.FailureStatusEvent(os.Stdout, err.Error())
 			os.Exit(1)
@@ -53,8 +61,14 @@ var ListCmd = &cobra.Command{
 # List Dapr instances in self-hosted mode
 dapr list
 
-# List Dapr instances in Kubernetes mode
+# List Dapr instances in all namespaces in Kubernetes mode
 dapr list -k
+
+# List Dapr instances in a specific namespace in Kubernetes mode
+dapr list -k --namespace default
+
+# List Dapr instances in all namespaces in  Kubernetes mode
+dapr list -k --all-namespaces
 `,
 	PreRun: func(cmd *cobra.Command, args []string) {
 		if outputFormat != "" && outputFormat != "json" && outputFormat != "yaml" && outputFormat != "table" {
@@ -64,9 +78,16 @@ dapr list -k
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if kubernetesMode {
-			list, err := kubernetes.List()
+			print.WarningStatusEvent(os.Stdout, "In future releases, this command will only query the \"default\" namespace by default. Please use the --namespace flag for a specific namespace, or the --all-namespaces (-A) flag for all namespaces.")
+			if allNamespaces {
+				resourceNamespace = meta_v1.NamespaceAll
+			} else if resourceNamespace == "" {
+				resourceNamespace = meta_v1.NamespaceAll
+			}
+
+			list, err := kubernetes.List(resourceNamespace)
 			if err != nil {
-				print.FailureStatusEvent(os.Stdout, err.Error())
+				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)
 			}
 
@@ -74,17 +95,24 @@ dapr list -k
 		} else {
 			list, err := standalone.List()
 			if err != nil {
-				print.FailureStatusEvent(os.Stdout, err.Error())
+				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)
 			}
 
 			outputList(list, len(list))
 		}
 	},
+	PostRun: func(cmd *cobra.Command, args []string) {
+		if kubernetesMode {
+			kubernetes.CheckForCertExpiry()
+		}
+	},
 }
 
 func init() {
+	ListCmd.Flags().BoolVarP(&allNamespaces, "all-namespaces", "A", false, "If true, list all Dapr pods in all namespaces")
 	ListCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "List all Dapr pods in a Kubernetes cluster")
+	ListCmd.Flags().StringVarP(&resourceNamespace, "namespace", "", "", "List define namespace pod in a Kubernetes cluster")
 	ListCmd.Flags().StringVarP(&outputFormat, "output", "o", "", "The output format of the list. Valid values are: json, yaml, or table (default)")
 	ListCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	RootCmd.AddCommand(ListCmd)

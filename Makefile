@@ -1,6 +1,14 @@
 # ------------------------------------------------------------
-# Copyright (c) Microsoft Corporation and Dapr Contributors.
-# Licensed under the MIT License.
+# Copyright 2021 The Dapr Authors
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 # ------------------------------------------------------------
 
 ################################################################################
@@ -127,11 +135,7 @@ release: build archive
 
 .PHONY: test-deps
 test-deps:
-	# The desire here is to download this test dependency without polluting go.mod
-	# In golang >=1.16 there is a new way to do this with `go install gotest.tools/gotestsum@latest`
-	# But this doesn't work with <=1.15, so we do it the old way for now 
-	# (see: https://golang.org/ref/mod#go-install)
-	GO111MODULE=off go get gotest.tools/gotestsum
+	go install gotest.tools/gotestsum@latest
 ################################################################################
 # Tests																           #
 ################################################################################
@@ -184,7 +188,7 @@ e2e-build-run-sh: build test-e2e-sh
 ################################################################################
 .PHONY: go.mod
 go.mod:
-	go mod tidy
+	go mod tidy -compat=1.17
 
 ################################################################################
 # Target: check-diff                                                           #

@@ -1,3 +1,16 @@
+/*
+Copyright 2021 The Dapr Authors
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package kubernetes
 
 import (
@@ -15,12 +28,14 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/dapr/pkg/apis/configuration/v1alpha1"
 )
 
 const (
-	systemConfigName      = "daprsystem"
-	trustBundleSecretName = "dapr-trust-bundle" // nolint:gosec
+	systemConfigName         = "daprsystem"
+	trustBundleSecretName    = "dapr-trust-bundle" // nolint:gosec
+	warningDaysForCertExpiry = 30                  // in days.
 )
 
 func IsMTLSEnabled() (bool, error) {
@@ -62,7 +77,7 @@ func ExportTrustChain(outputDir string) error {
 	_, err := os.Stat(outputDir)
 
 	if os.IsNotExist(err) {
-		errDir := os.MkdirAll(outputDir, 0755)
+		errDir := os.MkdirAll(outputDir, 0o755)
 		if errDir != nil {
 			return err
 		}
@@ -77,21 +92,47 @@ func ExportTrustChain(outputDir string) error {
 	issuerCert := secret.Data["issuer.crt"]
 	issuerKey := secret.Data["issuer.key"]
 
-	err = ioutil.WriteFile(filepath.Join(outputDir, "ca.crt"), ca, 0600)
+	err = ioutil.WriteFile(filepath.Join(outputDir, "ca.crt"), ca, 0o600)
 	if err != nil {
 		return err
 	}
 
-	err = ioutil.WriteFile(filepath.Join(outputDir, "issuer.crt"), issuerCert, 0600)
+	err = ioutil.WriteFile(filepath.Join(outputDir, "issuer.crt"), issuerCert, 0o600)
 	if err != nil {
 		return err
 	}
 
-	err = ioutil.WriteFile(filepath.Join(outputDir, "issuer.key"), issuerKey, 0600)
+	err = ioutil.WriteFile(filepath.Join(outputDir, "issuer.key"), issuerKey, 0o600)
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+// Check and warn if cert expiry is less than `warningDaysForCertExpiry` days.
+func CheckForCertExpiry() {
+	expiry, err := Expiry()
+	// The intent is to warn for certificate expiry, only when it can be fetched.
+	// Do not show any kind of errors with normal command flow.
+	if err != nil {
+		return
+	}
+	daysRemaining := int(expiry.Sub(time.Now().UTC()).Hours() / 24)
+
+	if daysRemaining < warningDaysForCertExpiry {
+		warningMessage := ""
+		switch {
+		case daysRemaining == 0:
+			warningMessage = "Dapr root certificate of your Kubernetes cluster expires today."
+		case daysRemaining < 0:
+			warningMessage = "Dapr root certificate of your Kubernetes cluster has expired."
+		default:
+			warningMessage = fmt.Sprintf("Dapr root certificate of your Kubernetes cluster expires in %v days.", daysRemaining)
+		}
+		helpMessage := "Please see docs.dapr.io for certificate renewal instructions to avoid service interruptions."
+		print.WarningStatusEvent(os.Stdout,
+			fmt.Sprintf("%s Expiry date: %s. \n %s", warningMessage, expiry.Format(time.RFC1123), helpMessage))
+	}
 }
 
 func getTrustChainSecret() (*corev1.Secret, error) {
@@ -124,7 +165,10 @@ func Expiry() (*time.Time, error) {
 		return nil, err
 	}
 
-	caCrt := secret.Data["ca.crt"]
+	caCrt, ok := secret.Data["ca.crt"]
+	if !ok {
+		return nil, errors.New("root certificate not loaded yet, please try again in few minutes")
+	}
 	block, _ := pem.Decode(caCrt)
 	cert, err := x509.ParseCertificate(block.Bytes)
 	if err != nil {

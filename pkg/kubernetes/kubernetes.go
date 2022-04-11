@@ -1,7 +1,15 @@
-// ------------------------------------------------------------
-// Copyright (c) Microsoft Corporation and Dapr Contributors.
-// Licensed under the MIT License.
-// ------------------------------------------------------------
+/*
+Copyright 2021 The Dapr Authors
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 package kubernetes
 
@@ -14,8 +22,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dapr/cli/pkg/print"
-	cli_ver "github.com/dapr/cli/pkg/version"
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
@@ -24,6 +30,9 @@ import (
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/helm/pkg/strvals"
+
+	"github.com/dapr/cli/pkg/print"
+	cli_ver "github.com/dapr/cli/pkg/version"
 )
 
 const (
@@ -48,7 +57,7 @@ func Init(config InitConfiguration) error {
 
 	stopSpinning := print.Spinner(os.Stdout, msg)
 	defer stopSpinning(print.Failure)
-
+	//nolint
 	err := install(config)
 	if err != nil {
 		return err
@@ -62,7 +71,7 @@ func Init(config InitConfiguration) error {
 func createNamespace(namespace string) error {
 	_, client, err := GetKubeConfigClient()
 	if err != nil {
-		return fmt.Errorf("can't connect to a Kubernetes cluster: %v", err)
+		return fmt.Errorf("can't connect to a Kubernetes cluster: %w", err)
 	}
 
 	ns := &v1.Namespace{
@@ -89,7 +98,7 @@ func getVersion(version string) (string, error) {
 		var err error
 		version, err = cli_ver.GetDaprVersion()
 		if err != nil {
-			return "", fmt.Errorf("cannot get the latest release version: %s", err)
+			return "", fmt.Errorf("cannot get the latest release version: %w", err)
 		}
 		version = strings.TrimPrefix(version, "v")
 	}
@@ -99,7 +108,7 @@ func getVersion(version string) (string, error) {
 func createTempDir() (string, error) {
 	dir, err := ioutil.TempDir("", "dapr")
 	if err != nil {
-		return "", fmt.Errorf("error creating temp dir: %s", err)
+		return "", fmt.Errorf("error creating temp dir: %w", err)
 	}
 	return dir, nil
 }
@@ -113,7 +122,7 @@ func locateChartFile(dirPath string) (string, error) {
 }
 
 func daprChart(version string, config *helm.Configuration) (*chart.Chart, error) {
-	pull := helm.NewPull()
+	pull := helm.NewPullWithOpts(helm.WithConfig(config))
 	pull.RepoURL = daprHelmRepo
 	pull.Settings = &cli.EnvSettings{}
 

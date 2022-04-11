@@ -1,21 +1,29 @@
-// ------------------------------------------------------------
-// Copyright (c) Microsoft Corporation and Dapr Contributors.
-// Licensed under the MIT License.
-// ------------------------------------------------------------
+/*
+Copyright 2021 The Dapr Authors
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 package kubernetes
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
 	"sync"
 
-	"errors"
+	k8s "k8s.io/client-go/kubernetes"
 
 	"github.com/dapr/cli/pkg/age"
 	"github.com/dapr/cli/pkg/print"
-	k8s "k8s.io/client-go/kubernetes"
 )
 
 var controlPlaneLabels = []string{
@@ -56,6 +64,7 @@ func NewStatusClient() (*StatusClient, error) {
 
 // List status for Dapr resources.
 func (s *StatusClient) Status() ([]StatusOutput, error) {
+	//nolint
 	client := s.client
 	if client == nil {
 		return nil, errors.New("kubernetes client not initialized")
@@ -90,7 +99,7 @@ func (s *StatusClient) Status() ([]StatusOutput, error) {
 			version := image[strings.IndexAny(image, ":")+1:]
 			status := ""
 
-			// loop through all replicas and update to Running/Healthy status only if all instances are Running and Healthy
+			// loop through all replicas and update to Running/Healthy status only if all instances are Running and Healthy.
 			healthy := "False"
 			running := true
 
