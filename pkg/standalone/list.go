@@ -59,7 +59,6 @@ func List() ([]ListOutput, error) {
 		executable := strings.ToLower(proc.Executable())
 		if (executable == "daprd") || (executable == "daprd.exe") {
 			procDetails, err := process.NewProcess(int32(proc.Pid()))
-
 			if err != nil {
 				continue
 			}
