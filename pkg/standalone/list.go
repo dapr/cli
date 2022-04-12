@@ -37,8 +37,8 @@ type ListOutput struct {
 	Command        string `csv:"COMMAND"   json:"command"        yaml:"command"`
 	Age            string `csv:"AGE"       json:"age"            yaml:"age"`
 	Created        string `csv:"CREATED"   json:"created"        yaml:"created"`
-	CliPID         int    `csv:"CLI PID"       json:"cliPid"            yaml:"cliPid"`
-	DaprdPID       int    `csv:"DAPRD PID"       json:"daprdPid"            yaml:"daprdPid"`
+	CliPID         int    `csv:"CLI PID"   json:"cliPid"         yaml:"cliPid"`
+	DaprdPID       int    `csv:"DAPRD PID" json:"daprdPid"       yaml:"daprdPid"`
 }
 
 func (d *daprProcess) List() ([]ListOutput, error) {
@@ -79,16 +79,16 @@ func List() ([]ListOutput, error) {
 			}
 
 			httpPort := runtime.DefaultDaprHTTPPort
-			if daprHTTPPort, ok := argumentsMap["--dapr-http-port"]; ok {
-				if iHTTPPort, httpErr := strconv.Atoi(daprHTTPPort); httpErr == nil {
-					httpPort = iHTTPPort
+			if httpPortArg, ok := argumentsMap["--dapr-http-port"]; ok {
+				if httpPortArgInt, err := strconv.Atoi(httpPortArg); err == nil {
+					httpPort = httpPortArgInt
 				}
 			}
 
 			grpcPort := runtime.DefaultDaprAPIGRPCPort
-			if daprGRPCPort, ok := argumentsMap["--dapr-grpc-port"]; ok {
-				if iGrpcPort, grpcErr := strconv.Atoi(daprGRPCPort); grpcErr == nil {
-					grpcPort = iGrpcPort
+			if grpcPortArg, ok := argumentsMap["--dapr-grpc-port"]; ok {
+				if grpcPortArgInt, err := strconv.Atoi(grpcPortArg); err == nil {
+					grpcPort = grpcPortArgInt
 				}
 			}
 
@@ -117,6 +117,7 @@ func List() ([]ListOutput, error) {
 			if err != nil {
 				cliPID = 0
 			}
+
 			daprdPid := proc.Pid()
 
 			createUnixTimeMilliseconds, err := procDetails.CreateTime()

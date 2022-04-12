@@ -31,9 +31,13 @@ func Stop(appID string) error {
 
 	for _, a := range apps {
 		if a.AppID == appID {
-			pid := fmt.Sprintf("%v", a.CliPID)
-			if pid == "0" {
+			var pid string
+			// Kill the Daprd process if Daprd was started without CLI, otherwise
+			// kill the CLI process which also kills the associated Daprd process.
+			if a.CliPID == 0 {
 				pid = fmt.Sprintf("%v", a.DaprdPID)
+			} else {
+				pid = fmt.Sprintf("%v", a.CliPID)
 			}
 
 			_, err := utils.RunCmdAndWait("kill", pid)

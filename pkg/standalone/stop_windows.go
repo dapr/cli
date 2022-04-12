@@ -29,9 +29,18 @@ func Stop(appID string) error {
 
 	for _, a := range apps {
 		if a.AppID == appID {
-			pid := fmt.Sprintf("dapr_cli_%v", a.CliPID)
+			var pid string
+
+			// Unlike Linux/Mac, we can't just send sigterm. In order for 'dapr shutdown'
+			// to be able to receive the signal gracefully, we must send a named event in Windows.
+			//
+			// Kill the Daprd process if Daprd was started without CLI, otherwise
+			// kill the CLI process which also kills the associated Daprd process.
+			// TODO: who handles dapr_daprd_ named events?
 			if a.CliPID == 0 {
 				pid = fmt.Sprintf("dapr_daprd_%v", a.DaprdPID)
+			} else {
+				pid = fmt.Sprintf("dapr_cli_%v", a.CliPID)
 			}
 			eventName, _ := syscall.UTF16FromString(pid)
 
