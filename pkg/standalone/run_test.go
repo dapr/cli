@@ -150,6 +150,7 @@ func TestRun(t *testing.T) {
 		MetricsPort:        9001,
 		MaxRequestBodySize: -1,
 		InternalGRPCPort:   5050,
+		EnableAPILogging:   true,
 	}
 
 	t.Run("run happy http", func(t *testing.T) {
@@ -165,6 +166,7 @@ func TestRun(t *testing.T) {
 	t.Run("run without app command", func(t *testing.T) {
 		basicConfig.Arguments = nil
 		basicConfig.LogLevel = "INFO"
+		basicConfig.EnableAPILogging = true
 		basicConfig.ConfigFile = DefaultConfigFilePath()
 		output, err := Run(basicConfig)
 		assert.Nil(t, err)
