@@ -126,7 +126,7 @@ func (pf *PortForward) Init() error {
 	}()
 
 	select {
-	// if `fw.ForwardPorts()` succeeds, block until terminated
+	// if `fw.ForwardPorts()` succeeds, block until terminated.
 	case <-pf.ReadyCh:
 		ports, err := fw.GetPorts()
 		if err != nil {
