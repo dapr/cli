@@ -15,9 +15,8 @@ package standalone
 
 import (
 	"fmt"
-	"syscall"
 
-	"golang.org/x/sys/windows"
+	"github.com/dapr/cli/utils"
 )
 
 // Stop terminates the application process.
@@ -30,26 +29,18 @@ func Stop(appID string) error {
 	for _, a := range apps {
 		if a.AppID == appID {
 			var pid string
-
-			// Unlike Linux/Mac, we can't just send sigterm. In order for 'dapr shutdown'
-			// to be able to receive the signal gracefully, we must send a named event in Windows.
-			//
 			// Kill the Daprd process if Daprd was started without CLI, otherwise
 			// kill the CLI process which also kills the associated Daprd process.
-			// TODO: who handles dapr_daprd_ named events?
 			if a.CliPID == 0 {
-				pid = fmt.Sprintf("dapr_daprd_%v", a.DaprdPID)
+				pid = fmt.Sprintf("%v", a.DaprdPID)
 			} else {
-				pid = fmt.Sprintf("dapr_cli_%v", a.CliPID)
-			}
-			eventName, _ := syscall.UTF16FromString(pid)
-
-			eventHandle, err := windows.OpenEvent(windows.EVENT_MODIFY_STATE, false, &eventName[0])
-			if err != nil {
-				return err
+				pid = fmt.Sprintf("%v", a.CliPID)
 			}
 
-			err = windows.SetEvent(eventHandle)
+			// /F forcefully end the process
+			// /T end child processes along with the main process
+			_, err := utils.RunCmdAndWait("taskkill", "/F", "/T", "/PID", pid)
+
 			return err
 		}
 	}
