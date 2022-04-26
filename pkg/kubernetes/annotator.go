@@ -323,7 +323,7 @@ func (p *K8sAnnotator) annotateYAML(input []byte, config AnnotateOptions) ([]byt
 	daprAnnotations := getDaprAnnotations(&config)
 	for k, v := range daprAnnotations {
 		// TODO: Should we log when we are overwriting?
-		// if _, exists := annotations[k]; exists {}
+		// if _, exists := annotations[k]; exists {}.
 		annotations[k] = v
 	}
 

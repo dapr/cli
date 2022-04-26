@@ -35,6 +35,7 @@ type annotation struct {
 	optionFactory   func() AnnotateOptions
 }
 
+// nolint
 func TestAnnotate(t *testing.T) {
 	// Helper function used to order test documents.
 	sortDocs := func(docs []string) {

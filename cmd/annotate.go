@@ -128,7 +128,7 @@ func readInput(arg string) ([]io.Reader, error) {
 	var inputs []io.Reader
 	var err error
 	if arg == "-" {
-		// input is from stdin
+		// input is from stdin.
 		inputs = append(inputs, os.Stdin)
 	} else if isURL(arg) {
 		inputs, err = readInputsFromURL(arg)
@@ -136,7 +136,7 @@ func readInput(arg string) ([]io.Reader, error) {
 			return nil, err
 		}
 	} else {
-		// input is from file or dir
+		// input is from file or dir.
 		inputs, err = readInputsFromFS(arg)
 		if err != nil {
 			return nil, err
@@ -181,7 +181,7 @@ func readInputsFromFS(path string) ([]io.Reader, error) {
 	}
 
 	if !stat.IsDir() {
-		// input is a file
+		// input is a file.
 		var file *os.File
 		file, err = os.Open(path)
 		if err != nil {
@@ -191,7 +191,7 @@ func readInputsFromFS(path string) ([]io.Reader, error) {
 		return []io.Reader{file}, nil
 	}
 
-	// input is a directory
+	// input is a directory.
 	var inputs []io.Reader
 	err = filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -219,7 +219,7 @@ func readInputsFromFS(path string) ([]io.Reader, error) {
 }
 
 func getOptionsFromFlags() kubernetes.AnnotateOptions {
-	// TODO: Use a pointer for int flag where zero is nil not -1
+	// TODO: Use a pointer for int flag where zero is nil not -1.
 	o := []kubernetes.AnnoteOption{}
 	if annotateAppID != "" {
 		o = append(o, kubernetes.WithAppID(annotateAppID))
