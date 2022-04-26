@@ -70,6 +70,22 @@ type TestCase struct {
 	Callable func(*testing.T)
 }
 
+// GetVersionsFromEnv will return values from required environment variables,
+// if environment variables are not set it fails the test.
+func GetVersionsFromEnv(t *testing.T) (daprRuntimeVersion string, daprDashboardVersion string) {
+	if runtimeVersion, ok := os.LookupEnv("DAPR_RUNTIME_VERSION"); ok {
+		daprRuntimeVersion = runtimeVersion
+	} else {
+		t.Fatalf("env var \"DAPR_RUNTIME_VERSION\" not set")
+	}
+	if dashboardVersion, ok := os.LookupEnv("DAPR_DASHBOARD_VERSION"); ok {
+		daprDashboardVersion = dashboardVersion
+	} else {
+		t.Fatalf("env var \"DAPR_DASHBOARD_VERSION\" not set")
+	}
+	return
+}
+
 func UpgradeTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
 		daprPath := getDaprPath()
@@ -157,6 +173,15 @@ func GetTestsOnUninstall(details VersionDetails, opts TestOptions) []TestCase {
 	}
 }
 
+func GetTestsPostCertificateRenewal(details VersionDetails, opts TestOptions) []TestCase {
+	return []TestCase{
+		{"crds exist " + details.RuntimeVersion, CRDTest(details, opts)},
+		{"clusterroles exist " + details.RuntimeVersion, ClusterRolesTest(details, opts)},
+		{"clusterrolebindings exist " + details.RuntimeVersion, ClusterRoleBindingsTest(details, opts)},
+		{"status check " + details.RuntimeVersion, StatusTestOnInstallUpgrade(details, opts)},
+	}
+}
+
 func MTLSTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
 		daprPath := getDaprPath()
@@ -210,10 +235,13 @@ func ComponentsTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 		if opts.ApplyComponentChanges {
 			// apply any changes to the component.
 			t.Log("apply component changes")
-			output, err := spawn.Command("kubectl", "apply", "-f", "../testdata/statestore.yaml")
+			output, err := spawn.Command("kubectl", "apply", "-f", "../testdata/namespace.yaml")
 			t.Log(output)
 			require.NoError(t, err, "expected no error on kubectl apply")
-			require.Equal(t, "component.dapr.io/statestore created\nnamespace/test created\ncomponent.dapr.io/statestore created\n", output, "expceted output to match")
+			output, err = spawn.Command("kubectl", "apply", "-f", "../testdata/statestore.yaml")
+			t.Log(output)
+			require.NoError(t, err, "expected no error on kubectl apply")
+			require.Equal(t, "component.dapr.io/statestore created\ncomponent.dapr.io/statestore created\n", output, "expceted output to match")
 		}
 
 		t.Log("check applied component exists")
@@ -386,6 +414,164 @@ func CRDTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 	}
 }
 
+func GenerateNewCertAndRenew(details VersionDetails, opts TestOptions) func(t *testing.T) {
+	return func(t *testing.T) {
+		daprPath := getDaprPath()
+		err := exportCurrentCertificate(daprPath)
+		require.NoError(t, err, "expected no error on certificate exporting")
+
+		output, err := spawn.Command(daprPath, "mtls", "renew-certificate", "-k", "--valid-until", "20", "--restart")
+		t.Log(output)
+		require.NoError(t, err, "expected no error on certificate renewal")
+
+		done := make(chan struct{})
+		podsRunning := make(chan struct{})
+
+		go waitAllPodsRunning(t, DaprTestNamespace, opts.HAEnabled, done, podsRunning)
+		select {
+		case <-podsRunning:
+			t.Logf("verified all pods running in namespace %s are running after certficate change", DaprTestNamespace)
+		case <-time.After(2 * time.Minute):
+			done <- struct{}{}
+			t.Logf("timeout verifying all pods running in namespace %s", DaprTestNamespace)
+			t.FailNow()
+		}
+		assert.Contains(t, output, "Certificate rotation is successful!")
+	}
+}
+
+func UseProvidedPrivateKeyAndRenewCerts(details VersionDetails, opts TestOptions) func(t *testing.T) {
+	return func(t *testing.T) {
+		daprPath := getDaprPath()
+		args := []string{
+			"mtls", "renew-certificate", "-k",
+			"--private-key", "../testdata/example-root.key",
+			"--valid-until", "20",
+		}
+		output, err := spawn.Command(daprPath, args...)
+		t.Log(output)
+		require.NoError(t, err, "expected no error on certificate renewal")
+
+		done := make(chan struct{})
+		podsRunning := make(chan struct{})
+
+		go waitAllPodsRunning(t, DaprTestNamespace, opts.HAEnabled, done, podsRunning)
+		select {
+		case <-podsRunning:
+			t.Logf("verified all pods running in namespace %s are running after certficate change", DaprTestNamespace)
+		case <-time.After(2 * time.Minute):
+			done <- struct{}{}
+			t.Logf("timeout verifying all pods running in namespace %s", DaprTestNamespace)
+			t.FailNow()
+		}
+		assert.Contains(t, output, "Certificate rotation is successful!")
+	}
+}
+
+func UseProvidedNewCertAndRenew(details VersionDetails, opts TestOptions) func(t *testing.T) {
+	return func(t *testing.T) {
+		daprPath := getDaprPath()
+		args := []string{
+			"mtls", "renew-certificate", "-k",
+			"--ca-root-certificate", "./certs/ca.crt",
+			"--issuer-private-key", "./certs/issuer.key",
+			"--issuer-public-certificate", "./certs/issuer.crt",
+			"--restart",
+		}
+		output, err := spawn.Command(daprPath, args...)
+		t.Log(output)
+		require.NoError(t, err, "expected no error on certificate renewal")
+
+		done := make(chan struct{})
+		podsRunning := make(chan struct{})
+
+		go waitAllPodsRunning(t, DaprTestNamespace, opts.HAEnabled, done, podsRunning)
+		select {
+		case <-podsRunning:
+			t.Logf("verified all pods running in namespace %s are running after certficate change", DaprTestNamespace)
+		case <-time.After(2 * time.Minute):
+			done <- struct{}{}
+			t.Logf("timeout verifying all pods running in namespace %s", DaprTestNamespace)
+			t.FailNow()
+		}
+
+		assert.Contains(t, output, "Certificate rotation is successful!")
+
+		// remove cert directory created earlier.
+		os.RemoveAll("./certs")
+	}
+}
+
+func NegativeScenarioForCertRenew() func(t *testing.T) {
+	return func(t *testing.T) {
+		daprPath := getDaprPath()
+		args := []string{
+			"mtls", "renew-certificate", "-k",
+			"--ca-root-certificate", "invalid_cert_file.pem",
+		}
+		output, err := spawn.Command(daprPath, args...)
+		t.Log(output)
+		require.Error(t, err, "expected error on certificate renewal")
+		assert.Contains(t, output, "certificate rotation failed: all required flags for this certificate rotation path")
+
+		args = []string{
+			"mtls", "renew-certificate", "-k",
+			"--ca-root-certificate", "invalid_cert_file.pem",
+			"--issuer-private-key", "invalid_cert_key.pem",
+			"--issuer-public-certificate", "invalid_cert_file.pem",
+		}
+		output, err = spawn.Command(daprPath, args...)
+		t.Log(output)
+		require.Error(t, err, "expected error on certificate renewal")
+		assert.Contains(t, output, "certificate rotation failed: open invalid_cert_file.pem: no such file or directory")
+
+		args = []string{
+			"mtls", "renew-certificate", "-k",
+			"--ca-root-certificate", "invalid_cert_file.pem",
+			"--private-key", "invalid_root_key.pem",
+		}
+		output, err = spawn.Command(daprPath, args...)
+		t.Log(output)
+		require.Error(t, err, "expected error on certificate renewal")
+		assert.Contains(t, output, "certificate rotation failed: all required flags for this certificate rotation path")
+
+		args = []string{
+			"mtls", "renew-certificate", "-k",
+			"--private-key", "invalid_root_key.pem",
+		}
+		output, err = spawn.Command(daprPath, args...)
+		t.Log(output)
+		require.Error(t, err, "expected error on certificate renewal")
+		assert.Contains(t, output, "certificate rotation failed: open invalid_root_key.pem: no such file or directory")
+	}
+}
+
+func CheckMTLSStatus(details VersionDetails, opts TestOptions, shouldWarningExist bool) func(t *testing.T) {
+	return func(t *testing.T) {
+		daprPath := getDaprPath()
+		output, err := spawn.Command(daprPath, "mtls", "-k")
+		require.NoError(t, err, "expected no error on querying for mtls")
+		if !opts.MTLSEnabled {
+			t.Log("check mtls disabled")
+			require.Contains(t, output, "Mutual TLS is disabled in your Kubernetes cluster", "expected output to match")
+		} else {
+			t.Log("check mtls enabled")
+			require.Contains(t, output, "Mutual TLS is enabled in your Kubernetes cluster", "expected output to match")
+		}
+		output, err = spawn.Command(daprPath, "status", "-k")
+		require.NoError(t, err, "status check failed")
+		if shouldWarningExist {
+			assert.Contains(t, output, "Dapr root certificate of your Kubernetes cluster expires in", "expected output to contain string")
+			assert.Contains(t, output, "Expiry date:", "expected output to contain string")
+			assert.Contains(t, output, "Please see docs.dapr.io for certificate renewal instructions to avoid service interruptions")
+		} else {
+			assert.NotContains(t, output, "Dapr root certificate of your Kubernetes cluster expires in", "expected output to contain string")
+			assert.NotContains(t, output, "Expiry date:", "expected output to contain string")
+			assert.NotContains(t, output, "Please see docs.dapr.io for certificate renewal instructions to avoid service interruptions")
+		}
+	}
+}
+
 // Unexported functions.
 
 func (v VersionDetails) constructFoundMap(res Resource) map[string]bool {
@@ -521,19 +707,25 @@ func componentsTestOnUninstall(all bool) func(t *testing.T) {
 
 		// If --all, then the below does not need to run.
 		if all {
+			output, err = spawn.Command("kubectl", "delete", "-f", "../testdata/namespace.yaml")
+			require.NoError(t, err, "expected no error on kubectl delete")
+			t.Log(output)
 			return
 		}
 
 		// Manually remove components and verify output.
 		output, err = spawn.Command("kubectl", "delete", "-f", "../testdata/statestore.yaml")
 		require.NoError(t, err, "expected no error on kubectl apply")
-		require.Equal(t, "component.dapr.io \"statestore\" deleted\nnamespace \"test\" deleted\ncomponent.dapr.io \"statestore\" deleted\n", output, "expected output to match")
+		require.Equal(t, "component.dapr.io \"statestore\" deleted\ncomponent.dapr.io \"statestore\" deleted\n", output, "expected output to match")
+		output, err = spawn.Command("kubectl", "delete", "-f", "../testdata/namespace.yaml")
+		require.NoError(t, err, "expected no error on kubectl delete")
+		t.Log(output)
 		output, err = spawn.Command(daprPath, "components", "-k")
 		require.NoError(t, err, "expected no error on calling dapr components")
 		lines := strings.Split(output, "\n")
 
 		// An extra empty line is there in output.
-		require.Equal(t, 4, len(lines), "expected header and warning message of the output to remain")
+		require.Equal(t, 3, len(lines), "expected header and warning message of the output to remain")
 	}
 }
 
@@ -555,24 +747,24 @@ func componentOutputCheck(t *testing.T, output string, all bool) {
 	}
 
 	if all {
-		assert.Equal(t, len(lines), 3, "expected at 0 components and 3 message items")
+		assert.Equal(t, 2, len(lines), "expected at 0 components and 2 output lines")
 		return
 	}
 
-	lines = strings.Split(output, "\n")[3:] // remove header and warning message.
+	lines = strings.Split(output, "\n")[2:] // remove header and warning message.
 
-	assert.Equal(t, len(lines), 2, "expect at 2 componets") // default and test namespace components.
+	assert.Equal(t, 2, len(lines), "expected 2 componets") // default and test namespace components.
 
 	// for fresh cluster only one component yaml has been applied.
 	testNsFields := strings.Fields(lines[0])
 	defaultNsFields := strings.Fields(lines[1])
 
 	// Fields splits on space, so Created time field might be split again.
-	defineComponentOutputCheck(t, testNsFields, "test")
-	defineComponentOutputCheck(t, defaultNsFields, "default")
+	namespaceComponentOutputCheck(t, testNsFields, "test")
+	namespaceComponentOutputCheck(t, defaultNsFields, "default")
 }
 
-func defineComponentOutputCheck(t *testing.T, fields []string, namespace string) {
+func namespaceComponentOutputCheck(t *testing.T, fields []string, namespace string) {
 	assert.GreaterOrEqual(t, len(fields), 6, "expected at least 6 fields in components output")
 	assert.Equal(t, namespace, fields[0], "expected name to match")
 	assert.Equal(t, "statestore", fields[1], "expected name to match")
@@ -702,4 +894,29 @@ func waitAllPodsRunning(t *testing.T, namespace string, haEnabled bool, done, po
 
 		time.Sleep(15 * time.Second)
 	}
+}
+
+func exportCurrentCertificate(daprPath string) error {
+	_, err := os.Stat("./certs")
+	if err != nil {
+		os.RemoveAll("./certs")
+	}
+	_, err = spawn.Command(daprPath, "mtls", "export", "-o", "./certs")
+
+	if err != nil {
+		return fmt.Errorf("error in exporting certificate %w", err)
+	}
+	_, err = os.Stat("./certs/ca.crt")
+	if err != nil {
+		return fmt.Errorf("error in exporting certificate %w", err)
+	}
+	_, err = os.Stat("./certs/issuer.crt")
+	if err != nil {
+		return fmt.Errorf("error in exporting certificate %w", err)
+	}
+	_, err = os.Stat("./certs/issuer.key")
+	if err != nil {
+		return fmt.Errorf("error in exporting certificate %w", err)
+	}
+	return nil
 }

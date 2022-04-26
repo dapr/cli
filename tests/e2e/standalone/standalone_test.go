@@ -33,6 +33,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
 
+	testCommon "github.com/dapr/cli/tests/e2e/common"
 	"github.com/dapr/cli/tests/e2e/spawn"
 	"github.com/dapr/go-sdk/service/common"
 	daprHttp "github.com/dapr/go-sdk/service/http"
@@ -41,9 +42,8 @@ import (
 )
 
 var (
-	daprRuntimeVersion        = os.Getenv("DAPR_RUNTIME_VERSION")
-	daprDashboardVersion      = os.Getenv("DAPR_DASHBOARD_VERSION")
-	dockerImageCustomRegistry = os.Getenv("CUSTOM_IMAGE_REGISTRY")
+	daprRuntimeVersion   string
+	daprDashboardVersion string
 )
 
 var socketCases = []string{"", "/tmp"}
@@ -51,13 +51,13 @@ var socketCases = []string{"", "/tmp"}
 func TestStandaloneInstall(t *testing.T) {
 	// Ensure a clean environment.
 	uninstall()
+	daprRuntimeVersion, daprDashboardVersion = testCommon.GetVersionsFromEnv(t)
 
 	tests := []struct {
 		name  string
 		phase func(*testing.T)
 	}{
 		{"test install", testInstall},
-		{"test install from custom registry", testInstallWithCustomImageRegsitry},
 		{"test run log json enabled", testRunLogJSON},
 		{"test run", testRun},
 		{"test stop", testStop},
@@ -72,9 +72,29 @@ func TestStandaloneInstall(t *testing.T) {
 	}
 }
 
+func TestEnableAPILogging(t *testing.T) {
+	// Ensure a clean environment.
+	uninstall()
+	daprRuntimeVersion, daprDashboardVersion = testCommon.GetVersionsFromEnv(t)
+
+	tests := []struct {
+		name  string
+		phase func(*testing.T)
+	}{
+		{"test install", testInstall},
+		{"test run enable api logging", testRunEnableAPILogging},
+		{"test uninstall", testUninstall},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, tc.phase)
+	}
+}
+
 func TestNegativeScenarios(t *testing.T) {
 	// Ensure a clean environment
 	uninstall()
+	daprRuntimeVersion, daprDashboardVersion = testCommon.GetVersionsFromEnv(t)
 	daprPath := getDaprPath()
 
 	homeDir, err := os.UserHomeDir()
@@ -130,10 +150,33 @@ func TestNegativeScenarios(t *testing.T) {
 
 	t.Run("filter dashboard instance from list", func(t *testing.T) {
 		spawn.Command(daprPath, "dashboard", "-p", "5555")
-		cmd, err := spawn.Command(daprPath, "list")
+		output, err := spawn.Command(daprPath, "list")
 		require.NoError(t, err, "expected no error status on list without install")
-		require.Equal(t, "No Dapr instances found.\n", cmd)
+		require.Equal(t, "No Dapr instances found.\n", output)
 	})
+
+	t.Run("error if both --from-dir and --image-registry given", func(t *testing.T) {
+		output, err := spawn.Command(daprPath, "init", "--image-registry", "localhost:5000", "--from-dir", "./local-dir")
+		require.Error(t, err, "expected error if both flags are given")
+		require.Contains(t, output, "both --image-registry and --from-dir flags cannot be given at the same time")
+	})
+}
+
+func TestPrivateRegistry(t *testing.T) {
+	// Ensure a clean environment.
+	uninstall()
+	daprRuntimeVersion, daprDashboardVersion = testCommon.GetVersionsFromEnv(t)
+
+	tests := []struct {
+		name  string
+		phase func(*testing.T)
+	}{
+		{"test install fails", testInstallWithPrivateRegsitry},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, tc.phase)
+	}
 }
 
 func getDaprPath() string {
@@ -195,19 +238,11 @@ func testInstall(t *testing.T) {
 	verifyArtifactsAfterInstall(t)
 }
 
-func testInstallWithCustomImageRegsitry(t *testing.T) {
-	if dockerImageCustomRegistry == "" {
-		t.Skip("Custom image registry is not set, skipping the test for now..")
-	}
-	// Uninstall the previously installed Dapr
-	uninstall()
+func testInstallWithPrivateRegsitry(t *testing.T) {
 	daprPath := getDaprPath()
-	output, err := spawn.Command(daprPath, "init", "--runtime-version", daprRuntimeVersion, "--image-repository", dockerImageCustomRegistry, "--log-as-json")
+	output, err := spawn.Command(daprPath, "init", "--runtime-version", daprRuntimeVersion, "--image-registry", "smplregistry.io/owner", "--log-as-json")
 	t.Log(output)
-	require.NoError(t, err, "init failed")
-
-	// verify all artifacts after successfull install
-	verifyArtifactsAfterInstall(t)
+	require.Error(t, err, "init failed")
 }
 
 func verifyArtifactsAfterInstall(t *testing.T) {
@@ -429,6 +464,41 @@ func testRun(t *testing.T) {
 		t.Log(output)
 		require.NoError(t, err, "run failed")
 		assert.Contains(t, output, "Exited Dapr successfully")
+	})
+}
+
+func testRunEnableAPILogging(t *testing.T) {
+	daprPath := getDaprPath()
+	args := []string{
+		"run",
+		"--app-id", "enableApiLogging_info",
+		"--enable-api-logging",
+		"--log-level", "info",
+		"--", "bash", "-c", "echo 'test'",
+	}
+
+	t.Run(fmt.Sprintf("check enableAPILogging flag in enabled mode"), func(t *testing.T) {
+		output, err := spawn.Command(daprPath, args...)
+		t.Log(output)
+		require.NoError(t, err, "run failed")
+		assert.Contains(t, output, "level=info msg=\"HTTP API Called: PUT /v1.0/metadata/appCommand\"")
+		assert.Contains(t, output, "Exited App successfully")
+		assert.Contains(t, output, "Exited Dapr successfully")
+	})
+
+	args = []string{
+		"run",
+		"--app-id", "enableApiLogging_info",
+		"--", "bash", "-c", "echo 'test'",
+	}
+
+	t.Run(fmt.Sprintf("check enableAPILogging flag in disabled mode"), func(t *testing.T) {
+		output, err := spawn.Command(daprPath, args...)
+		t.Log(output)
+		require.NoError(t, err, "run failed")
+		assert.Contains(t, output, "Exited App successfully")
+		assert.Contains(t, output, "Exited Dapr successfully")
+		assert.NotContains(t, output, "level=info msg=\"HTTP API Called: PUT /v1.0/metadata/appCommand\"")
 	})
 }
 
