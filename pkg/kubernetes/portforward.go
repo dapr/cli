@@ -52,7 +52,7 @@ func NewPortForward(
 ) (*PortForward, error) {
 	client, err := k8s.NewForConfig(config)
 	if err != nil {
-		return nil, fmt.Errorf("can't create Clientset for %q", deployName)
+		return nil, fmt.Errorf("can't create Clientset for %q: %w", deployName, err)
 	}
 
 	podList, err := ListPods(client, namespace, nil)
@@ -100,7 +100,7 @@ func NewPortForward(
 func (pf *PortForward) Init() error {
 	transport, upgrader, err := spdy.RoundTripperFor(pf.Config)
 	if err != nil {
-		return fmt.Errorf("can not connect to Kubernetes cluster: %w", err)
+		return fmt.Errorf("cannot connect to Kubernetes cluster: %w", err)
 	}
 
 	out := ioutil.Discard
@@ -115,7 +115,7 @@ func (pf *PortForward) Init() error {
 
 	fw, err := portforward.NewOnAddresses(dialer, []string{pf.Host}, ports, pf.StopCh, pf.ReadyCh, out, errOut)
 	if err != nil {
-		return fmt.Errorf("can not create PortForwarder: %w", err)
+		return fmt.Errorf("cannot create PortForwarder: %w", err)
 	}
 
 	failure := make(chan error)
