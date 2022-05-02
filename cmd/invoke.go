@@ -48,7 +48,6 @@ dapr invoke --app-id target --method sample --data '{"key":"value"}'
 # Invoke a sample method on target app with in Kubernetes
 dapr invoke -k --app-id target --method sample --data '{"key":"value"}'
 
-
 # Invoke a sample method on target app with GET Verb in self-hosted mode
 dapr invoke --app-id target --method sample --verb GET
 
