@@ -14,10 +14,12 @@ limitations under the License.
 package kubernetes
 
 import (
+	"os"
 	"time"
 
 	helm "helm.sh/helm/v3/pkg/action"
 
+	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/utils"
 )
 
@@ -39,7 +41,7 @@ func Uninstall(namespace string, uninstallAll bool, timeout uint) error {
 		for _, crd := range crdsFullResources {
 			_, err := utils.RunCmdAndWait("kubectl", "delete", "crd", crd)
 			if err != nil {
-				return err
+				print.WarningStatusEvent(os.Stdout, "Failed to remove CRD %s: %s", crd, err)
 			}
 		}
 	}
