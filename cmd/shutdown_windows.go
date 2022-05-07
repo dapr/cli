@@ -24,7 +24,7 @@ import (
 	"github.com/dapr/cli/pkg/print"
 )
 
-func setupShutdownNotify(sigCh chan os.Signal) 
+func setupShutdownNotify(sigCh chan os.Signal) {
 	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
 
 	// Unlike Linux/Mac, you can't just send a SIGTERM from another process.
