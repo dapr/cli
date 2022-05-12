@@ -139,7 +139,7 @@ func (pf *PortForward) Init() error {
 		pf.LocalPort = int(ports[0].Local)
 		pf.RemotePort = int(ports[0].Remote)
 
-	// if failure, causing a receive `<-failure` and returns the error
+	// if failure, causing a receive `<-failure` and returns the error.
 	case err := <-failure:
 		return err
 	}

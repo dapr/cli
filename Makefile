@@ -135,11 +135,7 @@ release: build archive
 
 .PHONY: test-deps
 test-deps:
-	# The desire here is to download this test dependency without polluting go.mod
-	# In golang >=1.16 there is a new way to do this with `go install gotest.tools/gotestsum@latest`
-	# But this doesn't work with <=1.15, so we do it the old way for now 
-	# (see: https://golang.org/ref/mod#go-install)
-	GO111MODULE=off go get gotest.tools/gotestsum
+	go install gotest.tools/gotestsum@latest
 ################################################################################
 # Tests																           #
 ################################################################################
@@ -192,7 +188,7 @@ e2e-build-run-sh: build test-e2e-sh
 ################################################################################
 .PHONY: go.mod
 go.mod:
-	go mod tidy
+	go mod tidy -compat=1.17
 
 ################################################################################
 # Target: check-diff                                                           #

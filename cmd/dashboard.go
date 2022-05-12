@@ -100,7 +100,7 @@ dapr dashboard -k -p 0
 			}
 
 			// search for dashboard service namespace in order:
-			// user-supplied namespace, dapr-system, default
+			// user-supplied namespace, dapr-system, default.
 			namespaces := []string{dashboardNamespace}
 			if dashboardNamespace != daprSystemNamespace {
 				namespaces = append(namespaces, daprSystemNamespace)
@@ -118,12 +118,12 @@ dapr dashboard -k -p 0
 				}
 			}
 
-			// if the service is not found, try to search all pods
+			// if the service is not found, try to search all pods.
 			if foundNamespace == "" {
 				ok, nspace := kubernetes.CheckPodExists(client, "", nil, dashboardSvc)
 
-				// if the service is found, tell the user to try with the found namespace
-				// if the service is still not found, throw an error
+				// if the service is found, tell the user to try with the found namespace.
+				// if the service is still not found, throw an error.
 				if ok {
 					print.InfoStatusEvent(os.Stdout, "Dapr dashboard found in namespace: %s. Run dapr dashboard -k -n %s to use this namespace.", nspace, nspace)
 				} else {
@@ -132,7 +132,7 @@ dapr dashboard -k -p 0
 				os.Exit(1)
 			}
 
-			// manage termination of port forwarding connection on interrupt
+			// manage termination of port forwarding connection on interrupt.
 			signals := make(chan os.Signal, 1)
 			signal.Notify(signals, os.Interrupt)
 			defer signal.Stop(signals)
@@ -151,13 +151,13 @@ dapr dashboard -k -p 0
 				os.Exit(1)
 			}
 
-			// initialize port forwarding
+			// initialize port forwarding.
 			if err = portForward.Init(); err != nil {
 				print.FailureStatusEvent(os.Stderr, "Error in port forwarding: %s\nCheck for `dapr dashboard` running in other terminal sessions, or use the `--port` flag to use a different port.\n", err)
 				os.Exit(1)
 			}
 
-			// block until interrupt signal is received
+			// block until interrupt signal is received.
 			go func() {
 				<-signals
 				portForward.Stop()
@@ -165,7 +165,7 @@ dapr dashboard -k -p 0
 
 			// url for dashboard after port forwarding.
 			var webURL string = fmt.Sprintf("http://%s:%d", dashboardHost, portForward.LocalPort)
-
+      
 			print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Dapr dashboard found in namespace:\t%s", foundNamespace))
 			print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Dapr dashboard available at:\t%s\n", webURL))
 
@@ -177,7 +177,7 @@ dapr dashboard -k -p 0
 
 			<-portForward.GetStop()
 		} else {
-			// Standalone mode
+			// Standalone mode.
 			err := standalone.NewDashboardCmd(dashboardLocalPort).Run()
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, "Dapr dashboard not found. Is Dapr installed?")

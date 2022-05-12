@@ -101,5 +101,6 @@ func init() {
 	MTLSCmd.MarkFlagRequired("kubernetes")
 	MTLSCmd.AddCommand(ExportCMD)
 	MTLSCmd.AddCommand(ExpiryCMD)
+	MTLSCmd.AddCommand(RenewCertificateCmd())
 	RootCmd.AddCommand(MTLSCmd)
 }

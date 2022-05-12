@@ -74,7 +74,7 @@ func TestInvoke(t *testing.T) {
 	}
 
 	for _, socket := range []string{"", "/tmp"} {
-		// TODO(@daixiang0): add Windows support
+		// TODO(@daixiang0): add Windows support.
 		if runtime.GOOS == "windows" && socket != "" {
 			continue
 		}

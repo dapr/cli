@@ -28,6 +28,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dapr/cli/pkg/print"
+
 	"github.com/docker/docker/client"
 	"github.com/gocarina/gocsv"
 	"github.com/olekukonko/tablewriter"
@@ -72,8 +74,7 @@ func WriteTable(writer io.Writer, csvContent string) {
 }
 
 func TruncateString(str string, maxLength int) string {
-	strLength := len(str)
-	if strLength <= maxLength {
+	if len(str) <= maxLength {
 		return str
 	}
 
@@ -103,12 +104,13 @@ func RunCmdAndWait(name string, args ...string) (string, error) {
 	}
 	errB, err := ioutil.ReadAll(stderr)
 	if err != nil {
+		//nolint
 		return "", nil
 	}
 
 	err = cmd.Wait()
 	if err != nil {
-		// in case of error, capture the exact message
+		// in case of error, capture the exact message.
 		if len(errB) > 0 {
 			return "", errors.New(string(errB))
 		}
@@ -130,7 +132,7 @@ func CreateDirectory(dir string) error {
 	if _, err := os.Stat(dir); !os.IsNotExist(err) {
 		return nil
 	}
-	return os.Mkdir(dir, 0777)
+	return os.Mkdir(dir, 0o777)
 }
 
 // IsDockerInstalled checks whether docker is installed/running.
@@ -228,4 +230,18 @@ func IsAddressLegal(address string) bool {
 
 func GetSocket(path, appID, protocol string) string {
 	return fmt.Sprintf(socketFormat, path, appID, protocol)
+}
+
+func GetDefaultRegistry(githubContainerRegistryName, dockerContainerRegistryName string) (string, error) {
+	val := strings.ToLower(os.Getenv("DAPR_DEFAULT_IMAGE_REGISTRY"))
+	switch val {
+	case "":
+		print.InfoStatusEvent(os.Stdout, "Container images will be pulled from Docker Hub")
+		return dockerContainerRegistryName, nil
+	case githubContainerRegistryName:
+		print.InfoStatusEvent(os.Stdout, "Container images will be pulled from Dapr GitHub container registry")
+		return githubContainerRegistryName, nil
+	default:
+		return "", fmt.Errorf("environment variable %q can only be set to %s", "DAPR_DEFAULT_IMAGE_REGISTRY", "GHCR")
+	}
 }

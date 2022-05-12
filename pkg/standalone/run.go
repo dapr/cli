@@ -27,6 +27,7 @@ import (
 	"github.com/phayes/freeport"
 	"gopkg.in/yaml.v2"
 
+	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/dapr/pkg/components"
 	modes "github.com/dapr/dapr/pkg/config/modes"
 )
@@ -52,6 +53,7 @@ type RunConfig struct {
 	MetricsPort        int    `env:"DAPR_METRICS_PORT" arg:"metrics-port"`
 	MaxRequestBodySize int    `arg:"dapr-http-max-request-size"`
 	UnixDomainSocket   string `arg:"unix-domain-socket"`
+	EnableAPILogging   bool   `arg:"enable-api-logging"`
 }
 
 func (meta *DaprMeta) newAppID() string {
@@ -177,12 +179,13 @@ func (meta *DaprMeta) portExists(port int) bool {
 	if port <= 0 {
 		return false
 	}
+	//nolint
 	_, ok := meta.ExistingPorts[port]
 	if ok {
 		return true
 	}
 
-	// try to listen on the port
+	// try to listen on the port.
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%v", port))
 	if err != nil {
 		return true
@@ -237,9 +240,13 @@ func (config *RunConfig) getArgs() []string {
 	if config.ConfigFile != "" {
 		sentryAddress := mtlsEndpoint(config.ConfigFile)
 		if sentryAddress != "" {
-			// mTLS is enabled locally, set it up
+			// mTLS is enabled locally, set it up.
 			args = append(args, "--enable-mtls", "--sentry-address", sentryAddress)
 		}
+	}
+
+	if print.IsJSONLogEnabled() {
+		args = append(args, "--log-as-json")
 	}
 
 	return args
@@ -256,7 +263,7 @@ func (config *RunConfig) getEnv() []string {
 			continue
 		}
 		if value, ok := valueField.(int); ok && value <= 0 {
-			// ignore unset numeric variables
+			// ignore unset numeric variables.
 			continue
 		}
 
@@ -269,10 +276,12 @@ func (config *RunConfig) getEnv() []string {
 // RunOutput represents the run output.
 type RunOutput struct {
 	DaprCMD      *exec.Cmd
+	DaprErr      error
 	DaprHTTPPort int
 	DaprGRPCPort int
 	AppID        string
 	AppCMD       *exec.Cmd
+	AppErr       error
 }
 
 func getDaprCommand(config *RunConfig) (*exec.Cmd, error) {
@@ -325,6 +334,7 @@ func getAppCommand(config *RunConfig) *exec.Cmd {
 }
 
 func Run(config *RunConfig) (*RunOutput, error) {
+	//nolint
 	err := config.validate()
 	if err != nil {
 		return nil, err
@@ -335,10 +345,13 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		return nil, err
 	}
 
+	//nolint
 	var appCMD *exec.Cmd = getAppCommand(config)
 	return &RunOutput{
 		DaprCMD:      daprCMD,
+		DaprErr:      nil,
 		AppCMD:       appCMD,
+		AppErr:       nil,
 		AppID:        config.AppID,
 		DaprHTTPPort: config.HTTPPort,
 		DaprGRPCPort: config.GRPCPort,

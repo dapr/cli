@@ -35,7 +35,7 @@ import (
 const (
 	systemConfigName         = "daprsystem"
 	trustBundleSecretName    = "dapr-trust-bundle" // nolint:gosec
-	warningDaysForCertExpiry = 30                  // in days
+	warningDaysForCertExpiry = 30                  // in days.
 )
 
 func IsMTLSEnabled() (bool, error) {
@@ -77,7 +77,7 @@ func ExportTrustChain(outputDir string) error {
 	_, err := os.Stat(outputDir)
 
 	if os.IsNotExist(err) {
-		errDir := os.MkdirAll(outputDir, 0755)
+		errDir := os.MkdirAll(outputDir, 0o755)
 		if errDir != nil {
 			return err
 		}
@@ -92,17 +92,17 @@ func ExportTrustChain(outputDir string) error {
 	issuerCert := secret.Data["issuer.crt"]
 	issuerKey := secret.Data["issuer.key"]
 
-	err = ioutil.WriteFile(filepath.Join(outputDir, "ca.crt"), ca, 0600)
+	err = ioutil.WriteFile(filepath.Join(outputDir, "ca.crt"), ca, 0o600)
 	if err != nil {
 		return err
 	}
 
-	err = ioutil.WriteFile(filepath.Join(outputDir, "issuer.crt"), issuerCert, 0600)
+	err = ioutil.WriteFile(filepath.Join(outputDir, "issuer.crt"), issuerCert, 0o600)
 	if err != nil {
 		return err
 	}
 
-	err = ioutil.WriteFile(filepath.Join(outputDir, "issuer.key"), issuerKey, 0600)
+	err = ioutil.WriteFile(filepath.Join(outputDir, "issuer.key"), issuerKey, 0o600)
 	if err != nil {
 		return err
 	}
@@ -165,7 +165,10 @@ func Expiry() (*time.Time, error) {
 		return nil, err
 	}
 
-	caCrt := secret.Data["ca.crt"]
+	caCrt, ok := secret.Data["ca.crt"]
+	if !ok {
+		return nil, errors.New("root certificate not loaded yet, please try again in few minutes")
+	}
 	block, _ := pem.Decode(caCrt)
 	cert, err := x509.ParseCertificate(block.Bytes)
 	if err != nil {
