@@ -42,8 +42,8 @@ Distributed Application Runtime`,
 }
 
 type daprVersion struct {
-	cliVersion     string `json:"Cli version"`
-	runtimeVersion string `json:"Runtime version"`
+	CliVersion     string `json:"Cli version"`
+	RuntimeVersion string `json:"Runtime version"`
 }
 
 var (
@@ -57,8 +57,8 @@ func Execute(version, apiVersion string) {
 	api.RuntimeAPIVersion = apiVersion
 
 	daprVer = daprVersion{
-		cliVersion:     version,
-		runtimeVersion: strings.ReplaceAll(standalone.GetRuntimeVersion(), "\n", ""),
+		CliVersion:     version,
+		RuntimeVersion: strings.ReplaceAll(standalone.GetRuntimeVersion(), "\n", ""),
 	}
 
 	cobra.OnInitialize(initConfig)
@@ -72,7 +72,7 @@ func Execute(version, apiVersion string) {
 }
 
 func setVersion() {
-	template := fmt.Sprintf("CLI version: %s \nRuntime version: %s", daprVer.cliVersion, daprVer.runtimeVersion)
+	template := fmt.Sprintf("CLI version: %s \nRuntime version: %s", daprVer.CliVersion, daprVer.RuntimeVersion)
 	RootCmd.SetVersionTemplate(template)
 }
 

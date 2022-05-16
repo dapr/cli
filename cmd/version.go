@@ -39,10 +39,10 @@ dapr version --output json
 		}
 		switch output {
 		case "":
-			// normal output
-			fmt.Printf("CLI version: %s \nRuntime version: %s", daprVer.cliVersion, daprVer.runtimeVersion)
+			// normal output.
+			fmt.Printf("CLI version: %s \nRuntime version: %s", daprVer.CliVersion, daprVer.RuntimeVersion)
 		case "json":
-			// json output
+			// json output.
 			b, err := json.Marshal(daprVer)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, err.Error())
