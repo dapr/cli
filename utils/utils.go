@@ -230,9 +230,10 @@ func IsAddressLegal(address string) bool {
 
 // GetEnv get value from environment variable.
 func GetEnv(envName string, defaultValue string) string {
-	if val := os.Getenv(envName); val != "" {
+	if val, ok := os.LookupEnv(envName); ok {
 		return val
 	}
+
 	return defaultValue
 }
 
