@@ -82,17 +82,21 @@ dapr init --from-dir <path-to-directory>
 
 		if kubernetesMode {
 			print.InfoStatusEvent(os.Stdout, "Note: To install Dapr using Helm, see here: https://docs.dapr.io/getting-started/install-dapr-kubernetes/#install-with-helm-advanced\n")
-
-			config := kubernetes.InitConfiguration{
-				Namespace:  initNamespace,
-				Version:    runtimeVersion,
-				EnableMTLS: enableMTLS,
-				EnableHA:   enableHA,
-				Args:       values,
-				Wait:       wait,
-				Timeout:    timeout,
+			imageRegistryURI, err := kubernetes.GetImageRegistry(viper.GetString("image-registry"))
+			if err != nil {
+				os.Exit(1)
 			}
-			err := kubernetes.Init(config)
+			config := kubernetes.InitConfiguration{
+				Namespace:        initNamespace,
+				Version:          runtimeVersion,
+				EnableMTLS:       enableMTLS,
+				EnableHA:         enableHA,
+				Args:             values,
+				Wait:             wait,
+				Timeout:          timeout,
+				ImageRegistryURI: imageRegistryURI,
+			}
+			err = kubernetes.Init(config)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)
