@@ -169,7 +169,12 @@ func upgradeChartValues(ca, issuerCert, issuerKey string, haMode, mtls bool, arg
 
 func isDowngrade(targetVersion, existingVersion string) bool {
 	target, _ := version.NewVersion(targetVersion)
-	existing, _ := version.NewVersion(existingVersion)
-
+	existing, err := version.NewVersion(existingVersion)
+	if err != nil {
+		print.FailureStatusEvent(
+			os.Stderr,
+			fmt.Sprintf("Upgrade failed, %s. Upgrading an edge version of Dapr is not supported!", err.Error()))
+		os.Exit(1)
+	}
 	return target.LessThan(existing)
 }
