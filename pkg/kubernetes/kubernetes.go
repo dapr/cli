@@ -162,7 +162,7 @@ func chartValues(config InitConfiguration) (map[string]interface{}, error) {
 		fmt.Sprintf("global.ha.enabled=%t", config.EnableHA),
 		fmt.Sprintf("global.mtls.enabled=%t", config.EnableMTLS),
 	}
-	if len(strings.TrimSpace(config.ImageRegistryURI)) != 0 {
+	if len(config.ImageRegistryURI) != 0 {
 		globalVals = append(globalVals, fmt.Sprintf("global.registry=%s", config.ImageRegistryURI))
 	}
 	globalVals = append(globalVals, config.Args...)
@@ -221,18 +221,13 @@ func install(config InitConfiguration) error {
 func debugLogf(format string, v ...interface{}) {
 }
 
-func GetImageRegistry(privateImgRegistry string) (string, error) {
-	if len(strings.TrimSpace(privateImgRegistry)) != 0 {
-		print.WarningStatusEvent(os.Stdout, "Flag --image-registry is a preview feature and is subject to change. It is only available from CLI version 1.7 onwards.")
-		return privateImgRegistry, nil
-	} else {
-		defaultImageRegistry, err := utils.GetDefaultRegistry(githubContainerRegistryName, dockerContainerRegistryName)
-		if err != nil {
-			return "", err
-		}
-		if defaultImageRegistry == githubContainerRegistryName {
-			return ghcrURI, nil
-		}
+func GetImageRegistry() (string, error) {
+	defaultImageRegistry, err := utils.GetDefaultRegistry(githubContainerRegistryName, dockerContainerRegistryName)
+	if err != nil {
+		return "", err
+	}
+	if defaultImageRegistry == githubContainerRegistryName {
+		return ghcrURI, nil
 	}
 	return "", nil
 }
