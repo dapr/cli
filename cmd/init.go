@@ -93,6 +93,7 @@ dapr init --from-dir <path-to-directory>
 				imageRegistryURI, err = kubernetes.GetImageRegistry()
 			}
 			if err != nil {
+				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)
 			}
 			config := kubernetes.InitConfiguration{

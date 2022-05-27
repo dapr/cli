@@ -33,17 +33,12 @@ import (
 
 	"github.com/dapr/cli/pkg/print"
 	cli_ver "github.com/dapr/cli/pkg/version"
-	"github.com/dapr/cli/utils"
 )
 
 const (
 	daprReleaseName = "dapr"
 	daprHelmRepo    = "https://dapr.github.io/helm-charts"
 	latestVersion   = "latest"
-
-	dockerContainerRegistryName = "dockerhub"
-	githubContainerRegistryName = "ghcr"
-	ghcrURI                     = "ghcr.io/dapr"
 )
 
 type InitConfiguration struct {
@@ -219,15 +214,4 @@ func install(config InitConfiguration) error {
 }
 
 func debugLogf(format string, v ...interface{}) {
-}
-
-func GetImageRegistry() (string, error) {
-	defaultImageRegistry, err := utils.GetDefaultRegistry(githubContainerRegistryName, dockerContainerRegistryName)
-	if err != nil {
-		return "", err
-	}
-	if defaultImageRegistry == githubContainerRegistryName {
-		return ghcrURI, nil
-	}
-	return "", nil
 }
