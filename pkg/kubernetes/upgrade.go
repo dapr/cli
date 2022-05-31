@@ -173,7 +173,7 @@ func isDowngrade(targetVersion, existingVersion string) bool {
 	if err != nil {
 		print.FailureStatusEvent(
 			os.Stderr,
-			fmt.Sprintf("Upgrade failed, %s. Upgrading an edge version of Dapr is not supported!", err.Error()))
+			fmt.Sprintf("Upgrade failed, %s. The current installed version does not have sematic versioning", err.Error()))
 		os.Exit(1)
 	}
 	return target.LessThan(existing)
