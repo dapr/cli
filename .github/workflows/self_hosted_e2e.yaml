@@ -59,10 +59,12 @@ jobs:
         uses: actions/checkout@v2
       - name: Install docker - MacOS
         if: matrix.os == 'macos-latest'
-        uses: docker-practice/actions-setup-docker@1.0.8
-        with:
-          docker_buildx: false
-          docker_version: 20.10
+        run: |
+          brew install --cask docker
+          sudo /Applications/Docker.app/Contents/MacOS/Docker --unattended --install-privileged-components
+          open -a /Applications/Docker.app --args --unattended --accept-license
+          while ! /Applications/Docker.app/Contents/Resources/bin/docker info &>/dev/null; do sleep 1; done
+          docker --version
       - name: Determine latest Dapr Runtime version including Pre-releases
         if: github.base_ref == 'master'
         run: |
