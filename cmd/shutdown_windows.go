@@ -19,8 +19,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/dapr/cli/pkg/print"
 	"golang.org/x/sys/windows"
+
+	"github.com/dapr/cli/pkg/print"
 )
 
 func setupShutdownNotify(sigCh chan os.Signal) {
