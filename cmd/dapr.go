@@ -41,12 +41,25 @@ var RootCmd = &cobra.Command{
 Distributed Application Runtime`,
 }
 
-var logAsJSON bool
+type daprVersion struct {
+	CliVersion     string `json:"Cli version"`
+	RuntimeVersion string `json:"Runtime version"`
+}
+
+var (
+	daprVer   daprVersion
+	logAsJSON bool
+)
 
 // Execute adds all child commands to the root command.
 func Execute(version, apiVersion string) {
 	RootCmd.Version = version
 	api.RuntimeAPIVersion = apiVersion
+
+	daprVer = daprVersion{
+		CliVersion:     version,
+		RuntimeVersion: strings.ReplaceAll(standalone.GetRuntimeVersion(), "\n", ""),
+	}
 
 	cobra.OnInitialize(initConfig)
 
@@ -59,7 +72,7 @@ func Execute(version, apiVersion string) {
 }
 
 func setVersion() {
-	template := fmt.Sprintf("CLI version: %s \nRuntime version: %s", RootCmd.Version, standalone.GetRuntimeVersion())
+	template := fmt.Sprintf("CLI version: %s \nRuntime version: %s", daprVer.CliVersion, daprVer.RuntimeVersion)
 	RootCmd.SetVersionTemplate(template)
 }
 
