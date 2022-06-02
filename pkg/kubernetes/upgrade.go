@@ -169,7 +169,12 @@ func upgradeChartValues(ca, issuerCert, issuerKey string, haMode, mtls bool, arg
 
 func isDowngrade(targetVersion, existingVersion string) bool {
 	target, _ := version.NewVersion(targetVersion)
-	existing, _ := version.NewVersion(existingVersion)
-
+	existing, err := version.NewVersion(existingVersion)
+	if err != nil {
+		print.FailureStatusEvent(
+			os.Stderr,
+			fmt.Sprintf("Upgrade failed, %s. The current installed version does not have sematic versioning", err.Error()))
+		os.Exit(1)
+	}
 	return target.LessThan(existing)
 }
