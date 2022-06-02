@@ -363,6 +363,14 @@ By default, Dapr will use the `POST` verb. If your app uses Dapr for gRPC, you s
 $ dapr invoke --app-id nodeapp --method mymethod --verb GET
 ```
 
+Invoke your app in Kubernetes mode:
+
+If your app running in a Kubernetes cluster, use the `invoke` command with `--kubernetes` flag or the `-k` shorthand.
+
+```
+$ dapr invoke --kubernetes --app-id nodeapp --method mymethod
+```
+
 ### List
 
 To list all Dapr instances running on your machine:
