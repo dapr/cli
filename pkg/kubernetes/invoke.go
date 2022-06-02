@@ -167,8 +167,7 @@ func (a *AppInfo) Request(r *rest.Request, method string, data []byte, verb stri
 		return nil, fmt.Errorf("error parse method %s: %w", method, err)
 	}
 
-	suffix := fmt.Sprintf("%s", u.Path)
-	r = r.Suffix(suffix)
+	r = r.Suffix(u.Path)
 
 	for k, vs := range u.Query() {
 		r = r.Param(k, strings.Join(vs, ","))
