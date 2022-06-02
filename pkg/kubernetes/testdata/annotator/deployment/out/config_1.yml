@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nodeapp
+  labels:
+    app: node
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: node
+  template:
+    metadata:
+      labels:
+        app: node
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "nodeapp"
+        dapr.io/app-port: "3000"
+    spec:
+      containers:
+      - name: node
+        image: dapriosamples/hello-k8s-node:latest
+        ports:
+        - containerPort: 3000
+        imagePullPolicy: Always

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mypod
+  labels:
+    name: nginx
+  annotations:
+    dapr.io/enabled: "true"
+    dapr.io/app-id: "default-pod-mypod"
+spec:
+  containers:
+  - name: nginx
+  image: nginx
+  ports:
+  - containerPort: 80
