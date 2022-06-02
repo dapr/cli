@@ -74,13 +74,13 @@ var AnnotateCmd = &cobra.Command{
 kubectl get deploy -l app=node -o yaml | dapr annotate - | kubectl apply -f -
 
 # Annotate multiple deployments by name in a chain
-kubectl get deploy -o yaml | dapr annotate -r nodeapp - | dapr annotate -r pythonapp | kubectl apply -f -
+kubectl get deploy -o yaml | dapr annotate -r nodeapp - | dapr annotate -r pythonapp - | kubectl apply -f -
 
 # Annotate deployment in a specific namespace from file or directory by name
-dapr annotate -r nodeapp -n namespace mydeployment.yml | kubectl apply -f -
+dapr annotate -r nodeapp -n namespace mydeploy.yaml | kubectl apply -f -
 
 # Annotate deployment from url by name
-dapr annotate -r nodeapp --log-level debug https://raw.githubusercontent.com/dapr/quickstarts/master/hello-kubernetes/deploy/node.yaml | kubectl apply -f -
+dapr annotate -r nodeapp --log-level debug https://raw.githubusercontent.com/dapr/quickstarts/master/tutorials/hello-kubernetes/deploy/node.yaml | kubectl apply -f -
 
 --------------------------------------------------------------------------------
 WARNING: If an app id is not provided, we will generate one using the format '<namespace>-<kind>-<name>'.
