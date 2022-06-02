@@ -72,7 +72,7 @@ dapr invoke --unix-domain-socket --app-id target --method sample --verb GET
 			bytePayload = []byte(invokeData)
 		}
 
-		// TODO(@daixiang0): add Windows support
+		// TODO(@daixiang0): add Windows support.
 		if invokeSocket != "" {
 			if runtime.GOOS == "windows" {
 				print.FailureStatusEvent(os.Stderr, "The unix-domain-socket option is not supported on Windows")
@@ -91,9 +91,9 @@ dapr invoke --unix-domain-socket --app-id target --method sample --verb GET
 		}
 
 		if err != nil {
-			err = fmt.Errorf("error invoking app %s: %s", invokeAppID, err)
+			err = fmt.Errorf("error invoking app %s: %w", invokeAppID, err)
 			print.FailureStatusEvent(os.Stderr, err.Error())
-			return
+			os.Exit(1)
 		}
 
 		if response != "" {

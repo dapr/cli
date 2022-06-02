@@ -133,10 +133,10 @@ func (pf *PortForward) Init() error {
 	}()
 
 	select {
-	// if `pf.run()` succeeds, block until terminated
+	// if `pf.run()` succeeds, block until terminated.
 	case <-pf.ReadyCh:
 
-	// if failure, causing a receive `<-failure` and returns the error
+	// if failure, causing a receive `<-failure` and returns the error.
 	case err := <-failure:
 		return err
 	}

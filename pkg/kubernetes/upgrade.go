@@ -14,10 +14,8 @@ limitations under the License.
 package kubernetes
 
 import (
-	"errors"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	helm "helm.sh/helm/v3/pkg/action"
@@ -50,26 +48,12 @@ type UpgradeConfig struct {
 }
 
 func Upgrade(conf UpgradeConfig) error {
-	sc, err := NewStatusClient()
+	status, err := GetDaprResourcesStatus()
 	if err != nil {
 		return err
 	}
 
-	status, err := sc.Status()
-	if err != nil {
-		return err
-	}
-
-	if len(status) == 0 {
-		return errors.New("dapr is not installed in your cluster")
-	}
-
-	var daprVersion string
-	for _, s := range status {
-		if s.Name == operatorName {
-			daprVersion = s.Version
-		}
-	}
+	daprVersion := GetDaprVersion(status)
 	print.InfoStatusEvent(os.Stdout, "Dapr control plane version %s detected in namespace %s", daprVersion, status[0].Namespace)
 
 	helmConf, err := helmConfig(status[0].Namespace)
@@ -127,18 +111,9 @@ func Upgrade(conf UpgradeConfig) error {
 		print.InfoStatusEvent(os.Stdout, "Downgrade detected, skipping CRDs.")
 	}
 
-	listClient := helm.NewList(helmConf)
-	releases, err := listClient.Run()
+	chart, err := GetDaprHelmChartName(helmConf)
 	if err != nil {
 		return err
-	}
-
-	var chart string
-	for _, r := range releases {
-		if r.Chart != nil && strings.Contains(r.Chart.Name(), "dapr") {
-			chart = r.Name
-			break
-		}
 	}
 
 	if _, err = upgradeClient.Run(chart, daprChart, vals); err != nil {
@@ -194,7 +169,12 @@ func upgradeChartValues(ca, issuerCert, issuerKey string, haMode, mtls bool, arg
 
 func isDowngrade(targetVersion, existingVersion string) bool {
 	target, _ := version.NewVersion(targetVersion)
-	existing, _ := version.NewVersion(existingVersion)
-
+	existing, err := version.NewVersion(existingVersion)
+	if err != nil {
+		print.FailureStatusEvent(
+			os.Stderr,
+			fmt.Sprintf("Upgrade failed, %s. The current installed version does not have sematic versioning", err.Error()))
+		os.Exit(1)
+	}
 	return target.LessThan(existing)
 }

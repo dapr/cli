@@ -20,6 +20,7 @@ on:
       - release-*
   schedule:
     - cron: '0 */3 * * *'
+    - cron: '0 0 * * *'
   pull_request:
     branches:
       - master
@@ -30,11 +31,14 @@ jobs:
     name: Run Self-Hosted E2E tests in ${{ matrix.target_os }}_${{ matrix.target_arch }}
     runs-on: ${{ matrix.os }}
     env:
-      GOVER: 1.16
+      GOVER: 1.17
       GOOS: ${{ matrix.target_os }}
       GOARCH: ${{ matrix.target_arch }}
       GOPROXY: https://proxy.golang.org
       ARCHIVE_OUTDIR: dist/archives
+      DAPR_RUNTIME_VERSION: "1.7.0"
+      DAPR_DASHBOARD_VERSION: 0.10.0
+      DAPR_TGZ: dapr-1.7.0.tgz
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
@@ -55,11 +59,39 @@ jobs:
         uses: actions/checkout@v2
       - name: Install docker - MacOS
         if: matrix.os == 'macos-latest'
-        uses: docker-practice/actions-setup-docker@v1
-        with:
-          docker_buildx: false
-          docker_version: 20.10
-      - name: Run E2E tests 
+        run: |
+          brew install --cask docker
+          sudo /Applications/Docker.app/Contents/MacOS/Docker --unattended --install-privileged-components
+          open -a /Applications/Docker.app --args --unattended --accept-license
+          while ! /Applications/Docker.app/Contents/Resources/bin/docker info &>/dev/null; do sleep 1; done
+          docker --version
+      - name: Determine latest Dapr Runtime version including Pre-releases
+        if: github.base_ref == 'master'
+        run: |
+          helm repo add dapr https://dapr.github.io/helm-charts/ && helm repo update && export RUNTIME_VERSION=$(helm search repo dapr/dapr --devel --versions | awk '/dapr\/dapr/ {print $3; exit}' )
+          echo "DAPR_RUNTIME_VERSION=$RUNTIME_VERSION" >> $GITHUB_ENV
+          echo "Found $RUNTIME_VERSION"
+        shell: bash
+      - name: Determine latest Dapr Dashboard version including Pre-releases
+        if: github.base_ref == 'master'
+        run: |
+          curl -L -o dapr.tgz https://github.com/dapr/helm-charts/raw/master/$DAPR_TGZ && tar -xzf dapr.tgz && export DASHBOARD_VERSION=$(cat ./dapr/charts/dapr_dashboard/Chart.yaml | grep version | awk '{ print $2; exit }') && rm -rf dapr
+          echo "DAPR_DASHBOARD_VERSION=$DASHBOARD_VERSION" >> $GITHUB_ENV
+          echo "Found $DASHBOARD_VERSION"
+        shell: bash
+      - name: Run E2E tests with GHCR
+        # only runs once in a day
+        if: github.event.schedule == '0 0 * * *'
+        env:
+          DAPR_DEFAULT_IMAGE_REGISTRY: ghcr
+        run: |
+          export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-standalone.json
+          echo "TEST_OUTPUT_FILE=$TEST_OUTPUT_FILE" >> $GITHUB_ENV
+          export GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+          make e2e-build-run-sh
+        shell: bash
+      - name: Run E2E tests with Docker hub
+        if: github.event.schedule != '0 0 * * *'
         run: |
           export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-standalone.json
           echo "TEST_OUTPUT_FILE=$TEST_OUTPUT_FILE" >> $GITHUB_ENV

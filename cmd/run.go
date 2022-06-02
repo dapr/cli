@@ -47,6 +47,7 @@ var (
 	metricsPort        int
 	maxRequestBodySize int
 	unixDomainSocket   string
+	enableAPILogging   bool
 )
 
 const (
@@ -57,16 +58,23 @@ var RunCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Run Dapr and (optionally) your application side by side. Supported platforms: Self-hosted",
 	Example: `
-# Run a .NET application:
-  dapr run --app-id myapp --app-port 5000 -- dotnet run
-# Run a Java application:
-  dapr run --app-id myapp -- java -jar myapp.jar
-# Run a NodeJs application that listens to port 3000:
-  dapr run --app-id myapp --app-port 3000 -- node myapp.js
-# Run a Python application:
-  dapr run --app-id myapp -- python myapp.py
-# Run sidecar only:
-  dapr run --app-id myapp
+# Run a .NET application
+dapr run --app-id myapp --app-port 5000 -- dotnet run
+
+# Run a Java application
+dapr run --app-id myapp -- java -jar myapp.jar
+
+# Run a NodeJs application that listens to port 3000
+dapr run --app-id myapp --app-port 3000 -- node myapp.js
+
+# Run a Python application
+dapr run --app-id myapp -- python myapp.py
+
+# Run sidecar only
+dapr run --app-id myapp
+
+# Run a gRPC application written in Go (listening on port 3000)
+dapr run --app-id myapp --app-port 3000 --app-protocol grpc -- go run main.go
   `,
 	Args: cobra.MinimumNArgs(0),
 	PreRun: func(cmd *cobra.Command, args []string) {
@@ -78,12 +86,12 @@ var RunCmd = &cobra.Command{
 		}
 
 		if unixDomainSocket != "" {
-			// TODO(@daixiang0): add Windows support
+			// TODO(@daixiang0): add Windows support.
 			if runtime.GOOS == "windows" {
 				print.FailureStatusEvent(os.Stderr, "The unix-domain-socket option is not supported on Windows")
 				os.Exit(1)
 			} else {
-				// use unix domain socket means no port any more
+				// use unix domain socket means no port any more.
 				print.WarningStatusEvent(os.Stdout, "Unix domain sockets are currently a preview feature")
 				port = 0
 				grpcPort = 0
@@ -108,10 +116,11 @@ var RunCmd = &cobra.Command{
 			MetricsPort:        metricsPort,
 			MaxRequestBodySize: maxRequestBodySize,
 			UnixDomainSocket:   unixDomainSocket,
+			EnableAPILogging:   enableAPILogging,
 		})
 		if err != nil {
 			print.FailureStatusEvent(os.Stderr, err.Error())
-			return
+			os.Exit(1)
 		}
 
 		sigCh := make(chan os.Signal, 1)
@@ -150,6 +159,7 @@ var RunCmd = &cobra.Command{
 				daprdErr := output.DaprCMD.Wait()
 
 				if daprdErr != nil {
+					output.DaprErr = daprdErr
 					print.FailureStatusEvent(os.Stderr, "The daprd process exited with error code: %s", daprdErr.Error())
 				} else {
 					print.SuccessStatusEvent(os.Stdout, "Exited Dapr successfully")
@@ -252,6 +262,7 @@ var RunCmd = &cobra.Command{
 				appErr := output.AppCMD.Wait()
 
 				if appErr != nil {
+					output.AppErr = appErr
 					print.FailureStatusEvent(os.Stderr, "The App process exited with error code: %s", appErr.Error())
 				} else {
 					print.SuccessStatusEvent(os.Stdout, "Exited App successfully")
@@ -296,18 +307,28 @@ var RunCmd = &cobra.Command{
 		<-sigCh
 		print.InfoStatusEvent(os.Stdout, "\nterminated signal received: shutting down")
 
-		if output.DaprCMD.ProcessState == nil || !output.DaprCMD.ProcessState.Exited() {
+		exitWithError := false
+
+		if output.DaprErr != nil {
+			exitWithError = true
+			print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Error exiting Dapr: %s", output.DaprErr))
+		} else if output.DaprCMD.ProcessState == nil || !output.DaprCMD.ProcessState.Exited() {
 			err = output.DaprCMD.Process.Kill()
 			if err != nil {
+				exitWithError = true
 				print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Error exiting Dapr: %s", err))
 			} else {
 				print.SuccessStatusEvent(os.Stdout, "Exited Dapr successfully")
 			}
 		}
 
-		if output.AppCMD != nil && (output.AppCMD.ProcessState == nil || !output.AppCMD.ProcessState.Exited()) {
+		if output.AppErr != nil {
+			exitWithError = true
+			print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Error exiting App: %s", output.AppErr))
+		} else if output.AppCMD != nil && (output.AppCMD.ProcessState == nil || !output.AppCMD.ProcessState.Exited()) {
 			err = output.AppCMD.Process.Kill()
 			if err != nil {
+				exitWithError = true
 				print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Error exiting App: %s", err))
 			} else {
 				print.SuccessStatusEvent(os.Stdout, "Exited App successfully")
@@ -318,6 +339,10 @@ var RunCmd = &cobra.Command{
 			for _, s := range []string{"http", "grpc"} {
 				os.Remove(utils.GetSocket(unixDomainSocket, output.AppID, s))
 			}
+		}
+
+		if exitWithError {
+			os.Exit(1)
 		}
 	},
 }
@@ -340,6 +365,7 @@ func init() {
 	RunCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	RunCmd.Flags().IntVarP(&maxRequestBodySize, "dapr-http-max-request-size", "", -1, "Max size of request body in MB")
 	RunCmd.Flags().StringVarP(&unixDomainSocket, "unix-domain-socket", "u", "", "Path to a unix domain socket dir. If specified, Dapr API servers will use Unix Domain Sockets")
+	RunCmd.Flags().BoolVar(&enableAPILogging, "enable-api-logging", false, "Log API calls at INFO verbosity. Valid values are: true or false")
 
 	RootCmd.AddCommand(RunCmd)
 }
