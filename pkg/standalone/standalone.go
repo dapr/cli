@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
 	"path"
@@ -28,6 +29,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/fatih/color"
 	"gopkg.in/yaml.v2"
@@ -1047,10 +1049,27 @@ func downloadFile(dir string, url string) (string, error) {
 		return "", nil
 	}
 
-	resp, err := http.Get(url)
+	client := http.Client{
+		Timeout: 0,
+		Transport: &http.Transport{
+			Dial: (&net.Dialer{
+				Timeout: 30 * time.Second,
+			}).Dial,
+			TLSHandshakeTimeout:   15 * time.Second,
+			ResponseHeaderTimeout: 15 * time.Second,
+		},
+	}
+
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return "", err
 	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+
 	defer resp.Body.Close()
 
 	if resp.StatusCode == 404 {
