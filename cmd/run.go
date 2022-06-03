@@ -46,6 +46,7 @@ var (
 	appSSL             bool
 	metricsPort        int
 	maxRequestBodySize int
+	readBufferSize     int
 	unixDomainSocket   string
 	enableAPILogging   bool
 )
@@ -115,6 +116,7 @@ dapr run --app-id myapp --app-port 3000 --app-protocol grpc -- go run main.go
 			AppSSL:             appSSL,
 			MetricsPort:        metricsPort,
 			MaxRequestBodySize: maxRequestBodySize,
+			HTTPReadBufferSize: readBufferSize,
 			UnixDomainSocket:   unixDomainSocket,
 			EnableAPILogging:   enableAPILogging,
 		})
@@ -364,6 +366,7 @@ func init() {
 	RunCmd.Flags().IntVarP(&metricsPort, "metrics-port", "M", -1, "The port of metrics on dapr")
 	RunCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	RunCmd.Flags().IntVarP(&maxRequestBodySize, "dapr-http-max-request-size", "", -1, "Max size of request body in MB")
+	RunCmd.Flags().IntVarP(&readBufferSize, "dapr-http-read-buffer-size", "", -1, "HTTP header read buffer in KB")
 	RunCmd.Flags().StringVarP(&unixDomainSocket, "unix-domain-socket", "u", "", "Path to a unix domain socket dir. If specified, Dapr API servers will use Unix Domain Sockets")
 	RunCmd.Flags().BoolVar(&enableAPILogging, "enable-api-logging", false, "Log API calls at INFO verbosity. Valid values are: true or false")
 

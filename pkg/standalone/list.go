@@ -51,6 +51,7 @@ type runData struct {
 	appCmd             string
 	enableMetrics      bool
 	maxRequestBodySize int
+	httpReadBufferSize int
 }
 
 func (d *daprProcess) List() ([]ListOutput, error) {
@@ -134,6 +135,11 @@ func List() ([]ListOutput, error) {
 				continue
 			}
 
+			httpReadBufferSize, err := strconv.Atoi(argumentsMap["--dapr-http-read-buffer-size"])
+			if err != nil {
+				continue
+			}
+
 			run := runData{
 				cliPID:             cliPID,
 				sidecarPID:         proc.Pid(),
@@ -144,6 +150,7 @@ func List() ([]ListOutput, error) {
 				appCmd:             appCmd,
 				enableMetrics:      enableMetrics,
 				maxRequestBodySize: maxRequestBodySize,
+				httpReadBufferSize: httpReadBufferSize,
 			}
 
 			cliToSidecarMap[cliPID] = &run
