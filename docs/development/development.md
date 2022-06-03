@@ -7,7 +7,7 @@ This document helps you get started developing Dapr CLI. If you find any problem
 
 ### Linux and MacOS
 
-1. The Go language environment `1.17` [(instructions)](https://golang.org/doc/install#tarball).
+1. The Go language environment `1.18` [(instructions)](https://golang.org/doc/install#tarball).
    * Make sure that your GOPATH and PATH are configured correctly
    ```bash
    export GOPATH=~/go

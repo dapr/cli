@@ -45,7 +45,7 @@ jobs:
     name: E2E tests for K8s (KinD)
     runs-on: ubuntu-latest
     env:
-      GOVER: 1.17
+      GOVER: 1.18
       DAPR_RUNTIME_VERSION: 1.7.0
       DAPR_DASHBOARD_VERSION: 0.10.0
       DAPR_TGZ: dapr-1.7.0.tgz
