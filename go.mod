@@ -3,11 +3,11 @@ module github.com/dapr/cli
 go 1.18
 
 require (
-	github.com/Azure/go-autorest/autorest v0.11.23 // indirect
-	github.com/Azure/go-autorest/autorest/adal v0.9.16 // indirect
+	github.com/Azure/go-autorest/autorest v0.11.27 // indirect
+	github.com/Azure/go-autorest/autorest/adal v0.9.18 // indirect
 	github.com/Pallinder/sillyname-go v0.0.0-20130730142914-97aeae9e6ba1
 	github.com/briandowns/spinner v1.6.1
-	github.com/dapr/dapr v1.7.0
+	github.com/dapr/dapr v1.7.1-0.20220523045250-a5d6a80d1593
 	github.com/dapr/go-sdk v1.0.0
 	github.com/docker/docker v20.10.12+incompatible
 	github.com/fatih/color v1.13.0
@@ -18,7 +18,7 @@ require (
 	github.com/nightlyone/lockfile v0.0.0-20180618180623-0ad87eef1443
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2
-	github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4
+	github.com/pkg/browser v0.0.0-20210115035449-ce105d075bb4
 	github.com/shirou/gopsutil v3.21.4+incompatible
 	github.com/spf13/cobra v1.3.0
 	github.com/spf13/viper v1.10.0
@@ -82,7 +82,7 @@ require (
 	github.com/go-openapi/swag v0.19.14 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/golang-jwt/jwt/v4 v4.0.0 // indirect
+	github.com/golang-jwt/jwt/v4 v4.2.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/btree v1.0.1 // indirect
