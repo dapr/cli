@@ -18,7 +18,6 @@ import (
 	"archive/zip"
 	"compress/gzip"
 	"context"
-	"crypto/sha256"
 	"errors"
 	"fmt"
 	"io"
@@ -1094,7 +1093,10 @@ func downloadFile(dir string, url string) (string, error) {
 	return filepath, nil
 }
 
-//see https://github.com/microsoft/vscode-winsta11er/blob/main/common/common.go#L169
+/*!
+See: https://github.com/microsoft/vscode-winsta11er/blob/4b42060da64aea6f47adebe1dd654980ed87a046/common/common.go
+Copyright (c) Microsoft Corporation. All rights reserved. Licensed under the MIT License.
+*/
 func copyWithTimeout(ctx context.Context, dst io.Writer, src io.Reader) (int64, error) {
 	// Every 5 seconds, ensure at least 200 bytes (40 bytes/second average) are read
 	interval := 5
@@ -1102,7 +1104,6 @@ func copyWithTimeout(ctx context.Context, dst io.Writer, src io.Reader) (int64, 
 	prevWritten := int64(0)
 	written := int64(0)
 
-	h := sha256.New()
 	done := make(chan error)
 	mu := sync.Mutex{}
 	t := time.NewTicker(time.Duration(interval) * time.Second)
@@ -1111,20 +1112,13 @@ func copyWithTimeout(ctx context.Context, dst io.Writer, src io.Reader) (int64, 
 	// Read the stream, 32KB at a time
 	go func() {
 		var (
-			writeErr, readErr, hashErr error
-			writeBytes, readBytes      int
-			buf                        = make([]byte, 32<<10)
+			writeErr, readErr     error
+			writeBytes, readBytes int
+			buf                   = make([]byte, 32<<10)
 		)
 		for {
 			readBytes, readErr = src.Read(buf)
 			if readBytes > 0 {
-				// Add to the hash
-				_, hashErr = h.Write(buf[0:readBytes])
-				if hashErr != nil {
-					done <- hashErr
-					return
-				}
-
 				// Write to disk and update the number of bytes written
 				writeBytes, writeErr = dst.Write(buf[0:readBytes])
 				mu.Lock()
