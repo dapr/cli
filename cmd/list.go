@@ -61,13 +61,13 @@ var ListCmd = &cobra.Command{
 # List Dapr instances in self-hosted mode
 dapr list
 
-# List all namespace Dapr instances in Kubernetes mode
+# List Dapr instances in all namespaces in Kubernetes mode
 dapr list -k
 
-# List define namespace Dapr instances in Kubernetes mode
+# List Dapr instances in a specific namespace in Kubernetes mode
 dapr list -k --namespace default
 
-# List all namespaces Dapr instances in Kubernetes mode
+# List Dapr instances in all namespaces in  Kubernetes mode
 dapr list -k --all-namespaces
 `,
 	PreRun: func(cmd *cobra.Command, args []string) {
@@ -78,12 +78,11 @@ dapr list -k --all-namespaces
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if kubernetesMode {
-			print.WarningStatusEvent(os.Stdout, "In future releases, this command will only query the \"default\" namespace by default. Please use the -n (namespace) flag, for specific namespace, or -A (all-namespaces) flag for all namespaces.")
+			print.WarningStatusEvent(os.Stdout, "In future releases, this command will only query the \"default\" namespace by default. Please use the --namespace flag for a specific namespace, or the --all-namespaces (-A) flag for all namespaces.")
 			if allNamespaces {
 				resourceNamespace = meta_v1.NamespaceAll
 			} else if resourceNamespace == "" {
 				resourceNamespace = meta_v1.NamespaceAll
-				print.WarningStatusEvent(os.Stdout, "From next release(or after 2 releases), behavior can be changed to query only \"default\" namespace.")
 			}
 
 			list, err := kubernetes.List(resourceNamespace)

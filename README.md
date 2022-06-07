@@ -120,19 +120,49 @@ You can install or upgrade to a specific version of the Dapr runtime using `dapr
 
 ```bash
 # Install v1.0.0 runtime
-$ dapr init --runtime-version 1.0.0
+dapr init --runtime-version 1.0.0
 
 # Check the versions of CLI and runtime
-$ dapr --version
+dapr --version
 CLI version: v1.0.0
 Runtime version: v1.0.0
 ```
 #### Install by providing a docker container registry url
 
-You can install Dapr runtime by pulling docker images from a given registry url by using `--image-repository` flag.
+You can install Dapr runtime by pulling docker images from a given private registry uri by using `--image-registry` flag.
+> Note: This command expects that images have been hosted like example.io/<username>/dapr/dapr:<tag>, example.io/<username>/dapr/3rdparty/redis:<tag>, example.io/<username>/dapr/3rdparty/zipkin:<tag>
 
 ```bash
-$ dapr init --image-repository <registry-url>
+# Example of pulling images from a private registry.
+dapr init --image-registry example.io/<username>
+```
+
+#### Install in airgap environment
+
+You can install Dapr runtime in airgap (offline) environment using a pre-downloaded [installer bundle](https://github.com/dapr/installer-bundle/releases). You need to download the archived bundle for your OS beforehand (e.g., daprbundle_linux_amd64.tar.gz,) and unpack it. Thereafter use the local Dapr CLI binary in the bundle with `--from-dir` flag in the init command to point to the extracted bundle location to initialize Dapr.
+
+Move to the bundle directory and run the following command:
+
+```bash
+# Initializing dapr in airgap environment
+./dapr init --from-dir .
+```
+
+> For windows, use `.\dapr.exe` to point to the local Dapr CLI binary.
+
+> If you are not running the above command from the bundle directory, provide the full path to bundle directory as input. For example, assuming the bundle directory path is $HOME/daprbundle, run `$HOME/daprbundle/dapr init --from-dir $HOME/daprbundle` to have the same behavior.
+
+> Note: Dapr Installer bundle just contains the placement container apart from the binaries and so `zipkin` and `redis` are not enabled by default. You can pull the images locally either from network or private registry and run as follows:
+
+```bash
+docker run --name "dapr_zipkin" --restart always -d -p 9411:9411 openzipkin/zipkin
+docker run --name "dapr_redis" --restart always -d -p 6379:6379 redis
+```
+
+Alternatively to the above, you can also have slim installation as well to install dapr without running any Docker containers in airgap mode.   
+
+```bash
+./dapr init --slim --from-dir .
 ```
 
 #### Install to a specific Docker network
@@ -141,10 +171,10 @@ You can install the Dapr runtime to a specific Docker network in order to isolat
 
 ```bash
 # Create Docker network
-$ docker network create dapr-network
+docker network create dapr-network
 
 # Install Dapr to the network
-$ dapr init --network dapr-network
+dapr init --network dapr-network
 ```
 
 > Note: When installed to a specific Docker network, you will need to add the `--placement-host-address` arguments to `dapr run` commands run in any containers within that network.
@@ -188,8 +218,12 @@ The init command will install Dapr to a Kubernetes cluster. For more advanced us
 *Note: The default namespace is dapr-system. The installation will appear under the name `dapr` for Helm*
 
 ```bash
-$ dapr init -k
+dapr init -k
+```
 
+Output should look like as follows:
+
+```
 ⌛  Making the jump to hyperspace...
 ℹ️  Note: To install Dapr using Helm, see here:  https://docs.dapr.io/getting-started/install-dapr/#install-with-helm-advanced
 
@@ -437,12 +471,35 @@ dapr mtls expiry
 
 This can be used when upgrading to a newer version of Dapr, as it's recommended to carry over the existing certs for a zero downtime upgrade.
 
+### Renew Dapr certificates of a kubernetes cluster with one of the 3 ways mentioned below:
+Renew certificate by generating new root and issuer certificates
+
+```bash
+dapr mtls renew-certificate -k --valid-until <no of days> --restart
+```
+Use existing private root.key to generate new root and issuer certificates
+
+```bash
+dapr mtls renew-certificate -k --private-key myprivatekey.key --valid-until <no of days>
+```
+Use user provided ca.crt, issuer.crt and issuer.key
+
+```bash
+dapr mtls renew-certificate -k --ca-root-certificate <ca.crt> --issuer-private-key <issuer.key> --issuer-public-certificate <issuer.crt> --restart
+```
+
 ### List Components
 
 To list all Dapr components on Kubernetes:
 
 ```bash
-dapr components --kubernetes
+dapr components --kubernetes --all-namespaces
+```
+
+To list Dapr components in `target-namespace` namespace on Kubernetes:
+
+```bash
+dapr components --kubernetes --namespace target-namespace
 ```
 
 ### Use non-default Components Path
@@ -459,7 +516,13 @@ dapr run --components-path [custom path]
 To list all Dapr configurations on Kubernetes:
 
 ```bash
-dapr configurations --kubernetes
+dapr configurations --kubernetes --all-namespaces
+```
+
+To list Dapr configurations in `target-namespace` namespace on Kubernetes:
+
+```bash
+dapr configurations --kubernetes --namespace target-namespace
 ```
 
 ### Stop
@@ -544,7 +607,7 @@ dapr completion
 In order to enable Unix domain socket to connect Dapr API server, use the `--unix-domain-socket` flag:
 
 ```
-$ dapr run --app-id nodeapp --unix-domain-socket node app.js
+dapr run --app-id nodeapp --unix-domain-socket node app.js
 ```
 
 Dapr will automatically create a Unix domain socket to connect Dapr API server.
@@ -552,26 +615,54 @@ Dapr will automatically create a Unix domain socket to connect Dapr API server.
 If you want to invoke your app, also use this flag:
 
 ```
-$ dapr invoke --app-id nodeapp --unix-domain-socket --method mymethod
+dapr invoke --app-id nodeapp --unix-domain-socket --method mymethod
 ```
 
-### Enable Unix domain socket
+### Set API log level
 
-In order to enable Unix domain socket to connect Dapr API server, use the `--unix-domain-socket` flag:
+In order to set the Dapr runtime to log API calls with `INFO` log verbosity, use the `enable-api-logging` flag:
 
+```bash
+dapr run --app-id nodeapp --app-port 3000 node app.js enable-api-logging
 ```
-$ dapr run --app-id nodeapp --unix-domain-socket node app.js
-```
 
-Dapr will automatically create a Unix domain socket to connect Dapr API server.
-
-If you want to invoke your app, also use this flag:
-
-```
-$ dapr invoke --app-id nodeapp --unix-domain-socket --method mymethod
-```
+The default is `false`.
 
 For more details, please run the command and check the examples to apply to your shell.
+
+### Annotate a Kubernetes manifest
+
+To add or modify dapr annotations on an existing Kubernetes manifest, use the  `dapr annotate` command:
+
+```bash
+dapr annotate [flags] mydeployment.yaml
+```
+
+This will add the `dapr.io/enabled` and the `dapr.io/app-id` annotations. The dapr app id will be genereated using the format `<namespace>-<kind>-<name>` where the values are taken from the existing Kubernetes object metadata.
+
+To provide your own dapr app id, provide the flag `--app-id`.
+
+All dapr annotations are available to set if a value is provided for the appropriate flag on the `dapr annotate` command.
+
+You can also provide the Kubernetes manifest via stdin:
+
+```bash
+kubectl get deploy mydeploy -o yaml | dapr annotate - | kubectl apply -f -
+```
+
+Or you can provide the Kubernetes manifest via a URL:
+
+```bash
+dapr annotate --log-level debug https://raw.githubusercontent.com/dapr/quickstarts/master/tutorials/hello-kubernetes/deploy/node.yaml | kubectl apply -f -
+```
+
+If the input contains multiple manifests then the command will search for the first appropriate one to apply the annotations. If you'd rather it applied to a specific manifest then you can provide the `--resource` flag with the value set to the name of the object you'd like to apply the annotations to. If you have a conflict between namespaces you can also provide the namespace via the `--namespace` flag to isolate the manifest you wish to target.
+
+If you want to annotate multiple manifests, you can chain together the `dapr annotate` commands with each applying the annotation to a specific manifest.
+
+```bash
+kubectl get deploy -o yaml | dapr annotate -r nodeapp --log-level debug - | dapr annotate --log-level debug -r pythonapp - | kubectl apply -f -
+```
 
 ## Reference for the Dapr CLI
 

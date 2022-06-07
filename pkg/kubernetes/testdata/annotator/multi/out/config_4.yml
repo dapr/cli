@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: subtractapp
+  namespace: test
+  labels:
+    app: subtract
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: subtract
+  template:
+    metadata:
+      labels:
+        app: subtract
+    spec:
+      containers:
+      - name: subtract
+        image: dapriosamples/distributed-calculator-csharp:latest
+        ports:
+        - containerPort: 80
+        imagePullPolicy: Always
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: subtractapp
+  namespace: test1
+  labels:
+    app: subtract
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: subtract
+  template:
+    metadata:
+      labels:
+        app: subtract
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "subtractapp"
+    spec:
+      containers:
+      - name: subtract
+        image: dapriosamples/distributed-calculator-csharp:latest
+        ports:
+        - containerPort: 80
+        imagePullPolicy: Always

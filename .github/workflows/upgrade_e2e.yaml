@@ -45,7 +45,7 @@ jobs:
     name: Upgrade path tests (KinD)
     runs-on: ubuntu-latest
     env:
-      GOVER: 1.17
+      GOVER: 1.18
     strategy:
       fail-fast: false # Keep running if one leg fails.
       matrix:
