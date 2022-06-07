@@ -37,6 +37,7 @@ import (
 	"github.com/dapr/cli/pkg/print"
 	cli_ver "github.com/dapr/cli/pkg/version"
 	"github.com/dapr/cli/utils"
+	"github.com/dustin/go-humanize"
 )
 
 const (
@@ -1048,7 +1049,7 @@ func downloadFile(dir string, url string) (string, error) {
 	if os.IsExist(err) {
 		return "", nil
 	}
-
+	//https://github.com/microsoft/vscode-winsta11er/blob/main/common/common.go#L94
 	client := http.Client{
 		Timeout: 0,
 		Transport: &http.Transport{
@@ -1084,12 +1085,24 @@ func downloadFile(dir string, url string) (string, error) {
 	}
 	defer out.Close()
 
-	_, err = io.Copy(out, resp.Body)
+	rate := &DownloadRate{}
+	_, err = io.Copy(out, io.TeeReader(resp.Body, rate))
 	if err != nil {
 		return "", err
 	}
 
 	return filepath, nil
+}
+
+type DownloadRate struct {
+	BytesRecv uint64
+}
+
+func (dr *DownloadRate) Write(b []byte) (int, error) {
+	l := len(b)
+	dr.BytesRecv += uint64(l)
+	fmt.Printf("\rDownloading... %s complete", humanize.Bytes(dr.BytesRecv))
+	return l, nil
 }
 
 // getPlacementImageName returns the resolved placement image name for online `dapr init`.
