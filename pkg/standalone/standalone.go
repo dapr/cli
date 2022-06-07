@@ -17,6 +17,8 @@ import (
 	"archive/tar"
 	"archive/zip"
 	"compress/gzip"
+	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"io"
@@ -37,7 +39,6 @@ import (
 	"github.com/dapr/cli/pkg/print"
 	cli_ver "github.com/dapr/cli/pkg/version"
 	"github.com/dapr/cli/utils"
-	"github.com/dustin/go-humanize"
 )
 
 const (
@@ -1049,7 +1050,7 @@ func downloadFile(dir string, url string) (string, error) {
 	if os.IsExist(err) {
 		return "", nil
 	}
-	//https://github.com/microsoft/vscode-winsta11er/blob/main/common/common.go#L94
+	//see https://github.com/microsoft/vscode-winsta11er/blob/main/common/common.go#L94
 	client := http.Client{
 		Timeout: 0,
 		Transport: &http.Transport{
@@ -1085,8 +1086,7 @@ func downloadFile(dir string, url string) (string, error) {
 	}
 	defer out.Close()
 
-	rate := &DownloadRate{}
-	_, err = io.Copy(out, io.TeeReader(resp.Body, rate))
+	_, err = copyWithTimeout(context.Background(), out, resp.Body)
 	if err != nil {
 		return "", err
 	}
@@ -1094,15 +1094,77 @@ func downloadFile(dir string, url string) (string, error) {
 	return filepath, nil
 }
 
-type DownloadRate struct {
-	BytesRecv uint64
-}
+//see https://github.com/microsoft/vscode-winsta11er/blob/main/common/common.go#L169
+func copyWithTimeout(ctx context.Context, dst io.Writer, src io.Reader) (int64, error) {
+	// Every 5 seconds, ensure at least 200 bytes (40 bytes/second average) are read
+	interval := 5
+	minCopyBytes := int64(200)
+	prevWritten := int64(0)
+	written := int64(0)
 
-func (dr *DownloadRate) Write(b []byte) (int, error) {
-	l := len(b)
-	dr.BytesRecv += uint64(l)
-	fmt.Printf("\rDownloading... %s complete", humanize.Bytes(dr.BytesRecv))
-	return l, nil
+	h := sha256.New()
+	done := make(chan error)
+	mu := sync.Mutex{}
+	t := time.NewTicker(time.Duration(interval) * time.Second)
+	defer t.Stop()
+
+	// Read the stream, 32KB at a time
+	go func() {
+		var (
+			writeErr, readErr, hashErr error
+			writeBytes, readBytes      int
+			buf                        = make([]byte, 32<<10)
+		)
+		for {
+			readBytes, readErr = src.Read(buf)
+			if readBytes > 0 {
+				// Add to the hash
+				_, hashErr = h.Write(buf[0:readBytes])
+				if hashErr != nil {
+					done <- hashErr
+					return
+				}
+
+				// Write to disk and update the number of bytes written
+				writeBytes, writeErr = dst.Write(buf[0:readBytes])
+				mu.Lock()
+				written += int64(writeBytes)
+				mu.Unlock()
+				if writeErr != nil {
+					done <- writeErr
+					return
+				}
+			}
+			if readErr != nil {
+				// If error is EOF, means we read the entire file, so don't consider that as error
+				if readErr != io.EOF {
+					done <- readErr
+					return
+				}
+
+				// No error
+				done <- nil
+				return
+			}
+		}
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return written, ctx.Err()
+		case <-t.C:
+			mu.Lock()
+			if written < prevWritten+minCopyBytes {
+				mu.Unlock()
+				return written, fmt.Errorf("stream stalled: received %d bytes over the last %d seconds", written, interval)
+			}
+			prevWritten = written
+			mu.Unlock()
+		case e := <-done:
+			return written, e
+		}
+	}
 }
 
 // getPlacementImageName returns the resolved placement image name for online `dapr init`.
