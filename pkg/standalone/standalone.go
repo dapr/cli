@@ -1039,7 +1039,6 @@ func binaryName(binaryFilePrefix string) string {
 	return fmt.Sprintf("%s_%s_%s.%s", binaryFilePrefix, runtime.GOOS, runtime.GOARCH, archiveExt())
 }
 
-// nolint:gosec
 func downloadFile(dir string, url string) (string, error) {
 	tokens := strings.Split(url, "/")
 	fileName := tokens[len(tokens)-1]
@@ -1049,7 +1048,6 @@ func downloadFile(dir string, url string) (string, error) {
 	if os.IsExist(err) {
 		return "", nil
 	}
-	//see https://github.com/microsoft/vscode-winsta11er/blob/main/common/common.go#L94
 	client := http.Client{
 		Timeout: 0,
 		Transport: &http.Transport{
@@ -1098,7 +1096,7 @@ See: https://github.com/microsoft/vscode-winsta11er/blob/4b42060da64aea6f47adebe
 Copyright (c) Microsoft Corporation. All rights reserved. Licensed under the MIT License.
 */
 func copyWithTimeout(ctx context.Context, dst io.Writer, src io.Reader) (int64, error) {
-	// Every 5 seconds, ensure at least 200 bytes (40 bytes/second average) are read
+	// Every 5 seconds, ensure at least 200 bytes (40 bytes/second average) are read.
 	interval := 5
 	minCopyBytes := int64(200)
 	prevWritten := int64(0)
@@ -1109,7 +1107,7 @@ func copyWithTimeout(ctx context.Context, dst io.Writer, src io.Reader) (int64, 
 	t := time.NewTicker(time.Duration(interval) * time.Second)
 	defer t.Stop()
 
-	// Read the stream, 32KB at a time
+	// Read the stream, 32KB at a time.
 	go func() {
 		var (
 			writeErr, readErr     error
@@ -1119,7 +1117,7 @@ func copyWithTimeout(ctx context.Context, dst io.Writer, src io.Reader) (int64, 
 		for {
 			readBytes, readErr = src.Read(buf)
 			if readBytes > 0 {
-				// Write to disk and update the number of bytes written
+				// Write to disk and update the number of bytes written.
 				writeBytes, writeErr = dst.Write(buf[0:readBytes])
 				mu.Lock()
 				written += int64(writeBytes)
@@ -1130,13 +1128,13 @@ func copyWithTimeout(ctx context.Context, dst io.Writer, src io.Reader) (int64, 
 				}
 			}
 			if readErr != nil {
-				// If error is EOF, means we read the entire file, so don't consider that as error
-				if readErr != io.EOF {
+				// If error is EOF, means we read the entire file, so don't consider that as error.
+				if !errors.Is(readErr, io.EOF) {
 					done <- readErr
 					return
 				}
 
-				// No error
+				// No error.
 				done <- nil
 				return
 			}
