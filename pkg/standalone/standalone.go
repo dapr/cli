@@ -1048,10 +1048,10 @@ func downloadFile(dir string, url string) (string, error) {
 	if os.IsExist(err) {
 		return "", nil
 	}
-	client := http.Client{ //nolint:exhaustruct
+	client := http.Client{ // nolint:exhaustruct
 		Timeout: 0,
-		Transport: &http.Transport{ //nolint:exhaustruct
-			Dial: (&net.Dialer{ //nolint:exhaustruct
+		Transport: &http.Transport{ // nolint:exhaustruct
+			Dial: (&net.Dialer{ // nolint:exhaustruct
 				Timeout: 30 * time.Second,
 			}).Dial,
 			TLSHandshakeTimeout:   15 * time.Second,
