@@ -90,6 +90,7 @@ func assertCommonArgs(t *testing.T, basicConfig *RunConfig, output *RunOutput) {
 	assertArgumentEqual(t, "app-ssl", "", output.DaprCMD.Args)
 	assertArgumentEqual(t, "metrics-port", "9001", output.DaprCMD.Args)
 	assertArgumentEqual(t, "dapr-http-max-request-size", "-1", output.DaprCMD.Args)
+	assertArgumentEqual(t, "dapr-http-read-buffer-size", "-1", output.DaprCMD.Args)
 }
 
 func assertAppEnv(t *testing.T, config *RunConfig, output *RunOutput) {
@@ -148,6 +149,7 @@ func TestRun(t *testing.T) {
 		AppSSL:             true,
 		MetricsPort:        9001,
 		MaxRequestBodySize: -1,
+		HTTPReadBufferSize: -1,
 		EnableAPILogging:   true,
 	}
 
