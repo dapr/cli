@@ -37,7 +37,7 @@ type ListOutput struct {
 	Command            string `csv:"COMMAND"   json:"command"            yaml:"command"`
 	Age                string `csv:"AGE"       json:"age"                yaml:"age"`
 	Created            string `csv:"CREATED"   json:"created"            yaml:"created"`
-	PID                int    `csv:"PID"       json:"pid"                yaml:"pid"`
+	DaprdPID           int    `csv:"DAPRD PID" json:"daprdPid"           yaml:"daprdPid"`
 	CliPID             int    `csv:"CLI PID"   json:"cliPid"             yaml:"cliPid"`
 	MaxRequestBodySize int    `csv:"-"         json:"maxRequestBodySize" yaml:"maxRequestBodySize"` // Additional field, not displayed in table.
 	HttpReadBufferSize int    `csv:"-"         json:"httpReadBufferSize" yaml:"httpReadBufferSize"` // Additional field, not displayed in table.
@@ -124,7 +124,7 @@ func List() ([]ListOutput, error) {
 			listRow := ListOutput{
 				Created:            createTime.Format("2006-01-02 15:04.05"),
 				Age:                age.GetAge(createTime),
-				PID:                daprPID,
+				DaprdPID:           daprPID,
 				CliPID:             cliPID,
 				AppID:              appID,
 				HTTPPort:           httpPort,
