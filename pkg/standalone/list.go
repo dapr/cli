@@ -40,7 +40,7 @@ type ListOutput struct {
 	DaprdPID           int    `csv:"DAPRD PID" json:"daprdPid"           yaml:"daprdPid"`
 	CliPID             int    `csv:"CLI PID"   json:"cliPid"             yaml:"cliPid"`
 	MaxRequestBodySize int    `csv:"-"         json:"maxRequestBodySize" yaml:"maxRequestBodySize"` // Additional field, not displayed in table.
-	HttpReadBufferSize int    `csv:"-"         json:"httpReadBufferSize" yaml:"httpReadBufferSize"` // Additional field, not displayed in table.
+	HTTPReadBufferSize int    `csv:"-"         json:"httpReadBufferSize" yaml:"httpReadBufferSize"` // Additional field, not displayed in table.
 }
 
 func (d *daprProcess) List() ([]ListOutput, error) {
@@ -133,7 +133,7 @@ func List() ([]ListOutput, error) {
 				MetricsEnabled:     enableMetrics,
 				Command:            utils.TruncateString(appCmd, 20),
 				MaxRequestBodySize: maxRequestBodySize,
-				HttpReadBufferSize: httpReadBufferSize,
+				HTTPReadBufferSize: httpReadBufferSize,
 			}
 
 			// filter only dashboard instance.
