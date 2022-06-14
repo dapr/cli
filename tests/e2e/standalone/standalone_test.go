@@ -34,11 +34,11 @@ import (
 	"gopkg.in/yaml.v2"
 
 	testCommon "github.com/dapr/cli/tests/e2e/common"
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/client"
 	"github.com/dapr/cli/tests/e2e/spawn"
 	"github.com/dapr/go-sdk/service/common"
 	daprHttp "github.com/dapr/go-sdk/service/http"
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/client"
 )
 
 var (
@@ -501,7 +501,7 @@ func testRunEnableAPILogging(t *testing.T) {
 		assert.Contains(t, output, "Exited Dapr successfully")
 		assert.NotContains(t, output, "level=info msg=\"HTTP API Called: PUT /v1.0/metadata/appCommand\"")
 	})
-}	
+}
 
 func testVersion(t *testing.T) {
 	daprPath := getDaprPath()
@@ -560,12 +560,12 @@ func testList(t *testing.T) {
 		output, err := spawn.Command(getDaprPath(), "list")
 		t.Log(output)
 		require.NoError(t, err, "dapr list failed")
-		listOutputCheck(t, output)
+		listOutputCheck(t, output, true)
 
 		output, err = spawn.Command(getDaprPath(), "list", "-o", "table")
 		t.Log(output)
 		require.NoError(t, err, "dapr list failed")
-		listOutputCheck(t, output)
+		listOutputCheck(t, output, true)
 
 		output, err = spawn.Command(getDaprPath(), "list", "-o", "json")
 		t.Log(output)
@@ -587,6 +587,36 @@ func testList(t *testing.T) {
 		require.NoError(t, err, "dapr stop failed")
 		assert.Contains(t, output, "app stopped successfully: dapr_e2e_list")
 	}, "run", "--app-id", "dapr_e2e_list", "-H", "3555", "-G", "4555", "--", "bash", "-c", "sleep 10 ; exit 0")
+
+	t.Run("daprd instance in list", func(t *testing.T) {
+		homeDir, err := os.UserHomeDir()
+		require.NoError(t, err)
+
+		path := filepath.Join(homeDir, ".dapr")
+		binPath := filepath.Join(path, "bin")
+		daprdPath := filepath.Join(binPath, "daprd")
+
+		if runtime.GOOS == "windows" {
+			daprdPath += ".exe"
+		}
+
+		cmd := exec.Command(daprdPath, "--app-id", "daprd_e2e_list", "--dapr-http-port", "3555", "--dapr-grpc-port", "4555", "--app-port", "0")
+		cmd.Start()
+
+		output, err := spawn.Command(getDaprPath(), "list")
+		t.Log(output)
+		require.NoError(t, err, "dapr list failed with daprd instance")
+		listOutputCheck(t, output, false)
+
+		// TODO: remove this condition when `dapr stop` starts working for Windows.
+		if runtime.GOOS != "windows" {
+			output, err = spawn.Command(getDaprPath(), "stop", "--app-id", "daprd_e2e_list")
+			t.Log(output)
+			require.NoError(t, err, "dapr stop failed")
+			assert.Contains(t, output, "app stopped successfully: daprd_e2e_list")
+		}
+		cmd.Process.Kill()
+	})
 }
 
 func testStop(t *testing.T) {
@@ -764,13 +794,17 @@ func testInvoke(t *testing.T) {
 	}
 }
 
-func listOutputCheck(t *testing.T, output string) {
+func listOutputCheck(t *testing.T, output string, isCli bool) {
 	lines := strings.Split(output, "\n")[1:] // remove header
 	// only one app is runnning at this time
 	fields := strings.Fields(lines[0])
 	// Fields splits on space, so Created time field might be split again
-	assert.GreaterOrEqual(t, len(fields), 4, "expected at least 4 fields in components outptu")
-	assert.Equal(t, "dapr_e2e_list", fields[0], "expected name to match")
+	assert.GreaterOrEqual(t, len(fields), 4, "expected at least 4 fields in components output")
+	if isCli {
+		assert.Equal(t, "dapr_e2e_list", fields[0], "expected name to match")
+	} else {
+		assert.Equal(t, "daprd_e2e_list", fields[0], "expected name to match")
+	}
 	assert.Equal(t, "3555", fields[1], "expected http port to match")
 	assert.Equal(t, "4555", fields[2], "expected grpc port to match")
 	assert.Equal(t, "0", fields[3], "expected app port to match")
