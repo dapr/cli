@@ -15,7 +15,6 @@ package kubernetes
 
 import (
 	"flag"
-	"os"
 	"sync"
 
 	k8s "k8s.io/client-go/kubernetes"
@@ -99,11 +98,4 @@ func DaprClient() (scheme.Interface, error) {
 		return nil, err
 	}
 	return scheme.NewForConfig(config)
-}
-
-func homeDir() string {
-	if h := os.Getenv("HOME"); h != "" {
-		return h
-	}
-	return os.Getenv("USERPROFILE") // windows.
 }
