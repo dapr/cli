@@ -65,7 +65,7 @@ func getConfig() (*rest.Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	config, err := clientcmd.NewDefaultClientConfig(*startingConfig, &clientcmd.ConfigOverrides{}).ClientConfig()
+	config, err := clientcmd.NewDefaultClientConfig(*startingConfig, nil).ClientConfig()
 	return config, err
 }
 
