@@ -141,7 +141,7 @@ dapr init --from-dir <path-to-directory>
 }
 
 func warnForPrivateRegFeat() {
-	print.WarningStatusEvent(os.Stdout, "Flag --image-registry is a preview feature and is subject to change. It is only available from CLI version 1.7 onwards.")
+	print.WarningStatusEvent(os.Stdout, "Flag --image-registry is a preview feature and is subject to change.")
 }
 
 func init() {
