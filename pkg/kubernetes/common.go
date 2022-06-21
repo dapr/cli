@@ -62,3 +62,11 @@ func GetDaprVersion(status []StatusOutput) string {
 	}
 	return daprVersion
 }
+
+func GetDaprNamespace() (string, error) {
+	status, err := GetDaprResourcesStatus()
+	if err != nil {
+		return "", err
+	}
+	return status[0].Namespace, nil
+}
