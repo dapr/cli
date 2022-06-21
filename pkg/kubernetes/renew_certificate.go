@@ -15,7 +15,6 @@ package kubernetes
 
 import (
 	"crypto/ecdsa"
-	"crypto/rand"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
@@ -28,8 +27,8 @@ import (
 	"k8s.io/helm/pkg/strvals"
 
 	"github.com/dapr/cli/pkg/print"
+	"github.com/dapr/dapr/pkg/sentry/ca"
 	"github.com/dapr/dapr/pkg/sentry/certs"
-	"github.com/dapr/dapr/pkg/sentry/csr"
 )
 
 type RenewCertificateParams struct {
@@ -170,40 +169,17 @@ func GenerateNewCertificates(validUntil time.Duration, privateKeyFile string) ([
 			return nil, nil, nil, err
 		}
 	}
-	rootCsr, err := csr.GenerateRootCertCSR("dapr.io/sentry", "cluster.local", &rootKey.PublicKey, validUntil, time.Minute*15)
+	systemConfig, err := GetDaprControlPlaneCurrentConfig()
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	rootCertBytes, err := x509.CreateCertificate(rand.Reader, rootCsr, rootCsr, &rootKey.PublicKey, rootKey)
+	allowedClockSkew, err := time.ParseDuration(systemConfig.Spec.MTLSSpec.AllowedClockSkew)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	rootCertPem := pem.EncodeToMemory(&pem.Block{Type: certs.Certificate, Bytes: rootCertBytes})
-	rootCert, err := x509.ParseCertificate(rootCertBytes)
+	_, rootCertPem, issuerCertPem, issuerKeyPem, err := ca.GetNewSelfSignedCertificates(rootKey, validUntil, allowedClockSkew)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-
-	issuerKey, err := certs.GenerateECPrivateKey()
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	encodedKey, err := x509.MarshalECPrivateKey(issuerKey)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	issuerKeyPem := pem.EncodeToMemory(&pem.Block{Type: certs.ECPrivateKey, Bytes: encodedKey})
-
-	issuerCsr, err := csr.GenerateIssuerCertCSR("cluster.local", &issuerKey.PublicKey, validUntil, time.Minute*15)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	issuerCertBytes, err := x509.CreateCertificate(rand.Reader, issuerCsr, rootCert, &issuerKey.PublicKey, rootKey)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	issuerCertPem := pem.EncodeToMemory(&pem.Block{Type: certs.Certificate, Bytes: issuerCertBytes})
-
 	return rootCertPem, issuerCertPem, issuerKeyPem, nil
 }
