@@ -18,12 +18,16 @@ on:
     branches:
       - master
       - release-*
+    paths-ignore:
+      - '**.md'
   schedule:
     - cron: '0 */3 * * *'
   pull_request:
     branches:
       - master
       - 'release-*'
+    paths-ignore:
+      - '**.md'
 
 defaults:
   run:
@@ -45,7 +49,7 @@ jobs:
     name: Upgrade path tests (KinD)
     runs-on: ubuntu-latest
     env:
-      GOVER: 1.17
+      GOVER: 1.18
     strategy:
       fail-fast: false # Keep running if one leg fails.
       matrix:

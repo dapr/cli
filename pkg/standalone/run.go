@@ -52,6 +52,7 @@ type RunConfig struct {
 	AppSSL             bool   `arg:"app-ssl"`
 	MetricsPort        int    `env:"DAPR_METRICS_PORT" arg:"metrics-port"`
 	MaxRequestBodySize int    `arg:"dapr-http-max-request-size"`
+	HTTPReadBufferSize int    `arg:"dapr-http-read-buffer-size"`
 	UnixDomainSocket   string `arg:"unix-domain-socket"`
 	EnableAPILogging   bool   `arg:"enable-api-logging"`
 }
@@ -156,6 +157,10 @@ func (config *RunConfig) validate() error {
 	}
 	if config.MaxRequestBodySize < 0 {
 		config.MaxRequestBodySize = -1
+	}
+
+	if config.HTTPReadBufferSize < 0 {
+		config.HTTPReadBufferSize = -1
 	}
 
 	err = config.validatePlacementHostAddr()
