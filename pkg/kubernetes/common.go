@@ -89,5 +89,3 @@ func GetImageRegistry() (string, error) {
 	}
 	return "", nil
 }
-
-
