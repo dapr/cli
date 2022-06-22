@@ -42,13 +42,14 @@ const (
 )
 
 type InitConfiguration struct {
-	Version    string
-	Namespace  string
-	EnableMTLS bool
-	EnableHA   bool
-	Args       []string
-	Wait       bool
-	Timeout    uint
+	Version          string
+	Namespace        string
+	EnableMTLS       bool
+	EnableHA         bool
+	Args             []string
+	Wait             bool
+	Timeout          uint
+	ImageRegistryURI string
 }
 
 // Init deploys the Dapr operator using the supplied runtime version.
@@ -155,6 +156,9 @@ func chartValues(config InitConfiguration) (map[string]interface{}, error) {
 	globalVals := []string{
 		fmt.Sprintf("global.ha.enabled=%t", config.EnableHA),
 		fmt.Sprintf("global.mtls.enabled=%t", config.EnableMTLS),
+	}
+	if len(config.ImageRegistryURI) != 0 {
+		globalVals = append(globalVals, fmt.Sprintf("global.registry=%s", config.ImageRegistryURI))
 	}
 	globalVals = append(globalVals, config.Args...)
 

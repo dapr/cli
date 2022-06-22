@@ -45,9 +45,10 @@ var crdsFullResources = []string{
 }
 
 type UpgradeConfig struct {
-	RuntimeVersion string
-	Args           []string
-	Timeout        uint
+	RuntimeVersion   string
+	Args             []string
+	Timeout          uint
+	ImageRegistryURI string
 }
 
 func Upgrade(conf UpgradeConfig) error {
@@ -100,7 +101,7 @@ func Upgrade(conf UpgradeConfig) error {
 	}
 
 	ha := highAvailabilityEnabled(status)
-	vals, err = upgradeChartValues(string(ca), string(issuerCert), string(issuerKey), ha, mtls, conf.Args)
+	vals, err = upgradeChartValues(string(ca), string(issuerCert), string(issuerKey), ha, mtls, conf)
 	if err != nil {
 		return err
 	}
@@ -151,9 +152,9 @@ func applyCRDs(version string) error {
 	return nil
 }
 
-func upgradeChartValues(ca, issuerCert, issuerKey string, haMode, mtls bool, args []string) (map[string]interface{}, error) {
+func upgradeChartValues(ca, issuerCert, issuerKey string, haMode, mtls bool, conf UpgradeConfig) (map[string]interface{}, error) {
 	chartVals := map[string]interface{}{}
-	globalVals := args
+	globalVals := conf.Args
 
 	if mtls && ca != "" && issuerCert != "" && issuerKey != "" {
 		globalVals = append(globalVals, fmt.Sprintf("dapr_sentry.tls.root.certPEM=%s", ca),
@@ -163,7 +164,9 @@ func upgradeChartValues(ca, issuerCert, issuerKey string, haMode, mtls bool, arg
 	} else {
 		globalVals = append(globalVals, "global.mtls.enabled=false")
 	}
-
+	if len(conf.ImageRegistryURI) != 0 {
+		globalVals = append(globalVals, fmt.Sprintf("global.registry=%s", conf.ImageRegistryURI))
+	}
 	if haMode {
 		globalVals = append(globalVals, "global.ha.enabled=true")
 	}
@@ -178,7 +181,12 @@ func upgradeChartValues(ca, issuerCert, issuerKey string, haMode, mtls bool, arg
 
 func isDowngrade(targetVersion, existingVersion string) bool {
 	target, _ := version.NewVersion(targetVersion)
-	existing, _ := version.NewVersion(existingVersion)
-
+	existing, err := version.NewVersion(existingVersion)
+	if err != nil {
+		print.FailureStatusEvent(
+			os.Stderr,
+			fmt.Sprintf("Upgrade failed, %s. The current installed version does not have sematic versioning", err.Error()))
+		os.Exit(1)
+	}
 	return target.LessThan(existing)
 }

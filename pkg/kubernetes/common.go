@@ -17,7 +17,15 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/dapr/cli/utils"
+
 	helm "helm.sh/helm/v3/pkg/action"
+)
+
+const (
+	dockerContainerRegistryName = "dockerhub"
+	githubContainerRegistryName = "ghcr"
+	ghcrURI                     = "ghcr.io/dapr"
 )
 
 func GetDaprResourcesStatus() ([]StatusOutput, error) {
@@ -61,4 +69,23 @@ func GetDaprVersion(status []StatusOutput) string {
 		}
 	}
 	return daprVersion
+}
+
+func GetDaprNamespace() (string, error) {
+	status, err := GetDaprResourcesStatus()
+	if err != nil {
+		return "", err
+	}
+	return status[0].Namespace, nil
+}
+
+func GetImageRegistry() (string, error) {
+	defaultImageRegistry, err := utils.GetDefaultRegistry(githubContainerRegistryName, dockerContainerRegistryName)
+	if err != nil {
+		return "", err
+	}
+	if defaultImageRegistry == githubContainerRegistryName {
+		return ghcrURI, nil
+	}
+	return "", nil
 }
