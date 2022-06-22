@@ -15,6 +15,7 @@ package kubernetes
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"time"
 
@@ -33,12 +34,14 @@ var crds = []string{
 	"components",
 	"configuration",
 	"subscription",
+	"resiliency",
 }
 
 var crdsFullResources = []string{
 	"components.dapr.io",
 	"configurations.dapr.io",
 	"subscriptions.dapr.io",
+	"resiliencies.dapr.io",
 }
 
 type UpgradeConfig struct {
@@ -135,9 +138,15 @@ func highAvailabilityEnabled(status []StatusOutput) bool {
 func applyCRDs(version string) error {
 	for _, crd := range crds {
 		url := fmt.Sprintf("https://raw.githubusercontent.com/dapr/dapr/%s/charts/dapr/crds/%s.yaml", version, crd)
-		_, err := utils.RunCmdAndWait("kubectl", "apply", "-f", url)
-		if err != nil {
-			return err
+
+		resp, _ := http.Get(url) // nolint:gosec
+		if resp != nil && resp.StatusCode == 200 {
+			defer resp.Body.Close()
+
+			_, err := utils.RunCmdAndWait("kubectl", "apply", "-f", url)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
