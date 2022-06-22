@@ -34,11 +34,11 @@ import (
 	"gopkg.in/yaml.v2"
 
 	testCommon "github.com/dapr/cli/tests/e2e/common"
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/client"
 	"github.com/dapr/cli/tests/e2e/spawn"
 	"github.com/dapr/go-sdk/service/common"
 	daprHttp "github.com/dapr/go-sdk/service/http"
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/client"
 )
 
 var (
@@ -65,6 +65,7 @@ func TestStandaloneInstall(t *testing.T) {
 		{"test invoke", testInvoke},
 		{"test list", testList},
 		{"test uninstall", testUninstall},
+		{"test version", testVersion},
 	}
 
 	for _, tc := range tests {
@@ -500,6 +501,33 @@ func testRunEnableAPILogging(t *testing.T) {
 		assert.Contains(t, output, "Exited Dapr successfully")
 		assert.NotContains(t, output, "level=info msg=\"HTTP API Called: PUT /v1.0/metadata/appCommand\"")
 	})
+}	
+
+func testVersion(t *testing.T) {
+	daprPath := getDaprPath()
+
+	output, err := spawn.Command(daprPath, "version")
+	t.Log(output)
+	require.NoError(t, err, "dapr version failed")
+	versionOutputCheck(t, output)
+
+	output, err = spawn.Command(getDaprPath(), "version", "-o", "json")
+	t.Log(output)
+	require.NoError(t, err, "dapr version failed")
+	versionJsonOutputCheck(t, output)
+}
+
+func versionOutputCheck(t *testing.T, output string) {
+	lines := strings.Split(output, "\n")
+	assert.GreaterOrEqual(t, len(lines), 2, "expected at least 2 fields in components outptu")
+	assert.Contains(t, lines[0], "CLI version")
+	assert.Contains(t, lines[1], "Runtime version")
+}
+
+func versionJsonOutputCheck(t *testing.T, output string) {
+	var result map[string]interface{}
+	err := json.Unmarshal([]byte(output), &result)
+	assert.NoError(t, err, "output was not valid JSON")
 }
 
 func executeAgainstRunningDapr(t *testing.T, f func(), daprArgs ...string) {
