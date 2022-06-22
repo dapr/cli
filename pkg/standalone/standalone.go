@@ -637,7 +637,7 @@ func installBinary(version, binaryFilePrefix, githubRepo string, info initInfo) 
 func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 	defer wg.Done()
 
-	if info.slimMode {
+	if info.slimMode || isAirGapInit {
 		return
 	}
 
@@ -673,7 +673,7 @@ func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error
 func createSlimConfiguration(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 	defer wg.Done()
 
-	if !info.slimMode {
+	if !(info.slimMode || isAirGapInit) {
 		return
 	}
 
