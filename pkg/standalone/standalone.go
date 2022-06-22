@@ -975,7 +975,7 @@ func createDefaultConfiguration(zipkinHost, filePath string) error {
 	defaultConfig.Metadata.Name = "daprConfig"
 	if zipkinHost != "" {
 		defaultConfig.Spec.Tracing.SamplingRate = "1"
-		defaultConfig.Spec.Tracing.Zipkin.EndpointAddress = fmt.Sprintf("http://%s:9411/api/v2/spans", zipkinHost)
+		defaultConfig.Spec.Tracing.Zipkin.EndpointAddress = fmt.Sprintf("http://%s:9411/api/v2/spans", zipkinHost) //nolint:nosprintfhostport
 	}
 	b, err := yaml.Marshal(&defaultConfig)
 	if err != nil {
