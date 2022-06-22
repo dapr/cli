@@ -22,7 +22,7 @@ on:
       - '**.md'
   schedule:
     - cron: '0 */3 * * *'
-    - cron: '0 0 * * *'
+    - cron: '0 */6 * * *'
   pull_request:
     branches:
       - master
@@ -84,8 +84,8 @@ jobs:
           echo "Found $DASHBOARD_VERSION"
         shell: bash
       - name: Run E2E tests with GHCR
-        # only runs once in a day
-        if: github.event.schedule == '0 0 * * *'
+        # runs every 6hrs
+        if: github.event.schedule == '0 */6 * * *'
         env:
           DAPR_DEFAULT_IMAGE_REGISTRY: ghcr
         run: |
@@ -95,7 +95,7 @@ jobs:
           make e2e-build-run-sh
         shell: bash
       - name: Run E2E tests with Docker hub
-        if: github.event.schedule != '0 0 * * *'
+        if: github.event.schedule != '0 */6 * * *'
         run: |
           export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-standalone.json
           echo "TEST_OUTPUT_FILE=$TEST_OUTPUT_FILE" >> $GITHUB_ENV
