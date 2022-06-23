@@ -161,7 +161,7 @@ dapr dashboard -k -p 9999
 			}()
 
 			// url for dashboard after port forwarding.
-			var webURL string = fmt.Sprintf("http://%s:%d", dashboardHost, dashboardLocalPort)
+			var webURL string = fmt.Sprintf("http://%s:%d", dashboardHost, dashboardLocalPort) //nolint:nosprintfhostport
 
 			print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Dapr dashboard found in namespace:\t%s", foundNamespace))
 			print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Dapr dashboard available at:\t%s\n", webURL))
