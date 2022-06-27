@@ -49,6 +49,7 @@ type RunConfig struct {
 	MaxConcurrency     int    `arg:"app-max-concurrency"`
 	PlacementHostAddr  string `arg:"placement-host-address"`
 	ComponentsPath     string `arg:"components-path"`
+	SpecResourcesPath  string `arg:"spec-resources-path"`
 	AppSSL             bool   `arg:"app-ssl"`
 	MetricsPort        int    `env:"DAPR_METRICS_PORT" arg:"metrics-port"`
 	MaxRequestBodySize int    `arg:"dapr-http-max-request-size"`
@@ -72,6 +73,19 @@ func (config *RunConfig) validateComponentPath() error {
 		return err
 	}
 	componentsLoader := components.NewStandaloneComponents(modes.StandaloneConfig{ComponentsPath: config.ComponentsPath})
+	_, err = componentsLoader.LoadComponents()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (config *RunConfig) validateSpecResourcesPath() error {
+	_, err := os.Stat(config.SpecResourcesPath)
+	if err != nil {
+		return err
+	}
+	componentsLoader := components.NewStandaloneComponents(modes.StandaloneConfig{ComponentsPath: config.SpecResourcesPath})
 	_, err = componentsLoader.LoadComponents()
 	if err != nil {
 		return err
@@ -119,6 +133,11 @@ func (config *RunConfig) validate() error {
 
 	if config.AppID == "" {
 		config.AppID = meta.newAppID()
+	}
+
+	err = config.validateSpecResourcesPath()
+	if err != nil {
+		return err
 	}
 
 	err = config.validateComponentPath()

@@ -43,6 +43,7 @@ var (
 	logLevel           string
 	protocol           string
 	componentsPath     string
+	specResourcesPath  string
 	appSSL             bool
 	metricsPort        int
 	maxRequestBodySize int
@@ -361,6 +362,7 @@ func init() {
 	RunCmd.Flags().IntVarP(&maxConcurrency, "app-max-concurrency", "", -1, "The concurrency level of the application, otherwise is unlimited")
 	RunCmd.Flags().StringVarP(&protocol, "app-protocol", "P", "http", "The protocol (gRPC or HTTP) Dapr uses to talk to the application")
 	RunCmd.Flags().StringVarP(&componentsPath, "components-path", "d", standalone.DefaultComponentsDirPath(), "The path for components directory")
+	RunCmd.Flags().StringVarP(&specResourcesPath, "spec-resources-path", "", standalone.DefaultComponentsDirPath(), "The path for resources directory")
 	RunCmd.Flags().String("placement-host-address", "localhost", "The address of the placement service. Format is either <hostname> for default port or <hostname>:<port> for custom port")
 	RunCmd.Flags().BoolVar(&appSSL, "app-ssl", false, "Enable https when Dapr invokes the application")
 	RunCmd.Flags().IntVarP(&metricsPort, "metrics-port", "M", -1, "The port of metrics on dapr")
