@@ -72,7 +72,7 @@ func Execute(version, apiVersion string) {
 }
 
 func setVersion() {
-	template := fmt.Sprintf("CLI version: %s \nRuntime version: %s", daprVer.CliVersion, daprVer.RuntimeVersion)
+	template := fmt.Sprintf("CLI version: %s \nRuntime version: %s\n", daprVer.CliVersion, daprVer.RuntimeVersion)
 	RootCmd.SetVersionTemplate(template)
 }
 
