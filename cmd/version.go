@@ -23,6 +23,8 @@ import (
 	"github.com/dapr/cli/pkg/print"
 )
 
+const cliVersionTemplateString = "CLI version: %s \nRuntime version: %s\n"
+
 var output string
 
 var VersionCmd = &cobra.Command{
@@ -40,7 +42,7 @@ dapr version --output json
 		switch output {
 		case "":
 			// normal output.
-			fmt.Printf("CLI version: %s \nRuntime version: %s\n", daprVer.CliVersion, daprVer.RuntimeVersion)
+			fmt.Printf(cliVersionTemplateString, daprVer.CliVersion, daprVer.RuntimeVersion)
 		case "json":
 			// json output.
 			b, err := json.Marshal(daprVer)
