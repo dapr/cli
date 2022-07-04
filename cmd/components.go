@@ -34,7 +34,9 @@ var ComponentsCmd = &cobra.Command{
 	Short: "List all Dapr components. Supported platforms: Kubernetes",
 	Run: func(cmd *cobra.Command, args []string) {
 		if kubernetesMode {
-			print.WarningStatusEvent(os.Stdout, "In future releases, this command will only query the \"default\" namespace by default. Please use the --namespace flag for a specific namespace, or the --all-namespaces (-A) flag for all namespaces.")
+			if !noNamespaceWarning {
+				print.WarningStatusEvent(os.Stdout, "In future releases, this command will only query the \"default\" namespace by default. Please use the --namespace flag for a specific namespace, or the --all-namespaces (-A) flag for all namespaces.")
+			}
 			if allNamespaces {
 				resourceNamespace = meta_v1.NamespaceAll
 			} else if resourceNamespace == "" {
@@ -67,6 +69,7 @@ dapr components -k --all-namespaces
 
 func init() {
 	ComponentsCmd.Flags().BoolVarP(&allNamespaces, "all-namespaces", "A", false, "If true, list all Dapr components in all namespaces")
+	ComponentsCmd.Flags().BoolVar(&noNamespaceWarning, "no-namespace-warning", false, "Disable upcoming namespace warnings in command output")
 	ComponentsCmd.Flags().StringVarP(&componentsName, "name", "n", "", "The components name to be printed (optional)")
 	ComponentsCmd.Flags().StringVarP(&resourceNamespace, "namespace", "", "", "List all namespace components in a Kubernetes cluster")
 	ComponentsCmd.Flags().StringVarP(&componentsOutputFormat, "output", "o", "list", "Output format (options: json or yaml or list)")
