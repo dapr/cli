@@ -63,7 +63,7 @@ const (
 	daprUnixDomainSocketPathKey         = "dapr.io/unix-domain-socket-path"
 	daprVolumeMountsReadOnlyKey         = "dapr.io/volume-mounts"
 	daprVolumeMountsReadWriteKey        = "dapr.io/volume-mounts-rw"
-	daprDisableBuiltinK8sSecretStoreKey = "dapr.io/disable-builtin-k8s-secret-store"
+	daprDisableBuiltinK8sSecretStoreKey = "dapr.io/disable-builtin-k8s-secret-store" /* #nosec */
 	daprPlacementHostAddressKey         = "dapr.io/placement-host-address"
 
 	// K8s kinds.
@@ -496,8 +496,8 @@ func getDaprAnnotations(config *AnnotateOptions) map[string]string {
 	if config.gracefulShutdownSeconds != nil {
 		annotations[daprGracefulShutdownSecondsKey] = strconv.FormatInt(int64(*config.gracefulShutdownSeconds), 10)
 	}
-	if config.enableApiLogging != nil {
-		annotations[daprEnableAPILoggingKey] = strconv.FormatBool(*config.enableApiLogging)
+	if config.enableAPILogging != nil {
+		annotations[daprEnableAPILoggingKey] = strconv.FormatBool(*config.enableAPILogging)
 	}
 	if config.unixDomainSocketPath != nil {
 		annotations[daprUnixDomainSocketPathKey] = *config.unixDomainSocketPath

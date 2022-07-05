@@ -412,7 +412,7 @@ func TestGetDaprAnnotations(t *testing.T) {
 			WithLogLevel(logLevel),
 			WithHTTPStreamRequestBody(),
 			WithGracefulShutdownSeconds(gracefulShutdownSeconds),
-			WithEnableApiLogging(),
+			WithEnableAPILogging(),
 			WithUnixDomainSocketPath(unixDomainSocketPath),
 			WithVolumeMountsReadOnly(volumeMountsReadOnly),
 			WithVolumeMountsReadWrite(volumeMountsReadWrite),

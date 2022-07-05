@@ -36,7 +36,7 @@ type AnnotateOptions struct {
 	readBufferSize               *int
 	httpStreamRequestBody        *bool
 	gracefulShutdownSeconds      *int
-	enableApiLogging             *bool
+	enableAPILogging             *bool
 	unixDomainSocketPath         *string
 	volumeMountsReadOnly         *string
 	volumeMountsReadWrite        *string
@@ -264,10 +264,10 @@ func WithGracefulShutdownSeconds(gracefulShutdownSeconds int) AnnoteOption {
 	}
 }
 
-func WithEnableApiLogging() AnnoteOption {
+func WithEnableAPILogging() AnnoteOption {
 	return func(config *AnnotateOptions) {
 		enabled := true
-		config.enableApiLogging = &enabled
+		config.enableAPILogging = &enabled
 	}
 }
 

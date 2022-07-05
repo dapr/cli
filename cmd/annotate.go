@@ -65,7 +65,7 @@ var (
 	annotateReadBufferSize               int
 	annotateHTTPStreamRequestBody        bool
 	annotateGracefulShutdownSeconds      int
-	annotateEnableApiLogging             bool
+	annotateEnableAPILogging             bool
 	annotateUnixDomainSocketPath         string
 	annotateVolumeMountsReadOnly         string
 	annotateVolumeMountsReadWrite        string
@@ -327,8 +327,8 @@ func getOptionsFromFlags() kubernetes.AnnotateOptions {
 	if annotateGracefulShutdownSeconds != -1 {
 		o = append(o, kubernetes.WithGracefulShutdownSeconds(annotateGracefulShutdownSeconds))
 	}
-	if annotateEnableApiLogging {
-		o = append(o, kubernetes.WithEnableApiLogging())
+	if annotateEnableAPILogging {
+		o = append(o, kubernetes.WithEnableAPILogging())
 	}
 	if annotateUnixDomainSocketPath != "" {
 		o = append(o, kubernetes.WithUnixDomainSocketPath(annotateUnixDomainSocketPath))
@@ -384,7 +384,7 @@ func init() {
 	AnnotateCmd.Flags().IntVar(&annotateReadBufferSize, "http-read-buffer-size", -1, "The maximum size of HTTP header read buffer in kilobytes")
 	AnnotateCmd.Flags().BoolVar(&annotateHTTPStreamRequestBody, "http-stream-request-body", false, "Enable streaming request body for HTTP")
 	AnnotateCmd.Flags().IntVar(&annotateGracefulShutdownSeconds, "graceful-shutdown-seconds", -1, "The number of seconds to wait for the app to shutdown")
-	AnnotateCmd.Flags().BoolVar(&annotateEnableApiLogging, "enable-api-logging", false, "Enable API logging for the Dapr sidecar")
+	AnnotateCmd.Flags().BoolVar(&annotateEnableAPILogging, "enable-api-logging", false, "Enable API logging for the Dapr sidecar")
 	AnnotateCmd.Flags().StringVar(&annotateUnixDomainSocketPath, "unix-domain-socket-path", "", "Linux domain socket path to use for communicating with the Dapr sidecar")
 	AnnotateCmd.Flags().StringVar(&annotateVolumeMountsReadOnly, "volume-mounts", "", "List of pod volumes to be mounted to the sidecar container in read-only mode")
 	AnnotateCmd.Flags().StringVar(&annotateVolumeMountsReadWrite, "volume-mounts-rw", "", "List of pod volumes to be mounted to the sidecar container in read-write mode")
