@@ -30,40 +30,47 @@ import (
 )
 
 var (
-	annotateTargetResource          string
-	annotateTargetNamespace         string
-	annotateAppID                   string
-	annotateAppPort                 int
-	annotateConfig                  string
-	annotateAppProtocol             string
-	annotateEnableProfile           bool
-	annotateLogLevel                string
-	annotateAPITokenSecret          string
-	annotateAppTokenSecret          string
-	annotateLogAsJSON               bool
-	annotateAppMaxConcurrency       int
-	annotateEnableMetrics           bool
-	annotateMetricsPort             int
-	annotateEnableDebug             bool
-	annotateEnv                     string
-	annotateCPULimit                string
-	annotateMemoryLimit             string
-	annotateCPURequest              string
-	annotateMemoryRequest           string
-	annotateListenAddresses         string
-	annotateLivenessProbeDelay      int
-	annotateLivenessProbeTimeout    int
-	annotateLivenessProbePeriod     int
-	annotateLivenessProbeThreshold  int
-	annotateReadinessProbeDelay     int
-	annotateReadinessProbeTimeout   int
-	annotateReadinessProbePeriod    int
-	annotateReadinessProbeThreshold int
-	annotateDaprImage               string
-	annotateAppSSL                  bool
-	annotateMaxRequestBodySize      int
-	annotateHTTPStreamRequestBody   bool
-	annotateGracefulShutdownSeconds int
+	annotateTargetResource               string
+	annotateTargetNamespace              string
+	annotateAppID                        string
+	annotateAppPort                      int
+	annotateConfig                       string
+	annotateAppProtocol                  string
+	annotateEnableProfile                bool
+	annotateLogLevel                     string
+	annotateAPITokenSecret               string
+	annotateAppTokenSecret               string
+	annotateLogAsJSON                    bool
+	annotateAppMaxConcurrency            int
+	annotateEnableMetrics                bool
+	annotateMetricsPort                  int
+	annotateEnableDebug                  bool
+	annotateEnv                          string
+	annotateCPULimit                     string
+	annotateMemoryLimit                  string
+	annotateCPURequest                   string
+	annotateMemoryRequest                string
+	annotateListenAddresses              string
+	annotateLivenessProbeDelay           int
+	annotateLivenessProbeTimeout         int
+	annotateLivenessProbePeriod          int
+	annotateLivenessProbeThreshold       int
+	annotateReadinessProbeDelay          int
+	annotateReadinessProbeTimeout        int
+	annotateReadinessProbePeriod         int
+	annotateReadinessProbeThreshold      int
+	annotateDaprImage                    string
+	annotateAppSSL                       bool
+	annotateMaxRequestBodySize           int
+	annotateReadBufferSize               int
+	annotateHTTPStreamRequestBody        bool
+	annotateGracefulShutdownSeconds      int
+	annotateEnableAPILogging             bool
+	annotateUnixDomainSocketPath         string
+	annotateVolumeMountsReadOnly         string
+	annotateVolumeMountsReadWrite        string
+	annotateDisableBuiltinK8sSecretStore bool
+	annotatePlacementHostAddress         string
 )
 
 var AnnotateCmd = &cobra.Command{
@@ -316,11 +323,32 @@ func getOptionsFromFlags() kubernetes.AnnotateOptions {
 	if annotateMaxRequestBodySize != -1 {
 		o = append(o, kubernetes.WithMaxRequestBodySize(annotateMaxRequestBodySize))
 	}
+	if annotateReadBufferSize != -1 {
+		o = append(o, kubernetes.WithReadBufferSize(annotateReadBufferSize))
+	}
 	if annotateHTTPStreamRequestBody {
 		o = append(o, kubernetes.WithHTTPStreamRequestBody())
 	}
 	if annotateGracefulShutdownSeconds != -1 {
 		o = append(o, kubernetes.WithGracefulShutdownSeconds(annotateGracefulShutdownSeconds))
+	}
+	if annotateEnableAPILogging {
+		o = append(o, kubernetes.WithEnableAPILogging())
+	}
+	if annotateUnixDomainSocketPath != "" {
+		o = append(o, kubernetes.WithUnixDomainSocketPath(annotateUnixDomainSocketPath))
+	}
+	if annotateVolumeMountsReadOnly != "" {
+		o = append(o, kubernetes.WithVolumeMountsReadOnly(annotateVolumeMountsReadOnly))
+	}
+	if annotateVolumeMountsReadWrite != "" {
+		o = append(o, kubernetes.WithVolumeMountsReadWrite(annotateVolumeMountsReadWrite))
+	}
+	if annotateDisableBuiltinK8sSecretStore {
+		o = append(o, kubernetes.WithDisableBuiltinK8sSecretStore())
+	}
+	if annotatePlacementHostAddress != "" {
+		o = append(o, kubernetes.WithPlacementHostAddress(annotatePlacementHostAddress))
 	}
 	return kubernetes.NewAnnotateOptions(o...)
 }
@@ -359,7 +387,14 @@ func init() {
 	AnnotateCmd.Flags().StringVar(&annotateDaprImage, "dapr-image", "", "The image to use for the dapr sidecar container")
 	AnnotateCmd.Flags().BoolVar(&annotateAppSSL, "app-ssl", false, "Enable SSL for the app")
 	AnnotateCmd.Flags().IntVar(&annotateMaxRequestBodySize, "max-request-body-size", -1, "The maximum request body size to use")
+	AnnotateCmd.Flags().IntVar(&annotateReadBufferSize, "http-read-buffer-size", -1, "The maximum size of HTTP header read buffer in kilobytes")
 	AnnotateCmd.Flags().BoolVar(&annotateHTTPStreamRequestBody, "http-stream-request-body", false, "Enable streaming request body for HTTP")
 	AnnotateCmd.Flags().IntVar(&annotateGracefulShutdownSeconds, "graceful-shutdown-seconds", -1, "The number of seconds to wait for the app to shutdown")
+	AnnotateCmd.Flags().BoolVar(&annotateEnableAPILogging, "enable-api-logging", false, "Enable API logging for the Dapr sidecar")
+	AnnotateCmd.Flags().StringVar(&annotateUnixDomainSocketPath, "unix-domain-socket-path", "", "Linux domain socket path to use for communicating with the Dapr sidecar")
+	AnnotateCmd.Flags().StringVar(&annotateVolumeMountsReadOnly, "volume-mounts", "", "List of pod volumes to be mounted to the sidecar container in read-only mode")
+	AnnotateCmd.Flags().StringVar(&annotateVolumeMountsReadWrite, "volume-mounts-rw", "", "List of pod volumes to be mounted to the sidecar container in read-write mode")
+	AnnotateCmd.Flags().BoolVar(&annotateDisableBuiltinK8sSecretStore, "disable-builtin-k8s-secret-store", false, "Disable the built-in k8s secret store")
+	AnnotateCmd.Flags().StringVar(&annotatePlacementHostAddress, "placement-host-address", "", "Comma separated list of addresses for Dapr actor placement servers")
 	RootCmd.AddCommand(AnnotateCmd)
 }
