@@ -2,40 +2,46 @@ package kubernetes
 
 // AnnotateOptions configure the injection behavior.
 type AnnotateOptions struct {
-	appID                   *string
-	metricsEnabled          *bool
-	metricsPort             *int
-	appPort                 *int
-	config                  *string
-	appProtocol             *string
-	profileEnabled          *bool
-	logLevel                *string
-	apiTokenSecret          *string
-	appTokenSecret          *string
-	logAsJSON               *bool
-	appMaxConcurrency       *int
-	debugEnabled            *bool
-	debugPort               *int
-	env                     *string
-	cpuLimit                *string
-	memoryLimit             *string
-	cpuRequest              *string
-	memoryRequest           *string
-	listenAddresses         *string
-	livenessProbeDelay      *int
-	livenessProbeTimeout    *int
-	livenessProbePeriod     *int
-	livenessProbeThreshold  *int
-	readinessProbeDelay     *int
-	readinessProbeTimeout   *int
-	readinessProbePeriod    *int
-	readinessProbeThreshold *int
-	image                   *string
-	appSSL                  *bool
-	maxRequestBodySize      *int
-	readBufferSize          *int
-	httpStreamRequestBody   *bool
-	gracefulShutdownSeconds *int
+	appID                        *string
+	metricsEnabled               *bool
+	metricsPort                  *int
+	appPort                      *int
+	config                       *string
+	appProtocol                  *string
+	profileEnabled               *bool
+	logLevel                     *string
+	apiTokenSecret               *string
+	appTokenSecret               *string
+	logAsJSON                    *bool
+	appMaxConcurrency            *int
+	debugEnabled                 *bool
+	debugPort                    *int
+	env                          *string
+	cpuLimit                     *string
+	memoryLimit                  *string
+	cpuRequest                   *string
+	memoryRequest                *string
+	listenAddresses              *string
+	livenessProbeDelay           *int
+	livenessProbeTimeout         *int
+	livenessProbePeriod          *int
+	livenessProbeThreshold       *int
+	readinessProbeDelay          *int
+	readinessProbeTimeout        *int
+	readinessProbePeriod         *int
+	readinessProbeThreshold      *int
+	image                        *string
+	appSSL                       *bool
+	maxRequestBodySize           *int
+	readBufferSize               *int
+	httpStreamRequestBody        *bool
+	gracefulShutdownSeconds      *int
+	enableApiLogging             *bool
+	unixDomainSocketPath         *string
+	volumeMountsReadOnly         *string
+	volumeMountsReadWrite        *string
+	disableBuiltinK8sSecretStore *bool
+	placementHostAddress         *string
 }
 
 type AnnoteOption func(*AnnotateOptions)
@@ -255,5 +261,43 @@ func WithHTTPStreamRequestBody() AnnoteOption {
 func WithGracefulShutdownSeconds(gracefulShutdownSeconds int) AnnoteOption {
 	return func(config *AnnotateOptions) {
 		config.gracefulShutdownSeconds = &gracefulShutdownSeconds
+	}
+}
+
+func WithEnableApiLogging() AnnoteOption {
+	return func(config *AnnotateOptions) {
+		enabled := true
+		config.enableApiLogging = &enabled
+	}
+}
+
+func WithUnixDomainSocketPath(unixDomainSocketPath string) AnnoteOption {
+	return func(config *AnnotateOptions) {
+		config.unixDomainSocketPath = &unixDomainSocketPath
+	}
+}
+
+func WithVolumeMountsReadOnly(volumeMountsReadOnly string) AnnoteOption {
+	return func(config *AnnotateOptions) {
+		config.volumeMountsReadOnly = &volumeMountsReadOnly
+	}
+}
+
+func WithVolumeMountsReadWrite(volumeMountsReadWrite string) AnnoteOption {
+	return func(config *AnnotateOptions) {
+		config.volumeMountsReadWrite = &volumeMountsReadWrite
+	}
+}
+
+func WithDisableBuiltinK8sSecretStore() AnnoteOption {
+	return func(config *AnnotateOptions) {
+		enabled := true
+		config.disableBuiltinK8sSecretStore = &enabled
+	}
+}
+
+func WithPlacementHostAddress(placementHostAddress string) AnnoteOption {
+	return func(config *AnnotateOptions) {
+		config.placementHostAddress = &placementHostAddress
 	}
 }
