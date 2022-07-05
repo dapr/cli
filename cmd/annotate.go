@@ -71,24 +71,29 @@ var AnnotateCmd = &cobra.Command{
 	Short: "Add dapr annotations to a Kubernetes configuration. Supported platforms: Kubernetes",
 	Example: `
 # Annotate the first deployment found in the input
-kubectl get deploy -l app=node -o yaml | dapr annotate - | kubectl apply -f -
+kubectl get deploy -l app=node -o yaml | dapr annotate -k - | kubectl apply -f -
 
 # Annotate multiple deployments by name in a chain
-kubectl get deploy -o yaml | dapr annotate -r nodeapp - | dapr annotate -r pythonapp - | kubectl apply -f -
+kubectl get deploy -o yaml | dapr annotate -k -r nodeapp - | dapr annotate -k -r pythonapp - | kubectl apply -f -
 
 # Annotate deployment in a specific namespace from file or directory by name
-dapr annotate -r nodeapp -n namespace mydeploy.yaml | kubectl apply -f -
+dapr annotate -k -r nodeapp -n namespace mydeploy.yaml | kubectl apply -f -
 
 # Annotate deployment from url by name
-dapr annotate -r nodeapp --log-level debug https://raw.githubusercontent.com/dapr/quickstarts/master/tutorials/hello-kubernetes/deploy/node.yaml | kubectl apply -f -
+dapr annotate -k -r nodeapp --log-level debug https://raw.githubusercontent.com/dapr/quickstarts/master/tutorials/hello-kubernetes/deploy/node.yaml | kubectl apply -f -
 
 --------------------------------------------------------------------------------
 WARNING: If an app id is not provided, we will generate one using the format '<namespace>-<kind>-<name>'.
 --------------------------------------------------------------------------------
 `,
 	Run: func(cmd *cobra.Command, args []string) {
+		if !kubernetesMode {
+			print.FailureStatusEvent(os.Stderr, "annotate command is only supported for Kubernetes, please provide the -k flag")
+			os.Exit(1)
+		}
+
 		if len(args) < 1 {
-			print.FailureStatusEvent(os.Stderr, "please specify a kubernetes resource file")
+			print.FailureStatusEvent(os.Stderr, "please specify a Kubernetes resource file")
 			os.Exit(1)
 		}
 
@@ -321,6 +326,7 @@ func getOptionsFromFlags() kubernetes.AnnotateOptions {
 }
 
 func init() {
+	AnnotateCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Apply annotations to Kubernetes resources")
 	AnnotateCmd.Flags().StringVarP(&annotateTargetResource, "resource", "r", "", "The resource to target to annotate")
 	AnnotateCmd.Flags().StringVarP(&annotateTargetNamespace, "namespace", "n", "", "The namespace the resource target is in (can only be set if --resource is also set)")
 	AnnotateCmd.Flags().StringVarP(&annotateAppID, "app-id", "a", "", "The app id to annotate")
