@@ -53,6 +53,7 @@ type runData struct {
 	appCmd             string
 	enableMetrics      bool
 	maxRequestBodySize int
+	httpReadBufferSize int
 	configPath         string
 }
 
@@ -138,6 +139,11 @@ func List() ([]ListOutput, error) {
 				continue
 			}
 
+			httpReadBufferSize, err := strconv.Atoi(argumentsMap["--dapr-http-read-buffer-size"])
+			if err != nil {
+				continue
+			}
+
 			// If the "config" flag it's not used, this will contain the default config file.
 			path := argumentsMap["--config"]
 			absoluteConfigPath := ""
@@ -166,6 +172,7 @@ func List() ([]ListOutput, error) {
 				appCmd:             appCmd,
 				enableMetrics:      enableMetrics,
 				maxRequestBodySize: maxRequestBodySize,
+				httpReadBufferSize: httpReadBufferSize,
 				configPath:         absoluteConfigPath,
 			}
 

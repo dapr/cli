@@ -14,8 +14,11 @@ limitations under the License.
 package kubernetes
 
 import (
+	"encoding/json"
+
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/dapr/cli/utils"
 	v1alpha1 "github.com/dapr/dapr/pkg/apis/configuration/v1alpha1"
 )
 
@@ -32,4 +35,18 @@ func GetDefaultConfiguration() v1alpha1.Configuration {
 			},
 		},
 	}
+}
+
+func GetDaprControlPlaneCurrentConfig() (*v1alpha1.Configuration, error) {
+	namespace, err := GetDaprNamespace()
+	if err != nil {
+		return nil, err
+	}
+	output, err := utils.RunCmdAndWait("kubectl", "get", "configurations/daprsystem", "-n", namespace, "-o", "json")
+	if err != nil {
+		return nil, err
+	}
+	var config v1alpha1.Configuration
+	json.Unmarshal([]byte(output), &config)
+	return &config, nil
 }
