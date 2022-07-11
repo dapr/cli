@@ -353,6 +353,8 @@ github.com/d2g/hardwareaddr v0.0.0-20190221164911-e7d9fbe030e4/go.mod h1:bMl4RjI
 github.com/danieljoos/wincred v1.1.0/go.mod h1:XYlo+eRTsVA9aHGp7NGjFkPla4m+DCL7hqDjlFjiygg=
 github.com/dapr/dapr v1.8.0-rc.5 h1:1POxV98uamkcnjUvb40BGZ8brTXvdXYHjUB/mLhc4Gk=
 github.com/dapr/dapr v1.8.0-rc.5/go.mod h1:r4KJgC+Q/FN5/NmWuU7ffL+0ApuUBxaPT6Trbz68Oxw=
+github.com/dapr/dapr v1.8.0 h1:ZAAoBe6wuFp7k4tIHB7ajZXVTtGeDeVqIPrldzo3dF0=
+github.com/dapr/dapr v1.8.0/go.mod h1:yAsDiK5oecG0htw2S8JG9RFaeHJVdlTfZyOrL57AvRM=
 github.com/dapr/go-sdk v1.0.0 h1:3nOmFzsPaHzzgINQQD9AFofVX6LV8QYJtpogaBfwkUg=
 github.com/dapr/go-sdk v1.0.0/go.mod h1:zyhsocIKv4pqQ2VtvWvf2CK1UhP7Z2OAOXgEpVxMgIs=
 github.com/dapr/kit v0.0.2-0.20210614175626-b9074b64d233 h1:M0dWIG8kUxEFU57IqTWeqptNqlBsfosFgsA5Ov7rJ8g=
