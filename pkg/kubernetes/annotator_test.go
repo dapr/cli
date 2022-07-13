@@ -372,6 +372,10 @@ func TestGetDaprAnnotations(t *testing.T) {
 		readinessProbeTimeout := 60
 		logLevel := "debug"
 		gracefulShutdownSeconds := 10
+		unixDomainSocketPath := "/tmp/dapr.sock"
+		volumeMountsReadOnly := "vm1:/tmp/path1,vm2:/tmp/path2"
+		volumeMountsReadWrite := "vm3:/tmp/path3"
+		placementHostAddress := "127.0.0.1:50057,127.0.0.1:50058"
 
 		opts := NewAnnotateOptions(
 			WithAppID(appID),
@@ -408,6 +412,12 @@ func TestGetDaprAnnotations(t *testing.T) {
 			WithLogLevel(logLevel),
 			WithHTTPStreamRequestBody(),
 			WithGracefulShutdownSeconds(gracefulShutdownSeconds),
+			WithEnableAPILogging(),
+			WithUnixDomainSocketPath(unixDomainSocketPath),
+			WithVolumeMountsReadOnly(volumeMountsReadOnly),
+			WithVolumeMountsReadWrite(volumeMountsReadWrite),
+			WithDisableBuiltinK8sSecretStore(),
+			WithPlacementHostAddress(placementHostAddress),
 		)
 
 		annotations := getDaprAnnotations(&opts)
@@ -447,5 +457,11 @@ func TestGetDaprAnnotations(t *testing.T) {
 		assert.Equal(t, fmt.Sprintf("%d", readBufferSize), annotations[daprReadBufferSizeKey])
 		assert.Equal(t, "true", annotations[daprHTTPStreamRequestBodyKey])
 		assert.Equal(t, fmt.Sprintf("%d", gracefulShutdownSeconds), annotations[daprGracefulShutdownSecondsKey])
+		assert.Equal(t, "true", annotations[daprEnableAPILoggingKey])
+		assert.Equal(t, unixDomainSocketPath, annotations[daprUnixDomainSocketPathKey])
+		assert.Equal(t, volumeMountsReadOnly, annotations[daprVolumeMountsReadOnlyKey])
+		assert.Equal(t, volumeMountsReadWrite, annotations[daprVolumeMountsReadWriteKey])
+		assert.Equal(t, "true", annotations[daprDisableBuiltinK8sSecretStoreKey])
+		assert.Equal(t, placementHostAddress, annotations[daprPlacementHostAddressKey])
 	})
 }
