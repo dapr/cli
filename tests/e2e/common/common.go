@@ -164,6 +164,7 @@ func GetTestsOnInstall(details VersionDetails, opts TestOptions) []TestCase {
 func GetTestsOnUninstall(details VersionDetails, opts TestOptions) []TestCase {
 	return []TestCase{
 		{"uninstall " + details.RuntimeVersion, uninstallTest(opts.UninstallAll)}, // waits for pod deletion.
+		{"cluster not exist", kubernetesTestOnUninstall()},
 		{"crds exist on uninstall " + details.RuntimeVersion, CRDTest(details, opts)},
 		{"clusterroles not exist " + details.RuntimeVersion, ClusterRolesTest(details, opts)},
 		{"clusterrolebindings not exist " + details.RuntimeVersion, ClusterRoleBindingsTest(details, opts)},
@@ -683,6 +684,19 @@ func uninstallTest(all bool) func(t *testing.T) {
 			done <- struct{}{}
 			t.Error("timeout verifying pods were deleted as expectedx")
 		}
+	}
+}
+
+func kubernetesTestOnUninstall() func(t *testing.T) {
+	return func(t *testing.T) {
+		_, err := EnsureUninstall(true)
+		require.NoError(t, err, "uninstall failed")
+		daprPath := getDaprPath()
+		output, err := spawn.Command(daprPath, "uninstall", "-k")
+		require.NoError(t, err, "expected no error on uninstall without install")
+		require.Contains(t, output, "Removing Dapr from your cluster...", "expected output to contain message")
+		require.Contains(t, output, "WARNING: dapr release does not exist", "expected output to contain message")
+		require.Contains(t, output, "Dapr has been removed successfully")
 	}
 }
 

@@ -223,5 +223,9 @@ func confirmExist(cfg *helm.Configuration) (bool, error) {
 		return false, nil
 	}
 
+	if err != nil {
+		return false, err
+	}
+
 	return true, nil
 }
