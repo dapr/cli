@@ -36,7 +36,7 @@ func Uninstall(namespace string, uninstallAll bool, timeout uint) error {
 	}
 
 	if !exists {
-		print.WarningStatusEvent(os.Stderr, "WARNING: %s release does not exist", daprReleaseName)
+		print.WarningStatusEvent(os.Stdout, "WARNING: %s release does not exist", daprReleaseName)
 		return nil
 	}
 

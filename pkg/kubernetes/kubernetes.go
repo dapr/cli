@@ -215,9 +215,6 @@ func debugLogf(format string, v ...interface{}) {
 func confirmExist(cfg *helm.Configuration) (bool, error) {
 	client := helm.NewGet(cfg)
 	release, err := client.Run(daprReleaseName)
-	if err != nil {
-		return false, err
-	}
 
 	if release == nil {
 		return false, nil
