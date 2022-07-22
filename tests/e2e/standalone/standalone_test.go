@@ -34,11 +34,11 @@ import (
 	"gopkg.in/yaml.v2"
 
 	testCommon "github.com/dapr/cli/tests/e2e/common"
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/client"
 	"github.com/dapr/cli/tests/e2e/spawn"
 	"github.com/dapr/go-sdk/service/common"
 	daprHttp "github.com/dapr/go-sdk/service/http"
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/client"
 )
 
 var (
@@ -501,7 +501,7 @@ func testRunEnableAPILogging(t *testing.T) {
 		assert.Contains(t, output, "Exited Dapr successfully")
 		assert.NotContains(t, output, "level=info msg=\"HTTP API Called: PUT /v1.0/metadata/appCommand\"")
 	})
-}	
+}
 
 func testVersion(t *testing.T) {
 	daprPath := getDaprPath()
