@@ -52,7 +52,7 @@ func Uninstall(namespace string, uninstallAll bool, timeout uint) error {
 		for _, crd := range crdsFullResources {
 			_, err := utils.RunCmdAndWait("kubectl", "delete", "crd", crd)
 			if err != nil {
-				return err
+				print.WarningStatusEvent(os.Stdout, "Failed to remove CRD %s: %s", crd, err)
 			}
 		}
 	}
