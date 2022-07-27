@@ -50,7 +50,12 @@ type InitConfiguration struct {
 	Wait             bool
 	Timeout          uint
 	ImageRegistryURI string
+	ImageVariant     string
 }
+
+var (
+	defaultImageVariantName = "default"
+)
 
 // Init deploys the Dapr operator using the supplied runtime version.
 func Init(config InitConfiguration) error {
@@ -106,6 +111,13 @@ func getVersion(version string) (string, error) {
 	return version, nil
 }
 
+func getVariantVersion(version string, imageVariant string) string {
+	if imageVariant == defaultImageVariantName {
+		return version
+	}
+	return fmt.Sprintf("%s-%s", version, imageVariant)
+}
+
 func createTempDir() (string, error) {
 	dir, err := os.MkdirTemp("", "dapr")
 	if err != nil {
@@ -159,6 +171,7 @@ func chartValues(config InitConfiguration) (map[string]interface{}, error) {
 	globalVals := []string{
 		fmt.Sprintf("global.ha.enabled=%t", config.EnableHA),
 		fmt.Sprintf("global.mtls.enabled=%t", config.EnableMTLS),
+		fmt.Sprintf("global.tag=%s", getVariantVersion(config.Version, config.ImageVariant)),
 	}
 	if len(config.ImageRegistryURI) != 0 {
 		globalVals = append(globalVals, fmt.Sprintf("global.registry=%s", config.ImageRegistryURI))

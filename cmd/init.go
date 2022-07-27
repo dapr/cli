@@ -110,6 +110,7 @@ dapr init --image-variant <variant>
 				Wait:             wait,
 				Timeout:          timeout,
 				ImageRegistryURI: imageRegistryURI,
+				ImageVariant:     imageVariant,
 			}
 			err = kubernetes.Init(config)
 			if err != nil {
