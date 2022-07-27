@@ -24,7 +24,10 @@ import (
 	"github.com/dapr/cli/pkg/print"
 )
 
-var upgradeRuntimeVersion string
+var (
+	upgradeRuntimeVersion string
+	upgradeImageVariant   string
+)
 
 var UpgradeCmd = &cobra.Command{
 	Use:   "upgrade",
@@ -58,6 +61,7 @@ dapr upgrade -k
 			Args:             values,
 			Timeout:          timeout,
 			ImageRegistryURI: imageRegistryURI,
+			ImageVariant:     upgradeImageVariant,
 		})
 		if err != nil {
 			print.FailureStatusEvent(os.Stderr, "Failed to upgrade Dapr: %s", err)
@@ -77,6 +81,7 @@ func init() {
 	UpgradeCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	UpgradeCmd.Flags().StringArrayVar(&values, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
 	UpgradeCmd.Flags().String("image-registry", "", "Custom/Private docker image repository URL")
+	UpgradeCmd.Flags().StringVarP(&upgradeImageVariant, "image-variant", "", "default", "The image variant to use for the Dapr runtime, for example: mariner")
 
 	UpgradeCmd.MarkFlagRequired("runtime-version")
 	UpgradeCmd.MarkFlagRequired("kubernetes")
