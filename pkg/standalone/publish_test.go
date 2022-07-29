@@ -210,6 +210,12 @@ func TestGetQueryParams(t *testing.T) {
 
 	for _, tc := range testCases {
 		queryParams := getQueryParams(tc.metadata)
+
+		if queryParams != "" {
+			assert.True(t, queryParams[0] == '?', "expected query params to start with '?'")
+			queryParams = queryParams[1:]
+		}
+
 		// since map is unordered, test for each metadata entry in the query params.
 		for k, v := range tc.metadata {
 			entry := fmt.Sprintf("metadata.%v=%v", k, v)

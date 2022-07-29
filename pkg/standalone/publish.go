@@ -52,7 +52,7 @@ func (s *Standalone) Publish(publishAppID, pubsubName, topic string, payload []b
 		return err
 	}
 
-	url := fmt.Sprintf("http://unix/v%s/publish/%s/%s?%s", api.RuntimeAPIVersion, pubsubName, topic, queryParams)
+	url := fmt.Sprintf("http://unix/v%s/publish/%s/%s%s", api.RuntimeAPIVersion, pubsubName, topic, queryParams)
 
 	var httpc http.Client
 	if socket != "" {
@@ -62,7 +62,7 @@ func (s *Standalone) Publish(publishAppID, pubsubName, topic string, payload []b
 			},
 		}
 	} else {
-		url = fmt.Sprintf("http://localhost:%s/v%s/publish/%s/%s?%s", fmt.Sprintf("%v", instance.HTTPPort), api.RuntimeAPIVersion, pubsubName, topic, queryParams)
+		url = fmt.Sprintf("http://localhost:%s/v%s/publish/%s/%s%s", fmt.Sprintf("%v", instance.HTTPPort), api.RuntimeAPIVersion, pubsubName, topic, queryParams)
 	}
 
 	contentType := "application/json"
@@ -86,6 +86,7 @@ func (s *Standalone) Publish(publishAppID, pubsubName, topic string, payload []b
 	}
 	defer r.Body.Close()
 	if r.StatusCode >= 300 || r.StatusCode < 200 {
+		fmt.Println(url)
 		return fmt.Errorf("unexpected status code %d on publishing to %s in %s", r.StatusCode, topic, pubsubName)
 	}
 
@@ -103,15 +104,15 @@ func getDaprInstance(list []ListOutput, publishAppID string) (ListOutput, error)
 
 // getQueryParams returns the HTTP query parameter from the metadata map.
 // It appends the prefix "metadata." to each key.
-// The return value does not include the "?" prefix.
+// The return value includes the "?" prefix if metadata is not empty.
 func getQueryParams(metadata map[string]interface{}) string {
 	queryParams := ""
 	for k, v := range metadata {
 		queryParams += fmt.Sprintf("metadata.%v=%v&", k, v)
 	}
-	// Remove the last "&"
+	// Remove the last "&".
 	if queryParams != "" {
-		queryParams = queryParams[:len(queryParams)-1]
+		queryParams = fmt.Sprintf("?%s", queryParams[:len(queryParams)-1])
 	}
 	return queryParams
 }

@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -634,6 +635,11 @@ func testPublish(t *testing.T) {
 	go func() {
 		err = s.Start()
 
+		// ignore server closed errors.
+		if err == http.ErrServerClosed {
+			err = nil
+		}
+
 		assert.NoError(t, err, "unable to listen on :9988")
 	}()
 
@@ -710,7 +716,6 @@ func testPublish(t *testing.T) {
 
 				event := <-events
 				assert.Equal(t, []byte("{\"cli\": \"is_working\"}"), event.Data)
-
 			})
 
 			output, err := spawn.Command(getDaprPath(), "stop", "--app-id", "pub_e2e")
@@ -738,6 +743,11 @@ func testInvoke(t *testing.T) {
 	defer s.Stop()
 	go func() {
 		err = s.Start()
+
+		// ignore server closed errors.
+		if err == http.ErrServerClosed {
+			err = nil
+		}
 
 		assert.NoError(t, err, "unable to listen on :9987")
 	}()
