@@ -27,7 +27,7 @@ import (
 )
 
 // Publish publishes payload to topic in pubsub referenced by pubsubName.
-func (s *Standalone) Publish(publishAppID, pubsubName, topic string, payload []byte, socket string) error {
+func (s *Standalone) Publish(publishAppID, pubsubName, topic string, payload []byte, socket string, metadata map[string]interface{}) error {
 	if publishAppID == "" {
 		return errors.New("publishAppID is missing")
 	}
@@ -40,6 +40,8 @@ func (s *Standalone) Publish(publishAppID, pubsubName, topic string, payload []b
 		return errors.New("topic is missing")
 	}
 
+	queryParams := getQueryParams(metadata)
+
 	l, err := s.process.List()
 	if err != nil {
 		return err
@@ -50,7 +52,7 @@ func (s *Standalone) Publish(publishAppID, pubsubName, topic string, payload []b
 		return err
 	}
 
-	url := fmt.Sprintf("http://unix/v%s/publish/%s/%s", api.RuntimeAPIVersion, pubsubName, topic)
+	url := fmt.Sprintf("http://unix/v%s/publish/%s/%s?%s", api.RuntimeAPIVersion, pubsubName, topic, queryParams)
 
 	var httpc http.Client
 	if socket != "" {
@@ -60,7 +62,7 @@ func (s *Standalone) Publish(publishAppID, pubsubName, topic string, payload []b
 			},
 		}
 	} else {
-		url = fmt.Sprintf("http://localhost:%s/v%s/publish/%s/%s", fmt.Sprintf("%v", instance.HTTPPort), api.RuntimeAPIVersion, pubsubName, topic)
+		url = fmt.Sprintf("http://localhost:%s/v%s/publish/%s/%s?%s", fmt.Sprintf("%v", instance.HTTPPort), api.RuntimeAPIVersion, pubsubName, topic, queryParams)
 	}
 
 	contentType := "application/json"
@@ -97,4 +99,19 @@ func getDaprInstance(list []ListOutput, publishAppID string) (ListOutput, error)
 		}
 	}
 	return ListOutput{}, errors.New("couldn't find a running Dapr instance")
+}
+
+// getQueryParams returns the HTTP query parameter from the metadata map.
+// It appends the prefix "metadata." to each key.
+// The return value does not include the "?" prefix.
+func getQueryParams(metadata map[string]interface{}) string {
+	queryParams := ""
+	for k, v := range metadata {
+		queryParams += fmt.Sprintf("metadata.%v=%v&", k, v)
+	}
+	// Remove the last "&"
+	if queryParams != "" {
+		queryParams = queryParams[:len(queryParams)-1]
+	}
+	return queryParams
 }
