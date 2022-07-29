@@ -110,7 +110,7 @@ func getQueryParams(metadata map[string]interface{}) string {
 	for k, v := range metadata {
 		queryParams += fmt.Sprintf("metadata.%v=%v&", k, v)
 	}
-	// Remove the last "&".
+	// Prefix with "?" and remove the last "&".
 	if queryParams != "" {
 		queryParams = fmt.Sprintf("?%s", queryParams[:len(queryParams)-1])
 	}

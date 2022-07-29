@@ -222,6 +222,7 @@ func TestGetQueryParams(t *testing.T) {
 			assert.True(t, strings.Contains(queryParams, entry), "expected query params to contain %s", entry)
 			queryParams = strings.Replace(queryParams, entry, "", 1)
 		}
+
 		// finally, check that the query params don't contain any unexpected entries.
 		// after removing the expected entries, the remaining string should only contain "&".
 		assert.Equal(t, len(queryParams), strings.Count(queryParams, "&"), "expected query params to not contain any unexpected entries")
