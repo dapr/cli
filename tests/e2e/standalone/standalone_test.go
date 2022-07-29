@@ -73,112 +73,112 @@ func TestStandaloneInstall(t *testing.T) {
 	}
 }
 
-func TestEnableAPILogging(t *testing.T) {
-	// Ensure a clean environment.
-	uninstall()
-	daprRuntimeVersion, daprDashboardVersion = testCommon.GetVersionsFromEnv(t)
+// func TestEnableAPILogging(t *testing.T) {
+// 	// Ensure a clean environment.
+// 	uninstall()
+// 	daprRuntimeVersion, daprDashboardVersion = testCommon.GetVersionsFromEnv(t)
 
-	tests := []struct {
-		name  string
-		phase func(*testing.T)
-	}{
-		{"test install", testInstall},
-		{"test run enable api logging", testRunEnableAPILogging},
-		{"test uninstall", testUninstall},
-	}
+// 	tests := []struct {
+// 		name  string
+// 		phase func(*testing.T)
+// 	}{
+// 		{"test install", testInstall},
+// 		{"test run enable api logging", testRunEnableAPILogging},
+// 		{"test uninstall", testUninstall},
+// 	}
 
-	for _, tc := range tests {
-		t.Run(tc.name, tc.phase)
-	}
-}
+// 	for _, tc := range tests {
+// 		t.Run(tc.name, tc.phase)
+// 	}
+// }
 
-func TestNegativeScenarios(t *testing.T) {
-	// Ensure a clean environment
-	uninstall()
-	daprRuntimeVersion, daprDashboardVersion = testCommon.GetVersionsFromEnv(t)
-	daprPath := getDaprPath()
+// func TestNegativeScenarios(t *testing.T) {
+// 	// Ensure a clean environment
+// 	uninstall()
+// 	daprRuntimeVersion, daprDashboardVersion = testCommon.GetVersionsFromEnv(t)
+// 	daprPath := getDaprPath()
 
-	homeDir, err := os.UserHomeDir()
-	require.NoError(t, err, "expected no error on querying for os home dir")
+// 	homeDir, err := os.UserHomeDir()
+// 	require.NoError(t, err, "expected no error on querying for os home dir")
 
-	t.Run("run without install", func(t *testing.T) {
-		output, err := spawn.Command(daprPath, "run", "test")
-		require.Error(t, err, "expected error status on run without install")
-		path := filepath.Join(homeDir, ".dapr", "components")
-		require.Contains(t, output, path+": no such file or directory", "expected output to contain message")
-	})
+// 	t.Run("run without install", func(t *testing.T) {
+// 		output, err := spawn.Command(daprPath, "run", "test")
+// 		require.Error(t, err, "expected error status on run without install")
+// 		path := filepath.Join(homeDir, ".dapr", "components")
+// 		require.Contains(t, output, path+": no such file or directory", "expected output to contain message")
+// 	})
 
-	t.Run("list without install", func(t *testing.T) {
-		output, err := spawn.Command(daprPath, "list")
-		require.NoError(t, err, "expected no error status on list without install")
-		require.Equal(t, "No Dapr instances found.\n", output)
-	})
+// 	t.Run("list without install", func(t *testing.T) {
+// 		output, err := spawn.Command(daprPath, "list")
+// 		require.NoError(t, err, "expected no error status on list without install")
+// 		require.Equal(t, "No Dapr instances found.\n", output)
+// 	})
 
-	t.Run("stop without install", func(t *testing.T) {
-		output, err := spawn.Command(daprPath, "stop", "-a", "test")
-		require.NoError(t, err, "expected no error on stop without install")
-		require.Contains(t, output, "failed to stop app id test: couldn't find app id test", "expected output to match")
-	})
+// 	t.Run("stop without install", func(t *testing.T) {
+// 		output, err := spawn.Command(daprPath, "stop", "-a", "test")
+// 		require.NoError(t, err, "expected no error on stop without install")
+// 		require.Contains(t, output, "failed to stop app id test: couldn't find app id test", "expected output to match")
+// 	})
 
-	t.Run("stop unknown flag", func(t *testing.T) {
-		output, err := spawn.Command(daprPath, "stop", "-p", "test")
-		require.Error(t, err, "expected error on stop with unknown flag")
-		require.Contains(t, output, "Error: unknown shorthand flag: 'p' in -p\nUsage:", "expected usage to be printed")
-		require.Contains(t, output, "-a, --app-id string   The application id to be stopped", "expected usage to be printed")
-	})
+// 	t.Run("stop unknown flag", func(t *testing.T) {
+// 		output, err := spawn.Command(daprPath, "stop", "-p", "test")
+// 		require.Error(t, err, "expected error on stop with unknown flag")
+// 		require.Contains(t, output, "Error: unknown shorthand flag: 'p' in -p\nUsage:", "expected usage to be printed")
+// 		require.Contains(t, output, "-a, --app-id string   The application id to be stopped", "expected usage to be printed")
+// 	})
 
-	t.Run("run unknown flags", func(t *testing.T) {
-		output, err := spawn.Command(daprPath, "run", "--flag")
-		require.Error(t, err, "expected error on run unknown flag")
-		require.Contains(t, output, "Error: unknown flag: --flag\nUsage:", "expected usage to be printed")
-		require.Contains(t, output, "-a, --app-id string", "expected usage to be printed")
-		require.Contains(t, output, "The id for your application, used for service discovery", "expected usage to be printed")
-	})
+// 	t.Run("run unknown flags", func(t *testing.T) {
+// 		output, err := spawn.Command(daprPath, "run", "--flag")
+// 		require.Error(t, err, "expected error on run unknown flag")
+// 		require.Contains(t, output, "Error: unknown flag: --flag\nUsage:", "expected usage to be printed")
+// 		require.Contains(t, output, "-a, --app-id string", "expected usage to be printed")
+// 		require.Contains(t, output, "The id for your application, used for service discovery", "expected usage to be printed")
+// 	})
 
-	t.Run("uninstall without install", func(t *testing.T) {
-		output, err := spawn.Command(daprPath, "uninstall", "--all")
-		require.NoError(t, err, "expected no error on uninstall without install")
-		require.Contains(t, output, "Removing Dapr from your machine...", "expected output to contain message")
-		path := filepath.Join(homeDir, ".dapr", "bin")
-		require.Contains(t, output, "WARNING: "+path+" does not exist", "expected output to contain message")
-		require.Contains(t, output, "WARNING: dapr_placement container does not exist", "expected output to contain message")
-		require.Contains(t, output, "WARNING: dapr_redis container does not exist", "expected output to contain message")
-		require.Contains(t, output, "WARNING: dapr_zipkin container does not exist", "expected output to contain message")
-		path = filepath.Join(homeDir, ".dapr")
-		require.Contains(t, output, "WARNING: "+path+" does not exist", "expected output to contain message")
-		require.Contains(t, output, "Dapr has been removed successfully")
-	})
+// 	t.Run("uninstall without install", func(t *testing.T) {
+// 		output, err := spawn.Command(daprPath, "uninstall", "--all")
+// 		require.NoError(t, err, "expected no error on uninstall without install")
+// 		require.Contains(t, output, "Removing Dapr from your machine...", "expected output to contain message")
+// 		path := filepath.Join(homeDir, ".dapr", "bin")
+// 		require.Contains(t, output, "WARNING: "+path+" does not exist", "expected output to contain message")
+// 		require.Contains(t, output, "WARNING: dapr_placement container does not exist", "expected output to contain message")
+// 		require.Contains(t, output, "WARNING: dapr_redis container does not exist", "expected output to contain message")
+// 		require.Contains(t, output, "WARNING: dapr_zipkin container does not exist", "expected output to contain message")
+// 		path = filepath.Join(homeDir, ".dapr")
+// 		require.Contains(t, output, "WARNING: "+path+" does not exist", "expected output to contain message")
+// 		require.Contains(t, output, "Dapr has been removed successfully")
+// 	})
 
-	t.Run("filter dashboard instance from list", func(t *testing.T) {
-		spawn.Command(daprPath, "dashboard", "-p", "5555")
-		output, err := spawn.Command(daprPath, "list")
-		require.NoError(t, err, "expected no error status on list without install")
-		require.Equal(t, "No Dapr instances found.\n", output)
-	})
+// 	t.Run("filter dashboard instance from list", func(t *testing.T) {
+// 		spawn.Command(daprPath, "dashboard", "-p", "5555")
+// 		output, err := spawn.Command(daprPath, "list")
+// 		require.NoError(t, err, "expected no error status on list without install")
+// 		require.Equal(t, "No Dapr instances found.\n", output)
+// 	})
 
-	t.Run("error if both --from-dir and --image-registry given", func(t *testing.T) {
-		output, err := spawn.Command(daprPath, "init", "--image-registry", "localhost:5000", "--from-dir", "./local-dir")
-		require.Error(t, err, "expected error if both flags are given")
-		require.Contains(t, output, "both --image-registry and --from-dir flags cannot be given at the same time")
-	})
-}
+// 	t.Run("error if both --from-dir and --image-registry given", func(t *testing.T) {
+// 		output, err := spawn.Command(daprPath, "init", "--image-registry", "localhost:5000", "--from-dir", "./local-dir")
+// 		require.Error(t, err, "expected error if both flags are given")
+// 		require.Contains(t, output, "both --image-registry and --from-dir flags cannot be given at the same time")
+// 	})
+// }
 
-func TestPrivateRegistry(t *testing.T) {
-	// Ensure a clean environment.
-	uninstall()
-	daprRuntimeVersion, daprDashboardVersion = testCommon.GetVersionsFromEnv(t)
+// func TestPrivateRegistry(t *testing.T) {
+// 	// Ensure a clean environment.
+// 	uninstall()
+// 	daprRuntimeVersion, daprDashboardVersion = testCommon.GetVersionsFromEnv(t)
 
-	tests := []struct {
-		name  string
-		phase func(*testing.T)
-	}{
-		{"test install fails", testInstallWithPrivateRegsitry},
-	}
+// 	tests := []struct {
+// 		name  string
+// 		phase func(*testing.T)
+// 	}{
+// 		{"test install fails", testInstallWithPrivateRegsitry},
+// 	}
 
-	for _, tc := range tests {
-		t.Run(tc.name, tc.phase)
-	}
-}
+// 	for _, tc := range tests {
+// 		t.Run(tc.name, tc.phase)
+// 	}
+// }
 
 func getDaprPath() string {
 	distDir := fmt.Sprintf("%s_%s", runtime.GOOS, runtime.GOARCH)
@@ -678,6 +678,23 @@ func testPublish(t *testing.T) {
 				t.Log(output)
 				assert.Error(t, err, "--data and --data-file should not be allowed together")
 				assert.Contains(t, output, "Only one of --data and --data-file allowed in the same publish command")
+			})
+
+			t.Run(fmt.Sprintf("publish with invalid metadata fails"), func(t *testing.T) {
+				output, err := spawn.Command(daprPath, "publish", "--publish-app-id", "pub_e2e", "--unix-domain-socket", path, "--pubsub", "pubsub", "--topic", "sample", "--data", "{\"cli\": \"is_working\"}", "--metadata", "not a valid JSON")
+				t.Log(output)
+				assert.Error(t, err, "invalid metadata should fail")
+				assert.Contains(t, output, "Error parsing metadata as JSON")
+			})
+
+			t.Run(fmt.Sprintf("publish message without cloud event using metadata with socket"), func(t *testing.T) {
+				output, err := spawn.Command(daprPath, "publish", "--publish-app-id", "pub_e2e", "--unix-domain-socket", path, "--pubsub", "pubsub", "--topic", "sample", "--data", "{\"cli\": \"is_working\"}", "--metadata", "{\"rawPayload\": \"true\"}")
+				t.Log(output)
+				assert.NoError(t, err, "unable to publish with rawPayload --metadata")
+				assert.Contains(t, output, "Event published successfully")
+
+				event := <-events
+				// discard the event as it is not a cloud event
 			})
 
 			output, err := spawn.Command(getDaprPath(), "stop", "--app-id", "pub_e2e")
