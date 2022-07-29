@@ -605,11 +605,25 @@ func testPublish(t *testing.T) {
 		Route:      "/orders",
 	}
 
+	rawSub := &common.Subscription{
+		PubsubName: "pubsub",
+		Topic:      "raw-sample",
+		Route:      "/raw-orders",
+		Metadata: map[string]string{
+			"rawPayload": "true",
+		},
+	}
+
 	s := daprHttp.NewService(":9988")
 
 	events := make(chan *common.TopicEvent)
 
 	err := s.AddTopicEventHandler(sub, func(ctx context.Context, e *common.TopicEvent) (retry bool, err error) {
+		events <- e
+		return false, nil
+	})
+
+	err = s.AddTopicEventHandler(rawSub, func(ctx context.Context, e *common.TopicEvent) (retry bool, err error) {
 		events <- e
 		return false, nil
 	})
@@ -653,6 +667,7 @@ func testPublish(t *testing.T) {
 					PubsubName:      "pubsub",
 					Topic:           "sample",
 					Data:            map[string]interface{}{"dapr": "is_great"},
+					RawData:         []byte(`{"dapr":"is_great"}`),
 				}, event)
 			})
 
@@ -681,20 +696,21 @@ func testPublish(t *testing.T) {
 			})
 
 			t.Run(fmt.Sprintf("publish with invalid metadata fails"), func(t *testing.T) {
-				output, err := spawn.Command(daprPath, "publish", "--publish-app-id", "pub_e2e", "--unix-domain-socket", path, "--pubsub", "pubsub", "--topic", "sample", "--data", "{\"cli\": \"is_working\"}", "--metadata", "not a valid JSON")
+				output, err := spawn.Command(daprPath, "publish", "--publish-app-id", "pub_e2e", "--unix-domain-socket", path, "--pubsub", "pubsub", "--topic", "raw-sample", "--data", "{\"cli\": \"is_working\"}", "--metadata", "not a valid JSON")
 				t.Log(output)
 				assert.Error(t, err, "invalid metadata should fail")
 				assert.Contains(t, output, "Error parsing metadata as JSON")
 			})
 
 			t.Run(fmt.Sprintf("publish message without cloud event using metadata with socket"), func(t *testing.T) {
-				output, err := spawn.Command(daprPath, "publish", "--publish-app-id", "pub_e2e", "--unix-domain-socket", path, "--pubsub", "pubsub", "--topic", "sample", "--data", "{\"cli\": \"is_working\"}", "--metadata", "{\"rawPayload\": \"true\"}")
+				output, err := spawn.Command(daprPath, "publish", "--publish-app-id", "pub_e2e", "--unix-domain-socket", path, "--pubsub", "pubsub", "--topic", "raw-sample", "--data", "{\"cli\": \"is_working\"}", "--metadata", "{\"rawPayload\": \"true\"}")
 				t.Log(output)
 				assert.NoError(t, err, "unable to publish with rawPayload --metadata")
 				assert.Contains(t, output, "Event published successfully")
 
 				event := <-events
-				// discard the event as it is not a cloud event
+				assert.Equal(t, []byte("{\"cli\": \"is_working\"}"), event.Data)
+
 			})
 
 			output, err := spawn.Command(getDaprPath(), "stop", "--app-id", "pub_e2e")
