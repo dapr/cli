@@ -247,6 +247,7 @@ linters:
     - gci 
     - noctx
     - exhaustivestruct
+    - exhaustruct
     - gomoddirectives
     - paralleltest
     - tparallel
