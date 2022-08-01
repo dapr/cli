@@ -15,9 +15,11 @@ package standalone
 
 import (
 	"bytes"
+	"fmt"
 	"net/http"
 	"os"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -171,7 +173,7 @@ func TestPublish(t *testing.T) {
 						Err: tc.listErr,
 					},
 				}
-				err := client.Publish(tc.publishAppID, tc.pubsubName, tc.topic, tc.payload, socket)
+				err := client.Publish(tc.publishAppID, tc.pubsubName, tc.topic, tc.payload, socket, nil)
 				if tc.errorExpected {
 					assert.Error(t, err, "expected an error")
 					assert.Equal(t, tc.errString, err.Error(), "expected error strings to match")
@@ -180,5 +182,49 @@ func TestPublish(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+func TestGetQueryParams(t *testing.T) {
+	testCases := []struct {
+		metadata map[string]interface{}
+	}{
+		{
+			metadata: nil,
+		},
+		{
+			metadata: map[string]interface{}{},
+		},
+		{
+			metadata: map[string]interface{}{
+				"rawPayload": "true",
+			},
+		},
+		{
+			metadata: map[string]interface{}{
+				"rawPayload":   "true",
+				"ttlInSeconds": "10",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		queryParams := getQueryParams(tc.metadata)
+
+		if queryParams != "" {
+			assert.True(t, queryParams[0] == '?', "expected query params to start with '?'")
+			queryParams = queryParams[1:]
+		}
+
+		// since map is unordered, test for each metadata entry in the query params.
+		for k, v := range tc.metadata {
+			entry := fmt.Sprintf("metadata.%v=%v", k, v)
+			assert.True(t, strings.Contains(queryParams, entry), "expected query params to contain %s", entry)
+			queryParams = strings.Replace(queryParams, entry, "", 1)
+		}
+
+		// finally, check that the query params don't contain any unexpected entries.
+		// after removing the expected entries, the remaining string should only contain "&".
+		assert.Equal(t, len(queryParams), strings.Count(queryParams, "&"), "expected query params to not contain any unexpected entries")
 	}
 }

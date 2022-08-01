@@ -8,11 +8,11 @@ require (
 	github.com/Pallinder/sillyname-go v0.0.0-20130730142914-97aeae9e6ba1
 	github.com/briandowns/spinner v1.6.1
 	github.com/dapr/dapr v1.8.0
-	github.com/dapr/go-sdk v1.0.0
-	github.com/docker/docker v20.10.12+incompatible
+	github.com/dapr/go-sdk v1.5.0
+	github.com/docker/docker v20.10.14+incompatible
 	github.com/fatih/color v1.13.0
 	github.com/gocarina/gocsv v0.0.0-20190426105157-2fc85fcf0c07
-	github.com/hashicorp/go-retryablehttp v0.5.3
+	github.com/hashicorp/go-retryablehttp v0.5.4
 	github.com/hashicorp/go-version v1.3.0
 	github.com/mitchellh/go-ps v0.0.0-20190716172923-621e5597135b
 	github.com/nightlyone/lockfile v0.0.0-20180618180623-0ad87eef1443
