@@ -609,13 +609,11 @@ func testList(t *testing.T) {
 		require.NoError(t, err, "dapr list failed with daprd instance")
 		listOutputCheck(t, output, false)
 
-		// TODO: remove this condition when `dapr stop` starts working for Windows.
-		if runtime.GOOS != "windows" {
-			output, err = spawn.Command(getDaprPath(), "stop", "--app-id", "daprd_e2e_list")
-			t.Log(output)
-			require.NoError(t, err, "dapr stop failed")
-			assert.Contains(t, output, "app stopped successfully: daprd_e2e_list")
-		}
+		output, err = spawn.Command(getDaprPath(), "stop", "--app-id", "daprd_e2e_list")
+		t.Log(output)
+		require.NoError(t, err, "dapr stop failed")
+		assert.Contains(t, output, "app stopped successfully: daprd_e2e_list")
+
 		cmd.Process.Kill()
 	})
 }
