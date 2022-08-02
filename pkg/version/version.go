@@ -25,6 +25,7 @@ import (
 	yaml "gopkg.in/yaml.v2"
 
 	"github.com/dapr/cli/pkg/print"
+	"github.com/dapr/cli/utils"
 )
 
 const (
@@ -75,7 +76,7 @@ func GetVersionFromURL(releaseURL string, parseVersion func(body []byte) (string
 		return "", err
 	}
 
-	githubToken := os.Getenv("GITHUB_TOKEN")
+	githubToken := utils.GetEnv("GITHUB_TOKEN", "")
 	if githubToken != "" {
 		req.Header.Add("Authorization", "token "+githubToken)
 	}

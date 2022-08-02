@@ -48,7 +48,7 @@ jobs:
         uses: Amadevus/pwsh-script@v2.0.1
         with:
           script: |
-            $Env:Path += ";c:\dapr"
+            $Env:Path += ";$Env:SystemDrive\dapr"
             $output=dapr --version
             $runtimeVerified = False
             $cliVerified = False

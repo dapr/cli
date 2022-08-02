@@ -12,7 +12,7 @@
 # ------------------------------------------------------------
 param (
     [string]$Version,
-    [string]$DaprRoot = "c:\dapr",
+    [string]$DaprRoot = "$Env:SystemDrive\dapr",
     [string]$DaprReleaseJsonUrl = "",
     [scriptblock]$CustomAssetFactory = $null
 )

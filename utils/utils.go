@@ -228,6 +228,15 @@ func IsAddressLegal(address string) bool {
 	return isLegal
 }
 
+// GetEnv get value from environment variable.
+func GetEnv(envName string, defaultValue string) string {
+	if val, ok := os.LookupEnv(envName); ok {
+		return val
+	}
+
+	return defaultValue
+}
+
 func GetSocket(path, appID, protocol string) string {
 	return fmt.Sprintf(socketFormat, path, appID, protocol)
 }
