@@ -125,9 +125,9 @@ func locateChartFile(dirPath string) (string, error) {
 
 func daprChart(version string, config *helm.Configuration) (*chart.Chart, error) {
 	pull := helm.NewPullWithOpts(helm.WithConfig(config))
-	pull.RepoURL = utils.GetEnv("HELM_CHART_REPO_URL", daprHelmRepo)
-	pull.Username = utils.GetEnv("HELM_CHART_REPO_USERNAME", "")
-	pull.Password = utils.GetEnv("HELM_CHART_REPO_PASSWORD", "")
+	pull.RepoURL = utils.GetEnv("DAPR_HELM_REPO_URL", daprHelmRepo)
+	pull.Username = utils.GetEnv("DAPR_HELM_REPO_USERNAME", "")
+	pull.Password = utils.GetEnv("DAPR_HELM_REPO_PASSWORD", "")
 
 	pull.Settings = &cli.EnvSettings{}
 

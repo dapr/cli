@@ -307,9 +307,9 @@ dapr upgrade -k --runtime-version=1.0.0 --set global.tag=my-tag --set dapr_opera
 
 ### Use Private Helm Repository
 
-export HELM_CHART_REPO_URL="https://helmchart-repo.xxx.xxx/dapr/dapr"
-export HELM_CHART_REPO_USERNAME="username_xxx"
-export HELM_CHART_REPO_PASSWORD="passwd_xxx"
+export DAPR_HELM_REPO_URL="https://helmchart-repo.xxx.xxx/dapr/dapr"
+export DAPR_HELM_REPO_USERNAME="username_xxx"
+export DAPR_HELM_REPO_PASSWORD="passwd_xxx"
 
 Setting the above parameters will allow `dapr init -k` to install Dapr images from the configured Helm repository.
 
