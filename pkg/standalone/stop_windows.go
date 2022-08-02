@@ -29,7 +29,7 @@ func Stop(appID string) error {
 
 	for _, a := range apps {
 		if a.AppID == appID {
-			eventName, _ := syscall.UTF16FromString(fmt.Sprintf("dapr_cli_%v", a.PID))
+			eventName, _ := syscall.UTF16FromString(fmt.Sprintf("dapr_cli_%v", a.CliPID))
 			eventHandle, err := windows.OpenEvent(windows.EVENT_MODIFY_STATE, false, &eventName[0])
 			if err != nil {
 				return err
