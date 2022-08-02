@@ -33,6 +33,7 @@ import (
 
 	"github.com/dapr/cli/pkg/print"
 	cli_ver "github.com/dapr/cli/pkg/version"
+	"github.com/dapr/cli/utils"
 )
 
 const (
@@ -124,7 +125,10 @@ func locateChartFile(dirPath string) (string, error) {
 
 func daprChart(version string, config *helm.Configuration) (*chart.Chart, error) {
 	pull := helm.NewPullWithOpts(helm.WithConfig(config))
-	pull.RepoURL = daprHelmRepo
+	pull.RepoURL = utils.GetEnv("DAPR_HELM_REPO_URL", daprHelmRepo)
+	pull.Username = utils.GetEnv("DAPR_HELM_REPO_USERNAME", "")
+	pull.Password = utils.GetEnv("DAPR_HELM_REPO_PASSWORD", "")
+
 	pull.Settings = &cli.EnvSettings{}
 
 	if version != latestVersion {

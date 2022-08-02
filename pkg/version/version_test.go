@@ -213,7 +213,7 @@ func TestGetVersionsHelm(t *testing.T) {
 	}{
 		{
 			"RC releases are skipped",
-			"/rcs_are_skiipped",
+			"/rcs_are_skipped",
 			`apiVersion: v1
 entries:
   dapr:
