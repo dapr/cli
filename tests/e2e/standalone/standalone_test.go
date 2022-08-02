@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -65,6 +66,7 @@ func TestStandaloneInstall(t *testing.T) {
 		{"test invoke", testInvoke},
 		{"test list", testList},
 		{"test uninstall", testUninstall},
+		{"test version", testVersion},
 	}
 
 	for _, tc := range tests {
@@ -502,6 +504,33 @@ func testRunEnableAPILogging(t *testing.T) {
 	})
 }
 
+func testVersion(t *testing.T) {
+	daprPath := getDaprPath()
+
+	output, err := spawn.Command(daprPath, "version")
+	t.Log(output)
+	require.NoError(t, err, "dapr version failed")
+	versionOutputCheck(t, output)
+
+	output, err = spawn.Command(getDaprPath(), "version", "-o", "json")
+	t.Log(output)
+	require.NoError(t, err, "dapr version failed")
+	versionJsonOutputCheck(t, output)
+}
+
+func versionOutputCheck(t *testing.T, output string) {
+	lines := strings.Split(output, "\n")
+	assert.GreaterOrEqual(t, len(lines), 2, "expected at least 2 fields in components outptu")
+	assert.Contains(t, lines[0], "CLI version")
+	assert.Contains(t, lines[1], "Runtime version")
+}
+
+func versionJsonOutputCheck(t *testing.T, output string) {
+	var result map[string]interface{}
+	err := json.Unmarshal([]byte(output), &result)
+	assert.NoError(t, err, "output was not valid JSON")
+}
+
 func executeAgainstRunningDapr(t *testing.T, f func(), daprArgs ...string) {
 	daprPath := getDaprPath()
 
@@ -532,12 +561,12 @@ func testList(t *testing.T) {
 		output, err := spawn.Command(getDaprPath(), "list")
 		t.Log(output)
 		require.NoError(t, err, "dapr list failed")
-		listOutputCheck(t, output)
+		listOutputCheck(t, output, true)
 
 		output, err = spawn.Command(getDaprPath(), "list", "-o", "table")
 		t.Log(output)
 		require.NoError(t, err, "dapr list failed")
-		listOutputCheck(t, output)
+		listOutputCheck(t, output, true)
 
 		output, err = spawn.Command(getDaprPath(), "list", "-o", "json")
 		t.Log(output)
@@ -559,6 +588,38 @@ func testList(t *testing.T) {
 		require.NoError(t, err, "dapr stop failed")
 		assert.Contains(t, output, "app stopped successfully: dapr_e2e_list")
 	}, "run", "--app-id", "dapr_e2e_list", "-H", "3555", "-G", "4555", "--", "bash", "-c", "sleep 10 ; exit 0")
+
+	t.Run("daprd instance in list", func(t *testing.T) {
+		homeDir, err := os.UserHomeDir()
+		require.NoError(t, err)
+
+		path := filepath.Join(homeDir, ".dapr")
+		binPath := filepath.Join(path, "bin")
+		daprdPath := filepath.Join(binPath, "daprd")
+
+		if runtime.GOOS == "windows" {
+			daprdPath += ".exe"
+		}
+
+		cmd := exec.Command(daprdPath, "--app-id", "daprd_e2e_list", "--dapr-http-port", "3555", "--dapr-grpc-port", "4555", "--app-port", "0")
+		cmd.Start()
+
+		output, err := spawn.Command(getDaprPath(), "list")
+		t.Log(output)
+		require.NoError(t, err, "dapr list failed with daprd instance")
+		listOutputCheck(t, output, false)
+
+		// TODO: remove this condition when `dapr stop` starts working for Windows.
+		// See https://github.com/dapr/cli/issues/1034.
+		if runtime.GOOS != "windows" {
+			output, err = spawn.Command(getDaprPath(), "stop", "--app-id", "daprd_e2e_list")
+			t.Log(output)
+			require.NoError(t, err, "dapr stop failed")
+			assert.Contains(t, output, "app stopped successfully: daprd_e2e_list")
+		}
+
+		cmd.Process.Kill()
+	})
 }
 
 func testStop(t *testing.T) {
@@ -577,6 +638,15 @@ func testPublish(t *testing.T) {
 		Route:      "/orders",
 	}
 
+	rawSub := &common.Subscription{
+		PubsubName: "pubsub",
+		Topic:      "raw-sample",
+		Route:      "/raw-orders",
+		Metadata: map[string]string{
+			"rawPayload": "true",
+		},
+	}
+
 	s := daprHttp.NewService(":9988")
 
 	events := make(chan *common.TopicEvent)
@@ -586,11 +656,21 @@ func testPublish(t *testing.T) {
 		return false, nil
 	})
 
+	err = s.AddTopicEventHandler(rawSub, func(ctx context.Context, e *common.TopicEvent) (retry bool, err error) {
+		events <- e
+		return false, nil
+	})
+
 	assert.NoError(t, err, "unable to AddTopicEventHandler")
 
 	defer s.Stop()
 	go func() {
 		err = s.Start()
+
+		// ignore server closed errors.
+		if err == http.ErrServerClosed {
+			err = nil
+		}
 
 		assert.NoError(t, err, "unable to listen on :9988")
 	}()
@@ -625,6 +705,7 @@ func testPublish(t *testing.T) {
 					PubsubName:      "pubsub",
 					Topic:           "sample",
 					Data:            map[string]interface{}{"dapr": "is_great"},
+					RawData:         []byte(`{"dapr":"is_great"}`),
 				}, event)
 			})
 
@@ -652,6 +733,23 @@ func testPublish(t *testing.T) {
 				assert.Contains(t, output, "Only one of --data and --data-file allowed in the same publish command")
 			})
 
+			t.Run(fmt.Sprintf("publish with invalid metadata fails"), func(t *testing.T) {
+				output, err := spawn.Command(daprPath, "publish", "--publish-app-id", "pub_e2e", "--unix-domain-socket", path, "--pubsub", "pubsub", "--topic", "raw-sample", "--data", "{\"cli\": \"is_working\"}", "--metadata", "not a valid JSON")
+				t.Log(output)
+				assert.Error(t, err, "invalid metadata should fail")
+				assert.Contains(t, output, "Error parsing metadata as JSON")
+			})
+
+			t.Run(fmt.Sprintf("publish message without cloud event using metadata with socket"), func(t *testing.T) {
+				output, err := spawn.Command(daprPath, "publish", "--publish-app-id", "pub_e2e", "--unix-domain-socket", path, "--pubsub", "pubsub", "--topic", "raw-sample", "--data", "{\"cli\": \"is_working\"}", "--metadata", "{\"rawPayload\": \"true\"}")
+				t.Log(output)
+				assert.NoError(t, err, "unable to publish with rawPayload --metadata")
+				assert.Contains(t, output, "Event published successfully")
+
+				event := <-events
+				assert.Equal(t, []byte("{\"cli\": \"is_working\"}"), event.Data)
+			})
+
 			output, err := spawn.Command(getDaprPath(), "stop", "--app-id", "pub_e2e")
 			t.Log(output)
 			require.NoError(t, err, "dapr stop failed")
@@ -677,6 +775,11 @@ func testInvoke(t *testing.T) {
 	defer s.Stop()
 	go func() {
 		err = s.Start()
+
+		// ignore server closed errors.
+		if err == http.ErrServerClosed {
+			err = nil
+		}
 
 		assert.NoError(t, err, "unable to listen on :9987")
 	}()
@@ -736,13 +839,17 @@ func testInvoke(t *testing.T) {
 	}
 }
 
-func listOutputCheck(t *testing.T, output string) {
+func listOutputCheck(t *testing.T, output string, isCli bool) {
 	lines := strings.Split(output, "\n")[1:] // remove header
 	// only one app is runnning at this time
 	fields := strings.Fields(lines[0])
 	// Fields splits on space, so Created time field might be split again
-	assert.GreaterOrEqual(t, len(fields), 4, "expected at least 4 fields in components outptu")
-	assert.Equal(t, "dapr_e2e_list", fields[0], "expected name to match")
+	assert.GreaterOrEqual(t, len(fields), 4, "expected at least 4 fields in components output")
+	if isCli {
+		assert.Equal(t, "dapr_e2e_list", fields[0], "expected name to match")
+	} else {
+		assert.Equal(t, "daprd_e2e_list", fields[0], "expected name to match")
+	}
 	assert.Equal(t, "3555", fields[1], "expected http port to match")
 	assert.Equal(t, "4555", fields[2], "expected grpc port to match")
 	assert.Equal(t, "0", fields[3], "expected app port to match")

@@ -42,13 +42,14 @@ const (
 )
 
 type InitConfiguration struct {
-	Version    string
-	Namespace  string
-	EnableMTLS bool
-	EnableHA   bool
-	Args       []string
-	Wait       bool
-	Timeout    uint
+	Version          string
+	Namespace        string
+	EnableMTLS       bool
+	EnableHA         bool
+	Args             []string
+	Wait             bool
+	Timeout          uint
+	ImageRegistryURI string
 }
 
 // Init deploys the Dapr operator using the supplied runtime version.
@@ -156,6 +157,9 @@ func chartValues(config InitConfiguration) (map[string]interface{}, error) {
 		fmt.Sprintf("global.ha.enabled=%t", config.EnableHA),
 		fmt.Sprintf("global.mtls.enabled=%t", config.EnableMTLS),
 	}
+	if len(config.ImageRegistryURI) != 0 {
+		globalVals = append(globalVals, fmt.Sprintf("global.registry=%s", config.ImageRegistryURI))
+	}
 	globalVals = append(globalVals, config.Args...)
 
 	for _, v := range globalVals {
@@ -210,4 +214,19 @@ func install(config InitConfiguration) error {
 }
 
 func debugLogf(format string, v ...interface{}) {
+}
+
+func confirmExist(cfg *helm.Configuration) (bool, error) {
+	client := helm.NewGet(cfg)
+	release, err := client.Run(daprReleaseName)
+
+	if release == nil {
+		return false, nil
+	}
+
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }

@@ -17,10 +17,12 @@ import (
 	"archive/tar"
 	"archive/zip"
 	"compress/gzip"
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
 	"path"
@@ -28,6 +30,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/fatih/color"
 	"gopkg.in/yaml.v2"
@@ -634,7 +637,7 @@ func installBinary(version, binaryFilePrefix, githubRepo string, info initInfo) 
 func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 	defer wg.Done()
 
-	if info.slimMode {
+	if info.slimMode || isAirGapInit {
 		return
 	}
 
@@ -670,7 +673,7 @@ func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error
 func createSlimConfiguration(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 	defer wg.Done()
 
-	if !info.slimMode {
+	if !(info.slimMode || isAirGapInit) {
 		return
 	}
 
@@ -975,7 +978,7 @@ func createDefaultConfiguration(zipkinHost, filePath string) error {
 	defaultConfig.Metadata.Name = "daprConfig"
 	if zipkinHost != "" {
 		defaultConfig.Spec.Tracing.SamplingRate = "1"
-		defaultConfig.Spec.Tracing.Zipkin.EndpointAddress = fmt.Sprintf("http://%s:9411/api/v2/spans", zipkinHost)
+		defaultConfig.Spec.Tracing.Zipkin.EndpointAddress = fmt.Sprintf("http://%s:9411/api/v2/spans", zipkinHost) //nolint:nosprintfhostport
 	}
 	b, err := yaml.Marshal(&defaultConfig)
 	if err != nil {
@@ -1036,7 +1039,6 @@ func binaryName(binaryFilePrefix string) string {
 	return fmt.Sprintf("%s_%s_%s.%s", binaryFilePrefix, runtime.GOOS, runtime.GOARCH, archiveExt())
 }
 
-// nolint:gosec
 func downloadFile(dir string, url string) (string, error) {
 	tokens := strings.Split(url, "/")
 	fileName := tokens[len(tokens)-1]
@@ -1046,11 +1048,27 @@ func downloadFile(dir string, url string) (string, error) {
 	if os.IsExist(err) {
 		return "", nil
 	}
+	client := http.Client{ //nolint:exhaustruct
+		Timeout: 0,
+		Transport: &http.Transport{ //nolint:exhaustruct
+			Dial: (&net.Dialer{ //nolint:exhaustruct
+				Timeout: 30 * time.Second,
+			}).Dial,
+			TLSHandshakeTimeout:   15 * time.Second,
+			ResponseHeaderTimeout: 15 * time.Second,
+		},
+	}
 
-	resp, err := http.Get(url)
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return "", err
 	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+
 	defer resp.Body.Close()
 
 	if resp.StatusCode == 404 {
@@ -1065,12 +1083,80 @@ func downloadFile(dir string, url string) (string, error) {
 	}
 	defer out.Close()
 
-	_, err = io.Copy(out, resp.Body)
+	_, err = copyWithTimeout(context.Background(), out, resp.Body)
 	if err != nil {
 		return "", err
 	}
 
 	return filepath, nil
+}
+
+/*!
+See: https://github.com/microsoft/vscode-winsta11er/blob/4b42060da64aea6f47adebe1dd654980ed87a046/common/common.go
+Copyright (c) Microsoft Corporation. All rights reserved. Licensed under the MIT License.
+*/
+func copyWithTimeout(ctx context.Context, dst io.Writer, src io.Reader) (int64, error) {
+	// Every 5 seconds, ensure at least 200 bytes (40 bytes/second average) are read.
+	interval := 5
+	minCopyBytes := int64(200)
+	prevWritten := int64(0)
+	written := int64(0)
+
+	done := make(chan error)
+	mu := sync.Mutex{}
+	t := time.NewTicker(time.Duration(interval) * time.Second)
+	defer t.Stop()
+
+	// Read the stream, 32KB at a time.
+	go func() {
+		var (
+			writeErr, readErr     error
+			writeBytes, readBytes int
+			buf                   = make([]byte, 32<<10)
+		)
+		for {
+			readBytes, readErr = src.Read(buf)
+			if readBytes > 0 {
+				// Write to disk and update the number of bytes written.
+				writeBytes, writeErr = dst.Write(buf[0:readBytes])
+				mu.Lock()
+				written += int64(writeBytes)
+				mu.Unlock()
+				if writeErr != nil {
+					done <- writeErr
+					return
+				}
+			}
+			if readErr != nil {
+				// If error is EOF, means we read the entire file, so don't consider that as error.
+				if !errors.Is(readErr, io.EOF) {
+					done <- readErr
+					return
+				}
+
+				// No error.
+				done <- nil
+				return
+			}
+		}
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return written, ctx.Err()
+		case <-t.C:
+			mu.Lock()
+			if written < prevWritten+minCopyBytes {
+				mu.Unlock()
+				return written, fmt.Errorf("stream stalled: received %d bytes over the last %d seconds", written, interval)
+			}
+			prevWritten = written
+			mu.Unlock()
+		case e := <-done:
+			return written, e
+		}
+	}
 }
 
 // getPlacementImageName returns the resolved placement image name for online `dapr init`.
