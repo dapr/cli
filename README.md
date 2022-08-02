@@ -630,15 +630,17 @@ The default is `false`.
 
 For more details, please run the command and check the examples to apply to your shell.
 
-### Annotate a Kubernetes manifest
+### Apply Dapr annotations
 
-To add or modify dapr annotations on an existing Kubernetes manifest, use the  `dapr annotate` command:
+To add or modify dapr annotations on an existing Kubernetes manifest, use the `dapr annotate` command:
 
 ```bash
 dapr annotate [flags] mydeployment.yaml
 ```
 
 This will add the `dapr.io/enabled` and the `dapr.io/app-id` annotations. The dapr app id will be genereated using the format `<namespace>-<kind>-<name>` where the values are taken from the existing Kubernetes object metadata.
+
+> NOTE: The annotate command currently only supports annotating Kubernetes manifests. You must provide the `-k` flag to target Kubernetes.
 
 To provide your own dapr app id, provide the flag `--app-id`.
 
@@ -647,13 +649,13 @@ All dapr annotations are available to set if a value is provided for the appropr
 You can also provide the Kubernetes manifest via stdin:
 
 ```bash
-kubectl get deploy mydeploy -o yaml | dapr annotate - | kubectl apply -f -
+kubectl get deploy mydeploy -o yaml | dapr annotate -k - | kubectl apply -f -
 ```
 
 Or you can provide the Kubernetes manifest via a URL:
 
 ```bash
-dapr annotate --log-level debug https://raw.githubusercontent.com/dapr/quickstarts/master/tutorials/hello-kubernetes/deploy/node.yaml | kubectl apply -f -
+dapr annotate -k --log-level debug https://raw.githubusercontent.com/dapr/quickstarts/master/tutorials/hello-kubernetes/deploy/node.yaml | kubectl apply -f -
 ```
 
 If the input contains multiple manifests then the command will search for the first appropriate one to apply the annotations. If you'd rather it applied to a specific manifest then you can provide the `--resource` flag with the value set to the name of the object you'd like to apply the annotations to. If you have a conflict between namespaces you can also provide the namespace via the `--namespace` flag to isolate the manifest you wish to target.
@@ -661,7 +663,7 @@ If the input contains multiple manifests then the command will search for the fi
 If you want to annotate multiple manifests, you can chain together the `dapr annotate` commands with each applying the annotation to a specific manifest.
 
 ```bash
-kubectl get deploy -o yaml | dapr annotate -r nodeapp --log-level debug - | dapr annotate --log-level debug -r pythonapp - | kubectl apply -f -
+kubectl get deploy -o yaml | dapr annotate -k -r nodeapp --log-level debug - | dapr annotate -k --log-level debug -r pythonapp - | kubectl apply -f -
 ```
 
 ## Reference for the Dapr CLI

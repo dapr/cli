@@ -30,9 +30,20 @@ func Uninstall(namespace string, uninstallAll bool, timeout uint) error {
 		return err
 	}
 
+	exists, err := confirmExist(config)
+	if err != nil {
+		return err
+	}
+
+	if !exists {
+		print.WarningStatusEvent(os.Stderr, "WARNING: %s release does not exist", daprReleaseName)
+		return nil
+	}
+
 	uninstallClient := helm.NewUninstall(config)
 	uninstallClient.Timeout = time.Duration(timeout) * time.Second
 	_, err = uninstallClient.Run(daprReleaseName)
+
 	if err != nil {
 		return err
 	}
