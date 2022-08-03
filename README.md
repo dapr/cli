@@ -25,7 +25,7 @@ Note, if you are a new user, it is strongly recommended to install Docker and us
 
 **Windows**
 
-Install the latest windows Dapr CLI to `c:\dapr` and add this directory to User PATH environment variable. Use `-DaprRoot [path]` to change the default installation directory
+Install the latest windows Dapr CLI to `$Env:SystemDrive\dapr` and add this directory to User PATH environment variable. Use `-DaprRoot [path]` to change the default installation directory
 
 ```powershell
 powershell -Command "iwr -useb https://raw.githubusercontent.com/dapr/cli/master/install/install.ps1 | iex"
@@ -304,6 +304,14 @@ dapr upgrade -k --runtime-version=1.0.0 --set global.tag=my-tag --set dapr_opera
 ```
 
 *Note: do not use the `dapr upgrade` command if you're upgrading from 0.x versions of Dapr*
+
+### Use Private Helm Repository
+
+export DAPR_HELM_REPO_URL="https://helmchart-repo.xxx.xxx/dapr/dapr"
+export DAPR_HELM_REPO_USERNAME="username_xxx"
+export DAPR_HELM_REPO_PASSWORD="passwd_xxx"
+
+Setting the above parameters will allow `dapr init -k` to install Dapr images from the configured Helm repository.
 
 ### Launch Dapr and your app
 
