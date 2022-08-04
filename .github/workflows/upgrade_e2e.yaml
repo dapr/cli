@@ -18,12 +18,17 @@ on:
     branches:
       - master
       - release-*
+    paths-ignore:
+      - '**.md'
   schedule:
     - cron: '0 */3 * * *'
+    - cron: '0 */6 * * *'
   pull_request:
     branches:
       - master
       - 'release-*'
+    paths-ignore:
+      - '**.md'
 
 defaults:
   run:
@@ -45,7 +50,7 @@ jobs:
     name: Upgrade path tests (KinD)
     runs-on: ubuntu-latest
     env:
-      GOVER: 1.17
+      GOVER: 1.18
     strategy:
       fail-fast: false # Keep running if one leg fails.
       matrix:
@@ -136,7 +141,18 @@ jobs:
       run: |
         docker image prune -a -f
 
-    - name: Run tests
+    - name: Run tests with GHCR
+      # runs every 6hrs
+      if: github.event.schedule == '0 */6 * * *'
+      env:
+        DAPR_DEFAULT_IMAGE_REGISTRY: ghcr
+      run: |
+        export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-upgrade-kind.json
+        echo "TEST_OUTPUT_FILE=$TEST_OUTPUT_FILE" >> $GITHUB_ENV
+        make e2e-build-run-upgrade
+
+    - name: Run tests with Docker hub
+      if: github.event.schedule != '0 */6 * * *'
       run: |
         export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-upgrade-kind.json
         echo "TEST_OUTPUT_FILE=$TEST_OUTPUT_FILE" >> $GITHUB_ENV

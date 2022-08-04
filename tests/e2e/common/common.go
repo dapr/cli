@@ -72,7 +72,9 @@ type TestCase struct {
 
 // GetVersionsFromEnv will return values from required environment variables,
 // if environment variables are not set it fails the test.
-func GetVersionsFromEnv(t *testing.T) (daprRuntimeVersion string, daprDashboardVersion string) {
+func GetVersionsFromEnv(t *testing.T) (string, string) {
+	var daprRuntimeVersion, daprDashboardVersion string
+
 	if runtimeVersion, ok := os.LookupEnv("DAPR_RUNTIME_VERSION"); ok {
 		daprRuntimeVersion = runtimeVersion
 	} else {
@@ -83,7 +85,7 @@ func GetVersionsFromEnv(t *testing.T) (daprRuntimeVersion string, daprDashboardV
 	} else {
 		t.Fatalf("env var \"DAPR_DASHBOARD_VERSION\" not set")
 	}
-	return
+	return daprRuntimeVersion, daprDashboardVersion
 }
 
 func UpgradeTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
@@ -164,6 +166,7 @@ func GetTestsOnInstall(details VersionDetails, opts TestOptions) []TestCase {
 func GetTestsOnUninstall(details VersionDetails, opts TestOptions) []TestCase {
 	return []TestCase{
 		{"uninstall " + details.RuntimeVersion, uninstallTest(opts.UninstallAll)}, // waits for pod deletion.
+		{"cluster not exist", kubernetesTestOnUninstall()},
 		{"crds exist on uninstall " + details.RuntimeVersion, CRDTest(details, opts)},
 		{"clusterroles not exist " + details.RuntimeVersion, ClusterRolesTest(details, opts)},
 		{"clusterrolebindings not exist " + details.RuntimeVersion, ClusterRoleBindingsTest(details, opts)},
@@ -683,6 +686,19 @@ func uninstallTest(all bool) func(t *testing.T) {
 			done <- struct{}{}
 			t.Error("timeout verifying pods were deleted as expectedx")
 		}
+	}
+}
+
+func kubernetesTestOnUninstall() func(t *testing.T) {
+	return func(t *testing.T) {
+		_, err := EnsureUninstall(true)
+		require.NoError(t, err, "uninstall failed")
+		daprPath := getDaprPath()
+		output, err := spawn.Command(daprPath, "uninstall", "-k")
+		require.NoError(t, err, "expected no error on uninstall without install")
+		require.Contains(t, output, "Removing Dapr from your cluster...", "expected output to contain message")
+		require.Contains(t, output, "WARNING: dapr release does not exist", "expected output to contain message")
+		require.Contains(t, output, "Dapr has been removed successfully")
 	}
 }
 
