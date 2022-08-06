@@ -15,7 +15,6 @@ package standalone
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
@@ -184,7 +183,7 @@ func (meta *DaprMeta) portExists(port int) bool {
 	if port <= 0 {
 		return false
 	}
-	//nolint
+	// nolint
 	_, ok := meta.ExistingPorts[port]
 	if ok {
 		return true
@@ -301,7 +300,7 @@ func mtlsEndpoint(configFile string) string {
 		return ""
 	}
 
-	b, err := ioutil.ReadFile(configFile)
+	b, err := os.ReadFile(configFile)
 	if err != nil {
 		return ""
 	}
@@ -339,7 +338,7 @@ func getAppCommand(config *RunConfig) *exec.Cmd {
 }
 
 func Run(config *RunConfig) (*RunOutput, error) {
-	//nolint
+	// nolint
 	err := config.validate()
 	if err != nil {
 		return nil, err
@@ -350,7 +349,7 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		return nil, err
 	}
 
-	//nolint
+	// nolint
 	var appCMD *exec.Cmd = getAppCommand(config)
 	return &RunOutput{
 		DaprCMD:      daprCMD,

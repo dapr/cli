@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
@@ -98,13 +97,13 @@ func RunCmdAndWait(name string, args ...string) (string, error) {
 		return "", err
 	}
 
-	resp, err := ioutil.ReadAll(stdout)
+	resp, err := io.ReadAll(stdout)
 	if err != nil {
 		return "", err
 	}
-	errB, err := ioutil.ReadAll(stderr)
+	errB, err := io.ReadAll(stderr)
 	if err != nil {
-		//nolint
+		// nolint
 		return "", nil
 	}
 

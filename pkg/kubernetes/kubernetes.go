@@ -16,7 +16,6 @@ package kubernetes
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -59,7 +58,7 @@ func Init(config InitConfiguration) error {
 
 	stopSpinning := print.Spinner(os.Stdout, msg)
 	defer stopSpinning(print.Failure)
-	//nolint
+	// nolint
 	err := install(config)
 	if err != nil {
 		return err
@@ -108,7 +107,7 @@ func getVersion(version string) (string, error) {
 }
 
 func createTempDir() (string, error) {
-	dir, err := ioutil.TempDir("", "dapr")
+	dir, err := os.MkdirTemp("", "dapr")
 	if err != nil {
 		return "", fmt.Errorf("error creating temp dir: %w", err)
 	}
@@ -116,7 +115,7 @@ func createTempDir() (string, error) {
 }
 
 func locateChartFile(dirPath string) (string, error) {
-	files, err := ioutil.ReadDir(dirPath)
+	files, err := os.ReadDir(dirPath)
 	if err != nil {
 		return "", err
 	}
