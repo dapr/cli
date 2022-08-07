@@ -17,7 +17,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 
@@ -72,7 +72,7 @@ func handleResponse(response *http.Response) (string, error) {
 		return "", fmt.Errorf("%s", response.Status)
 	}
 
-	rb, err := ioutil.ReadAll(response.Body)
+	rb, err := io.ReadAll(response.Body)
 	if err != nil {
 		return "", err
 	}
