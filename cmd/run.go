@@ -371,7 +371,7 @@ func init() {
 	RunCmd.Flags().IntVarP(&readBufferSize, "dapr-http-read-buffer-size", "", -1, "HTTP header read buffer in KB")
 	RunCmd.Flags().StringVarP(&unixDomainSocket, "unix-domain-socket", "u", "", "Path to a unix domain socket dir. If specified, Dapr API servers will use Unix Domain Sockets")
 	RunCmd.Flags().BoolVar(&enableAPILogging, "enable-api-logging", false, "Log API calls at INFO verbosity. Valid values are: true or false")
-	RunCmd.Flags().StringVar(&daprdFlags, "daprd-flags", "", "Additional CLI flags passed to daprd as-is")
+	RunCmd.Flags().StringVar(&daprdFlags, "daprd-flags", "", "Additional CLI flags passed to daprd as-is; this is an advanced option mostly for Dapr development purposes")
 
 	RootCmd.AddCommand(RunCmd)
 }
