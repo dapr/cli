@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/Pallinder/sillyname-go"
+	shellwords "github.com/mattn/go-shellwords"
 	"github.com/phayes/freeport"
 	"gopkg.in/yaml.v2"
 
@@ -54,6 +55,7 @@ type RunConfig struct {
 	HTTPReadBufferSize int    `arg:"dapr-http-read-buffer-size"`
 	UnixDomainSocket   string `arg:"unix-domain-socket"`
 	EnableAPILogging   bool   `arg:"enable-api-logging"`
+	DaprdFlags         string
 }
 
 func (meta *DaprMeta) newAppID() string {
@@ -217,7 +219,7 @@ func newDaprMeta() (*DaprMeta, error) {
 	return &meta, nil
 }
 
-func (config *RunConfig) getArgs() []string {
+func (config *RunConfig) getArgs() ([]string, error) {
 	args := []string{}
 	schema := reflect.ValueOf(*config)
 	for i := 0; i < schema.NumField(); i++ {
@@ -253,7 +255,18 @@ func (config *RunConfig) getArgs() []string {
 		args = append(args, "--log-as-json")
 	}
 
-	return args
+	if config.DaprdFlags != "" {
+		parser := shellwords.NewParser()
+		parser.ParseEnv = false
+		parser.ParseBacktick = false
+		daprdFlags, err := parser.Parse(config.DaprdFlags)
+		if err != nil {
+			return nil, err
+		}
+		args = append(args, daprdFlags...)
+	}
+
+	return args, nil
 }
 
 func (config *RunConfig) getEnv() []string {
@@ -290,7 +303,10 @@ type RunOutput struct {
 
 func getDaprCommand(config *RunConfig) (*exec.Cmd, error) {
 	daprCMD := binaryFilePath(defaultDaprBinPath(), "daprd")
-	args := config.getArgs()
+	args, err := config.getArgs()
+	if err != nil {
+		return nil, err
+	}
 	cmd := exec.Command(daprCMD, args...)
 	return cmd, nil
 }

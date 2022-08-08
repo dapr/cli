@@ -10,10 +10,12 @@ require (
 	github.com/dapr/dapr v1.8.0
 	github.com/dapr/go-sdk v1.5.0
 	github.com/docker/docker v20.10.14+incompatible
+	github.com/evanphx/json-patch v4.12.0+incompatible
 	github.com/fatih/color v1.13.0
 	github.com/gocarina/gocsv v0.0.0-20190426105157-2fc85fcf0c07
 	github.com/hashicorp/go-retryablehttp v0.5.4
 	github.com/hashicorp/go-version v1.3.0
+	github.com/mattn/go-shellwords v1.0.12
 	github.com/mitchellh/go-ps v0.0.0-20190716172923-621e5597135b
 	github.com/nightlyone/lockfile v0.0.0-20180618180623-0ad87eef1443
 	github.com/olekukonko/tablewriter v0.0.5
@@ -34,8 +36,6 @@ require (
 	k8s.io/helm v2.16.10+incompatible
 	sigs.k8s.io/yaml v1.3.0
 )
-
-require github.com/evanphx/json-patch v4.12.0+incompatible
 
 require (
 	cloud.google.com/go/compute v1.5.0 // indirect
