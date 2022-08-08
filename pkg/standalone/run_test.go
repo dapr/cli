@@ -14,6 +14,7 @@ limitations under the License.
 package standalone
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -135,25 +136,28 @@ func TestRun(t *testing.T) {
 	// Setup the tearDown routine to run in the end.
 	defer tearDownRun(t)
 
-	basicConfig := &RunConfig{
-		AppID:              "MyID",
-		AppPort:            3000,
-		HTTPPort:           8000,
-		GRPCPort:           50001,
-		LogLevel:           "WARN",
-		Arguments:          []string{"MyCommand", "--my-arg"},
-		EnableProfiling:    false,
-		ProfilePort:        9090,
-		Protocol:           "http",
-		ComponentsPath:     DefaultComponentsDirPath(),
-		AppSSL:             true,
-		MetricsPort:        9001,
-		MaxRequestBodySize: -1,
-		HTTPReadBufferSize: -1,
-		EnableAPILogging:   true,
+	newConfig := func() *RunConfig {
+		return &RunConfig{
+			AppID:              "MyID",
+			AppPort:            3000,
+			HTTPPort:           8000,
+			GRPCPort:           50001,
+			LogLevel:           "WARN",
+			Arguments:          []string{"MyCommand", "--my-arg"},
+			EnableProfiling:    false,
+			ProfilePort:        9090,
+			Protocol:           "http",
+			ComponentsPath:     DefaultComponentsDirPath(),
+			AppSSL:             true,
+			MetricsPort:        9001,
+			MaxRequestBodySize: -1,
+			HTTPReadBufferSize: -1,
+			EnableAPILogging:   true,
+		}
 	}
 
 	t.Run("run happy http", func(t *testing.T) {
+		basicConfig := newConfig()
 		output, err := Run(basicConfig)
 		assert.Nil(t, err)
 
@@ -164,6 +168,7 @@ func TestRun(t *testing.T) {
 	})
 
 	t.Run("run without app command", func(t *testing.T) {
+		basicConfig := newConfig()
 		basicConfig.Arguments = nil
 		basicConfig.LogLevel = "INFO"
 		basicConfig.EnableAPILogging = true
@@ -177,6 +182,7 @@ func TestRun(t *testing.T) {
 	})
 
 	t.Run("run without port", func(t *testing.T) {
+		basicConfig := newConfig()
 		basicConfig.HTTPPort = -1
 		basicConfig.GRPCPort = -1
 		basicConfig.MetricsPort = -1
@@ -188,5 +194,22 @@ func TestRun(t *testing.T) {
 		assertArgumentNotEqual(t, "http-port", "-1", output.DaprCMD.Args)
 		assertArgumentNotEqual(t, "grpc-port", "-1", output.DaprCMD.Args)
 		assertArgumentNotEqual(t, "metrics-port", "-1", output.DaprCMD.Args)
+	})
+
+	t.Run("run with custom daprd flags", func(t *testing.T) {
+		basicConfig := newConfig()
+		basicConfig.DaprdFlags = "--log-as-json --app-port 4003"
+		output, err := Run(basicConfig)
+
+		assert.Nil(t, err)
+		assert.NotNil(t, output)
+
+		{
+			j, _ := json.Marshal(output.DaprCMD.Args)
+			fmt.Println(string(j))
+		}
+		assert.Equal(t, output.DaprCMD.Args[len(output.DaprCMD.Args)-3], "--log-as-json")
+		assert.Equal(t, output.DaprCMD.Args[len(output.DaprCMD.Args)-2], "--app-port")
+		assert.Equal(t, output.DaprCMD.Args[len(output.DaprCMD.Args)-1], "4003")
 	})
 }
