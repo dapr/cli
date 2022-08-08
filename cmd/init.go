@@ -131,7 +131,7 @@ dapr init --from-dir <path-to-directory>
 			if len(imageRegistryURI) != 0 {
 				warnForPrivateRegFeat()
 			}
-			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode, imageRegistryURL, fromDir, containerRuntime)
+			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode, imageRegistryURI, fromDir, containerRuntime)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)
