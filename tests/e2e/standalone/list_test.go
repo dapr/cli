@@ -44,10 +44,10 @@ func TestStandaloneList(t *testing.T) {
 		require.NoError(t, err, "dapr list failed")
 		listOutputCheck(t, output, true)
 
-		// output, err = cmdList("json")
-		// t.Log(output)
-		// require.NoError(t, err, "dapr list failed")
-		// listJsonOutputCheck(t, output)
+		output, err = cmdList("json")
+		t.Log(output)
+		require.NoError(t, err, "dapr list failed")
+		listJsonOutputCheck(t, output)
 
 		output, err = cmdList("yaml")
 		t.Log(output)
