@@ -18,6 +18,7 @@ package standalone_test
 
 import (
 	"fmt"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -64,6 +65,10 @@ func TestStandaloneRun(t *testing.T) {
 	})
 
 	t.Run("API shutdown with socket", func(t *testing.T) {
+		if runtime.GOOS == "windows" {
+			t.Skip("Skipping API shutdown with socket test in slim mode")
+		}
+
 		// Test that the CLI exits on a daprd shutdown.
 		output, err := cmdRun("/tmp", "--app-id", "testapp", "--", "bash", "-c", "curl --unix-socket /tmp/dapr-testapp-http.socket -v -X POST http://unix/v1.0/shutdown; sleep 10; exit 1")
 		t.Log(output)
