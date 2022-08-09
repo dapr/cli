@@ -70,4 +70,50 @@ func TestStandaloneRun(t *testing.T) {
 		require.NoError(t, err, "run failed")
 		assert.Contains(t, output, "Exited Dapr successfully")
 	})
+
+	t.Run(fmt.Sprintf("check enableAPILogging flag in enabled mode"), func(t *testing.T) {
+		args := []string{
+			"--app-id", "enableApiLogging_info",
+			"--enable-api-logging",
+			"--log-level", "info",
+			"--", "bash", "-c", "echo 'test'",
+		}
+
+		output, err := cmdRun("", args...)
+		t.Log(output)
+		require.NoError(t, err, "run failed")
+		assert.Contains(t, output, "level=info msg=\"HTTP API Called: PUT /v1.0/metadata/appCommand\"")
+		assert.Contains(t, output, "Exited App successfully")
+		assert.Contains(t, output, "Exited Dapr successfully")
+	})
+
+	t.Run(fmt.Sprintf("check enableAPILogging flag in disabled mode"), func(t *testing.T) {
+		args := []string{
+			"--app-id", "enableApiLogging_info",
+			"--", "bash", "-c", "echo 'test'",
+		}
+
+		output, err := cmdRun("", args...)
+		t.Log(output)
+		require.NoError(t, err, "run failed")
+		assert.Contains(t, output, "Exited App successfully")
+		assert.Contains(t, output, "Exited Dapr successfully")
+		assert.NotContains(t, output, "level=info msg=\"HTTP API Called: PUT /v1.0/metadata/appCommand\"")
+	})
+
+	t.Run(fmt.Sprintf("check run with log JSON enabled"), func(t *testing.T) {
+		args := []string{
+			"--app-id", "logjson",
+			"--log-as-json",
+			"--", "bash", "-c", "echo 'test'",
+		}
+		output, err := cmdRun("", args...)
+		t.Log(output)
+		require.NoError(t, err, "run failed")
+		assert.Contains(t, output, "{\"app_id\":\"logjson\"")
+		assert.Contains(t, output, "\"type\":\"log\"")
+		assert.Contains(t, output, "Exited App successfully")
+		assert.Contains(t, output, "Exited Dapr successfully")
+	})
+
 }
