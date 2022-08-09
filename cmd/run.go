@@ -16,13 +16,13 @@ package cmd
 import (
 	"bufio"
 	"fmt"
-	"net"
 	"os"
 	"runtime"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/phayes/freeport"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -39,6 +39,7 @@ var (
 	configFile         string
 	port               int
 	grpcPort           int
+	internalGRPCPort   int
 	maxConcurrency     int
 	enableProfiling    bool
 	logLevel           string
@@ -100,11 +101,15 @@ dapr run --app-id myapp --app-port 3000 --app-protocol grpc -- go run main.go
 			}
 		}
 
-		internalGrpcPort, err := getFreePort()
-		if err != nil {
-			print.FailureStatusEvent(os.Stderr, err.Error())
-			return
+		var err error
+		if internalGRPCPort <= 0 {
+			internalGRPCPort, err = freeport.GetFreePort()
+			if err != nil {
+				print.FailureStatusEvent(os.Stderr, err.Error())
+				return
+			}
 		}
+
 		output, err := standalone.Run(&standalone.RunConfig{
 			AppID:              appID,
 			AppPort:            appPort,
@@ -124,7 +129,7 @@ dapr run --app-id myapp --app-port 3000 --app-protocol grpc -- go run main.go
 			MaxRequestBodySize: maxRequestBodySize,
 			HTTPReadBufferSize: readBufferSize,
 			UnixDomainSocket:   unixDomainSocket,
-			InternalGRPCPort:   internalGrpcPort,
+			InternalGRPCPort:   internalGRPCPort,
 			EnableAPILogging:   enableAPILogging,
 		})
 		if err != nil {
@@ -362,6 +367,7 @@ func init() {
 	RunCmd.Flags().StringVarP(&configFile, "config", "c", standalone.DefaultConfigFilePath(), "Dapr configuration file")
 	RunCmd.Flags().IntVarP(&port, "dapr-http-port", "H", -1, "The HTTP port for Dapr to listen on")
 	RunCmd.Flags().IntVarP(&grpcPort, "dapr-grpc-port", "G", -1, "The gRPC port for Dapr to listen on")
+	RunCmd.Flags().IntVarP(&internalGRPCPort, "dapr-internal-grpc-port", "I", -1, "The gRPC port for the Dapr internal API to listen on")
 	RunCmd.Flags().BoolVar(&enableProfiling, "enable-profiling", false, "Enable pprof profiling via an HTTP endpoint")
 	RunCmd.Flags().IntVarP(&profilePort, "profile-port", "", -1, "The port for the profile server to listen on")
 	RunCmd.Flags().StringVarP(&logLevel, "log-level", "", "info", "The log verbosity. Valid values are: debug, info, warn, error, fatal, or panic")
@@ -378,19 +384,4 @@ func init() {
 	RunCmd.Flags().BoolVar(&enableAPILogging, "enable-api-logging", false, "Log API calls at INFO verbosity. Valid values are: true or false")
 
 	RootCmd.AddCommand(RunCmd)
-}
-
-// GetFreePort asks the kernel for a free open port that is ready to use.
-func getFreePort() (int, error) {
-	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
-	if err != nil {
-		return 0, err
-	}
-
-	l, err := net.ListenTCP("tcp", addr)
-	if err != nil {
-		return 0, err
-	}
-	defer l.Close()
-	return l.Addr().(*net.TCPAddr).Port, nil
 }
