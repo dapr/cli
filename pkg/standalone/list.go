@@ -121,8 +121,8 @@ func List() ([]ListOutput, error) {
 			// Get working directory of the process identified by "cliPID", so that we can resolve (relative) config paths.
 			appProcess, err := process.NewProcess(int32(cliPID))
 			if err == nil {
-				appCwd, err := appProcess.Cwd()
-				if err == nil {
+				appCwd, cwdErr := appProcess.Cwd()
+				if cwdErr == nil {
 					if !filepath.IsAbs(path) {
 						// Since user specified a relative path, we have to convert it to an absolute one.
 						absoluteConfigPath = filepath.Join(appCwd, path)
