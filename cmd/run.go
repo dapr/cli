@@ -38,6 +38,7 @@ var (
 	configFile         string
 	port               int
 	grpcPort           int
+	internalGRPCPort   int
 	maxConcurrency     int
 	enableProfiling    bool
 	logLevel           string
@@ -121,6 +122,7 @@ dapr run --app-id myapp --app-port 3000 --app-protocol grpc -- go run main.go
 			UnixDomainSocket:   unixDomainSocket,
 			EnableAPILogging:   enableAPILogging,
 			DaprdFlags:         daprdFlags,
+			InternalGRPCPort:   internalGRPCPort,
 		})
 		if err != nil {
 			print.FailureStatusEvent(os.Stderr, err.Error())
@@ -357,6 +359,7 @@ func init() {
 	RunCmd.Flags().StringVarP(&configFile, "config", "c", standalone.DefaultConfigFilePath(), "Dapr configuration file")
 	RunCmd.Flags().IntVarP(&port, "dapr-http-port", "H", -1, "The HTTP port for Dapr to listen on")
 	RunCmd.Flags().IntVarP(&grpcPort, "dapr-grpc-port", "G", -1, "The gRPC port for Dapr to listen on")
+	RunCmd.Flags().IntVarP(&internalGRPCPort, "dapr-internal-grpc-port", "I", -1, "The gRPC port for the Dapr internal API to listen on")
 	RunCmd.Flags().BoolVar(&enableProfiling, "enable-profiling", false, "Enable pprof profiling via an HTTP endpoint")
 	RunCmd.Flags().IntVarP(&profilePort, "profile-port", "", -1, "The port for the profile server to listen on")
 	RunCmd.Flags().StringVarP(&logLevel, "log-level", "", "info", "The log verbosity. Valid values are: debug, info, warn, error, fatal, or panic")

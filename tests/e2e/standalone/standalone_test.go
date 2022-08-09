@@ -466,6 +466,15 @@ func testRun(t *testing.T) {
 		require.NoError(t, err, "run failed")
 		assert.Contains(t, output, "Exited Dapr successfully")
 	})
+
+	t.Run("Use internal gRPC port if specified", func(t *testing.T) {
+		output, err := spawn.Command(daprPath, "run", "--app-id", "testapp", "--dapr-internal-grpc-port", "9999", "--", "bash", "-c", "echo test")
+		t.Log(output)
+		require.NoError(t, err, "run failed")
+		assert.Contains(t, output, "internal gRPC server is running on port 9999")
+		assert.Contains(t, output, "Exited App successfully")
+		assert.Contains(t, output, "Exited Dapr successfully")
+	})
 }
 
 func testRunEnableAPILogging(t *testing.T) {

@@ -14,7 +14,6 @@ limitations under the License.
 package standalone
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -91,6 +90,7 @@ func assertCommonArgs(t *testing.T, basicConfig *RunConfig, output *RunOutput) {
 	assertArgumentEqual(t, "app-ssl", "", output.DaprCMD.Args)
 	assertArgumentEqual(t, "metrics-port", "9001", output.DaprCMD.Args)
 	assertArgumentEqual(t, "dapr-http-max-request-size", "-1", output.DaprCMD.Args)
+	assertArgumentEqual(t, "dapr-internal-grpc-port", "5050", output.DaprCMD.Args)
 	assertArgumentEqual(t, "dapr-http-read-buffer-size", "-1", output.DaprCMD.Args)
 }
 
@@ -151,6 +151,7 @@ func TestRun(t *testing.T) {
 			AppSSL:             true,
 			MetricsPort:        9001,
 			MaxRequestBodySize: -1,
+			InternalGRPCPort:   5050,
 			HTTPReadBufferSize: -1,
 			EnableAPILogging:   true,
 		}
@@ -204,10 +205,6 @@ func TestRun(t *testing.T) {
 		assert.Nil(t, err)
 		assert.NotNil(t, output)
 
-		{
-			j, _ := json.Marshal(output.DaprCMD.Args)
-			fmt.Println(string(j))
-		}
 		assert.Equal(t, output.DaprCMD.Args[len(output.DaprCMD.Args)-3], "--log-as-json")
 		assert.Equal(t, output.DaprCMD.Args[len(output.DaprCMD.Args)-2], "--app-port")
 		assert.Equal(t, output.DaprCMD.Args[len(output.DaprCMD.Args)-1], "4003")

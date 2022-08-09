@@ -54,6 +54,7 @@ type RunConfig struct {
 	MaxRequestBodySize int    `arg:"dapr-http-max-request-size"`
 	HTTPReadBufferSize int    `arg:"dapr-http-read-buffer-size"`
 	UnixDomainSocket   string `arg:"unix-domain-socket"`
+	InternalGRPCPort   int    `arg:"dapr-internal-grpc-port"`
 	EnableAPILogging   bool   `arg:"enable-api-logging"`
 	DaprdFlags         string
 }
@@ -142,6 +143,11 @@ func (config *RunConfig) validate() error {
 	}
 
 	err = config.validatePort("MetricsPort", &config.MetricsPort, meta)
+	if err != nil {
+		return err
+	}
+
+	err = config.validatePort("InternalGRPCPort", &config.InternalGRPCPort, meta)
 	if err != nil {
 		return err
 	}
