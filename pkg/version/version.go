@@ -16,7 +16,7 @@ package version
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -25,6 +25,7 @@ import (
 	yaml "gopkg.in/yaml.v2"
 
 	"github.com/dapr/cli/pkg/print"
+	"github.com/dapr/cli/utils"
 )
 
 const (
@@ -75,7 +76,7 @@ func GetVersionFromURL(releaseURL string, parseVersion func(body []byte) (string
 		return "", err
 	}
 
-	githubToken := os.Getenv("GITHUB_TOKEN")
+	githubToken := utils.GetEnv("GITHUB_TOKEN", "")
 	if githubToken != "" {
 		req.Header.Add("Authorization", "token "+githubToken)
 	}
@@ -90,7 +91,7 @@ func GetVersionFromURL(releaseURL string, parseVersion func(body []byte) (string
 		return "", fmt.Errorf("%s - %s", releaseURL, resp.Status)
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}
