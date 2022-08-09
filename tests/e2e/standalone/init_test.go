@@ -35,24 +35,36 @@ import (
 
 func TestStandaloneInit(t *testing.T) {
 	// Ensure a clean environment
-	must(cmdUninstall, "failed to uninstall Dapr")
-
 	daprRuntimeVersion, daprDashboardVersion := common.GetVersionsFromEnv(t)
 
-	output, err := cmdInit(daprRuntimeVersion)
-	t.Log(output)
-	require.NoError(t, err, "init failed")
-	assert.Contains(t, output, "Success! Dapr is up and running.")
+	t.Run("init with invalid private registry", func(t *testing.T) {
+		if isSlimMode() {
+			t.Skip("Skipping init with private registry test because of slim installation")
+		}
 
-	homeDir, err := os.UserHomeDir()
-	require.NoError(t, err, "failed to get user home directory")
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+		output, err := cmdInit(daprRuntimeVersion, "--image-registry", "smplregistry.io/owner")
+		t.Log(output)
+		require.Error(t, err, "init failed")
+	})
 
-	daprPath := filepath.Join(homeDir, ".dapr")
-	require.DirExists(t, daprPath, "Directory %s does not exist", daprPath)
+	t.Run("init", func(t *testing.T) {
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+		output, err := cmdInit(daprRuntimeVersion)
+		t.Log(output)
+		require.NoError(t, err, "init failed")
+		assert.Contains(t, output, "Success! Dapr is up and running.")
 
-	verifyContainers(t, daprRuntimeVersion)
-	verifyBinaries(t, daprPath, daprRuntimeVersion, daprDashboardVersion)
-	verifyConfigs(t, daprPath)
+		homeDir, err := os.UserHomeDir()
+		require.NoError(t, err, "failed to get user home directory")
+
+		daprPath := filepath.Join(homeDir, ".dapr")
+		require.DirExists(t, daprPath, "Directory %s does not exist", daprPath)
+
+		verifyContainers(t, daprRuntimeVersion)
+		verifyBinaries(t, daprPath, daprRuntimeVersion, daprDashboardVersion)
+		verifyConfigs(t, daprPath)
+	})
 }
 
 // verifyContainers ensures that the correct containers are up and running.

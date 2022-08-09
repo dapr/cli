@@ -42,10 +42,9 @@ func getSocketCases() []string {
 }
 
 // must is a helper function that executes a function and expects it to succeed.
-func must(f func() (string, error), message string) {
-	if _, err := f(); err != nil {
-		panic(err.Error() + ": " + message)
-	}
+func must(t *testing.T, f func() (string, error), message string) {
+	_, err := f()
+	require.NoError(t, err, message)
 }
 
 // checkAndOverWriteFile writes content to file if it does not exist.
