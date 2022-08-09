@@ -22,7 +22,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/phayes/freeport"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -101,15 +100,6 @@ dapr run --app-id myapp --app-port 3000 --app-protocol grpc -- go run main.go
 			}
 		}
 
-		var err error
-		if internalGRPCPort <= 0 {
-			internalGRPCPort, err = freeport.GetFreePort()
-			if err != nil {
-				print.FailureStatusEvent(os.Stderr, err.Error())
-				return
-			}
-		}
-
 		output, err := standalone.Run(&standalone.RunConfig{
 			AppID:              appID,
 			AppPort:            appPort,
@@ -129,8 +119,8 @@ dapr run --app-id myapp --app-port 3000 --app-protocol grpc -- go run main.go
 			MaxRequestBodySize: maxRequestBodySize,
 			HTTPReadBufferSize: readBufferSize,
 			UnixDomainSocket:   unixDomainSocket,
-			InternalGRPCPort:   internalGRPCPort,
 			EnableAPILogging:   enableAPILogging,
+			InternalGRPCPort:   internalGRPCPort,
 		})
 		if err != nil {
 			print.FailureStatusEvent(os.Stderr, err.Error())

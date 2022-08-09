@@ -145,6 +145,11 @@ func (config *RunConfig) validate() error {
 		return err
 	}
 
+	err = config.validatePort("InternalGRPCPort", &config.InternalGRPCPort, meta)
+	if err != nil {
+		return err
+	}
+
 	if config.EnableProfiling {
 		err = config.validatePort("ProfilePort", &config.ProfilePort, meta)
 		if err != nil {
