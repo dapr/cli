@@ -765,15 +765,21 @@ func testInvoke(t *testing.T) {
 }
 
 func listOutputCheck(t *testing.T, output string) {
-	lines := strings.Split(output, "\n")[1:] // remove header
+	lines := strings.Split(output, "\n")
+
+	// get the table header and its' body
+	header := strings.Fields(lines[0])
+	content := lines[1:]
+
 	// only one app is runnning at this time
-	fields := strings.Fields(lines[0])
+	fields := strings.Fields(content[0])
 	// Fields splits on space, so Created time field might be split again
 	assert.GreaterOrEqual(t, len(fields), 4, "expected at least 4 fields in components outptu")
 	assert.Equal(t, "dapr_e2e_list", fields[0], "expected name to match")
 	assert.Equal(t, "3555", fields[1], "expected http port to match")
 	assert.Equal(t, "4555", fields[2], "expected grpc port to match")
 	assert.Equal(t, "0", fields[3], "expected app port to match")
+	assert.True(t, !contains(header, "configPath"), "configPath property should not be exposed in tabular output")
 }
 
 func listJsonOutputCheck(t *testing.T, output string) {
@@ -787,6 +793,8 @@ func listJsonOutputCheck(t *testing.T, output string) {
 	assert.Equal(t, 3555, int(result["httpPort"].(float64)), "expected http port to match")
 	assert.Equal(t, 4555, int(result["grpcPort"].(float64)), "expected grpc port to match")
 	assert.Equal(t, 0, int(result["appPort"].(float64)), "expected app port to match")
+	assert.NotNil(t, result["configPath"], "expected configPath to be present")
+	assert.FileExists(t, string(result["configPath"].(string)), "expected a valid path")
 }
 
 func listYamlOutputCheck(t *testing.T, output string) {
@@ -800,4 +808,15 @@ func listYamlOutputCheck(t *testing.T, output string) {
 	assert.Equal(t, 3555, result["httpPort"], "expected http port to match")
 	assert.Equal(t, 4555, result["grpcPort"], "expected grpc port to match")
 	assert.Equal(t, 0, result["appPort"], "expected app port to match")
+	assert.NotNil(t, result["configPath"], "expected configPath to be present")
+	assert.FileExists(t, string(result["configPath"].(string)), "expected a valid path")
+}
+
+func contains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
 }
