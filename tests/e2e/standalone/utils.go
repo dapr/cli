@@ -1,3 +1,6 @@
+//go:build e2e
+// +build e2e
+
 /*
 Copyright 2022 The Dapr Authors
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,9 +25,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dapr/cli/tests/e2e/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/dapr/cli/tests/e2e/common"
 )
 
 // getSocketCases return different unix socket paths for testing across Dapr commands.
