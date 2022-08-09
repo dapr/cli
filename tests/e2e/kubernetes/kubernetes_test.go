@@ -313,6 +313,37 @@ func TestRenewCertWithPrivateKey(t *testing.T) {
 	}
 }
 
+func TestKubernetesUninstall(t *testing.T) {
+	// ensure clean env for test
+	ensureCleanEnv(t)
+
+	tests := []common.TestCase{}
+	var installOpts = common.TestOptions{
+		HAEnabled:             false,
+		MTLSEnabled:           true,
+		ApplyComponentChanges: true,
+		CheckResourceExists: map[common.Resource]bool{
+			common.CustomResourceDefs:  true,
+			common.ClusterRoles:        true,
+			common.ClusterRoleBindings: true,
+		},
+	}
+
+	tests = append(tests, common.GetTestsOnInstall(currentVersionDetails, installOpts)...)
+	// setup tests
+	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
+		CheckResourceExists: map[common.Resource]bool{
+			common.CustomResourceDefs:  true,
+			common.ClusterRoles:        false,
+			common.ClusterRoleBindings: false,
+		},
+	})...)
+
+	for _, tc := range tests {
+		t.Run(tc.Name, tc.Callable)
+	}
+}
+
 func TestRenewCertWithIncorrectFlags(t *testing.T) {
 	common.EnsureUninstall(true)
 
