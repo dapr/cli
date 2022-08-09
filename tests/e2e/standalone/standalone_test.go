@@ -21,6 +21,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -47,6 +48,20 @@ var (
 )
 
 var socketCases = []string{"", "/tmp"}
+
+var tempConfigFile = `apiVersion: dapr.io/v1alpha1
+kind: Configuration
+metadata:
+  name: daprConfigDalleApi
+  namespace: default
+spec:
+  tracing:
+    samplingRate: "1"
+    zipkin:
+      endpointAddress: "http://localhost:9411/api/v2/spans"
+  metrics:
+    enabled: true
+`
 
 func TestStandaloneInstall(t *testing.T) {
 	// Ensure a clean environment.
@@ -565,6 +580,14 @@ func executeAgainstRunningDapr(t *testing.T, f func(), daprArgs ...string) {
 }
 
 func testList(t *testing.T) {
+	// Prepare next tests by creating a temporary config file
+	file, err := ioutil.TempFile("", "config.*.yaml")
+	require.NoError(t, err, "error creating temporary config file")
+	defer os.Remove(file.Name())
+
+	// Make sure to write its' content
+	file.WriteString(tempConfigFile)
+
 	executeAgainstRunningDapr(t, func() {
 		output, err := spawn.Command(getDaprPath(), "list")
 		t.Log(output)
@@ -579,7 +602,7 @@ func testList(t *testing.T) {
 		output, err = spawn.Command(getDaprPath(), "list", "-o", "json")
 		t.Log(output)
 		require.NoError(t, err, "dapr list failed")
-		listJsonOutputCheck(t, output)
+		listJsonOutputCheck(t, output, "")
 
 		output, err = spawn.Command(getDaprPath(), "list", "-o", "yaml")
 		t.Log(output)
@@ -596,6 +619,19 @@ func testList(t *testing.T) {
 		require.NoError(t, err, "dapr stop failed")
 		assert.Contains(t, output, "app stopped successfully: dapr_e2e_list")
 	}, "run", "--app-id", "dapr_e2e_list", "-H", "3555", "-G", "4555", "--", "bash", "-c", "sleep 10 ; exit 0")
+
+	// Check whether the "configPath" property matches what user specified as a command line argument.
+	executeAgainstRunningDapr(t, func() {
+		output, err := spawn.Command(getDaprPath(), "list")
+		t.Log(output)
+		require.NoError(t, err, "dapr list failed")
+		listOutputCheck(t, output, true)
+
+		output, err = spawn.Command(getDaprPath(), "list", "-o", "json")
+		t.Log(output)
+		require.NoError(t, err, "dapr list failed")
+		listJsonOutputCheck(t, output, file.Name())
+	}, "--config", file.Name(), "run", "--app-id", "dapr_e2e_list", "-H", "3555", "-G", "4555", "--", "bash", "-c", "sleep 10 ; exit 0")
 
 	t.Run("daprd instance in list", func(t *testing.T) {
 		homeDir, err := os.UserHomeDir()
@@ -869,7 +905,7 @@ func listOutputCheck(t *testing.T, output string, isCli bool) {
 	assert.True(t, !contains(header, "configPath"), "configPath property should not be exposed in tabular output")
 }
 
-func listJsonOutputCheck(t *testing.T, output string) {
+func listJsonOutputCheck(t *testing.T, output string, configPath string) {
 	var result map[string]interface{}
 
 	err := json.Unmarshal([]byte(output), &result)
@@ -882,6 +918,10 @@ func listJsonOutputCheck(t *testing.T, output string) {
 	assert.Equal(t, 0, int(result["appPort"].(float64)), "expected app port to match")
 	assert.NotNil(t, result["configPath"], "expected configPath to be present")
 	assert.FileExists(t, string(result["configPath"].(string)), "expected a valid path")
+
+	if configPath != "" {
+		assert.Equal(t, configPath, string(result["configPath"].(string)), "expected path to match")
+	}
 }
 
 func listYamlOutputCheck(t *testing.T, output string) {
