@@ -16,7 +16,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"runtime"
 
@@ -58,7 +57,7 @@ dapr publish --publish-app-id myapp --pubsub target --topic sample --data '{"key
 		}
 
 		if publishPayloadFile != "" {
-			bytePayload, err = ioutil.ReadFile(publishPayloadFile)
+			bytePayload, err = os.ReadFile(publishPayloadFile)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, "Error reading payload from '%s'. Error: %s", publishPayloadFile, err)
 				os.Exit(1)
