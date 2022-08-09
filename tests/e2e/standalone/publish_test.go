@@ -22,7 +22,6 @@ import (
 	"net/http"
 	"testing"
 
-	testCommon "github.com/dapr/cli/tests/e2e/common"
 	"github.com/dapr/go-sdk/service/common"
 	daprHttp "github.com/dapr/go-sdk/service/http"
 	"github.com/stretchr/testify/assert"
@@ -30,9 +29,7 @@ import (
 )
 
 func TestStandalonePublish(t *testing.T) {
-	daprRuntimeVersion, _ := testCommon.GetVersionsFromEnv(t)
-	err := ensureDaprIsInstalled(daprRuntimeVersion)
-	require.NoError(t, err, "failed to ensure a Dapr installation")
+	ensureDaprInstallation(t)
 
 	sub := &common.Subscription{
 		PubsubName: "pubsub",
@@ -53,7 +50,7 @@ func TestStandalonePublish(t *testing.T) {
 
 	events := make(chan *common.TopicEvent)
 
-	err = s.AddTopicEventHandler(sub, func(ctx context.Context, e *common.TopicEvent) (retry bool, err error) {
+	err := s.AddTopicEventHandler(sub, func(ctx context.Context, e *common.TopicEvent) (retry bool, err error) {
 		events <- e
 		return false, nil
 	})

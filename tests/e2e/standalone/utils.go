@@ -123,31 +123,27 @@ func executeAgainstRunningDapr(t *testing.T, f func(), daprArgs ...string) {
 	assert.Contains(t, daprOutput, "Exited Dapr successfully")
 }
 
-// ensureDaprIsInstalled ensures that Dapr is installed.
-// If Dapr is not installed, a new installation is attempted with runtimeVersion.
-func ensureDaprIsInstalled(runtimeVersion string) error {
+// ensureDaprInstallation ensures that Dapr is installed.
+// If Dapr is not installed, a new installation is attempted.
+func ensureDaprInstallation(t *testing.T) {
+	daprRuntimeVersion, _ := common.GetVersionsFromEnv(t)
 	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
+	require.NoError(t, err, "failed to get user home directory")
 
 	daprPath := filepath.Join(homeDir, ".dapr")
 	_, err = os.Stat(daprPath)
 	if os.IsNotExist(err) {
-		_, err = cmdInit(runtimeVersion)
-		if err != nil {
-			return err
-		}
+		_, err = cmdInit(daprRuntimeVersion)
+		require.NoError(t, err, "failed to install dapr")
 	} else if err != nil {
 		// Some other error occurred.
-		return err
+		require.NoError(t, err, "failed to stat dapr installation")
 	}
 
 	// Slim mode does not have any components by default.
 	// Install the components required by the tests.
 	if isSlimMode() {
-		return createSlimComponents(filepath.Join(daprPath, "components"))
+		err = createSlimComponents(filepath.Join(daprPath, "components"))
+		require.NoError(t, err, "failed to create components")
 	}
-
-	return nil
 }

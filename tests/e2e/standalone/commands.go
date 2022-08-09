@@ -38,9 +38,15 @@ func cmdInit(runtimeVersion string, args ...string) (string, error) {
 	return spawn.Command(common.GetDaprPath(), args...)
 }
 
-// cmdUninstall uninstalls Dapr with --all flag and returns the command output and error.
-func cmdUninstall() (string, error) {
-	return spawn.Command(common.GetDaprPath(), "uninstall", "--log-as-json", "--all")
+// cmdInvoke invokes a method on the specified app and returns the command output and error.
+func cmdInvoke(appId, method, unixDomainSocket string, args ...string) (string, error) {
+	args = append([]string{"invoke", "--log-as-json", "--app-id", appId, "--method", method}, args...)
+
+	if unixDomainSocket != "" {
+		args = append(args, "--unix-domain-socket", unixDomainSocket)
+	}
+
+	return spawn.Command(common.GetDaprPath(), args...)
 }
 
 // cmdPublish publishes a message to the specified pubsub and topic, and returns the command output and error.
@@ -57,4 +63,21 @@ func cmdPublish(appId, pubsub, topic, unixDomainSocket string, args ...string) (
 // cmdStop stops the specified app and returns the command output and error.
 func cmdStop(appId string) (string, error) {
 	return spawn.Command(common.GetDaprPath(), "stop", "--log-as-json", "--app-id", appId)
+}
+
+// cmdUninstall uninstalls Dapr with --all flag and returns the command output and error.
+func cmdUninstall() (string, error) {
+	return spawn.Command(common.GetDaprPath(), "uninstall", "--log-as-json", "--all")
+}
+
+// cmdVersion checks the version of Dapr and returns the command output and error.
+// format can be empty or "json"
+func cmdVersion(format string) (string, error) {
+	args := []string{"version"}
+
+	if format != "" {
+		args = append(args, "-o", format)
+	}
+
+	return spawn.Command(common.GetDaprPath(), args...)
 }
