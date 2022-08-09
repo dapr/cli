@@ -83,7 +83,9 @@ func List() ([]ListOutput, error) {
 			}
 
 			httpPort := getIntArg(argumentsMap, "--dapr-http-port", runtime.DefaultDaprHTTPPort)
+
 			grpcPort := getIntArg(argumentsMap, "--dapr-grpc-port", runtime.DefaultDaprAPIGRPCPort)
+
 			appPort := getIntArg(argumentsMap, "--app-port", 0)
 
 			enableMetrics, err := strconv.ParseBool(argumentsMap["--enable-metrics"])
@@ -93,6 +95,7 @@ func List() ([]ListOutput, error) {
 			}
 
 			maxRequestBodySize := getIntArg(argumentsMap, "--dapr-http-max-request-size", runtime.DefaultMaxRequestBodySize)
+
 			httpReadBufferSize := getIntArg(argumentsMap, "--dapr-http-read-buffer-size", runtime.DefaultReadBufferSize)
 
 			appID := argumentsMap["--app-id"]
