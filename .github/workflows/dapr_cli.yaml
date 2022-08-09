@@ -37,21 +37,21 @@ jobs:
       ARCHIVE_OUTDIR: dist/archives
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macOS-latest]
+        os: [ubuntu-latest, windows-latest, macOS-10.15]
         target_arch: [arm, arm64, amd64]
         include:
           - os: ubuntu-latest
             target_os: linux
           - os: windows-latest
             target_os: windows
-          - os: macOS-latest
+          - os: macOS-10.15
             target_os: darwin
         exclude:
           - os: windows-latest
             target_arch: arm
           - os: windows-latest
             target_arch: arm64
-          - os: macOS-latest
+          - os: macOS-10.15
             target_arch: arm
     steps:
       - name: Set up Go ${{ env.GOVER }}

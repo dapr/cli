@@ -19,7 +19,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"time"
 
@@ -72,15 +71,15 @@ func RenewCertificate(conf RenewCertificateParams) error {
 }
 
 func parseCertificateFiles(rootCert, issuerCert, issuerKey string) ([]byte, []byte, []byte, error) {
-	rootCertBytes, err := ioutil.ReadFile(rootCert)
+	rootCertBytes, err := os.ReadFile(rootCert)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	issuerCertBytes, err := ioutil.ReadFile(issuerCert)
+	issuerCertBytes, err := os.ReadFile(issuerCert)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	issuerKeyBytes, err := ioutil.ReadFile(issuerKey)
+	issuerKeyBytes, err := os.ReadFile(issuerKey)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -150,7 +149,7 @@ func createHelmParamsForNewCertificates(ca, issuerCert, issuerKey string) (map[s
 func GenerateNewCertificates(validUntil time.Duration, privateKeyFile string) ([]byte, []byte, []byte, error) {
 	var rootKey *ecdsa.PrivateKey
 	if privateKeyFile != "" {
-		privateKeyBytes, err := ioutil.ReadFile(privateKeyFile)
+		privateKeyBytes, err := os.ReadFile(privateKeyFile)
 		if err != nil {
 			return nil, nil, nil, err
 		}
