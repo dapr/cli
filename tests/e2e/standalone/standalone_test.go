@@ -21,7 +21,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -581,7 +580,7 @@ func executeAgainstRunningDapr(t *testing.T, f func(), daprArgs ...string) {
 
 func testList(t *testing.T) {
 	// Prepare next tests by creating a temporary config file
-	file, err := ioutil.TempFile("", "config.*.yaml")
+	file, err := os.CreateTemp("", "config.*.yaml")
 	require.NoError(t, err, "error creating temporary config file")
 	defer os.Remove(file.Name())
 
