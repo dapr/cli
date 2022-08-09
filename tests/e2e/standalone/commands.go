@@ -49,6 +49,18 @@ func cmdInvoke(appId, method, unixDomainSocket string, args ...string) (string, 
 	return spawn.Command(common.GetDaprPath(), args...)
 }
 
+// cmdList lists the running dapr instances and returns the command output and error.
+// format can be empty, "table", "json", or "yaml"
+func cmdList(output string) (string, error) {
+	args := []string{"list"}
+
+	if output != "" {
+		args = append(args, "-o", output)
+	}
+
+	return spawn.Command(common.GetDaprPath(), args...)
+}
+
 // cmdPublish publishes a message to the specified pubsub and topic, and returns the command output and error.
 func cmdPublish(appId, pubsub, topic, unixDomainSocket string, args ...string) (string, error) {
 	args = append([]string{"publish", "--log-as-json", "--publish-app-id", appId, "--pubsub", pubsub, "--topic", topic}, args...)
@@ -71,12 +83,12 @@ func cmdUninstall() (string, error) {
 }
 
 // cmdVersion checks the version of Dapr and returns the command output and error.
-// format can be empty or "json"
-func cmdVersion(format string) (string, error) {
+// output can be empty or "json"
+func cmdVersion(output string) (string, error) {
 	args := []string{"version"}
 
-	if format != "" {
-		args = append(args, "-o", format)
+	if output != "" {
+		args = append(args, "-o", output)
 	}
 
 	return spawn.Command(common.GetDaprPath(), args...)
