@@ -16,8 +16,58 @@ limitations under the License.
 
 package standalone_test
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
 
 func TestStandaloneRun(t *testing.T) {
+	ensureDaprInstallation(t)
 
+	for _, path := range getSocketCases() {
+		t.Run(fmt.Sprintf("normal exit, socket: %s", path), func(t *testing.T) {
+			output, err := cmdRun(path, "--", "bash", "-c", "echo test")
+			t.Log(output)
+			require.NoError(t, err, "run failed")
+			assert.Contains(t, output, "Exited App successfully")
+			assert.Contains(t, output, "Exited Dapr successfully")
+		})
+
+		t.Run(fmt.Sprintf("error exit, socket: %s", path), func(t *testing.T) {
+			output, err := cmdRun(path, "--", "bash", "-c", "exit 1")
+			t.Log(output)
+			require.Error(t, err, "run failed")
+			assert.Contains(t, output, "The App process exited with error code: exit status 1")
+			assert.Contains(t, output, "Exited Dapr successfully")
+		})
+
+		t.Run("Use internal gRPC port if specified", func(t *testing.T) {
+			output, err := cmdRun(path, "--dapr-internal-grpc-port", "9999", "--", "bash", "-c", "echo test")
+			t.Log(output)
+			require.NoError(t, err, "run failed")
+			assert.Contains(t, output, "internal gRPC server is running on port 9999")
+			assert.Contains(t, output, "Exited App successfully")
+			assert.Contains(t, output, "Exited Dapr successfully")
+		})
+	}
+
+	t.Run("API shutdown without socket", func(t *testing.T) {
+		// Test that the CLI exits on a daprd shutdown.
+		output, err := cmdRun("", "--dapr-http-port", "9999", "--", "bash", "-c", "curl -v -X POST http://localhost:9999/v1.0/shutdown; sleep 10; exit 1")
+		t.Log(output)
+		require.NoError(t, err, "run failed")
+		assert.Contains(t, output, "Exited App successfully", "App should be shutdown before it has a chance to return non-zero")
+		assert.Contains(t, output, "Exited Dapr successfully")
+	})
+
+	t.Run("API shutdown with socket", func(t *testing.T) {
+		// Test that the CLI exits on a daprd shutdown.
+		output, err := cmdRun("/tmp", "--app-id", "testapp", "--", "bash", "-c", "curl --unix-socket /tmp/dapr-testapp-http.socket -v -X POST http://unix/v1.0/shutdown; sleep 10; exit 1")
+		t.Log(output)
+		require.NoError(t, err, "run failed")
+		assert.Contains(t, output, "Exited Dapr successfully")
+	})
 }

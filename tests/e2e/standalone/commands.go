@@ -72,6 +72,18 @@ func cmdPublish(appId, pubsub, topic, unixDomainSocket string, args ...string) (
 	return spawn.Command(common.GetDaprPath(), args...)
 }
 
+// cmdRun runs a Dapr instance and returns the command output and error.
+func cmdRun(unixDomainSocket string, args ...string) (string, error) {
+	runArgs := append([]string{"run"})
+	if unixDomainSocket != "" {
+		runArgs = append(runArgs, "--unix-domain-socket", unixDomainSocket)
+	}
+
+	args = append(runArgs, args...)
+
+	return spawn.Command(common.GetDaprPath(), args...)
+}
+
 // cmdStop stops the specified app and returns the command output and error.
 func cmdStop(appId string) (string, error) {
 	return spawn.Command(common.GetDaprPath(), "stop", "--log-as-json", "--app-id", appId)
