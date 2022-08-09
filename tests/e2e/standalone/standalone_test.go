@@ -21,7 +21,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -395,7 +394,7 @@ func verifyArtifactsAfterInstall(t *testing.T) {
 	for filename, contents := range configs {
 		t.Run(filename, func(t *testing.T) {
 			fullpath := filepath.Join(path, filename)
-			contentBytes, err := ioutil.ReadFile(fullpath)
+			contentBytes, err := os.ReadFile(fullpath)
 			if !assert.NoError(t, err) {
 				return
 			}

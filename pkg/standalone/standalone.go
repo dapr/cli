@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -688,7 +687,7 @@ func createSlimConfiguration(wg *sync.WaitGroup, errorChan chan<- error, info in
 func makeDefaultComponentsDir() error {
 	// Make default components directory.
 	componentsDir := DefaultComponentsDirPath()
-	//nolint
+	// nolint
 	_, err := os.Stat(componentsDir)
 	if os.IsNotExist(err) {
 		errDir := os.MkdirAll(componentsDir, 0o755)
@@ -813,7 +812,7 @@ func untar(reader io.Reader, targetDir string, binaryFilePrefix string) (string,
 	foundBinary := ""
 	for {
 		header, err := tr.Next()
-		//nolint
+		// nolint
 		if err == io.EOF {
 			break
 		} else if err != nil {
@@ -862,7 +861,7 @@ func moveFileToPath(filepath string, installLocation string) (string, error) {
 	destDir := installLocation
 	destFilePath = path.Join(destDir, fileName)
 
-	input, err := ioutil.ReadFile(filepath)
+	input, err := os.ReadFile(filepath)
 	if err != nil {
 		return "", err
 	}
@@ -873,7 +872,7 @@ func moveFileToPath(filepath string, installLocation string) (string, error) {
 	}
 
 	// #nosec G306
-	if err = ioutil.WriteFile(destFilePath, input, 0o644); err != nil {
+	if err = os.WriteFile(destFilePath, input, 0o644); err != nil {
 		if runtime.GOOS != daprWindowsOS && strings.Contains(err.Error(), "permission denied") {
 			err = errors.New(err.Error() + " - please run with sudo")
 		}
@@ -994,7 +993,7 @@ func checkAndOverWriteFile(filePath string, b []byte) error {
 	_, err := os.Stat(filePath)
 	if os.IsNotExist(err) {
 		// #nosec G306
-		if err = ioutil.WriteFile(filePath, b, 0o644); err != nil {
+		if err = os.WriteFile(filePath, b, 0o644); err != nil {
 			return err
 		}
 	}
@@ -1091,7 +1090,8 @@ func downloadFile(dir string, url string) (string, error) {
 	return filepath, nil
 }
 
-/*!
+/*
+!
 See: https://github.com/microsoft/vscode-winsta11er/blob/4b42060da64aea6f47adebe1dd654980ed87a046/common/common.go
 Copyright (c) Microsoft Corporation. All rights reserved. Licensed under the MIT License.
 */
