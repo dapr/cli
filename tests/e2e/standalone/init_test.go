@@ -35,6 +35,8 @@ import (
 
 func TestStandaloneInit(t *testing.T) {
 	// Ensure a clean environment
+	must(t, cmdUninstall, "failed to uninstall Dapr")
+
 	daprRuntimeVersion, daprDashboardVersion := common.GetVersionsFromEnv(t)
 
 	t.Run("init with invalid private registry", func(t *testing.T) {
@@ -49,7 +51,6 @@ func TestStandaloneInit(t *testing.T) {
 	})
 
 	t.Run("init", func(t *testing.T) {
-		must(t, cmdUninstall, "failed to uninstall Dapr")
 		output, err := cmdInit(daprRuntimeVersion)
 		t.Log(output)
 		require.NoError(t, err, "init failed")

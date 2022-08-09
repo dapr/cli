@@ -29,24 +29,28 @@ import (
 //
 // Arguments to the init command can be passed via args.
 func cmdInit(runtimeVersion string, args ...string) (string, error) {
-	args = append([]string{"init", "--log-as-json", "--runtime-version", runtimeVersion}, args...)
+	initArgs := []string{"init", "--log-as-json", "--runtime-version", runtimeVersion}
 
 	if isSlimMode() {
-		args = append(args, "--slim")
+		initArgs = append(initArgs, "--slim")
 	}
 
-	return spawn.Command(common.GetDaprPath(), args...)
+	initArgs = append(initArgs, args...)
+
+	return spawn.Command(common.GetDaprPath(), initArgs...)
 }
 
 // cmdInvoke invokes a method on the specified app and returns the command output and error.
 func cmdInvoke(appId, method, unixDomainSocket string, args ...string) (string, error) {
-	args = append([]string{"invoke", "--log-as-json", "--app-id", appId, "--method", method}, args...)
+	invokeArgs := []string{"invoke", "--log-as-json", "--app-id", appId, "--method", method}
 
 	if unixDomainSocket != "" {
-		args = append(args, "--unix-domain-socket", unixDomainSocket)
+		invokeArgs = append(invokeArgs, "--unix-domain-socket", unixDomainSocket)
 	}
 
-	return spawn.Command(common.GetDaprPath(), args...)
+	invokeArgs = append(invokeArgs, args...)
+
+	return spawn.Command(common.GetDaprPath(), invokeArgs...)
 }
 
 // cmdList lists the running dapr instances and returns the command output and error.
@@ -63,25 +67,28 @@ func cmdList(output string) (string, error) {
 
 // cmdPublish publishes a message to the specified pubsub and topic, and returns the command output and error.
 func cmdPublish(appId, pubsub, topic, unixDomainSocket string, args ...string) (string, error) {
-	args = append([]string{"publish", "--log-as-json", "--publish-app-id", appId, "--pubsub", pubsub, "--topic", topic}, args...)
+	publishArgs := []string{"publish", "--log-as-json", "--publish-app-id", appId, "--pubsub", pubsub, "--topic", topic}
 
 	if unixDomainSocket != "" {
-		args = append(args, "--unix-domain-socket", unixDomainSocket)
+		publishArgs = append(publishArgs, "--unix-domain-socket", unixDomainSocket)
 	}
 
-	return spawn.Command(common.GetDaprPath(), args...)
+	publishArgs = append(publishArgs, args...)
+
+	return spawn.Command(common.GetDaprPath(), publishArgs...)
 }
 
 // cmdRun runs a Dapr instance and returns the command output and error.
 func cmdRun(unixDomainSocket string, args ...string) (string, error) {
 	runArgs := append([]string{"run"})
+
 	if unixDomainSocket != "" {
 		runArgs = append(runArgs, "--unix-domain-socket", unixDomainSocket)
 	}
 
-	args = append(runArgs, args...)
+	runArgs = append(runArgs, args...)
 
-	return spawn.Command(common.GetDaprPath(), args...)
+	return spawn.Command(common.GetDaprPath(), runArgs...)
 }
 
 // cmdStop stops the specified app and returns the command output and error.
