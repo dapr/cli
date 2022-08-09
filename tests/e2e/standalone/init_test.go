@@ -50,6 +50,12 @@ func TestStandaloneInit(t *testing.T) {
 		require.Error(t, err, "init failed")
 	})
 
+	t.Run("init should error if both --from-dir and --image-registry are given", func(t *testing.T) {
+		output, err := cmdInit(daprRuntimeVersion, "--image-registry", "localhost:5000", "--from-dir", "./local-dir")
+		require.Error(t, err, "expected error if both flags are given")
+		require.Contains(t, output, "both --image-registry and --from-dir flags cannot be given at the same time")
+	})
+
 	t.Run("init", func(t *testing.T) {
 		output, err := cmdInit(daprRuntimeVersion)
 		t.Log(output)

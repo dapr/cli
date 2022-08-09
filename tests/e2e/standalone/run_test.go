@@ -121,4 +121,11 @@ func TestStandaloneRun(t *testing.T) {
 		assert.Contains(t, output, "Exited Dapr successfully")
 	})
 
+	t.Run("run with unknown flags", func(t *testing.T) {
+		output, err := cmdRun("", "--flag")
+		require.Error(t, err, "expected error on run unknown flag")
+		require.Contains(t, output, "Error: unknown flag: --flag\nUsage:", "expected usage to be printed")
+		require.Contains(t, output, "-a, --app-id string", "expected usage to be printed")
+		require.Contains(t, output, "The id for your application, used for service discovery", "expected usage to be printed")
+	})
 }

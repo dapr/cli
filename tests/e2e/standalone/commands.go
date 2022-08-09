@@ -21,6 +21,11 @@ import (
 	"github.com/dapr/cli/tests/e2e/spawn"
 )
 
+// cmdDashboard runs the Dapr dashboard and returns the command output and error.
+func cmdDashboard(port string) (string, error) {
+	return spawn.Command(common.GetDaprPath(), "dashboard", "--port", port)
+}
+
 // cmdInit installs Dapr with the init command and returns the command output and error.
 //
 // When DAPR_E2E_INIT_SLIM is true, it will install Dapr without Docker containers.
@@ -92,8 +97,9 @@ func cmdRun(unixDomainSocket string, args ...string) (string, error) {
 }
 
 // cmdStop stops the specified app and returns the command output and error.
-func cmdStop(appId string) (string, error) {
-	return spawn.Command(common.GetDaprPath(), "stop", "--log-as-json", "--app-id", appId)
+func cmdStop(appId string, args ...string) (string, error) {
+	stopArgs := append([]string{"stop", "--log-as-json", "--app-id", appId}, args...)
+	return spawn.Command(common.GetDaprPath(), stopArgs...)
 }
 
 // cmdUninstall uninstalls Dapr with --all flag and returns the command output and error.

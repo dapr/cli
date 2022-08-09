@@ -16,9 +16,51 @@ limitations under the License.
 
 package standalone_test
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
 
 func TestStandaloneInitNegatives(t *testing.T) {
 	// Ensure a clean environment
 	must(t, cmdUninstall, "failed to uninstall Dapr")
+
+	homeDir, err := os.UserHomeDir()
+	require.NoError(t, err, "expected no error on querying for os home dir")
+
+	t.Run("run without install", func(t *testing.T) {
+		output, err := cmdRun("")
+		require.Error(t, err, "expected error status on run without install")
+		path := filepath.Join(homeDir, ".dapr", "components")
+		require.Contains(t, output, path+": no such file or directory", "expected output to contain message")
+	})
+
+	t.Run("list without install", func(t *testing.T) {
+		output, err := cmdList("")
+		require.NoError(t, err, "expected no error status on list without install")
+		require.Equal(t, "No Dapr instances found.\n", output)
+	})
+
+	t.Run("stop without install", func(t *testing.T) {
+		output, err := cmdStop("test")
+		require.NoError(t, err, "expected no error on stop without install")
+		require.Contains(t, output, "failed to stop app id test: couldn't find app id test", "expected output to match")
+	})
+
+	t.Run("uninstall without install", func(t *testing.T) {
+		output, err := cmdUninstall()
+		require.NoError(t, err, "expected no error on uninstall without install")
+		require.Contains(t, output, "Removing Dapr from your machine...", "expected output to contain message")
+		path := filepath.Join(homeDir, ".dapr", "bin")
+		require.Contains(t, output, "WARNING: "+path+" does not exist", "expected output to contain message")
+		require.Contains(t, output, "WARNING: dapr_placement container does not exist", "expected output to contain message")
+		require.Contains(t, output, "WARNING: dapr_redis container does not exist", "expected output to contain message")
+		require.Contains(t, output, "WARNING: dapr_zipkin container does not exist", "expected output to contain message")
+		path = filepath.Join(homeDir, ".dapr")
+		require.Contains(t, output, "WARNING: "+path+" does not exist", "expected output to contain message")
+		require.Contains(t, output, "Dapr has been removed successfully")
+	})
 }

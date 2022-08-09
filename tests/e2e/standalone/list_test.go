@@ -96,6 +96,13 @@ func TestStandaloneList(t *testing.T) {
 
 		cmd.Process.Kill()
 	})
+
+	t.Run("dashboard instance should not be listed", func(t *testing.T) {
+		cmdDashboard("5555")
+		output, err := cmdList("")
+		require.NoError(t, err, "expected no error status on list")
+		require.Equal(t, "No Dapr instances found.\n", output)
+	})
 }
 
 func listOutputCheck(t *testing.T, output string, isCli bool) {
