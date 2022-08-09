@@ -13,7 +13,29 @@ limitations under the License.
 
 package standalone
 
-import "os"
+import (
+	"bufio"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"strings"
+	"testing"
+
+	"github.com/dapr/cli/tests/e2e/common"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+// getSocketCases return different unix socket paths for testing across Dapr commands.
+// If the tests are being run on Windows, it returns an empty array.
+func getSocketCases() []string {
+	if runtime.GOOS == "windows" {
+		return []string{""}
+	} else {
+		return []string{"", "/tmp"}
+	}
+}
 
 // must is a helper function that executes a function and expects it to succeed.
 func must(f func() (string, error), message string) {
@@ -22,7 +44,106 @@ func must(f func() (string, error), message string) {
 	}
 }
 
+// checkAndOverWriteFile writes content to file if it does not exist.
+func checkAndOverWriteFile(filePath string, b []byte) error {
+	_, err := os.Stat(filePath)
+	if os.IsNotExist(err) {
+		// #nosec G306
+		if err = os.WriteFile(filePath, b, 0o644); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // isSlimMode returns true if DAPR_E2E_INIT_SLIM is set to true.
 func isSlimMode() bool {
 	return os.Getenv("DAPR_E2E_INIT_SLIM") == "true"
+}
+
+// createSlimComponents creates default state store and pubsub components in path.
+func createSlimComponents(path string) error {
+	components := map[string]string{
+		"pubsub.yaml": `apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+    name: pubsub
+spec:
+    type: pubsub.in-memory
+    version: v1
+    metadata: []`,
+		"statestore.yaml": `apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+    name: statestore
+spec:
+    type: state.in-memory
+    version: v1
+    metadata: []`,
+	}
+
+	for fileName, content := range components {
+		fullPath := filepath.Join(path, fileName)
+		if err := checkAndOverWriteFile(fullPath, []byte(content)); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// executeAgainstRunningDapr runs a function against a running Dapr instance.
+// If Dapr or the App throws an error, the test is marked as failed.
+func executeAgainstRunningDapr(t *testing.T, f func(), daprArgs ...string) {
+	daprPath := common.GetDaprPath()
+
+	cmd := exec.Command(daprPath, daprArgs...)
+	reader, _ := cmd.StdoutPipe()
+	scanner := bufio.NewScanner(reader)
+
+	cmd.Start()
+
+	daprOutput := ""
+	for scanner.Scan() {
+		outputChunk := scanner.Text()
+		t.Log(outputChunk)
+		if strings.Contains(outputChunk, "You're up and running!") {
+			f()
+		}
+		daprOutput += outputChunk
+	}
+
+	err := cmd.Wait()
+	require.NoError(t, err, "dapr didn't exit cleanly")
+	assert.NotContains(t, daprOutput, "The App process exited with error code: exit status", "Stop command should have been called before the app had a chance to exit")
+	assert.Contains(t, daprOutput, "Exited Dapr successfully")
+}
+
+// ensureDaprIsInstalled ensures that Dapr is installed.
+// If Dapr is not installed, a new installation is attempted with runtimeVersion.
+func ensureDaprIsInstalled(runtimeVersion string) error {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+
+	daprPath := filepath.Join(homeDir, ".dapr")
+	_, err = os.Stat(daprPath)
+	if os.IsNotExist(err) {
+		_, err = cmdInit(runtimeVersion)
+		if err != nil {
+			return err
+		}
+	} else if err != nil {
+		// Some other error occurred.
+		return err
+	}
+
+	// Slim mode does not have any components by default.
+	// Install the components required by the tests.
+	if isSlimMode() {
+		return createSlimComponents(filepath.Join(daprPath, "components"))
+	}
+
+	return nil
 }

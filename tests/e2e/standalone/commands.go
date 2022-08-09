@@ -39,3 +39,19 @@ func cmdInit(runtimeVersion string, args ...string) (string, error) {
 func cmdUninstall() (string, error) {
 	return spawn.Command(common.GetDaprPath(), "uninstall", "--log-as-json", "--all")
 }
+
+// cmdPublish publishes a message to the specified pubsub and topic, and returns the command output and error.
+func cmdPublish(appId, pubsub, topic, unixDomainSocket string, args ...string) (string, error) {
+	args = append([]string{"publish", "--log-as-json", "--publish-app-id", appId, "--pubsub", pubsub, "--topic", topic}, args...)
+
+	if unixDomainSocket != "" {
+		args = append(args, "--unix-domain-socket", unixDomainSocket)
+	}
+
+	return spawn.Command(common.GetDaprPath(), args...)
+}
+
+// cmdStop stops the specified app and returns the command output and error.
+func cmdStop(appId string) (string, error) {
+	return spawn.Command(common.GetDaprPath(), "stop", "--log-as-json", "--app-id", appId)
+}
