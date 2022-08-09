@@ -56,45 +56,47 @@ func TestStandaloneInit(t *testing.T) {
 // Note, in case of slim installation, the containers are not installed and
 // this test is automatically skipped.
 func verifyContainers(t *testing.T, daprRuntimeVersion string) {
-	if isSlimMode() {
-		t.Skip("Skipping container verification because of slim installation")
-	}
-
-	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv)
-	require.NoError(t, err)
-
-	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{})
-	require.NoError(t, err)
-
-	daprContainers := map[string]string{
-		"dapr_placement": daprRuntimeVersion,
-		"dapr_zipkin":    "",
-		"dapr_redis":     "",
-	}
-
-	for _, container := range containers {
-		t.Logf("Found container: %v %s %s\n", container.Names, container.Image, container.State)
-		if container.State != "running" {
-			continue
+	t.Run("verifyContainers", func(t *testing.T) {
+		if isSlimMode() {
+			t.Skip("Skipping container verification because of slim installation")
 		}
-		name := strings.TrimPrefix(container.Names[0], "/")
-		if expectedVersion, ok := daprContainers[name]; ok {
-			if expectedVersion != "" {
-				versionIndex := strings.LastIndex(container.Image, ":")
-				if versionIndex == -1 {
-					continue
-				}
-				version := container.Image[versionIndex+1:]
-				if version != expectedVersion {
-					continue
-				}
+
+		cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv)
+		require.NoError(t, err)
+
+		containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{})
+		require.NoError(t, err)
+
+		daprContainers := map[string]string{
+			"dapr_placement": daprRuntimeVersion,
+			"dapr_zipkin":    "",
+			"dapr_redis":     "",
+		}
+
+		for _, container := range containers {
+			t.Logf("Found container: %v %s %s\n", container.Names, container.Image, container.State)
+			if container.State != "running" {
+				continue
 			}
+			name := strings.TrimPrefix(container.Names[0], "/")
+			if expectedVersion, ok := daprContainers[name]; ok {
+				if expectedVersion != "" {
+					versionIndex := strings.LastIndex(container.Image, ":")
+					if versionIndex == -1 {
+						continue
+					}
+					version := container.Image[versionIndex+1:]
+					if version != expectedVersion {
+						continue
+					}
+				}
 
-			delete(daprContainers, name)
+				delete(daprContainers, name)
+			}
 		}
-	}
 
-	assert.Empty(t, daprContainers, "Missing containers: %v", daprContainers)
+		assert.Empty(t, daprContainers, "Missing containers: %v", daprContainers)
+	})
 }
 
 // verifyBinaries ensures that the correct binaries are present in the correct path.
@@ -125,6 +127,19 @@ func verifyBinaries(t *testing.T, daprPath, runtimeVersion, dashboardVersion str
 // verifyConfigs ensures that the Dapr configuration and component YAMLs
 // are present in the correct path and have the correct values.
 func verifyConfigs(t *testing.T, daprPath string) {
+	configSpec := map[interface{}]interface{}{}
+	// tracing is not enabled in slim mode by default.
+	if !isSlimMode() {
+		configSpec = map[interface{}]interface{}{
+			"tracing": map[interface{}]interface{}{
+				"samplingRate": "1",
+				"zipkin": map[interface{}]interface{}{
+					"endpointAddress": "http://localhost:9411/api/v2/spans",
+				},
+			},
+		}
+	}
+
 	configs := map[string]map[string]interface{}{
 		"config.yaml": {
 			"apiVersion": "dapr.io/v1alpha1",
@@ -132,16 +147,13 @@ func verifyConfigs(t *testing.T, daprPath string) {
 			"metadata": map[interface{}]interface{}{
 				"name": "daprConfig",
 			},
-			"spec": map[interface{}]interface{}{
-				"tracing": map[interface{}]interface{}{
-					"samplingRate": "1",
-					"zipkin": map[interface{}]interface{}{
-						"endpointAddress": "http://localhost:9411/api/v2/spans",
-					},
-				},
-			},
+			"spec": configSpec,
 		},
-		filepath.Join("components", "statestore.yaml"): {
+	}
+
+	// The default components are not installed in slim mode.
+	if !isSlimMode() {
+		configs[filepath.Join("components", "statestore.yaml")] = map[string]interface{}{
 			"apiVersion": "dapr.io/v1alpha1",
 			"kind":       "Component",
 			"metadata": map[interface{}]interface{}{
@@ -165,8 +177,8 @@ func verifyConfigs(t *testing.T, daprPath string) {
 					},
 				},
 			},
-		},
-		filepath.Join("components", "pubsub.yaml"): {
+		}
+		configs[filepath.Join("components", "pubsub.yaml")] = map[string]interface{}{
 			"apiVersion": "dapr.io/v1alpha1",
 			"kind":       "Component",
 			"metadata": map[interface{}]interface{}{
@@ -186,7 +198,7 @@ func verifyConfigs(t *testing.T, daprPath string) {
 					},
 				},
 			},
-		},
+		}
 	}
 
 	for fileName, expected := range configs {
