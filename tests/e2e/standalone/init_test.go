@@ -140,6 +140,10 @@ func verifyBinaries(t *testing.T, daprPath, runtimeVersion, dashboardVersion str
 		"dashboard": dashboardVersion,
 	}
 
+	if isSlimMode() {
+		binaries["placement"] = ""
+	}
+
 	for bin, version := range binaries {
 		t.Run("verifyBinaries/"+bin, func(t *testing.T) {
 			file := filepath.Join(binPath, bin)
@@ -148,9 +152,11 @@ func verifyBinaries(t *testing.T, daprPath, runtimeVersion, dashboardVersion str
 			}
 			require.FileExists(t, file, "File %s does not exist", file)
 
-			output, err := spawn.Command(file, "--version")
-			require.NoError(t, err, "failed to get version of %s", file)
-			assert.Contains(t, output, version)
+			if version != "" {
+				output, err := spawn.Command(file, "--version")
+				require.NoError(t, err, "failed to get version of %s", file)
+				assert.Contains(t, output, version)
+			}
 		})
 	}
 }
