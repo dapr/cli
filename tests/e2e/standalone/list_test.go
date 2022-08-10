@@ -98,8 +98,12 @@ func TestStandaloneList(t *testing.T) {
 	})
 
 	t.Run("dashboard instance should not be listed", func(t *testing.T) {
-		cmdDashboard("5555")
-		output, err := cmdList("")
+		if isSlimMode() {
+			t.Skip("skipping test in slim mode")
+		}
+		output, err := cmdDashboard("5555")
+		t.Log(output)
+		output, err = cmdList("")
 		require.NoError(t, err, "expected no error status on list")
 		require.Equal(t, "No Dapr instances found.\n", output)
 	})
