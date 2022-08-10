@@ -17,13 +17,27 @@ limitations under the License.
 package standalone_test
 
 import (
+	"context"
+	"errors"
+	"strings"
+
 	"github.com/dapr/cli/tests/e2e/common"
 	"github.com/dapr/cli/tests/e2e/spawn"
 )
 
-// cmdDashboard runs the Dapr dashboard and returns the command output and error.
-func cmdDashboard(port string) (string, error) {
-	return spawn.Command(common.GetDaprPath(), "dashboard", "--port", port)
+// cmdDashboard runs the Dapr dashboard and blocks until it is started.
+// If the context is done, the dashboard is stopped.
+func cmdDashboard(ctx context.Context, port string) error {
+	stdOutChan, err := spawn.CommandWithContext(ctx, common.GetDaprPath(), "dashboard", "--port", port)
+	if err != nil {
+		return err
+	}
+	for output := range stdOutChan {
+		if strings.Contains(output, "Dapr Dashboard running on") {
+			return nil
+		}
+	}
+	return errors.New("Dashboard could not be started")
 }
 
 // cmdInit installs Dapr with the init command and returns the command output and error.

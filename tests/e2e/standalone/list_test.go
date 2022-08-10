@@ -17,6 +17,7 @@ limitations under the License.
 package standalone_test
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"os/exec"
@@ -98,14 +99,16 @@ func TestStandaloneList(t *testing.T) {
 	})
 
 	t.Run("dashboard instance should not be listed", func(t *testing.T) {
-		if isSlimMode() {
-			t.Skip("skipping test in slim mode")
-		}
-		go cmdDashboard("5555")
+		ctx, cancelFunc := context.WithCancel(context.Background())
+		err := cmdDashboard(ctx, "5555")
+		require.NoError(t, err, "dapr dashboard failed")
+
 		output, err := cmdList("")
 		t.Log(output)
 		require.NoError(t, err, "expected no error status on list")
 		require.Equal(t, "No Dapr instances found.\n", output)
+
+		cancelFunc()
 	})
 }
 
