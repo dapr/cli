@@ -69,8 +69,10 @@ func verifyNoContainers(t *testing.T) {
 	for _, container := range containers {
 		t.Logf("Found container %v %s %s\n", container.Names, container.Image, container.State)
 		name := strings.TrimPrefix(container.Names[0], "/")
+		// No deletes are expected since Dapr containers should not be running.
 		delete(daprContainers, name)
 	}
 
+	// If any Dapr containers are still running after uninstall, this assertion will fail.
 	assert.Equal(t, 3, len(daprContainers), "Found Dapr containers still running")
 }

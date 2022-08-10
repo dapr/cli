@@ -100,6 +100,8 @@ func TestStandaloneList(t *testing.T) {
 
 	t.Run("dashboard instance should not be listed", func(t *testing.T) {
 		ctx, cancelFunc := context.WithCancel(context.Background())
+		defer cancelFunc()
+
 		err := cmdDashboard(ctx, "5555")
 		require.NoError(t, err, "dapr dashboard failed")
 
@@ -107,8 +109,6 @@ func TestStandaloneList(t *testing.T) {
 		t.Log(output)
 		require.NoError(t, err, "expected no error status on list")
 		require.Equal(t, "No Dapr instances found.\n", output)
-
-		cancelFunc()
 	})
 }
 
