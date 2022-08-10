@@ -18,6 +18,7 @@ package standalone_test
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -145,4 +146,13 @@ func ensureDaprInstallation(t *testing.T) {
 		err = createSlimComponents(filepath.Join(daprPath, "components"))
 		require.NoError(t, err, "failed to create components")
 	}
+}
+
+func containerRuntime() string {
+	if daprContainerRuntime, ok := os.LookupEnv("CONTAINER_RUNTIME"); ok {
+		fmt.Println(daprContainerRuntime + "=================")
+		return daprContainerRuntime
+	}
+	fmt.Println("defauly env==========")
+	return ""
 }

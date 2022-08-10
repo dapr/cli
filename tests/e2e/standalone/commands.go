@@ -1,6 +1,3 @@
-//go:build e2e
-// +build e2e
-
 /*
 Copyright 2022 The Dapr Authors
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -49,11 +46,15 @@ func cmdDashboard(ctx context.Context, port string) error {
 // Arguments to the init command can be passed via args.
 func cmdInit(runtimeVersion string, args ...string) (string, error) {
 	initArgs := []string{"init", "--log-as-json", "--runtime-version", runtimeVersion}
+	daprContainerRuntime := containerRuntime()
 
 	if isSlimMode() {
 		initArgs = append(initArgs, "--slim")
 	}
 
+	if daprContainerRuntime != "" {
+		initArgs = append(initArgs, "--container-runtime", daprContainerRuntime)
+	}
 	initArgs = append(initArgs, args...)
 
 	return spawn.Command(common.GetDaprPath(), initArgs...)
@@ -118,6 +119,10 @@ func cmdStop(appId string, args ...string) (string, error) {
 
 // cmdUninstall uninstalls Dapr with --all flag and returns the command output and error.
 func cmdUninstall() (string, error) {
+	daprContainerRuntime := containerRuntime()
+	if daprContainerRuntime != "" {
+		return spawn.Command(common.GetDaprPath(), "uninstall", "--container-runtime", daprContainerRuntime, "--all")
+	}
 	return spawn.Command(common.GetDaprPath(), "uninstall", "--all")
 }
 
