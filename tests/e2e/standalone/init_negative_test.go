@@ -19,6 +19,7 @@ package standalone_test
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -35,7 +36,11 @@ func TestStandaloneInitNegatives(t *testing.T) {
 		output, err := cmdRun("")
 		require.Error(t, err, "expected error status on run without install")
 		path := filepath.Join(homeDir, ".dapr", "components")
-		require.Contains(t, output, path+": no such file or directory", "expected output to contain message")
+		if runtime.GOOS == "windows" {
+			require.Contains(t, output, path+": The system cannot find the path specified")
+		} else {
+			require.Contains(t, output, path+": no such file or directory", "expected output to contain message")
+		}
 	})
 
 	t.Run("list without install", func(t *testing.T) {

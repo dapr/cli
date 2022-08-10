@@ -104,7 +104,7 @@ func cmdStop(appId string, args ...string) (string, error) {
 
 // cmdUninstall uninstalls Dapr with --all flag and returns the command output and error.
 func cmdUninstall() (string, error) {
-	return spawn.Command(common.GetDaprPath(), "uninstall", "--log-as-json", "--all")
+	return spawn.Command(common.GetDaprPath(), "uninstall", "--all")
 }
 
 // cmdVersion checks the version of Dapr and returns the command output and error.
