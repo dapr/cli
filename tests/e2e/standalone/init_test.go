@@ -34,9 +34,6 @@ import (
 )
 
 func TestStandaloneInit(t *testing.T) {
-	// Ensure a clean environment
-	must(t, cmdUninstall, "failed to uninstall Dapr")
-
 	daprRuntimeVersion, daprDashboardVersion := common.GetVersionsFromEnv(t)
 
 	t.Run("init with invalid private registry", func(t *testing.T) {
@@ -44,7 +41,9 @@ func TestStandaloneInit(t *testing.T) {
 			t.Skip("Skipping init with private registry test because of slim installation")
 		}
 
+		// Ensure a clean environment
 		must(t, cmdUninstall, "failed to uninstall Dapr")
+
 		output, err := cmdInit(daprRuntimeVersion, "--image-registry", "smplregistry.io/owner")
 		t.Log(output)
 		require.Error(t, err, "init failed")
@@ -54,12 +53,19 @@ func TestStandaloneInit(t *testing.T) {
 		if isSlimMode() {
 			t.Skip("Skipping init with --image-registry and --from-dir test because of slim installation")
 		}
+
+		// Ensure a clean environment
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+
 		output, err := cmdInit(daprRuntimeVersion, "--image-registry", "localhost:5000", "--from-dir", "./local-dir")
 		require.Error(t, err, "expected error if both flags are given")
 		require.Contains(t, output, "both --image-registry and --from-dir flags cannot be given at the same time")
 	})
 
 	t.Run("init", func(t *testing.T) {
+		// Ensure a clean environment
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+
 		output, err := cmdInit(daprRuntimeVersion)
 		t.Log(output)
 		require.NoError(t, err, "init failed")
