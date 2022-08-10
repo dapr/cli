@@ -47,8 +47,8 @@ func must(t *testing.T, f func() (string, error), message string) {
 	require.NoError(t, err, message)
 }
 
-// checkAndOverWriteFile writes content to file if it does not exist.
-func checkAndOverWriteFile(filePath string, b []byte) error {
+// checkAndWriteFile writes content to file if it does not exist.
+func checkAndWriteFile(filePath string, b []byte) error {
 	_, err := os.Stat(filePath)
 	if os.IsNotExist(err) {
 		// #nosec G306
@@ -87,7 +87,7 @@ spec:
 
 	for fileName, content := range components {
 		fullPath := filepath.Join(path, fileName)
-		if err := checkAndOverWriteFile(fullPath, []byte(content)); err != nil {
+		if err := checkAndWriteFile(fullPath, []byte(content)); err != nil {
 			return err
 		}
 	}

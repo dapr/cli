@@ -49,6 +49,10 @@ func TestStandaloneUninstall(t *testing.T) {
 
 // verifyNoContainers verifies that no Dapr containers are running.
 func verifyNoContainers(t *testing.T) {
+	if isSlimMode() {
+		t.Skip("Skipping verifyNoContainers test in slim mode")
+	}
+
 	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv)
 	require.NoError(t, err)
 

@@ -66,7 +66,7 @@ func TestStandaloneRun(t *testing.T) {
 
 	t.Run("API shutdown with socket", func(t *testing.T) {
 		if runtime.GOOS == "windows" {
-			t.Skip("Skipping API shutdown with socket test in slim mode")
+			t.Skip("Skipping API shutdown with socket test in Windows")
 		}
 
 		// Test that the CLI exits on a daprd shutdown.
