@@ -101,9 +101,9 @@ func TestStandaloneList(t *testing.T) {
 		if isSlimMode() {
 			t.Skip("skipping test in slim mode")
 		}
-		output, err := cmdDashboard("5555")
+		go cmdDashboard("5555")
+		output, err := cmdList("")
 		t.Log(output)
-		output, err = cmdList("")
 		require.NoError(t, err, "expected no error status on list")
 		require.Equal(t, "No Dapr instances found.\n", output)
 	})
