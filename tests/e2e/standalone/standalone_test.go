@@ -606,7 +606,7 @@ func testList(t *testing.T) {
 		output, err = spawn.Command(getDaprPath(), "list", "-o", "yaml")
 		t.Log(output)
 		require.NoError(t, err, "dapr list failed")
-		listYamlOutputCheck(t, output)
+		listYamlOutputCheck(t, output, "")
 
 		output, err = spawn.Command(getDaprPath(), "list", "-o", "invalid")
 		t.Log(output)
@@ -630,6 +630,11 @@ func testList(t *testing.T) {
 		t.Log(output)
 		require.NoError(t, err, "dapr list failed")
 		listJsonOutputCheck(t, output, file.Name())
+
+		output, err = spawn.Command(getDaprPath(), "list", "-o", "yaml")
+		t.Log(output)
+		require.NoError(t, err, "dapr list failed")
+		listYamlOutputCheck(t, output, file.Name())
 	}, "--config", file.Name(), "run", "--app-id", "dapr_e2e_list", "-H", "3555", "-G", "4555", "--", "bash", "-c", "sleep 10 ; exit 0")
 
 	t.Run("daprd instance in list", func(t *testing.T) {
@@ -904,7 +909,7 @@ func listOutputCheck(t *testing.T, output string, isCli bool) {
 	assert.True(t, !contains(header, "configPath"), "configPath property should not be exposed in tabular output")
 }
 
-func listJsonOutputCheck(t *testing.T, output string, configPath string) {
+func listJsonOutputCheck(t *testing.T, output string, expectedConfigPath string) {
 	var result map[string]interface{}
 
 	err := json.Unmarshal([]byte(output), &result)
@@ -918,12 +923,12 @@ func listJsonOutputCheck(t *testing.T, output string, configPath string) {
 	assert.NotNil(t, result["configPath"], "expected configPath to be present")
 	assert.FileExists(t, string(result["configPath"].(string)), "expected a valid path")
 
-	if configPath != "" {
-		assert.Equal(t, configPath, string(result["configPath"].(string)), "expected path to match")
+	if expectedConfigPath != "" {
+		assert.Equal(t, expectedConfigPath, string(result["configPath"].(string)), "expected path to match")
 	}
 }
 
-func listYamlOutputCheck(t *testing.T, output string) {
+func listYamlOutputCheck(t *testing.T, output string, expectedConfigPath string) {
 	var result map[string]interface{}
 
 	err := yaml.Unmarshal([]byte(output), &result)
@@ -936,6 +941,10 @@ func listYamlOutputCheck(t *testing.T, output string) {
 	assert.Equal(t, 0, result["appPort"], "expected app port to match")
 	assert.NotNil(t, result["configPath"], "expected configPath to be present")
 	assert.FileExists(t, string(result["configPath"].(string)), "expected a valid path")
+
+	if expectedConfigPath != "" {
+		assert.Equal(t, expectedConfigPath, string(result["configPath"].(string)), "expected path to match")
+	}
 }
 
 func contains(s []string, e string) bool {
