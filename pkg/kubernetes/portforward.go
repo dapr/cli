@@ -15,7 +15,7 @@ package kubernetes
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -102,8 +102,8 @@ func (pf *PortForward) run() error {
 		return err
 	}
 
-	out := ioutil.Discard
-	errOut := ioutil.Discard
+	out := io.Discard
+	errOut := io.Discard
 	if pf.EmitLogs {
 		out = os.Stdout
 		errOut = os.Stderr

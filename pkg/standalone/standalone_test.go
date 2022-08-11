@@ -14,7 +14,6 @@ limitations under the License.
 package standalone
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -38,7 +37,7 @@ spec:
 		os.Remove(testFile)
 		createDefaultConfiguration("test_zipkin_host", testFile)
 		assert.FileExists(t, testFile)
-		content, err := ioutil.ReadFile(testFile)
+		content, err := os.ReadFile(testFile)
 		assert.NoError(t, err)
 		assert.Equal(t, expectConfigZipkin, string(content))
 	})
@@ -53,7 +52,7 @@ spec: {}
 		os.Remove(testFile)
 		createDefaultConfiguration("", testFile)
 		assert.FileExists(t, testFile)
-		content, err := ioutil.ReadFile(testFile)
+		content, err := os.ReadFile(testFile)
 		assert.NoError(t, err)
 		assert.Equal(t, expectConfigSlim, string(content))
 	})

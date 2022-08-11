@@ -18,38 +18,42 @@ on:
     branches:
       - master
       - release-*
+    paths-ignore:
+      - '**.md'
   schedule:
     - cron: '0 */3 * * *'
-    - cron: '0 0 * * *'
+    - cron: '0 */6 * * *'
   pull_request:
     branches:
       - master
       - 'release-*'
+    paths-ignore:
+      - '**.md'
 
 jobs:
   self-hosted-e2e:
     name: Run Self-Hosted E2E tests in ${{ matrix.target_os }}_${{ matrix.target_arch }}
     runs-on: ${{ matrix.os }}
     env:
-      GOVER: 1.17
+      GOVER: 1.18
       GOOS: ${{ matrix.target_os }}
       GOARCH: ${{ matrix.target_arch }}
       GOPROXY: https://proxy.golang.org
       ARCHIVE_OUTDIR: dist/archives
-      DAPR_RUNTIME_VERSION: "1.7.0"
+      DAPR_RUNTIME_VERSION: "1.8.0"
       DAPR_DASHBOARD_VERSION: 0.10.0
       DAPR_TGZ: dapr-1.7.0.tgz
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [macos-10.15, ubuntu-latest, windows-latest]
         target_arch: [amd64]
         include:
           - os: ubuntu-latest
             target_os: linux
-          - os: macOS-latest
+          - os: macOS-10.15
             target_os: darwin
-            #- os: windows-latest
-            #target_os: windows
+          - os: windows-latest
+            target_os: windows
     steps:
       - name: Set up Go ${{ env.GOVER }}
         uses: actions/setup-go@v2
@@ -58,11 +62,13 @@ jobs:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
       - name: Install docker - MacOS
-        if: matrix.os == 'macos-latest'
-        uses: docker-practice/actions-setup-docker@1.0.8
-        with:
-          docker_buildx: false
-          docker_version: 20.10
+        if: matrix.os == 'macos-10.15'
+        run: |
+          brew install --cask docker
+          sudo /Applications/Docker.app/Contents/MacOS/Docker --unattended --install-privileged-components
+          open -a /Applications/Docker.app --args --unattended --accept-license
+          while ! /Applications/Docker.app/Contents/Resources/bin/docker info &>/dev/null; do sleep 1; done
+          docker --version
       - name: Determine latest Dapr Runtime version including Pre-releases
         if: github.base_ref == 'master'
         run: |
@@ -78,10 +84,11 @@ jobs:
           echo "Found $DASHBOARD_VERSION"
         shell: bash
       - name: Run E2E tests with GHCR
-        # only runs once in a day
-        if: github.event.schedule == '0 0 * * *'
+        # runs every 6hrs
+        if: github.event.schedule == '0 */6 * * *'
         env:
           DAPR_DEFAULT_IMAGE_REGISTRY: ghcr
+          DAPR_E2E_INIT_SLIM: ${{ contains(matrix.os, 'windows-latest') }}
         run: |
           export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-standalone.json
           echo "TEST_OUTPUT_FILE=$TEST_OUTPUT_FILE" >> $GITHUB_ENV
@@ -89,7 +96,9 @@ jobs:
           make e2e-build-run-sh
         shell: bash
       - name: Run E2E tests with Docker hub
-        if: github.event.schedule != '0 0 * * *'
+        if: github.event.schedule != '0 */6 * * *'
+        env:
+          DAPR_E2E_INIT_SLIM: ${{ contains(matrix.os, 'windows-latest') }}
         run: |
           export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-standalone.json
           echo "TEST_OUTPUT_FILE=$TEST_OUTPUT_FILE" >> $GITHUB_ENV

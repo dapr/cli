@@ -44,13 +44,28 @@ func TestHAMode(t *testing.T) {
 }
 
 func TestMTLSChartValues(t *testing.T) {
-	val, err := upgradeChartValues("1", "2", "3", true, true, []string{})
+	args := []string{}
+	mockUpgradeConfig := UpgradeConfig{
+		RuntimeVersion:   "mocker_version_1.0.0",
+		Args:             args,
+		Timeout:          0,
+		ImageRegistryURI: "",
+	}
+
+	val, err := upgradeChartValues("1", "2", "3", true, true, mockUpgradeConfig)
 	assert.NoError(t, err)
 	assert.Len(t, val, 2)
 }
 
 func TestArgsChartValues(t *testing.T) {
-	val, err := upgradeChartValues("1", "2", "3", true, true, []string{"a=b", "b=c"})
+	args := []string{"a=b", "c=d"}
+	mockUpgradeConfig := UpgradeConfig{
+		RuntimeVersion:   "mocker_version_1.0.0",
+		Args:             args,
+		Timeout:          0,
+		ImageRegistryURI: "",
+	}
+	val, err := upgradeChartValues("1", "2", "3", true, true, mockUpgradeConfig)
 	assert.NoError(t, err)
 	assert.Len(t, val, 4)
 }
