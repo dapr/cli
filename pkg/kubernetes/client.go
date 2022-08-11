@@ -15,14 +15,10 @@ package kubernetes
 
 import (
 	"flag"
-	"fmt"
-	"os"
-	"path/filepath"
-	"runtime"
-	"strings"
 	"sync"
 
 	k8s "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 
 	scheme "github.com/dapr/dapr/pkg/client/clientset/versioned"
 
@@ -38,7 +34,6 @@ import (
 	//  openstack auth
 	_ "k8s.io/client-go/plugin/pkg/client/auth/openstack"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 var (
@@ -47,37 +42,31 @@ var (
 )
 
 func init() {
-	if home := homeDir(); home != "" {
-		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
-	} else {
-		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
-	}
+	kubeconfig = flag.String(clientcmd.RecommendedConfigPathFlag, "", "absolute path to the kubeconfig file")
 }
 
 func getConfig() (*rest.Config, error) {
 	doOnce.Do(func() {
 		flag.Parse()
 	})
-	kubeConfigEnv := os.Getenv("KUBECONFIG")
-	kubeConfigDelimiter := ":"
-	if runtime.GOOS == "windows" {
-		kubeConfigDelimiter = ";"
-	}
-	delimiterBelongsToPath := strings.Count(*kubeconfig, kubeConfigDelimiter) == 1 && strings.EqualFold(*kubeconfig, kubeConfigEnv)
 
-	if len(kubeConfigEnv) != 0 && !delimiterBelongsToPath {
-		kubeConfigs := strings.Split(kubeConfigEnv, kubeConfigDelimiter)
-		if len(kubeConfigs) > 1 {
-			return nil, fmt.Errorf("multiple kubeconfigs in KUBECONFIG environment variable - %s", kubeConfigEnv)
+	if *kubeconfig != "" {
+		// Load `kubeconfig` from command line clientcmd.RecommendedConfigPathFlag(e.g. kubeconfig).
+		config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
+		if err != nil {
+			return nil, err
 		}
-		kubeconfig = &kubeConfigs[0]
+		return config, err
 	}
 
-	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
+	// Load `kubeconfig` from clientcmd.RecommendedConfigPathEnvVar(e.g. KUBECONFIG) or clientcmd.RecommendedHomeFile (e.g. %HOME/.kube/config).
+	configLoadRules := clientcmd.NewDefaultClientConfigLoadingRules()
+	startingConfig, err := configLoadRules.GetStartingConfig()
 	if err != nil {
 		return nil, err
 	}
-	return config, nil
+	config, err := clientcmd.NewDefaultClientConfig(*startingConfig, nil).ClientConfig()
+	return config, err
 }
 
 // GetKubeConfigClient returns the kubeconfig and the client created from the kubeconfig.
@@ -109,11 +98,4 @@ func DaprClient() (scheme.Interface, error) {
 		return nil, err
 	}
 	return scheme.NewForConfig(config)
-}
-
-func homeDir() string {
-	if h := os.Getenv("HOME"); h != "" {
-		return h
-	}
-	return os.Getenv("USERPROFILE") // windows.
 }

@@ -19,12 +19,12 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/dapr/cli/pkg/print"
 	"golang.org/x/sys/windows"
+
+	"github.com/dapr/cli/pkg/print"
 )
 
 func setupShutdownNotify(sigCh chan os.Signal) {
-	// This will catch Ctrl-C.
 	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
 
 	// Unlike Linux/Mac, you can't just send a SIGTERM from another process.

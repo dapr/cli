@@ -79,20 +79,34 @@ dapr init --from-dir <path-to-directory>
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		print.PendingStatusEvent(os.Stdout, "Making the jump to hyperspace...")
+		imageRegistryFlag := strings.TrimSpace(viper.GetString("image-registry"))
 
 		if kubernetesMode {
 			print.InfoStatusEvent(os.Stdout, "Note: To install Dapr using Helm, see here: https://docs.dapr.io/getting-started/install-dapr-kubernetes/#install-with-helm-advanced\n")
+			imageRegistryURI := ""
+			var err error
 
-			config := kubernetes.InitConfiguration{
-				Namespace:  initNamespace,
-				Version:    runtimeVersion,
-				EnableMTLS: enableMTLS,
-				EnableHA:   enableHA,
-				Args:       values,
-				Wait:       wait,
-				Timeout:    timeout,
+			if len(imageRegistryFlag) != 0 {
+				warnForPrivateRegFeat()
+				imageRegistryURI = imageRegistryFlag
+			} else {
+				imageRegistryURI, err = kubernetes.GetImageRegistry()
 			}
-			err := kubernetes.Init(config)
+			if err != nil {
+				print.FailureStatusEvent(os.Stderr, err.Error())
+				os.Exit(1)
+			}
+			config := kubernetes.InitConfiguration{
+				Namespace:        initNamespace,
+				Version:          runtimeVersion,
+				EnableMTLS:       enableMTLS,
+				EnableHA:         enableHA,
+				Args:             values,
+				Wait:             wait,
+				Timeout:          timeout,
+				ImageRegistryURI: imageRegistryURI,
+			}
+			err = kubernetes.Init(config)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)
@@ -100,23 +114,23 @@ dapr init --from-dir <path-to-directory>
 			print.SuccessStatusEvent(os.Stdout, fmt.Sprintf("Success! Dapr has been installed to namespace %s. To verify, run `dapr status -k' in your terminal. To get started, go here: https://aka.ms/dapr-getting-started", config.Namespace))
 		} else {
 			dockerNetwork := ""
-			imageRegistryURL := ""
+			imageRegistryURI := ""
 			if !slimMode {
 				dockerNetwork = viper.GetString("network")
-				imageRegistryURL = viper.GetString("image-registry")
+				imageRegistryURI = imageRegistryFlag
 			}
 			// If both --image-registry and --from-dir flags are given, error out saying only one can be given.
-			if len(strings.TrimSpace(imageRegistryURL)) != 0 && len(strings.TrimSpace(fromDir)) != 0 {
+			if len(strings.TrimSpace(imageRegistryURI)) != 0 && len(strings.TrimSpace(fromDir)) != 0 {
 				print.FailureStatusEvent(os.Stderr, "both --image-registry and --from-dir flags cannot be given at the same time")
 				os.Exit(1)
 			}
 			if len(strings.TrimSpace(fromDir)) != 0 {
 				print.WarningStatusEvent(os.Stdout, "Local bundle installation using --from-dir flag is currently a preview feature and is subject to change. It is only available from CLI version 1.7 onwards.")
 			}
-			if len(strings.TrimSpace(imageRegistryURL)) != 0 {
-				print.WarningStatusEvent(os.Stdout, "Flag --image-registry is a preview feature and is subject to change. It is only available from CLI version 1.7 onwards.")
+			if len(imageRegistryURI) != 0 {
+				warnForPrivateRegFeat()
 			}
-			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode, imageRegistryURL, fromDir)
+			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode, imageRegistryURI, fromDir)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)
@@ -124,6 +138,10 @@ dapr init --from-dir <path-to-directory>
 			print.SuccessStatusEvent(os.Stdout, "Success! Dapr is up and running. To get started, go here: https://aka.ms/dapr-getting-started")
 		}
 	},
+}
+
+func warnForPrivateRegFeat() {
+	print.WarningStatusEvent(os.Stdout, "Flag --image-registry is a preview feature and is subject to change.")
 }
 
 func init() {

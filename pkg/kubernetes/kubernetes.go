@@ -16,7 +16,6 @@ package kubernetes
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -33,6 +32,7 @@ import (
 
 	"github.com/dapr/cli/pkg/print"
 	cli_ver "github.com/dapr/cli/pkg/version"
+	"github.com/dapr/cli/utils"
 )
 
 const (
@@ -42,13 +42,14 @@ const (
 )
 
 type InitConfiguration struct {
-	Version    string
-	Namespace  string
-	EnableMTLS bool
-	EnableHA   bool
-	Args       []string
-	Wait       bool
-	Timeout    uint
+	Version          string
+	Namespace        string
+	EnableMTLS       bool
+	EnableHA         bool
+	Args             []string
+	Wait             bool
+	Timeout          uint
+	ImageRegistryURI string
 }
 
 // Init deploys the Dapr operator using the supplied runtime version.
@@ -57,7 +58,7 @@ func Init(config InitConfiguration) error {
 
 	stopSpinning := print.Spinner(os.Stdout, msg)
 	defer stopSpinning(print.Failure)
-	//nolint
+	// nolint
 	err := install(config)
 	if err != nil {
 		return err
@@ -106,7 +107,7 @@ func getVersion(version string) (string, error) {
 }
 
 func createTempDir() (string, error) {
-	dir, err := ioutil.TempDir("", "dapr")
+	dir, err := os.MkdirTemp("", "dapr")
 	if err != nil {
 		return "", fmt.Errorf("error creating temp dir: %w", err)
 	}
@@ -114,7 +115,7 @@ func createTempDir() (string, error) {
 }
 
 func locateChartFile(dirPath string) (string, error) {
-	files, err := ioutil.ReadDir(dirPath)
+	files, err := os.ReadDir(dirPath)
 	if err != nil {
 		return "", err
 	}
@@ -123,7 +124,10 @@ func locateChartFile(dirPath string) (string, error) {
 
 func daprChart(version string, config *helm.Configuration) (*chart.Chart, error) {
 	pull := helm.NewPullWithOpts(helm.WithConfig(config))
-	pull.RepoURL = daprHelmRepo
+	pull.RepoURL = utils.GetEnv("DAPR_HELM_REPO_URL", daprHelmRepo)
+	pull.Username = utils.GetEnv("DAPR_HELM_REPO_USERNAME", "")
+	pull.Password = utils.GetEnv("DAPR_HELM_REPO_PASSWORD", "")
+
 	pull.Settings = &cli.EnvSettings{}
 
 	if version != latestVersion {
@@ -155,6 +159,9 @@ func chartValues(config InitConfiguration) (map[string]interface{}, error) {
 	globalVals := []string{
 		fmt.Sprintf("global.ha.enabled=%t", config.EnableHA),
 		fmt.Sprintf("global.mtls.enabled=%t", config.EnableMTLS),
+	}
+	if len(config.ImageRegistryURI) != 0 {
+		globalVals = append(globalVals, fmt.Sprintf("global.registry=%s", config.ImageRegistryURI))
 	}
 	globalVals = append(globalVals, config.Args...)
 
@@ -210,4 +217,19 @@ func install(config InitConfiguration) error {
 }
 
 func debugLogf(format string, v ...interface{}) {
+}
+
+func confirmExist(cfg *helm.Configuration) (bool, error) {
+	client := helm.NewGet(cfg)
+	release, err := client.Run(daprReleaseName)
+
+	if release == nil {
+		return false, nil
+	}
+
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
