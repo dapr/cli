@@ -127,7 +127,7 @@ func (config *RunConfig) validate() error {
 		return err
 	}
 
-	if DefaultComponentsDirPath() != config.ResourcesPath {
+	if config.ResourcesPath != "" {
 		config.ComponentsPath = ""
 	}
 
