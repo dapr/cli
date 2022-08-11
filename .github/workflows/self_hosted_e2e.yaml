@@ -70,7 +70,7 @@ jobs:
           podman machine init
           podman machine start
           podman info
-          export CONTAINER_RUNTIME=podman
+          echo "CONTAINER_RUNTIME=podman" >> $GITHUB_ENV
       - name: Determine latest Dapr Runtime version including Pre-releases
         if: github.base_ref == 'master'
         run: |
@@ -91,6 +91,7 @@ jobs:
         env:
           DAPR_DEFAULT_IMAGE_REGISTRY: ghcr
           DAPR_E2E_INIT_SLIM: ${{ contains(matrix.os, 'windows-latest') }}
+          CONTAINER_RUNTIME: ${{ env.CONTAINER_RUNTIME }}
         run: |
           export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-standalone.json
           echo "TEST_OUTPUT_FILE=$TEST_OUTPUT_FILE" >> $GITHUB_ENV
@@ -101,6 +102,7 @@ jobs:
         if: github.event.schedule != '0 */6 * * *'
         env:
           DAPR_E2E_INIT_SLIM: ${{ contains(matrix.os, 'windows-latest') }}
+          CONTAINER_RUNTIME: ${{ env.CONTAINER_RUNTIME }}
         run: |
           export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-standalone.json
           echo "TEST_OUTPUT_FILE=$TEST_OUTPUT_FILE" >> $GITHUB_ENV
