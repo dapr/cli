@@ -114,13 +114,13 @@ dapr run --app-id myapp --app-port 3000 --app-protocol grpc -- go run main.go
 			Protocol:           protocol,
 			PlacementHostAddr:  viper.GetString("placement-host-address"),
 			ComponentsPath:     componentsPath,
+			ResourcesPath:      resourcesPath,
 			AppSSL:             appSSL,
 			MetricsPort:        metricsPort,
 			MaxRequestBodySize: maxRequestBodySize,
 			HTTPReadBufferSize: readBufferSize,
 			UnixDomainSocket:   unixDomainSocket,
 			EnableAPILogging:   enableAPILogging,
-			ResourcesPath:      resourcesPath,
 		})
 		if err != nil {
 			print.FailureStatusEvent(os.Stderr, err.Error())

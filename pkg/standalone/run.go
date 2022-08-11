@@ -127,7 +127,7 @@ func (config *RunConfig) validate() error {
 		return err
 	}
 
-	if DefaultComponentsDirPath() == config.ComponentsPath {
+	if DefaultComponentsDirPath() != config.ResourcesPath {
 		config.ComponentsPath = ""
 	}
 
@@ -226,7 +226,6 @@ func newDaprMeta() (*DaprMeta, error) {
 func (config *RunConfig) getArgs() []string {
 	args := []string{}
 
-	fmt.Printf("哈哈: %s\n", config.ResourcesPath)
 	schema := reflect.ValueOf(*config)
 	for i := 0; i < schema.NumField(); i++ {
 		valueField := schema.Field(i).Interface()
@@ -261,7 +260,6 @@ func (config *RunConfig) getArgs() []string {
 	if print.IsJSONLogEnabled() {
 		args = append(args, "--log-as-json")
 	}
-	fmt.Println(args)
 	return args
 }
 
