@@ -159,7 +159,11 @@ func applyCRDs(version string) error {
 func upgradeChartValues(ca, issuerCert, issuerKey string, haMode, mtls bool, conf UpgradeConfig) (map[string]interface{}, error) {
 	chartVals := map[string]interface{}{}
 	globalVals := conf.Args
-	globalVals = append(globalVals, fmt.Sprintf("global.tag=%s", getVariantVersion(conf.RuntimeVersion, conf.ImageVariant)))
+	err := utils.ValidateImageVariant(conf.ImageVariant)
+	if err != nil {
+		return nil, err
+	}
+	globalVals = append(globalVals, fmt.Sprintf("global.tag=%s", utils.GetVariantVersion(conf.RuntimeVersion, conf.ImageVariant)))
 
 	if mtls && ca != "" && issuerCert != "" && issuerKey != "" {
 		globalVals = append(globalVals, fmt.Sprintf("dapr_sentry.tls.root.certPEM=%s", ca),

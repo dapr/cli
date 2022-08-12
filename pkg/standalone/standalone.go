@@ -81,8 +81,6 @@ var (
 	isAirGapInit             bool
 )
 
-const marinerImageVariantName = "mariner"
-
 type configuration struct {
 	APIVersion string `yaml:"apiVersion"`
 	Kind       string `yaml:"kind"`
@@ -1197,26 +1195,12 @@ func getPlacementImageName(imageInfo daprImageInfo, info initInfo) (string, erro
 }
 
 func getPlacementImageWithTag(name, version, imageVariant string) (string, error) {
-	err := validateImageVariant(imageVariant)
+	err := utils.ValidateImageVariant(imageVariant)
 	if err != nil {
 		return "", err
 	}
-	version = getVariantVersion(version, imageVariant)
+	version = utils.GetVariantVersion(version, imageVariant)
 	return fmt.Sprintf("%s:%s", name, version), nil
-}
-
-func validateImageVariant(imageVariant string) error {
-	if imageVariant != "" && imageVariant != marinerImageVariantName {
-		return fmt.Errorf("image variant %s is not supported", imageVariant)
-	}
-	return nil
-}
-
-func getVariantVersion(version string, imageVariant string) string {
-	if imageVariant == "" {
-		return version
-	}
-	return fmt.Sprintf("%s-%s", version, imageVariant)
 }
 
 // useGHCR returns true iff default registry is set as GHCR and --image-registry and --from-dir flags are not set.

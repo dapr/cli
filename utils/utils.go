@@ -52,6 +52,8 @@ func GetContainerRuntimeCmd(containerRuntime string) string {
 	}
 }
 
+const marinerImageVariantName = "mariner"
+
 // PrintTable to print in the table format.
 func PrintTable(csvContent string) {
 	WriteTable(os.Stdout, csvContent)
@@ -273,4 +275,18 @@ func GetDefaultRegistry(githubContainerRegistryName, dockerContainerRegistryName
 	default:
 		return "", fmt.Errorf("environment variable %q can only be set to %s", "DAPR_DEFAULT_IMAGE_REGISTRY", "GHCR")
 	}
+}
+
+func ValidateImageVariant(imageVariant string) error {
+	if imageVariant != "" && imageVariant != marinerImageVariantName {
+		return fmt.Errorf("image variant %s is not supported", imageVariant)
+	}
+	return nil
+}
+
+func GetVariantVersion(version string, imageVariant string) string {
+	if imageVariant == "" {
+		return version
+	}
+	return fmt.Sprintf("%s-%s", version, imageVariant)
 }

@@ -53,8 +53,6 @@ type InitConfiguration struct {
 	ImageVariant     string
 }
 
-const marinerImageVariantName = "mariner"
-
 // Init deploys the Dapr operator using the supplied runtime version.
 func Init(config InitConfiguration) error {
 	msg := "Deploying the Dapr control plane to your cluster..."
@@ -109,20 +107,6 @@ func getVersion(version string) (string, error) {
 	return version, nil
 }
 
-func getVariantVersion(version string, imageVariant string) string {
-	if imageVariant == "" {
-		return version
-	}
-	return fmt.Sprintf("%s-%s", version, imageVariant)
-}
-
-func validateImageVariant(imageVariant string) error {
-	if imageVariant != "" && imageVariant != marinerImageVariantName {
-		return fmt.Errorf("image variant %s is not supported", imageVariant)
-	}
-	return nil
-}
-
 func createTempDir() (string, error) {
 	dir, err := os.MkdirTemp("", "dapr")
 	if err != nil {
@@ -173,14 +157,14 @@ func daprChart(version string, config *helm.Configuration) (*chart.Chart, error)
 
 func chartValues(config InitConfiguration) (map[string]interface{}, error) {
 	chartVals := map[string]interface{}{}
-	err := validateImageVariant(config.ImageVariant)
+	err := utils.ValidateImageVariant(config.ImageVariant)
 	if err != nil {
 		return nil, err
 	}
 	globalVals := []string{
 		fmt.Sprintf("global.ha.enabled=%t", config.EnableHA),
 		fmt.Sprintf("global.mtls.enabled=%t", config.EnableMTLS),
-		fmt.Sprintf("global.tag=%s", getVariantVersion(config.Version, config.ImageVariant)),
+		fmt.Sprintf("global.tag=%s", utils.GetVariantVersion(config.Version, config.ImageVariant)),
 	}
 	if len(config.ImageRegistryURI) != 0 {
 		globalVals = append(globalVals, fmt.Sprintf("global.registry=%s", config.ImageRegistryURI))
