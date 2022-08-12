@@ -284,7 +284,7 @@ func ValidateImageVariant(imageVariant string) error {
 	return nil
 }
 
-func GetVariantVersion(version string, imageVariant string) string {
+func GetVariantVersion(version, imageVariant string) string {
 	if imageVariant == "" {
 		return version
 	}
