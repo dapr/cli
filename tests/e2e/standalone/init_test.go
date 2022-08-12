@@ -81,6 +81,26 @@ func TestStandaloneInit(t *testing.T) {
 		verifyBinaries(t, daprPath, daprRuntimeVersion, daprDashboardVersion)
 		verifyConfigs(t, daprPath)
 	})
+
+	t.Run("init with mariner images", func(t *testing.T) {
+		// Ensure a clean environment
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+
+		output, err := cmdInit(daprRuntimeVersion, "--image-variant", "mariner")
+		t.Log(output)
+		require.NoError(t, err, "init failed")
+		assert.Contains(t, output, "Success! Dapr is up and running.")
+
+		homeDir, err := os.UserHomeDir()
+		require.NoError(t, err, "failed to get user home directory")
+
+		daprPath := filepath.Join(homeDir, ".dapr")
+		require.DirExists(t, daprPath, "Directory %s does not exist", daprPath)
+
+		verifyContainers(t, daprRuntimeVersion+"-mariner")
+		verifyBinaries(t, daprPath, daprRuntimeVersion, daprDashboardVersion)
+		verifyConfigs(t, daprPath)
+	})
 }
 
 // verifyContainers ensures that the correct containers are up and running.
