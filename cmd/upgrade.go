@@ -81,7 +81,7 @@ func init() {
 	UpgradeCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	UpgradeCmd.Flags().StringArrayVar(&values, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
 	UpgradeCmd.Flags().String("image-registry", "", "Custom/Private docker image repository URL")
-	UpgradeCmd.Flags().StringVarP(&upgradeImageVariant, "image-variant", "", "default", "The image variant to use for the Dapr runtime, for example: mariner")
+	UpgradeCmd.Flags().StringVarP(&upgradeImageVariant, "image-variant", "", "", "The image variant to use for the Dapr runtime, for example: mariner")
 
 	UpgradeCmd.MarkFlagRequired("runtime-version")
 	UpgradeCmd.MarkFlagRequired("kubernetes")

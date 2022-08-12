@@ -53,9 +53,7 @@ type InitConfiguration struct {
 	ImageVariant     string
 }
 
-var (
-	defaultImageVariantName = "default"
-)
+const marinerImageVariantName = "mariner"
 
 // Init deploys the Dapr operator using the supplied runtime version.
 func Init(config InitConfiguration) error {
@@ -112,10 +110,17 @@ func getVersion(version string) (string, error) {
 }
 
 func getVariantVersion(version string, imageVariant string) string {
-	if imageVariant == defaultImageVariantName {
+	if imageVariant == "" {
 		return version
 	}
 	return fmt.Sprintf("%s-%s", version, imageVariant)
+}
+
+func validateImageVariant(imageVariant string) error {
+	if imageVariant != "" && imageVariant != marinerImageVariantName {
+		return fmt.Errorf("image variant %s is not supported", imageVariant)
+	}
+	return nil
 }
 
 func createTempDir() (string, error) {
@@ -168,6 +173,10 @@ func daprChart(version string, config *helm.Configuration) (*chart.Chart, error)
 
 func chartValues(config InitConfiguration) (map[string]interface{}, error) {
 	chartVals := map[string]interface{}{}
+	err := validateImageVariant(config.ImageVariant)
+	if err != nil {
+		return nil, err
+	}
 	globalVals := []string{
 		fmt.Sprintf("global.ha.enabled=%t", config.EnableHA),
 		fmt.Sprintf("global.mtls.enabled=%t", config.EnableMTLS),

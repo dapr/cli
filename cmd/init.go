@@ -77,7 +77,7 @@ dapr init -s
 # Initialize Dapr from a directory (installer-bundle installation) (Preview feature)
 dapr init --from-dir <path-to-directory>
 
-# Initialize particular variant of Dapr. Allowed values: "default", "mariner"
+# Initialize dapr with a particular image variant. Allowed values: "mariner"
 dapr init --image-variant <variant>
 
 # See more at: https://docs.dapr.io/getting-started/
@@ -174,7 +174,7 @@ func init() {
 	InitCmd.Flags().BoolVarP(&enableHA, "enable-ha", "", false, "Enable high availability (HA) mode")
 	InitCmd.Flags().String("network", "", "The Docker network on which to deploy the Dapr runtime")
 	InitCmd.Flags().StringVarP(&fromDir, "from-dir", "", "", "Use Dapr artifacts from local directory for self-hosted installation")
-	InitCmd.Flags().StringVarP(&imageVariant, "image-variant", "", "default", "The image variant to use for the Dapr runtime, for example: mariner")
+	InitCmd.Flags().StringVarP(&imageVariant, "image-variant", "", "", "The image variant to use for the Dapr runtime, for example: mariner")
 	InitCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	InitCmd.Flags().StringArrayVar(&values, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
 	InitCmd.Flags().String("image-registry", "", "Custom/Private docker image repository url")

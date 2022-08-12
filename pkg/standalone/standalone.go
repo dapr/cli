@@ -81,9 +81,7 @@ var (
 	isAirGapInit             bool
 )
 
-var (
-	defaultImageVariantName = "default"
-)
+const marinerImageVariantName = "mariner"
 
 type configuration struct {
 	APIVersion string `yaml:"apiVersion"`
@@ -1181,24 +1179,41 @@ func getPlacementImageName(imageInfo daprImageInfo, info initInfo) (string, erro
 		return "", err
 	}
 
-	image = getPlacementImageWithTag(image, info.runtimeVersion, info.imageVariant)
+	image, err = getPlacementImageWithTag(image, info.runtimeVersion, info.imageVariant)
+	if err != nil {
+		return "", err
+	}
 
 	// if default registry is GHCR and the image is not available in or cannot be pulled from GHCR
 	// fallback to using dockerhub.
 	if useGHCR(imageInfo, info.fromDir) && !tryPullImage(image, info.containerRuntime) {
 		print.InfoStatusEvent(os.Stdout, "Placement image not found in Github container registry, pulling it from Docker Hub")
-		image = getPlacementImageWithTag(daprDockerImageName, info.runtimeVersion, info.imageVariant)
+		image, err = getPlacementImageWithTag(daprDockerImageName, info.runtimeVersion, info.imageVariant)
+		if err != nil {
+			return "", err
+		}
 	}
 	return image, nil
 }
 
-func getPlacementImageWithTag(name, version, imageVariant string) string {
+func getPlacementImageWithTag(name, version, imageVariant string) (string, error) {
+	err := validateImageVariant(imageVariant)
+	if err != nil {
+		return "", err
+	}
 	version = getVariantVersion(version, imageVariant)
-	return fmt.Sprintf("%s:%s", name, version)
+	return fmt.Sprintf("%s:%s", name, version), nil
+}
+
+func validateImageVariant(imageVariant string) error {
+	if imageVariant != "" && imageVariant != marinerImageVariantName {
+		return fmt.Errorf("image variant %s is not supported", imageVariant)
+	}
+	return nil
 }
 
 func getVariantVersion(version string, imageVariant string) string {
-	if imageVariant == defaultImageVariantName {
+	if imageVariant == "" {
 		return version
 	}
 	return fmt.Sprintf("%s-%s", version, imageVariant)
