@@ -14,8 +14,8 @@ limitations under the License.
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"runtime"
 
@@ -32,6 +32,7 @@ var (
 	publishPayload     string
 	publishPayloadFile string
 	publishSocket      string
+	publishMetadata    string
 )
 
 var PublishCmd = &cobra.Command{
@@ -43,6 +44,9 @@ dapr publish --publish-app-id myapp --pubsub target --topic sample --data '{"key
 
 # Publish to sample topic in target pubsub via a publishing app using Unix domain socket
 dapr publish --enable-domain-socket --publish-app-id myapp --pubsub target --topic sample --data '{"key":"value"}'
+
+# Publish to sample topic in target pubsub via a publishing app without cloud event
+dapr publish --publish-app-id myapp --pubsub target --topic sample --data '{"key":"value"}' --metadata '{"rawPayload":"true","ttlInSeconds":"10"}'
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		bytePayload := []byte{}
@@ -53,7 +57,7 @@ dapr publish --enable-domain-socket --publish-app-id myapp --pubsub target --top
 		}
 
 		if publishPayloadFile != "" {
-			bytePayload, err = ioutil.ReadFile(publishPayloadFile)
+			bytePayload, err = os.ReadFile(publishPayloadFile)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, "Error reading payload from '%s'. Error: %s", publishPayloadFile, err)
 				os.Exit(1)
@@ -72,7 +76,17 @@ dapr publish --enable-domain-socket --publish-app-id myapp --pubsub target --top
 				print.WarningStatusEvent(os.Stdout, "Unix domain sockets are currently a preview feature")
 			}
 		}
-		err = client.Publish(publishAppID, pubsubName, publishTopic, bytePayload, publishSocket)
+
+		metadata := make(map[string]interface{})
+		if publishMetadata != "" {
+			err = json.Unmarshal([]byte(publishMetadata), &metadata)
+			if err != nil {
+				print.FailureStatusEvent(os.Stderr, "Error parsing metadata as JSON. Error: %s", err)
+				os.Exit(1)
+			}
+		}
+
+		err = client.Publish(publishAppID, pubsubName, publishTopic, bytePayload, publishSocket, metadata)
 		if err != nil {
 			print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Error publishing topic %s: %s", publishTopic, err))
 			os.Exit(1)
@@ -89,6 +103,7 @@ func init() {
 	PublishCmd.Flags().StringVarP(&publishPayload, "data", "d", "", "The JSON serialized data string (optional)")
 	PublishCmd.Flags().StringVarP(&publishPayloadFile, "data-file", "f", "", "A file containing the JSON serialized data (optional)")
 	PublishCmd.Flags().StringVarP(&publishSocket, "unix-domain-socket", "u", "", "Path to a unix domain socket dir. If specified, Dapr API servers will use Unix Domain Sockets")
+	PublishCmd.Flags().StringVarP(&publishMetadata, "metadata", "m", "", "The JSON serialized publish metadata (optional)")
 	PublishCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	PublishCmd.MarkFlagRequired("publish-app-id")
 	PublishCmd.MarkFlagRequired("topic")

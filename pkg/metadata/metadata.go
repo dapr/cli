@@ -17,7 +17,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -108,7 +108,7 @@ func makeMetadataPutEndpoint(httpPort int, key string) string {
 }
 
 func handleMetadataResponse(response *http.Response) (*api.Metadata, error) {
-	rb, err := ioutil.ReadAll(response.Body)
+	rb, err := io.ReadAll(response.Body)
 	if err != nil {
 		return nil, err
 	}

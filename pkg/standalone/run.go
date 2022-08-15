@@ -15,7 +15,6 @@ package standalone
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
@@ -55,6 +54,7 @@ type RunConfig struct {
 	MaxRequestBodySize int    `arg:"dapr-http-max-request-size"`
 	HTTPReadBufferSize int    `arg:"dapr-http-read-buffer-size"`
 	UnixDomainSocket   string `arg:"unix-domain-socket"`
+	InternalGRPCPort   int    `arg:"dapr-internal-grpc-port"`
 	EnableAPILogging   bool   `arg:"enable-api-logging"`
 }
 
@@ -150,6 +150,11 @@ func (config *RunConfig) validate() error {
 		return err
 	}
 
+	err = config.validatePort("InternalGRPCPort", &config.InternalGRPCPort, meta)
+	if err != nil {
+		return err
+	}
+
 	if config.EnableProfiling {
 		err = config.validatePort("ProfilePort", &config.ProfilePort, meta)
 		if err != nil {
@@ -189,7 +194,7 @@ func (meta *DaprMeta) portExists(port int) bool {
 	if port <= 0 {
 		return false
 	}
-	//nolint
+	// nolint
 	_, ok := meta.ExistingPorts[port]
 	if ok {
 		return true
@@ -307,7 +312,7 @@ func mtlsEndpoint(configFile string) string {
 		return ""
 	}
 
-	b, err := ioutil.ReadFile(configFile)
+	b, err := os.ReadFile(configFile)
 	if err != nil {
 		return ""
 	}
@@ -345,7 +350,7 @@ func getAppCommand(config *RunConfig) *exec.Cmd {
 }
 
 func Run(config *RunConfig) (*RunOutput, error) {
-	//nolint
+	// nolint
 	err := config.validate()
 	if err != nil {
 		return nil, err
@@ -356,7 +361,7 @@ func Run(config *RunConfig) (*RunOutput, error) {
 		return nil, err
 	}
 
-	//nolint
+	// nolint
 	var appCMD *exec.Cmd = getAppCommand(config)
 	return &RunOutput{
 		DaprCMD:      daprCMD,

@@ -15,7 +15,6 @@ package cmd
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"runtime"
@@ -59,7 +58,7 @@ dapr invoke --unix-domain-socket --app-id target --method sample --verb GET
 		}
 
 		if invokeDataFile != "" {
-			bytePayload, err = ioutil.ReadFile(invokeDataFile)
+			bytePayload, err = os.ReadFile(invokeDataFile)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, "Error reading payload from '%s'. Error: %s", invokeDataFile, err)
 				os.Exit(1)

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"sort"
@@ -315,7 +314,7 @@ func TestAnnotate(t *testing.T) {
 			outString := out.String()
 			outDocs := strings.Split(outString, "---")
 
-			expected, err := ioutil.ReadFile(tt.expectedFilePath)
+			expected, err := os.ReadFile(tt.expectedFilePath)
 			assert.NoError(t, err)
 
 			expectedString := string(expected)
