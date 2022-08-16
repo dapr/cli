@@ -61,7 +61,7 @@ jobs:
           go-version: ${{ env.GOVER }}
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
-      - name: Install docker - MacOS
+      - name: Install podman - MacOS
         if: matrix.os == 'macos-latest'
         run: |
           sudo rm -rf `brew --cache`
@@ -72,7 +72,6 @@ jobs:
           podman info
           podman version
           echo "CONTAINER_RUNTIME=podman" >> $GITHUB_ENV
-          echo "DOCKER_HOST=unix:///Users/runner/.local/share/containers/podman/machine/podman-machine-default/podman.sock" >> $GITHUB_ENV
       - name: Determine latest Dapr Runtime version including Pre-releases
         if: github.base_ref == 'master'
         run: |
@@ -94,7 +93,6 @@ jobs:
           DAPR_DEFAULT_IMAGE_REGISTRY: ghcr
           DAPR_E2E_INIT_SLIM: ${{ contains(matrix.os, 'windows-latest') }}
           CONTAINER_RUNTIME: ${{ env.CONTAINER_RUNTIME }}
-          DOCKER_HOST: ${{ env.DOCKER_HOST }}
         run: |
           export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-standalone.json
           echo "TEST_OUTPUT_FILE=$TEST_OUTPUT_FILE" >> $GITHUB_ENV
@@ -106,7 +104,6 @@ jobs:
         env:
           DAPR_E2E_INIT_SLIM: ${{ contains(matrix.os, 'windows-latest') }}
           CONTAINER_RUNTIME: ${{ env.CONTAINER_RUNTIME }}
-          DOCKER_HOST: ${{ env.DOCKER_HOST }}
         run: |
           export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-standalone.json
           echo "TEST_OUTPUT_FILE=$TEST_OUTPUT_FILE" >> $GITHUB_ENV
