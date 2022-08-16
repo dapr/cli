@@ -55,7 +55,7 @@ const (
 	// used when DAPR_DEFAULT_IMAGE_REGISTRY is not set.
 	dockerContainerRegistryName = "dockerhub"
 	daprDockerImageName         = "daprio/dapr"
-	redisDockerImageName        = "redis"
+	redisDockerImageName        = "redis:6"
 	zipkinDockerImageName       = "openzipkin/zipkin"
 
 	// used when DAPR_DEFAULT_IMAGE_REGISTRY is set as GHCR.
