@@ -1,6 +1,3 @@
-//go:build e2e
-// +build e2e
-
 /*
 Copyright 2021 The Dapr Authors
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,70 +27,89 @@ type upgradePath struct {
 
 var supportedUpgradePaths = []upgradePath{
 	{
-		previous: common.VersionDetails{
-			RuntimeVersion:      "1.7.4",
-			DashboardVersion:    "0.10.0",
-			ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
-			ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
-			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io"},
-		},
-		next: common.VersionDetails{
-			RuntimeVersion:      "1.8.0",
-			DashboardVersion:    "0.10.0",
-			ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
-			ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
-			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io"},
-		},
-	},
-	{
-		previous: common.VersionDetails{
-			RuntimeVersion:      "1.6.0",
-			DashboardVersion:    "0.9.0",
-			ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
-			ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
-			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
-		},
-		next: common.VersionDetails{
-			RuntimeVersion:      "1.7.0",
-			DashboardVersion:    "0.10.0",
-			ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
-			ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
-			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io"},
-		},
-	},
-	// test downgrade
-	{
+		// test upgrade on mariner images
 		previous: common.VersionDetails{
 			RuntimeVersion:      "1.8.0",
 			DashboardVersion:    "0.10.0",
+			ImageVariant:        "mariner",
 			ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
 			ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
 			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io"},
 		},
 		next: common.VersionDetails{
-			RuntimeVersion:      "1.7.4",
+			RuntimeVersion:      "1.8.4",
 			DashboardVersion:    "0.10.0",
+			ImageVariant:        "mariner",
 			ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
 			ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
 			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io"},
 		},
 	},
-	{
-		previous: common.VersionDetails{
-			RuntimeVersion:      "1.5.1",
-			DashboardVersion:    "0.9.0",
-			ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
-			ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
-			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
-		},
-		next: common.VersionDetails{
-			RuntimeVersion:      "1.6.0",
-			DashboardVersion:    "0.9.0",
-			ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
-			ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
-			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
-		},
-	},
+	// {
+	// 	previous: common.VersionDetails{
+	// 		RuntimeVersion:      "1.7.4",
+	// 		DashboardVersion:    "0.10.0",
+	// 		ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+	// 		ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+	// 		CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io"},
+	// 	},
+	// 	next: common.VersionDetails{
+	// 		RuntimeVersion:      "1.8.0",
+	// 		DashboardVersion:    "0.10.0",
+	// 		ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+	// 		ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+	// 		CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io"},
+	// 	},
+	// },
+	// {
+	// 	previous: common.VersionDetails{
+	// 		RuntimeVersion:      "1.6.0",
+	// 		DashboardVersion:    "0.9.0",
+	// 		ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+	// 		ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+	// 		CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
+	// 	},
+	// 	next: common.VersionDetails{
+	// 		RuntimeVersion:      "1.7.0",
+	// 		DashboardVersion:    "0.10.0",
+	// 		ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+	// 		ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+	// 		CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io"},
+	// 	},
+	// },
+	// // test downgrade
+	// {
+	// 	previous: common.VersionDetails{
+	// 		RuntimeVersion:      "1.8.0",
+	// 		DashboardVersion:    "0.10.0",
+	// 		ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+	// 		ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+	// 		CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io"},
+	// 	},
+	// 	next: common.VersionDetails{
+	// 		RuntimeVersion:      "1.7.4",
+	// 		DashboardVersion:    "0.10.0",
+	// 		ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+	// 		ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+	// 		CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io"},
+	// 	},
+	// },
+	// {
+	// 	previous: common.VersionDetails{
+	// 		RuntimeVersion:      "1.5.1",
+	// 		DashboardVersion:    "0.9.0",
+	// 		ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+	// 		ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+	// 		CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
+	// 	},
+	// 	next: common.VersionDetails{
+	// 		RuntimeVersion:      "1.6.0",
+	// 		DashboardVersion:    "0.9.0",
+	// 		ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
+	// 		ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+	// 		CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
+	// 	},
+	// },
 }
 
 func getTestsOnUpgrade(p upgradePath, installOpts, upgradeOpts common.TestOptions) []common.TestCase {

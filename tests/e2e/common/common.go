@@ -97,6 +97,11 @@ func UpgradeTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 			"--runtime-version", details.RuntimeVersion,
 			"--log-as-json",
 		}
+
+		if details.ImageVariant != "" {
+			args = append(args, "--image-variant", details.ImageVariant)
+		}
+
 		output, err := spawn.Command(daprPath, args...)
 		t.Log(output)
 		require.NoError(t, err, "upgrade failed")
