@@ -69,8 +69,11 @@ jobs:
           brew install podman
           podman machine init
           podman machine start
-          podman info
-          podman version
+          which podman-mac-helper
+          podman_helper=$(which podman-mac-helper)
+          sudo ${podman_helper} install
+          podman machine stop
+          podman machine start
           echo "CONTAINER_RUNTIME=podman" >> $GITHUB_ENV
       - name: Determine latest Dapr Runtime version including Pre-releases
         if: github.base_ref == 'master'
