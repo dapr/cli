@@ -105,7 +105,7 @@ func TestResolveImageWithGHCR(t *testing.T) {
 }
 
 func TestResolveImageWithDockerHub(t *testing.T) {
-	expectedRedisImageName := "redis"
+	expectedRedisImageName := "redis:6"
 	expectedZipkinImageName := "openzipkin/zipkin"
 	expectedPlacementImageName := "daprio/dapr"
 
