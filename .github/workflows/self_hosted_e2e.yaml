@@ -45,15 +45,15 @@ jobs:
       DAPR_TGZ: dapr-1.7.0.tgz
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-10.15]
+        os: [macos-10.15, ubuntu-latest, windows-latest]
         target_arch: [amd64]
         include:
           - os: ubuntu-latest
             target_os: linux
           - os: macOS-10.15
             target_os: darwin
-            #- os: windows-latest
-            #target_os: windows
+          - os: windows-latest
+            target_os: windows
     steps:
       - name: Set up Go ${{ env.GOVER }}
         uses: actions/setup-go@v2
@@ -88,6 +88,7 @@ jobs:
         if: github.event.schedule == '0 */6 * * *'
         env:
           DAPR_DEFAULT_IMAGE_REGISTRY: ghcr
+          DAPR_E2E_INIT_SLIM: ${{ contains(matrix.os, 'windows-latest') }}
         run: |
           export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-standalone.json
           echo "TEST_OUTPUT_FILE=$TEST_OUTPUT_FILE" >> $GITHUB_ENV
@@ -96,6 +97,8 @@ jobs:
         shell: bash
       - name: Run E2E tests with Docker hub
         if: github.event.schedule != '0 */6 * * *'
+        env:
+          DAPR_E2E_INIT_SLIM: ${{ contains(matrix.os, 'windows-latest') }}
         run: |
           export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-standalone.json
           echo "TEST_OUTPUT_FILE=$TEST_OUTPUT_FILE" >> $GITHUB_ENV
