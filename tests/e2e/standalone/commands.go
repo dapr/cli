@@ -53,9 +53,7 @@ func cmdInit(runtimeVersion string, args ...string) (string, error) {
 
 	if isSlimMode() {
 		initArgs = append(initArgs, "--slim")
-	}
-
-	if daprContainerRuntime != "" {
+	} else if daprContainerRuntime != "" {
 		initArgs = append(initArgs, "--container-runtime", daprContainerRuntime)
 	}
 	initArgs = append(initArgs, args...)
@@ -123,7 +121,7 @@ func cmdStop(appId string, args ...string) (string, error) {
 // cmdUninstall uninstalls Dapr with --all flag and returns the command output and error.
 func cmdUninstall() (string, error) {
 	daprContainerRuntime := containerRuntime()
-	if daprContainerRuntime != "" {
+	if !isSlimMode && daprContainerRuntime != "" {
 		return spawn.Command(common.GetDaprPath(), "uninstall", "--container-runtime", daprContainerRuntime, "--all")
 	}
 	return spawn.Command(common.GetDaprPath(), "uninstall", "--all")
