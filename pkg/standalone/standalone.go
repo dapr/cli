@@ -123,6 +123,7 @@ type initInfo struct {
 	dashboardVersion string
 	dockerNetwork    string
 	imageRegistryURL string
+	containerRuntime string
 }
 
 type daprImageInfo struct {
@@ -147,8 +148,8 @@ func isBinaryInstallationRequired(binaryFilePrefix, installDir string) (bool, er
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
 func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool, imageRegistryURL string, fromDir string, containerRuntime string) error {
 	var err error
-	utils.SetContainerRuntime(containerRuntime)
 	var bundleDet bundleDetails
+	containerRuntime = strings.TrimSpace(containerRuntime)
 	fromDir = strings.TrimSpace(fromDir)
 	// AirGap init flow is true when fromDir var is set i.e. --from-dir flag has value.
 	setAirGapInit(fromDir)
@@ -256,6 +257,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		dashboardVersion: dashboardVersion,
 		dockerNetwork:    dockerNetwork,
 		imageRegistryURL: imageRegistryURL,
+		containerRuntime: containerRuntime,
 	}
 	for _, step := range initSteps {
 		// Run init on the configurations and containers.
@@ -285,6 +287,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		// Print info on placement binary only on slim install.
 		print.InfoStatusEvent(os.Stdout, "%s binary has been installed to %s.", placementServiceFilePrefix, daprBinDir)
 	} else {
+		runtimeCmd := utils.GetContainerRuntimeCmd(info.containerRuntime)
 		dockerContainerNames := []string{DaprPlacementContainerName, DaprRedisContainerName, DaprZipkinContainerName}
 		// Skip redis and zipkin in local installation mode.
 		if isAirGapInit {
@@ -292,7 +295,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		}
 		for _, container := range dockerContainerNames {
 			containerName := utils.CreateContainerName(container, dockerNetwork)
-			ok, err := confirmContainerIsRunningOrExists(containerName, true)
+			ok, err := confirmContainerIsRunningOrExists(containerName, true, runtimeCmd)
 			if err != nil {
 				return err
 			}
@@ -300,7 +303,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 				print.InfoStatusEvent(os.Stdout, "%s container is running.", containerName)
 			}
 		}
-		print.InfoStatusEvent(os.Stdout, "Use `%s ps` to check running containers.", utils.GetContainerRuntimeCmd())
+		print.InfoStatusEvent(os.Stdout, "Use `%s ps` to check running containers.", runtimeCmd)
 	}
 	return nil
 }
@@ -308,13 +311,14 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 	defer wg.Done()
 
+	runtimeCmd := utils.GetContainerRuntimeCmd(info.containerRuntime)
 	if info.slimMode || isAirGapInit {
 		return
 	}
 
 	zipkinContainerName := utils.CreateContainerName(DaprZipkinContainerName, info.dockerNetwork)
 
-	exists, err := confirmContainerIsRunningOrExists(zipkinContainerName, false)
+	exists, err := confirmContainerIsRunningOrExists(zipkinContainerName, false, runtimeCmd)
 	if err != nil {
 		errorChan <- err
 		return
@@ -358,7 +362,6 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 
 		args = append(args, imageName)
 	}
-	runtimeCmd := utils.GetContainerRuntimeCmd()
 	_, err = utils.RunCmdAndWait(runtimeCmd, args...)
 
 	if err != nil {
@@ -376,13 +379,14 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 func runRedis(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 	defer wg.Done()
 
+	runtimeCmd := utils.GetContainerRuntimeCmd(info.containerRuntime)
 	if info.slimMode || isAirGapInit {
 		return
 	}
 
 	redisContainerName := utils.CreateContainerName(DaprRedisContainerName, info.dockerNetwork)
 
-	exists, err := confirmContainerIsRunningOrExists(redisContainerName, false)
+	exists, err := confirmContainerIsRunningOrExists(redisContainerName, false, runtimeCmd)
 	if err != nil {
 		errorChan <- err
 		return
@@ -424,7 +428,6 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 		}
 		args = append(args, imageName)
 	}
-	runtimeCmd := utils.GetContainerRuntimeCmd()
 	_, err = utils.RunCmdAndWait(runtimeCmd, args...)
 
 	if err != nil {
@@ -446,9 +449,10 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		return
 	}
 
+	runtimeCmd := utils.GetContainerRuntimeCmd(info.containerRuntime)
 	placementContainerName := utils.CreateContainerName(DaprPlacementContainerName, info.dockerNetwork)
 
-	exists, err := confirmContainerIsRunningOrExists(placementContainerName, false)
+	exists, err := confirmContainerIsRunningOrExists(placementContainerName, false, runtimeCmd)
 
 	if err != nil {
 		errorChan <- err
@@ -470,7 +474,7 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		// if --from-dir flag is given load the image details from the installer-bundle.
 		dir := path_filepath.Join(info.fromDir, *info.bundleDet.ImageSubDir)
 		image = info.bundleDet.getPlacementImageName()
-		err = loadContainer(dir, info.bundleDet.getPlacementImageFileName())
+		err = loadContainer(dir, info.bundleDet.getPlacementImageFileName(), info.containerRuntime)
 		if err != nil {
 			errorChan <- err
 			return
@@ -508,7 +512,6 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 
 	args = append(args, image)
 
-	runtimeCmd := utils.GetContainerRuntimeCmd()
 	_, err = utils.RunCmdAndWait(runtimeCmd, args...)
 
 	if err != nil {
@@ -1176,7 +1179,7 @@ func getPlacementImageName(imageInfo daprImageInfo, info initInfo) (string, erro
 
 	// if default registry is GHCR and the image is not available in or cannot be pulled from GHCR
 	// fallback to using dockerhub.
-	if useGHCR(imageInfo, info.fromDir) && !tryPullImage(image) {
+	if useGHCR(imageInfo, info.fromDir) && !tryPullImage(image, info.containerRuntime) {
 		print.InfoStatusEvent(os.Stdout, "Placement image not found in Github container registry, pulling it from Docker Hub")
 		image = getPlacementImageWithTag(daprDockerImageName, info.runtimeVersion)
 	}

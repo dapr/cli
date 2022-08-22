@@ -17,18 +17,18 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/utils"
 )
 
-func removeContainers(uninstallPlacementContainer, uninstallAll bool, dockerNetwork string) []error {
+func removeContainers(uninstallPlacementContainer, uninstallAll bool, dockerNetwork, runtimeCmd string) []error {
 	var containerErrs []error
 	var err error
 
 	if uninstallPlacementContainer {
-		containerErrs = removeDockerContainer(containerErrs, DaprPlacementContainerName, dockerNetwork)
-		runtimeCmd := utils.GetContainerRuntimeCmd()
+		containerErrs = removeDockerContainer(containerErrs, DaprPlacementContainerName, dockerNetwork, runtimeCmd)
 		_, err = utils.RunCmdAndWait(
 			runtimeCmd, "rmi",
 			"--force",
@@ -42,22 +42,21 @@ func removeContainers(uninstallPlacementContainer, uninstallAll bool, dockerNetw
 	}
 
 	if uninstallAll {
-		containerErrs = removeDockerContainer(containerErrs, DaprRedisContainerName, dockerNetwork)
-		containerErrs = removeDockerContainer(containerErrs, DaprZipkinContainerName, dockerNetwork)
+		containerErrs = removeDockerContainer(containerErrs, DaprRedisContainerName, dockerNetwork, runtimeCmd)
+		containerErrs = removeDockerContainer(containerErrs, DaprZipkinContainerName, dockerNetwork, runtimeCmd)
 	}
 
 	return containerErrs
 }
 
-func removeDockerContainer(containerErrs []error, containerName, network string) []error {
+func removeDockerContainer(containerErrs []error, containerName, network, runtimeCmd string) []error {
 	container := utils.CreateContainerName(containerName, network)
-	exists, _ := confirmContainerIsRunningOrExists(container, false)
+	exists, _ := confirmContainerIsRunningOrExists(container, false, runtimeCmd)
 	if !exists {
 		print.WarningStatusEvent(os.Stdout, "WARNING: %s container does not exist", container)
 		return containerErrs
 	}
 	print.InfoStatusEvent(os.Stdout, "Removing container: %s", container)
-	runtimeCmd := utils.GetContainerRuntimeCmd()
 	_, err := utils.RunCmdAndWait(
 		runtimeCmd, "rm",
 		"--force",
@@ -98,11 +97,12 @@ func Uninstall(uninstallAll bool, dockerNetwork string, containerRuntime string)
 		print.WarningStatusEvent(os.Stdout, "WARNING: could not delete dapr bin dir: %s", daprBinDir)
 	}
 
-	utils.SetContainerRuntime(containerRuntime)
+	containerRuntime = strings.TrimSpace(containerRuntime)
+	runtimeCmd := utils.GetContainerRuntimeCmd(containerRuntime)
 	conatinerRuntimeAvailable := false
 	conatinerRuntimeAvailable = utils.IsDockerInstalled() || utils.IsPodmanInstalled()
 	if conatinerRuntimeAvailable {
-		containerErrs = removeContainers(uninstallPlacementContainer, uninstallAll, dockerNetwork)
+		containerErrs = removeContainers(uninstallPlacementContainer, uninstallAll, dockerNetwork, runtimeCmd)
 	}
 
 	if uninstallAll {

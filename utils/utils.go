@@ -39,31 +39,17 @@ type ContainerRuntime string
 
 const (
 	DOCKER ContainerRuntime = "docker"
-	PODMAN ContainerRuntime = "podman"
 
 	socketFormat = "%s/dapr-%s-%s.socket"
 )
 
-var selectedContainerRuntime = DOCKER
-
-func SetContainerRuntime(containerRuntime string) {
-	if containerRuntime == string(PODMAN) {
-		selectedContainerRuntime = PODMAN
-	} else {
-		selectedContainerRuntime = DOCKER
+func GetContainerRuntimeCmd(containerRuntime string) string {
+	switch len(containerRuntime) {
+	case 0:
+		return string(DOCKER)
+	default:
+		return containerRuntime
 	}
-}
-
-func GetContainerRuntime() ContainerRuntime {
-	return selectedContainerRuntime
-}
-
-func GetContainerRuntimeCmd() string {
-	if selectedContainerRuntime == PODMAN {
-		return string(PODMAN)
-	}
-
-	return string(DOCKER)
 }
 
 // PrintTable to print in the table format.

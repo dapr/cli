@@ -24,8 +24,8 @@ import (
 	"github.com/dapr/cli/utils"
 )
 
-func loadContainerFromReader(in io.Reader) error {
-	runtimeCmd := utils.GetContainerRuntimeCmd()
+func loadContainerFromReader(in io.Reader, containerRuntime string) error {
+	runtimeCmd := utils.GetContainerRuntimeCmd(containerRuntime)
 	subProcess := exec.Command(runtimeCmd, "load")
 
 	stdin, err := subProcess.StdinPipe()
@@ -54,14 +54,14 @@ func loadContainerFromReader(in io.Reader) error {
 	return nil
 }
 
-func loadContainer(dir string, dockerImageFileName string) error {
+func loadContainer(dir string, dockerImageFileName, containerRuntime string) error {
 	var imageFile io.Reader
 	var err error
 	imageFile, err = os.Open(path_filepath.Join(dir, dockerImageFileName))
 	if err != nil {
 		return fmt.Errorf("fail to read docker image file %s: %w", dockerImageFileName, err)
 	}
-	err = loadContainerFromReader(imageFile)
+	err = loadContainerFromReader(imageFile, containerRuntime)
 	if err != nil {
 		return fmt.Errorf("fail to load docker image from file %s: %w", dockerImageFileName, err)
 	}
@@ -70,7 +70,7 @@ func loadContainer(dir string, dockerImageFileName string) error {
 }
 
 // check if the container either exists and stopped or is running.
-func confirmContainerIsRunningOrExists(containerName string, isRunning bool) (bool, error) {
+func confirmContainerIsRunningOrExists(containerName string, isRunning bool, runtimeCmd string) (bool, error) {
 	// e.g. docker ps --filter name=dapr_redis --filter status=running --format {{.Names}}.
 
 	args := []string{"ps", "--all", "--filter", "name=" + containerName}
@@ -79,7 +79,6 @@ func confirmContainerIsRunningOrExists(containerName string, isRunning bool) (bo
 		args = append(args, "--filter", "status=running")
 	}
 
-	runtimeCmd := utils.GetContainerRuntimeCmd()
 	args = append(args, "--format", "{{.Names}}")
 	response, err := utils.RunCmdAndWait(runtimeCmd, args...)
 	response = strings.TrimSuffix(response, "\n")
@@ -123,8 +122,8 @@ func parseContainerRuntimeError(component string, err error) error {
 	return err
 }
 
-func tryPullImage(imageName string) bool {
-	runtimeCmd := utils.GetContainerRuntimeCmd()
+func tryPullImage(imageName, containerRuntime string) bool {
+	runtimeCmd := utils.GetContainerRuntimeCmd(containerRuntime)
 	args := []string{
 		"pull",
 		imageName,
