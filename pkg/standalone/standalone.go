@@ -154,8 +154,8 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 	setAirGapInit(fromDir)
 	if !slimMode {
 		// If --slim installation is not requested, check if docker is installed.
-		dockerInstalled := utils.IsDockerInstalled() || utils.IsPodmanInstalled()
-		if !dockerInstalled {
+		conatinerRuntimeAvailable := utils.IsDockerInstalled() || utils.IsPodmanInstalled()
+		if !conatinerRuntimeAvailable {
 			return errors.New("could not connect to Docker. Docker may not be installed or running")
 		}
 
@@ -364,7 +364,7 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 	if err != nil {
 		runError := isContainerRunError(err)
 		if !runError {
-			errorChan <- parseDockerError("Zipkin tracing", err)
+			errorChan <- parseContainerRuntimeError("Zipkin tracing", err)
 		} else {
 			errorChan <- fmt.Errorf("%s %s failed with: %w", runtimeCmd, args, err)
 		}
@@ -430,7 +430,7 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 	if err != nil {
 		runError := isContainerRunError(err)
 		if !runError {
-			errorChan <- parseDockerError("Redis state store", err)
+			errorChan <- parseContainerRuntimeError("Redis state store", err)
 		} else {
 			errorChan <- fmt.Errorf("%s %s failed with: %w", runtimeCmd, args, err)
 		}
@@ -470,7 +470,7 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		// if --from-dir flag is given load the image details from the installer-bundle.
 		dir := path_filepath.Join(info.fromDir, *info.bundleDet.ImageSubDir)
 		image = info.bundleDet.getPlacementImageName()
-		err = loadDocker(dir, info.bundleDet.getPlacementImageFileName())
+		err = loadContainer(dir, info.bundleDet.getPlacementImageFileName())
 		if err != nil {
 			errorChan <- err
 			return
@@ -514,7 +514,7 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 	if err != nil {
 		runError := isContainerRunError(err)
 		if !runError {
-			errorChan <- parseDockerError("placement service", err)
+			errorChan <- parseContainerRuntimeError("placement service", err)
 		} else {
 			errorChan <- fmt.Errorf("%s %s failed with: %w", runtimeCmd, args, err)
 		}

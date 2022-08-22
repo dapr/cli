@@ -99,9 +99,9 @@ func Uninstall(uninstallAll bool, dockerNetwork string, containerRuntime string)
 	}
 
 	utils.SetContainerRuntime(containerRuntime)
-	dockerInstalled := false
-	dockerInstalled = utils.IsDockerInstalled() || utils.IsPodmanInstalled()
-	if dockerInstalled {
+	conatinerRuntimeAvailable := false
+	conatinerRuntimeAvailable = utils.IsDockerInstalled() || utils.IsPodmanInstalled()
+	if conatinerRuntimeAvailable {
 		containerErrs = removeContainers(uninstallPlacementContainer, uninstallAll, dockerNetwork)
 	}
 
@@ -113,7 +113,7 @@ func Uninstall(uninstallAll bool, dockerNetwork string, containerRuntime string)
 	}
 
 	err = errors.New("uninstall failed")
-	if uninstallPlacementContainer && !dockerInstalled {
+	if uninstallPlacementContainer && !conatinerRuntimeAvailable {
 		// if placement binary did not exist before trying to delete it and not able to connect to docker.
 		return fmt.Errorf("%w \ncould not delete placement service. Either the placement binary is not found, or Docker may not be installed or running", err)
 	}

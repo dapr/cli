@@ -24,7 +24,7 @@ import (
 	"github.com/dapr/cli/utils"
 )
 
-func runDockerLoad(in io.Reader) error {
+func loadContainerFromReader(in io.Reader) error {
 	runtimeCmd := utils.GetContainerRuntimeCmd()
 	subProcess := exec.Command(runtimeCmd, "load")
 
@@ -54,14 +54,14 @@ func runDockerLoad(in io.Reader) error {
 	return nil
 }
 
-func loadDocker(dir string, dockerImageFileName string) error {
+func loadContainer(dir string, dockerImageFileName string) error {
 	var imageFile io.Reader
 	var err error
 	imageFile, err = os.Open(path_filepath.Join(dir, dockerImageFileName))
 	if err != nil {
 		return fmt.Errorf("fail to read docker image file %s: %w", dockerImageFileName, err)
 	}
-	err = runDockerLoad(imageFile)
+	err = loadContainerFromReader(imageFile)
 	if err != nil {
 		return fmt.Errorf("fail to load docker image from file %s: %w", dockerImageFileName, err)
 	}
@@ -109,7 +109,7 @@ func isContainerRunError(err error) bool {
 	return false
 }
 
-func parseDockerError(component string, err error) error {
+func parseContainerRuntimeError(component string, err error) error {
 	//nolint
 	if exitError, ok := err.(*exec.ExitError); ok {
 		exitCode := exitError.ExitCode()

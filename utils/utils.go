@@ -40,6 +40,8 @@ type ContainerRuntime string
 const (
 	DOCKER ContainerRuntime = "docker"
 	PODMAN ContainerRuntime = "podman"
+
+	socketFormat = "%s/dapr-%s-%s.socket"
 )
 
 var selectedContainerRuntime = DOCKER
@@ -63,10 +65,6 @@ func GetContainerRuntimeCmd() string {
 
 	return string(DOCKER)
 }
-
-const (
-	socketFormat = "%s/dapr-%s-%s.socket"
-)
 
 // PrintTable to print in the table format.
 func PrintTable(csvContent string) {
