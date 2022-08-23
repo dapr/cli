@@ -49,11 +49,13 @@ func cmdDashboard(ctx context.Context, port string) error {
 // Arguments to the init command can be passed via args.
 func cmdInit(runtimeVersion string, args ...string) (string, error) {
 	initArgs := []string{"init", "--log-as-json", "--runtime-version", runtimeVersion}
+	daprContainerRuntime := containerRuntime()
 
 	if isSlimMode() {
 		initArgs = append(initArgs, "--slim")
+	} else if daprContainerRuntime != "" {
+		initArgs = append(initArgs, "--container-runtime", daprContainerRuntime)
 	}
-
 	initArgs = append(initArgs, args...)
 
 	return spawn.Command(common.GetDaprPath(), initArgs...)
@@ -118,6 +120,10 @@ func cmdStop(appId string, args ...string) (string, error) {
 
 // cmdUninstall uninstalls Dapr with --all flag and returns the command output and error.
 func cmdUninstall() (string, error) {
+	daprContainerRuntime := containerRuntime()
+	if !isSlimMode() && daprContainerRuntime != "" {
+		return spawn.Command(common.GetDaprPath(), "uninstall", "--container-runtime", daprContainerRuntime, "--all")
+	}
 	return spawn.Command(common.GetDaprPath(), "uninstall", "--all")
 }
 
