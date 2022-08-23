@@ -311,13 +311,13 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 	defer wg.Done()
 
-	runtimeCmd := utils.GetContainerRuntimeCmd(info.containerRuntime)
 	if info.slimMode || isAirGapInit {
 		return
 	}
 
 	zipkinContainerName := utils.CreateContainerName(DaprZipkinContainerName, info.dockerNetwork)
 
+	runtimeCmd := utils.GetContainerRuntimeCmd(info.containerRuntime)
 	exists, err := confirmContainerIsRunningOrExists(zipkinContainerName, false, runtimeCmd)
 	if err != nil {
 		errorChan <- err
@@ -379,13 +379,13 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 func runRedis(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 	defer wg.Done()
 
-	runtimeCmd := utils.GetContainerRuntimeCmd(info.containerRuntime)
 	if info.slimMode || isAirGapInit {
 		return
 	}
 
 	redisContainerName := utils.CreateContainerName(DaprRedisContainerName, info.dockerNetwork)
 
+	runtimeCmd := utils.GetContainerRuntimeCmd(info.containerRuntime)
 	exists, err := confirmContainerIsRunningOrExists(redisContainerName, false, runtimeCmd)
 	if err != nil {
 		errorChan <- err

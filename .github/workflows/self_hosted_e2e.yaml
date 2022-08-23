@@ -96,7 +96,7 @@ jobs:
         if: github.event.schedule == '0 */6 * * *'
         env:
           DAPR_DEFAULT_IMAGE_REGISTRY: ghcr
-          DAPR_E2E_INIT_SLIM: ${{ contains(matrix.os, 'windows-latest') }} || ${{ contains(matrix.dapr_install_mode, 'slim') }}
+          DAPR_E2E_INIT_SLIM: ${{ contains(matrix.os, 'windows-latest') || contains(matrix.dapr_install_mode, 'slim') }}
           CONTAINER_RUNTIME: ${{ env.CONTAINER_RUNTIME }}
         run: |
           export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-standalone.json
@@ -107,7 +107,7 @@ jobs:
       - name: Run E2E tests with Docker hub
         if: github.event.schedule != '0 */6 * * *'
         env:
-          DAPR_E2E_INIT_SLIM: ${{ contains(matrix.os, 'windows-latest') }} || ${{ contains(matrix.dapr_install_mode, 'slim') }}
+          DAPR_E2E_INIT_SLIM: ${{ contains(matrix.os, 'windows-latest') || contains(matrix.dapr_install_mode, 'slim') }}
           CONTAINER_RUNTIME: ${{ env.CONTAINER_RUNTIME }}
         run: |
           export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-standalone.json
