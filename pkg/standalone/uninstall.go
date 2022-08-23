@@ -16,21 +16,22 @@ package standalone
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
+	"strings"
 
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/utils"
 )
 
-func removeContainers(uninstallPlacementContainer, uninstallAll bool, dockerNetwork string) []error {
+func removeContainers(uninstallPlacementContainer, uninstallAll bool, dockerNetwork, runtimeCmd string) []error {
 	var containerErrs []error
 	var err error
 
 	if uninstallPlacementContainer {
-		containerErrs = removeDockerContainer(containerErrs, DaprPlacementContainerName, dockerNetwork)
-
+		containerErrs = removeDockerContainer(containerErrs, DaprPlacementContainerName, dockerNetwork, runtimeCmd)
 		_, err = utils.RunCmdAndWait(
-			"docker", "rmi",
+			runtimeCmd, "rmi",
 			"--force",
 			daprDockerImageName)
 
@@ -42,23 +43,23 @@ func removeContainers(uninstallPlacementContainer, uninstallAll bool, dockerNetw
 	}
 
 	if uninstallAll {
-		containerErrs = removeDockerContainer(containerErrs, DaprRedisContainerName, dockerNetwork)
-		containerErrs = removeDockerContainer(containerErrs, DaprZipkinContainerName, dockerNetwork)
+		containerErrs = removeDockerContainer(containerErrs, DaprRedisContainerName, dockerNetwork, runtimeCmd)
+		containerErrs = removeDockerContainer(containerErrs, DaprZipkinContainerName, dockerNetwork, runtimeCmd)
 	}
 
 	return containerErrs
 }
 
-func removeDockerContainer(containerErrs []error, containerName, network string) []error {
+func removeDockerContainer(containerErrs []error, containerName, network, runtimeCmd string) []error {
 	container := utils.CreateContainerName(containerName, network)
-	exists, _ := confirmContainerIsRunningOrExists(container, false)
+	exists, _ := confirmContainerIsRunningOrExists(container, false, runtimeCmd)
 	if !exists {
 		print.WarningStatusEvent(os.Stdout, "WARNING: %s container does not exist", container)
 		return containerErrs
 	}
 	print.InfoStatusEvent(os.Stdout, "Removing container: %s", container)
 	_, err := utils.RunCmdAndWait(
-		"docker", "rm",
+		runtimeCmd, "rm",
 		"--force",
 		container)
 	if err != nil {
@@ -82,25 +83,26 @@ func removeDir(dirPath string) error {
 
 // Uninstall reverts all changes made by init. Deletes all installed containers, removes default dapr folder,
 // removes the installed binary and unsets env variables.
-func Uninstall(uninstallAll bool, dockerNetwork string) error {
+func Uninstall(uninstallAll bool, dockerNetwork string, containerRuntime string) error {
 	var containerErrs []error
 	daprDefaultDir := defaultDaprDirPath()
 	daprBinDir := defaultDaprBinPath()
 
 	placementFilePath := binaryFilePath(daprBinDir, placementServiceFilePrefix)
 	_, placementErr := os.Stat(placementFilePath) // check if the placement binary exists.
-	uninstallPlacementContainer := os.IsNotExist(placementErr)
-
+	uninstallPlacementContainer := errors.Is(placementErr, fs.ErrNotExist)
 	// Remove .dapr/bin.
 	err := removeDir(daprBinDir)
 	if err != nil {
 		print.WarningStatusEvent(os.Stdout, "WARNING: could not delete dapr bin dir: %s", daprBinDir)
 	}
 
-	dockerInstalled := false
-	dockerInstalled = utils.IsDockerInstalled()
-	if dockerInstalled {
-		containerErrs = removeContainers(uninstallPlacementContainer, uninstallAll, dockerNetwork)
+	containerRuntime = strings.TrimSpace(containerRuntime)
+	runtimeCmd := utils.GetContainerRuntimeCmd(containerRuntime)
+	conatinerRuntimeAvailable := false
+	conatinerRuntimeAvailable = utils.IsDockerInstalled() || utils.IsPodmanInstalled()
+	if conatinerRuntimeAvailable {
+		containerErrs = removeContainers(uninstallPlacementContainer, uninstallAll, dockerNetwork, runtimeCmd)
 	}
 
 	if uninstallAll {
@@ -111,10 +113,6 @@ func Uninstall(uninstallAll bool, dockerNetwork string) error {
 	}
 
 	err = errors.New("uninstall failed")
-	if uninstallPlacementContainer && !dockerInstalled {
-		// if placement binary did not exist before trying to delete it and not able to connect to docker.
-		return fmt.Errorf("%w \ncould not delete placement service. Either the placement binary is not found, or Docker may not be installed or running", err)
-	}
 
 	if len(containerErrs) == 0 {
 		return nil
