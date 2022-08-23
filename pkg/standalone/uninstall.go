@@ -16,6 +16,7 @@ package standalone
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"strings"
 
@@ -89,8 +90,7 @@ func Uninstall(uninstallAll bool, dockerNetwork string, containerRuntime string)
 
 	placementFilePath := binaryFilePath(daprBinDir, placementServiceFilePrefix)
 	_, placementErr := os.Stat(placementFilePath) // check if the placement binary exists.
-	uninstallPlacementContainer := os.IsNotExist(placementErr)
-
+	uninstallPlacementContainer := errors.Is(placementErr, fs.ErrNotExist)
 	// Remove .dapr/bin.
 	err := removeDir(daprBinDir)
 	if err != nil {
@@ -113,10 +113,6 @@ func Uninstall(uninstallAll bool, dockerNetwork string, containerRuntime string)
 	}
 
 	err = errors.New("uninstall failed")
-	if uninstallPlacementContainer && !conatinerRuntimeAvailable {
-		// if placement binary did not exist before trying to delete it and not able to connect to docker.
-		return fmt.Errorf("%w \ncould not delete placement service. Either the placement binary is not found, or Docker may not be installed or running", err)
-	}
 
 	if len(containerErrs) == 0 {
 		return nil
