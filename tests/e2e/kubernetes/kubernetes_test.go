@@ -319,7 +319,7 @@ func TestKubernetesUninstall(t *testing.T) {
 	ensureCleanEnv(t)
 
 	tests := []common.TestCase{}
-	var installOpts = common.TestOptions{
+	installOpts := common.TestOptions{
 		HAEnabled:             false,
 		MTLSEnabled:           true,
 		ApplyComponentChanges: true,
@@ -349,7 +349,7 @@ func TestRenewCertWithIncorrectFlags(t *testing.T) {
 	common.EnsureUninstall(true)
 
 	tests := []common.TestCase{}
-	var installOpts = common.TestOptions{
+	installOpts := common.TestOptions{
 		HAEnabled:             false,
 		MTLSEnabled:           true,
 		ApplyComponentChanges: true,
@@ -389,7 +389,7 @@ func TestKubernetesInstallwithMarinerImages(t *testing.T) {
 	currentVersionDetails.ImageVariant = "mariner"
 
 	tests := []common.TestCase{}
-	var installOpts = common.TestOptions{
+	installOpts := common.TestOptions{
 		HAEnabled:             false,
 		MTLSEnabled:           true,
 		ApplyComponentChanges: true,
