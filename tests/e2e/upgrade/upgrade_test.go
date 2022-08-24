@@ -27,7 +27,7 @@ type upgradePath struct {
 
 var supportedUpgradePaths = []upgradePath{
 	{
-		// test upgrade on mariner images
+		// test upgrade on mariner images.
 		previous: common.VersionDetails{
 			RuntimeVersion:      "1.8.0",
 			DashboardVersion:    "0.10.0",
@@ -109,13 +109,13 @@ var supportedUpgradePaths = []upgradePath{
 	// 		ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
 	// 		CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
 	// 	},
-	// },
+	// },.
 }
 
 func getTestsOnUpgrade(p upgradePath, installOpts, upgradeOpts common.TestOptions) []common.TestCase {
 	tests := []common.TestCase{}
 
-	// install previous version
+	// install previous version.
 	tests = append(tests, common.GetTestsOnInstall(p.previous, installOpts)...)
 
 	details := p.next
@@ -130,7 +130,7 @@ func getTestsOnUpgrade(p upgradePath, installOpts, upgradeOpts common.TestOption
 		{"status check " + details.RuntimeVersion, common.StatusTestOnInstallUpgrade(details, upgradeOpts)},
 	}...)
 
-	// uninstall
+	// uninstall.
 	tests = append(tests, common.GetTestsOnUninstall(p.next, common.TestOptions{
 		CheckResourceExists: map[common.Resource]bool{
 			// TODO Related to https://github.com/dapr/cli/issues/656
@@ -140,7 +140,7 @@ func getTestsOnUpgrade(p upgradePath, installOpts, upgradeOpts common.TestOption
 		},
 	})...)
 
-	// delete CRDs if exist
+	// delete CRDs if exist.
 	tests = append(tests, common.TestCase{"delete CRDs " + p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs)})
 	tests = append(tests, common.TestCase{"delete CRDs " + p.next.RuntimeVersion, common.DeleteCRD(p.next.CustomResourceDefs)})
 
@@ -150,8 +150,8 @@ func getTestsOnUpgrade(p upgradePath, installOpts, upgradeOpts common.TestOption
 // Upgrade path tests.
 
 func TestUpgradePathNonHAModeMTLSDisabled(t *testing.T) {
-	// Ensure a clean environment
-	common.EnsureUninstall(false) // does not wait for pod deletion
+	// Ensure a clean environment.
+	common.EnsureUninstall(false) // does not wait for pod deletion.
 	for _, p := range supportedUpgradePaths {
 		t.Run(fmt.Sprintf("setup v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
 			t.Run("delete CRDs "+p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs))
@@ -175,7 +175,7 @@ func TestUpgradePathNonHAModeMTLSDisabled(t *testing.T) {
 			upgradeOpts := common.TestOptions{
 				HAEnabled:   false,
 				MTLSEnabled: false,
-				// do not apply changes on upgrade, verify existing components
+				// do not apply changes on upgrade, verify existing components.
 				ApplyComponentChanges: false,
 				CheckResourceExists: map[common.Resource]bool{
 					common.CustomResourceDefs:  true,
@@ -193,8 +193,8 @@ func TestUpgradePathNonHAModeMTLSDisabled(t *testing.T) {
 }
 
 func TestUpgradePathNonHAModeMTLSEnabled(t *testing.T) {
-	// Ensure a clean environment
-	common.EnsureUninstall(false) // does not wait for pod deletion
+	// Ensure a clean environment.
+	common.EnsureUninstall(false) // does not wait for pod deletion.
 	for _, p := range supportedUpgradePaths {
 		t.Run(fmt.Sprintf("setup v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
 			t.Run("delete CRDs "+p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs))
@@ -218,7 +218,7 @@ func TestUpgradePathNonHAModeMTLSEnabled(t *testing.T) {
 			upgradeOpts := common.TestOptions{
 				HAEnabled:   false,
 				MTLSEnabled: true,
-				// do not apply changes on upgrade, verify existing components
+				// do not apply changes on upgrade, verify existing components.
 				ApplyComponentChanges: false,
 				CheckResourceExists: map[common.Resource]bool{
 					common.CustomResourceDefs:  true,
@@ -236,8 +236,8 @@ func TestUpgradePathNonHAModeMTLSEnabled(t *testing.T) {
 }
 
 func TestUpgradePathHAModeMTLSDisabled(t *testing.T) {
-	// Ensure a clean environment
-	common.EnsureUninstall(false) // does not wait for pod deletion
+	// Ensure a clean environment.
+	common.EnsureUninstall(false) // does not wait for pod deletion.
 	for _, p := range supportedUpgradePaths {
 		t.Run(fmt.Sprintf("setup v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
 			t.Run("delete CRDs "+p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs))
@@ -261,7 +261,7 @@ func TestUpgradePathHAModeMTLSDisabled(t *testing.T) {
 			upgradeOpts := common.TestOptions{
 				HAEnabled:   true,
 				MTLSEnabled: false,
-				// do not apply changes on upgrade, verify existing components
+				// do not apply changes on upgrade, verify existing components.
 				ApplyComponentChanges: false,
 				CheckResourceExists: map[common.Resource]bool{
 					common.CustomResourceDefs:  true,
@@ -279,8 +279,8 @@ func TestUpgradePathHAModeMTLSDisabled(t *testing.T) {
 }
 
 func TestUpgradePathHAModeMTLSEnabled(t *testing.T) {
-	// Ensure a clean environment
-	common.EnsureUninstall(false) // does not wait for pod deletion
+	// Ensure a clean environment.
+	common.EnsureUninstall(false) // does not wait for pod deletion.
 	for _, p := range supportedUpgradePaths {
 		t.Run(fmt.Sprintf("setup v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
 			t.Run("delete CRDs "+p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs))
@@ -304,7 +304,7 @@ func TestUpgradePathHAModeMTLSEnabled(t *testing.T) {
 			upgradeOpts := common.TestOptions{
 				HAEnabled:   true,
 				MTLSEnabled: true,
-				// do not apply changes on upgrade, verify existing components
+				// do not apply changes on upgrade, verify existing components.
 				ApplyComponentChanges: false,
 				CheckResourceExists: map[common.Resource]bool{
 					common.CustomResourceDefs:  true,
