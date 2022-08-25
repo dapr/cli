@@ -52,6 +52,7 @@ const (
 type VersionDetails struct {
 	RuntimeVersion      string
 	DashboardVersion    string
+	ImageVariant        string
 	CustomResourceDefs  []string
 	ClusterRoles        []string
 	ClusterRoleBindings []string
@@ -96,6 +97,11 @@ func UpgradeTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 			"--runtime-version", details.RuntimeVersion,
 			"--log-as-json",
 		}
+
+		if details.ImageVariant != "" {
+			args = append(args, "--image-variant", details.ImageVariant)
+		}
+
 		output, err := spawn.Command(daprPath, args...)
 		t.Log(output)
 		require.NoError(t, err, "upgrade failed")
@@ -277,6 +283,14 @@ func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t
 				"dapr-operator":         {details.RuntimeVersion, "3"},
 			}
 		}
+
+		if details.ImageVariant != "" {
+			notFound["dapr-sentry"][0] = notFound["dapr-sentry"][0] + "-" + details.ImageVariant
+			notFound["dapr-sidecar-injector"][0] = notFound["dapr-sidecar-injector"][0] + "-" + details.ImageVariant
+			notFound["dapr-placement-server"][0] = notFound["dapr-placement-server"][0] + "-" + details.ImageVariant
+			notFound["dapr-operator"][0] = notFound["dapr-operator"][0] + "-" + details.ImageVariant
+		}
+
 		lines := strings.Split(output, "\n")[1:] // remove header of status.
 		t.Logf("dapr status -k infos: \n%s\n", lines)
 		for _, line := range lines {
@@ -659,6 +673,9 @@ func installTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 		} else {
 			t.Log("install with mtls")
 		}
+		if details.ImageVariant != "" {
+			args = append(args, "--image-variant", details.ImageVariant)
+		}
 		output, err := spawn.Command(daprPath, args...)
 		t.Log(output)
 		require.NoError(t, err, "init failed")
@@ -807,6 +824,14 @@ func validatePodsOnInstallUpgrade(t *testing.T, details VersionDetails) {
 		"placement": details.RuntimeVersion,
 		"operator":  details.RuntimeVersion,
 	}
+
+	if details.ImageVariant != "" {
+		notFound["sentry"] = notFound["sentry"] + "-" + details.ImageVariant
+		notFound["sidecar"] = notFound["sidecar"] + "-" + details.ImageVariant
+		notFound["placement"] = notFound["placement"] + "-" + details.ImageVariant
+		notFound["operator"] = notFound["operator"] + "-" + details.ImageVariant
+	}
+
 	prefixes := map[string]string{
 		"sentry":    "dapr-sentry-",
 		"sidecar":   "dapr-sidecar-injector-",

@@ -40,6 +40,8 @@ var (
 	enableHA          bool
 	values            []string
 	fromDir           string
+	containerRuntime  string
+	imageVariant      string
 )
 
 var InitCmd = &cobra.Command{
@@ -75,6 +77,9 @@ dapr init -s
 # Initialize Dapr from a directory (installer-bundle installation) (Preview feature)
 dapr init --from-dir <path-to-directory>
 
+# Initialize dapr with a particular image variant. Allowed values: "mariner"
+dapr init --image-variant <variant>
+
 # See more at: https://docs.dapr.io/getting-started/
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -105,6 +110,7 @@ dapr init --from-dir <path-to-directory>
 				Wait:             wait,
 				Timeout:          timeout,
 				ImageRegistryURI: imageRegistryURI,
+				ImageVariant:     imageVariant,
 			}
 			err = kubernetes.Init(config)
 			if err != nil {
@@ -130,7 +136,7 @@ dapr init --from-dir <path-to-directory>
 			if len(imageRegistryURI) != 0 {
 				warnForPrivateRegFeat()
 			}
-			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode, imageRegistryURI, fromDir)
+			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode, imageRegistryURI, fromDir, containerRuntime, imageVariant)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)
@@ -168,8 +174,10 @@ func init() {
 	InitCmd.Flags().BoolVarP(&enableHA, "enable-ha", "", false, "Enable high availability (HA) mode")
 	InitCmd.Flags().String("network", "", "The Docker network on which to deploy the Dapr runtime")
 	InitCmd.Flags().StringVarP(&fromDir, "from-dir", "", "", "Use Dapr artifacts from local directory for self-hosted installation")
+	InitCmd.Flags().StringVarP(&imageVariant, "image-variant", "", "", "The image variant to use for the Dapr runtime, for example: mariner")
 	InitCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	InitCmd.Flags().StringArrayVar(&values, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
-	InitCmd.Flags().String("image-registry", "", "Custom/Private docker image repository URL")
+	InitCmd.Flags().String("image-registry", "", "Custom/Private docker image repository url")
+	InitCmd.Flags().StringVarP(&containerRuntime, "container-runtime", "", "docker", "The container runtime to use (defaults to docker)")
 	RootCmd.AddCommand(InitCmd)
 }

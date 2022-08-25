@@ -146,3 +146,10 @@ func ensureDaprInstallation(t *testing.T) {
 		require.NoError(t, err, "failed to create components")
 	}
 }
+
+func containerRuntime() string {
+	if daprContainerRuntime, ok := os.LookupEnv("CONTAINER_RUNTIME"); ok {
+		return daprContainerRuntime
+	}
+	return ""
+}
