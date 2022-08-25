@@ -1064,6 +1064,7 @@ func downloadFile(dir string, url string) (string, error) {
 			}).Dial,
 			TLSHandshakeTimeout:   15 * time.Second,
 			ResponseHeaderTimeout: 15 * time.Second,
+			Proxy:                 http.ProxyFromEnvironment,
 		},
 	}
 
