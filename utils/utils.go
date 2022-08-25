@@ -35,9 +35,22 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+type ContainerRuntime string
+
 const (
+	DOCKER ContainerRuntime = "docker"
+
 	socketFormat = "%s/dapr-%s-%s.socket"
 )
+
+func GetContainerRuntimeCmd(containerRuntime string) string {
+	switch len(containerRuntime) {
+	case 0:
+		return string(DOCKER)
+	default:
+		return containerRuntime
+	}
+}
 
 // PrintTable to print in the table format.
 func PrintTable(csvContent string) {
@@ -143,6 +156,14 @@ func IsDockerInstalled() bool {
 	}
 	_, err = cli.Ping(context.Background())
 	return err == nil
+}
+
+func IsPodmanInstalled() bool {
+	cmd := exec.Command("podman", "version")
+	if err := cmd.Run(); err != nil {
+		return false
+	}
+	return true
 }
 
 // IsDaprListeningOnPort checks if Dapr is litening to a given port.

@@ -61,9 +61,11 @@ func TestStandaloneInitNegatives(t *testing.T) {
 		require.Contains(t, output, "Removing Dapr from your machine...", "expected output to contain message")
 		path := filepath.Join(homeDir, ".dapr", "bin")
 		require.Contains(t, output, "WARNING: "+path+" does not exist", "expected output to contain message")
-		require.Contains(t, output, "WARNING: dapr_placement container does not exist", "expected output to contain message")
-		require.Contains(t, output, "WARNING: dapr_redis container does not exist", "expected output to contain message")
-		require.Contains(t, output, "WARNING: dapr_zipkin container does not exist", "expected output to contain message")
+		if !isSlimMode() {
+			require.Contains(t, output, "WARNING: dapr_placement container does not exist", "expected output to contain message")
+			require.Contains(t, output, "WARNING: dapr_redis container does not exist", "expected output to contain message")
+			require.Contains(t, output, "WARNING: dapr_zipkin container does not exist", "expected output to contain message")
+		}
 		path = filepath.Join(homeDir, ".dapr")
 		require.Contains(t, output, "WARNING: "+path+" does not exist", "expected output to contain message")
 		require.Contains(t, output, "Dapr has been removed successfully")
