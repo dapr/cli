@@ -47,7 +47,7 @@ type AnnotateOptions struct {
 type AnnoteOption func(*AnnotateOptions)
 
 func NewAnnotateOptions(opts ...AnnoteOption) AnnotateOptions {
-	config := AnnotateOptions{} // nolint:exhaustivestruct
+	config := AnnotateOptions{} //nolint:exhaustivestruct
 	for _, opt := range opts {
 		opt(&config)
 	}

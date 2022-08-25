@@ -33,7 +33,7 @@ import (
 
 const (
 	systemConfigName         = "daprsystem"
-	trustBundleSecretName    = "dapr-trust-bundle" // nolint:gosec
+	trustBundleSecretName    = "dapr-trust-bundle" //nolint:gosec
 	warningDaysForCertExpiry = 30                  // in days.
 )
 

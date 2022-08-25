@@ -113,7 +113,7 @@ WARNING: If an app id is not provided, we will generate one using the format '<n
 		if annotateTargetResource != "" {
 			config = kubernetes.K8sAnnotatorConfig{
 				TargetResource: &annotateTargetResource,
-			} // nolint:exhaustivestruct
+			} //nolint:exhaustivestruct
 			if annotateTargetNamespace != "" {
 				config.TargetNamespace = &annotateTargetNamespace
 			}
