@@ -59,9 +59,7 @@ func Init(config InitConfiguration) error {
 
 	stopSpinning := print.Spinner(os.Stdout, msg)
 	defer stopSpinning(print.Failure)
-	// nolint
-	err := install(config)
-	if err != nil {
+	if err := install(config); err != nil {
 		return err
 	}
 

@@ -696,7 +696,7 @@ func createSlimConfiguration(wg *sync.WaitGroup, errorChan chan<- error, info in
 func makeDefaultComponentsDir() error {
 	// Make default components directory.
 	componentsDir := DefaultComponentsDirPath()
-	// nolint
+	//nolint
 	_, err := os.Stat(componentsDir)
 	if os.IsNotExist(err) {
 		errDir := os.MkdirAll(componentsDir, 0o755)
@@ -821,7 +821,7 @@ func untar(reader io.Reader, targetDir string, binaryFilePrefix string) (string,
 	foundBinary := ""
 	for {
 		header, err := tr.Next()
-		// nolint
+		//nolint
 		if err == io.EOF {
 			break
 		} else if err != nil {
@@ -1068,7 +1068,7 @@ func downloadFile(dir string, url string) (string, error) {
 		},
 	}
 
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return "", err
 	}
@@ -1080,9 +1080,9 @@ func downloadFile(dir string, url string) (string, error) {
 
 	defer resp.Body.Close()
 
-	if resp.StatusCode == 404 {
+	if resp.StatusCode == http.StatusNotFound {
 		return "", fmt.Errorf("version not found from url: %s", url)
-	} else if resp.StatusCode != 200 {
+	} else if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("download failed with %d", resp.StatusCode)
 	}
 

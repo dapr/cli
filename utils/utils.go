@@ -118,7 +118,7 @@ func RunCmdAndWait(name string, args ...string) (string, error) {
 	}
 	errB, err := io.ReadAll(stderr)
 	if err != nil {
-		// nolint
+		//nolint
 		return "", nil
 	}
 
@@ -151,7 +151,7 @@ func CreateDirectory(dir string) error {
 
 // IsDockerInstalled checks whether docker is installed/running.
 func IsDockerInstalled() bool {
-	// nolint:staticcheck
+	//nolint:staticcheck
 	cli, err := client.NewEnvClient()
 	if err != nil {
 		return false

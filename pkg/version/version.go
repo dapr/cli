@@ -71,7 +71,7 @@ func GetDaprVersion() (string, error) {
 }
 
 func GetVersionFromURL(releaseURL string, parseVersion func(body []byte) (string, error)) (string, error) {
-	req, err := http.NewRequest("GET", releaseURL, nil)
+	req, err := http.NewRequest(http.MethodGet, releaseURL, nil)
 	if err != nil {
 		return "", err
 	}

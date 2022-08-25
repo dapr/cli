@@ -143,7 +143,7 @@ func applyCRDs(version string) error {
 	for _, crd := range crds {
 		url := fmt.Sprintf("https://raw.githubusercontent.com/dapr/dapr/%s/charts/dapr/crds/%s.yaml", version, crd)
 
-		resp, _ := http.Get(url) // nolint:gosec
+		resp, _ := http.Get(url) //nolint:gosec
 		if resp != nil && resp.StatusCode == 200 {
 			defer resp.Body.Close()
 

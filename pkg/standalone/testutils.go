@@ -19,6 +19,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"time"
 
 	"github.com/dapr/cli/utils"
 )
@@ -48,7 +49,8 @@ func getTestServer(expectedPath, resp string) (*httptest.Server, int) {
 
 func getTestSocketServerFunc(handler http.Handler, appID, path string) (*http.Server, net.Listener) {
 	s := &http.Server{
-		Handler: handler,
+		Handler:           handler,
+		ReadHeaderTimeout: time.Duration(5) * time.Second,
 	}
 
 	socket := utils.GetSocket(path, appID, "http")
@@ -61,7 +63,8 @@ func getTestSocketServerFunc(handler http.Handler, appID, path string) (*http.Se
 
 func getTestSocketServer(expectedPath, resp, appID, path string) (*http.Server, net.Listener) {
 	s := &http.Server{
-		Handler: handlerTestPathResp(expectedPath, resp),
+		Handler:           handlerTestPathResp(expectedPath, resp),
+		ReadHeaderTimeout: time.Duration(5) * time.Second,
 	}
 
 	socket := utils.GetSocket(path, appID, "http")
