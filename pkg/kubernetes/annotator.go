@@ -160,7 +160,7 @@ func (p *K8sAnnotator) processInput(input io.Reader, out io.Writer, opts Annotat
 				if err != nil {
 					return err
 				}
-				items = append(items, runtime.RawExtension{Raw: annotatedJSON}) // nolint:exhaustivestruct
+				items = append(items, runtime.RawExtension{Raw: annotatedJSON}) //nolint:exhaustivestruct
 			}
 			sourceList.Items = items
 			result, err = yaml.Marshal(sourceList)
@@ -235,7 +235,7 @@ func (p *K8sAnnotator) annotateYAML(input []byte, config AnnotateOptions) ([]byt
 	kind := strings.ToLower(metaType.Kind)
 	switch kind {
 	case pod:
-		pod := &corev1.Pod{} // nolint:exhaustivestruct
+		pod := &corev1.Pod{} //nolint:exhaustivestruct
 		if err := yaml.Unmarshal(input, pod); err != nil {
 			return nil, false, err
 		}
@@ -244,7 +244,7 @@ func (p *K8sAnnotator) annotateYAML(input []byte, config AnnotateOptions) ([]byt
 		path = podAnnotationsPath
 		ns = getNamespaceOrDefault(pod)
 	case cronjob:
-		cronjob := &batchv1beta1.CronJob{} // nolint:exhaustivestruct
+		cronjob := &batchv1beta1.CronJob{} //nolint:exhaustivestruct
 		if err := yaml.Unmarshal(input, cronjob); err != nil {
 			return nil, false, err
 		}
@@ -253,7 +253,7 @@ func (p *K8sAnnotator) annotateYAML(input []byte, config AnnotateOptions) ([]byt
 		path = cronjobAnnotationsPath
 		ns = getNamespaceOrDefault(cronjob)
 	case deployment:
-		deployment := &appsv1.Deployment{} // nolint:exhaustivestruct
+		deployment := &appsv1.Deployment{} //nolint:exhaustivestruct
 		if err := yaml.Unmarshal(input, deployment); err != nil {
 			return nil, false, err
 		}
@@ -262,7 +262,7 @@ func (p *K8sAnnotator) annotateYAML(input []byte, config AnnotateOptions) ([]byt
 		path = templateAnnotationsPath
 		ns = getNamespaceOrDefault(deployment)
 	case replicaset:
-		replicaset := &appsv1.ReplicaSet{} // nolint:exhaustivestruct
+		replicaset := &appsv1.ReplicaSet{} //nolint:exhaustivestruct
 		if err := yaml.Unmarshal(input, replicaset); err != nil {
 			return nil, false, err
 		}
@@ -271,7 +271,7 @@ func (p *K8sAnnotator) annotateYAML(input []byte, config AnnotateOptions) ([]byt
 		path = templateAnnotationsPath
 		ns = getNamespaceOrDefault(replicaset)
 	case job:
-		job := &batchv1.Job{} // nolint:exhaustivestruct
+		job := &batchv1.Job{} //nolint:exhaustivestruct
 		if err := yaml.Unmarshal(input, job); err != nil {
 			return nil, false, err
 		}
@@ -280,7 +280,7 @@ func (p *K8sAnnotator) annotateYAML(input []byte, config AnnotateOptions) ([]byt
 		path = templateAnnotationsPath
 		ns = getNamespaceOrDefault(job)
 	case statefulset:
-		statefulset := &appsv1.StatefulSet{} // nolint:exhaustivestruct
+		statefulset := &appsv1.StatefulSet{} //nolint:exhaustivestruct
 		if err := yaml.Unmarshal(input, statefulset); err != nil {
 			return nil, false, err
 		}
@@ -289,7 +289,7 @@ func (p *K8sAnnotator) annotateYAML(input []byte, config AnnotateOptions) ([]byt
 		path = templateAnnotationsPath
 		ns = getNamespaceOrDefault(statefulset)
 	case daemonset:
-		daemonset := &appsv1.DaemonSet{} // nolint:exhaustivestruct
+		daemonset := &appsv1.DaemonSet{} //nolint:exhaustivestruct
 		if err := yaml.Unmarshal(input, daemonset); err != nil {
 			return nil, false, err
 		}

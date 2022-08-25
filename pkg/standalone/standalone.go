@@ -124,6 +124,7 @@ type initInfo struct {
 	dockerNetwork    string
 	imageRegistryURL string
 	containerRuntime string
+	imageVariant     string
 }
 
 type daprImageInfo struct {
@@ -146,7 +147,7 @@ func isBinaryInstallationRequired(binaryFilePrefix, installDir string) (bool, er
 }
 
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
-func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool, imageRegistryURL string, fromDir string, containerRuntime string) error {
+func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool, imageRegistryURL string, fromDir string, containerRuntime string, imageVariant string) error {
 	var err error
 	var bundleDet bundleDetails
 	containerRuntime = strings.TrimSpace(containerRuntime)
@@ -258,6 +259,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		dockerNetwork:    dockerNetwork,
 		imageRegistryURL: imageRegistryURL,
 		containerRuntime: containerRuntime,
+		imageVariant:     imageVariant,
 	}
 	for _, step := range initSteps {
 		// Run init on the configurations and containers.
@@ -694,7 +696,7 @@ func createSlimConfiguration(wg *sync.WaitGroup, errorChan chan<- error, info in
 func makeDefaultComponentsDir() error {
 	// Make default components directory.
 	componentsDir := DefaultComponentsDirPath()
-	// nolint
+	//nolint
 	_, err := os.Stat(componentsDir)
 	if os.IsNotExist(err) {
 		errDir := os.MkdirAll(componentsDir, 0o755)
@@ -819,7 +821,7 @@ func untar(reader io.Reader, targetDir string, binaryFilePrefix string) (string,
 	foundBinary := ""
 	for {
 		header, err := tr.Next()
-		// nolint
+		//nolint
 		if err == io.EOF {
 			break
 		} else if err != nil {
@@ -1062,10 +1064,11 @@ func downloadFile(dir string, url string) (string, error) {
 			}).Dial,
 			TLSHandshakeTimeout:   15 * time.Second,
 			ResponseHeaderTimeout: 15 * time.Second,
+			Proxy:                 http.ProxyFromEnvironment,
 		},
 	}
 
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return "", err
 	}
@@ -1077,9 +1080,9 @@ func downloadFile(dir string, url string) (string, error) {
 
 	defer resp.Body.Close()
 
-	if resp.StatusCode == 404 {
+	if resp.StatusCode == http.StatusNotFound {
 		return "", fmt.Errorf("version not found from url: %s", url)
-	} else if resp.StatusCode != 200 {
+	} else if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("download failed with %d", resp.StatusCode)
 	}
 
@@ -1175,22 +1178,30 @@ func getPlacementImageName(imageInfo daprImageInfo, info initInfo) (string, erro
 		return "", err
 	}
 
-	image = getPlacementImageWithTag(image, info.runtimeVersion)
+	image, err = getPlacementImageWithTag(image, info.runtimeVersion, info.imageVariant)
+	if err != nil {
+		return "", err
+	}
 
 	// if default registry is GHCR and the image is not available in or cannot be pulled from GHCR
 	// fallback to using dockerhub.
 	if useGHCR(imageInfo, info.fromDir) && !tryPullImage(image, info.containerRuntime) {
 		print.InfoStatusEvent(os.Stdout, "Placement image not found in Github container registry, pulling it from Docker Hub")
-		image = getPlacementImageWithTag(daprDockerImageName, info.runtimeVersion)
+		image, err = getPlacementImageWithTag(daprDockerImageName, info.runtimeVersion, info.imageVariant)
+		if err != nil {
+			return "", err
+		}
 	}
 	return image, nil
 }
 
-func getPlacementImageWithTag(name, version string) string {
-	if version == latestVersion {
-		return name
+func getPlacementImageWithTag(name, version, imageVariant string) (string, error) {
+	err := utils.ValidateImageVariant(imageVariant)
+	if err != nil {
+		return "", err
 	}
-	return fmt.Sprintf("%s:%s", name, version)
+	version = utils.GetVariantVersion(version, imageVariant)
+	return fmt.Sprintf("%s:%s", name, version), nil
 }
 
 // useGHCR returns true iff default registry is set as GHCR and --image-registry and --from-dir flags are not set.
