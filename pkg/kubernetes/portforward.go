@@ -15,7 +15,7 @@ package kubernetes
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -103,8 +103,8 @@ func (pf *PortForward) Init() error {
 		return fmt.Errorf("cannot connect to Kubernetes cluster: %w", err)
 	}
 
-	out := ioutil.Discard
-	errOut := ioutil.Discard
+	out := io.Discard
+	errOut := io.Discard
 	if pf.EmitLogs {
 		out = os.Stdout
 		errOut = os.Stderr

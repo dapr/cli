@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
@@ -36,9 +35,24 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+type ContainerRuntime string
+
 const (
+	DOCKER ContainerRuntime = "docker"
+
 	socketFormat = "%s/dapr-%s-%s.socket"
 )
+
+func GetContainerRuntimeCmd(containerRuntime string) string {
+	switch len(containerRuntime) {
+	case 0:
+		return string(DOCKER)
+	default:
+		return containerRuntime
+	}
+}
+
+const marinerImageVariantName = "mariner"
 
 // PrintTable to print in the table format.
 func PrintTable(csvContent string) {
@@ -98,11 +112,11 @@ func RunCmdAndWait(name string, args ...string) (string, error) {
 		return "", err
 	}
 
-	resp, err := ioutil.ReadAll(stdout)
+	resp, err := io.ReadAll(stdout)
 	if err != nil {
 		return "", err
 	}
-	errB, err := ioutil.ReadAll(stderr)
+	errB, err := io.ReadAll(stderr)
 	if err != nil {
 		//nolint
 		return "", nil
@@ -137,13 +151,21 @@ func CreateDirectory(dir string) error {
 
 // IsDockerInstalled checks whether docker is installed/running.
 func IsDockerInstalled() bool {
-	// nolint:staticcheck
+	//nolint:staticcheck
 	cli, err := client.NewEnvClient()
 	if err != nil {
 		return false
 	}
 	_, err = cli.Ping(context.Background())
 	return err == nil
+}
+
+func IsPodmanInstalled() bool {
+	cmd := exec.Command("podman", "version")
+	if err := cmd.Run(); err != nil {
+		return false
+	}
+	return true
 }
 
 // IsDaprListeningOnPort checks if Dapr is litening to a given port.
@@ -228,6 +250,15 @@ func IsAddressLegal(address string) bool {
 	return isLegal
 }
 
+// GetEnv get value from environment variable.
+func GetEnv(envName string, defaultValue string) string {
+	if val, ok := os.LookupEnv(envName); ok {
+		return val
+	}
+
+	return defaultValue
+}
+
 func GetSocket(path, appID, protocol string) string {
 	return fmt.Sprintf(socketFormat, path, appID, protocol)
 }
@@ -244,4 +275,18 @@ func GetDefaultRegistry(githubContainerRegistryName, dockerContainerRegistryName
 	default:
 		return "", fmt.Errorf("environment variable %q can only be set to %s", "DAPR_DEFAULT_IMAGE_REGISTRY", "GHCR")
 	}
+}
+
+func ValidateImageVariant(imageVariant string) error {
+	if imageVariant != "" && imageVariant != marinerImageVariantName {
+		return fmt.Errorf("image variant %s is not supported", imageVariant)
+	}
+	return nil
+}
+
+func GetVariantVersion(version, imageVariant string) string {
+	if imageVariant == "" {
+		return version
+	}
+	return fmt.Sprintf("%s-%s", version, imageVariant)
 }

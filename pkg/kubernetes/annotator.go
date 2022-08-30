@@ -24,41 +24,47 @@ import (
 
 const (
 	// Dapr annotation keys.
-	daprEnabledKey                 = "dapr.io/enabled"
-	daprAppPortKey                 = "dapr.io/app-port"
-	daprConfigKey                  = "dapr.io/config"
-	daprAppProtocolKey             = "dapr.io/app-protocol"
-	daprAppIDKey                   = "dapr.io/app-id"
-	daprEnableProfilingKey         = "dapr.io/enable-profiling"
-	daprLogLevelKey                = "dapr.io/log-level"
-	daprAPITokenSecretKey          = "dapr.io/api-token-secret" /* #nosec */
-	daprAppTokenSecretKey          = "dapr.io/app-token-secret" /* #nosec */
-	daprLogAsJSONKey               = "dapr.io/log-as-json"
-	daprAppMaxConcurrencyKey       = "dapr.io/app-max-concurrency"
-	daprEnableMetricsKey           = "dapr.io/enable-metrics"
-	daprMetricsPortKey             = "dapr.io/metrics-port"
-	daprEnableDebugKey             = "dapr.io/enable-debug"
-	daprDebugPortKey               = "dapr.io/debug-port"
-	daprEnvKey                     = "dapr.io/env"
-	daprCPULimitKey                = "dapr.io/sidecar-cpu-limit"
-	daprMemoryLimitKey             = "dapr.io/sidecar-memory-limit"
-	daprCPURequestKey              = "dapr.io/sidecar-cpu-request"
-	daprMemoryRequestKey           = "dapr.io/sidecar-memory-request"
-	daprListenAddressesKey         = "dapr.io/sidecar-listen-addresses"
-	daprLivenessProbeDelayKey      = "dapr.io/sidecar-liveness-probe-delay-seconds"
-	daprLivenessProbeTimeoutKey    = "dapr.io/sidecar-liveness-probe-timeout-seconds"
-	daprLivenessProbePeriodKey     = "dapr.io/sidecar-liveness-probe-period-seconds"
-	daprLivenessProbeThresholdKey  = "dapr.io/sidecar-liveness-probe-threshold"
-	daprReadinessProbeDelayKey     = "dapr.io/sidecar-readiness-probe-delay-seconds"
-	daprReadinessProbeTimeoutKey   = "dapr.io/sidecar-readiness-probe-timeout-seconds"
-	daprReadinessProbePeriodKey    = "dapr.io/sidecar-readiness-probe-period-seconds"
-	daprReadinessProbeThresholdKey = "dapr.io/sidecar-readiness-probe-threshold"
-	daprImageKey                   = "dapr.io/sidecar-image"
-	daprAppSSLKey                  = "dapr.io/app-ssl"
-	daprMaxRequestBodySizeKey      = "dapr.io/http-max-request-size"
-	daprReadBufferSizeKey          = "dapr.io/http-read-buffer-size"
-	daprHTTPStreamRequestBodyKey   = "dapr.io/http-stream-request-body"
-	daprGracefulShutdownSecondsKey = "dapr.io/graceful-shutdown-seconds"
+	daprEnabledKey                      = "dapr.io/enabled"
+	daprAppPortKey                      = "dapr.io/app-port"
+	daprConfigKey                       = "dapr.io/config"
+	daprAppProtocolKey                  = "dapr.io/app-protocol"
+	daprAppIDKey                        = "dapr.io/app-id"
+	daprEnableProfilingKey              = "dapr.io/enable-profiling"
+	daprLogLevelKey                     = "dapr.io/log-level"
+	daprAPITokenSecretKey               = "dapr.io/api-token-secret" /* #nosec */
+	daprAppTokenSecretKey               = "dapr.io/app-token-secret" /* #nosec */
+	daprLogAsJSONKey                    = "dapr.io/log-as-json"
+	daprAppMaxConcurrencyKey            = "dapr.io/app-max-concurrency"
+	daprEnableMetricsKey                = "dapr.io/enable-metrics"
+	daprMetricsPortKey                  = "dapr.io/metrics-port"
+	daprEnableDebugKey                  = "dapr.io/enable-debug"
+	daprDebugPortKey                    = "dapr.io/debug-port"
+	daprEnvKey                          = "dapr.io/env"
+	daprCPULimitKey                     = "dapr.io/sidecar-cpu-limit"
+	daprMemoryLimitKey                  = "dapr.io/sidecar-memory-limit"
+	daprCPURequestKey                   = "dapr.io/sidecar-cpu-request"
+	daprMemoryRequestKey                = "dapr.io/sidecar-memory-request"
+	daprListenAddressesKey              = "dapr.io/sidecar-listen-addresses"
+	daprLivenessProbeDelayKey           = "dapr.io/sidecar-liveness-probe-delay-seconds"
+	daprLivenessProbeTimeoutKey         = "dapr.io/sidecar-liveness-probe-timeout-seconds"
+	daprLivenessProbePeriodKey          = "dapr.io/sidecar-liveness-probe-period-seconds"
+	daprLivenessProbeThresholdKey       = "dapr.io/sidecar-liveness-probe-threshold"
+	daprReadinessProbeDelayKey          = "dapr.io/sidecar-readiness-probe-delay-seconds"
+	daprReadinessProbeTimeoutKey        = "dapr.io/sidecar-readiness-probe-timeout-seconds"
+	daprReadinessProbePeriodKey         = "dapr.io/sidecar-readiness-probe-period-seconds"
+	daprReadinessProbeThresholdKey      = "dapr.io/sidecar-readiness-probe-threshold"
+	daprImageKey                        = "dapr.io/sidecar-image"
+	daprAppSSLKey                       = "dapr.io/app-ssl"
+	daprMaxRequestBodySizeKey           = "dapr.io/http-max-request-size"
+	daprReadBufferSizeKey               = "dapr.io/http-read-buffer-size"
+	daprHTTPStreamRequestBodyKey        = "dapr.io/http-stream-request-body"
+	daprGracefulShutdownSecondsKey      = "dapr.io/graceful-shutdown-seconds"
+	daprEnableAPILoggingKey             = "dapr.io/enable-api-logging"
+	daprUnixDomainSocketPathKey         = "dapr.io/unix-domain-socket-path"
+	daprVolumeMountsReadOnlyKey         = "dapr.io/volume-mounts"
+	daprVolumeMountsReadWriteKey        = "dapr.io/volume-mounts-rw"
+	daprDisableBuiltinK8sSecretStoreKey = "dapr.io/disable-builtin-k8s-secret-store" /* #nosec */
+	daprPlacementHostAddressKey         = "dapr.io/placement-host-address"
 
 	// K8s kinds.
 	pod         = "pod"
@@ -154,7 +160,7 @@ func (p *K8sAnnotator) processInput(input io.Reader, out io.Writer, opts Annotat
 				if err != nil {
 					return err
 				}
-				items = append(items, runtime.RawExtension{Raw: annotatedJSON}) // nolint:exhaustivestruct
+				items = append(items, runtime.RawExtension{Raw: annotatedJSON}) //nolint:exhaustivestruct
 			}
 			sourceList.Items = items
 			result, err = yaml.Marshal(sourceList)
@@ -229,7 +235,7 @@ func (p *K8sAnnotator) annotateYAML(input []byte, config AnnotateOptions) ([]byt
 	kind := strings.ToLower(metaType.Kind)
 	switch kind {
 	case pod:
-		pod := &corev1.Pod{} // nolint:exhaustivestruct
+		pod := &corev1.Pod{} //nolint:exhaustivestruct
 		if err := yaml.Unmarshal(input, pod); err != nil {
 			return nil, false, err
 		}
@@ -238,7 +244,7 @@ func (p *K8sAnnotator) annotateYAML(input []byte, config AnnotateOptions) ([]byt
 		path = podAnnotationsPath
 		ns = getNamespaceOrDefault(pod)
 	case cronjob:
-		cronjob := &batchv1beta1.CronJob{} // nolint:exhaustivestruct
+		cronjob := &batchv1beta1.CronJob{} //nolint:exhaustivestruct
 		if err := yaml.Unmarshal(input, cronjob); err != nil {
 			return nil, false, err
 		}
@@ -247,7 +253,7 @@ func (p *K8sAnnotator) annotateYAML(input []byte, config AnnotateOptions) ([]byt
 		path = cronjobAnnotationsPath
 		ns = getNamespaceOrDefault(cronjob)
 	case deployment:
-		deployment := &appsv1.Deployment{} // nolint:exhaustivestruct
+		deployment := &appsv1.Deployment{} //nolint:exhaustivestruct
 		if err := yaml.Unmarshal(input, deployment); err != nil {
 			return nil, false, err
 		}
@@ -256,7 +262,7 @@ func (p *K8sAnnotator) annotateYAML(input []byte, config AnnotateOptions) ([]byt
 		path = templateAnnotationsPath
 		ns = getNamespaceOrDefault(deployment)
 	case replicaset:
-		replicaset := &appsv1.ReplicaSet{} // nolint:exhaustivestruct
+		replicaset := &appsv1.ReplicaSet{} //nolint:exhaustivestruct
 		if err := yaml.Unmarshal(input, replicaset); err != nil {
 			return nil, false, err
 		}
@@ -265,7 +271,7 @@ func (p *K8sAnnotator) annotateYAML(input []byte, config AnnotateOptions) ([]byt
 		path = templateAnnotationsPath
 		ns = getNamespaceOrDefault(replicaset)
 	case job:
-		job := &batchv1.Job{} // nolint:exhaustivestruct
+		job := &batchv1.Job{} //nolint:exhaustivestruct
 		if err := yaml.Unmarshal(input, job); err != nil {
 			return nil, false, err
 		}
@@ -274,7 +280,7 @@ func (p *K8sAnnotator) annotateYAML(input []byte, config AnnotateOptions) ([]byt
 		path = templateAnnotationsPath
 		ns = getNamespaceOrDefault(job)
 	case statefulset:
-		statefulset := &appsv1.StatefulSet{} // nolint:exhaustivestruct
+		statefulset := &appsv1.StatefulSet{} //nolint:exhaustivestruct
 		if err := yaml.Unmarshal(input, statefulset); err != nil {
 			return nil, false, err
 		}
@@ -283,7 +289,7 @@ func (p *K8sAnnotator) annotateYAML(input []byte, config AnnotateOptions) ([]byt
 		path = templateAnnotationsPath
 		ns = getNamespaceOrDefault(statefulset)
 	case daemonset:
-		daemonset := &appsv1.DaemonSet{} // nolint:exhaustivestruct
+		daemonset := &appsv1.DaemonSet{} //nolint:exhaustivestruct
 		if err := yaml.Unmarshal(input, daemonset); err != nil {
 			return nil, false, err
 		}
@@ -489,6 +495,24 @@ func getDaprAnnotations(config *AnnotateOptions) map[string]string {
 	}
 	if config.gracefulShutdownSeconds != nil {
 		annotations[daprGracefulShutdownSecondsKey] = strconv.FormatInt(int64(*config.gracefulShutdownSeconds), 10)
+	}
+	if config.enableAPILogging != nil {
+		annotations[daprEnableAPILoggingKey] = strconv.FormatBool(*config.enableAPILogging)
+	}
+	if config.unixDomainSocketPath != nil {
+		annotations[daprUnixDomainSocketPathKey] = *config.unixDomainSocketPath
+	}
+	if config.volumeMountsReadOnly != nil {
+		annotations[daprVolumeMountsReadOnlyKey] = *config.volumeMountsReadOnly
+	}
+	if config.volumeMountsReadWrite != nil {
+		annotations[daprVolumeMountsReadWriteKey] = *config.volumeMountsReadWrite
+	}
+	if config.disableBuiltinK8sSecretStore != nil {
+		annotations[daprDisableBuiltinK8sSecretStoreKey] = strconv.FormatBool(*config.disableBuiltinK8sSecretStore)
+	}
+	if config.placementHostAddress != nil {
+		annotations[daprPlacementHostAddressKey] = *config.placementHostAddress
 	}
 
 	return annotations

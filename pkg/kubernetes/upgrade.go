@@ -15,6 +15,7 @@ package kubernetes
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"time"
 
@@ -33,18 +34,22 @@ var crds = []string{
 	"components",
 	"configuration",
 	"subscription",
+	"resiliency",
 }
 
 var crdsFullResources = []string{
 	"components.dapr.io",
 	"configurations.dapr.io",
 	"subscriptions.dapr.io",
+	"resiliencies.dapr.io",
 }
 
 type UpgradeConfig struct {
-	RuntimeVersion string
-	Args           []string
-	Timeout        uint
+	RuntimeVersion   string
+	Args             []string
+	Timeout          uint
+	ImageRegistryURI string
+	ImageVariant     string
 }
 
 func Upgrade(conf UpgradeConfig) error {
@@ -97,7 +102,7 @@ func Upgrade(conf UpgradeConfig) error {
 	}
 
 	ha := highAvailabilityEnabled(status)
-	vals, err = upgradeChartValues(string(ca), string(issuerCert), string(issuerKey), ha, mtls, conf.Args)
+	vals, err = upgradeChartValues(string(ca), string(issuerCert), string(issuerKey), ha, mtls, conf)
 	if err != nil {
 		return err
 	}
@@ -124,6 +129,9 @@ func Upgrade(conf UpgradeConfig) error {
 
 func highAvailabilityEnabled(status []StatusOutput) bool {
 	for _, s := range status {
+		if s.Name == "dapr-dashboard" {
+			continue
+		}
 		if s.Replicas > 1 {
 			return true
 		}
@@ -134,17 +142,28 @@ func highAvailabilityEnabled(status []StatusOutput) bool {
 func applyCRDs(version string) error {
 	for _, crd := range crds {
 		url := fmt.Sprintf("https://raw.githubusercontent.com/dapr/dapr/%s/charts/dapr/crds/%s.yaml", version, crd)
-		_, err := utils.RunCmdAndWait("kubectl", "apply", "-f", url)
-		if err != nil {
-			return err
+
+		resp, _ := http.Get(url) //nolint:gosec
+		if resp != nil && resp.StatusCode == 200 {
+			defer resp.Body.Close()
+
+			_, err := utils.RunCmdAndWait("kubectl", "apply", "-f", url)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
 }
 
-func upgradeChartValues(ca, issuerCert, issuerKey string, haMode, mtls bool, args []string) (map[string]interface{}, error) {
+func upgradeChartValues(ca, issuerCert, issuerKey string, haMode, mtls bool, conf UpgradeConfig) (map[string]interface{}, error) {
 	chartVals := map[string]interface{}{}
-	globalVals := args
+	globalVals := conf.Args
+	err := utils.ValidateImageVariant(conf.ImageVariant)
+	if err != nil {
+		return nil, err
+	}
+	globalVals = append(globalVals, fmt.Sprintf("global.tag=%s", utils.GetVariantVersion(conf.RuntimeVersion, conf.ImageVariant)))
 
 	if mtls && ca != "" && issuerCert != "" && issuerKey != "" {
 		globalVals = append(globalVals, fmt.Sprintf("dapr_sentry.tls.root.certPEM=%s", ca),
@@ -154,7 +173,9 @@ func upgradeChartValues(ca, issuerCert, issuerKey string, haMode, mtls bool, arg
 	} else {
 		globalVals = append(globalVals, "global.mtls.enabled=false")
 	}
-
+	if len(conf.ImageRegistryURI) != 0 {
+		globalVals = append(globalVals, fmt.Sprintf("global.registry=%s", conf.ImageRegistryURI))
+	}
 	if haMode {
 		globalVals = append(globalVals, "global.ha.enabled=true")
 	}

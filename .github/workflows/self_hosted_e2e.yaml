@@ -18,17 +18,21 @@ on:
     branches:
       - master
       - release-*
+    paths-ignore:
+      - '**.md'
   schedule:
     - cron: '0 */3 * * *'
-    - cron: '0 0 * * *'
+    - cron: '0 */6 * * *'
   pull_request:
     branches:
       - master
       - 'release-*'
+    paths-ignore:
+      - '**.md'
 
 jobs:
   self-hosted-e2e:
-    name: Run Self-Hosted E2E tests in ${{ matrix.target_os }}_${{ matrix.target_arch }}
+    name: Run Self-Hosted E2E tests in ${{ matrix.target_os }}_${{ matrix.target_arch }}_${{ matrix.dapr_install_mode }}
     runs-on: ${{ matrix.os }}
     env:
       GOVER: 1.18
@@ -36,20 +40,24 @@ jobs:
       GOARCH: ${{ matrix.target_arch }}
       GOPROXY: https://proxy.golang.org
       ARCHIVE_OUTDIR: dist/archives
-      DAPR_RUNTIME_VERSION: "1.7.0"
+      DAPR_RUNTIME_VERSION: "1.8.0"
       DAPR_DASHBOARD_VERSION: 0.10.0
       DAPR_TGZ: dapr-1.7.0.tgz
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [macos-latest, ubuntu-latest, windows-latest]
         target_arch: [amd64]
+        dapr_install_mode: [slim, complete]
         include:
           - os: ubuntu-latest
             target_os: linux
           - os: macOS-latest
             target_os: darwin
-            #- os: windows-latest
-            #target_os: windows
+          - os: windows-latest
+            target_os: windows
+        exclude:
+          - os: windows-latest
+            dapr_install_mode: complete
     steps:
       - name: Set up Go ${{ env.GOVER }}
         uses: actions/setup-go@v2
@@ -57,14 +65,18 @@ jobs:
           go-version: ${{ env.GOVER }}
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
-      - name: Install docker - MacOS
-        if: matrix.os == 'macos-latest'
+      - name: Install podman - MacOS
+        if: matrix.os == 'macos-latest' && matrix.dapr_install_mode == 'complete'
         run: |
-          brew install --cask docker
-          sudo /Applications/Docker.app/Contents/MacOS/Docker --unattended --install-privileged-components
-          open -a /Applications/Docker.app --args --unattended --accept-license
-          while ! /Applications/Docker.app/Contents/Resources/bin/docker info &>/dev/null; do sleep 1; done
-          docker --version
+          sudo rm -rf `brew --cache`
+          brew upgrade
+          brew install podman
+          which podman-mac-helper
+          podman_helper=$(which podman-mac-helper)
+          sudo ${podman_helper} install
+          podman machine init
+          podman machine start
+          echo "CONTAINER_RUNTIME=podman" >> $GITHUB_ENV
       - name: Determine latest Dapr Runtime version including Pre-releases
         if: github.base_ref == 'master'
         run: |
@@ -80,10 +92,12 @@ jobs:
           echo "Found $DASHBOARD_VERSION"
         shell: bash
       - name: Run E2E tests with GHCR
-        # only runs once in a day
-        if: github.event.schedule == '0 0 * * *'
+        # runs every 6hrs
+        if: github.event.schedule == '0 */6 * * *'
         env:
           DAPR_DEFAULT_IMAGE_REGISTRY: ghcr
+          DAPR_E2E_INIT_SLIM: ${{ contains(matrix.os, 'windows-latest') || contains(matrix.dapr_install_mode, 'slim') }}
+          CONTAINER_RUNTIME: ${{ env.CONTAINER_RUNTIME }}
         run: |
           export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-standalone.json
           echo "TEST_OUTPUT_FILE=$TEST_OUTPUT_FILE" >> $GITHUB_ENV
@@ -91,7 +105,10 @@ jobs:
           make e2e-build-run-sh
         shell: bash
       - name: Run E2E tests with Docker hub
-        if: github.event.schedule != '0 0 * * *'
+        if: github.event.schedule != '0 */6 * * *'
+        env:
+          DAPR_E2E_INIT_SLIM: ${{ contains(matrix.os, 'windows-latest') || contains(matrix.dapr_install_mode, 'slim') }}
+          CONTAINER_RUNTIME: ${{ env.CONTAINER_RUNTIME }}
         run: |
           export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-standalone.json
           echo "TEST_OUTPUT_FILE=$TEST_OUTPUT_FILE" >> $GITHUB_ENV

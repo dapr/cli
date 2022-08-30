@@ -25,7 +25,7 @@ Note, if you are a new user, it is strongly recommended to install Docker and us
 
 **Windows**
 
-Install the latest windows Dapr CLI to `c:\dapr` and add this directory to User PATH environment variable. Use `-DaprRoot [path]` to change the default installation directory
+Install the latest windows Dapr CLI to `$Env:SystemDrive\dapr` and add this directory to User PATH environment variable. Use `-DaprRoot [path]` to change the default installation directory
 
 ```powershell
 powershell -Command "iwr -useb https://raw.githubusercontent.com/dapr/cli/master/install/install.ps1 | iex"
@@ -127,6 +127,16 @@ dapr --version
 CLI version: v1.0.0
 Runtime version: v1.0.0
 ```
+
+#### Install with mariner images
+
+You can install Dapr Runtime using mariner images using the `--image-variant` flag. 
+
+```bash
+# Installing Dapr with Mariner images
+dapr init --image-variant mariner
+```
+
 #### Install by providing a docker container registry url
 
 You can install Dapr runtime by pulling docker images from a given private registry uri by using `--image-registry` flag.
@@ -180,6 +190,19 @@ dapr init --network dapr-network
 > Note: When installed to a specific Docker network, you will need to add the `--placement-host-address` arguments to `dapr run` commands run in any containers within that network.
 > The format of `--placement-host-address` argument is either `<hostname>` or `<hostname>:<port>`. If the port is omitted, the default port `6050` for Windows and `50005` for Linux/MacOS applies.
 
+#### Install with a specific container runtime
+
+You can install the Dapr runtime using a specific container runtime
+environment such as Docker or Podman by passing along the
+`--container-runtime` argument:
+
+```bash
+# Install Dapr with Podman
+$ dapr init --container-runtime podman
+```
+
+> Note: The default container runtime is Docker.
+
 ### Uninstall Dapr in a standalone mode
 
 Uninstalling will remove daprd binary and the placement container (if installed with Docker or the placement binary if not).
@@ -209,6 +232,16 @@ If previously installed to a specific Docker network, Dapr can be uninstalled wi
 
 ```bash
 dapr uninstall --network dapr-network
+```
+
+#### Uninstall Dapr from a specific container runtime
+
+You can uninstall Dapr from a specific container runtime
+environment by passing along the `--container-runtime` argument:
+
+```bash
+# Uninstall Dapr from Podman container runtime
+$ dapr uninstall --container-runtime podman
 ```
 
 ### Install Dapr on Kubernetes
@@ -304,6 +337,14 @@ dapr upgrade -k --runtime-version=1.0.0 --set global.tag=my-tag --set dapr_opera
 ```
 
 *Note: do not use the `dapr upgrade` command if you're upgrading from 0.x versions of Dapr*
+
+### Use Private Helm Repository
+
+export DAPR_HELM_REPO_URL="https://helmchart-repo.xxx.xxx/dapr/dapr"
+export DAPR_HELM_REPO_USERNAME="username_xxx"
+export DAPR_HELM_REPO_PASSWORD="passwd_xxx"
+
+Setting the above parameters will allow `dapr init -k` to install Dapr images from the configured Helm repository.
 
 ### Launch Dapr and your app
 
@@ -630,15 +671,17 @@ The default is `false`.
 
 For more details, please run the command and check the examples to apply to your shell.
 
-### Annotate a Kubernetes manifest
+### Apply Dapr annotations
 
-To add or modify dapr annotations on an existing Kubernetes manifest, use the  `dapr annotate` command:
+To add or modify dapr annotations on an existing Kubernetes manifest, use the `dapr annotate` command:
 
 ```bash
 dapr annotate [flags] mydeployment.yaml
 ```
 
 This will add the `dapr.io/enabled` and the `dapr.io/app-id` annotations. The dapr app id will be genereated using the format `<namespace>-<kind>-<name>` where the values are taken from the existing Kubernetes object metadata.
+
+> NOTE: The annotate command currently only supports annotating Kubernetes manifests. You must provide the `-k` flag to target Kubernetes.
 
 To provide your own dapr app id, provide the flag `--app-id`.
 
@@ -647,13 +690,13 @@ All dapr annotations are available to set if a value is provided for the appropr
 You can also provide the Kubernetes manifest via stdin:
 
 ```bash
-kubectl get deploy mydeploy -o yaml | dapr annotate - | kubectl apply -f -
+kubectl get deploy mydeploy -o yaml | dapr annotate -k - | kubectl apply -f -
 ```
 
 Or you can provide the Kubernetes manifest via a URL:
 
 ```bash
-dapr annotate --log-level debug https://raw.githubusercontent.com/dapr/quickstarts/master/tutorials/hello-kubernetes/deploy/node.yaml | kubectl apply -f -
+dapr annotate -k --log-level debug https://raw.githubusercontent.com/dapr/quickstarts/master/tutorials/hello-kubernetes/deploy/node.yaml | kubectl apply -f -
 ```
 
 If the input contains multiple manifests then the command will search for the first appropriate one to apply the annotations. If you'd rather it applied to a specific manifest then you can provide the `--resource` flag with the value set to the name of the object you'd like to apply the annotations to. If you have a conflict between namespaces you can also provide the namespace via the `--namespace` flag to isolate the manifest you wish to target.
@@ -661,7 +704,7 @@ If the input contains multiple manifests then the command will search for the fi
 If you want to annotate multiple manifests, you can chain together the `dapr annotate` commands with each applying the annotation to a specific manifest.
 
 ```bash
-kubectl get deploy -o yaml | dapr annotate -r nodeapp --log-level debug - | dapr annotate --log-level debug -r pythonapp - | kubectl apply -f -
+kubectl get deploy -o yaml | dapr annotate -k -r nodeapp --log-level debug - | dapr annotate -k --log-level debug -r pythonapp - | kubectl apply -f -
 ```
 
 ## Reference for the Dapr CLI

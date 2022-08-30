@@ -17,10 +17,11 @@ import (
 	"archive/tar"
 	"archive/zip"
 	"compress/gzip"
+	"context"
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
 	"path"
@@ -28,6 +29,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/fatih/color"
 	"gopkg.in/yaml.v2"
@@ -53,7 +55,7 @@ const (
 	// used when DAPR_DEFAULT_IMAGE_REGISTRY is not set.
 	dockerContainerRegistryName = "dockerhub"
 	daprDockerImageName         = "daprio/dapr"
-	redisDockerImageName        = "redis"
+	redisDockerImageName        = "redis:6"
 	zipkinDockerImageName       = "openzipkin/zipkin"
 
 	// used when DAPR_DEFAULT_IMAGE_REGISTRY is set as GHCR.
@@ -121,6 +123,8 @@ type initInfo struct {
 	dashboardVersion string
 	dockerNetwork    string
 	imageRegistryURL string
+	containerRuntime string
+	imageVariant     string
 }
 
 type daprImageInfo struct {
@@ -143,16 +147,17 @@ func isBinaryInstallationRequired(binaryFilePrefix, installDir string) (bool, er
 }
 
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
-func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool, imageRegistryURL string, fromDir string) error {
+func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool, imageRegistryURL string, fromDir string, containerRuntime string, imageVariant string) error {
 	var err error
 	var bundleDet bundleDetails
+	containerRuntime = strings.TrimSpace(containerRuntime)
 	fromDir = strings.TrimSpace(fromDir)
 	// AirGap init flow is true when fromDir var is set i.e. --from-dir flag has value.
 	setAirGapInit(fromDir)
 	if !slimMode {
 		// If --slim installation is not requested, check if docker is installed.
-		dockerInstalled := utils.IsDockerInstalled()
-		if !dockerInstalled {
+		conatinerRuntimeAvailable := utils.IsDockerInstalled() || utils.IsPodmanInstalled()
+		if !conatinerRuntimeAvailable {
 			return errors.New("could not connect to Docker. Docker may not be installed or running")
 		}
 
@@ -253,6 +258,8 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		dashboardVersion: dashboardVersion,
 		dockerNetwork:    dockerNetwork,
 		imageRegistryURL: imageRegistryURL,
+		containerRuntime: containerRuntime,
+		imageVariant:     imageVariant,
 	}
 	for _, step := range initSteps {
 		// Run init on the configurations and containers.
@@ -282,6 +289,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		// Print info on placement binary only on slim install.
 		print.InfoStatusEvent(os.Stdout, "%s binary has been installed to %s.", placementServiceFilePrefix, daprBinDir)
 	} else {
+		runtimeCmd := utils.GetContainerRuntimeCmd(info.containerRuntime)
 		dockerContainerNames := []string{DaprPlacementContainerName, DaprRedisContainerName, DaprZipkinContainerName}
 		// Skip redis and zipkin in local installation mode.
 		if isAirGapInit {
@@ -289,7 +297,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		}
 		for _, container := range dockerContainerNames {
 			containerName := utils.CreateContainerName(container, dockerNetwork)
-			ok, err := confirmContainerIsRunningOrExists(containerName, true)
+			ok, err := confirmContainerIsRunningOrExists(containerName, true, runtimeCmd)
 			if err != nil {
 				return err
 			}
@@ -297,7 +305,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 				print.InfoStatusEvent(os.Stdout, "%s container is running.", containerName)
 			}
 		}
-		print.InfoStatusEvent(os.Stdout, "Use `docker ps` to check running containers.")
+		print.InfoStatusEvent(os.Stdout, "Use `%s ps` to check running containers.", runtimeCmd)
 	}
 	return nil
 }
@@ -311,7 +319,8 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 
 	zipkinContainerName := utils.CreateContainerName(DaprZipkinContainerName, info.dockerNetwork)
 
-	exists, err := confirmContainerIsRunningOrExists(zipkinContainerName, false)
+	runtimeCmd := utils.GetContainerRuntimeCmd(info.containerRuntime)
+	exists, err := confirmContainerIsRunningOrExists(zipkinContainerName, false, runtimeCmd)
 	if err != nil {
 		errorChan <- err
 		return
@@ -355,14 +364,14 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 
 		args = append(args, imageName)
 	}
-	_, err = utils.RunCmdAndWait("docker", args...)
+	_, err = utils.RunCmdAndWait(runtimeCmd, args...)
 
 	if err != nil {
 		runError := isContainerRunError(err)
 		if !runError {
-			errorChan <- parseDockerError("Zipkin tracing", err)
+			errorChan <- parseContainerRuntimeError("Zipkin tracing", err)
 		} else {
-			errorChan <- fmt.Errorf("docker %s failed with: %w", args, err)
+			errorChan <- fmt.Errorf("%s %s failed with: %w", runtimeCmd, args, err)
 		}
 		return
 	}
@@ -378,7 +387,8 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 
 	redisContainerName := utils.CreateContainerName(DaprRedisContainerName, info.dockerNetwork)
 
-	exists, err := confirmContainerIsRunningOrExists(redisContainerName, false)
+	runtimeCmd := utils.GetContainerRuntimeCmd(info.containerRuntime)
+	exists, err := confirmContainerIsRunningOrExists(redisContainerName, false, runtimeCmd)
 	if err != nil {
 		errorChan <- err
 		return
@@ -420,14 +430,14 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 		}
 		args = append(args, imageName)
 	}
-	_, err = utils.RunCmdAndWait("docker", args...)
+	_, err = utils.RunCmdAndWait(runtimeCmd, args...)
 
 	if err != nil {
 		runError := isContainerRunError(err)
 		if !runError {
-			errorChan <- parseDockerError("Redis state store", err)
+			errorChan <- parseContainerRuntimeError("Redis state store", err)
 		} else {
-			errorChan <- fmt.Errorf("docker %s failed with: %w", args, err)
+			errorChan <- fmt.Errorf("%s %s failed with: %w", runtimeCmd, args, err)
 		}
 		return
 	}
@@ -441,9 +451,10 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		return
 	}
 
+	runtimeCmd := utils.GetContainerRuntimeCmd(info.containerRuntime)
 	placementContainerName := utils.CreateContainerName(DaprPlacementContainerName, info.dockerNetwork)
 
-	exists, err := confirmContainerIsRunningOrExists(placementContainerName, false)
+	exists, err := confirmContainerIsRunningOrExists(placementContainerName, false, runtimeCmd)
 
 	if err != nil {
 		errorChan <- err
@@ -465,7 +476,7 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		// if --from-dir flag is given load the image details from the installer-bundle.
 		dir := path_filepath.Join(info.fromDir, *info.bundleDet.ImageSubDir)
 		image = info.bundleDet.getPlacementImageName()
-		err = loadDocker(dir, info.bundleDet.getPlacementImageFileName())
+		err = loadContainer(dir, info.bundleDet.getPlacementImageFileName(), info.containerRuntime)
 		if err != nil {
 			errorChan <- err
 			return
@@ -503,14 +514,14 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 
 	args = append(args, image)
 
-	_, err = utils.RunCmdAndWait("docker", args...)
+	_, err = utils.RunCmdAndWait(runtimeCmd, args...)
 
 	if err != nil {
 		runError := isContainerRunError(err)
 		if !runError {
-			errorChan <- parseDockerError("placement service", err)
+			errorChan <- parseContainerRuntimeError("placement service", err)
 		} else {
-			errorChan <- fmt.Errorf("docker %s failed with: %w", args, err)
+			errorChan <- fmt.Errorf("%s %s failed with: %w", runtimeCmd, args, err)
 		}
 		return
 	}
@@ -634,7 +645,7 @@ func installBinary(version, binaryFilePrefix, githubRepo string, info initInfo) 
 func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 	defer wg.Done()
 
-	if info.slimMode {
+	if info.slimMode || isAirGapInit {
 		return
 	}
 
@@ -670,7 +681,7 @@ func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error
 func createSlimConfiguration(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 	defer wg.Done()
 
-	if !info.slimMode {
+	if !(info.slimMode || isAirGapInit) {
 		return
 	}
 
@@ -859,7 +870,7 @@ func moveFileToPath(filepath string, installLocation string) (string, error) {
 	destDir := installLocation
 	destFilePath = path.Join(destDir, fileName)
 
-	input, err := ioutil.ReadFile(filepath)
+	input, err := os.ReadFile(filepath)
 	if err != nil {
 		return "", err
 	}
@@ -870,7 +881,7 @@ func moveFileToPath(filepath string, installLocation string) (string, error) {
 	}
 
 	// #nosec G306
-	if err = ioutil.WriteFile(destFilePath, input, 0o644); err != nil {
+	if err = os.WriteFile(destFilePath, input, 0o644); err != nil {
 		if runtime.GOOS != daprWindowsOS && strings.Contains(err.Error(), "permission denied") {
 			err = errors.New(err.Error() + " - please run with sudo")
 		}
@@ -975,7 +986,7 @@ func createDefaultConfiguration(zipkinHost, filePath string) error {
 	defaultConfig.Metadata.Name = "daprConfig"
 	if zipkinHost != "" {
 		defaultConfig.Spec.Tracing.SamplingRate = "1"
-		defaultConfig.Spec.Tracing.Zipkin.EndpointAddress = fmt.Sprintf("http://%s:9411/api/v2/spans", zipkinHost)
+		defaultConfig.Spec.Tracing.Zipkin.EndpointAddress = fmt.Sprintf("http://%s:9411/api/v2/spans", zipkinHost) //nolint:nosprintfhostport
 	}
 	b, err := yaml.Marshal(&defaultConfig)
 	if err != nil {
@@ -991,7 +1002,7 @@ func checkAndOverWriteFile(filePath string, b []byte) error {
 	_, err := os.Stat(filePath)
 	if os.IsNotExist(err) {
 		// #nosec G306
-		if err = ioutil.WriteFile(filePath, b, 0o644); err != nil {
+		if err = os.WriteFile(filePath, b, 0o644); err != nil {
 			return err
 		}
 	}
@@ -1036,7 +1047,6 @@ func binaryName(binaryFilePrefix string) string {
 	return fmt.Sprintf("%s_%s_%s.%s", binaryFilePrefix, runtime.GOOS, runtime.GOARCH, archiveExt())
 }
 
-// nolint:gosec
 func downloadFile(dir string, url string) (string, error) {
 	tokens := strings.Split(url, "/")
 	fileName := tokens[len(tokens)-1]
@@ -1046,16 +1056,33 @@ func downloadFile(dir string, url string) (string, error) {
 	if os.IsExist(err) {
 		return "", nil
 	}
+	client := http.Client{ //nolint:exhaustruct
+		Timeout: 0,
+		Transport: &http.Transport{ //nolint:exhaustruct
+			Dial: (&net.Dialer{ //nolint:exhaustruct
+				Timeout: 30 * time.Second,
+			}).Dial,
+			TLSHandshakeTimeout:   15 * time.Second,
+			ResponseHeaderTimeout: 15 * time.Second,
+			Proxy:                 http.ProxyFromEnvironment,
+		},
+	}
 
-	resp, err := http.Get(url)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return "", err
 	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+
 	defer resp.Body.Close()
 
-	if resp.StatusCode == 404 {
+	if resp.StatusCode == http.StatusNotFound {
 		return "", fmt.Errorf("version not found from url: %s", url)
-	} else if resp.StatusCode != 200 {
+	} else if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("download failed with %d", resp.StatusCode)
 	}
 
@@ -1065,12 +1092,81 @@ func downloadFile(dir string, url string) (string, error) {
 	}
 	defer out.Close()
 
-	_, err = io.Copy(out, resp.Body)
+	_, err = copyWithTimeout(context.Background(), out, resp.Body)
 	if err != nil {
 		return "", err
 	}
 
 	return filepath, nil
+}
+
+/*
+!
+See: https://github.com/microsoft/vscode-winsta11er/blob/4b42060da64aea6f47adebe1dd654980ed87a046/common/common.go
+Copyright (c) Microsoft Corporation. All rights reserved. Licensed under the MIT License.
+*/
+func copyWithTimeout(ctx context.Context, dst io.Writer, src io.Reader) (int64, error) {
+	// Every 5 seconds, ensure at least 200 bytes (40 bytes/second average) are read.
+	interval := 5
+	minCopyBytes := int64(200)
+	prevWritten := int64(0)
+	written := int64(0)
+
+	done := make(chan error)
+	mu := sync.Mutex{}
+	t := time.NewTicker(time.Duration(interval) * time.Second)
+	defer t.Stop()
+
+	// Read the stream, 32KB at a time.
+	go func() {
+		var (
+			writeErr, readErr     error
+			writeBytes, readBytes int
+			buf                   = make([]byte, 32<<10)
+		)
+		for {
+			readBytes, readErr = src.Read(buf)
+			if readBytes > 0 {
+				// Write to disk and update the number of bytes written.
+				writeBytes, writeErr = dst.Write(buf[0:readBytes])
+				mu.Lock()
+				written += int64(writeBytes)
+				mu.Unlock()
+				if writeErr != nil {
+					done <- writeErr
+					return
+				}
+			}
+			if readErr != nil {
+				// If error is EOF, means we read the entire file, so don't consider that as error.
+				if !errors.Is(readErr, io.EOF) {
+					done <- readErr
+					return
+				}
+
+				// No error.
+				done <- nil
+				return
+			}
+		}
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return written, ctx.Err()
+		case <-t.C:
+			mu.Lock()
+			if written < prevWritten+minCopyBytes {
+				mu.Unlock()
+				return written, fmt.Errorf("stream stalled: received %d bytes over the last %d seconds", written, interval)
+			}
+			prevWritten = written
+			mu.Unlock()
+		case e := <-done:
+			return written, e
+		}
+	}
 }
 
 // getPlacementImageName returns the resolved placement image name for online `dapr init`.
@@ -1082,22 +1178,30 @@ func getPlacementImageName(imageInfo daprImageInfo, info initInfo) (string, erro
 		return "", err
 	}
 
-	image = getPlacementImageWithTag(image, info.runtimeVersion)
+	image, err = getPlacementImageWithTag(image, info.runtimeVersion, info.imageVariant)
+	if err != nil {
+		return "", err
+	}
 
 	// if default registry is GHCR and the image is not available in or cannot be pulled from GHCR
 	// fallback to using dockerhub.
-	if useGHCR(imageInfo, info.fromDir) && !tryPullImage(image) {
+	if useGHCR(imageInfo, info.fromDir) && !tryPullImage(image, info.containerRuntime) {
 		print.InfoStatusEvent(os.Stdout, "Placement image not found in Github container registry, pulling it from Docker Hub")
-		image = getPlacementImageWithTag(daprDockerImageName, info.runtimeVersion)
+		image, err = getPlacementImageWithTag(daprDockerImageName, info.runtimeVersion, info.imageVariant)
+		if err != nil {
+			return "", err
+		}
 	}
 	return image, nil
 }
 
-func getPlacementImageWithTag(name, version string) string {
-	if version == latestVersion {
-		return name
+func getPlacementImageWithTag(name, version, imageVariant string) (string, error) {
+	err := utils.ValidateImageVariant(imageVariant)
+	if err != nil {
+		return "", err
 	}
-	return fmt.Sprintf("%s:%s", name, version)
+	version = utils.GetVariantVersion(version, imageVariant)
+	return fmt.Sprintf("%s:%s", name, version), nil
 }
 
 // useGHCR returns true iff default registry is set as GHCR and --image-registry and --from-dir flags are not set.

@@ -153,7 +153,7 @@ func logErrorAndExit(err error) {
 
 func restartControlPlaneService() error {
 	controlPlaneServices := []string{"deploy/dapr-sentry", "deploy/dapr-operator", "statefulsets/dapr-placement-server"}
-	namespace, err := getDaprNamespace()
+	namespace, err := kubernetes.GetDaprNamespace()
 	if err != nil {
 		print.FailureStatusEvent(os.Stdout, "Failed to fetch Dapr namespace")
 	}
@@ -170,12 +170,4 @@ func restartControlPlaneService() error {
 	}
 	print.SuccessStatusEvent(os.Stdout, "All control plane services have restarted successfully!")
 	return nil
-}
-
-func getDaprNamespace() (string, error) {
-	status, err := kubernetes.GetDaprResourcesStatus()
-	if err != nil {
-		return "", err
-	}
-	return status[0].Namespace, nil
 }

@@ -19,7 +19,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
@@ -34,7 +33,7 @@ import (
 
 const (
 	systemConfigName         = "daprsystem"
-	trustBundleSecretName    = "dapr-trust-bundle" // nolint:gosec
+	trustBundleSecretName    = "dapr-trust-bundle" //nolint:gosec
 	warningDaysForCertExpiry = 30                  // in days.
 )
 
@@ -92,17 +91,17 @@ func ExportTrustChain(outputDir string) error {
 	issuerCert := secret.Data["issuer.crt"]
 	issuerKey := secret.Data["issuer.key"]
 
-	err = ioutil.WriteFile(filepath.Join(outputDir, "ca.crt"), ca, 0o600)
+	err = os.WriteFile(filepath.Join(outputDir, "ca.crt"), ca, 0o600)
 	if err != nil {
 		return err
 	}
 
-	err = ioutil.WriteFile(filepath.Join(outputDir, "issuer.crt"), issuerCert, 0o600)
+	err = os.WriteFile(filepath.Join(outputDir, "issuer.crt"), issuerCert, 0o600)
 	if err != nil {
 		return err
 	}
 
-	err = ioutil.WriteFile(filepath.Join(outputDir, "issuer.key"), issuerKey, 0o600)
+	err = os.WriteFile(filepath.Join(outputDir, "issuer.key"), issuerKey, 0o600)
 	if err != nil {
 		return err
 	}

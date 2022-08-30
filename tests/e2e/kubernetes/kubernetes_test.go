@@ -39,6 +39,7 @@ func ensureCleanEnv(t *testing.T) {
 		CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
 		ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
 		ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+		ImageVariant:        "",
 	}
 	// Ensure a clean environment
 	common.EnsureUninstall(true) // does not wait for pod deletion
@@ -313,11 +314,42 @@ func TestRenewCertWithPrivateKey(t *testing.T) {
 	}
 }
 
+func TestKubernetesUninstall(t *testing.T) {
+	// ensure clean env for test
+	ensureCleanEnv(t)
+
+	tests := []common.TestCase{}
+	installOpts := common.TestOptions{
+		HAEnabled:             false,
+		MTLSEnabled:           true,
+		ApplyComponentChanges: true,
+		CheckResourceExists: map[common.Resource]bool{
+			common.CustomResourceDefs:  true,
+			common.ClusterRoles:        true,
+			common.ClusterRoleBindings: true,
+		},
+	}
+
+	tests = append(tests, common.GetTestsOnInstall(currentVersionDetails, installOpts)...)
+	// setup tests
+	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
+		CheckResourceExists: map[common.Resource]bool{
+			common.CustomResourceDefs:  true,
+			common.ClusterRoles:        false,
+			common.ClusterRoleBindings: false,
+		},
+	})...)
+
+	for _, tc := range tests {
+		t.Run(tc.Name, tc.Callable)
+	}
+}
+
 func TestRenewCertWithIncorrectFlags(t *testing.T) {
 	common.EnsureUninstall(true)
 
 	tests := []common.TestCase{}
-	var installOpts = common.TestOptions{
+	installOpts := common.TestOptions{
 		HAEnabled:             false,
 		MTLSEnabled:           true,
 		ApplyComponentChanges: true,
@@ -334,6 +366,41 @@ func TestRenewCertWithIncorrectFlags(t *testing.T) {
 	tests = append(tests, []common.TestCase{
 		{"Renew certificate with incorrect flags", common.NegativeScenarioForCertRenew()},
 	}...)
+
+	// teardown everything
+	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
+		CheckResourceExists: map[common.Resource]bool{
+			common.CustomResourceDefs:  true,
+			common.ClusterRoles:        false,
+			common.ClusterRoleBindings: false,
+		},
+	})...)
+
+	for _, tc := range tests {
+		t.Run(tc.Name, tc.Callable)
+	}
+}
+
+func TestKubernetesInstallwithMarinerImages(t *testing.T) {
+	// ensure clean env for test
+	ensureCleanEnv(t)
+
+	//	install with mariner images
+	currentVersionDetails.ImageVariant = "mariner"
+
+	tests := []common.TestCase{}
+	installOpts := common.TestOptions{
+		HAEnabled:             false,
+		MTLSEnabled:           true,
+		ApplyComponentChanges: true,
+		CheckResourceExists: map[common.Resource]bool{
+			common.CustomResourceDefs:  true,
+			common.ClusterRoles:        true,
+			common.ClusterRoleBindings: true,
+		},
+	}
+
+	tests = append(tests, common.GetTestsOnInstall(currentVersionDetails, installOpts)...)
 
 	// teardown everything
 	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{

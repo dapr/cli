@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -163,7 +164,7 @@ func TestGetVersionsGithub(t *testing.T) {
 		},
 	}
 	m := http.NewServeMux()
-	s := http.Server{Addr: ":12345", Handler: m}
+	s := http.Server{Addr: ":12345", Handler: m, ReadHeaderTimeout: time.Duration(5) * time.Second}
 
 	for _, tc := range tests {
 		body := tc.ResponseBody
@@ -213,7 +214,7 @@ func TestGetVersionsHelm(t *testing.T) {
 	}{
 		{
 			"RC releases are skipped",
-			"/rcs_are_skiipped",
+			"/rcs_are_skipped",
 			`apiVersion: v1
 entries:
   dapr:
@@ -272,7 +273,7 @@ entries:
 		},
 	}
 	m := http.NewServeMux()
-	s := http.Server{Addr: ":12346", Handler: m}
+	s := http.Server{Addr: ":12346", Handler: m, ReadHeaderTimeout: time.Duration(5) * time.Second}
 
 	for _, tc := range tests {
 		body := tc.ResponseBody

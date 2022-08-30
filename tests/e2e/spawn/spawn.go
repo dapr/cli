@@ -14,8 +14,39 @@ limitations under the License.
 package spawn
 
 import (
+	"bufio"
+	"context"
 	"os/exec"
 )
+
+// CommandWithContext runs a command with its arguments in background.
+// The provided context is used to kill the command (by calling os.Process.Kill)
+// if the context becomes done before the command completes on its own.
+// The return channel can be used to read the stdout.
+func CommandWithContext(ctx context.Context, command string, arguments ...string) (chan string, error) {
+	cmd := exec.CommandContext(ctx, command, arguments...)
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+
+	if err = cmd.Start(); err != nil {
+		return nil, err
+	}
+
+	stdOutChan := make(chan string)
+
+	go func() {
+		scanner := bufio.NewScanner(stdout)
+		for scanner.Scan() {
+			stdOutChan <- scanner.Text()
+		}
+		close(stdOutChan)
+		cmd.Wait()
+	}()
+
+	return stdOutChan, nil
+}
 
 // Command runs a command with its arguments and returns the stdout or stderr or the error.
 func Command(command string, arguments ...string) (string, error) {
