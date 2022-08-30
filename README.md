@@ -127,6 +127,16 @@ dapr --version
 CLI version: v1.0.0
 Runtime version: v1.0.0
 ```
+
+#### Install with mariner images
+
+You can install Dapr Runtime using mariner images using the `--image-variant` flag. 
+
+```bash
+# Installing Dapr with Mariner images
+dapr init --image-variant mariner
+```
+
 #### Install by providing a docker container registry url
 
 You can install Dapr runtime by pulling docker images from a given private registry uri by using `--image-registry` flag.

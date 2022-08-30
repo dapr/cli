@@ -77,7 +77,7 @@ var supportedUpgradePaths = []upgradePath{
 			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io"},
 		},
 	},
-	// test downgrade
+	// test downgrade.
 	{
 		previous: common.VersionDetails{
 			RuntimeVersion:      "1.8.0",
@@ -121,13 +121,13 @@ func getTestsOnUpgrade(p upgradePath, installOpts, upgradeOpts common.TestOption
 	details := p.next
 
 	tests = append(tests, []common.TestCase{
-		{"upgrade to " + details.RuntimeVersion, common.UpgradeTest(details, upgradeOpts)},
-		{"crds exist " + details.RuntimeVersion, common.CRDTest(details, upgradeOpts)},
-		{"clusterroles exist " + details.RuntimeVersion, common.ClusterRolesTest(details, upgradeOpts)},
-		{"clusterrolebindings exist " + details.RuntimeVersion, common.ClusterRoleBindingsTest(details, upgradeOpts)},
-		{"previously applied components exist " + details.RuntimeVersion, common.ComponentsTestOnInstallUpgrade(upgradeOpts)},
-		{"check mtls " + details.RuntimeVersion, common.MTLSTestOnInstallUpgrade(upgradeOpts)},
-		{"status check " + details.RuntimeVersion, common.StatusTestOnInstallUpgrade(details, upgradeOpts)},
+		{Name: "upgrade to " + details.RuntimeVersion, Callable: common.UpgradeTest(details, upgradeOpts)},
+		{Name: "crds exist " + details.RuntimeVersion, Callable: common.CRDTest(details, upgradeOpts)},
+		{Name: "clusterroles exist " + details.RuntimeVersion, Callable: common.ClusterRolesTest(details, upgradeOpts)},
+		{Name: "clusterrolebindings exist " + details.RuntimeVersion, Callable: common.ClusterRoleBindingsTest(details, upgradeOpts)},
+		{Name: "previously applied components exist " + details.RuntimeVersion, Callable: common.ComponentsTestOnInstallUpgrade(upgradeOpts)},
+		{Name: "check mtls " + details.RuntimeVersion, Callable: common.MTLSTestOnInstallUpgrade(upgradeOpts)},
+		{Name: "status check " + details.RuntimeVersion, Callable: common.StatusTestOnInstallUpgrade(details, upgradeOpts)},
 	}...)
 
 	// uninstall.
@@ -141,8 +141,9 @@ func getTestsOnUpgrade(p upgradePath, installOpts, upgradeOpts common.TestOption
 	})...)
 
 	// delete CRDs if exist.
-	tests = append(tests, common.TestCase{"delete CRDs " + p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs)})
-	tests = append(tests, common.TestCase{"delete CRDs " + p.next.RuntimeVersion, common.DeleteCRD(p.next.CustomResourceDefs)})
+	tests = append(tests,
+		common.TestCase{Name: "delete CRDs " + p.previous.RuntimeVersion, Callable: common.DeleteCRD(p.previous.CustomResourceDefs)},
+		common.TestCase{Name: "delete CRDs " + p.next.RuntimeVersion, Callable: common.DeleteCRD(p.next.CustomResourceDefs)})
 
 	return tests
 }
