@@ -21,8 +21,9 @@ import (
 
 func TestDashboardRun(t *testing.T) {
 	t.Run("build Cmd", func(t *testing.T) {
-		cmd := NewDashboardCmd(9090)
+		cmd, err := NewDashboardCmd("", 9090)
 
+		assert.NoError(t, err)
 		assert.Contains(t, cmd.Args[0], "dashboard")
 		assert.Equal(t, cmd.Args[1], "--port")
 		assert.Equal(t, cmd.Args[2], "9090")

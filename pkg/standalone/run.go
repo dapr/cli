@@ -60,6 +60,7 @@ type RunConfig struct {
 	AppHealthTimeout   int    `arg:"app-health-probe-timeout" ifneq:"0"`
 	AppHealthThreshold int    `arg:"app-health-threshold" ifneq:"0"`
 	EnableAPILogging   bool   `arg:"enable-api-logging"`
+	DaprPathCmdFlag    string
 }
 
 func (meta *DaprMeta) newAppID() string {
@@ -302,7 +303,11 @@ type RunOutput struct {
 }
 
 func getDaprCommand(config *RunConfig) (*exec.Cmd, error) {
-	daprCMD := binaryFilePath(defaultDaprBinPath(), "daprd")
+	daprCMD, err := lookupBinaryFilePath(config.DaprPathCmdFlag, "daprd")
+	if err != nil {
+		return nil, err
+	}
+
 	args := config.getArgs()
 	cmd := exec.Command(daprCMD, args...)
 	return cmd, nil

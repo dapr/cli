@@ -117,6 +117,7 @@ type componentMetadataItem struct {
 
 type initInfo struct {
 	fromDir          string
+	installDir       string
 	bundleDet        *bundleDetails
 	slimMode         bool
 	runtimeVersion   string
@@ -135,8 +136,8 @@ type daprImageInfo struct {
 }
 
 // Check if the previous version is already installed.
-func isBinaryInstallationRequired(binaryFilePrefix, installDir string) (bool, error) {
-	binaryPath := binaryFilePath(installDir, binaryFilePrefix)
+func isBinaryInstallationRequired(binaryFilePrefix, binInstallDir string) (bool, error) {
+	binaryPath := binaryFilePathWithDir(binInstallDir, binaryFilePrefix)
 
 	// first time install?
 	_, err := os.Stat(binaryPath)
@@ -147,11 +148,12 @@ func isBinaryInstallationRequired(binaryFilePrefix, installDir string) (bool, er
 }
 
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
-func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool, imageRegistryURL string, fromDir string, containerRuntime string, imageVariant string) error {
+func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool, imageRegistryURL string, fromDir string, containerRuntime string, imageVariant string, inputInstallPath string) error {
 	var err error
 	var bundleDet bundleDetails
 	containerRuntime = strings.TrimSpace(containerRuntime)
 	fromDir = strings.TrimSpace(fromDir)
+	inputInstallPath = strings.TrimSpace(inputInstallPath)
 	// AirGap init flow is true when fromDir var is set i.e. --from-dir flag has value.
 	setAirGapInit(fromDir)
 	if !slimMode {
@@ -209,7 +211,11 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 
 	print.InfoStatusEvent(os.Stdout, "Installing runtime version %s", runtimeVersion)
 
-	daprBinDir := defaultDaprBinPath()
+	installDir, err := GetDaprDirPath(inputInstallPath)
+	if err != nil {
+		return err
+	}
+	daprBinDir := daprBinPath(installDir)
 	err = prepareDaprInstallDir(daprBinDir)
 	if err != nil {
 		return err
@@ -244,7 +250,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 	defer stopSpinning(print.Failure)
 
 	// Make default components directory.
-	err = makeDefaultComponentsDir()
+	err = makeDefaultComponentsDir(installDir)
 	if err != nil {
 		return err
 	}
@@ -253,6 +259,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		// values in bundleDet can be nil if fromDir is empty, so must be used in conjunction with fromDir.
 		bundleDet:        &bundleDet,
 		fromDir:          fromDir,
+		installDir:       installDir,
 		slimMode:         slimMode,
 		runtimeVersion:   runtimeVersion,
 		dashboardVersion: dashboardVersion,
@@ -599,7 +606,7 @@ func installBinary(version, binaryFilePrefix, githubRepo string, info initInfo) 
 		filepath string
 	)
 
-	dir := defaultDaprBinPath()
+	dir := daprBinPath(info.installDir)
 	if isAirGapInit {
 		filepath = path_filepath.Join(info.fromDir, *info.bundleDet.BinarySubDir, binaryName(binaryFilePrefix))
 	} else {
@@ -658,8 +665,9 @@ func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error
 	}
 	var err error
 
-	// Make default components directory.
-	componentsDir := DefaultComponentsDirPath()
+	// Make default components & config.
+	componentsDir := DaprComponentsPath(info.installDir)
+	configPath := DaprConfigPath(info.installDir)
 
 	err = createRedisPubSub(redisHost, componentsDir)
 	if err != nil {
@@ -671,7 +679,7 @@ func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error
 		errorChan <- fmt.Errorf("error creating redis statestore component file: %w", err)
 		return
 	}
-	err = createDefaultConfiguration(zipkinHost, DefaultConfigFilePath())
+	err = createDefaultConfiguration(zipkinHost, configPath)
 	if err != nil {
 		errorChan <- fmt.Errorf("error creating default configuration file: %w", err)
 		return
@@ -685,17 +693,18 @@ func createSlimConfiguration(wg *sync.WaitGroup, errorChan chan<- error, info in
 		return
 	}
 
+	configPath := DaprConfigPath(info.installDir)
 	// For --slim we pass empty string so that we do not configure zipkin.
-	err := createDefaultConfiguration("", DefaultConfigFilePath())
+	err := createDefaultConfiguration("", configPath)
 	if err != nil {
 		errorChan <- fmt.Errorf("error creating default configuration file: %w", err)
 		return
 	}
 }
 
-func makeDefaultComponentsDir() error {
+func makeDefaultComponentsDir(installDir string) error {
 	// Make default components directory.
-	componentsDir := DefaultComponentsDirPath()
+	componentsDir := DaprComponentsPath(installDir)
 	//nolint
 	_, err := os.Stat(componentsDir)
 	if os.IsNotExist(err) {

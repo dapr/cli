@@ -18,8 +18,12 @@ package standalone_test
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"runtime"
 	"testing"
+
+	"github.com/dapr/cli/tests/e2e/common"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -127,5 +131,139 @@ func TestStandaloneRun(t *testing.T) {
 		require.Contains(t, output, "Error: unknown flag: --flag\nUsage:", "expected usage to be printed")
 		require.Contains(t, output, "-a, --app-id string", "expected usage to be printed")
 		require.Contains(t, output, "The id for your application, used for service discovery", "expected usage to be printed")
+	})
+}
+
+func TestStandaloneRunNonDefaultDaprPath(t *testing.T) {
+	// these tests timeout on MacOS for some reason
+
+	t.Run("run with flag", func(t *testing.T) {
+		if runtime.GOOS == "darwin" {
+			t.Skip("Skipping standalone run non-default w/ flag test in MacOS")
+		}
+
+		// Ensure a clean environment
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+
+		daprPath, err := os.MkdirTemp("", "dapr-e2e-run-with-flag-*")
+		assert.NoError(t, err)
+		defer os.RemoveAll(daprPath) // clean up
+
+		daprRuntimeVersion, _ := common.GetVersionsFromEnv(t)
+		output, err := cmdInit(daprRuntimeVersion, "--dapr-path", daprPath)
+		t.Log(output)
+		require.NoError(t, err, "init failed")
+		assert.Contains(t, output, "Success! Dapr is up and running.")
+
+		args := []string{
+			"--dapr-path", daprPath,
+			"--app-id", "run_with_dapr_path_flag",
+			"--", "bash", "-c", "echo 'test'",
+		}
+
+		output, err = cmdRun("", args...)
+		t.Log(output)
+		require.NoError(t, err, "run failed")
+		assert.Contains(t, output, "Exited App successfully")
+		assert.Contains(t, output, "Exited Dapr successfully")
+
+		homeDir, err := os.UserHomeDir()
+		require.NoError(t, err, "failed to get user home directory")
+
+		defaultDaprPath := filepath.Join(homeDir, ".dapr")
+		assert.NoFileExists(t, defaultDaprPath)
+	})
+
+	t.Run("run with env var", func(t *testing.T) {
+		if runtime.GOOS == "darwin" {
+			t.Skip("Skipping standalone run non-default w/ env var in MacOS")
+		}
+
+		// Ensure a clean environment
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+
+		daprPath, err := os.MkdirTemp("", "dapr-e2e-run-with-env-*")
+		assert.NoError(t, err)
+		defer os.RemoveAll(daprPath) // clean up
+
+		os.Setenv("DAPR_PATH", daprPath)
+		defer os.Unsetenv("DAPR_PATH")
+
+		daprRuntimeVersion, _ := common.GetVersionsFromEnv(t)
+
+		output, err := cmdInit(daprRuntimeVersion)
+		t.Log(output)
+		require.NoError(t, err, "init failed")
+		assert.Contains(t, output, "Success! Dapr is up and running.")
+
+		args := []string{
+			"--app-id", "run_with_dapr_path_flag",
+			"--", "bash", "-c", "echo 'test'",
+		}
+
+		output, err = cmdRun("", args...)
+		t.Log(output)
+		require.NoError(t, err, "run failed")
+		assert.Contains(t, output, "Exited App successfully")
+		assert.Contains(t, output, "Exited Dapr successfully")
+
+		homeDir, err := os.UserHomeDir()
+		require.NoError(t, err, "failed to get user home directory")
+
+		defaultDaprPath := filepath.Join(homeDir, ".dapr")
+		assert.NoFileExists(t, defaultDaprPath)
+	})
+
+	t.Run("run with both flag and env var", func(t *testing.T) {
+		if runtime.GOOS == "darwin" {
+			t.Skip("Skipping standalone run non-default w/ flag & env var in MacOS")
+		}
+
+		// Ensure a clean environment
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+
+		daprPath1, err := os.MkdirTemp("", "dapr-e2e-run-with-envflag-1-*")
+		assert.NoError(t, err)
+		defer os.RemoveAll(daprPath1) // clean up
+		daprPath2, err := os.MkdirTemp("", "dapr-e2e-run-with-envflag-2-*")
+		assert.NoError(t, err)
+		defer os.RemoveAll(daprPath2) // clean up
+
+		os.Setenv("DAPR_PATH", daprPath1)
+		defer os.Unsetenv("DAPR_PATH")
+
+		daprRuntimeVersion, _ := common.GetVersionsFromEnv(t)
+
+		output, err := cmdInit(daprRuntimeVersion, "--dapr-path", daprPath2)
+		t.Log(output)
+		require.NoError(t, err, "init failed")
+		assert.Contains(t, output, "Success! Dapr is up and running.")
+
+		args := []string{
+			"--dapr-path", daprPath2,
+			"--app-id", "run_with_dapr_path_flag",
+			"--", "bash", "-c", "echo 'test'",
+		}
+
+		flagDaprdBinPath := filepath.Join(daprPath2, "bin", "daprd")
+		if runtime.GOOS == "windows" {
+			flagDaprdBinPath += ".exe"
+		}
+		assert.FileExists(t, flagDaprdBinPath)
+
+		output, err = cmdRun("", args...)
+		t.Log(output)
+		require.NoError(t, err, "run failed")
+		assert.Contains(t, output, "Exited App successfully")
+		assert.Contains(t, output, "Exited Dapr successfully")
+
+		homeDir, err := os.UserHomeDir()
+		require.NoError(t, err, "failed to get user home directory")
+
+		defaultDaprPath := filepath.Join(homeDir, ".dapr")
+		assert.NoFileExists(t, defaultDaprPath)
+
+		envDaprBinPath := filepath.Join(daprPath1, "bin")
+		assert.NoFileExists(t, envDaprBinPath)
 	})
 }
