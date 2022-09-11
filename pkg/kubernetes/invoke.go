@@ -124,32 +124,33 @@ func ListAppInfos(client k8s.Interface, appIDs ...string) (DaprAppList, error) {
 	return l, nil
 }
 
-func getAppInfoFromPod(p *DaprPod) (a *AppInfo) {
+func getAppInfoFromPod(p *DaprPod) *AppInfo {
+	var appInfo *AppInfo
 	for _, c := range p.Spec.Containers {
 		if c.Name == "daprd" {
-			a = &AppInfo{
+			appInfo = &AppInfo{
 				PodName:   p.Name,
 				Namespace: p.Namespace,
 			}
 			for i, arg := range c.Args {
 				if arg == "--app-port" {
 					port := c.Args[i+1]
-					a.AppPort = port
+					appInfo.AppPort = port
 				} else if arg == "--dapr-http-port" {
 					port := c.Args[i+1]
-					a.HTTPPort = port
+					appInfo.HTTPPort = port
 				} else if arg == "--dapr-grpc-port" {
 					port := c.Args[i+1]
-					a.GRPCPort = port
+					appInfo.GRPCPort = port
 				} else if arg == "--app-id" {
 					id := c.Args[i+1]
-					a.AppID = id
+					appInfo.AppID = id
 				}
 			}
 		}
 	}
 
-	return
+	return appInfo
 }
 
 func (a *AppInfo) Request(r *rest.Request, method string, data []byte, verb string) (*rest.Request, error) {
