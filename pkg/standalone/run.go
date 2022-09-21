@@ -48,6 +48,7 @@ type RunConfig struct {
 	MaxConcurrency     int    `arg:"app-max-concurrency"`
 	PlacementHostAddr  string `arg:"placement-host-address"`
 	ComponentsPath     string `arg:"components-path"`
+	EnableDynamicLoading bool `arg:"enable-dynamic-loading"`
 	AppSSL             bool   `arg:"app-ssl"`
 	MetricsPort        int    `env:"DAPR_METRICS_PORT" arg:"metrics-port"`
 	MaxRequestBodySize int    `arg:"dapr-http-max-request-size"`

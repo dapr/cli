@@ -32,24 +32,25 @@ import (
 )
 
 var (
-	appPort            int
-	profilePort        int
-	appID              string
-	configFile         string
-	port               int
-	grpcPort           int
-	internalGRPCPort   int
-	maxConcurrency     int
-	enableProfiling    bool
-	logLevel           string
-	protocol           string
-	componentsPath     string
-	appSSL             bool
-	metricsPort        int
-	maxRequestBodySize int
-	readBufferSize     int
-	unixDomainSocket   string
-	enableAPILogging   bool
+	appPort              int
+	profilePort          int
+	appID                string
+	configFile           string
+	port                 int
+	grpcPort             int
+	internalGRPCPort     int
+	maxConcurrency       int
+	enableProfiling      bool
+	logLevel             string
+	protocol             string
+	componentsPath       string
+	enableDynamicLoading bool
+	appSSL               bool
+	metricsPort          int
+	maxRequestBodySize   int
+	readBufferSize       int
+	unixDomainSocket     string
+	enableAPILogging     bool
 )
 
 const (
@@ -101,26 +102,27 @@ dapr run --app-id myapp --app-port 3000 --app-protocol grpc -- go run main.go
 		}
 
 		output, err := standalone.Run(&standalone.RunConfig{
-			AppID:              appID,
-			AppPort:            appPort,
-			HTTPPort:           port,
-			GRPCPort:           grpcPort,
-			ConfigFile:         configFile,
-			Arguments:          args,
-			EnableProfiling:    enableProfiling,
-			ProfilePort:        profilePort,
-			LogLevel:           logLevel,
-			MaxConcurrency:     maxConcurrency,
-			Protocol:           protocol,
-			PlacementHostAddr:  viper.GetString("placement-host-address"),
-			ComponentsPath:     componentsPath,
-			AppSSL:             appSSL,
-			MetricsPort:        metricsPort,
-			MaxRequestBodySize: maxRequestBodySize,
-			HTTPReadBufferSize: readBufferSize,
-			UnixDomainSocket:   unixDomainSocket,
-			EnableAPILogging:   enableAPILogging,
-			InternalGRPCPort:   internalGRPCPort,
+			AppID:                appID,
+			AppPort:              appPort,
+			HTTPPort:             port,
+			GRPCPort:             grpcPort,
+			ConfigFile:           configFile,
+			Arguments:            args,
+			EnableProfiling:      enableProfiling,
+			ProfilePort:          profilePort,
+			LogLevel:             logLevel,
+			MaxConcurrency:       maxConcurrency,
+			Protocol:             protocol,
+			PlacementHostAddr:    viper.GetString("placement-host-address"),
+			ComponentsPath:       componentsPath,
+			EnableDynamicLoading: enableDynamicLoading,
+			AppSSL:               appSSL,
+			MetricsPort:          metricsPort,
+			MaxRequestBodySize:   maxRequestBodySize,
+			HTTPReadBufferSize:   readBufferSize,
+			UnixDomainSocket:     unixDomainSocket,
+			EnableAPILogging:     enableAPILogging,
+			InternalGRPCPort:     internalGRPCPort,
 		})
 		if err != nil {
 			print.FailureStatusEvent(os.Stderr, err.Error())
@@ -364,6 +366,7 @@ func init() {
 	RunCmd.Flags().IntVarP(&maxConcurrency, "app-max-concurrency", "", -1, "The concurrency level of the application, otherwise is unlimited")
 	RunCmd.Flags().StringVarP(&protocol, "app-protocol", "P", "http", "The protocol (gRPC or HTTP) Dapr uses to talk to the application")
 	RunCmd.Flags().StringVarP(&componentsPath, "components-path", "d", standalone.DefaultComponentsDirPath(), "The path for components directory")
+	RunCmd.Flags().BoolVar(&enableDynamicLoading, "enable-dynamic-loading", false, "Enable dynamic loading of components from the components directory.")
 	RunCmd.Flags().String("placement-host-address", "localhost", "The address of the placement service. Format is either <hostname> for default port or <hostname>:<port> for custom port")
 	RunCmd.Flags().BoolVar(&appSSL, "app-ssl", false, "Enable https when Dapr invokes the application")
 	RunCmd.Flags().IntVarP(&metricsPort, "metrics-port", "M", -1, "The port of metrics on dapr")
