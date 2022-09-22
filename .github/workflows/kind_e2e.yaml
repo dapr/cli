@@ -67,9 +67,9 @@ jobs:
         - non-ha
         # Map between K8s and KinD versions.
         # This is attempting to make it a bit clearer what's being tested.
-        # See: https://github.com/kubernetes-sigs/kind/releases/tag/v0.12.0
+        # See: https://github.com/kubernetes-sigs/kind/releases/tag/v0.15.0
         include:
-       - k8s-version: v1.21.14
+        - k8s-version: v1.21.14
           kind-version: v0.15.0
           kind-image-sha: sha256:f9b4d3d1112f24a7254d2ee296f177f628f9b4c1b32f0006567af11b91c1f301
         - k8s-version: v1.22.13
@@ -87,7 +87,7 @@ jobs:
         - k8s-version: v1.21.14
           mode: non-ha
         - k8s-version: v1.22.13
-          mode: non-ha  
+          mode: non-ha
     steps:
     - name: Set up Go ${{ env.GOVER }}
       uses: actions/setup-go@v2
