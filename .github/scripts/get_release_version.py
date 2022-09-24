@@ -23,17 +23,23 @@ tagRefPrefix = "refs/tags/v"
 with open(os.getenv("GITHUB_ENV"), "a") as githubEnv:
     if gitRef is None or not gitRef.startswith(tagRefPrefix):
         githubEnv.write("REL_VERSION=edge\n")
+        githubEnv.write("MSI_VERSION=0.0.0.0\n")
         print ("This is daily build from {}...".format(gitRef))
         sys.exit(0)
 
     releaseVersion = gitRef[len(tagRefPrefix):]
     releaseNotePath="docs/release_notes/v{}.md".format(releaseVersion)
+    msiVersion = releaseVersion
 
     if gitRef.find("-rc.") > 0:
         print ("Release Candidate build from {}...".format(gitRef))
+        # For pre-releases like 1.9.0-rc.1, msiVersion would be 1.9.0.1  
+        msiVersion = ".".join(msiVersion.split("-rc."))
     else:
         # Set LATEST_RELEASE to true
         githubEnv.write("LATEST_RELEASE=true\n")
         print ("Release build from {}...".format(gitRef))
 
     githubEnv.write("REL_VERSION={}\n".format(releaseVersion))
+    githubEnv.write("MSI_VERSION={}\n".format(msiVersion))
+
