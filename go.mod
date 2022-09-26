@@ -1,6 +1,6 @@
 module github.com/dapr/cli
 
-go 1.18
+go 1.19
 
 require (
 	github.com/Azure/go-autorest/autorest v0.11.27 // indirect

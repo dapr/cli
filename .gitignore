@@ -29,3 +29,8 @@ test_output.json
 
 # Go Workspaces (introduced in Go 1.18+)
 go.work
+
+#Wix files
+*.wixobj
+*.wixpdb
+*.msi
