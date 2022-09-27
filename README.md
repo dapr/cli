@@ -57,6 +57,15 @@ Each release of Dapr CLI includes various OSes and architectures. These binary v
    * For Linux/MacOS - `/usr/local/bin`
    * For Windows, create a directory and add this to your System PATH. For example create a directory called `c:\dapr` and add this directory to your path, by editing your system environment variable.
 
+#### From the MSI Package (windows)
+
+Install windows Dapr CLI using MSI package.
+
+1. Download the [MSI Package](https://github.com/dapr/cli/releases)
+2. Run `dapr.msi` to install Dapr CLI on your system
+
+> NOTE: The default installation directory is set to `$Env:SystemDrive\dapr` and can be modified at the time of installation.
+
 ### Install Dapr on your local machine (self-hosted)
 
 In self-hosted mode, dapr can be initialized using the CLI  with the placement, redis and zipkin containers enabled by default(recommended) or without them which also does not require docker to be available in the environment.
