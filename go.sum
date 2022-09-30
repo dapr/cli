@@ -352,12 +352,6 @@ github.com/dapr/components-contrib v1.9.0-rc.1 h1:8qC2QPvvJ9odzAv6cRrZBttTuxYnPK
 github.com/dapr/components-contrib v1.9.0-rc.1/go.mod h1:ftVthBjl0e5G61J5XKkZKEjU/TGE0gNT9fJCNAdUjU8=
 github.com/dapr/dapr v1.9.0-rc.1 h1:JBOL8P9qsxHejauHnf3bMQpjqp9d+YtcAVSI4DtR9/w=
 github.com/dapr/dapr v1.9.0-rc.1/go.mod h1:2Bkt2Hv3WVJH5iliI+MZIQi6g5eXavqDxgMB0i/vfDA=
-github.com/dapr/go-sdk v1.3.1 h1:VI7vp3ZwZu+O8k9vPZ0gTTCRywj+ZsLm7MIQqB9S7FU=
-github.com/dapr/go-sdk v1.3.1/go.mod h1:tFH/t0z3qypmk5CXHvYSjf/1dGVi04voXfNnhbGgy/A=
-github.com/dapr/go-sdk v1.4.0 h1:Bbk2p9XhrTTZLwb7A8t1z3iQtiINAmpVLlQHFqZX17s=
-github.com/dapr/go-sdk v1.4.0/go.mod h1:t3hylW10Sf2ByFWGpD2IiqnCTAOI0O6kzg4ZkS8CbJw=
-github.com/dapr/go-sdk v1.5.0 h1:OVkrupquJEOL1qRtwKcMVrFKYhw4UJQvgOJNduo2VxE=
-github.com/dapr/go-sdk v1.5.0/go.mod h1:Cvz3taCVu22WCNEUbc9/szvG/yJxWPAV4dcaG+zDWA4=
 github.com/dapr/kit v0.0.2 h1:VNg6RWrBMOdtY0/ZLztyAa/RjyFLaskdO9wt2HIREwk=
 github.com/dapr/kit v0.0.2/go.mod h1:Q4TWm9+vcPZFGehaJUZt2hvA805wJm7FIuoArytWJ8o=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
@@ -700,6 +694,8 @@ github.com/hpcloud/tail v1.0.0/go.mod h1:ab1qPbhIpdTxEkNHXyeSf5vhxWSCs/tWer42PpO
 github.com/huandu/xstrings v1.3.1/go.mod h1:y5/lhBue+AyNmUVz9RLU9xbLR0o4KIIExikq4ovT0aE=
 github.com/huandu/xstrings v1.3.2 h1:L18LIDzqlW6xN2rEkpdV8+oL/IXWJ1APd+vsdYy4Wdw=
 github.com/huandu/xstrings v1.3.2/go.mod h1:y5/lhBue+AyNmUVz9RLU9xbLR0o4KIIExikq4ovT0aE=
+github.com/hunter007/dapr-go-sdk v1.3.1-0.20220709114046-2f2dc4f9a684 h1:hkDiqphz9ww36GkconFACrFOGhtPeU32k5KPGO+oZpU=
+github.com/hunter007/dapr-go-sdk v1.3.1-0.20220709114046-2f2dc4f9a684/go.mod h1:Cvz3taCVu22WCNEUbc9/szvG/yJxWPAV4dcaG+zDWA4=
 github.com/ianlancetaylor/demangle v0.0.0-20181102032728-5e5cf60278f6/go.mod h1:aSSvb/t6k1mPoxDqO4vJh6VOCGPwU4O0C2/Eqndh1Sc=
 github.com/ianlancetaylor/demangle v0.0.0-20200824232613-28f6c0f3b639/go.mod h1:aSSvb/t6k1mPoxDqO4vJh6VOCGPwU4O0C2/Eqndh1Sc=
 github.com/imdario/mergo v0.3.5/go.mod h1:2EnlNZ0deacrJVfApfmtdGgDfMuh/nq6Ok1EcJh5FfA=

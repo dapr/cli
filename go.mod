@@ -222,6 +222,10 @@ require (
 
 replace (
 	github.com/Azure/go-autorest => github.com/Azure/go-autorest v14.2.0+incompatible
+
+	// This replace is added only for config API fix that needs to go into dapr/go-sdk.
+	// dapr/go-sdk is not used in the main cli module, only in e2e tests.
+	github.com/dapr/go-sdk => github.com/hunter007/dapr-go-sdk v1.3.1-0.20220709114046-2f2dc4f9a684
 	github.com/docker/distribution => github.com/docker/distribution v0.0.0-20191216044856-a8371794149d
 	github.com/docker/docker => github.com/moby/moby v17.12.0-ce-rc1.0.20200618181300-9dc6525e6118+incompatible
 	github.com/russross/blackfriday => github.com/russross/blackfriday v1.5.2
