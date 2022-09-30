@@ -15,6 +15,7 @@ package cmd
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"os/signal"
 
@@ -72,6 +73,9 @@ dapr dashboard -k -p 9999 -a 0.0.0.0
 
 # Port forward to dashboard in Kubernetes using a port
 dapr dashboard -k -p 9999
+
+# Port forward to dashboard in Kubernetes using a random port which is free.
+dapr dashboard -k -p 0
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		if dashboardVersionCmd {
@@ -84,7 +88,7 @@ dapr dashboard -k -p 9999
 			os.Exit(1)
 		}
 
-		if dashboardLocalPort <= 0 {
+		if dashboardLocalPort < 0 {
 			print.FailureStatusEvent(os.Stderr, "Invalid port: %v", dashboardLocalPort)
 			os.Exit(1)
 		}
@@ -161,7 +165,7 @@ dapr dashboard -k -p 9999
 			}()
 
 			// url for dashboard after port forwarding.
-			var webURL string = fmt.Sprintf("http://%s:%d", dashboardHost, dashboardLocalPort) //nolint:nosprintfhostport
+			var webURL string = net.JoinHostPort(dashboardHost, fmt.Sprint(portForward.LocalPort))
 
 			print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Dapr dashboard found in namespace:\t%s", foundNamespace))
 			print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Dapr dashboard available at:\t%s\n", webURL))
