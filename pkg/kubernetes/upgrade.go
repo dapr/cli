@@ -35,7 +35,6 @@ var crds = []string{
 	"configuration",
 	"subscription",
 	"resiliency",
-	"pluggable-components",
 }
 
 var crdsFullResources = []string{
@@ -43,7 +42,6 @@ var crdsFullResources = []string{
 	"configurations.dapr.io",
 	"subscriptions.dapr.io",
 	"resiliencies.dapr.io",
-	"pluggablecomponents.dapr.io",
 }
 
 type UpgradeConfig struct {
