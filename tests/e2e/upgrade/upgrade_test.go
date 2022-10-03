@@ -84,7 +84,7 @@ var supportedUpgradePaths = []upgradePath{
 			DashboardVersion:    "0.10.0",
 			ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
 			ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
-			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io", "pluggablecomponents.dapr.io"},
+			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io"},
 		},
 		next: common.VersionDetails{
 			RuntimeVersion:      "1.8.4",
@@ -107,7 +107,7 @@ var supportedUpgradePaths = []upgradePath{
 			DashboardVersion:    "0.10.0",
 			ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
 			ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
-			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io", "pluggablecomponents.dapr.io"},
+			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io"},
 		},
 	},
 }
