@@ -29,6 +29,11 @@
           </File>
         </Component>
 
+        <!-- Update PATH Environment Variable -->
+        <Component Id='UpdatePATH_Comp' Guid='0198647e-bae8-47e6-b9ff-01881ee540ae'>
+        <Environment Id='Dapr_Path' Name="PATH" Action="set" System="yes" Part="last" Value="[INSTALLDIR]" />
+        </Component>
+
       </Directory>
     </Directory>
 
@@ -45,6 +50,7 @@
 
     <Feature Id='Complete' Level='1'>
       <ComponentRef Id='DaprEXE_Comp' />
+      <ComponentRef Id='UpdatePATH_Comp' />
     </Feature>
 
     <!-- Dialog to let the user choose a directory where the product will be installed-->
