@@ -20,7 +20,8 @@
 
     <!-- Directory Structure -->
     <Directory Id='TARGETDIR' Name='SourceDir'>
-      <Directory Id='INSTALLDIR'>
+      <Directory Id='INSTALLDIR' Name = 'dapr'>
+      <!-- Default Installation Directory set to C:\dapr -->
 
         <!-- Dapr EXE Component -->
         <Component Id='DaprEXE_Comp' Guid='83363a24-2323-489c-b9b7-a3fd7f0dacd1'>
@@ -31,8 +32,16 @@
       </Directory>
     </Directory>
 
-    <!-- Default Install Location is 'C:\dapr'-->
-    <SetDirectory Id='INSTALLDIR' Value='[WindowsVolume]dapr' />
+    <!-- Set Root Installation Directory to System Drive(C:\) -->
+  <CustomAction Id="SetTARGETDIR" Property="TARGETDIR" Value="[WindowsVolume]" Return="check" />
+
+  <InstallUISequence>
+    <Custom Action="SetTARGETDIR" Sequence = '1'  />
+  </InstallUISequence>
+
+  <InstallExecuteSequence>
+    <Custom Action="SetTARGETDIR" Sequence = '1'  />
+  </InstallExecuteSequence>
 
     <Feature Id='Complete' Level='1'>
       <ComponentRef Id='DaprEXE_Comp' />
