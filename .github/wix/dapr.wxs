@@ -21,7 +21,7 @@
     <!-- Directory Structure -->
     <Directory Id='TARGETDIR' Name='SourceDir'>
       <Directory Id='INSTALLDIR' Name = 'dapr'>
-      <!-- Default Installation Directory set to C:\dapr -->
+      <!-- Default Installation Directory set to $env:SystemDrive\dapr -->
 
         <!-- Dapr EXE Component -->
         <Component Id='DaprEXE_Comp' Guid='83363a24-2323-489c-b9b7-a3fd7f0dacd1'>
@@ -32,7 +32,7 @@
         <!-- Update PATH Environment Variable -->
         <Component Id='UpdatePATH_Comp' Guid='0198647e-bae8-47e6-b9ff-01881ee540ae'>
         <CreateFolder />
-        <Environment Id='Dapr_Path' Name="PATH" Action="set" System="yes" Part="last" Value="[INSTALLDIR]" />
+        <Environment Id='Dapr_Path' Name="PATH" Action="set" System="no" Part="last" Value="[INSTALLDIR]" />
         </Component>
 
       </Directory>
