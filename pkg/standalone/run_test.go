@@ -16,6 +16,7 @@ package standalone
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -157,7 +158,7 @@ func TestRun(t *testing.T) {
 
 	t.Run("run happy http", func(t *testing.T) {
 		output, err := Run(basicConfig)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 
 		assertCommonArgs(t, basicConfig, output)
 		assert.Equal(t, "MyCommand", output.AppCMD.Args[0])
@@ -171,7 +172,7 @@ func TestRun(t *testing.T) {
 		basicConfig.EnableAPILogging = true
 		basicConfig.ConfigFile = DefaultConfigFilePath()
 		output, err := Run(basicConfig)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 
 		assertCommonArgs(t, basicConfig, output)
 		assertArgumentEqual(t, "config", DefaultConfigFilePath(), output.DaprCMD.Args)
@@ -184,11 +185,61 @@ func TestRun(t *testing.T) {
 		basicConfig.MetricsPort = -1
 		output, err := Run(basicConfig)
 
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.NotNil(t, output)
 
 		assertArgumentNotEqual(t, "http-port", "-1", output.DaprCMD.Args)
 		assertArgumentNotEqual(t, "grpc-port", "-1", output.DaprCMD.Args)
 		assertArgumentNotEqual(t, "metrics-port", "-1", output.DaprCMD.Args)
+	})
+
+	t.Run("app health check flags missing if not set", func(t *testing.T) {
+		output, err := Run(basicConfig)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, output)
+
+		argsFlattened := strings.Join(output.DaprCMD.Args, " ")
+		assert.NotRegexp(t, regexp.MustCompile(`( |^)--enable-app-health-check( |$)`), argsFlattened)
+		assert.NotRegexp(t, regexp.MustCompile(`( |^)--app-health-check-path( |=)`), argsFlattened)
+		assert.NotRegexp(t, regexp.MustCompile(`( |^)--app-health-probe-interval( |=)`), argsFlattened)
+		assert.NotRegexp(t, regexp.MustCompile(`( |^)--app-health-probe-timeout( |=)`), argsFlattened)
+		assert.NotRegexp(t, regexp.MustCompile(`( |^)--app-health-threshold( |=)`), argsFlattened)
+	})
+
+	t.Run("enable app health checks with default falgs", func(t *testing.T) {
+		basicConfig.AppHealthEnabled = true
+		output, err := Run(basicConfig)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, output)
+
+		argsFlattened := strings.Join(output.DaprCMD.Args, " ")
+		assert.Regexp(t, regexp.MustCompile(`( |^)--enable-app-health-check( |$)`), argsFlattened)
+
+		// Other flags are not included so daprd can use the default value
+		assert.NotRegexp(t, regexp.MustCompile(`( |^)--app-health-check-path( |=)`), argsFlattened)
+		assert.NotRegexp(t, regexp.MustCompile(`( |^)--app-health-probe-interval( |=)`), argsFlattened)
+		assert.NotRegexp(t, regexp.MustCompile(`( |^)--app-health-probe-timeout( |=)`), argsFlattened)
+		assert.NotRegexp(t, regexp.MustCompile(`( |^)--app-health-threshold( |=)`), argsFlattened)
+	})
+
+	t.Run("enable app health checks with all falgs set", func(t *testing.T) {
+		basicConfig.AppHealthEnabled = true
+		basicConfig.AppHealthInterval = 2
+		basicConfig.AppHealthTimeout = 200
+		basicConfig.AppHealthThreshold = 1
+		basicConfig.AppHealthPath = "/foo"
+		output, err := Run(basicConfig)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, output)
+
+		argsFlattened := strings.Join(output.DaprCMD.Args, " ")
+		assert.Regexp(t, regexp.MustCompile(`( |^)--enable-app-health-check( |$)`), argsFlattened)
+		assert.Regexp(t, regexp.MustCompile(`( |^)--app-health-check-path( |=)/foo`), argsFlattened)
+		assert.Regexp(t, regexp.MustCompile(`( |^)--app-health-probe-interval( |=)2`), argsFlattened)
+		assert.Regexp(t, regexp.MustCompile(`( |^)--app-health-probe-timeout( |=)200`), argsFlattened)
+		assert.Regexp(t, regexp.MustCompile(`( |^)--app-health-threshold( |=)1`), argsFlattened)
 	})
 }
