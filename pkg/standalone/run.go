@@ -54,6 +54,11 @@ type RunConfig struct {
 	HTTPReadBufferSize int    `arg:"dapr-http-read-buffer-size"`
 	UnixDomainSocket   string `arg:"unix-domain-socket"`
 	InternalGRPCPort   int    `arg:"dapr-internal-grpc-port"`
+	AppHealthEnabled   bool   `arg:"enable-app-health-check"`
+	AppHealthPath      string `arg:"app-health-check-path"`
+	AppHealthInterval  int    `arg:"app-health-probe-interval" ifneq:"0"`
+	AppHealthTimeout   int    `arg:"app-health-probe-timeout" ifneq:"0"`
+	AppHealthThreshold int    `arg:"app-health-threshold" ifneq:"0"`
 	EnableAPILogging   bool   `arg:"enable-api-logging"`
 }
 
@@ -235,6 +240,8 @@ func (config *RunConfig) getArgs() []string {
 		}
 		key = "--" + key
 
+		ifneq, hasIfneq := typeField.Tag.Lookup("ifneq")
+
 		switch valueField.(type) {
 		case bool:
 			if valueField == true {
@@ -242,7 +249,7 @@ func (config *RunConfig) getArgs() []string {
 			}
 		default:
 			value := fmt.Sprintf("%v", reflect.ValueOf(valueField))
-			if len(value) != 0 {
+			if len(value) != 0 && (!hasIfneq || value != ifneq) {
 				args = append(args, key, value)
 			}
 		}
