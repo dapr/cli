@@ -217,7 +217,7 @@ func TestRun(t *testing.T) {
 		argsFlattened := strings.Join(output.DaprCMD.Args, " ")
 		assert.Regexp(t, regexp.MustCompile(`( |^)--enable-app-health-check( |$)`), argsFlattened)
 
-		// Other flags are not included so daprd can use the default value
+		// Other flags are not included so daprd can use the default value.
 		assert.NotRegexp(t, regexp.MustCompile(`( |^)--app-health-check-path( |=)`), argsFlattened)
 		assert.NotRegexp(t, regexp.MustCompile(`( |^)--app-health-probe-interval( |=)`), argsFlattened)
 		assert.NotRegexp(t, regexp.MustCompile(`( |^)--app-health-probe-timeout( |=)`), argsFlattened)
