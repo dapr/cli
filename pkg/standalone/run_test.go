@@ -224,7 +224,7 @@ func TestRun(t *testing.T) {
 		assert.NotRegexp(t, regexp.MustCompile(`( |^)--app-health-threshold( |=)`), argsFlattened)
 	})
 
-	t.Run("enable app health checks with all falgs set", func(t *testing.T) {
+	t.Run("enable app health checks with all flags set", func(t *testing.T) {
 		basicConfig.AppHealthEnabled = true
 		basicConfig.AppHealthInterval = 2
 		basicConfig.AppHealthTimeout = 200
