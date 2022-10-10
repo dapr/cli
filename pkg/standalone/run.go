@@ -54,7 +54,7 @@ type RunConfig struct {
 	HTTPReadBufferSize int    `arg:"dapr-http-read-buffer-size"`
 	UnixDomainSocket   string `arg:"unix-domain-socket"`
 	InternalGRPCPort   int    `arg:"dapr-internal-grpc-port"`
-	AppHealthEnabled   bool   `arg:"enable-app-health-check"`
+	EnableAppHealth    bool   `arg:"enable-app-health-check"`
 	AppHealthPath      string `arg:"app-health-check-path"`
 	AppHealthInterval  int    `arg:"app-health-probe-interval" ifneq:"0"`
 	AppHealthTimeout   int    `arg:"app-health-probe-timeout" ifneq:"0"`

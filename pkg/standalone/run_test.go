@@ -208,7 +208,7 @@ func TestRun(t *testing.T) {
 	})
 
 	t.Run("enable app health checks with default flags", func(t *testing.T) {
-		basicConfig.AppHealthEnabled = true
+		basicConfig.EnableAppHealth = true
 		output, err := Run(basicConfig)
 
 		assert.NoError(t, err)
@@ -225,7 +225,7 @@ func TestRun(t *testing.T) {
 	})
 
 	t.Run("enable app health checks with all flags set", func(t *testing.T) {
-		basicConfig.AppHealthEnabled = true
+		basicConfig.EnableAppHealth = true
 		basicConfig.AppHealthInterval = 2
 		basicConfig.AppHealthTimeout = 200
 		basicConfig.AppHealthThreshold = 1

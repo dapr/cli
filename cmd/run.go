@@ -49,7 +49,7 @@ var (
 	maxRequestBodySize int
 	readBufferSize     int
 	unixDomainSocket   string
-	appHealthEnabled   bool
+	enableAppHealth    bool
 	appHealthPath      string
 	appHealthInterval  int
 	appHealthTimeout   int
@@ -124,7 +124,7 @@ dapr run --app-id myapp --app-port 3000 --app-protocol grpc -- go run main.go
 			MaxRequestBodySize: maxRequestBodySize,
 			HTTPReadBufferSize: readBufferSize,
 			UnixDomainSocket:   unixDomainSocket,
-			AppHealthEnabled:   appHealthEnabled,
+			EnableAppHealth:    enableAppHealth,
 			AppHealthPath:      appHealthPath,
 			AppHealthInterval:  appHealthInterval,
 			AppHealthTimeout:   appHealthTimeout,
@@ -381,7 +381,7 @@ func init() {
 	RunCmd.Flags().IntVarP(&maxRequestBodySize, "dapr-http-max-request-size", "", -1, "Max size of request body in MB")
 	RunCmd.Flags().IntVarP(&readBufferSize, "dapr-http-read-buffer-size", "", -1, "HTTP header read buffer in KB")
 	RunCmd.Flags().StringVarP(&unixDomainSocket, "unix-domain-socket", "u", "", "Path to a unix domain socket dir. If specified, Dapr API servers will use Unix Domain Sockets")
-	RunCmd.Flags().BoolVar(&appHealthEnabled, "enable-app-health-check", false, "Enable health checks for the application using the protocol defined with app-protocol")
+	RunCmd.Flags().BoolVar(&enableAppHealth, "enable-app-health-check", false, "Enable health checks for the application using the protocol defined with app-protocol")
 	RunCmd.Flags().StringVar(&appHealthPath, "app-health-check-path", "", "Path used for health checks; HTTP only")
 	RunCmd.Flags().IntVar(&appHealthInterval, "app-health-probe-interval", 0, "Interval to probe for the health of the app in seconds")
 	RunCmd.Flags().IntVar(&appHealthTimeout, "app-health-probe-timeout", 0, "Timeout for app health probes in milliseconds")
