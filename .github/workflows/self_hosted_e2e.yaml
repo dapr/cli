@@ -32,7 +32,7 @@ on:
 
 jobs:
   self-hosted-e2e:
-    name: Run Self-Hosted E2E tests in ${{ matrix.target_os }}_${{ matrix.target_arch }}_${{ matrix.dapr_install_mode }}
+    name: Run Self-Hosted E2E tests in ${{ matrix.target_os }}_${{ matrix.target_arch }}_${{ matrix.container_runtime }}_${{ matrix.dapr_install_mode }}
     runs-on: ${{ matrix.os }}
     env:
       GOVER: 1.19.2
@@ -47,6 +47,7 @@ jobs:
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
         target_arch: [amd64]
+        container_runtime: [podman, docker]
         dapr_install_mode: [slim, complete]
         include:
           - os: ubuntu-latest
@@ -57,7 +58,24 @@ jobs:
             target_os: windows
         exclude:
           - os: windows-latest
+            container_runtime: podman
             dapr_install_mode: complete
+          - os: windows-latest
+            container_runtime: docker
+            dapr_install_mode: complete
+          - os: windows-latest
+            container_runtime: podman
+            dapr_install_mode: slim
+          - os: macOS-latest
+            container_runtime: docker
+            dapr_install_mode: complete
+          - os: macOS-latest
+            container_runtime: podman
+            dapr_install_mode: slim
+          - os: ubuntu-latest
+            container_runtime: podman
+            dapr_install_mode: slim
+
     steps:
       - name: Set up Go ${{ env.GOVER }}
         uses: actions/setup-go@v2
@@ -76,7 +94,6 @@ jobs:
           sudo ${podman_helper} install
           podman machine init
           podman machine start
-          echo "CONTAINER_RUNTIME=podman" >> $GITHUB_ENV
       - name: Determine latest Dapr Runtime version including Pre-releases
         if: github.base_ref == 'master'
         run: |
@@ -96,8 +113,8 @@ jobs:
         if: github.event.schedule == '0 */6 * * *'
         env:
           DAPR_DEFAULT_IMAGE_REGISTRY: ghcr
-          DAPR_E2E_INIT_SLIM: ${{ contains(matrix.os, 'windows-latest') || contains(matrix.dapr_install_mode, 'slim') }}
-          CONTAINER_RUNTIME: ${{ env.CONTAINER_RUNTIME }}
+          DAPR_E2E_INIT_SLIM: ${{ contains(matrix.dapr_install_mode, 'slim') }}
+          CONTAINER_RUNTIME: ${{ matrix.container_runtime }}
         run: |
           export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-standalone.json
           echo "TEST_OUTPUT_FILE=$TEST_OUTPUT_FILE" >> $GITHUB_ENV
@@ -107,8 +124,8 @@ jobs:
       - name: Run E2E tests with Docker hub
         if: github.event.schedule != '0 */6 * * *'
         env:
-          DAPR_E2E_INIT_SLIM: ${{ contains(matrix.os, 'windows-latest') || contains(matrix.dapr_install_mode, 'slim') }}
-          CONTAINER_RUNTIME: ${{ env.CONTAINER_RUNTIME }}
+          DAPR_E2E_INIT_SLIM: ${{ contains(matrix.dapr_install_mode, 'slim') }}
+          CONTAINER_RUNTIME: ${{ matrix.container_runtime }}
         run: |
           export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-standalone.json
           echo "TEST_OUTPUT_FILE=$TEST_OUTPUT_FILE" >> $GITHUB_ENV
@@ -119,6 +136,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@master
         with:
-          name: ${{ matrix.target_os }}_${{ matrix.target_arch }}_e2e_standalone.json
+          name: ${{ matrix.target_os }}_${{ matrix.container_runtime }}_${{ matrix.target_arch }}_${{ matrix.dapr_install_mode }}_e2e_standalone.json
           path: ${{ env.TEST_OUTPUT_FILE }}
 
