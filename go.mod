@@ -7,7 +7,7 @@ require (
 	github.com/Azure/go-autorest/autorest/adal v0.9.18 // indirect
 	github.com/Pallinder/sillyname-go v0.0.0-20130730142914-97aeae9e6ba1
 	github.com/briandowns/spinner v1.6.1
-	github.com/dapr/dapr v1.9.0-rc.3
+	github.com/dapr/dapr v1.9.0-rc.5
 	github.com/dapr/go-sdk v1.5.1-0.20221001032816-7bcbf27f5152
 	github.com/docker/docker v20.10.17+incompatible
 	github.com/fatih/color v1.13.0
@@ -67,7 +67,7 @@ require (
 	github.com/containerd/containerd v1.6.6 // indirect
 	github.com/containerd/continuity v0.2.2 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.3 // indirect
-	github.com/dapr/components-contrib v1.9.0-rc.1 // indirect
+	github.com/dapr/components-contrib v1.9.0-rc.2 // indirect
 	github.com/dapr/kit v0.0.3-0.20220930182601-272e358ba6a7 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/docker/cli v20.10.17+incompatible // indirect
