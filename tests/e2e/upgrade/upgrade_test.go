@@ -81,7 +81,7 @@ var supportedUpgradePaths = []upgradePath{
 	{
 		previous: common.VersionDetails{
 			RuntimeVersion:      "1.9.0-rc.5",
-			DashboardVersion:    "0.10.0",
+			DashboardVersion:    "0.11.0-rc.1",
 			ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
 			ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
 			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io"},
@@ -104,7 +104,7 @@ var supportedUpgradePaths = []upgradePath{
 		},
 		next: common.VersionDetails{
 			RuntimeVersion:      "1.9.0-rc.5",
-			DashboardVersion:    "0.10.0",
+			DashboardVersion:    "0.11.0-rc.1",
 			ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
 			ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
 			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io"},
