@@ -119,7 +119,7 @@ func cmdStop(appId string, args ...string) (string, error) {
 }
 
 // cmdUninstall uninstalls Dapr with --all flag and returns the command output and error.
-func cmdUninstall() (string, error) {
+func cmdUninstall(args ...string) (string, error) {
 	daprContainerRuntime := containerRuntime()
 	if !isSlimMode() && daprContainerRuntime != "" {
 		return spawn.Command(common.GetDaprPath(), "uninstall", "--container-runtime", daprContainerRuntime, "--all")
