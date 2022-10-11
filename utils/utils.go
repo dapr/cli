@@ -58,7 +58,7 @@ func GetContainerRuntimeCmd(containerRuntime string) string {
 	if IsValidContainerRuntime(containerRuntime) {
 		return strings.TrimSpace(containerRuntime)
 	}
-	// default to docker
+	// Default to docker.
 	return string(DOCKER)
 }
 
