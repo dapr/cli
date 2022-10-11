@@ -62,7 +62,7 @@ const (
 	githubContainerRegistryName = "ghcr"
 	ghcrURI                     = "ghcr.io/dapr"
 	daprGhcrImageName           = "dapr"
-	redisGhcrImageName          = "3rdparty/redis"
+	redisGhcrImageName          = "3rdparty/redis:6"
 	zipkinGhcrImageName         = "3rdparty/zipkin"
 
 	// DaprPlacementContainerName is the container name of placement service.
