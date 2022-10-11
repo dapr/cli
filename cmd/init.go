@@ -183,6 +183,6 @@ func init() {
 	InitCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	InitCmd.Flags().StringArrayVar(&values, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
 	InitCmd.Flags().String("image-registry", "", "Custom/private docker image repository URL")
-	InitCmd.Flags().StringVarP(&containerRuntime, "container-runtime", "", "docker", "The container runtime to use (defaults to docker)")
+	InitCmd.Flags().StringVarP(&containerRuntime, "container-runtime", "", "docker", "The container runtime to use. Supported values are docker (default) and podman")
 	RootCmd.AddCommand(InitCmd)
 }

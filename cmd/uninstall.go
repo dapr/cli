@@ -82,6 +82,6 @@ func init() {
 	UninstallCmd.Flags().String("network", "", "The Docker network from which to remove the Dapr runtime")
 	UninstallCmd.Flags().StringVarP(&uninstallNamespace, "namespace", "n", "dapr-system", "The Kubernetes namespace to uninstall Dapr from")
 	UninstallCmd.Flags().BoolP("help", "h", false, "Print this help message")
-	UninstallCmd.Flags().StringVarP(&uninstallContainerRuntime, "container-runtime", "", "docker", "The container runtime to use (defaults to docker)")
+	UninstallCmd.Flags().StringVarP(&uninstallContainerRuntime, "container-runtime", "", "docker", "The container runtime to use. Supported values are docker (default) and podman")
 	RootCmd.AddCommand(UninstallCmd)
 }
