@@ -62,6 +62,16 @@ func GetContainerRuntimeCmd(containerRuntime string) string {
 	return string(DOCKER)
 }
 
+// Contains returns true if vs contains x.
+func Contains[T comparable](vs []T, x T) bool {
+	for _, v := range vs {
+		if v == x {
+			return true
+		}
+	}
+	return false
+}
+
 const marinerImageVariantName = "mariner"
 
 // PrintTable to print in the table format.

@@ -80,3 +80,40 @@ func TestContainerRuntimeUtils(t *testing.T) {
 		})
 	}
 }
+
+func TestContains(t *testing.T) {
+	testcases := []struct {
+		name     string
+		input    []string
+		expected string
+		valid    bool
+	}{
+		{
+			name:     "empty list",
+			input:    []string{},
+			expected: "foo",
+			valid:    false,
+		},
+		{
+			name:     "list contains element",
+			input:    []string{"foo", "bar", "baz"},
+			expected: "foo",
+			valid:    true,
+		},
+		{
+			name:     "list does not contain element",
+			input:    []string{"foo", "bar", "baz"},
+			expected: "qux",
+			valid:    false,
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			actualValid := Contains(tc.input, tc.expected)
+			if actualValid != tc.valid {
+				t.Errorf("expected %v, got %v", tc.valid, actualValid)
+			}
+		})
+	}
+}
