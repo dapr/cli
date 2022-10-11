@@ -39,17 +39,27 @@ type ContainerRuntime string
 
 const (
 	DOCKER ContainerRuntime = "docker"
+	PODMAN ContainerRuntime = "podman"
 
 	socketFormat = "%s/dapr-%s-%s.socket"
 )
 
+// IsValidContainerRuntime checks if the input is a valid container runtime.
+// Valid container runtimes are docker and podman.
+func IsValidContainerRuntime(containerRuntime string) bool {
+	containerRuntime = strings.TrimSpace(containerRuntime)
+	return containerRuntime == string(DOCKER) || containerRuntime == string(PODMAN)
+}
+
+// GetContainerRuntimeCmd returns a valid container runtime to be used by CLI operations.
+// If the input is a valid container runtime, it is returned as is.
+// Otherwise the default container runtime, docker, is returned.
 func GetContainerRuntimeCmd(containerRuntime string) string {
-	switch len(containerRuntime) {
-	case 0:
-		return string(DOCKER)
-	default:
-		return containerRuntime
+	if IsValidContainerRuntime(containerRuntime) {
+		return strings.TrimSpace(containerRuntime)
 	}
+	// default to docker
+	return string(DOCKER)
 }
 
 const marinerImageVariantName = "mariner"

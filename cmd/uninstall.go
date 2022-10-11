@@ -23,6 +23,7 @@ import (
 	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/pkg/standalone"
+	"github.com/dapr/cli/utils"
 )
 
 var (
@@ -57,6 +58,10 @@ dapr uninstall -k
 			print.InfoStatusEvent(os.Stdout, "Removing Dapr from your cluster...")
 			err = kubernetes.Uninstall(uninstallNamespace, uninstallAll, timeout)
 		} else {
+			if !utils.IsValidContainerRuntime(uninstallContainerRuntime) {
+				print.FailureStatusEvent(os.Stdout, "Invalid container runtime. Supported values are docker and podman.")
+				os.Exit(1)
+			}
 			print.InfoStatusEvent(os.Stdout, "Removing Dapr from your machine...")
 			dockerNetwork := viper.GetString("network")
 			err = standalone.Uninstall(uninstallAll, dockerNetwork, uninstallContainerRuntime)

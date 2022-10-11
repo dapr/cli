@@ -24,6 +24,7 @@ import (
 	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/pkg/standalone"
+	"github.com/dapr/cli/utils"
 )
 
 var (
@@ -136,6 +137,10 @@ dapr init --image-variant <variant>
 			if len(imageRegistryURI) != 0 {
 				warnForPrivateRegFeat()
 			}
+			if !utils.IsValidContainerRuntime(containerRuntime) {
+				print.FailureStatusEvent(os.Stdout, "Invalid container runtime. Supported values are docker and podman.")
+				os.Exit(1)
+			}
 			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode, imageRegistryURI, fromDir, containerRuntime, imageVariant)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, err.Error())
@@ -177,7 +182,7 @@ func init() {
 	InitCmd.Flags().StringVarP(&imageVariant, "image-variant", "", "", "The image variant to use for the Dapr runtime, for example: mariner")
 	InitCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	InitCmd.Flags().StringArrayVar(&values, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
-	InitCmd.Flags().String("image-registry", "", "Custom/Private docker image repository url")
+	InitCmd.Flags().String("image-registry", "", "Custom/private docker image repository URL")
 	InitCmd.Flags().StringVarP(&containerRuntime, "container-runtime", "", "docker", "The container runtime to use (defaults to docker)")
 	RootCmd.AddCommand(InitCmd)
 }
