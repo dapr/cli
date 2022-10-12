@@ -159,3 +159,26 @@ jobs:
             --name "Dapr CLI v${REL_VERSION}" \
             --prerelease true \
             ${RELEASE_ARTIFACT[*]}
+  publish-winget:
+    name: Publish to winget-pkgs
+    needs: publish
+    if: startswith(github.ref, 'refs/tags/v')
+    env:
+      WINGETCREATE_VERSION: 1.1.2.0
+    runs-on: windows-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+      - name: Parse release version and set REL_VERSION
+        run: python ./.github/scripts/get_release_version.py
+      - name: Update winget manifests
+        shell: pwsh
+        run: |
+          $url = "https://github.com/dapr/cli/releases/download/v${{ env.REL_VERSION }}/dapr.msi"
+          iwr https://github.com/microsoft/winget-create/releases/download/v${{ env.WINGETCREATE_VERSION }}/wingetcreate.exe -OutFile wingetcreate.exe
+          if("${{ env.REL_VERSION }}".Contains("-rc.")){
+            $PackageIdentifier="Dapr.CLI.Preview"
+          } else{
+            $PackageIdentifier="Dapr.CLI"
+          }
+          .\wingetcreate.exe update "$PackageIdentifier" --submit --urls "$url|x64" --version "${{ env.REL_VERSION }}" --token "${{ secrets.DAPR_BOT_TOKEN }}"
