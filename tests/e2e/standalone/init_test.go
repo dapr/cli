@@ -118,7 +118,8 @@ func TestStandaloneInit(t *testing.T) {
 func verifyContainers(t *testing.T, daprRuntimeVersion string) {
 	t.Run("verifyContainers", func(t *testing.T) {
 		if isSlimMode() {
-			t.Skip("Skipping container verification because of slim installation")
+			t.Log("Skipping container verification because of slim installation")
+			return
 		}
 
 		cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv)
