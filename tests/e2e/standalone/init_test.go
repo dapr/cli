@@ -62,6 +62,15 @@ func TestStandaloneInit(t *testing.T) {
 		require.Contains(t, output, "both --image-registry and --from-dir flags cannot be given at the same time")
 	})
 
+	t.Run("init should error out if container runtime is not valid", func(t *testing.T) {
+		// Ensure a clean environment
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+
+		output, err := cmdInit(daprRuntimeVersion, "--container-runtime", "invalid")
+		require.Error(t, err, "expected error if container runtime is invalid")
+		require.Contains(t, output, "Invalid container runtime")
+	})
+
 	t.Run("init", func(t *testing.T) {
 		// Ensure a clean environment
 		must(t, cmdUninstall, "failed to uninstall Dapr")
@@ -109,7 +118,8 @@ func TestStandaloneInit(t *testing.T) {
 func verifyContainers(t *testing.T, daprRuntimeVersion string) {
 	t.Run("verifyContainers", func(t *testing.T) {
 		if isSlimMode() {
-			t.Skip("Skipping container verification because of slim installation")
+			t.Log("Skipping container verification because of slim installation")
+			return
 		}
 
 		cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv)
