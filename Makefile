@@ -184,11 +184,11 @@ test-e2e-sh: test-deps
 e2e-build-run-sh: build test-e2e-sh
 
 ################################################################################
-# Target: go.mod                                                               #
+# Target: modtidy                                                               #
 ################################################################################
-.PHONY: go.mod
-go.mod:
-	go mod tidy -compat=1.18
+.PHONY: modtidy
+modtidy:
+	go mod tidy -compat=1.19
 
 ################################################################################
 # Target: check-diff                                                           #

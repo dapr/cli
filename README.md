@@ -57,6 +57,15 @@ Each release of Dapr CLI includes various OSes and architectures. These binary v
    * For Linux/MacOS - `/usr/local/bin`
    * For Windows, create a directory and add this to your System PATH. For example create a directory called `c:\dapr` and add this directory to your path, by editing your system environment variable.
 
+#### From the MSI Package (windows)
+
+Install windows Dapr CLI using MSI package.
+
+1. Download the [MSI Package](https://github.com/dapr/cli/releases)
+2. Run `dapr.msi` to install Dapr CLI on your system
+
+> NOTE: The default installation directory is set to `$Env:SystemDrive\dapr` and can be modified at the time of installation.
+
 ### Install Dapr on your local machine (self-hosted)
 
 In self-hosted mode, dapr can be initialized using the CLI  with the placement, redis and zipkin containers enabled by default(recommended) or without them which also does not require docker to be available in the environment.
@@ -127,6 +136,16 @@ dapr --version
 CLI version: v1.0.0
 Runtime version: v1.0.0
 ```
+
+#### Install with mariner images
+
+You can install Dapr Runtime using mariner images using the `--image-variant` flag. 
+
+```bash
+# Installing Dapr with Mariner images
+dapr init --image-variant mariner
+```
+
 #### Install by providing a docker container registry url
 
 You can install Dapr runtime by pulling docker images from a given private registry uri by using `--image-registry` flag.
@@ -180,6 +199,19 @@ dapr init --network dapr-network
 > Note: When installed to a specific Docker network, you will need to add the `--placement-host-address` arguments to `dapr run` commands run in any containers within that network.
 > The format of `--placement-host-address` argument is either `<hostname>` or `<hostname>:<port>`. If the port is omitted, the default port `6050` for Windows and `50005` for Linux/MacOS applies.
 
+#### Install with a specific container runtime
+
+You can install the Dapr runtime using a specific container runtime
+environment such as Docker or Podman by passing along the
+`--container-runtime` argument:
+
+```bash
+# Install Dapr with Podman
+$ dapr init --container-runtime podman
+```
+
+> Note: The default container runtime is Docker.
+
 ### Uninstall Dapr in a standalone mode
 
 Uninstalling will remove daprd binary and the placement container (if installed with Docker or the placement binary if not).
@@ -209,6 +241,16 @@ If previously installed to a specific Docker network, Dapr can be uninstalled wi
 
 ```bash
 dapr uninstall --network dapr-network
+```
+
+#### Uninstall Dapr from a specific container runtime
+
+You can uninstall Dapr from a specific container runtime
+environment by passing along the `--container-runtime` argument:
+
+```bash
+# Uninstall Dapr from Podman container runtime
+$ dapr uninstall --container-runtime podman
 ```
 
 ### Install Dapr on Kubernetes

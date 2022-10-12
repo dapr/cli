@@ -261,3 +261,4 @@ linters:
     - forcetypeassert
     - ireturn
     - golint
+    - nosnakecase

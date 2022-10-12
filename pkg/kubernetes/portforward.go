@@ -52,7 +52,7 @@ func NewPortForward(
 ) (*PortForward, error) {
 	client, err := k8s.NewForConfig(config)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("can't create Clientset for %q: %w", deployName, err)
 	}
 
 	podList, err := ListPods(client, namespace, nil)
@@ -94,12 +94,13 @@ func NewPortForward(
 	}, nil
 }
 
-// run creates port-forward connection and blocks
-// until Stop() is called.
-func (pf *PortForward) run() error {
+// Init creates and runs a port-forward connection.
+// This function blocks until connection is established.
+// Note: Caller should call Stop() to finish the connection.
+func (pf *PortForward) Init() error {
 	transport, upgrader, err := spdy.RoundTripperFor(pf.Config)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot connect to Kubernetes cluster: %w", err)
 	}
 
 	out := io.Discard
@@ -114,27 +115,29 @@ func (pf *PortForward) run() error {
 
 	fw, err := portforward.NewOnAddresses(dialer, []string{pf.Host}, ports, pf.StopCh, pf.ReadyCh, out, errOut)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot create PortForwarder: %w", err)
 	}
 
-	return fw.ForwardPorts()
-}
-
-// Init creates and runs a port-forward connection.
-// This function blocks until connection is established.
-// Note: Caller should call Stop() to finish the connection.
-func (pf *PortForward) Init() error {
 	failure := make(chan error)
-
 	go func() {
-		if err := pf.run(); err != nil {
+		if err := fw.ForwardPorts(); err != nil {
 			failure <- err
 		}
 	}()
 
 	select {
-	// if `pf.run()` succeeds, block until terminated.
+	// if `fw.ForwardPorts()` succeeds, block until terminated.
 	case <-pf.ReadyCh:
+		ports, err := fw.GetPorts()
+		if err != nil {
+			return fmt.Errorf("can not get the local and remote ports: %w", err)
+		}
+		if len(ports) == 0 {
+			return fmt.Errorf("can not get the local and remote ports: error getting ports length")
+		}
+
+		pf.LocalPort = int(ports[0].Local)
+		pf.RemotePort = int(ports[0].Remote)
 
 	// if failure, causing a receive `<-failure` and returns the error.
 	case err := <-failure:

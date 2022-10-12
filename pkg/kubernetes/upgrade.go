@@ -49,6 +49,7 @@ type UpgradeConfig struct {
 	Args             []string
 	Timeout          uint
 	ImageRegistryURI string
+	ImageVariant     string
 }
 
 func Upgrade(conf UpgradeConfig) error {
@@ -128,6 +129,9 @@ func Upgrade(conf UpgradeConfig) error {
 
 func highAvailabilityEnabled(status []StatusOutput) bool {
 	for _, s := range status {
+		if s.Name == "dapr-dashboard" {
+			continue
+		}
 		if s.Replicas > 1 {
 			return true
 		}
@@ -139,7 +143,7 @@ func applyCRDs(version string) error {
 	for _, crd := range crds {
 		url := fmt.Sprintf("https://raw.githubusercontent.com/dapr/dapr/%s/charts/dapr/crds/%s.yaml", version, crd)
 
-		resp, _ := http.Get(url) // nolint:gosec
+		resp, _ := http.Get(url) //nolint:gosec
 		if resp != nil && resp.StatusCode == 200 {
 			defer resp.Body.Close()
 
@@ -155,6 +159,11 @@ func applyCRDs(version string) error {
 func upgradeChartValues(ca, issuerCert, issuerKey string, haMode, mtls bool, conf UpgradeConfig) (map[string]interface{}, error) {
 	chartVals := map[string]interface{}{}
 	globalVals := conf.Args
+	err := utils.ValidateImageVariant(conf.ImageVariant)
+	if err != nil {
+		return nil, err
+	}
+	globalVals = append(globalVals, fmt.Sprintf("global.tag=%s", utils.GetVariantVersion(conf.RuntimeVersion, conf.ImageVariant)))
 
 	if mtls && ca != "" && issuerCert != "" && issuerKey != "" {
 		globalVals = append(globalVals, fmt.Sprintf("dapr_sentry.tls.root.certPEM=%s", ca),

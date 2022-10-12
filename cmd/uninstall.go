@@ -26,9 +26,10 @@ import (
 )
 
 var (
-	uninstallNamespace  string
-	uninstallKubernetes bool
-	uninstallAll        bool
+	uninstallNamespace        string
+	uninstallKubernetes       bool
+	uninstallAll              bool
+	uninstallContainerRuntime string
 )
 
 // UninstallCmd is a command from removing a Dapr installation.
@@ -58,7 +59,7 @@ dapr uninstall -k
 		} else {
 			print.InfoStatusEvent(os.Stdout, "Removing Dapr from your machine...")
 			dockerNetwork := viper.GetString("network")
-			err = standalone.Uninstall(uninstallAll, dockerNetwork)
+			err = standalone.Uninstall(uninstallAll, dockerNetwork, uninstallContainerRuntime)
 		}
 
 		if err != nil {
@@ -76,5 +77,6 @@ func init() {
 	UninstallCmd.Flags().String("network", "", "The Docker network from which to remove the Dapr runtime")
 	UninstallCmd.Flags().StringVarP(&uninstallNamespace, "namespace", "n", "dapr-system", "The Kubernetes namespace to uninstall Dapr from")
 	UninstallCmd.Flags().BoolP("help", "h", false, "Print this help message")
+	UninstallCmd.Flags().StringVarP(&uninstallContainerRuntime, "container-runtime", "", "docker", "The container runtime to use (defaults to docker)")
 	RootCmd.AddCommand(UninstallCmd)
 }

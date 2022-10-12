@@ -50,40 +50,40 @@ jobs:
     name: Upgrade path tests (KinD)
     runs-on: ubuntu-latest
     env:
-      GOVER: 1.18
+      GOVER: 1.19
     strategy:
       fail-fast: false # Keep running if one leg fails.
       matrix:
         k8s-version:
-        - v1.20.15
-        - v1.21.10
-        - v1.22.7
-        - v1.23.4
+        - v1.21.14
+        - v1.22.13
+        - v1.23.10
+        - v1.24.4
         mode:
         - ha
         - non-ha
         # Map between K8s and KinD versions.
         # This is attempting to make it a bit clearer what's being tested.
-        # See: https://github.com/kubernetes-sigs/kind/releases/tag/v0.12.0
+        # See: https://github.com/kubernetes-sigs/kind/releases/tag/v0.15.0
         include:
-        - k8s-version: v1.20.15
-          kind-version: v0.12.0
-          kind-image-sha: sha256:393bb9096c6c4d723bb17bceb0896407d7db581532d11ea2839c80b28e5d8deb
-        - k8s-version: v1.21.10
-          kind-version: v0.12.0
-          kind-image-sha: sha256:84709f09756ba4f863769bdcabe5edafc2ada72d3c8c44d6515fc581b66b029c
-        - k8s-version: v1.22.7
-          kind-version: v0.12.0
-          kind-image-sha: sha256:1dfd72d193bf7da64765fd2f2898f78663b9ba366c2aa74be1fd7498a1873166
-        - k8s-version: v1.23.4
-          kind-version: v0.12.0
-          kind-image-sha: sha256:0e34f0d0fd448aa2f2819cfd74e99fe5793a6e4938b328f657c8e3f81ee0dfb9
+        - k8s-version: v1.21.14
+          kind-version: v0.15.0
+          kind-image-sha: sha256:f9b4d3d1112f24a7254d2ee296f177f628f9b4c1b32f0006567af11b91c1f301
+        - k8s-version: v1.22.13
+          kind-version: v0.15.0
+          kind-image-sha: sha256:4904eda4d6e64b402169797805b8ec01f50133960ad6c19af45173a27eadf959
+        - k8s-version: v1.23.10
+          kind-version: v0.15.0
+          kind-image-sha: sha256:f047448af6a656fae7bc909e2fab360c18c487ef3edc93f06d78cdfd864b2d12
+        - k8s-version: v1.24.4
+          kind-version: v0.15.0
+          kind-image-sha: sha256:adfaebada924a26c2c9308edd53c6e33b3d4e453782c0063dc0028bdebaddf98
         exclude:
-        - k8s-version: v1.20.15
+        - k8s-version: v1.21.14
           mode: non-ha
-        - k8s-version: v1.21.10
+        - k8s-version: v1.21.14
           mode: non-ha
-        - k8s-version: v1.22.7
+        - k8s-version: v1.22.13
           mode: non-ha
     steps:
     - name: Set up Go ${{ env.GOVER }}

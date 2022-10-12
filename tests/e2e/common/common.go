@@ -52,6 +52,7 @@ const (
 type VersionDetails struct {
 	RuntimeVersion      string
 	DashboardVersion    string
+	ImageVariant        string
 	CustomResourceDefs  []string
 	ClusterRoles        []string
 	ClusterRoleBindings []string
@@ -90,12 +91,17 @@ func GetVersionsFromEnv(t *testing.T) (string, string) {
 
 func UpgradeTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
-		daprPath := getDaprPath()
+		daprPath := GetDaprPath()
 		args := []string{
 			"upgrade", "-k",
 			"--runtime-version", details.RuntimeVersion,
 			"--log-as-json",
 		}
+
+		if details.ImageVariant != "" {
+			args = append(args, "--image-variant", details.ImageVariant)
+		}
+
 		output, err := spawn.Command(daprPath, args...)
 		t.Log(output)
 		require.NoError(t, err, "upgrade failed")
@@ -117,7 +123,7 @@ func UpgradeTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 }
 
 func EnsureUninstall(all bool) (string, error) {
-	daprPath := getDaprPath()
+	daprPath := GetDaprPath()
 
 	var _command [10]string
 	command := append(_command[0:], "uninstall", "-k")
@@ -187,7 +193,7 @@ func GetTestsPostCertificateRenewal(details VersionDetails, opts TestOptions) []
 
 func MTLSTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
-		daprPath := getDaprPath()
+		daprPath := GetDaprPath()
 		output, err := spawn.Command(daprPath, "mtls", "-k")
 		require.NoError(t, err, "expected no error on querying for mtls")
 		if !opts.MTLSEnabled {
@@ -233,7 +239,7 @@ func MTLSTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 
 func ComponentsTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
-		daprPath := getDaprPath()
+		daprPath := GetDaprPath()
 		// if dapr is installed.
 		if opts.ApplyComponentChanges {
 			// apply any changes to the component.
@@ -256,7 +262,7 @@ func ComponentsTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 
 func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
-		daprPath := getDaprPath()
+		daprPath := GetDaprPath()
 		output, err := spawn.Command(daprPath, "status", "-k")
 		require.NoError(t, err, "status check failed")
 		var notFound map[string][]string
@@ -277,6 +283,14 @@ func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t
 				"dapr-operator":         {details.RuntimeVersion, "3"},
 			}
 		}
+
+		if details.ImageVariant != "" {
+			notFound["dapr-sentry"][0] = notFound["dapr-sentry"][0] + "-" + details.ImageVariant
+			notFound["dapr-sidecar-injector"][0] = notFound["dapr-sidecar-injector"][0] + "-" + details.ImageVariant
+			notFound["dapr-placement-server"][0] = notFound["dapr-placement-server"][0] + "-" + details.ImageVariant
+			notFound["dapr-operator"][0] = notFound["dapr-operator"][0] + "-" + details.ImageVariant
+		}
+
 		lines := strings.Split(output, "\n")[1:] // remove header of status.
 		t.Logf("dapr status -k infos: \n%s\n", lines)
 		for _, line := range lines {
@@ -419,7 +433,7 @@ func CRDTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 
 func GenerateNewCertAndRenew(details VersionDetails, opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
-		daprPath := getDaprPath()
+		daprPath := GetDaprPath()
 		err := exportCurrentCertificate(daprPath)
 		require.NoError(t, err, "expected no error on certificate exporting")
 
@@ -445,7 +459,7 @@ func GenerateNewCertAndRenew(details VersionDetails, opts TestOptions) func(t *t
 
 func UseProvidedPrivateKeyAndRenewCerts(details VersionDetails, opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
-		daprPath := getDaprPath()
+		daprPath := GetDaprPath()
 		args := []string{
 			"mtls", "renew-certificate", "-k",
 			"--private-key", "../testdata/example-root.key",
@@ -473,7 +487,7 @@ func UseProvidedPrivateKeyAndRenewCerts(details VersionDetails, opts TestOptions
 
 func UseProvidedNewCertAndRenew(details VersionDetails, opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
-		daprPath := getDaprPath()
+		daprPath := GetDaprPath()
 		args := []string{
 			"mtls", "renew-certificate", "-k",
 			"--ca-root-certificate", "./certs/ca.crt",
@@ -507,7 +521,7 @@ func UseProvidedNewCertAndRenew(details VersionDetails, opts TestOptions) func(t
 
 func NegativeScenarioForCertRenew() func(t *testing.T) {
 	return func(t *testing.T) {
-		daprPath := getDaprPath()
+		daprPath := GetDaprPath()
 		args := []string{
 			"mtls", "renew-certificate", "-k",
 			"--ca-root-certificate", "invalid_cert_file.pem",
@@ -551,7 +565,7 @@ func NegativeScenarioForCertRenew() func(t *testing.T) {
 
 func CheckMTLSStatus(details VersionDetails, opts TestOptions, shouldWarningExist bool) func(t *testing.T) {
 	return func(t *testing.T) {
-		daprPath := getDaprPath()
+		daprPath := GetDaprPath()
 		output, err := spawn.Command(daprPath, "mtls", "-k")
 		require.NoError(t, err, "expected no error on querying for mtls")
 		if !opts.MTLSEnabled {
@@ -595,7 +609,7 @@ func (v VersionDetails) constructFoundMap(res Resource) map[string]bool {
 	return foundMap
 }
 
-func getDaprPath() string {
+func GetDaprPath() string {
 	distDir := fmt.Sprintf("%s_%s", runtime.GOOS, runtime.GOARCH)
 
 	return filepath.Join("..", "..", "..", "dist", distDir, "release", "dapr")
@@ -642,7 +656,7 @@ func getClient() (*k8s.Clientset, error) {
 
 func installTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
-		daprPath := getDaprPath()
+		daprPath := GetDaprPath()
 		args := []string{
 			"init", "-k",
 			"--wait",
@@ -658,6 +672,9 @@ func installTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 			args = append(args, "--enable-mtls=false")
 		} else {
 			t.Log("install with mtls")
+		}
+		if details.ImageVariant != "" {
+			args = append(args, "--image-variant", details.ImageVariant)
 		}
 		output, err := spawn.Command(daprPath, args...)
 		t.Log(output)
@@ -693,7 +710,7 @@ func kubernetesTestOnUninstall() func(t *testing.T) {
 	return func(t *testing.T) {
 		_, err := EnsureUninstall(true)
 		require.NoError(t, err, "uninstall failed")
-		daprPath := getDaprPath()
+		daprPath := GetDaprPath()
 		output, err := spawn.Command(daprPath, "uninstall", "-k")
 		require.NoError(t, err, "expected no error on uninstall without install")
 		require.Contains(t, output, "Removing Dapr from your cluster...", "expected output to contain message")
@@ -704,7 +721,7 @@ func kubernetesTestOnUninstall() func(t *testing.T) {
 
 func uninstallMTLSTest() func(t *testing.T) {
 	return func(t *testing.T) {
-		daprPath := getDaprPath()
+		daprPath := GetDaprPath()
 		output, err := spawn.Command(daprPath, "mtls", "-k")
 		require.Error(t, err, "expected error to be return if dapr not installed")
 		require.Contains(t, output, "error checking mTLS: system configuration not found", "expected output to match")
@@ -713,7 +730,7 @@ func uninstallMTLSTest() func(t *testing.T) {
 
 func componentsTestOnUninstall(all bool) func(t *testing.T) {
 	return func(t *testing.T) {
-		daprPath := getDaprPath()
+		daprPath := GetDaprPath()
 		// On Dapr uninstall CRDs are not removed, consequently the components will not be removed.
 		// TODO Related to https://github.com/dapr/cli/issues/656.
 		// For now the components remain.
@@ -747,7 +764,7 @@ func componentsTestOnUninstall(all bool) func(t *testing.T) {
 
 func statusTestOnUninstall() func(t *testing.T) {
 	return func(t *testing.T) {
-		daprPath := getDaprPath()
+		daprPath := GetDaprPath()
 		output, err := spawn.Command(daprPath, "status", "-k")
 		t.Log("checking status fails as expected")
 		require.Error(t, err, "status check did not fail as expected")
@@ -807,6 +824,14 @@ func validatePodsOnInstallUpgrade(t *testing.T, details VersionDetails) {
 		"placement": details.RuntimeVersion,
 		"operator":  details.RuntimeVersion,
 	}
+
+	if details.ImageVariant != "" {
+		notFound["sentry"] = notFound["sentry"] + "-" + details.ImageVariant
+		notFound["sidecar"] = notFound["sidecar"] + "-" + details.ImageVariant
+		notFound["placement"] = notFound["placement"] + "-" + details.ImageVariant
+		notFound["operator"] = notFound["operator"] + "-" + details.ImageVariant
+	}
+
 	prefixes := map[string]string{
 		"sentry":    "dapr-sentry-",
 		"sidecar":   "dapr-sidecar-injector-",

@@ -50,6 +50,7 @@ type InitConfiguration struct {
 	Wait             bool
 	Timeout          uint
 	ImageRegistryURI string
+	ImageVariant     string
 }
 
 // Init deploys the Dapr operator using the supplied runtime version.
@@ -58,9 +59,7 @@ func Init(config InitConfiguration) error {
 
 	stopSpinning := print.Spinner(os.Stdout, msg)
 	defer stopSpinning(print.Failure)
-	// nolint
-	err := install(config)
-	if err != nil {
+	if err := install(config); err != nil {
 		return err
 	}
 
@@ -156,9 +155,14 @@ func daprChart(version string, config *helm.Configuration) (*chart.Chart, error)
 
 func chartValues(config InitConfiguration) (map[string]interface{}, error) {
 	chartVals := map[string]interface{}{}
+	err := utils.ValidateImageVariant(config.ImageVariant)
+	if err != nil {
+		return nil, err
+	}
 	globalVals := []string{
 		fmt.Sprintf("global.ha.enabled=%t", config.EnableHA),
 		fmt.Sprintf("global.mtls.enabled=%t", config.EnableMTLS),
+		fmt.Sprintf("global.tag=%s", utils.GetVariantVersion(config.Version, config.ImageVariant)),
 	}
 	if len(config.ImageRegistryURI) != 0 {
 		globalVals = append(globalVals, fmt.Sprintf("global.registry=%s", config.ImageRegistryURI))
