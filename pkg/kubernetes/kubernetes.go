@@ -153,7 +153,7 @@ func daprChart(version string, config *helm.Configuration) (*chart.Chart, error)
 	return loader.Load(chartPath)
 }
 
-func chartValues(config InitConfiguration) (map[string]interface{}, error) {
+func chartValues(config InitConfiguration, version string) (map[string]interface{}, error) {
 	chartVals := map[string]interface{}{}
 	err := utils.ValidateImageVariant(config.ImageVariant)
 	if err != nil {
@@ -162,7 +162,7 @@ func chartValues(config InitConfiguration) (map[string]interface{}, error) {
 	globalVals := []string{
 		fmt.Sprintf("global.ha.enabled=%t", config.EnableHA),
 		fmt.Sprintf("global.mtls.enabled=%t", config.EnableMTLS),
-		fmt.Sprintf("global.tag=%s", utils.GetVariantVersion(config.Version, config.ImageVariant)),
+		fmt.Sprintf("global.tag=%s", utils.GetVariantVersion(version, config.ImageVariant)),
 	}
 	if len(config.ImageRegistryURI) != 0 {
 		globalVals = append(globalVals, fmt.Sprintf("global.registry=%s", config.ImageRegistryURI))
@@ -209,7 +209,7 @@ func install(config InitConfiguration) error {
 	installClient.Wait = config.Wait
 	installClient.Timeout = time.Duration(config.Timeout) * time.Second
 
-	values, err := chartValues(config)
+	values, err := chartValues(config, version)
 	if err != nil {
 		return err
 	}
