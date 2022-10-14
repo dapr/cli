@@ -75,7 +75,7 @@ func Put(httpPort int, key, value, appID, socket string) error {
 
 	url := makeMetadataPutEndpoint(httpPort, key)
 
-	req, err := retryablehttp.NewRequest("PUT", url, strings.NewReader(value))
+	req, err := retryablehttp.NewRequest(http.MethodPut, url, strings.NewReader(value))
 	if err != nil {
 		return err
 	}
