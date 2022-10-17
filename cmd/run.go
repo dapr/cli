@@ -49,6 +49,11 @@ var (
 	maxRequestBodySize int
 	readBufferSize     int
 	unixDomainSocket   string
+	enableAppHealth    bool
+	appHealthPath      string
+	appHealthInterval  int
+	appHealthTimeout   int
+	appHealthThreshold int
 	enableAPILogging   bool
 )
 
@@ -119,6 +124,11 @@ dapr run --app-id myapp --app-port 3000 --app-protocol grpc -- go run main.go
 			MaxRequestBodySize: maxRequestBodySize,
 			HTTPReadBufferSize: readBufferSize,
 			UnixDomainSocket:   unixDomainSocket,
+			EnableAppHealth:    enableAppHealth,
+			AppHealthPath:      appHealthPath,
+			AppHealthInterval:  appHealthInterval,
+			AppHealthTimeout:   appHealthTimeout,
+			AppHealthThreshold: appHealthThreshold,
 			EnableAPILogging:   enableAPILogging,
 			InternalGRPCPort:   internalGRPCPort,
 		})
@@ -371,6 +381,11 @@ func init() {
 	RunCmd.Flags().IntVarP(&maxRequestBodySize, "dapr-http-max-request-size", "", -1, "Max size of request body in MB")
 	RunCmd.Flags().IntVarP(&readBufferSize, "dapr-http-read-buffer-size", "", -1, "HTTP header read buffer in KB")
 	RunCmd.Flags().StringVarP(&unixDomainSocket, "unix-domain-socket", "u", "", "Path to a unix domain socket dir. If specified, Dapr API servers will use Unix Domain Sockets")
+	RunCmd.Flags().BoolVar(&enableAppHealth, "enable-app-health-check", false, "Enable health checks for the application using the protocol defined with app-protocol")
+	RunCmd.Flags().StringVar(&appHealthPath, "app-health-check-path", "", "Path used for health checks; HTTP only")
+	RunCmd.Flags().IntVar(&appHealthInterval, "app-health-probe-interval", 0, "Interval to probe for the health of the app in seconds")
+	RunCmd.Flags().IntVar(&appHealthTimeout, "app-health-probe-timeout", 0, "Timeout for app health probes in milliseconds")
+	RunCmd.Flags().IntVar(&appHealthThreshold, "app-health-threshold", 0, "Number of consecutive failures for the app to be considered unhealthy")
 	RunCmd.Flags().BoolVar(&enableAPILogging, "enable-api-logging", false, "Log API calls at INFO verbosity. Valid values are: true or false")
 
 	RootCmd.AddCommand(RunCmd)
