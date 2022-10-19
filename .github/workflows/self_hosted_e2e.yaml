@@ -35,7 +35,7 @@ jobs:
     name: Run Self-Hosted E2E tests in ${{ matrix.target_os }}_${{ matrix.target_arch }}_${{ matrix.dapr_install_mode }}
     runs-on: ${{ matrix.os }}
     env:
-      GOVER: 1.19.2
+      GOVER: 1.19
       GOOS: ${{ matrix.target_os }}
       GOARCH: ${{ matrix.target_arch }}
       GOPROXY: https://proxy.golang.org
