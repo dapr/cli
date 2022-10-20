@@ -96,7 +96,7 @@ func (s *StatusClient) Status() ([]StatusOutput, error) {
 			namespace := pod.GetNamespace()
 			age := age.GetAge(pod.CreationTimestamp.Time)
 			created := pod.CreationTimestamp.Format("2006-01-02 15:04.05")
-			version := image[strings.IndexAny(image, ":")+1:]
+			version := image[strings.LastIndexAny(image, ":")+1:]
 			status := ""
 
 			// loop through all replicas and update to Running/Healthy status only if all instances are Running and Healthy.
