@@ -51,6 +51,9 @@ func GetDaprHelmChartName(helmConf *helm.Configuration) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	if len(releases) == 0 {
+		return "", errors.New("dapr is not installed in your helm")
+	}
 	var chart string
 	for _, r := range releases {
 		if r.Chart != nil && strings.Contains(r.Chart.Name(), "dapr") {
