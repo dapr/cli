@@ -26,20 +26,9 @@ import (
 
 func removeContainers(uninstallPlacementContainer, uninstallAll bool, dockerNetwork, runtimeCmd string) []error {
 	var containerErrs []error
-	var err error
 
 	if uninstallPlacementContainer {
 		containerErrs = removeDockerContainer(containerErrs, DaprPlacementContainerName, dockerNetwork, runtimeCmd)
-		_, err = utils.RunCmdAndWait(
-			runtimeCmd, "rmi",
-			"--force",
-			daprDockerImageName)
-
-		if err != nil {
-			containerErrs = append(
-				containerErrs,
-				fmt.Errorf("could not remove %s image: %w", daprDockerImageName, err))
-		}
 	}
 
 	if uninstallAll {

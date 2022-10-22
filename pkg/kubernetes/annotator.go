@@ -19,7 +19,7 @@ import (
 	yamlDecoder "k8s.io/apimachinery/pkg/util/yaml"
 	"sigs.k8s.io/yaml"
 
-	"github.com/dapr/dapr/pkg/injector"
+	"github.com/dapr/dapr/pkg/injector/sidecar"
 )
 
 const (
@@ -341,8 +341,8 @@ func (p *K8sAnnotator) annotateYAML(input []byte, config AnnotateOptions) ([]byt
 	}
 
 	// Create a patch operation for the annotations.
-	patchOps := []injector.PatchOperation{}
-	patchOps = append(patchOps, injector.PatchOperation{
+	patchOps := []sidecar.PatchOperation{}
+	patchOps = append(patchOps, sidecar.PatchOperation{
 		Op:    "add",
 		Path:  path,
 		Value: annotations,

@@ -30,27 +30,36 @@ import (
 )
 
 func TestStandaloneUninstall(t *testing.T) {
-	ensureDaprInstallation(t)
+	t.Run("uninstall should error out if container runtime is not valid", func(t *testing.T) {
+		output, err := cmdUninstall("--container-runtime", "invalid")
+		require.Error(t, err, "expected error if container runtime is invalid")
+		require.Contains(t, output, "Invalid container runtime")
+	})
 
-	output, err := cmdUninstall()
-	t.Log(output)
-	require.NoError(t, err, "dapr uninstall failed")
-	assert.Contains(t, output, "Dapr has been removed successfully")
+	t.Run("uninstall", func(t *testing.T) {
+		ensureDaprInstallation(t)
 
-	// verify that .dapr directory does not exist.
-	homeDir, err := os.UserHomeDir()
-	require.NoError(t, err, "failed to get user home directory")
+		output, err := cmdUninstall()
+		t.Log(output)
+		require.NoError(t, err, "dapr uninstall failed")
+		assert.Contains(t, output, "Dapr has been removed successfully")
 
-	daprPath := filepath.Join(homeDir, ".dapr")
-	require.NoDirExists(t, daprPath, "Directory %s does not exist", daprPath)
+		// verify that .dapr directory does not exist.
+		homeDir, err := os.UserHomeDir()
+		require.NoError(t, err, "failed to get user home directory")
 
-	verifyNoContainers(t)
+		daprPath := filepath.Join(homeDir, ".dapr")
+		require.NoDirExists(t, daprPath, "Directory %s does not exist", daprPath)
+
+		verifyNoContainers(t)
+	})
 }
 
 // verifyNoContainers verifies that no Dapr containers are running.
 func verifyNoContainers(t *testing.T) {
 	if isSlimMode() {
-		t.Skip("Skipping verifyNoContainers test in slim mode")
+		t.Log("Skipping verifyNoContainers test in slim mode")
+		return
 	}
 
 	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv)

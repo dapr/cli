@@ -42,8 +42,8 @@ func getSocketCases() []string {
 }
 
 // must is a helper function that executes a function and expects it to succeed.
-func must(t *testing.T, f func() (string, error), message string) {
-	_, err := f()
+func must(t *testing.T, f func(args ...string) (string, error), message string, fArgs ...string) {
+	_, err := f(fArgs...)
 	require.NoError(t, err, message)
 }
 
