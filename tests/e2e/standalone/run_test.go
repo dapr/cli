@@ -138,10 +138,6 @@ func TestStandaloneRunNonDefaultDaprPath(t *testing.T) {
 	// these tests timeout on MacOS for some reason
 
 	t.Run("run with flag", func(t *testing.T) {
-		if runtime.GOOS == "darwin" {
-			t.Skip("Skipping standalone run non-default w/ flag test in MacOS")
-		}
-
 		// Ensure a clean environment
 		must(t, cmdUninstall, "failed to uninstall Dapr")
 
@@ -175,10 +171,6 @@ func TestStandaloneRunNonDefaultDaprPath(t *testing.T) {
 	})
 
 	t.Run("run with env var", func(t *testing.T) {
-		if runtime.GOOS == "darwin" {
-			t.Skip("Skipping standalone run non-default w/ env var in MacOS")
-		}
-
 		// Ensure a clean environment
 		must(t, cmdUninstall, "failed to uninstall Dapr")
 
@@ -215,10 +207,6 @@ func TestStandaloneRunNonDefaultDaprPath(t *testing.T) {
 	})
 
 	t.Run("run with both flag and env var", func(t *testing.T) {
-		if runtime.GOOS == "darwin" {
-			t.Skip("Skipping standalone run non-default w/ flag & env var in MacOS")
-		}
-
 		// Ensure a clean environment
 		must(t, cmdUninstall, "failed to uninstall Dapr")
 
