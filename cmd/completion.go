@@ -122,7 +122,7 @@ func newCompletionZshCmd() *cobra.Command {
 func newCompletionFishCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "fish",
-		Short: "Generates fish completion scripts",
+		Short: "Generates fish completion functions",
 		Run: func(cmd *cobra.Command, args []string) {
 			RootCmd.GenFishCompletion(os.Stdout, true)
 		},
