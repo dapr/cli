@@ -215,7 +215,7 @@ func TestControlPlaneServices(t *testing.T) {
 		appName  string
 		imageURI string
 	}{
-		{"dapr-dashboard-58877dbc9d-n8qg2", "dapr-dashboard", "daprio/dashbaord:0.0.1"},
+		{"dapr-dashboard-58877dbc9d-n8qg2", "dapr-dashboard", "daprio/dashboard:0.0.1"},
 		{"dapr-operator-67d7d7bb6c-7h96c", "dapr-operator", "daprio/dapr:0.0.1"},
 		{"dapr-operator-67d7d7bb6c-2h96d", "dapr-operator", "daprio/dapr:0.0.1"},
 		{"dapr-operator-67d7d7bb6c-3h96c", "dapr-operator", "daprio/dapr:0.0.1"},
