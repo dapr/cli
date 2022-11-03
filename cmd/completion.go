@@ -61,7 +61,7 @@ var completionExample = `
 	## Load the dapr completion code for fish into the current shell
 	dapr completion fish | source
 	# Set the dapr completion code for fish[1] to autoload on startup
-	dapr completion fish > $HOME/.config/fish/functions/dapr.fish
+	dapr completion fish > $HOME/.config/fish/completions/dapr.fish
 
 	# Installing powershell completion on Windows
 	## Create $PROFILE if it not exists
