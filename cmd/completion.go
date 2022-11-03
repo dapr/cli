@@ -127,7 +127,6 @@ func newCompletionFishCmd() *cobra.Command {
 			RootCmd.GenFishCompletion(os.Stdout, true)
 		},
 	}
-
 	cmd.Flags().BoolP("help", "h", false, "Print this help message")
 
 	return cmd
