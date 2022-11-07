@@ -57,6 +57,12 @@ var completionExample = `
 	# Set the dapr completion code for zsh[1] to autoload on startup
   	dapr completion zsh > "${fpath[1]}/_dapr"
 
+	# Installing fish completion on Linux
+	## Load the dapr completion code for fish into the current shell
+	dapr completion fish | source
+	# Set the dapr completion code for fish[1] to autoload on startup
+	dapr completion fish > $HOME/.config/fish/completions/dapr.fish
+
 	# Installing powershell completion on Windows
 	## Create $PROFILE if it not exists
 	if (!(Test-Path -Path $PROFILE )){ New-Item -Type File -Path $PROFILE -Force }
@@ -77,6 +83,7 @@ func newCompletionCmd() *cobra.Command {
 	cmd.AddCommand(
 		newCompletionBashCmd(),
 		newCompletionZshCmd(),
+		newCompletionFishCmd(),
 		newCompletionPowerShellCmd(),
 	)
 
@@ -105,6 +112,19 @@ func newCompletionZshCmd() *cobra.Command {
 		Short: "Generates zsh completion scripts",
 		Run: func(cmd *cobra.Command, args []string) {
 			RootCmd.GenZshCompletion(os.Stdout)
+		},
+	}
+	cmd.Flags().BoolP("help", "h", false, "Print this help message")
+
+	return cmd
+}
+
+func newCompletionFishCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "fish",
+		Short: "Generates fish completion scripts",
+		Run: func(cmd *cobra.Command, args []string) {
+			RootCmd.GenFishCompletion(os.Stdout, true)
 		},
 	}
 	cmd.Flags().BoolP("help", "h", false, "Print this help message")
