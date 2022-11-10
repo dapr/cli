@@ -96,6 +96,10 @@ func (s *StatusClient) Status() ([]StatusOutput, error) {
 			namespace := pod.GetNamespace()
 			age := age.GetAge(pod.CreationTimestamp.Time)
 			created := pod.CreationTimestamp.Format("2006-01-02 15:04.05")
+
+			// Version is part of the docker image tag which is expected to be present at the end of image uri.
+			// expected format: <image>:<tag>. For example: daprio/dapr:1.8.0.
+			// tag can be either <version> or <version>-<image-variant>. For example: 1.8.0-mariner
 			version := image[strings.LastIndex(image, ":")+1:]
 			status := ""
 
