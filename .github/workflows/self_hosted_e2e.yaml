@@ -1,3 +1,5 @@
+--- # ------------------------------------------------------------
+
 # ------------------------------------------------------------
 # Copyright 2021 The Dapr Authors
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -9,8 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# ------------------------------------------------------------
-
 name: E2E - Self-hosted
 
 on:
@@ -19,16 +19,16 @@ on:
       - master
       - release-*
     paths-ignore:
-      - '**.md'
+      - "**.md"
   schedule:
-    - cron: '0 */3 * * *'
-    - cron: '0 */6 * * *'
+    - cron: "0 */3 * * *"
+    - cron: "0 */6 * * *"
   pull_request:
     branches:
       - master
-      - 'release-*'
+      - "release-*"
     paths-ignore:
-      - '**.md'
+      - "**.md"
 
 jobs:
   self-hosted-e2e:
@@ -80,7 +80,7 @@ jobs:
       - name: Determine latest Dapr Runtime version including Pre-releases
         if: github.base_ref == 'master'
         run: |
-          helm repo add dapr https://dapr.github.io/helm-charts/ && helm repo update && export RUNTIME_VERSION=$(helm search repo dapr/dapr --devel --versions | awk '/dapr\/dapr/ {print $3; exit}' )
+          export RUNTIME_VERSION = $(curl -s https://api.github.com/repos/dapr/dapr/releases | grep tag_name | awk -F':' '{print $2}' | tr -d '", ' | sed '/-/! s/$/_/' | sort -V | sed 's/_$//' | tail -1)
           echo "DAPR_RUNTIME_VERSION=$RUNTIME_VERSION" >> $GITHUB_ENV
           echo "Found $RUNTIME_VERSION"
         shell: bash
@@ -121,4 +121,3 @@ jobs:
         with:
           name: ${{ matrix.target_os }}_${{ matrix.target_arch }}_e2e_standalone.json
           path: ${{ env.TEST_OUTPUT_FILE }}
-
