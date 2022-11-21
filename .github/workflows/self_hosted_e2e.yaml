@@ -35,14 +35,13 @@ jobs:
     name: Run Self-Hosted E2E tests in ${{ matrix.target_os }}_${{ matrix.target_arch }}_${{ matrix.dapr_install_mode }}
     runs-on: ${{ matrix.os }}
     env:
-      GOVER: 1.19.2
+      GOVER: 1.19.3
       GOOS: ${{ matrix.target_os }}
       GOARCH: ${{ matrix.target_arch }}
       GOPROXY: https://proxy.golang.org
       ARCHIVE_OUTDIR: dist/archives
       DAPR_RUNTIME_VERSION: "1.9.0"
       DAPR_DASHBOARD_VERSION: 0.11.0
-      DAPR_TGZ: dapr-1.9.0.tgz
     strategy:
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
@@ -80,14 +79,14 @@ jobs:
       - name: Determine latest Dapr Runtime version including Pre-releases
         if: github.base_ref == 'master'
         run: |
-          helm repo add dapr https://dapr.github.io/helm-charts/ && helm repo update && export RUNTIME_VERSION=$(helm search repo dapr/dapr --devel --versions | awk '/dapr\/dapr/ {print $3; exit}' )
+          export RUNTIME_VERSION=$(curl -s https://api.github.com/repos/dapr/dapr/releases | grep tag_name | awk -F':' '{print $2}' | tr -d '", ' | sed '/-/! s/$/_/' | sort -V | sed 's/_$//' | tr -d 'v' | tail -1)
           echo "DAPR_RUNTIME_VERSION=$RUNTIME_VERSION" >> $GITHUB_ENV
           echo "Found $RUNTIME_VERSION"
         shell: bash
       - name: Determine latest Dapr Dashboard version including Pre-releases
         if: github.base_ref == 'master'
         run: |
-          curl -L -o dapr.tgz https://github.com/dapr/helm-charts/raw/master/$DAPR_TGZ && tar -xzf dapr.tgz && export DASHBOARD_VERSION=$(cat ./dapr/charts/dapr_dashboard/Chart.yaml | grep version | awk '{ print $2; exit }') && rm -rf dapr
+          export DASHBOARD_VERSION=$(curl -s https://api.github.com/repos/dapr/dashboard/releases | grep tag_name | awk -F':' '{print $2}' | tr -d '", ' | sed '/-/! s/$/_/' | sort -V | sed 's/_$//' | tr -d 'v' | tail -1)
           echo "DAPR_DASHBOARD_VERSION=$DASHBOARD_VERSION" >> $GITHUB_ENV
           echo "Found $DASHBOARD_VERSION"
         shell: bash
@@ -121,4 +120,3 @@ jobs:
         with:
           name: ${{ matrix.target_os }}_${{ matrix.target_arch }}_e2e_standalone.json
           path: ${{ env.TEST_OUTPUT_FILE }}
-
