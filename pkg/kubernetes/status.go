@@ -99,7 +99,7 @@ func (s *StatusClient) Status() ([]StatusOutput, error) {
 
 			// Version is part of the docker image tag which is expected to be present at the end of image uri.
 			// expected format: <image>:<tag>. For example: daprio/dapr:1.8.0.
-			// tag can be either <version> or <version>-<image-variant>. For example: 1.8.0-mariner
+			// tag can be either <version> or <version>-<image-variant>. For example: 1.8.0-mariner.
 			version := image[strings.LastIndex(image, ":")+1:]
 			status := ""
 
