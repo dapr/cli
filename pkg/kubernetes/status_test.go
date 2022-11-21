@@ -25,6 +25,11 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 )
 
+const (
+	daprImageTag          = "daprio/dapr:0.0.1"
+	daprDashboardImageTag = "daprio/dashboard:0.0.1"
+)
+
 type podDetails struct {
 	name      string
 	appName   string
@@ -215,19 +220,19 @@ func TestControlPlaneServices(t *testing.T) {
 		appName  string
 		imageURI string
 	}{
-		{"dapr-dashboard-58877dbc9d-n8qg2", "dapr-dashboard", "daprio/dashboard:0.0.1"},
-		{"dapr-operator-67d7d7bb6c-7h96c", "dapr-operator", "daprio/dapr:0.0.1"},
-		{"dapr-operator-67d7d7bb6c-2h96d", "dapr-operator", "daprio/dapr:0.0.1"},
-		{"dapr-operator-67d7d7bb6c-3h96c", "dapr-operator", "daprio/dapr:0.0.1"},
-		{"dapr-placement-server-0", "dapr-placement-server", "daprio/dapr:0.0.1"},
-		{"dapr-placement-server-1", "dapr-placement-server", "daprio/dapr:0.0.1"},
-		{"dapr-placement-server-2", "dapr-placement-server", "daprio/dapr:0.0.1"},
-		{"dapr-sentry-647759cd46-9ptks", "dapr-sentry", "daprio/dapr:0.0.1"},
-		{"dapr-sentry-647759cd46-aptks", "dapr-sentry", "daprio/dapr:0.0.1"},
-		{"dapr-sentry-647759cd46-bptks", "dapr-sentry", "daprio/dapr:0.0.1"},
-		{"dapr-sidecar-injector-74648c9dcb-5bsmn", "dapr-sidecar-injector", "daprio/dapr:0.0.1"},
-		{"dapr-sidecar-injector-74648c9dcb-6bsmn", "dapr-sidecar-injector", "daprio/dapr:0.0.1"},
-		{"dapr-sidecar-injector-74648c9dcb-7bsmn", "dapr-sidecar-injector", "daprio/dapr:0.0.1"},
+		{"dapr-dashboard-58877dbc9d-n8qg2", "dapr-dashboard", daprDashboardImageTag},
+		{"dapr-operator-67d7d7bb6c-7h96c", "dapr-operator", daprImageTag},
+		{"dapr-operator-67d7d7bb6c-2h96d", "dapr-operator", daprImageTag},
+		{"dapr-operator-67d7d7bb6c-3h96c", "dapr-operator", daprImageTag},
+		{"dapr-placement-server-0", "dapr-placement-server", daprImageTag},
+		{"dapr-placement-server-1", "dapr-placement-server", daprImageTag},
+		{"dapr-placement-server-2", "dapr-placement-server", daprImageTag},
+		{"dapr-sentry-647759cd46-9ptks", "dapr-sentry", daprImageTag},
+		{"dapr-sentry-647759cd46-aptks", "dapr-sentry", daprImageTag},
+		{"dapr-sentry-647759cd46-bptks", "dapr-sentry", daprImageTag},
+		{"dapr-sidecar-injector-74648c9dcb-5bsmn", "dapr-sidecar-injector", daprImageTag},
+		{"dapr-sidecar-injector-74648c9dcb-6bsmn", "dapr-sidecar-injector", daprImageTag},
+		{"dapr-sidecar-injector-74648c9dcb-7bsmn", "dapr-sidecar-injector", daprImageTag},
 	}
 
 	expectedReplicas := map[string]int{}
@@ -280,23 +285,26 @@ func TestControlPlaneVersion(t *testing.T) {
 		},
 		ready: true,
 	}
-	t.Run("image uri contains one colon", func(t *testing.T) {
-		pd.imageURI = "mockImgReg:0.0.1"
+	testcases := []struct {
+		imageURI        string
+		expectedVersion string
+	}{
+		{
+			imageURI:        "mockImgReg:0.0.1",
+			expectedVersion: "0.0.1",
+		},
+		{
+			imageURI:        "mockImgRegHost:mockPort:0.0.2",
+			expectedVersion: "0.0.2",
+		},
+	}
+	for _, tc := range testcases {
+		pd.imageURI = tc.imageURI
 		k8s := newTestSimpleK8s(newDaprControlPlanePod(pd))
 		status, err := k8s.Status()
 		assert.Nil(t, err, "status should not raise an error")
 		assert.Equal(t, 1, len(status), "Expected status to be non-empty list")
 		stat := status[0]
-		assert.Equal(t, "0.0.1", stat.Version, "expected version to match")
-	})
-
-	t.Run("image uri contains multiple colon", func(t *testing.T) {
-		pd.imageURI = "mockImgRegHost:mockPort:0.0.2"
-		k8s := newTestSimpleK8s(newDaprControlPlanePod(pd))
-		status, err := k8s.Status()
-		assert.Nil(t, err, "status should not raise an error")
-		assert.Equal(t, 1, len(status), "Expected status to be non-empty list")
-		stat := status[0]
-		assert.Equal(t, "0.0.2", stat.Version, "expected version to match")
-	})
+		assert.Equal(t, tc.expectedVersion, stat.Version, "expected version to match")
+	}
 }
