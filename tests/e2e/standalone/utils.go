@@ -132,7 +132,10 @@ func ensureDaprInstallation(t *testing.T) {
 	daprPath := filepath.Join(homeDir, ".dapr")
 	_, err = os.Stat(daprPath)
 	if os.IsNotExist(err) {
-		_, err = cmdInit(daprRuntimeVersion)
+		args := []string{
+			"--runtime-version", daprRuntimeVersion,
+		}
+		_, err = cmdInit(args...)
 		require.NoError(t, err, "failed to install dapr")
 	} else if err != nil {
 		// Some other error occurred.
