@@ -40,9 +40,9 @@ jobs:
       GOARCH: ${{ matrix.target_arch }}
       GOPROXY: https://proxy.golang.org
       ARCHIVE_OUTDIR: dist/archives
-      DAPR_RUNTIME_VERSION: "1.9.4"
-      DAPR_DASHBOARD_VERSION: 0.11.0
-      DAPR_LATEST_RUNTIME_VERSION:
+      DAPR_RUNTIME_PINNED_VERSION: "1.9.0"
+      DAPR_DASHBOARD_PINNED_VERSION: 0.11.0
+      DAPR_RUNTIME_LATEST_VERSION:
       DAPR_DASHBOARD_LATEST_VERSION:
     strategy:
       matrix:
@@ -81,15 +81,15 @@ jobs:
       - name: Determine latest Dapr Runtime version including Pre-releases
         run: |
           export RUNTIME_VERSION=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/dapr/dapr/releases | grep tag_name | awk -F':' '{print $2}' | tr -d '", ' | sed '/-/! s/$/_/' | sort -V | sed 's/_$//' | tr -d 'v' | tail -1)
-          echo "DAPR_LATEST_RUNTIME_VERSION=$RUNTIME_VERSION" >> $GITHUB_ENV
+          echo "DAPR_RUNTIME_LATEST_VERSION=$RUNTIME_VERSION" >> $GITHUB_ENV
           if [[ -z "$RUNTIME_VERSION" ]]; then
-            echo "Could not fetch the latest Dapr Runtime version. Using default version $DAPR_RUNTIME_VERSION"
+            echo "Could not fetch the latest Dapr Runtime version. Using default version $DAPR_RUNTIME_PINNED_VERSION"
           else
-            base_ref = ${{ github.base_ref }}
+            base_ref=${{ github.base_ref }}
             echo "Found $RUNTIME_VERSION"
             echo "Branch $base_ref"
             if [[ $base_ref = 'master' ]]; then
-              echo "DAPR_RUNTIME_VERSION=$RUNTIME_VERSION" >> $GITHUB_ENV
+              echo "DAPR_RUNTIME_PINNED_VERSION=$RUNTIME_VERSION" >> $GITHUB_ENV
             fi
           fi
         shell: bash
@@ -98,13 +98,13 @@ jobs:
           export DASHBOARD_VERSION=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/dapr/dashboard/releases | grep tag_name | awk -F':' '{print $2}' | tr -d '", ' | sed '/-/! s/$/_/' | sort -V | sed 's/_$//' | tr -d 'v' | tail -1)
           echo "DAPR_DASHBOARD_LATEST_VERSION=$DASHBOARD_VERSION" >> $GITHUB_ENV
           if [[ -z "$DASHBOARD_VERSION" ]]; then
-            echo "Could not fetch the latest Dapr Dashboard version. Using default version $DAPR_DASHBOARD_VERSION"
+            echo "Could not fetch the latest Dapr Dashboard version. Using default version $DAPR_DASHBOARD_PINNED_VERSION"
           else
-            base_ref = ${{ github.base_ref }}
+            base_ref=${{ github.base_ref }}
             echo "Found $DASHBOARD_VERSION"
             echo "Branch $base_ref"
             if [[ $base_ref = 'master' ]]; then
-              echo "DAPR_DASHBOARD_VERSION=$DASHBOARD_VERSION" >> $GITHUB_ENV
+              echo "DAPR_DASHBOARD_PINNED_VERSION=$DASHBOARD_VERSION" >> $GITHUB_ENV
             fi
           fi
         shell: bash

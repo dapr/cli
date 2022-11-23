@@ -75,18 +75,18 @@ type TestCase struct {
 // if environment variables are not set it fails the test.
 func GetVersionsFromEnv(t *testing.T, latest bool) (string, string) {
 	var daprRuntimeVersion, daprDashboardVersion string
-	runtimeEnvVar := "DAPR_RUNTIME_VERSION"
-	dashboardEnvVar := "DAPR_DASHBOARD_VERSION"
+	runtimeEnvVar := "DAPR_RUNTIME_PINNED_VERSION"
+	dashboardEnvVar := "DAPR_DASHBOARD_PINNED_VERSION"
 	if latest {
-		runtimeEnvVar = "DAPR_LATEST_RUNTIME_VERSION"
+		runtimeEnvVar = "DAPR_RUNTIME_LATEST_VERSION"
 		dashboardEnvVar = "DAPR_DASHBOARD_LATEST_VERSION"
 	}
-	if runtimeVersion, ok := os.LookupEnv("runtimeEnvVar"); ok {
+	if runtimeVersion, ok := os.LookupEnv(runtimeEnvVar); ok {
 		daprRuntimeVersion = runtimeVersion
 	} else {
 		t.Fatalf("env var \"%s\" not set", runtimeEnvVar)
 	}
-	if dashboardVersion, ok := os.LookupEnv("dashboardEnvVar"); ok {
+	if dashboardVersion, ok := os.LookupEnv(dashboardEnvVar); ok {
 		daprDashboardVersion = dashboardVersion
 	} else {
 		t.Fatalf("env var \"%s\" not set", dashboardEnvVar)
