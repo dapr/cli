@@ -42,6 +42,8 @@ jobs:
       ARCHIVE_OUTDIR: dist/archives
       DAPR_RUNTIME_VERSION: "1.9.4"
       DAPR_DASHBOARD_VERSION: 0.11.0
+      DAPR_LATEST_RUNTIME_VERSION:
+      DAPR_DASHBOARD_LATEST_VERSION:
     strategy:
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
@@ -77,25 +79,33 @@ jobs:
           podman machine start
           echo "CONTAINER_RUNTIME=podman" >> $GITHUB_ENV
       - name: Determine latest Dapr Runtime version including Pre-releases
-        if: github.base_ref == 'master'
         run: |
           export RUNTIME_VERSION=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/dapr/dapr/releases | grep tag_name | awk -F':' '{print $2}' | tr -d '", ' | sed '/-/! s/$/_/' | sort -V | sed 's/_$//' | tr -d 'v' | tail -1)
+          echo "DAPR_LATEST_RUNTIME_VERSION=$RUNTIME_VERSION" >> $GITHUB_ENV
           if [[ -z "$RUNTIME_VERSION" ]]; then
             echo "Could not fetch the latest Dapr Runtime version. Using default version $DAPR_RUNTIME_VERSION"
           else
-            echo "DAPR_RUNTIME_VERSION=$RUNTIME_VERSION" >> $GITHUB_ENV
+            base_ref = ${{ github.base_ref }}
             echo "Found $RUNTIME_VERSION"
+            echo "Branch $base_ref"
+            if [[ $base_ref = 'master' ]]; then
+              echo "DAPR_RUNTIME_VERSION=$RUNTIME_VERSION" >> $GITHUB_ENV
+            fi
           fi
         shell: bash
       - name: Determine latest Dapr Dashboard version including Pre-releases
-        if: github.base_ref == 'master'
         run: |
           export DASHBOARD_VERSION=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/dapr/dashboard/releases | grep tag_name | awk -F':' '{print $2}' | tr -d '", ' | sed '/-/! s/$/_/' | sort -V | sed 's/_$//' | tr -d 'v' | tail -1)
+          echo "DAPR_DASHBOARD_LATEST_VERSION=$DASHBOARD_VERSION" >> $GITHUB_ENV
           if [[ -z "$DASHBOARD_VERSION" ]]; then
             echo "Could not fetch the latest Dapr Dashboard version. Using default version $DAPR_DASHBOARD_VERSION"
           else
-            echo "DAPR_DASHBOARD_VERSION=$DASHBOARD_VERSION" >> $GITHUB_ENV
+            base_ref = ${{ github.base_ref }}
             echo "Found $DASHBOARD_VERSION"
+            echo "Branch $base_ref"
+            if [[ $base_ref = 'master' ]]; then
+              echo "DAPR_DASHBOARD_VERSION=$DASHBOARD_VERSION" >> $GITHUB_ENV
+            fi
           fi
         shell: bash
       - name: Run E2E tests with GHCR

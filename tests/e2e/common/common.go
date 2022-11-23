@@ -73,18 +73,23 @@ type TestCase struct {
 
 // GetVersionsFromEnv will return values from required environment variables,
 // if environment variables are not set it fails the test.
-func GetVersionsFromEnv(t *testing.T) (string, string) {
+func GetVersionsFromEnv(t *testing.T, latest bool) (string, string) {
 	var daprRuntimeVersion, daprDashboardVersion string
-
-	if runtimeVersion, ok := os.LookupEnv("DAPR_RUNTIME_VERSION"); ok {
+	runtimeEnvVar := "DAPR_RUNTIME_VERSION"
+	dashboardEnvVar := "DAPR_DASHBOARD_VERSION"
+	if latest {
+		runtimeEnvVar = "DAPR_LATEST_RUNTIME_VERSION"
+		dashboardEnvVar = "DAPR_DASHBOARD_LATEST_VERSION"
+	}
+	if runtimeVersion, ok := os.LookupEnv("runtimeEnvVar"); ok {
 		daprRuntimeVersion = runtimeVersion
 	} else {
-		t.Fatalf("env var \"DAPR_RUNTIME_VERSION\" not set")
+		t.Fatalf("env var \"%s\" not set", runtimeEnvVar)
 	}
-	if dashboardVersion, ok := os.LookupEnv("DAPR_DASHBOARD_VERSION"); ok {
+	if dashboardVersion, ok := os.LookupEnv("dashboardEnvVar"); ok {
 		daprDashboardVersion = dashboardVersion
 	} else {
-		t.Fatalf("env var \"DAPR_DASHBOARD_VERSION\" not set")
+		t.Fatalf("env var \"%s\" not set", dashboardEnvVar)
 	}
 	return daprRuntimeVersion, daprDashboardVersion
 }

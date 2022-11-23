@@ -34,7 +34,7 @@ import (
 )
 
 func TestStandaloneInit(t *testing.T) {
-	daprRuntimeVersion, daprDashboardVersion := common.GetVersionsFromEnv(t)
+	daprRuntimeVersion, daprDashboardVersion := common.GetVersionsFromEnv(t, false)
 
 	t.Run("init with invalid private registry", func(t *testing.T) {
 		if isSlimMode() {
@@ -143,8 +143,9 @@ func TestStandaloneInit(t *testing.T) {
 		daprPath := filepath.Join(homeDir, ".dapr")
 		require.DirExists(t, daprPath, "Directory %s does not exist", daprPath)
 
-		verifyContainers(t, daprRuntimeVersion)
-		verifyBinaries(t, daprPath, daprRuntimeVersion, daprDashboardVersion)
+		latestDaprRuntimeVersion, latestDaprDashboardVersion := common.GetVersionsFromEnv(t, true)
+		verifyContainers(t, latestDaprRuntimeVersion)
+		verifyBinaries(t, daprPath, latestDaprRuntimeVersion, latestDaprDashboardVersion)
 		verifyConfigs(t, daprPath)
 	})
 }
