@@ -42,6 +42,7 @@ type RunConfig struct {
 	ConfigFile         string `arg:"config"`
 	Protocol           string `arg:"app-protocol"`
 	Arguments          []string
+	APIListenAddresses string `arg:"dapr-listen-addresses"`
 	EnableProfiling    bool   `arg:"enable-profiling"`
 	ProfilePort        int    `arg:"profile-port"`
 	LogLevel           string `arg:"log-level"`

@@ -119,6 +119,7 @@ func assertCommonArgs(t *testing.T, basicConfig *RunConfig, output *RunOutput) {
 	assertArgumentEqual(t, "dapr-http-max-request-size", "-1", output.DaprCMD.Args)
 	assertArgumentEqual(t, "dapr-internal-grpc-port", "5050", output.DaprCMD.Args)
 	assertArgumentEqual(t, "dapr-http-read-buffer-size", "-1", output.DaprCMD.Args)
+	assertArgumentEqual(t, "dapr-listen-addresses", "127.0.0.1", output.DaprCMD.Args)
 }
 
 func assertAppEnv(t *testing.T, config *RunConfig, output *RunOutput) {
@@ -186,6 +187,7 @@ func TestRun(t *testing.T) {
 		InternalGRPCPort:   5050,
 		HTTPReadBufferSize: -1,
 		EnableAPILogging:   true,
+		APIListenAddresses: "127.0.0.1",
 	}
 
 	t.Run("run happy http", func(t *testing.T) {
