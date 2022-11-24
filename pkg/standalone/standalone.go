@@ -52,18 +52,18 @@ const (
 	pubSubYamlFileName     = "pubsub.yaml"
 	stateStoreYamlFileName = "statestore.yaml"
 
-	// used when DAPR_DEFAULT_IMAGE_REGISTRY is not set.
-	dockerContainerRegistryName = "dockerhub"
-	daprDockerImageName         = "daprio/dapr"
-	redisDockerImageName        = "redis:6"
-	zipkinDockerImageName       = "openzipkin/zipkin"
+	defaultImageRegistryEnvKey = "DAPR_DEFAULT_IMAGE_REGISTRY"
+	ghcrImageRegistry          = "ghcr"
 
-	// used when DAPR_DEFAULT_IMAGE_REGISTRY is set as GHCR.
-	githubContainerRegistryName = "ghcr"
-	ghcrURI                     = "ghcr.io/dapr"
-	daprGhcrImageName           = "dapr"
-	redisGhcrImageName          = "3rdparty/redis:6"
-	zipkinGhcrImageName         = "3rdparty/zipkin"
+	// Container registries and images
+	dockerHubUrl             = "docker.io"
+	ghcrUrl                  = "ghcr.io"
+	daprDockerHubImagePath   = "daprio/dapr"
+	daprGhcrImagePath        = "dapr/dapr"
+	redisDockerHubImagePath  = "redis:6"
+	redisGhcrImagePath       = "dapr/3rdparty/redis:6"
+	zipkinDockerHubImagePath = "openzipkin/zipkin"
+	zipkinGhcrImagePath      = "dapr/3rdparty/zipkin"
 
 	// DaprPlacementContainerName is the container name of placement service.
 	DaprPlacementContainerName = "dapr_placement"
@@ -76,9 +76,7 @@ const (
 )
 
 var (
-	defaultImageRegistryName string
-	privateRegTemplateString = "%s/dapr/%s"
-	isAirGapInit             bool
+	isAirGapInit bool
 )
 
 type configuration struct {
@@ -116,22 +114,23 @@ type componentMetadataItem struct {
 }
 
 type initInfo struct {
-	fromDir          string
-	bundleDet        *bundleDetails
-	slimMode         bool
-	runtimeVersion   string
-	dashboardVersion string
-	dockerNetwork    string
-	imageRegistryURL string
-	containerRuntime string
-	imageVariant     string
+	fromDir              string
+	bundleDet            *bundleDetails
+	slimMode             bool
+	runtimeVersion       string
+	dashboardVersion     string
+	dockerNetwork        string
+	customRegistryURL    string
+	containerRegistryURL string
+	containerRuntime     string
+	imageVariant         string
 }
 
 type daprImageInfo struct {
-	ghcrImageName      string
-	dockerHubImageName string
-	imageRegistryURL   string
-	imageRegistryName  string
+	ghcrImagePath        string
+	dockerHubImagePath   string
+	containerRegistryURL string
+	customRegistryURL    string
 }
 
 // Check if the previous version is already installed.
@@ -146,14 +145,31 @@ func isBinaryInstallationRequired(binaryFilePrefix, installDir string) (bool, er
 	return true, nil
 }
 
+func getContainerRegistryURL() (string, error) {
+	val := strings.ToLower(os.Getenv(defaultImageRegistryEnvKey))
+	switch val {
+	case "":
+		print.InfoStatusEvent(os.Stdout, "Container images will be pulled from %s", dockerHubUrl)
+		return dockerHubUrl, nil
+	case ghcrImageRegistry:
+		print.InfoStatusEvent(os.Stdout, "Container images will be pulled from %s", ghcrUrl)
+		return ghcrUrl, nil
+	default:
+		return "", fmt.Errorf("environment variable %s can only be set to %s", defaultImageRegistryEnvKey, ghcrImageRegistry)
+	}
+}
+
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
 func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool, imageRegistryURL string, fromDir string, containerRuntime string, imageVariant string) error {
 	var err error
 	var bundleDet bundleDetails
 	containerRuntime = strings.TrimSpace(containerRuntime)
-	fromDir = strings.TrimSpace(fromDir)
+
 	// AirGap init flow is true when fromDir var is set i.e. --from-dir flag has value.
+	fromDir = strings.TrimSpace(fromDir)
 	setAirGapInit(fromDir)
+
+	var containerRegistryURL string
 	if !slimMode {
 		// If --slim installation is not requested, check if docker is installed.
 		conatinerRuntimeAvailable := utils.IsDockerInstalled() || utils.IsPodmanInstalled()
@@ -163,7 +179,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 
 		// Initialize default registry only if any of --slim or --image-registry or --from-dir are not given.
 		if len(strings.TrimSpace(imageRegistryURL)) == 0 && !isAirGapInit {
-			defaultImageRegistryName, err = utils.GetDefaultRegistry(githubContainerRegistryName, dockerContainerRegistryName)
+			containerRegistryURL, err = getContainerRegistryURL()
 			if err != nil {
 				return err
 			}
@@ -171,7 +187,6 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 	}
 
 	// Set runtime version.
-
 	if runtimeVersion == latestVersion && !isAirGapInit {
 		runtimeVersion, err = cli_ver.GetDaprVersion()
 		if err != nil {
@@ -179,6 +194,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		}
 	}
 
+	// Set dashboard version.
 	if dashboardVersion == latestVersion && !isAirGapInit {
 		dashboardVersion, err = cli_ver.GetDashboardVersion()
 		if err != nil {
@@ -251,15 +267,16 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 
 	info := initInfo{
 		// values in bundleDet can be nil if fromDir is empty, so must be used in conjunction with fromDir.
-		bundleDet:        &bundleDet,
-		fromDir:          fromDir,
-		slimMode:         slimMode,
-		runtimeVersion:   runtimeVersion,
-		dashboardVersion: dashboardVersion,
-		dockerNetwork:    dockerNetwork,
-		imageRegistryURL: imageRegistryURL,
-		containerRuntime: containerRuntime,
-		imageVariant:     imageVariant,
+		bundleDet:            &bundleDet,
+		fromDir:              fromDir,
+		slimMode:             slimMode,
+		runtimeVersion:       runtimeVersion,
+		dashboardVersion:     dashboardVersion,
+		dockerNetwork:        dockerNetwork,
+		customRegistryURL:    imageRegistryURL,
+		containerRuntime:     containerRuntime,
+		imageVariant:         imageVariant,
+		containerRegistryURL: containerRegistryURL,
 	}
 	for _, step := range initSteps {
 		// Run init on the configurations and containers.
@@ -334,10 +351,9 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 		args = append(args, "start", zipkinContainerName)
 	} else {
 		imageName, err = resolveImageURI(daprImageInfo{
-			ghcrImageName:      zipkinGhcrImageName,
-			dockerHubImageName: zipkinDockerImageName,
-			imageRegistryURL:   info.imageRegistryURL,
-			imageRegistryName:  defaultImageRegistryName,
+			ghcrImagePath:      zipkinGhcrImagePath,
+			dockerHubImagePath: zipkinDockerHubImagePath,
+			customRegistryURL:  info.customRegistryURL,
 		})
 		if err != nil {
 			errorChan <- err
@@ -401,10 +417,10 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 		args = append(args, "start", redisContainerName)
 	} else {
 		imageName, err = resolveImageURI(daprImageInfo{
-			ghcrImageName:      redisGhcrImageName,
-			dockerHubImageName: redisDockerImageName,
-			imageRegistryURL:   info.imageRegistryURL,
-			imageRegistryName:  defaultImageRegistryName,
+			ghcrImagePath:        redisGhcrImagePath,
+			dockerHubImagePath:   redisDockerHubImagePath,
+			customRegistryURL:    info.customRegistryURL,
+			containerRegistryURL: info.containerRegistryURL,
 		})
 		if err != nil {
 			errorChan <- err
@@ -466,10 +482,10 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 	var image string
 
 	imgInfo := daprImageInfo{
-		ghcrImageName:      daprGhcrImageName,
-		dockerHubImageName: daprDockerImageName,
-		imageRegistryURL:   info.imageRegistryURL,
-		imageRegistryName:  defaultImageRegistryName,
+		ghcrImagePath:        daprGhcrImagePath,
+		dockerHubImagePath:   daprDockerHubImagePath,
+		customRegistryURL:    info.customRegistryURL,
+		containerRegistryURL: info.containerRegistryURL,
 	}
 
 	if isAirGapInit {
@@ -1183,15 +1199,6 @@ func getPlacementImageName(imageInfo daprImageInfo, info initInfo) (string, erro
 		return "", err
 	}
 
-	// if default registry is GHCR and the image is not available in or cannot be pulled from GHCR
-	// fallback to using dockerhub.
-	if useGHCR(imageInfo, info.fromDir) && !tryPullImage(image, info.containerRuntime) {
-		print.InfoStatusEvent(os.Stdout, "Placement image not found in Github container registry, pulling it from Docker Hub")
-		image, err = getPlacementImageWithTag(daprDockerImageName, info.runtimeVersion, info.imageVariant)
-		if err != nil {
-			return "", err
-		}
-	}
 	return image, nil
 }
 
@@ -1204,30 +1211,17 @@ func getPlacementImageWithTag(name, version, imageVariant string) (string, error
 	return fmt.Sprintf("%s:%s", name, version), nil
 }
 
-// useGHCR returns true iff default registry is set as GHCR and --image-registry and --from-dir flags are not set.
-// TODO: We may want to remove this logic completely after next couple of releases.
-func useGHCR(imageInfo daprImageInfo, fromDir string) bool {
-	if imageInfo.imageRegistryURL != "" || fromDir != "" {
-		return false
-	}
-	return imageInfo.imageRegistryName == githubContainerRegistryName
-}
-
 func resolveImageURI(imageInfo daprImageInfo) (string, error) {
-	if strings.TrimSpace(imageInfo.imageRegistryURL) != "" {
-		if imageInfo.imageRegistryURL == ghcrURI || imageInfo.imageRegistryURL == "docker.io" {
-			err := fmt.Errorf("flag --image-registry not set correctly. It cannot be %q or \"docker.io\"", ghcrURI)
-			return "", err
-		}
-		return fmt.Sprintf(privateRegTemplateString, imageInfo.imageRegistryURL, imageInfo.ghcrImageName), nil
+	if strings.TrimSpace(imageInfo.customRegistryURL) != "" {
+		return fmt.Sprintf("%s/%s", imageInfo.customRegistryURL, imageInfo.ghcrImagePath), nil
 	}
-	switch imageInfo.imageRegistryName {
-	case dockerContainerRegistryName:
-		return imageInfo.dockerHubImageName, nil
-	case githubContainerRegistryName:
-		return fmt.Sprintf("%s/%s", ghcrURI, imageInfo.ghcrImageName), nil
+	switch imageInfo.containerRegistryURL {
+	case dockerHubUrl:
+		return fmt.Sprintf("%s/%s", dockerHubUrl, imageInfo.dockerHubImagePath), nil
+	case ghcrUrl:
+		return fmt.Sprintf("%s/%s", ghcrUrl, imageInfo.ghcrImagePath), nil
 	default:
-		return "", fmt.Errorf("imageRegistryName not set correctly %s", imageInfo.imageRegistryName)
+		return "", fmt.Errorf("containerRegistryURL not set correctly, found: %s", imageInfo.containerRegistryURL)
 	}
 }
 

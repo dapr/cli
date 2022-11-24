@@ -66,22 +66,22 @@ func TestResolveImageWithGHCR(t *testing.T) {
 	expectedPlacementImageName := "ghcr.io/dapr/dapr"
 
 	redisImageInfo := daprImageInfo{
-		ghcrImageName:      redisGhcrImageName,
-		dockerHubImageName: redisDockerImageName,
-		imageRegistryURL:   "",
-		imageRegistryName:  "ghcr",
+		ghcrImagePath:        redisGhcrImagePath,
+		dockerHubImagePath:   redisDockerHubImagePath,
+		customRegistryURL:    "",
+		containerRegistryURL: "ghcr.io",
 	}
 	zipkinImageInfo := daprImageInfo{
-		ghcrImageName:      zipkinGhcrImageName,
-		dockerHubImageName: zipkinDockerImageName,
-		imageRegistryURL:   "",
-		imageRegistryName:  "ghcr",
+		ghcrImagePath:        zipkinGhcrImagePath,
+		dockerHubImagePath:   zipkinDockerHubImagePath,
+		customRegistryURL:    "",
+		containerRegistryURL: "ghcr.io",
 	}
 	placementImageInfo := daprImageInfo{
-		ghcrImageName:      daprGhcrImageName,
-		dockerHubImageName: daprDockerImageName,
-		imageRegistryURL:   "",
-		imageRegistryName:  "ghcr",
+		ghcrImagePath:        daprGhcrImagePath,
+		dockerHubImagePath:   daprDockerHubImagePath,
+		customRegistryURL:    "",
+		containerRegistryURL: "ghcr.io",
 	}
 
 	tests := []struct {
@@ -105,27 +105,27 @@ func TestResolveImageWithGHCR(t *testing.T) {
 }
 
 func TestResolveImageWithDockerHub(t *testing.T) {
-	expectedRedisImageName := "redis:6"
-	expectedZipkinImageName := "openzipkin/zipkin"
-	expectedPlacementImageName := "daprio/dapr"
+	expectedRedisImageName := "docker.io/redis:6"
+	expectedZipkinImageName := "docker.io/openzipkin/zipkin"
+	expectedPlacementImageName := "docker.io/daprio/dapr"
 
 	redisImageInfo := daprImageInfo{
-		ghcrImageName:      redisGhcrImageName,
-		dockerHubImageName: redisDockerImageName,
-		imageRegistryURL:   "",
-		imageRegistryName:  "dockerhub",
+		ghcrImagePath:        redisGhcrImagePath,
+		dockerHubImagePath:   redisDockerHubImagePath,
+		customRegistryURL:    "",
+		containerRegistryURL: "docker.io",
 	}
 	zipkinImageInfo := daprImageInfo{
-		ghcrImageName:      zipkinGhcrImageName,
-		dockerHubImageName: zipkinDockerImageName,
-		imageRegistryURL:   "",
-		imageRegistryName:  "dockerhub",
+		ghcrImagePath:        zipkinGhcrImagePath,
+		dockerHubImagePath:   zipkinDockerHubImagePath,
+		customRegistryURL:    "",
+		containerRegistryURL: "docker.io",
 	}
 	placementImageInfo := daprImageInfo{
-		ghcrImageName:      daprGhcrImageName,
-		dockerHubImageName: daprDockerImageName,
-		imageRegistryURL:   "",
-		imageRegistryName:  "dockerhub",
+		ghcrImagePath:        daprGhcrImagePath,
+		dockerHubImagePath:   daprDockerHubImagePath,
+		customRegistryURL:    "",
+		containerRegistryURL: "docker.io",
 	}
 
 	tests := []struct {
@@ -154,22 +154,22 @@ func TestResolveImageWithPrivateRegistry(t *testing.T) {
 	expectedPlacementImageName := "docker.io/username/dapr/dapr"
 
 	redisImageInfo := daprImageInfo{
-		ghcrImageName:      redisGhcrImageName,
-		dockerHubImageName: redisDockerImageName,
-		imageRegistryURL:   "docker.io/username",
-		imageRegistryName:  "",
+		ghcrImagePath:        redisGhcrImagePath,
+		dockerHubImagePath:   redisDockerHubImagePath,
+		customRegistryURL:    "docker.io/username",
+		containerRegistryURL: "",
 	}
 	zipkinImageInfo := daprImageInfo{
-		ghcrImageName:      zipkinGhcrImageName,
-		dockerHubImageName: zipkinDockerImageName,
-		imageRegistryURL:   "docker.io/username",
-		imageRegistryName:  "",
+		ghcrImagePath:        zipkinGhcrImagePath,
+		dockerHubImagePath:   zipkinDockerHubImagePath,
+		customRegistryURL:    "docker.io/username",
+		containerRegistryURL: "",
 	}
 	placementImageInfo := daprImageInfo{
-		ghcrImageName:      daprGhcrImageName,
-		dockerHubImageName: daprDockerImageName,
-		imageRegistryURL:   "docker.io/username",
-		imageRegistryName:  "",
+		ghcrImagePath:        daprGhcrImagePath,
+		dockerHubImagePath:   daprDockerHubImagePath,
+		customRegistryURL:    "docker.io/username",
+		containerRegistryURL: "",
 	}
 
 	tests := []struct {
@@ -193,23 +193,11 @@ func TestResolveImageWithPrivateRegistry(t *testing.T) {
 }
 
 func TestResolveImageErr(t *testing.T) {
-	redisImageInfo := daprImageInfo{
-		ghcrImageName:      redisGhcrImageName,
-		dockerHubImageName: redisDockerImageName,
-		imageRegistryURL:   "docker.io",
-		imageRegistryName:  "",
-	}
-	zipkinImageInfo := daprImageInfo{
-		ghcrImageName:      zipkinGhcrImageName,
-		dockerHubImageName: zipkinDockerImageName,
-		imageRegistryURL:   ghcrURI,
-		imageRegistryName:  "",
-	}
 	placementImageInfo := daprImageInfo{
-		ghcrImageName:      daprGhcrImageName,
-		dockerHubImageName: daprDockerImageName,
-		imageRegistryURL:   "",
-		imageRegistryName:  "value_other_than_dockerhub_or_ghcr",
+		ghcrImagePath:        daprGhcrImagePath,
+		dockerHubImagePath:   daprDockerHubImagePath,
+		customRegistryURL:    "",
+		containerRegistryURL: "value_other_than_dockerhub_or_ghcr",
 	}
 
 	tests := []struct {
@@ -218,8 +206,6 @@ func TestResolveImageErr(t *testing.T) {
 		expect    string
 		expectErr bool
 	}{
-		{"Test Redis image name", redisImageInfo, "", true},
-		{"Test Zipkin image name", zipkinImageInfo, "", true},
 		{"Test Dapr image name", placementImageInfo, "", true},
 	}
 
@@ -227,61 +213,6 @@ func TestResolveImageErr(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			got, err := resolveImageURI(test.args)
 			assert.Equal(t, test.expectErr, err != nil)
-			assert.Equal(t, test.expect, got)
-		})
-	}
-}
-
-func TestCheckFallbackImg(t *testing.T) {
-	daprImgWithPrivateRegAndDefAsDocker := daprImageInfo{
-		ghcrImageName:      daprGhcrImageName,
-		dockerHubImageName: daprDockerImageName,
-		imageRegistryURL:   "example.io/user",
-		imageRegistryName:  "dockerhub",
-	}
-	daprImgWithPrivateRegAndDefAsGHCR := daprImageInfo{
-		ghcrImageName:      daprGhcrImageName,
-		dockerHubImageName: daprDockerImageName,
-		imageRegistryURL:   "example.io/user",
-		imageRegistryName:  "ghcr",
-	}
-	daprImgWithPrivateRegAndNoDef := daprImageInfo{
-		ghcrImageName:      daprGhcrImageName,
-		dockerHubImageName: daprDockerImageName,
-		imageRegistryURL:   "example.io/user",
-		imageRegistryName:  "",
-	}
-	daprImgWithDefAsDocker := daprImageInfo{
-		ghcrImageName:      daprGhcrImageName,
-		dockerHubImageName: daprDockerImageName,
-		imageRegistryURL:   "",
-		imageRegistryName:  "dockerhub",
-	}
-	daprImgWithDefAsGHCR := daprImageInfo{
-		ghcrImageName:      daprGhcrImageName,
-		dockerHubImageName: daprDockerImageName,
-		imageRegistryURL:   "",
-		imageRegistryName:  "ghcr",
-	}
-
-	tests := []struct {
-		name      string
-		imageInfo daprImageInfo
-		fromDir   string
-		expect    bool
-	}{
-		{"checkFallbackImg() with private registry and def as Docker Hub", daprImgWithPrivateRegAndDefAsDocker, "", false},
-		{"checkFallbackImg() with private registry and def as GHCR", daprImgWithPrivateRegAndDefAsGHCR, "", false},
-		{"checkFallbackImg() with private registry with no Def", daprImgWithPrivateRegAndNoDef, "", false},
-		{"checkFallbackImg() with no private registry and def as Docker Hub", daprImgWithDefAsDocker, "", false},
-		{"checkFallbackImg() with no private registry and def as GHCR", daprImgWithDefAsGHCR, "", true},
-		{"checkFallbackImg() airgap mode with no private registry and def as GHCR", daprImgWithDefAsGHCR, "testDir", false},
-		{"checkFallbackImg() airgap mode with no private registry and def as Docker Hub", daprImgWithDefAsDocker, "testDir", false},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			got := useGHCR(test.imageInfo, test.fromDir)
 			assert.Equal(t, test.expect, got)
 		})
 	}

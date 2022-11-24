@@ -56,8 +56,8 @@ var InitCmd = &cobra.Command{
 # Initialize Dapr in self-hosted mode
 dapr init
 
-# Initialize Dapr in self-hosted mode with a provided docker image registry. Image looked up as <registry-url>/<image>.
-# Check docs or README for more information on the format of the image path that is required. 
+# Initialize Dapr in self-hosted mode with a provided container image registry. Image looked up as <registry-url>/<image>.
+# Check docs or README for more information on the format of the image path that is required.
 dapr init --image-registry <registry-url>
 
 # Initialize Dapr in Kubernetes
@@ -182,7 +182,7 @@ func init() {
 	InitCmd.Flags().StringVarP(&imageVariant, "image-variant", "", "", "The image variant to use for the Dapr runtime, for example: mariner")
 	InitCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	InitCmd.Flags().StringArrayVar(&values, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
-	InitCmd.Flags().String("image-registry", "", "Custom/private docker image repository URL")
+	InitCmd.Flags().String("image-registry", "", "Custom/private container image repository URL")
 	InitCmd.Flags().StringVarP(&containerRuntime, "container-runtime", "", "docker", "The container runtime to use. Supported values are docker (default) and podman")
 	RootCmd.AddCommand(InitCmd)
 }
