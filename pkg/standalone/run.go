@@ -65,7 +65,7 @@ type RunConfig struct {
 
 func (meta *DaprMeta) newAppID() string {
 	for {
-		appID := strings.ReplaceAll(sillyname.GenerateStupidName(), " ", "-")
+		appID := strings.ToLower(strings.ReplaceAll(sillyname.GenerateStupidName(), " ", "-"))
 		if !meta.idExists(appID) {
 			return appID
 		}
