@@ -100,6 +100,10 @@ LDFLAGS := "-X main.version=$(CLI_VERSION) -X main.apiVersion=$(RUNTIME_API_VERS
 .PHONY: build
 build: $(CLI_BINARY)
 
+.PHONY: build-linux-amd64
+build-linux-amd64:
+	GOOS=linux GOARCH=amd64 BINARY_EXT='' make build
+
 $(CLI_BINARY):
 	CGO_ENABLED=$(CGO) GOOS=$(GOOS) GOARCH=$(GOARCH) go build $(GCFLAGS) -ldflags $(LDFLAGS) \
 	-o $(BINS_OUT_DIR)/$(CLI_BINARY)$(BINARY_EXT);

@@ -212,6 +212,20 @@ $ dapr init --container-runtime podman
 
 > Note: The default container runtime is Docker.
 
+### Build Dapr from source
+
+Build for local platform:
+```bash
+make build
+```
+
+Build for specific platform:
+```bash
+# for example, for linux of amd64:
+GOOS=linux GOARCH=amd64 BINARY_EXT='' make build
+# OR: make build-linux-amd64
+```
+
 ### Uninstall Dapr in a standalone mode
 
 Uninstalling will remove daprd binary and the placement container (if installed with Docker or the placement binary if not).
