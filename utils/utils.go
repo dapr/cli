@@ -310,3 +310,11 @@ func GetVariantVersion(version, imageVariant string) string {
 	}
 	return fmt.Sprintf("%s-%s", version, imageVariant)
 }
+
+func GetVersionAndImageVariant(version string) (string, string) {
+	if strings.Contains(version, "-") {
+		split := strings.Split(version, "-")
+		return split[0], split[1]
+	}
+	return version, ""
+}
