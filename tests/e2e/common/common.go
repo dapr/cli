@@ -50,12 +50,13 @@ const (
 )
 
 type VersionDetails struct {
-	RuntimeVersion      string
-	DashboardVersion    string
-	ImageVariant        string
-	CustomResourceDefs  []string
-	ClusterRoles        []string
-	ClusterRoleBindings []string
+	RuntimeVersion       string
+	DashboardVersion     string
+	ImageVariant         string
+	CustomResourceDefs   []string
+	ClusterRoles         []string
+	ClusterRoleBindings  []string
+	UseDaprLatestVersion bool
 }
 
 type TestOptions struct {
@@ -666,8 +667,10 @@ func installTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 			"init", "-k",
 			"--wait",
 			"-n", DaprTestNamespace,
-			"--runtime-version", details.RuntimeVersion,
 			"--log-as-json",
+		}
+		if !details.UseDaprLatestVersion {
+			args = append(args, "--runtime-version", details.RuntimeVersion)
 		}
 		if opts.HAEnabled {
 			args = append(args, "--enable-ha")

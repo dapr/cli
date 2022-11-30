@@ -81,12 +81,13 @@ jobs:
       - name: Determine latest Dapr Runtime version including Pre-releases
         run: |
           export RUNTIME_VERSION=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/dapr/dapr/releases | grep tag_name | awk -F':' '{print $2}' | tr -d '", ' | sed '/-/! s/$/_/' | sort -V | sed 's/_$//' | tr -d 'v' | tail -1)
-          echo "DAPR_RUNTIME_LATEST_VERSION=$RUNTIME_VERSION" >> $GITHUB_ENV
           if [[ -z "$RUNTIME_VERSION" ]]; then
             echo "Could not fetch the latest Dapr Runtime version. Using default version $DAPR_RUNTIME_PINNED_VERSION"
+            echo "DAPR_RUNTIME_LATEST_VERSION=$DAPR_RUNTIME_PINNED_VERSION" >> $GITHUB_ENV
           else
-            base_ref=${{ github.base_ref }}
             echo "Found $RUNTIME_VERSION"
+            echo "DAPR_RUNTIME_LATEST_VERSION=$RUNTIME_VERSION" >> $GITHUB_ENV
+            base_ref=${{ github.base_ref }}
             echo "Branch $base_ref"
             if [[ $base_ref = 'master' ]]; then
               echo "DAPR_RUNTIME_PINNED_VERSION=$RUNTIME_VERSION" >> $GITHUB_ENV
@@ -96,12 +97,13 @@ jobs:
       - name: Determine latest Dapr Dashboard version including Pre-releases
         run: |
           export DASHBOARD_VERSION=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/dapr/dashboard/releases | grep tag_name | awk -F':' '{print $2}' | tr -d '", ' | sed '/-/! s/$/_/' | sort -V | sed 's/_$//' | tr -d 'v' | tail -1)
-          echo "DAPR_DASHBOARD_LATEST_VERSION=$DASHBOARD_VERSION" >> $GITHUB_ENV
           if [[ -z "$DASHBOARD_VERSION" ]]; then
             echo "Could not fetch the latest Dapr Dashboard version. Using default version $DAPR_DASHBOARD_PINNED_VERSION"
+            echo "DAPR_DASHBOARD_LATEST_VERSION=$DAPR_DASHBOARD_PINNED_VERSION" >> $GITHUB_ENV
           else
-            base_ref=${{ github.base_ref }}
             echo "Found $DASHBOARD_VERSION"
+            echo "DAPR_DASHBOARD_LATEST_VERSION=$DASHBOARD_VERSION" >> $GITHUB_ENV
+            base_ref=${{ github.base_ref }}
             echo "Branch $base_ref"
             if [[ $base_ref = 'master' ]]; then
               echo "DAPR_DASHBOARD_PINNED_VERSION=$DASHBOARD_VERSION" >> $GITHUB_ENV
