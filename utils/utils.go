@@ -311,10 +311,12 @@ func GetVariantVersion(version, imageVariant string) string {
 	return fmt.Sprintf("%s-%s", version, imageVariant)
 }
 
-func GetVersionAndImageVariant(version string) (string, string) {
-	if strings.Contains(version, "-") {
-		split := strings.Split(version, "-")
+// Returns image version and variant.
+// Expected imageTag format: <version>-<variant>, i.e. 1.0.0-mariner
+func GetVersionAndImageVariant(imageTag string) (string, string) {
+	if strings.Contains(imageTag, "-") {
+		split := strings.Split(imageTag, "-")
 		return split[0], split[1]
 	}
-	return version, ""
+	return imageTag, ""
 }

@@ -381,7 +381,9 @@ func TestRenewCertWithIncorrectFlags(t *testing.T) {
 	}
 }
 
-func TestKubernetesInstallwithMarinerImages(t *testing.T) {
+// install dapr control plane with mariner docker images.
+// Renew the certificate of this control plane.
+func TestK8sInstallwithMarinerImagesAndRenewCertificate(t *testing.T) {
 	// ensure clean env for test
 	ensureCleanEnv(t)
 
@@ -401,6 +403,15 @@ func TestKubernetesInstallwithMarinerImages(t *testing.T) {
 	}
 
 	tests = append(tests, common.GetTestsOnInstall(currentVersionDetails, installOpts)...)
+
+	// tests for certifcate renewal with newly generated certificates.
+	tests = append(tests, []common.TestCase{
+		{"Renew certificate which expires in less than 30 days", common.GenerateNewCertAndRenew(currentVersionDetails, installOpts)},
+	}...)
+	tests = append(tests, common.GetTestsPostCertificateRenewal(currentVersionDetails, installOpts)...)
+	tests = append(tests, []common.TestCase{
+		{"Cert Expiry warning message check " + currentVersionDetails.RuntimeVersion, common.CheckMTLSStatus(currentVersionDetails, installOpts, true)},
+	}...)
 
 	// teardown everything
 	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{

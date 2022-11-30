@@ -13,7 +13,11 @@ limitations under the License.
 
 package utils
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
 
 func TestContainerRuntimeUtils(t *testing.T) {
 	testcases := []struct {
@@ -114,6 +118,36 @@ func TestContains(t *testing.T) {
 			if actualValid != tc.valid {
 				t.Errorf("expected %v, got %v", tc.valid, actualValid)
 			}
+		})
+	}
+}
+
+func TestGetVersionAndImageVariant(t *testing.T) {
+	testcases := []struct {
+		name                 string
+		input                string
+		expectedVersion      string
+		expectedImageVariant string
+	}{
+		{
+			name:                 "image tag contains version and variant",
+			input:                "1.9.0-mariner",
+			expectedVersion:      "1.9.0",
+			expectedImageVariant: "mariner",
+		},
+		{
+			name:                 "image tag contains only version",
+			input:                "1.9.0",
+			expectedVersion:      "1.9.0",
+			expectedImageVariant: "",
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			version, imageVariant := GetVersionAndImageVariant(tc.input)
+			assert.Equal(t, tc.expectedVersion, version)
+			assert.Equal(t, tc.expectedImageVariant, imageVariant)
 		})
 	}
 }
