@@ -312,7 +312,7 @@ func GetVariantVersion(version, imageVariant string) string {
 }
 
 // Returns image version and variant.
-// Expected imageTag format: <version>-<variant>, i.e. 1.0.0-mariner
+// Expected imageTag format: <version>-<variant>, i.e. 1.0.0-mariner.
 func GetVersionAndImageVariant(imageTag string) (string, string) {
 	if strings.Contains(imageTag, "-") {
 		split := strings.Split(imageTag, "-")
