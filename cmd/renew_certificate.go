@@ -39,7 +39,7 @@ func RenewCertificateCmd() *cobra.Command {
 	command := &cobra.Command{
 		Use:     "renew-certificate",
 		Aliases: []string{"renew-cert", "rc"},
-		Short:   "Rotates Dapr root certificate of your kubernetes cluster",
+		Short:   "Rotates the Dapr root certificate on your Kubernetes cluster",
 
 		Example: `
 # Generates new root and issuer certificates for kubernetes cluster
