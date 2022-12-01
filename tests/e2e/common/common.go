@@ -72,7 +72,8 @@ type TestCase struct {
 	Callable func(*testing.T)
 }
 
-// GetVersionsFromEnv will return values from required environment variables,
+// GetVersionsFromEnv will return values from required environment variables.
+// parameter `latest` is used to determine if the latest versions of dapr & dashboard should be used.
 // if environment variables are not set it fails the test.
 func GetVersionsFromEnv(t *testing.T, latest bool) (string, string) {
 	var daprRuntimeVersion, daprDashboardVersion string
