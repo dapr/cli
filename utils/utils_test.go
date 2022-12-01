@@ -148,7 +148,7 @@ func TestGetVersionAndImageVariant(t *testing.T) {
 			expectedImageVariant: "mariner",
 		},
 		{
-			name:                 "image tag contains only version",
+			name:                 "image tag contains only rc version",
 			input:                "1.9.0-rc.1",
 			expectedVersion:      "1.9.0-rc.1",
 			expectedImageVariant: "",
