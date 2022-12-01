@@ -141,6 +141,18 @@ func TestGetVersionAndImageVariant(t *testing.T) {
 			expectedVersion:      "1.9.0",
 			expectedImageVariant: "",
 		},
+		{
+			name:                 "image tag contains only version",
+			input:                "1.9.0-rc.1-mariner",
+			expectedVersion:      "1.9.0-rc.1",
+			expectedImageVariant: "mariner",
+		},
+		{
+			name:                 "image tag contains only version",
+			input:                "1.9.0-rc.1",
+			expectedVersion:      "1.9.0-rc.1",
+			expectedImageVariant: "",
+		},
 	}
 
 	for _, tc := range testcases {
