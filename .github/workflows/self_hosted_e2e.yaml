@@ -40,7 +40,7 @@ jobs:
       GOARCH: ${{ matrix.target_arch }}
       GOPROXY: https://proxy.golang.org
       ARCHIVE_OUTDIR: dist/archives
-      DAPR_RUNTIME_PINNED_VERSION: "1.9.0"
+      DAPR_RUNTIME_PINNED_VERSION: "1.9.4"
       DAPR_DASHBOARD_PINNED_VERSION: 0.11.0
       DAPR_RUNTIME_LATEST_VERSION:
       DAPR_DASHBOARD_LATEST_VERSION:
