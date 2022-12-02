@@ -97,7 +97,9 @@ func renewCertificate(rootCert, issuerCert, issuerKey []byte, timeout uint, imag
 	daprVersion = GetDaprVersion(status)
 	print.InfoStatusEvent(os.Stdout, "Dapr control plane version %s detected in namespace %s", daprVersion, status[0].Namespace)
 
-	// Get the current version if image variant is provided.
+	// Get the control plane version from daprversion(1.x.x-mariner), if image variant is provided.
+	// Here, imageVariant is used only to extract the actual control plane version,
+	// and do some validation on top of that.
 	if imageVariant != "" {
 		daprVersion, daprImageVariant = utils.GetVersionAndImageVariant(daprVersion)
 		if daprImageVariant != imageVariant {
@@ -115,11 +117,14 @@ func renewCertificate(rootCert, issuerCert, issuerKey []byte, timeout uint, imag
 		return err
 	}
 	upgradeClient := helm.NewUpgrade(helmConf)
+
+	// Reuse the existing helm configuration values i.e. tags, registry, etc.
 	upgradeClient.ReuseValues = true
 	upgradeClient.Wait = true
 	upgradeClient.Timeout = time.Duration(timeout) * time.Second
 	upgradeClient.Namespace = status[0].Namespace
 
+	// Override the helm configuration values with the new certificates.
 	vals, err := createHelmParamsForNewCertificates(string(rootCert), string(issuerCert), string(issuerKey))
 	if err != nil {
 		return err
