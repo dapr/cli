@@ -101,7 +101,7 @@ func renewCertificate(rootCert, issuerCert, issuerKey []byte, timeout uint, imag
 	if imageVariant != "" {
 		daprVersion, daprImageVariant = utils.GetVersionAndImageVariant(daprVersion)
 		if daprImageVariant != imageVariant {
-			return fmt.Errorf("error in parsing dapr version. found image variant \"%s\" is not same as provided value \"%s\"", daprImageVariant, imageVariant)
+			return fmt.Errorf("error in parsing dapr version. found image variant %q is not same as provided value %q", daprImageVariant, imageVariant)
 		}
 	}
 
