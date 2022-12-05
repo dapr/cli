@@ -42,6 +42,7 @@ type RunConfig struct {
 	ConfigFile         string `arg:"config"`
 	Protocol           string `arg:"app-protocol"`
 	Arguments          []string
+	APIListenAddresses string `arg:"dapr-listen-addresses"`
 	EnableProfiling    bool   `arg:"enable-profiling"`
 	ProfilePort        int    `arg:"profile-port"`
 	LogLevel           string `arg:"log-level"`
@@ -65,7 +66,7 @@ type RunConfig struct {
 
 func (meta *DaprMeta) newAppID() string {
 	for {
-		appID := strings.ReplaceAll(sillyname.GenerateStupidName(), " ", "-")
+		appID := strings.ToLower(strings.ReplaceAll(sillyname.GenerateStupidName(), " ", "-"))
 		if !meta.idExists(appID) {
 			return appID
 		}

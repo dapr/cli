@@ -56,6 +56,7 @@ var (
 	appHealthTimeout   int
 	appHealthThreshold int
 	enableAPILogging   bool
+	apiListenAddresses string
 )
 
 const (
@@ -133,6 +134,7 @@ dapr run --app-id myapp --app-port 3000 --app-protocol grpc -- go run main.go
 			AppHealthThreshold: appHealthThreshold,
 			EnableAPILogging:   enableAPILogging,
 			InternalGRPCPort:   internalGRPCPort,
+			APIListenAddresses: apiListenAddresses,
 		})
 		if err != nil {
 			print.FailureStatusEvent(os.Stderr, err.Error())
@@ -390,6 +392,6 @@ func init() {
 	RunCmd.Flags().IntVar(&appHealthTimeout, "app-health-probe-timeout", 0, "Timeout for app health probes in milliseconds")
 	RunCmd.Flags().IntVar(&appHealthThreshold, "app-health-threshold", 0, "Number of consecutive failures for the app to be considered unhealthy")
 	RunCmd.Flags().BoolVar(&enableAPILogging, "enable-api-logging", false, "Log API calls at INFO verbosity. Valid values are: true or false")
-
+	RunCmd.Flags().StringVar(&apiListenAddresses, "dapr-listen-addresses", "", "Comma separated list of IP addresses that sidecar will listen to")
 	RootCmd.AddCommand(RunCmd)
 }
