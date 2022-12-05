@@ -15,6 +15,7 @@ package kubernetes
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/dapr/cli/utils"
@@ -52,7 +53,7 @@ func GetDaprHelmChartName(helmConf *helm.Configuration) (string, error) {
 		return "", err
 	}
 	if len(releases) == 0 {
-		return "", errors.New("dapr is not installed in your helm")
+		return "", fmt.Errorf("could not find release name %q in your helm releases", daprReleaseName)
 	}
 	var chart string
 	for _, r := range releases {
