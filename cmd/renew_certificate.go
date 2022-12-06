@@ -38,7 +38,7 @@ var (
 func RenewCertificateCmd() *cobra.Command {
 	command := &cobra.Command{
 		Use:     "renew-certificate",
-		Aliases: []string{"renew-cert", "rc"},
+		Aliases: []string{"renew-cert", "rnc"},
 		Short:   "Rotates the Dapr root certificate on your Kubernetes cluster",
 
 		Example: `
@@ -50,6 +50,13 @@ dapr mtls renew-certificate -k --private-key myprivatekey.key --valid-until <no 
 
 # Rotates certificate of your kubernetes cluster with provided ca.cert, issuer.crt and issuer.key file path
 dapr mtls renew-certificate -k --ca-root-certificate <root.pem> --issuer-private-key <issuer.key> --issuer-public-certificate <issuer.pem> --restart
+
+# Generates new root and issuer certificates for kubernetes cluster with provided image variant
+dapr mtls renew-certificate -k --valid-until <no of days> --image-variant mariner --restart
+
+# Use alias to renew certificate command
+dapr mtls rnc -k --valid-until <no of days> --restart
+dapr mtls renew-cert -k --valid-until <no of days> --restart
 
 # See more at: https://docs.dapr.io/getting-started/
 `,
