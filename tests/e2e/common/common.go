@@ -437,7 +437,17 @@ func GenerateNewCertAndRenew(details VersionDetails, opts TestOptions) func(t *t
 		err := exportCurrentCertificate(daprPath)
 		require.NoError(t, err, "expected no error on certificate exporting")
 
-		output, err := spawn.Command(daprPath, "mtls", "renew-certificate", "-k", "--valid-until", "20", "--restart")
+		args := []string{
+			"mtls",
+			"renew-certificate",
+			"-k",
+			"--valid-until", "20",
+			"--restart",
+		}
+		if details.ImageVariant != "" {
+			args = append(args, "--image-variant", details.ImageVariant)
+		}
+		output, err := spawn.Command(daprPath, args...)
 		t.Log(output)
 		require.NoError(t, err, "expected no error on certificate renewal")
 
