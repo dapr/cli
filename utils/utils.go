@@ -41,6 +41,8 @@ const (
 	DOCKER ContainerRuntime = "docker"
 	PODMAN ContainerRuntime = "podman"
 
+	marinerImageVariantName = "mariner"
+
 	socketFormat = "%s/dapr-%s-%s.socket"
 )
 
@@ -71,8 +73,6 @@ func Contains[T comparable](vs []T, x T) bool {
 	}
 	return false
 }
-
-const marinerImageVariantName = "mariner"
 
 // PrintTable to print in the table format.
 func PrintTable(csvContent string) {
@@ -309,4 +309,15 @@ func GetVariantVersion(version, imageVariant string) string {
 		return version
 	}
 	return fmt.Sprintf("%s-%s", version, imageVariant)
+}
+
+// Returns image version and variant.
+// Expected imageTag format: <version>-<variant>, i.e. 1.0.0-mariner or 1.0.0-rc.1-mariner.
+func GetVersionAndImageVariant(imageTag string) (string, string) {
+	imageVersionOffset := strings.LastIndex(imageTag, "-")
+	imageVariant := imageTag[imageVersionOffset+1:]
+	if imageVariant == marinerImageVariantName {
+		return imageTag[:imageVersionOffset], imageVariant
+	}
+	return imageTag, ""
 }

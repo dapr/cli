@@ -537,6 +537,10 @@ Use user provided ca.crt, issuer.crt and issuer.key
 ```bash
 dapr mtls renew-certificate -k --ca-root-certificate <ca.crt> --issuer-private-key <issuer.key> --issuer-public-certificate <issuer.crt> --restart
 ```
+#### To view the complete list of flags and their combination, run below command:
+```bash
+dapr mtls renew-certificate -h
+```
 
 ### List Components
 
