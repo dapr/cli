@@ -130,7 +130,7 @@ func TestStandaloneRun(t *testing.T) {
 		output, err := cmdRun("", args...)
 		t.Log(output)
 		require.NoError(t, err, "run failed")
-		assert.Contains(t, output, "failed to load components: open ../testdata/nonexistentdir: no such file or directory")
+		assert.Contains(t, output, "failed to load components: open ../testdata/nonexistentdir:")
 		assert.Contains(t, output, "Exited App successfully")
 		assert.Contains(t, output, "Exited Dapr successfully")
 
