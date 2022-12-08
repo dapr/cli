@@ -441,6 +441,9 @@ func CRDTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 func GenerateNewCertAndRenew(details VersionDetails, opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
 		daprPath := GetDaprPath()
+		err := exportCurrentCertificate(daprPath)
+		require.NoError(t, err, "expected no error on certificate exporting")
+
 		args := []string{
 			"mtls",
 			"renew-certificate",
@@ -502,8 +505,6 @@ func UseProvidedPrivateKeyAndRenewCerts(details VersionDetails, opts TestOptions
 func UseProvidedNewCertAndRenew(details VersionDetails, opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
 		daprPath := GetDaprPath()
-		err := exportCurrentCertificate(daprPath)
-		require.NoError(t, err, "expected no error on certificate exporting")
 		args := []string{
 			"mtls", "renew-certificate", "-k",
 			"--ca-root-certificate", "./certs/ca.crt",
