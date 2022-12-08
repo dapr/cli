@@ -99,7 +99,7 @@ Output should look like so:
 
 This step creates the following defaults:
 
-1. components folder which is later used during `dapr run` unless the `--components-path` option is provided. For Linux/MacOS, the default components folder path is `$HOME/.dapr/components` and for Windows it is `%USERPROFILE%\.dapr\components`.
+1. components folder which is later used during `dapr run` unless the `--resources-path` (`--components-path` is deprecated and will be removed in future releases) option is provided. For Linux/MacOS, the default components folder path is `$HOME/.dapr/components` and for Windows it is `%USERPROFILE%\.dapr\components`.
 2. component files in the components folder called `pubsub.yaml` and `statestore.yaml`.
 3. default config file `$HOME/.dapr/config.yaml` for Linux/MacOS or for Windows at `%USERPROFILE%\.dapr\config.yaml` to enable tracing on `dapr init` call. Can be overridden with the `--config` flag on `dapr run`.
 
@@ -121,7 +121,7 @@ Output should look like so:
 ✅  Success! Dapr is up and running. To get started, go here: https://aka.ms/dapr-getting-started
 ```
 
->Note: When initializing Dapr with the `--slim` flag only the Dapr runtime binary and the placement service binary are installed. An empty default components folder is created with no default configuration files. During `dapr run` user should use `--components-path` to point to a components directory with custom configurations files or alternatively place these files in the default directory. For Linux/MacOS, the default components directory path is `$HOME/.dapr/components` and for Windows it is `%USERPROFILE%\.dapr\components`.
+>Note: When initializing Dapr with the `--slim` flag only the Dapr runtime binary and the placement service binary are installed. An empty default components folder is created with no default configuration files. During `dapr run` user should use `--resources-path` (`--components-path` is deprecated and will be removed in future releases) to point to a components directory with custom configurations files or alternatively place these files in the default directory. For Linux/MacOS, the default components directory path is `$HOME/.dapr/components` and for Windows it is `%USERPROFILE%\.dapr\components`.
 
 #### Install a specific runtime version
 
@@ -444,7 +444,7 @@ Launch Dapr and your app:
 dapr run --app-id nodeapp --app-port 3000 node app.js
 ```
 
-Note: To choose a non-default components folder, use the --components-path option.
+Note: To choose a non-default components folder, use the --resources-path(--components-path is deprecated) option.
 
 Invoke your app:
 
@@ -561,7 +561,8 @@ dapr components --kubernetes --namespace target-namespace
 To use a custom path for component definitions
 
 ```bash
-dapr run --components-path [custom path]
+dapr run --resources-path [custom path]
+> Note: --components-path flag is deprecated. It will continue to work until it is removed completely.
 ```
 
 
