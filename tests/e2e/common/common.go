@@ -189,6 +189,27 @@ func GetTestsOnUninstall(details VersionDetails, opts TestOptions) []TestCase {
 	}
 }
 
+func GetTestForCertRenewal(currentVersionDetails VersionDetails, installOpts TestOptions) []TestCase {
+	tests := []TestCase{}
+	tests = append(tests, []TestCase{
+		{"Renew certificate which expires in less than 30 days", GenerateNewCertAndRenew(currentVersionDetails, installOpts)},
+	}...)
+	tests = append(tests, GetTestsPostCertificateRenewal(currentVersionDetails, installOpts)...)
+	tests = append(tests, []TestCase{
+		{"Cert Expiry warning message check " + currentVersionDetails.RuntimeVersion, CheckMTLSStatus(currentVersionDetails, installOpts, true)},
+	}...)
+
+	// tests for certificate renewal with provided certificates.
+	tests = append(tests, []TestCase{
+		{"Renew certificate which expires in after 30 days", UseProvidedNewCertAndRenew(currentVersionDetails, installOpts)},
+	}...)
+	tests = append(tests, GetTestsPostCertificateRenewal(currentVersionDetails, installOpts)...)
+	tests = append(tests, []TestCase{
+		{"Cert Expiry no warning message check " + currentVersionDetails.RuntimeVersion, CheckMTLSStatus(currentVersionDetails, installOpts, false)},
+	}...)
+	return tests
+}
+
 func GetTestsPostCertificateRenewal(details VersionDetails, opts TestOptions) []TestCase {
 	return []TestCase{
 		{"crds exist " + details.RuntimeVersion, CRDTest(details, opts)},

@@ -191,23 +191,8 @@ func TestRenewCertificateMTLSEnabled(t *testing.T) {
 
 	tests = append(tests, common.GetTestsOnInstall(currentVersionDetails, installOpts)...)
 
-	// tests for certifcate renewal with newly generated certificates.
-	tests = append(tests, []common.TestCase{
-		{"Renew certificate which expires in less than 30 days", common.GenerateNewCertAndRenew(currentVersionDetails, installOpts)},
-	}...)
-	tests = append(tests, common.GetTestsPostCertificateRenewal(currentVersionDetails, installOpts)...)
-	tests = append(tests, []common.TestCase{
-		{"Cert Expiry warning message check " + currentVersionDetails.RuntimeVersion, common.CheckMTLSStatus(currentVersionDetails, installOpts, true)},
-	}...)
-
-	// tests for certificate renewal with provided certificates.
-	tests = append(tests, []common.TestCase{
-		{"Renew certificate which expires in after 30 days", common.UseProvidedNewCertAndRenew(currentVersionDetails, installOpts)},
-	}...)
-	tests = append(tests, common.GetTestsPostCertificateRenewal(currentVersionDetails, installOpts)...)
-	tests = append(tests, []common.TestCase{
-		{"Cert Expiry no warning message check " + currentVersionDetails.RuntimeVersion, common.CheckMTLSStatus(currentVersionDetails, installOpts, false)},
-	}...)
+	// tests for certifcate renewal.
+	tests = append(tests, common.GetTestForCertRenewal(currentVersionDetails, installOpts)...)
 
 	// teardown everything
 	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
@@ -241,23 +226,8 @@ func TestRenewCertificateMTLSDisabled(t *testing.T) {
 
 	tests = append(tests, common.GetTestsOnInstall(currentVersionDetails, installOpts)...)
 
-	// tests for certifcate renewal with newly generated certificates.
-	tests = append(tests, []common.TestCase{
-		{"Renew certificate which expires in less than 30 days", common.GenerateNewCertAndRenew(currentVersionDetails, installOpts)},
-	}...)
-	tests = append(tests, common.GetTestsPostCertificateRenewal(currentVersionDetails, installOpts)...)
-	tests = append(tests, []common.TestCase{
-		{"Cert Expiry warning message check " + currentVersionDetails.RuntimeVersion, common.CheckMTLSStatus(currentVersionDetails, installOpts, true)},
-	}...)
-
-	// tests for certificate renewal with provided certificates.
-	tests = append(tests, []common.TestCase{
-		{"Renew certificate which expires in after 30 days", common.UseProvidedNewCertAndRenew(currentVersionDetails, installOpts)},
-	}...)
-	tests = append(tests, common.GetTestsPostCertificateRenewal(currentVersionDetails, installOpts)...)
-	tests = append(tests, []common.TestCase{
-		{"Cert Expiry no warning message check " + currentVersionDetails.RuntimeVersion, common.CheckMTLSStatus(currentVersionDetails, installOpts, false)},
-	}...)
+	// tests for certifcate renewal.
+	tests = append(tests, common.GetTestForCertRenewal(currentVersionDetails, installOpts)...)
 
 	// teardown everything
 	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
@@ -405,14 +375,8 @@ func TestK8sInstallwithMarinerImagesAndRenewCertificate(t *testing.T) {
 
 	tests = append(tests, common.GetTestsOnInstall(currentVersionDetails, installOpts)...)
 
-	// tests for certifcate renewal with newly generated certificates.
-	tests = append(tests, []common.TestCase{
-		{"Renew certificate which expires in less than 30 days", common.GenerateNewCertAndRenew(currentVersionDetails, installOpts)},
-	}...)
-	tests = append(tests, common.GetTestsPostCertificateRenewal(currentVersionDetails, installOpts)...)
-	tests = append(tests, []common.TestCase{
-		{"Cert Expiry warning message check " + currentVersionDetails.RuntimeVersion, common.CheckMTLSStatus(currentVersionDetails, installOpts, true)},
-	}...)
+	// tests for certifcate renewal.
+	tests = append(tests, common.GetTestForCertRenewal(currentVersionDetails, installOpts)...)
 
 	// teardown everything
 	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
