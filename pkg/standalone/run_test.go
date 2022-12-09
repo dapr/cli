@@ -56,7 +56,7 @@ func assertArgumentNotEqual(t *testing.T, key string, expectedValue string, args
 }
 
 func setupRun(t *testing.T) {
-	componentsDir := DefaultComponentsDirPath()
+	componentsDir := DefaultResourcesDirPath()
 	configFile := DefaultConfigFilePath()
 	err := os.MkdirAll(componentsDir, 0o700)
 	assert.Equal(t, nil, err, "Unable to setup components dir before running test")
@@ -66,7 +66,7 @@ func setupRun(t *testing.T) {
 }
 
 func tearDownRun(t *testing.T) {
-	err := os.RemoveAll(DefaultComponentsDirPath())
+	err := os.RemoveAll(DefaultResourcesDirPath())
 	assert.Equal(t, nil, err, "Unable to delete default components dir after running test")
 	err = os.Remove(DefaultConfigFilePath())
 	assert.Equal(t, nil, err, "Unable to delete default config file after running test")
@@ -87,7 +87,7 @@ func assertCommonArgs(t *testing.T, basicConfig *RunConfig, output *RunOutput) {
 	assertArgumentEqual(t, "app-max-concurrency", "-1", output.DaprCMD.Args)
 	assertArgumentEqual(t, "app-protocol", "http", output.DaprCMD.Args)
 	assertArgumentEqual(t, "app-port", "3000", output.DaprCMD.Args)
-	assertArgumentEqual(t, "components-path", DefaultComponentsDirPath(), output.DaprCMD.Args)
+	assertArgumentEqual(t, "components-path", DefaultResourcesDirPrecedence(), output.DaprCMD.Args)
 	assertArgumentEqual(t, "app-ssl", "", output.DaprCMD.Args)
 	assertArgumentEqual(t, "metrics-port", "9001", output.DaprCMD.Args)
 	assertArgumentEqual(t, "dapr-http-max-request-size", "-1", output.DaprCMD.Args)
@@ -148,7 +148,7 @@ func TestRun(t *testing.T) {
 		EnableProfiling:    false,
 		ProfilePort:        9090,
 		Protocol:           "http",
-		ComponentsPath:     DefaultComponentsDirPath(),
+		ComponentsPath:     DefaultResourcesDirPrecedence(),
 		AppSSL:             true,
 		MetricsPort:        9001,
 		MaxRequestBodySize: -1,
