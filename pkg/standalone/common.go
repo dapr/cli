@@ -23,6 +23,7 @@ const (
 	defaultDaprDirName       = ".dapr"
 	defaultDaprBinDirName    = "bin"
 	defaultComponentsDirName = "components"
+	defaultResourcesDirName  = "resources"
 	defaultConfigFileName    = "config.yaml"
 )
 
@@ -45,6 +46,18 @@ func binaryFilePath(binaryDir string, binaryFilePrefix string) string {
 
 func DefaultComponentsDirPath() string {
 	return path_filepath.Join(defaultDaprDirPath(), defaultComponentsDirName)
+}
+
+func DefaultResourcesDirPath() string {
+	return path_filepath.Join(defaultDaprDirPath(), defaultResourcesDirName)
+}
+
+func DefaultResourcesDirPrecedence() string {
+	defaultResourcesDirPath := DefaultResourcesDirPath()
+	if _, err := os.Stat(defaultResourcesDirPath); os.IsNotExist(err) {
+		return DefaultComponentsDirPath()
+	}
+	return defaultResourcesDirPath
 }
 
 func DefaultConfigFilePath() string {
