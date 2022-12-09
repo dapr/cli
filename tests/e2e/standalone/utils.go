@@ -142,7 +142,7 @@ func ensureDaprInstallation(t *testing.T) {
 	// Slim mode does not have any components by default.
 	// Install the components required by the tests.
 	if isSlimMode() {
-		err = createSlimComponents(filepath.Join(daprPath, "components"))
+		err = createSlimComponents(filepath.Join(daprPath, "resources"))
 		require.NoError(t, err, "failed to create components")
 	}
 }
