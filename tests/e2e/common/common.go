@@ -503,6 +503,9 @@ func UseProvidedPrivateKeyAndRenewCerts(details VersionDetails, opts TestOptions
 			"--private-key", "../testdata/example-root.key",
 			"--valid-until", "20",
 		}
+		if details.ImageVariant != "" {
+			args = append(args, "--image-variant", details.ImageVariant)
+		}
 		output, err := spawn.Command(daprPath, args...)
 		t.Log(output)
 		require.NoError(t, err, "expected no error on certificate renewal")
@@ -532,6 +535,9 @@ func UseProvidedNewCertAndRenew(details VersionDetails, opts TestOptions) func(t
 			"--issuer-private-key", "./certs/issuer.key",
 			"--issuer-public-certificate", "./certs/issuer.crt",
 			"--restart",
+		}
+		if details.ImageVariant != "" {
+			args = append(args, "--image-variant", details.ImageVariant)
 		}
 		output, err := spawn.Command(daprPath, args...)
 		t.Log(output)
