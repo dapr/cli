@@ -244,7 +244,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 	defer stopSpinning(print.Failure)
 
 	// Make default components directory.
-	err = makeDefaultComponentsDir()
+	err = makeDefaultResourcesDir()
 	if err != nil {
 		return err
 	}
@@ -297,7 +297,8 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		}
 		for _, container := range dockerContainerNames {
 			containerName := utils.CreateContainerName(container, dockerNetwork)
-			ok, err := confirmContainerIsRunningOrExists(containerName, true, runtimeCmd)
+			var ok bool
+			ok, err = confirmContainerIsRunningOrExists(containerName, true, runtimeCmd)
 			if err != nil {
 				return err
 			}
@@ -306,6 +307,11 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 			}
 		}
 		print.InfoStatusEvent(os.Stdout, "Use `%s ps` to check running containers.", runtimeCmd)
+	}
+	// TODO: remove below method when components-path flag is removed.
+	err = moveFilesFromComponentsToResourcesDir(DefaultComponentsDirPath(), DefaultResourcesDirPath())
+	if err != nil {
+		return err
 	}
 	return nil
 }
@@ -659,14 +665,14 @@ func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error
 	var err error
 
 	// Make default components directory.
-	componentsDir := DefaultComponentsDirPath()
+	resourcesDir := DefaultResourcesDirPath()
 
-	err = createRedisPubSub(redisHost, componentsDir)
+	err = createRedisPubSub(redisHost, resourcesDir)
 	if err != nil {
 		errorChan <- fmt.Errorf("error creating redis pubsub component file: %w", err)
 		return
 	}
-	err = createRedisStateStore(redisHost, componentsDir)
+	err = createRedisStateStore(redisHost, resourcesDir)
 	if err != nil {
 		errorChan <- fmt.Errorf("error creating redis statestore component file: %w", err)
 		return
@@ -693,19 +699,19 @@ func createSlimConfiguration(wg *sync.WaitGroup, errorChan chan<- error, info in
 	}
 }
 
-func makeDefaultComponentsDir() error {
+func makeDefaultResourcesDir() error {
 	// Make default components directory.
-	componentsDir := DefaultComponentsDirPath()
+	resourcesDir := DefaultResourcesDirPath()
 	//nolint
-	_, err := os.Stat(componentsDir)
+	_, err := os.Stat(resourcesDir)
 	if os.IsNotExist(err) {
-		errDir := os.MkdirAll(componentsDir, 0o755)
+		errDir := os.MkdirAll(resourcesDir, 0o755)
 		if errDir != nil {
 			return fmt.Errorf("error creating default components folder: %w", errDir)
 		}
 	}
 
-	os.Chmod(componentsDir, 0o777)
+	os.Chmod(resourcesDir, 0o777)
 	return nil
 }
 

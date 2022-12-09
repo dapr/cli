@@ -17,6 +17,8 @@ import (
 	"os"
 	path_filepath "path/filepath"
 	"runtime"
+
+	"github.com/dapr/cli/pkg/print"
 )
 
 const (
@@ -52,6 +54,8 @@ func DefaultResourcesDirPath() string {
 	return path_filepath.Join(defaultDaprDirPath(), defaultResourcesDirName)
 }
 
+// when either `components-path` or `resources-path` flags are not present then preference is given to resources dir and then components dir.
+// TODO: Remove this function and use `DefaultResourcesDirPath` when `--components-path` flag is removed.
 func DefaultResourcesDirPrecedence() string {
 	defaultResourcesDirPath := DefaultResourcesDirPath()
 	if _, err := os.Stat(defaultResourcesDirPath); os.IsNotExist(err) {
@@ -62,4 +66,30 @@ func DefaultResourcesDirPrecedence() string {
 
 func DefaultConfigFilePath() string {
 	return path_filepath.Join(defaultDaprDirPath(), defaultConfigFileName)
+}
+
+// It used to copy existing resources from components dir to resources dir.
+// TODO: Remove this function when `--components-path` flag is removed.
+func moveFilesFromComponentsToResourcesDir(componentsDirPath, resourcesDirPath string) error {
+	if _, err := os.Stat(componentsDirPath); err == nil {
+		files, err := os.ReadDir(componentsDirPath)
+		if err != nil {
+			return err
+		}
+		if len(files) > 0 {
+			print.InfoStatusEvent(os.Stdout, "Moving files from %q to %q", componentsDirPath, resourcesDirPath)
+			for _, file := range files {
+				content, err := os.ReadFile(componentsDirPath + "/" + file.Name())
+				if err != nil {
+					return err
+				}
+				// #nosec G306
+				err = os.WriteFile(resourcesDirPath+"/"+file.Name(), content, 0o644)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
 }
