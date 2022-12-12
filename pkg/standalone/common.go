@@ -72,7 +72,17 @@ func DefaultConfigFilePath() string {
 // TODO: Remove this function when `--components-path` flag is removed.
 func moveFilesFromComponentsToResourcesDir(componentsDirPath, resourcesDirPath string) error {
 	if _, err := os.Stat(componentsDirPath); err == nil {
-		files, err := os.ReadDir(componentsDirPath)
+		files, err := os.ReadDir(resourcesDirPath)
+		if err != nil {
+			return err
+		}
+		for _, file := range files {
+			err = os.Remove(resourcesDirPath + "/" + file.Name())
+			if err != nil {
+				return err
+			}
+		}
+		files, err = os.ReadDir(componentsDirPath)
 		if err != nil {
 			return err
 		}
