@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// TODO: Remove the test when `--components-path` flag is removed.
 package standalone_test
 
 import (

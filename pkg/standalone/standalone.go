@@ -295,9 +295,9 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		if isAirGapInit {
 			dockerContainerNames = []string{DaprPlacementContainerName}
 		}
+		var ok bool
 		for _, container := range dockerContainerNames {
 			containerName := utils.CreateContainerName(container, dockerNetwork)
-			var ok bool
 			ok, err = confirmContainerIsRunningOrExists(containerName, true, runtimeCmd)
 			if err != nil {
 				return err
@@ -309,7 +309,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		print.InfoStatusEvent(os.Stdout, "Use `%s ps` to check running containers.", runtimeCmd)
 	}
 	// TODO: remove below method when components-path flag is removed.
-	err = moveFilesFromComponentsToResourcesDir(DefaultComponentsDirPath(), DefaultResourcesDirPath())
+	err = emptyAndCopyFiles(DefaultComponentsDirPath(), DefaultResourcesDirPath())
 	if err != nil {
 		return err
 	}
@@ -707,7 +707,7 @@ func makeDefaultResourcesDir() error {
 	if os.IsNotExist(err) {
 		errDir := os.MkdirAll(resourcesDir, 0o755)
 		if errDir != nil {
-			return fmt.Errorf("error creating default components folder: %w", errDir)
+			return fmt.Errorf("error creating default resources folder: %w", errDir)
 		}
 	}
 

@@ -70,34 +70,35 @@ func DefaultConfigFilePath() string {
 
 // emptyAndCopyFiles copies files from src to dest. It deletes the existing files in dest before copying from src.
 // TODO: Remove this function when `--components-path` flag is removed.
-func moveFilesFromComponentsToResourcesDir(componentsDirPath, resourcesDirPath string) error {
-	if _, err := os.Stat(componentsDirPath); err == nil {
-		files, err := os.ReadDir(resourcesDirPath)
+func emptyAndCopyFiles(src, dest string) error {
+	if _, err := os.Stat(src); err != nil {
+		return err
+	}
+	files, err := os.ReadDir(dest)
+	if err != nil {
+		return err
+	}
+	for _, file := range files {
+		err = os.Remove(dest + "/" + file.Name())
 		if err != nil {
 			return err
 		}
+	}
+	files, err = os.ReadDir(src)
+	if err != nil {
+		return err
+	}
+	if len(files) > 0 {
+		print.InfoStatusEvent(os.Stdout, "Moving files from %q to %q", src, dest)
 		for _, file := range files {
-			err = os.Remove(resourcesDirPath + "/" + file.Name())
+			content, err := os.ReadFile(src + "/" + file.Name())
 			if err != nil {
 				return err
 			}
-		}
-		files, err = os.ReadDir(componentsDirPath)
-		if err != nil {
-			return err
-		}
-		if len(files) > 0 {
-			print.InfoStatusEvent(os.Stdout, "Moving files from %q to %q", componentsDirPath, resourcesDirPath)
-			for _, file := range files {
-				content, err := os.ReadFile(componentsDirPath + "/" + file.Name())
-				if err != nil {
-					return err
-				}
-				// #nosec G306
-				err = os.WriteFile(resourcesDirPath+"/"+file.Name(), content, 0o644)
-				if err != nil {
-					return err
-				}
+			// #nosec G306
+			err = os.WriteFile(dest+"/"+file.Name(), content, 0o644)
+			if err != nil {
+				return err
 			}
 		}
 	}
