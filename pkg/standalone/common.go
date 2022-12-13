@@ -68,7 +68,7 @@ func DefaultConfigFilePath() string {
 	return path_filepath.Join(defaultDaprDirPath(), defaultConfigFileName)
 }
 
-// It used to copy existing resources from components dir to resources dir.
+// emptyAndCopyFiles copies files from src to dest. It deletes the existing files in dest before copying from src.
 // TODO: Remove this function when `--components-path` flag is removed.
 func moveFilesFromComponentsToResourcesDir(componentsDirPath, resourcesDirPath string) error {
 	if _, err := os.Stat(componentsDirPath); err == nil {

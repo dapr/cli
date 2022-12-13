@@ -243,7 +243,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 	stopSpinning := print.Spinner(os.Stdout, msg)
 	defer stopSpinning(print.Failure)
 
-	// Make default components directory.
+	// Make default resources directory.
 	err = makeDefaultResourcesDir()
 	if err != nil {
 		return err
