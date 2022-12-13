@@ -22,11 +22,12 @@ import (
 )
 
 const (
-	defaultDaprDirName       = ".dapr"
-	defaultDaprBinDirName    = "bin"
-	defaultComponentsDirName = "components"
-	defaultResourcesDirName  = "resources"
-	defaultConfigFileName    = "config.yaml"
+	DefaultComponentsDirName = "components"
+	DefaultResourcesDirName  = "resources"
+
+	defaultDaprDirName    = ".dapr"
+	defaultDaprBinDirName = "bin"
+	defaultConfigFileName = "config.yaml"
 )
 
 func defaultDaprDirPath() string {
@@ -47,11 +48,11 @@ func binaryFilePath(binaryDir string, binaryFilePrefix string) string {
 }
 
 func DefaultComponentsDirPath() string {
-	return path_filepath.Join(defaultDaprDirPath(), defaultComponentsDirName)
+	return path_filepath.Join(defaultDaprDirPath(), DefaultComponentsDirName)
 }
 
 func DefaultResourcesDirPath() string {
-	return path_filepath.Join(defaultDaprDirPath(), defaultResourcesDirName)
+	return path_filepath.Join(defaultDaprDirPath(), DefaultResourcesDirName)
 }
 
 // DefaultResourcesDirPrecedence returns the path to the resources directory if it exists, or otherwise the components directory.
@@ -72,7 +73,8 @@ func DefaultConfigFilePath() string {
 // TODO: Remove this function when `--components-path` flag is removed.
 func emptyAndCopyFiles(src, dest string) error {
 	if _, err := os.Stat(src); err != nil {
-		return err
+		// if the src directory does not exist, return nil, because there is nothing to copy from.
+		return nil
 	}
 	files, err := os.ReadDir(dest)
 	if err != nil {

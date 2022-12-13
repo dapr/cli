@@ -28,6 +28,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/dapr/cli/pkg/standalone"
 	"github.com/dapr/cli/tests/e2e/common"
 )
 
@@ -139,11 +140,11 @@ func ensureDaprInstallation(t *testing.T) {
 		require.NoError(t, err, "failed to stat dapr installation")
 	}
 
-	// Slim mode does not have any components by default.
-	// Install the components required by the tests.
+	// Slim mode does not have any resources by default.
+	// Install the resources required by the tests.
 	if isSlimMode() {
-		err = createSlimComponents(filepath.Join(daprPath, "resources"))
-		require.NoError(t, err, "failed to create components")
+		err = createSlimComponents(filepath.Join(daprPath, standalone.DefaultResourcesDirName))
+		require.NoError(t, err, "failed to create resources directory for slim mode")
 	}
 }
 

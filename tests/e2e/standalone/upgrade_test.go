@@ -14,7 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// TODO: Remove the test when `--components-path` flag is removed.
+// TODO: Remove the test file when `--components-path` flag is removed.
+
+// This file contains tests for the migration of components directory to resources directory.
+// It covers the test flow for scenario when user does: (1) dapr uninstall (2) upgrades dapr cli (3) dapr init (4) dapr run.
 package standalone_test
 
 import (
