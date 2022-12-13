@@ -54,7 +54,7 @@ func DefaultResourcesDirPath() string {
 	return path_filepath.Join(defaultDaprDirPath(), defaultResourcesDirName)
 }
 
-// when either `components-path` or `resources-path` flags are not present then preference is given to resources dir and then components dir.
+// DefaultResourcesDirPrecedence returns the path to the resources directory if it exists, or otherwise the components directory.
 // TODO: Remove this function and use `DefaultResourcesDirPath` when `--components-path` flag is removed.
 func DefaultResourcesDirPrecedence() string {
 	defaultResourcesDirPath := DefaultResourcesDirPath()
