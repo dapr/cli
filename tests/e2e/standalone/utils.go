@@ -28,8 +28,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/dapr/cli/pkg/standalone"
 	"github.com/dapr/cli/tests/e2e/common"
+	"github.com/dapr/cli/utils"
 )
 
 // getSocketCases return different unix socket paths for testing across Dapr commands.
@@ -143,7 +143,7 @@ func ensureDaprInstallation(t *testing.T) {
 	// Slim mode does not have any resources by default.
 	// Install the resources required by the tests.
 	if isSlimMode() {
-		err = createSlimComponents(filepath.Join(daprPath, standalone.DefaultResourcesDirName))
+		err = createSlimComponents(filepath.Join(daprPath, utils.DefaultResourcesDirName))
 		require.NoError(t, err, "failed to create resources directory for slim mode")
 	}
 }

@@ -19,12 +19,10 @@ import (
 	"runtime"
 
 	"github.com/dapr/cli/pkg/print"
+	"github.com/dapr/cli/utils"
 )
 
 const (
-	DefaultComponentsDirName = "components"
-	DefaultResourcesDirName  = "resources"
-
 	defaultDaprDirName    = ".dapr"
 	defaultDaprBinDirName = "bin"
 	defaultConfigFileName = "config.yaml"
@@ -48,11 +46,11 @@ func binaryFilePath(binaryDir string, binaryFilePrefix string) string {
 }
 
 func DefaultComponentsDirPath() string {
-	return path_filepath.Join(defaultDaprDirPath(), DefaultComponentsDirName)
+	return path_filepath.Join(defaultDaprDirPath(), utils.DefaultComponentsDirName)
 }
 
 func DefaultResourcesDirPath() string {
-	return path_filepath.Join(defaultDaprDirPath(), DefaultResourcesDirName)
+	return path_filepath.Join(defaultDaprDirPath(), utils.DefaultResourcesDirName)
 }
 
 // DefaultResourcesDirPrecedence returns the path to the resources directory if it exists, or otherwise the components directory.
