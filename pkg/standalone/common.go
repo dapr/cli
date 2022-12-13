@@ -74,7 +74,10 @@ func DefaultConfigFilePath() string {
 func emptyAndCopyFiles(src, dest string) error {
 	if _, err := os.Stat(src); err != nil {
 		// if the src directory does not exist, return nil, because there is nothing to copy from.
-		return nil
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
 	}
 	files, err := os.ReadDir(dest)
 	if err != nil {
