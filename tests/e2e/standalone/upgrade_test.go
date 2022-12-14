@@ -53,7 +53,7 @@ func TestCompToResrcDirMig(t *testing.T) {
 	renameResourcesDir(t)
 
 	// dapr run should work with only components dir.
-	// 2nd paramter is true to indicate that only components dir is present.
+	// 2nd parameter is true to indicate that only components dir is present.
 	checkDaprRunPrecedenceTest(t, true)
 
 	// dapr uninstall without --all flag should work.
