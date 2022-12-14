@@ -329,7 +329,7 @@ To remove all Dapr Custom Resource Definitions:
 dapr uninstall -k --all
 ```
 
-*Warning: this will remove any resources(and components also), subscriptions or configurations that are applied in the cluster at the time of deletion.*
+*Warning: this will remove any components, subscriptions or configurations that are applied in the cluster at the time of deletion.*
 
 ### Upgrade Dapr on Kubernetes
 
