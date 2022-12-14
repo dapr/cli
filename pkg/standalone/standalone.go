@@ -279,9 +279,9 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 
 	stopSpinning(print.Success)
 
-	msg = "Downloaded binaries and completed components set up."
+	msg = "Downloaded binaries and completed resources set up."
 	if isAirGapInit {
-		msg = "Extracted binaries and completed components set up."
+		msg = "Extracted binaries and completed resources set up."
 	}
 	print.SuccessStatusEvent(os.Stdout, msg)
 	print.InfoStatusEvent(os.Stdout, "%s binary has been installed to %s.", daprRuntimeFilePrefix, daprBinDir)
