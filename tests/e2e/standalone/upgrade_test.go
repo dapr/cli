@@ -66,7 +66,7 @@ func TestCompToResrcDirMig(t *testing.T) {
 	copyInMemStateStore(t)
 
 	// check dapr run precedence order, resources dir 1st then components dir.
-	// 2nd paramter is false to indicate that both components and resources dir are present.
+	// 2nd parameter is false to indicate that both components and resources dir are present.
 	checkDaprRunPrecedenceTest(t, false)
 }
 
