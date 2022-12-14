@@ -448,7 +448,7 @@ Launch Dapr and your app:
 dapr run --app-id nodeapp --app-port 3000 node app.js
 ```
 
-Note: To choose a non-default resources folder, use the --resources-path(--components-path is deprecated) option.
+Note: To choose a non-default resources folder, use the --resources-path option (--components-path is deprecated, see https://github.com/dapr/cli/issues/953 for more information).
 
 Invoke your app:
 
@@ -566,8 +566,8 @@ To use a custom path for component definitions
 
 ```bash
 dapr run --resources-path [custom path]
-> Note: --components-path flag is deprecated. It will continue to work until it is removed completely.
 ```
+> Note: --components-path flag is deprecated. It will continue to work until it is removed completely. See https://github.com/dapr/cli/issues/953 for more information.
 
 
 ### List Configurations
