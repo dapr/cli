@@ -56,9 +56,9 @@ func assertArgumentNotEqual(t *testing.T, key string, expectedValue string, args
 }
 
 func setupRun(t *testing.T) {
-	componentsDir := DefaultResourcesDirPath()
+	resourcesDir := DefaultResourcesDirPath()
 	configFile := DefaultConfigFilePath()
-	err := os.MkdirAll(componentsDir, 0o700)
+	err := os.MkdirAll(resourcesDir, 0o700)
 	assert.Equal(t, nil, err, "Unable to setup components dir before running test")
 	file, err := os.Create(configFile)
 	file.Close()
@@ -87,7 +87,7 @@ func assertCommonArgs(t *testing.T, basicConfig *RunConfig, output *RunOutput) {
 	assertArgumentEqual(t, "app-max-concurrency", "-1", output.DaprCMD.Args)
 	assertArgumentEqual(t, "app-protocol", "http", output.DaprCMD.Args)
 	assertArgumentEqual(t, "app-port", "3000", output.DaprCMD.Args)
-	assertArgumentEqual(t, "components-path", DefaultResourcesDirPrecedence(), output.DaprCMD.Args)
+	assertArgumentEqual(t, "components-path", GetResourcesDir(), output.DaprCMD.Args)
 	assertArgumentEqual(t, "app-ssl", "", output.DaprCMD.Args)
 	assertArgumentEqual(t, "metrics-port", "9001", output.DaprCMD.Args)
 	assertArgumentEqual(t, "dapr-http-max-request-size", "-1", output.DaprCMD.Args)
@@ -148,7 +148,7 @@ func TestRun(t *testing.T) {
 		EnableProfiling:    false,
 		ProfilePort:        9090,
 		Protocol:           "http",
-		ComponentsPath:     DefaultResourcesDirPrecedence(),
+		ComponentsPath:     GetResourcesDir(),
 		AppSSL:             true,
 		MetricsPort:        9001,
 		MaxRequestBodySize: -1,

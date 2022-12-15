@@ -15,9 +15,7 @@ limitations under the License.
 */
 
 // TODO: Remove the test file when `--components-path` flag is removed.
-
 // This file contains tests for the migration of components directory to resources directory.
-// It covers the test flow for scenario when user does: (1) dapr uninstall (2) upgrades dapr cli (3) dapr init (4) dapr run.
 package standalone_test
 
 import (
@@ -28,6 +26,7 @@ import (
 
 	"github.com/dapr/cli/tests/e2e/common"
 	"github.com/dapr/cli/tests/e2e/spawn"
+	"github.com/dapr/cli/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -38,11 +37,12 @@ var (
 	defaultResourcesDirPath  = ""
 )
 
+// It covers the test flow for scenario when user does: (1) dapr uninstall (2) upgrades dapr cli (3) dapr init (4) dapr run.
 func TestCompToResrcDirMig(t *testing.T) {
 	homeDir, err := os.UserHomeDir()
 	assert.NoError(t, err, "cannot get user home directory")
-	defaultComponentsDirPath = filepath.Join(homeDir, ".dapr", "components")
-	defaultResourcesDirPath = filepath.Join(homeDir, ".dapr", "resources")
+	defaultComponentsDirPath = filepath.Join(homeDir, ".dapr", utils.DefaultComponentsDirName)
+	defaultResourcesDirPath = filepath.Join(homeDir, ".dapr", utils.DefaultResourcesDirName)
 	// Ensure a clean environment.
 	must(t, cmdUninstall, "failed to uninstall Dapr")
 

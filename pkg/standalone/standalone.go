@@ -664,7 +664,7 @@ func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error
 	}
 	var err error
 
-	// Make default components directory.
+	// Make default resources directory.
 	resourcesDir := DefaultResourcesDirPath()
 
 	err = createRedisPubSub(redisHost, resourcesDir)
