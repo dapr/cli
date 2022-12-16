@@ -144,10 +144,10 @@ func TestRun(t *testing.T) {
 		HTTPPort:           8000,
 		GRPCPort:           50001,
 		LogLevel:           "WARN",
-		Arguments:          []string{"MyCommand", "--my-arg"},
+		Command:            []string{"MyCommand", "--my-arg"},
 		EnableProfiling:    false,
 		ProfilePort:        9090,
-		Protocol:           "http",
+		AppProtocol:        "http",
 		ComponentsPath:     DefaultComponentsDirPath(),
 		AppSSL:             true,
 		MetricsPort:        9001,
@@ -169,7 +169,7 @@ func TestRun(t *testing.T) {
 	})
 
 	t.Run("run without app command", func(t *testing.T) {
-		basicConfig.Arguments = nil
+		basicConfig.Command = nil
 		basicConfig.LogLevel = "INFO"
 		basicConfig.EnableAPILogging = true
 		basicConfig.ConfigFile = DefaultConfigFilePath()

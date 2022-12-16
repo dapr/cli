@@ -321,3 +321,11 @@ func GetVersionAndImageVariant(imageTag string) (string, string) {
 	}
 	return imageTag, ""
 }
+
+func IsFilePathValid(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
