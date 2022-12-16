@@ -1,0 +1,26 @@
+
+version: 1
+common:
+  resources_dir: ./app/components
+  env:
+    - name: DEBUG
+      value: false
+    - name: tty
+      value: sts
+apps:
+  - app_id: webapp
+    app_dir: ./webapp/
+    resources_dir: ./webapp/components
+    config_file: ./webapp/config.yaml
+    app_protocol: HTTP
+    app_port: 8080
+    command: ["python3", "app.py"]
+  - app_id: backend
+    app_dir: ./backend/
+    app_protocol: GRPC
+    app_port: 3000
+    unix_domain_socket: /tmp/test-socket
+    env:
+    - name: DEBUG
+      value: true
+    command: ["./backend"]

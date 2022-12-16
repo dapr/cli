@@ -18,6 +18,7 @@ import (
 	"os"
 
 	"github.com/dapr/cli/utils"
+
 	"gopkg.in/yaml.v2"
 )
 
@@ -51,12 +52,14 @@ func (a *AppsRunConfig) GetApps(configFile string) {
 	if err != nil {
 		panic(err)
 	}
+
+	// TODO: uncomment this after mocking the utility methods.
 	err = validateRunConfig(a)
 	if err != nil {
 		panic(err)
 	}
 
-	// TODO: remove this later
+	// TODO: remove this later.
 	printStructFields(a)
 }
 
@@ -64,7 +67,7 @@ func validateRunConfig(a *AppsRunConfig) error {
 	if a.Version == 0 {
 		return fmt.Errorf("version is required")
 	}
-	// validate all paths in commons
+	// validate all paths in commons.
 	allCommonPaths := []string{a.Common.ConfigFile, a.Common.ResourcesPath}
 	err := validateFilePaths(allCommonPaths)
 	if err != nil {
@@ -77,7 +80,7 @@ func validateRunConfig(a *AppsRunConfig) error {
 		if app.AppDir == "" {
 			return fmt.Errorf("app dir is required")
 		}
-		// validate all paths in apps
+		// validate all paths in apps.
 		allAppsPaths := []string{app.ConfigFile, app.ResourcesPath, app.AppDir}
 		err := validateFilePaths(allAppsPaths)
 		if err != nil {
