@@ -44,6 +44,7 @@ var (
 	logLevel           string
 	protocol           string
 	componentsPath     string
+	resourcesPath      string
 	appSSL             bool
 	metricsPort        int
 	maxRequestBodySize int
@@ -55,6 +56,7 @@ var (
 	appHealthTimeout   int
 	appHealthThreshold int
 	enableAPILogging   bool
+	apiListenAddresses string
 )
 
 const (
@@ -119,6 +121,7 @@ dapr run --app-id myapp --app-port 3000 --app-protocol grpc -- go run main.go
 			Protocol:           protocol,
 			PlacementHostAddr:  viper.GetString("placement-host-address"),
 			ComponentsPath:     componentsPath,
+			ResourcesPath:      resourcesPath,
 			AppSSL:             appSSL,
 			MetricsPort:        metricsPort,
 			MaxRequestBodySize: maxRequestBodySize,
@@ -131,6 +134,7 @@ dapr run --app-id myapp --app-port 3000 --app-protocol grpc -- go run main.go
 			AppHealthThreshold: appHealthThreshold,
 			EnableAPILogging:   enableAPILogging,
 			InternalGRPCPort:   internalGRPCPort,
+			APIListenAddresses: apiListenAddresses,
 		})
 		if err != nil {
 			print.FailureStatusEvent(os.Stderr, err.Error())
@@ -374,6 +378,10 @@ func init() {
 	RunCmd.Flags().IntVarP(&maxConcurrency, "app-max-concurrency", "", -1, "The concurrency level of the application, otherwise is unlimited")
 	RunCmd.Flags().StringVarP(&protocol, "app-protocol", "P", "http", "The protocol (gRPC or HTTP) Dapr uses to talk to the application")
 	RunCmd.Flags().StringVarP(&componentsPath, "components-path", "d", standalone.DefaultComponentsDirPath(), "The path for components directory")
+	RunCmd.Flags().StringVarP(&resourcesPath, "resources-path", "", "", "The path for resources directory")
+	// TODO: Remove below line once the flag is removed in the future releases.
+	// By marking this as deprecated, the flag will be hidden from the help menu, but will continue to work. It will show a warning message when used.
+	RunCmd.Flags().MarkDeprecated("components-path", "This flag is deprecated and will be removed in the future releases. Use \"resources-path\" flag instead")
 	RunCmd.Flags().String("placement-host-address", "localhost", "The address of the placement service. Format is either <hostname> for default port or <hostname>:<port> for custom port")
 	RunCmd.Flags().BoolVar(&appSSL, "app-ssl", false, "Enable https when Dapr invokes the application")
 	RunCmd.Flags().IntVarP(&metricsPort, "metrics-port", "M", -1, "The port of metrics on dapr")
@@ -387,6 +395,6 @@ func init() {
 	RunCmd.Flags().IntVar(&appHealthTimeout, "app-health-probe-timeout", 0, "Timeout for app health probes in milliseconds")
 	RunCmd.Flags().IntVar(&appHealthThreshold, "app-health-threshold", 0, "Number of consecutive failures for the app to be considered unhealthy")
 	RunCmd.Flags().BoolVar(&enableAPILogging, "enable-api-logging", false, "Log API calls at INFO verbosity. Valid values are: true or false")
-
+	RunCmd.Flags().StringVar(&apiListenAddresses, "dapr-listen-addresses", "", "Comma separated list of IP addresses that sidecar will listen to")
 	RootCmd.AddCommand(RunCmd)
 }
