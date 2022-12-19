@@ -1,7 +1,7 @@
 
 version: 1
 common:
-  resources_dir: ./app/components
+  resources_dir: ./app/resources
   env:
     - name: DEBUG
       value: false
@@ -10,7 +10,7 @@ common:
 apps:
   - app_id: webapp
     app_dir: ./webapp/
-    resources_dir: ./webapp/components
+    resources_dir: ./webapp/resources
     config_file: ./webapp/config.yaml
     app_protocol: HTTP
     app_port: 8080

@@ -14,9 +14,18 @@ limitations under the License.
 package standalone
 
 import (
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+)
+
+const (
+	commonResourcesDir = "./app/resources"
+	app1Dir            = "./webapp/"
+	app1ResourcesDir   = "./webapp/resources"
+	app1ConfigFile     = "./webapp/config.yaml"
+	app2Dir            = "./backend/"
 )
 
 func TestRunConfigParser(t *testing.T) {
@@ -35,21 +44,69 @@ func TestRunConfigParser(t *testing.T) {
 	assert.Equal(t, "", firstAppConfig.UnixDomainSocket)
 }
 
-func TestMandatoryFieldsInRunConfig(t *testing.T) {
+func TestValidationsInRunConfig(t *testing.T) {
+	// tear down the created files.
+	tearDownCreatedFiles(t)
+
 	configFilePath := "./testdata/test_run_config.yaml"
 	config := AppsRunConfig{}
 	config.ParseAppsConfig(configFilePath)
 
-	assert.Equal(t, 1, config.Version)
-	assert.NotEmpty(t, config.Common.ResourcesPath)
-	assert.NotEmpty(t, config.Common.Env)
-
+	// check mangatory fields are not empty.
 	for _, app := range config.Apps {
 		assert.NotEmpty(t, app.AppDir)
 		assert.NotEmpty(t, app.AppID)
 	}
 
+	// provided files/directories does not exist.
 	err := config.ValidateRunConfig()
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "no such file or directory")
+
+	// create the files/directories provided in the config file.
+	createProvidedFiles(t, config)
+
+	// positive case- all files and directories exist.
+	err = config.ValidateRunConfig()
+	assert.Nil(t, err)
+
+	// negative case- app-id field is empty.
+	temp := config.Apps[0].AppID
+	config.Apps[0].AppID = ""
+	err = config.ValidateRunConfig()
+	assert.NotNil(t, err)
+	config.Apps[0].AppID = temp
+
+	// negative case- app-dir field is empty.
+	temp = config.Apps[0].AppDir
+	config.Apps[0].AppDir = ""
+	err = config.ValidateRunConfig()
+	assert.NotNil(t, err)
+	config.Apps[0].AppDir = temp
+
+	// tear down the created files.
+	tearDownCreatedFiles(t)
+}
+
+func createProvidedFiles(t *testing.T, config AppsRunConfig) {
+	err := os.MkdirAll(commonResourcesDir, os.ModePerm)
+	assert.Nil(t, err)
+	err = os.MkdirAll(app1ResourcesDir, os.ModePerm)
+	assert.Nil(t, err)
+	err = os.MkdirAll(app1Dir, os.ModePerm)
+	assert.Nil(t, err)
+	err = os.MkdirAll(app2Dir, os.ModePerm)
+	assert.Nil(t, err)
+	_, err = os.Create(app1ConfigFile)
+	assert.Nil(t, err)
+}
+
+func tearDownCreatedFiles(t *testing.T) {
+	err := os.RemoveAll(commonResourcesDir)
+	assert.Nil(t, err)
+	err = os.RemoveAll(app1ResourcesDir)
+	assert.Nil(t, err)
+	err = os.RemoveAll(app1Dir)
+	assert.Nil(t, err)
+	err = os.RemoveAll(app2Dir)
+	assert.Nil(t, err)
 }

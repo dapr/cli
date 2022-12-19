@@ -57,7 +57,7 @@ func (a *AppsRunConfig) ParseAppsConfig(configFile string) error {
 
 func (a *AppsRunConfig) ValidateRunConfig() error {
 	if a.Version == 0 {
-		return fmt.Errorf("version is required")
+		return fmt.Errorf("required filed %q not found in the provided app config file", "version")
 	}
 	// validate all paths in commons.
 	err := utils.ValidateFilePaths(a.Common.ConfigFile, a.Common.ResourcesPath)
@@ -66,10 +66,10 @@ func (a *AppsRunConfig) ValidateRunConfig() error {
 	}
 	for _, app := range a.Apps {
 		if app.AppID == "" {
-			return fmt.Errorf("app id is required")
+			return fmt.Errorf("required filed %q not found in the provided app config file", "app_id")
 		}
 		if app.AppDir == "" {
-			return fmt.Errorf("app dir is required")
+			return fmt.Errorf("required filed %q not found in the provided app config file", "app_dir")
 		}
 		// validate all paths in apps.
 		err := utils.ValidateFilePaths(app.ConfigFile, app.ResourcesPath, app.AppDir)
