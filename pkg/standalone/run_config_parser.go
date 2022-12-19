@@ -43,7 +43,7 @@ type EnvItems struct {
 	Value string `yaml:"value"`
 }
 
-func (a *AppsRunConfig) GetApps(configFile string) {
+func (a *AppsRunConfig) ParseAppsConfig(configFile string) {
 	bytes, err := os.ReadFile(configFile)
 	if err != nil {
 		panic(err)
@@ -52,24 +52,14 @@ func (a *AppsRunConfig) GetApps(configFile string) {
 	if err != nil {
 		panic(err)
 	}
-
-	// TODO: uncomment this after mocking the utility methods.
-	err = validateRunConfig(a)
-	if err != nil {
-		panic(err)
-	}
-
-	// TODO: remove this later.
-	printStructFields(a)
 }
 
-func validateRunConfig(a *AppsRunConfig) error {
+func (a *AppsRunConfig) ValidateRunConfig() error {
 	if a.Version == 0 {
 		return fmt.Errorf("version is required")
 	}
 	// validate all paths in commons.
-	allCommonPaths := []string{a.Common.ConfigFile, a.Common.ResourcesPath}
-	err := validateFilePaths(allCommonPaths)
+	err := utils.ValidateFilePaths(a.Common.ConfigFile, a.Common.ResourcesPath)
 	if err != nil {
 		return err
 	}
@@ -81,49 +71,10 @@ func validateRunConfig(a *AppsRunConfig) error {
 			return fmt.Errorf("app dir is required")
 		}
 		// validate all paths in apps.
-		allAppsPaths := []string{app.ConfigFile, app.ResourcesPath, app.AppDir}
-		err := validateFilePaths(allAppsPaths)
+		err := utils.ValidateFilePaths(app.ConfigFile, app.ResourcesPath, app.AppDir)
 		if err != nil {
 			return err
 		}
 	}
 	return nil
-}
-
-func validateFilePaths(filePaths []string) error {
-	for _, path := range filePaths {
-		if path != "" {
-			_, err := utils.IsFilePathValid(path)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-func printStructFields(a *AppsRunConfig) {
-	for _, env := range a.Common.Env {
-		fmt.Println("Name:", env.Name, "Value:", env.Value)
-	}
-	fmt.Println("====================================")
-	fmt.Println("Common Resource Dir: ", a.Common.ResourcesPath)
-	fmt.Println("Common Config File: ", a.Common.ConfigFile)
-	fmt.Println("Common App Port: ", a.Common.AppPort)
-	fmt.Println("Common App Protocol: ", a.Common.AppProtocol)
-	fmt.Println("Common Unix Domain Socket: ", a.Common.UnixDomainSocket)
-	fmt.Println("====================================")
-	for _, app := range a.Apps {
-		fmt.Println("\nApp ID:", app.AppID)
-		fmt.Println("App dir:", app.AppDir)
-		fmt.Println("App resources dir:", app.ResourcesPath)
-		fmt.Println("App config file:", app.ConfigFile)
-		fmt.Println("App protocol:", app.AppProtocol)
-		fmt.Println("App port:", app.AppPort)
-		fmt.Println("App command:", app.Command)
-		fmt.Println("App Unix domain socket:", app.UnixDomainSocket)
-		for _, env := range app.Env {
-			fmt.Println("app env Name:", env.Name, "app env Value:", env.Value)
-		}
-	}
 }

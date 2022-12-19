@@ -407,5 +407,5 @@ func init() {
 func executeRunWithAppsConfigFile(configFile string) {
 	config := standalone.AppsRunConfig{}
 	fmt.Println(configFile)
-	config.GetApps(configFile)
+	config.ParseAppsConfig(configFile)
 }

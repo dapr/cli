@@ -20,8 +20,36 @@ import (
 )
 
 func TestRunConfigParser(t *testing.T) {
-	// configFilePath := "./testdata/test_run_config.yaml"
-	// appsRunConfig := AppsRunConfig{}
-	// appsRunConfig.GetApps(configFilePath)
-	assert.Equal(t, 1, 1)
+	configFilePath := "./testdata/test_run_config.yaml"
+	appsRunConfig := AppsRunConfig{}
+	appsRunConfig.ParseAppsConfig(configFilePath)
+
+	assert.Equal(t, 1, appsRunConfig.Version)
+	assert.NotEmpty(t, appsRunConfig.Common.ResourcesPath)
+	assert.NotEmpty(t, appsRunConfig.Common.Env)
+
+	firstAppConfig := appsRunConfig.Apps[0]
+	assert.Equal(t, "webapp", firstAppConfig.AppID)
+	assert.Equal(t, "HTTP", firstAppConfig.AppProtocol)
+	assert.Equal(t, 8080, firstAppConfig.AppPort)
+	assert.Equal(t, "", firstAppConfig.UnixDomainSocket)
+}
+
+func TestMandatoryFieldsInRunConfig(t *testing.T) {
+	configFilePath := "./testdata/test_run_config.yaml"
+	config := AppsRunConfig{}
+	config.ParseAppsConfig(configFilePath)
+
+	assert.Equal(t, 1, config.Version)
+	assert.NotEmpty(t, config.Common.ResourcesPath)
+	assert.NotEmpty(t, config.Common.Env)
+
+	for _, app := range config.Apps {
+		assert.NotEmpty(t, app.AppDir)
+		assert.NotEmpty(t, app.AppID)
+	}
+
+	err := config.ValidateRunConfig()
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "no such file or directory")
 }
