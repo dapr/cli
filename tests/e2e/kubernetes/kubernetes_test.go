@@ -30,16 +30,17 @@ var (
 
 // ensureCleanEnv function needs to be called in every Test function.
 // sets necessary variable values and uninstalls any previously installed `dapr`.
-func ensureCleanEnv(t *testing.T) {
-	currentRuntimeVersion, currentDashboardVersion = common.GetVersionsFromEnv(t)
+func ensureCleanEnv(t *testing.T, useDaprLatestVersion bool) {
+	currentRuntimeVersion, currentDashboardVersion = common.GetVersionsFromEnv(t, useDaprLatestVersion)
 
 	currentVersionDetails = common.VersionDetails{
-		RuntimeVersion:      currentRuntimeVersion,
-		DashboardVersion:    currentDashboardVersion,
-		CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
-		ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
-		ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
-		ImageVariant:        "",
+		RuntimeVersion:       currentRuntimeVersion,
+		DashboardVersion:     currentDashboardVersion,
+		CustomResourceDefs:   []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
+		ClusterRoles:         []string{"dapr-operator-admin", "dashboard-reader"},
+		ClusterRoleBindings:  []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+		ImageVariant:         "",
+		UseDaprLatestVersion: useDaprLatestVersion,
 	}
 	// Ensure a clean environment
 	common.EnsureUninstall(true) // does not wait for pod deletion
@@ -47,7 +48,7 @@ func ensureCleanEnv(t *testing.T) {
 
 func TestKubernetesNonHAModeMTLSDisabled(t *testing.T) {
 	// ensure clean env for test
-	ensureCleanEnv(t)
+	ensureCleanEnv(t, false)
 
 	// setup tests
 	tests := []common.TestCase{}
@@ -78,7 +79,7 @@ func TestKubernetesNonHAModeMTLSDisabled(t *testing.T) {
 
 func TestKubernetesHAModeMTLSDisabled(t *testing.T) {
 	// ensure clean env for test
-	ensureCleanEnv(t)
+	ensureCleanEnv(t, false)
 
 	// setup tests
 	tests := []common.TestCase{}
@@ -109,7 +110,7 @@ func TestKubernetesHAModeMTLSDisabled(t *testing.T) {
 
 func TestKubernetesNonHAModeMTLSEnabled(t *testing.T) {
 	// ensure clean env for test
-	ensureCleanEnv(t)
+	ensureCleanEnv(t, false)
 
 	// setup tests
 	tests := []common.TestCase{}
@@ -140,7 +141,7 @@ func TestKubernetesNonHAModeMTLSEnabled(t *testing.T) {
 
 func TestKubernetesHAModeMTLSEnabled(t *testing.T) {
 	// ensure clean env for test
-	ensureCleanEnv(t)
+	ensureCleanEnv(t, false)
 
 	// setup tests
 	tests := []common.TestCase{}
@@ -174,7 +175,7 @@ func TestKubernetesHAModeMTLSEnabled(t *testing.T) {
 
 func TestRenewCertificateMTLSEnabled(t *testing.T) {
 	// ensure clean env for test
-	ensureCleanEnv(t)
+	ensureCleanEnv(t, false)
 
 	tests := []common.TestCase{}
 	installOpts := common.TestOptions{
@@ -190,23 +191,8 @@ func TestRenewCertificateMTLSEnabled(t *testing.T) {
 
 	tests = append(tests, common.GetTestsOnInstall(currentVersionDetails, installOpts)...)
 
-	// tests for certifcate renewal with newly generated certificates.
-	tests = append(tests, []common.TestCase{
-		{"Renew certificate which expires in less than 30 days", common.GenerateNewCertAndRenew(currentVersionDetails, installOpts)},
-	}...)
-	tests = append(tests, common.GetTestsPostCertificateRenewal(currentVersionDetails, installOpts)...)
-	tests = append(tests, []common.TestCase{
-		{"Cert Expiry warning message check " + currentVersionDetails.RuntimeVersion, common.CheckMTLSStatus(currentVersionDetails, installOpts, true)},
-	}...)
-
-	// tests for certificate renewal with provided certificates.
-	tests = append(tests, []common.TestCase{
-		{"Renew certificate which expires in after 30 days", common.UseProvidedNewCertAndRenew(currentVersionDetails, installOpts)},
-	}...)
-	tests = append(tests, common.GetTestsPostCertificateRenewal(currentVersionDetails, installOpts)...)
-	tests = append(tests, []common.TestCase{
-		{"Cert Expiry no warning message check " + currentVersionDetails.RuntimeVersion, common.CheckMTLSStatus(currentVersionDetails, installOpts, false)},
-	}...)
+	// tests for certifcate renewal.
+	tests = append(tests, common.GetTestForCertRenewal(currentVersionDetails, installOpts)...)
 
 	// teardown everything
 	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
@@ -224,7 +210,7 @@ func TestRenewCertificateMTLSEnabled(t *testing.T) {
 
 func TestRenewCertificateMTLSDisabled(t *testing.T) {
 	// ensure clean env for test
-	ensureCleanEnv(t)
+	ensureCleanEnv(t, false)
 
 	tests := []common.TestCase{}
 	installOpts := common.TestOptions{
@@ -240,23 +226,8 @@ func TestRenewCertificateMTLSDisabled(t *testing.T) {
 
 	tests = append(tests, common.GetTestsOnInstall(currentVersionDetails, installOpts)...)
 
-	// tests for certifcate renewal with newly generated certificates.
-	tests = append(tests, []common.TestCase{
-		{"Renew certificate which expires in less than 30 days", common.GenerateNewCertAndRenew(currentVersionDetails, installOpts)},
-	}...)
-	tests = append(tests, common.GetTestsPostCertificateRenewal(currentVersionDetails, installOpts)...)
-	tests = append(tests, []common.TestCase{
-		{"Cert Expiry warning message check " + currentVersionDetails.RuntimeVersion, common.CheckMTLSStatus(currentVersionDetails, installOpts, true)},
-	}...)
-
-	// tests for certificate renewal with provided certificates.
-	tests = append(tests, []common.TestCase{
-		{"Renew certificate which expires in after 30 days", common.UseProvidedNewCertAndRenew(currentVersionDetails, installOpts)},
-	}...)
-	tests = append(tests, common.GetTestsPostCertificateRenewal(currentVersionDetails, installOpts)...)
-	tests = append(tests, []common.TestCase{
-		{"Cert Expiry no warning message check " + currentVersionDetails.RuntimeVersion, common.CheckMTLSStatus(currentVersionDetails, installOpts, false)},
-	}...)
+	// tests for certifcate renewal.
+	tests = append(tests, common.GetTestForCertRenewal(currentVersionDetails, installOpts)...)
 
 	// teardown everything
 	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
@@ -274,7 +245,7 @@ func TestRenewCertificateMTLSDisabled(t *testing.T) {
 
 func TestRenewCertWithPrivateKey(t *testing.T) {
 	// ensure clean env for test
-	ensureCleanEnv(t)
+	ensureCleanEnv(t, false)
 
 	tests := []common.TestCase{}
 	installOpts := common.TestOptions{
@@ -316,7 +287,7 @@ func TestRenewCertWithPrivateKey(t *testing.T) {
 
 func TestKubernetesUninstall(t *testing.T) {
 	// ensure clean env for test
-	ensureCleanEnv(t)
+	ensureCleanEnv(t, false)
 
 	tests := []common.TestCase{}
 	installOpts := common.TestOptions{
@@ -385,7 +356,7 @@ func TestRenewCertWithIncorrectFlags(t *testing.T) {
 // Renew the certificate of this control plane.
 func TestK8sInstallwithMarinerImagesAndRenewCertificate(t *testing.T) {
 	// ensure clean env for test
-	ensureCleanEnv(t)
+	ensureCleanEnv(t, false)
 
 	//	install with mariner images
 	currentVersionDetails.ImageVariant = "mariner"
@@ -404,14 +375,40 @@ func TestK8sInstallwithMarinerImagesAndRenewCertificate(t *testing.T) {
 
 	tests = append(tests, common.GetTestsOnInstall(currentVersionDetails, installOpts)...)
 
-	// tests for certifcate renewal with newly generated certificates.
-	tests = append(tests, []common.TestCase{
-		{"Renew certificate which expires in less than 30 days", common.GenerateNewCertAndRenew(currentVersionDetails, installOpts)},
-	}...)
-	tests = append(tests, common.GetTestsPostCertificateRenewal(currentVersionDetails, installOpts)...)
-	tests = append(tests, []common.TestCase{
-		{"Cert Expiry warning message check " + currentVersionDetails.RuntimeVersion, common.CheckMTLSStatus(currentVersionDetails, installOpts, true)},
-	}...)
+	// tests for certifcate renewal.
+	tests = append(tests, common.GetTestForCertRenewal(currentVersionDetails, installOpts)...)
+
+	// teardown everything
+	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
+		CheckResourceExists: map[common.Resource]bool{
+			common.CustomResourceDefs:  true,
+			common.ClusterRoles:        false,
+			common.ClusterRoleBindings: false,
+		},
+	})...)
+
+	for _, tc := range tests {
+		t.Run(tc.Name, tc.Callable)
+	}
+}
+
+func TestKubernetesInstallwithoutRuntimeVersionFlag(t *testing.T) {
+	// ensure clean env for test
+	ensureCleanEnv(t, true)
+
+	tests := []common.TestCase{}
+	installOpts := common.TestOptions{
+		HAEnabled:             false,
+		MTLSEnabled:           true,
+		ApplyComponentChanges: true,
+		CheckResourceExists: map[common.Resource]bool{
+			common.CustomResourceDefs:  true,
+			common.ClusterRoles:        true,
+			common.ClusterRoleBindings: true,
+		},
+	}
+
+	tests = append(tests, common.GetTestsOnInstall(currentVersionDetails, installOpts)...)
 
 	// teardown everything
 	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
