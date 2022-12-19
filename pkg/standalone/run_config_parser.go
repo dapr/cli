@@ -43,15 +43,16 @@ type EnvItems struct {
 	Value string `yaml:"value"`
 }
 
-func (a *AppsRunConfig) ParseAppsConfig(configFile string) {
+func (a *AppsRunConfig) ParseAppsConfig(configFile string) error {
 	bytes, err := os.ReadFile(configFile)
 	if err != nil {
 		panic(err)
 	}
 	err = yaml.Unmarshal(bytes, &a)
 	if err != nil {
-		panic(err)
+		return err
 	}
+	return nil
 }
 
 func (a *AppsRunConfig) ValidateRunConfig() error {
