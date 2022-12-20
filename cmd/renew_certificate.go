@@ -37,8 +37,9 @@ var (
 
 func RenewCertificateCmd() *cobra.Command {
 	command := &cobra.Command{
-		Use:   "renew-certificate",
-		Short: "Rotates Dapr root certificate of your kubernetes cluster",
+		Use:     "renew-certificate",
+		Aliases: []string{"renew-cert", "rnc"},
+		Short:   "Rotates the Dapr root certificate on your Kubernetes cluster",
 
 		Example: `
 # Generates new root and issuer certificates for kubernetes cluster
@@ -49,6 +50,13 @@ dapr mtls renew-certificate -k --private-key myprivatekey.key --valid-until <no 
 
 # Rotates certificate of your kubernetes cluster with provided ca.cert, issuer.crt and issuer.key file path
 dapr mtls renew-certificate -k --ca-root-certificate <root.pem> --issuer-private-key <issuer.key> --issuer-public-certificate <issuer.pem> --restart
+
+# Generates new root and issuer certificates for kubernetes cluster with provided image variant
+dapr mtls renew-certificate -k --valid-until <no of days> --image-variant mariner --restart
+
+# Use alias to renew certificate command
+dapr mtls rnc -k --valid-until <no of days> --restart
+dapr mtls renew-cert -k --valid-until <no of days> --restart
 
 # See more at: https://docs.dapr.io/getting-started/
 `,
@@ -62,6 +70,10 @@ dapr mtls renew-certificate -k --ca-root-certificate <root.pem> --issuer-private
 
 			if kubernetesMode {
 				print.PendingStatusEvent(os.Stdout, "Starting certificate rotation")
+				err = utils.ValidateImageVariant(imageVariant)
+				if err != nil {
+					logErrorAndExit(err)
+				}
 				if rootcertFlag || issuerKeyFlag || issuerCertFlag {
 					flagArgsEmpty := checkReqFlagArgsEmpty(caRootCertificateFile, issuerPrivateKeyFile, issuerPublicCertificateFile)
 					if flagArgsEmpty {
@@ -75,6 +87,7 @@ dapr mtls renew-certificate -k --ca-root-certificate <root.pem> --issuer-private
 						IssuerCertificateFilePath: issuerPublicCertificateFile,
 						IssuerPrivateKeyFilePath:  issuerPrivateKeyFile,
 						Timeout:                   timeout,
+						ImageVariant:              imageVariant,
 					})
 					if err != nil {
 						logErrorAndExit(err)
@@ -90,6 +103,7 @@ dapr mtls renew-certificate -k --ca-root-certificate <root.pem> --issuer-private
 						RootPrivateKeyFilePath: privateKey,
 						ValidUntil:             time.Hour * time.Duration(validUntil*24),
 						Timeout:                timeout,
+						ImageVariant:           imageVariant,
 					})
 					if err != nil {
 						logErrorAndExit(err)
@@ -97,8 +111,9 @@ dapr mtls renew-certificate -k --ca-root-certificate <root.pem> --issuer-private
 				} else {
 					print.InfoStatusEvent(os.Stdout, "generating fresh certificates")
 					err = kubernetes.RenewCertificate(kubernetes.RenewCertificateParams{
-						ValidUntil: time.Hour * time.Duration(validUntil*24),
-						Timeout:    timeout,
+						ValidUntil:   time.Hour * time.Duration(validUntil*24),
+						Timeout:      timeout,
+						ImageVariant: imageVariant,
 					})
 					if err != nil {
 						logErrorAndExit(err)
@@ -132,6 +147,7 @@ dapr mtls renew-certificate -k --ca-root-certificate <root.pem> --issuer-private
 	command.Flags().UintVarP(&validUntil, "valid-until", "", 365, "Max days before certificate expires")
 	command.Flags().BoolVarP(&restartDaprServices, "restart", "", false, "Restart Dapr control plane services")
 	command.Flags().UintVarP(&timeout, "timeout", "", 300, "The timeout for the certificate renewal")
+	command.Flags().StringVarP(&imageVariant, "image-variant", "", "", "The image variant to use for the Dapr runtime, for example: mariner")
 	command.MarkFlagRequired("kubernetes")
 	return command
 }

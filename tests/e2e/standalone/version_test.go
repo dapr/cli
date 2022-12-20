@@ -61,7 +61,7 @@ func TestStandaloneVersionNonDefaultDaprPath(t *testing.T) {
 		assert.NoError(t, err)
 		defer os.RemoveAll(daprPath) // clean up
 
-		daprRuntimeVersion, _ := common.GetVersionsFromEnv(t)
+		daprRuntimeVersion, _ := common.GetVersionsFromEnv(t, false)
 		output, err := cmdInit(daprRuntimeVersion, "--dapr-path", daprPath)
 		t.Log(output)
 		require.NoError(t, err, "init failed")
@@ -93,7 +93,7 @@ func TestStandaloneVersionNonDefaultDaprPath(t *testing.T) {
 		os.Setenv("DAPR_PATH", daprPath)
 		defer os.Unsetenv("DAPR_PATH")
 
-		daprRuntimeVersion, _ := common.GetVersionsFromEnv(t)
+		daprRuntimeVersion, _ := common.GetVersionsFromEnv(t, false)
 		output, err := cmdInit(daprRuntimeVersion)
 		t.Log(output)
 		require.NoError(t, err, "init failed")
@@ -129,7 +129,7 @@ func TestStandaloneVersionNonDefaultDaprPath(t *testing.T) {
 		os.Setenv("DAPR_PATH", daprPath2)
 		defer os.Unsetenv("DAPR_PATH")
 
-		daprRuntimeVersion, _ := common.GetVersionsFromEnv(t)
+		daprRuntimeVersion, _ := common.GetVersionsFromEnv(t, false)
 		output, err := cmdInit(daprRuntimeVersion, "--dapr-path", daprPath1)
 		t.Log(output)
 		require.NoError(t, err, "init failed")

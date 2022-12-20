@@ -49,6 +49,7 @@ type RunConfig struct {
 	MaxConcurrency     int    `arg:"app-max-concurrency"`
 	PlacementHostAddr  string `arg:"placement-host-address"`
 	ComponentsPath     string `arg:"components-path"`
+	ResourcesPath      string `arg:"resources-path"`
 	AppSSL             bool   `arg:"app-ssl"`
 	MetricsPort        int    `env:"DAPR_METRICS_PORT" arg:"metrics-port"`
 	MaxRequestBodySize int    `arg:"dapr-http-max-request-size"`
@@ -131,6 +132,10 @@ func (config *RunConfig) validate() error {
 	err = config.validateComponentPath()
 	if err != nil {
 		return err
+	}
+
+	if config.ResourcesPath != "" {
+		config.ComponentsPath = ""
 	}
 
 	if config.AppPort < 0 {
@@ -232,6 +237,7 @@ func newDaprMeta() (*DaprMeta, error) {
 
 func (config *RunConfig) getArgs() []string {
 	args := []string{}
+
 	schema := reflect.ValueOf(*config)
 	for i := 0; i < schema.NumField(); i++ {
 		valueField := schema.Field(i).Interface()
@@ -256,6 +262,7 @@ func (config *RunConfig) getArgs() []string {
 			}
 		}
 	}
+
 	if config.ConfigFile != "" {
 		sentryAddress := mtlsEndpoint(config.ConfigFile)
 		if sentryAddress != "" {
@@ -267,7 +274,6 @@ func (config *RunConfig) getArgs() []string {
 	if print.IsJSONLogEnabled() {
 		args = append(args, "--log-as-json")
 	}
-
 	return args
 }
 

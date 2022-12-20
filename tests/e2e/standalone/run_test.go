@@ -125,6 +125,32 @@ func TestStandaloneRun(t *testing.T) {
 		assert.Contains(t, output, "Exited Dapr successfully")
 	})
 
+	t.Run(fmt.Sprintf("check run with resources-path flag"), func(t *testing.T) {
+		args := []string{
+			"--app-id", "testapp",
+			"--resources-path", "../testdata/nonexistentdir",
+			"--", "bash", "-c", "echo 'test'",
+		}
+		output, err := cmdRun("", args...)
+		t.Log(output)
+		require.NoError(t, err, "run failed")
+		assert.Contains(t, output, "failed to load components: open ../testdata/nonexistentdir:")
+		assert.Contains(t, output, "Exited App successfully")
+		assert.Contains(t, output, "Exited Dapr successfully")
+
+		args = []string{
+			"--app-id", "testapp",
+			"--resources-path", "../testdata/resources",
+			"--", "bash", "-c", "echo 'test'",
+		}
+		output, err = cmdRun("", args...)
+		t.Log(output)
+		require.NoError(t, err, "run failed")
+		assert.Contains(t, output, "component loaded. name: test-statestore, type: state.in-memory/v1")
+		assert.Contains(t, output, "Exited App successfully")
+		assert.Contains(t, output, "Exited Dapr successfully")
+	})
+
 	t.Run("run with unknown flags", func(t *testing.T) {
 		output, err := cmdRun("", "--flag")
 		require.Error(t, err, "expected error on run unknown flag")
@@ -145,7 +171,7 @@ func TestStandaloneRunNonDefaultDaprPath(t *testing.T) {
 		assert.NoError(t, err)
 		defer os.RemoveAll(daprPath) // clean up
 
-		daprRuntimeVersion, _ := common.GetVersionsFromEnv(t)
+		daprRuntimeVersion, _ := common.GetVersionsFromEnv(t, false)
 		output, err := cmdInit(daprRuntimeVersion, "--dapr-path", daprPath)
 		t.Log(output)
 		require.NoError(t, err, "init failed")
@@ -181,7 +207,7 @@ func TestStandaloneRunNonDefaultDaprPath(t *testing.T) {
 		os.Setenv("DAPR_PATH", daprPath)
 		defer os.Unsetenv("DAPR_PATH")
 
-		daprRuntimeVersion, _ := common.GetVersionsFromEnv(t)
+		daprRuntimeVersion, _ := common.GetVersionsFromEnv(t, false)
 
 		output, err := cmdInit(daprRuntimeVersion)
 		t.Log(output)
@@ -220,7 +246,7 @@ func TestStandaloneRunNonDefaultDaprPath(t *testing.T) {
 		os.Setenv("DAPR_PATH", daprPath1)
 		defer os.Unsetenv("DAPR_PATH")
 
-		daprRuntimeVersion, _ := common.GetVersionsFromEnv(t)
+		daprRuntimeVersion, _ := common.GetVersionsFromEnv(t, false)
 
 		output, err := cmdInit(daprRuntimeVersion, "--dapr-path", daprPath2)
 		t.Log(output)
