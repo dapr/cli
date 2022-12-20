@@ -95,6 +95,10 @@ func createProvidedFiles(t *testing.T, config AppsRunConfig) {
 func tearDownCreatedFiles(t *testing.T) {
 	err := os.RemoveAll(commonResourcesDir)
 	assert.Nil(t, err)
+	err = os.RemoveAll(app1ResourcesDir)
+	assert.Nil(t, err)
+	err = os.Remove(app1ConfigFile)
+	assert.Nil(t, err)
 	err = os.RemoveAll(app1Dir)
 	assert.Nil(t, err)
 	err = os.RemoveAll(app2Dir)
