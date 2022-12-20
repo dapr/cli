@@ -259,6 +259,8 @@ func (config *RunConfig) getArgs() []string {
 	return args
 }
 
+// Recursive function to get all the args from the config struct.
+// this is needed because the config struct has embedded struct.
 func getArgsFromSchema(schema reflect.Value, args []string) []string {
 	for i := 0; i < schema.NumField(); i++ {
 		valueField := schema.Field(i).Interface()

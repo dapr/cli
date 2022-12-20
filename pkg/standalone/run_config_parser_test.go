@@ -38,7 +38,7 @@ func TestRunConfigParser(t *testing.T) {
 	assert.NotEmpty(t, appsRunConfig.Common.Env)
 
 	firstAppConfig := appsRunConfig.Apps[0]
-	assert.Equal(t, "webapp", firstAppConfig.AppID)
+	assert.Equal(t, "", firstAppConfig.AppID)
 	assert.Equal(t, "HTTP", firstAppConfig.AppProtocol)
 	assert.Equal(t, 8080, firstAppConfig.AppPort)
 	assert.Equal(t, "", firstAppConfig.UnixDomainSocket)
@@ -55,7 +55,6 @@ func TestValidationsInRunConfig(t *testing.T) {
 	// check mangatory fields are not empty.
 	for _, app := range config.Apps {
 		assert.NotEmpty(t, app.AppDir)
-		assert.NotEmpty(t, app.AppID)
 	}
 
 	// provided files/directories does not exist.
@@ -69,15 +68,8 @@ func TestValidationsInRunConfig(t *testing.T) {
 	err = config.ValidateRunConfig()
 	assert.Nil(t, err)
 
-	// negative case- app-id field is empty.
-	temp := config.Apps[0].AppID
-	config.Apps[0].AppID = ""
-	err = config.ValidateRunConfig()
-	assert.NotNil(t, err)
-	config.Apps[0].AppID = temp
-
 	// negative case- app-dir field is empty.
-	temp = config.Apps[0].AppDir
+	temp := config.Apps[0].AppDir
 	config.Apps[0].AppDir = ""
 	err = config.ValidateRunConfig()
 	assert.NotNil(t, err)
@@ -102,8 +94,6 @@ func createProvidedFiles(t *testing.T, config AppsRunConfig) {
 
 func tearDownCreatedFiles(t *testing.T) {
 	err := os.RemoveAll(commonResourcesDir)
-	assert.Nil(t, err)
-	err = os.RemoveAll(app1ResourcesDir)
 	assert.Nil(t, err)
 	err = os.RemoveAll(app1Dir)
 	assert.Nil(t, err)

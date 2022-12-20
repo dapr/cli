@@ -8,8 +8,7 @@ common:
     - name: tty
       value: sts
 apps:
-  - app_id: webapp
-    app_dir: ./webapp/
+  - app_dir: ./webapp/
     resources_dir: ./webapp/resources
     config_file: ./webapp/config.yaml
     app_protocol: HTTP

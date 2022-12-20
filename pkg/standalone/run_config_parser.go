@@ -66,9 +66,6 @@ func (a *AppsRunConfig) ValidateRunConfig() error {
 		return err
 	}
 	for _, app := range a.Apps {
-		if app.AppID == "" {
-			return fmt.Errorf("required filed %q not found in the provided app config file", "app_id")
-		}
 		if app.AppDir == "" {
 			return fmt.Errorf("required filed %q not found in the provided app config file", "app_dir")
 		}
