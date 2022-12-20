@@ -29,13 +29,14 @@ type AppsRunConfig struct {
 }
 
 type Apps struct {
-	Common `yaml:",inline"`
-	AppDir string `yaml:"app_dir"`
+	RunConfig `yaml:",inline"`
+	AppDir    string     `yaml:"app_dir"`
+	Env       []EnvItems `yaml:"env"`
 }
 
 type Common struct {
-	Env       []EnvItems `yaml:"env"`
-	RunConfig `yaml:",inline"`
+	Env             []EnvItems `yaml:"env"`
+	SharedRunConfig `yaml:",inline"`
 }
 
 type EnvItems struct {

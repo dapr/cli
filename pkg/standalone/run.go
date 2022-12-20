@@ -35,33 +35,38 @@ const sentryDefaultAddress = "localhost:50001"
 
 // RunConfig represents the application configuration parameters.
 type RunConfig struct {
-	AppID              string   `env:"APP_ID" arg:"app-id" yaml:"app_id"`
-	AppPort            int      `env:"APP_PORT" arg:"app-port" yaml:"app_port"`
-	HTTPPort           int      `env:"DAPR_HTTP_PORT" arg:"dapr-http-port"`
-	GRPCPort           int      `env:"DAPR_GRPC_PORT" arg:"dapr-grpc-port"`
-	ConfigFile         string   `arg:"config" yaml:"config_file"`
-	AppProtocol        string   `arg:"app-protocol" yaml:"app_protocol"`
-	Command            []string `yaml:"command"`
-	APIListenAddresses string   `arg:"dapr-listen-addresses"`
-	EnableProfiling    bool     `arg:"enable-profiling"`
-	ProfilePort        int      `arg:"profile-port"`
-	LogLevel           string   `arg:"log-level"`
-	MaxConcurrency     int      `arg:"app-max-concurrency"`
-	PlacementHostAddr  string   `arg:"placement-host-address"`
-	ComponentsPath     string   `arg:"components-path"`
-	ResourcesPath      string   `arg:"resources-path" yaml:"resources_dir"`
-	AppSSL             bool     `arg:"app-ssl"`
-	MetricsPort        int      `env:"DAPR_METRICS_PORT" arg:"metrics-port"`
-	MaxRequestBodySize int      `arg:"dapr-http-max-request-size"`
-	HTTPReadBufferSize int      `arg:"dapr-http-read-buffer-size"`
-	UnixDomainSocket   string   `arg:"unix-domain-socket" yaml:"unix_domain_socket"`
-	InternalGRPCPort   int      `arg:"dapr-internal-grpc-port"`
-	EnableAppHealth    bool     `arg:"enable-app-health-check"`
-	AppHealthPath      string   `arg:"app-health-check-path"`
-	AppHealthInterval  int      `arg:"app-health-probe-interval" ifneq:"0"`
-	AppHealthTimeout   int      `arg:"app-health-probe-timeout" ifneq:"0"`
-	AppHealthThreshold int      `arg:"app-health-threshold" ifneq:"0"`
-	EnableAPILogging   bool     `arg:"enable-api-logging"`
+	AppID            string   `env:"APP_ID" arg:"app-id" yaml:"app_id"`
+	AppPort          int      `env:"APP_PORT" arg:"app-port" yaml:"app_port"`
+	HTTPPort         int      `env:"DAPR_HTTP_PORT" arg:"dapr-http-port"`
+	GRPCPort         int      `env:"DAPR_GRPC_PORT" arg:"dapr-grpc-port"`
+	ProfilePort      int      `arg:"profile-port"`
+	Command          []string `yaml:"command"`
+	MetricsPort      int      `env:"DAPR_METRICS_PORT" arg:"metrics-port"`
+	UnixDomainSocket string   `arg:"unix-domain-socket" yaml:"unix_domain_socket"`
+	InternalGRPCPort int      `arg:"dapr-internal-grpc-port"`
+	SharedRunConfig  `yaml:",inline"`
+}
+
+// // SharedRunConfig represents the application configuration parameters, which can be shared across many apps.
+type SharedRunConfig struct {
+	ConfigFile         string `arg:"config" yaml:"config_file"`
+	AppProtocol        string `arg:"app-protocol" yaml:"app_protocol"`
+	APIListenAddresses string `arg:"dapr-listen-addresses"`
+	EnableProfiling    bool   `arg:"enable-profiling"`
+	LogLevel           string `arg:"log-level"`
+	MaxConcurrency     int    `arg:"app-max-concurrency"`
+	PlacementHostAddr  string `arg:"placement-host-address"`
+	ComponentsPath     string `arg:"components-path"`
+	ResourcesPath      string `arg:"resources-path" yaml:"resources_dir"`
+	AppSSL             bool   `arg:"app-ssl"`
+	MaxRequestBodySize int    `arg:"dapr-http-max-request-size"`
+	HTTPReadBufferSize int    `arg:"dapr-http-read-buffer-size"`
+	EnableAppHealth    bool   `arg:"enable-app-health-check"`
+	AppHealthPath      string `arg:"app-health-check-path"`
+	AppHealthInterval  int    `arg:"app-health-probe-interval" ifneq:"0"`
+	AppHealthTimeout   int    `arg:"app-health-probe-timeout" ifneq:"0"`
+	AppHealthThreshold int    `arg:"app-health-threshold" ifneq:"0"`
+	EnableAPILogging   bool   `arg:"enable-api-logging"`
 }
 
 func (meta *DaprMeta) newAppID() string {

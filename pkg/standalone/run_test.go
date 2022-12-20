@@ -138,24 +138,27 @@ func TestRun(t *testing.T) {
 	// Setup the tearDown routine to run in the end.
 	defer tearDownRun(t)
 
-	basicConfig := &RunConfig{
-		AppID:              "MyID",
-		AppPort:            3000,
-		HTTPPort:           8000,
-		GRPCPort:           50001,
+	sharedRunConfig := &SharedRunConfig{
 		LogLevel:           "WARN",
-		Command:            []string{"MyCommand", "--my-arg"},
 		EnableProfiling:    false,
-		ProfilePort:        9090,
 		AppProtocol:        "http",
 		ComponentsPath:     DefaultComponentsDirPath(),
 		AppSSL:             true,
-		MetricsPort:        9001,
 		MaxRequestBodySize: -1,
-		InternalGRPCPort:   5050,
 		HTTPReadBufferSize: -1,
 		EnableAPILogging:   true,
 		APIListenAddresses: "127.0.0.1",
+	}
+	basicConfig := &RunConfig{
+		AppID:            "MyID",
+		AppPort:          3000,
+		HTTPPort:         8000,
+		GRPCPort:         50001,
+		Command:          []string{"MyCommand", "--my-arg"},
+		ProfilePort:      9090,
+		MetricsPort:      9001,
+		InternalGRPCPort: 5050,
+		SharedRunConfig:  *sharedRunConfig,
 	}
 
 	t.Run("run happy http", func(t *testing.T) {

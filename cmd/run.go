@@ -111,15 +111,9 @@ dapr run --app-id myapp --app-port 3000 --app-protocol grpc -- go run main.go
 			}
 		}
 
-		output, err := standalone.Run(&standalone.RunConfig{
-			AppID:              appID,
-			AppPort:            appPort,
-			HTTPPort:           port,
-			GRPCPort:           grpcPort,
+		sharedRunConfig := &standalone.SharedRunConfig{
 			ConfigFile:         configFile,
-			Command:            args,
 			EnableProfiling:    enableProfiling,
-			ProfilePort:        profilePort,
 			LogLevel:           logLevel,
 			MaxConcurrency:     maxConcurrency,
 			AppProtocol:        protocol,
@@ -127,18 +121,27 @@ dapr run --app-id myapp --app-port 3000 --app-protocol grpc -- go run main.go
 			ComponentsPath:     componentsPath,
 			ResourcesPath:      resourcesPath,
 			AppSSL:             appSSL,
-			MetricsPort:        metricsPort,
 			MaxRequestBodySize: maxRequestBodySize,
 			HTTPReadBufferSize: readBufferSize,
-			UnixDomainSocket:   unixDomainSocket,
 			EnableAppHealth:    enableAppHealth,
 			AppHealthPath:      appHealthPath,
 			AppHealthInterval:  appHealthInterval,
 			AppHealthTimeout:   appHealthTimeout,
 			AppHealthThreshold: appHealthThreshold,
 			EnableAPILogging:   enableAPILogging,
-			InternalGRPCPort:   internalGRPCPort,
 			APIListenAddresses: apiListenAddresses,
+		}
+		output, err := standalone.Run(&standalone.RunConfig{
+			AppID:            appID,
+			AppPort:          appPort,
+			HTTPPort:         port,
+			GRPCPort:         grpcPort,
+			ProfilePort:      profilePort,
+			Command:          args,
+			MetricsPort:      metricsPort,
+			UnixDomainSocket: unixDomainSocket,
+			InternalGRPCPort: internalGRPCPort,
+			SharedRunConfig:  *sharedRunConfig,
 		})
 		if err != nil {
 			print.FailureStatusEvent(os.Stderr, err.Error())
