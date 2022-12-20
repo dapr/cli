@@ -79,7 +79,7 @@ func copyInMemStateStore(t *testing.T) {
 }
 
 func initTest(t *testing.T) {
-	daprRuntimeVersion, _ := common.GetVersionsFromEnv(t)
+	daprRuntimeVersion, _ := common.GetVersionsFromEnv(t, false)
 
 	output, err := cmdInit(daprRuntimeVersion)
 	t.Log(output)

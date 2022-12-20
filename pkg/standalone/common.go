@@ -82,7 +82,7 @@ func emptyAndCopyFiles(src, dest string) error {
 		return err
 	}
 	for _, file := range files {
-		err = os.Remove(dest + "/" + file.Name())
+		err = os.Remove(path_filepath.Join(dest, file.Name()))
 		if err != nil {
 			return err
 		}
@@ -94,12 +94,12 @@ func emptyAndCopyFiles(src, dest string) error {
 	if len(files) > 0 {
 		print.InfoStatusEvent(os.Stdout, "Moving files from %q to %q", src, dest)
 		for _, file := range files {
-			content, err := os.ReadFile(src + "/" + file.Name())
+			content, err := os.ReadFile(path_filepath.Join(src, file.Name()))
 			if err != nil {
 				return err
 			}
 			// #nosec G306
-			err = os.WriteFile(dest+"/"+file.Name(), content, 0o644)
+			err = os.WriteFile(path_filepath.Join(dest, file.Name()), content, 0o644)
 			if err != nil {
 				return err
 			}
