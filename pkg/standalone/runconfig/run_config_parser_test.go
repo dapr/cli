@@ -11,7 +11,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package standalone
+package runconfig
 
 import (
 	"os"
@@ -21,15 +21,16 @@ import (
 )
 
 const (
-	commonResourcesDir = "./app/resources"
-	app1Dir            = "./webapp/"
-	app1ResourcesDir   = "./webapp/resources"
-	app1ConfigFile     = "./webapp/config.yaml"
-	app2Dir            = "./backend/"
+	commonResourcesParentDir = "./app"
+	commonResourcesDir       = "./app/resources"
+	app1Dir                  = "./webapp/"
+	app1ResourcesDir         = "./webapp/resources"
+	app1ConfigFile           = "./webapp/config.yaml"
+	app2Dir                  = "./backend/"
+	configFilePath           = "../testdata/test_run_config.yaml"
 )
 
 func TestRunConfigParser(t *testing.T) {
-	configFilePath := "./testdata/test_run_config.yaml"
 	appsRunConfig := AppsRunConfig{}
 	appsRunConfig.ParseAppsConfig(configFilePath)
 
@@ -48,7 +49,6 @@ func TestValidationsInRunConfig(t *testing.T) {
 	// tear down the created files.
 	tearDownCreatedFiles(t)
 
-	configFilePath := "./testdata/test_run_config.yaml"
 	config := AppsRunConfig{}
 	config.ParseAppsConfig(configFilePath)
 
@@ -95,9 +95,11 @@ func createProvidedFiles(t *testing.T, config AppsRunConfig) {
 func tearDownCreatedFiles(t *testing.T) {
 	err := os.RemoveAll(commonResourcesDir)
 	assert.Nil(t, err)
+	err = os.RemoveAll(commonResourcesParentDir)
+	assert.Nil(t, err)
 	err = os.RemoveAll(app1ResourcesDir)
 	assert.Nil(t, err)
-	err = os.Remove(app1ConfigFile)
+	err = os.RemoveAll(app1ConfigFile)
 	assert.Nil(t, err)
 	err = os.RemoveAll(app1Dir)
 	assert.Nil(t, err)

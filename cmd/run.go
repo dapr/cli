@@ -28,6 +28,7 @@ import (
 	"github.com/dapr/cli/pkg/metadata"
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/pkg/standalone"
+	"github.com/dapr/cli/pkg/standalone/runconfig"
 	"github.com/dapr/cli/utils"
 )
 
@@ -408,7 +409,7 @@ func init() {
 }
 
 func executeRunWithAppsConfigFile(configFile string) {
-	config := standalone.AppsRunConfig{}
+	config := runconfig.AppsRunConfig{}
 	err := config.ParseAppsConfig(configFile)
 	if err != nil {
 		print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error parsing apps config file: %s", err))

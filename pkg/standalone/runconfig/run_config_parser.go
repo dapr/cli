@@ -11,38 +11,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package standalone
+package runconfig
 
 import (
 	"fmt"
 	"os"
 
 	"github.com/dapr/cli/utils"
-
 	"gopkg.in/yaml.v2"
 )
-
-type AppsRunConfig struct {
-	Common  Common `yaml:"common"`
-	Apps    []Apps `yaml:"apps"`
-	Version int    `yaml:"version"`
-}
-
-type Apps struct {
-	RunConfig `yaml:",inline"`
-	AppDir    string     `yaml:"app_dir"`
-	Env       []EnvItems `yaml:"env"`
-}
-
-type Common struct {
-	Env             []EnvItems `yaml:"env"`
-	SharedRunConfig `yaml:",inline"`
-}
-
-type EnvItems struct {
-	Name  string `yaml:"name"`
-	Value string `yaml:"value"`
-}
 
 func (a *AppsRunConfig) ParseAppsConfig(configFile string) error {
 	bytes, err := os.ReadFile(configFile)
