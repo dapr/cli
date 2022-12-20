@@ -47,7 +47,7 @@ type RunConfig struct {
 	SharedRunConfig  `yaml:",inline"`
 }
 
-// // SharedRunConfig represents the application configuration parameters, which can be shared across many apps.
+// SharedRunConfig represents the application configuration parameters, which can be shared across many apps.
 type SharedRunConfig struct {
 	ConfigFile         string `arg:"config" yaml:"config_file"`
 	AppProtocol        string `arg:"app-protocol" yaml:"app_protocol"`
@@ -243,10 +243,30 @@ func (config *RunConfig) getArgs() []string {
 	args := []string{}
 
 	schema := reflect.ValueOf(*config)
+	args = getArgsFromSchema(schema, args)
+
+	if config.ConfigFile != "" {
+		sentryAddress := mtlsEndpoint(config.ConfigFile)
+		if sentryAddress != "" {
+			// mTLS is enabled locally, set it up.
+			args = append(args, "--enable-mtls", "--sentry-address", sentryAddress)
+		}
+	}
+
+	if print.IsJSONLogEnabled() {
+		args = append(args, "--log-as-json")
+	}
+	return args
+}
+
+func getArgsFromSchema(schema reflect.Value, args []string) []string {
 	for i := 0; i < schema.NumField(); i++ {
 		valueField := schema.Field(i).Interface()
 		typeField := schema.Type().Field(i)
 		key := typeField.Tag.Get("arg")
+		if typeField.Type.Kind() == reflect.Struct {
+			args = getArgsFromSchema(schema.Field(i), args)
+		}
 		if len(key) == 0 {
 			continue
 		}
@@ -265,18 +285,6 @@ func (config *RunConfig) getArgs() []string {
 				args = append(args, key, value)
 			}
 		}
-	}
-
-	if config.ConfigFile != "" {
-		sentryAddress := mtlsEndpoint(config.ConfigFile)
-		if sentryAddress != "" {
-			// mTLS is enabled locally, set it up.
-			args = append(args, "--enable-mtls", "--sentry-address", sentryAddress)
-		}
-	}
-
-	if print.IsJSONLogEnabled() {
-		args = append(args, "--log-as-json")
 	}
 	return args
 }
