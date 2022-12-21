@@ -139,7 +139,7 @@ func ensureDaprInstallation(t *testing.T) {
 		if err != nil {
 			// Ensure a clean environment
 			must(t, cmdUninstall, "failed to uninstall Dapr")
-			output, err = cmdInit(daprRuntimeVersion)
+			output, err = cmdInit(args...)
 		}
 		require.NoError(t, err, "failed to install dapr:%v", output)
 	} else if err != nil {

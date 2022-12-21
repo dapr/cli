@@ -136,7 +136,7 @@ func TestStandaloneInit(t *testing.T) {
 		assert.NoError(t, err)
 		defer os.RemoveAll(daprPath) // clean up
 
-		output, err := cmdInit(daprRuntimeVersion, "--dapr-path", daprPath)
+		output, err := cmdInit("--runtime-version", daprRuntimeVersion, "--dapr-path", daprPath)
 		t.Log(output)
 		require.NoError(t, err, "init failed")
 		assert.Contains(t, output, "Success! Dapr is up and running.")
@@ -157,7 +157,7 @@ func TestStandaloneInit(t *testing.T) {
 		os.Setenv("DAPR_PATH", daprPath)
 		defer os.Unsetenv("DAPR_PATH")
 
-		output, err := cmdInit(daprRuntimeVersion)
+		output, err := cmdInit("--runtime-version", daprRuntimeVersion)
 		t.Log(output)
 		require.NoError(t, err, "init failed")
 		assert.Contains(t, output, "Success! Dapr is up and running.")
@@ -181,7 +181,7 @@ func TestStandaloneInit(t *testing.T) {
 		os.Setenv("DAPR_PATH", daprPath1)
 		defer os.Unsetenv("DAPR_PATH")
 
-		output, err := cmdInit(daprRuntimeVersion, "--dapr-path", daprPath2)
+		output, err := cmdInit("--runtime-version", daprRuntimeVersion, "--dapr-path", daprPath2)
 		t.Log(output)
 		require.NoError(t, err, "init failed")
 		assert.Contains(t, output, "Success! Dapr is up and running.")
