@@ -2,6 +2,8 @@
 version: 1
 common:
   resources_dir: ./app/resources
+  app_protocol: HTTP
+  app_health_probe_timeout: 10
   env:
     - name: DEBUG
       value: false
@@ -11,8 +13,8 @@ apps:
   - app_dir: ./webapp/
     resources_dir: ./webapp/resources
     config_file: ./webapp/config.yaml
-    app_protocol: HTTP
     app_port: 8080
+    AppHealthTimeout: 0
     command: ["python3", "app.py"]
   - app_id: backend
     app_dir: ./backend/
