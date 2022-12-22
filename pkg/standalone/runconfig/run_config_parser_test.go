@@ -126,8 +126,9 @@ func createProvidedFiles(t *testing.T, config AppsRunConfig) {
 	assert.Nil(t, err)
 	err = os.MkdirAll(app2Dir, os.ModePerm)
 	assert.Nil(t, err)
-	_, err = os.Create(app1ConfigFile)
+	configFile, err := os.Create(app1ConfigFile)
 	assert.Nil(t, err)
+	configFile.Close()
 }
 
 func tearDownCreatedFiles(t *testing.T) {
