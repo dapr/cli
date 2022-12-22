@@ -14,7 +14,7 @@ apps:
     resources_dir: ./webapp/resources
     config_file: ./webapp/config.yaml
     app_port: 8080
-    AppHealthTimeout: 0
+    app_health_probe_timeout: 1
     command: ["python3", "app.py"]
   - app_id: backend
     app_dir: ./backend/

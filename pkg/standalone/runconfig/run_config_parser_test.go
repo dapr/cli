@@ -32,15 +32,19 @@ const (
 
 func TestRunConfigParser(t *testing.T) {
 	appsRunConfig := AppsRunConfig{}
-	appsRunConfig.ParseAppsConfig(configFilePath)
+	keyMappings, err := appsRunConfig.ParseAppsConfig(configFilePath)
+
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(keyMappings))
 
 	assert.Equal(t, 1, appsRunConfig.Version)
 	assert.NotEmpty(t, appsRunConfig.Common.ResourcesPath)
 	assert.NotEmpty(t, appsRunConfig.Common.Env)
 
 	firstAppConfig := appsRunConfig.Apps[0]
+	secondAppConfig := appsRunConfig.Apps[1]
 	assert.Equal(t, "", firstAppConfig.AppID)
-	assert.Equal(t, "HTTP", firstAppConfig.AppProtocol)
+	assert.Equal(t, "GRPC", secondAppConfig.AppProtocol)
 	assert.Equal(t, 8080, firstAppConfig.AppPort)
 	assert.Equal(t, "", firstAppConfig.UnixDomainSocket)
 }
@@ -79,6 +83,39 @@ func TestValidationsInRunConfig(t *testing.T) {
 	tearDownCreatedFiles(t)
 }
 
+func TestGetApps(t *testing.T) {
+	keymapping := []map[string]string{}
+	keymapping = append(
+		keymapping,
+		map[string]string{"AppHealthTimeout": "int", "app_dir": "string", "app_port": "int", "command": "[]interface {}", "config_file": "string", "resources_dir": "string"},
+		map[string]string{"app_dir": "string", "app_id": "string", "app_port": "int", "app_protocol": "string", "command": "[]interface {}", "env": "[]interface {}", "unix_domain_socket": "string"},
+	)
+
+	tearDownCreatedFiles(t)
+
+	config := AppsRunConfig{}
+	config.ParseAppsConfig(configFilePath)
+
+	// create the files/directories provided in the config file.
+	createProvidedFiles(t, config)
+
+	apps := config.GetApps(keymapping)
+
+	assert.Equal(t, 2, len(apps))
+	assert.Equal(t, "webapp", apps[0].AppID)
+	assert.Equal(t, "backend", apps[1].AppID)
+	assert.Equal(t, "HTTP", apps[0].AppProtocol)
+	assert.Equal(t, "GRPC", apps[1].AppProtocol)
+	assert.Equal(t, 8080, apps[0].AppPort)
+	assert.Equal(t, 1, apps[0].AppHealthTimeout)
+	assert.Equal(t, 10, apps[1].AppHealthTimeout)
+	assert.Equal(t, "", apps[0].UnixDomainSocket)
+	assert.Equal(t, "/tmp/test-socket", apps[1].UnixDomainSocket)
+
+	// tear down the created files.
+	tearDownCreatedFiles(t)
+}
+
 func createProvidedFiles(t *testing.T, config AppsRunConfig) {
 	err := os.MkdirAll(commonResourcesDir, os.ModePerm)
 	assert.Nil(t, err)
@@ -93,13 +130,7 @@ func createProvidedFiles(t *testing.T, config AppsRunConfig) {
 }
 
 func tearDownCreatedFiles(t *testing.T) {
-	err := os.RemoveAll(commonResourcesDir)
-	assert.Nil(t, err)
-	err = os.RemoveAll(commonResourcesParentDir)
-	assert.Nil(t, err)
-	err = os.RemoveAll(app1ResourcesDir)
-	assert.Nil(t, err)
-	err = os.RemoveAll(app1ConfigFile)
+	err := os.RemoveAll(commonResourcesParentDir)
 	assert.Nil(t, err)
 	err = os.RemoveAll(app1Dir)
 	assert.Nil(t, err)
