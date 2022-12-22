@@ -111,7 +111,7 @@ jobs:
           fi
         shell: bash
       - name: Set the test timeout - MacOS
-        if: matrix.os == 'macOS-latest'
+        if: matrix.os == 'macos-latest'
         run: echo "TEST_TIMEOUT=20m" >> $GITHUB_ENV
       - name: Run E2E tests with GHCR
         # runs every 6hrs
