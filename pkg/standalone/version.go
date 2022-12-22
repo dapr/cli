@@ -24,34 +24,42 @@ var (
 	gitcommit, gitversion string
 )
 
+const naStr = "n/a\n"
+
 // GetRuntimeVersion returns the version for the local Dapr runtime.
-func GetRuntimeVersion() string {
-	daprBinDir := defaultDaprBinPath()
-	daprCMD := binaryFilePath(daprBinDir, "daprd")
+func GetRuntimeVersion(inputInstallPath string) (string, error) {
+	daprCMD, err := lookupBinaryFilePath(inputInstallPath, "daprd")
+	if err != nil {
+		return naStr, err
+	}
 
 	out, err := exec.Command(daprCMD, "--version").Output()
 	if err != nil {
-		return "n/a\n"
+		return naStr, err
 	}
-	return string(out)
+	return string(out), nil
 }
 
 // GetDashboardVersion returns the version for the local Dapr dashboard.
-func GetDashboardVersion() string {
-	daprBinDir := defaultDaprBinPath()
-	dashboardCMD := binaryFilePath(daprBinDir, "dashboard")
+func GetDashboardVersion(inputInstallPath string) (string, error) {
+	dashboardCMD, err := lookupBinaryFilePath(inputInstallPath, "dashboard")
+	if err != nil {
+		return naStr, err
+	}
 
 	out, err := exec.Command(dashboardCMD, "--version").Output()
 	if err != nil {
-		return "n/a\n"
+		return naStr, err
 	}
-	return string(out)
+	return string(out), nil
 }
 
 // GetBuildInfo returns build info for the CLI and the local Dapr runtime.
-func GetBuildInfo(version string) string {
-	daprBinDir := defaultDaprBinPath()
-	daprCMD := binaryFilePath(daprBinDir, "daprd")
+func GetBuildInfo(inputInstallPath string, version string) (string, error) {
+	daprCMD, err := lookupBinaryFilePath(inputInstallPath, "daprd")
+	if err != nil {
+		return naStr, err
+	}
 
 	strs := []string{
 		"CLI:",
@@ -74,5 +82,5 @@ func GetBuildInfo(version string) string {
 			strs = append(strs, "\t"+scanner.Text())
 		}
 	}
-	return strings.Join(strs, "\n")
+	return strings.Join(strs, "\n"), nil
 }

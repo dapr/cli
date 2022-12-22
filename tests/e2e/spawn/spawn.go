@@ -22,19 +22,24 @@ import (
 // CommandWithContext runs a command with its arguments in background.
 // The provided context is used to kill the command (by calling os.Process.Kill)
 // if the context becomes done before the command completes on its own.
-// The return channel can be used to read the stdout.
-func CommandWithContext(ctx context.Context, command string, arguments ...string) (chan string, error) {
+// The return channels can be used to read stdout & stderr.
+func CommandWithContext(ctx context.Context, command string, arguments ...string) (chan string, chan string, error) {
 	cmd := exec.CommandContext(ctx, command, arguments...)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return nil, nil, err
 	}
 
 	if err = cmd.Start(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	stdOutChan := make(chan string)
+	stdErrChan := make(chan string)
 
 	go func() {
 		scanner := bufio.NewScanner(stdout)
@@ -44,8 +49,16 @@ func CommandWithContext(ctx context.Context, command string, arguments ...string
 		close(stdOutChan)
 		cmd.Wait()
 	}()
+	go func() {
+		scanner := bufio.NewScanner(stderr)
+		for scanner.Scan() {
+			stdErrChan <- scanner.Text()
+		}
+		close(stdErrChan)
+		cmd.Wait()
+	}()
 
-	return stdOutChan, nil
+	return stdOutChan, stdErrChan, nil
 }
 
 // Command runs a command with its arguments and returns the stdout or stderr or the error.

@@ -304,3 +304,56 @@ func TestIsAirGapInit(t *testing.T) {
 		})
 	}
 }
+
+func TestNonDefaultInstallWithFlag(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "daprtest-nondefault-install-withflag-*")
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir) // clean up.
+
+	err = Init(latestVersion, latestVersion, "", true, "", "", "docker", "", tmpDir)
+	assert.NoError(t, err)
+
+	daprCMD := binaryFilePathWithDir(daprBinPath(tmpDir), "daprd")
+
+	assert.FileExists(t, daprCMD)
+}
+
+func TestNonDefaultInstallWithEnvVar(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "daprtest-nondefault-install-withenv-*")
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir) // clean up.
+
+	t.Setenv("DAPR_PATH", tmpDir)
+	defer os.Unsetenv("DAPR_PATH")
+
+	err = Init(latestVersion, latestVersion, "", true, "", "", "docker", "", "")
+	assert.NoError(t, err)
+
+	daprCMD := binaryFilePathWithDir(daprBinPath(tmpDir), "daprd")
+
+	assert.FileExists(t, daprCMD)
+}
+
+func TestNonDefaultInstallWithFlagAndEnvVar(t *testing.T) {
+	tmpDir1, err := os.MkdirTemp("", "daprtest-nondefault-install-withboth-flag-*")
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir1) // clean up.
+
+	tmpDir2, err := os.MkdirTemp("", "daprtest-nondefault-install-withboth-env-*")
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir2) // clean up.
+
+	t.Setenv("DAPR_PATH", tmpDir2)
+	defer os.Unsetenv("DAPR_PATH")
+
+	err = Init(latestVersion, latestVersion, "", true, "", "", "docker", "", tmpDir1)
+	assert.NoError(t, err)
+
+	daprCMD := binaryFilePathWithDir(daprBinPath(tmpDir1), "daprd")
+
+	assert.FileExists(t, daprCMD)
+
+	daprCMD = binaryFilePathWithDir(daprBinPath(tmpDir2), "daprd")
+
+	assert.NoFileExists(t, daprCMD)
+}
