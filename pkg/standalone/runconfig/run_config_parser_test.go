@@ -15,19 +15,20 @@ package runconfig
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-const (
-	commonResourcesParentDir = "./app"
-	commonResourcesDir       = "./app/resources"
-	app1Dir                  = "./webapp/"
-	app1ResourcesDir         = "./webapp/resources"
-	app1ConfigFile           = "./webapp/config.yaml"
-	app2Dir                  = "./backend/"
-	configFilePath           = "../testdata/test_run_config.yaml"
+var (
+	commonResourcesParentDir = filepath.Join(".", "app")
+	commonResourcesDir       = filepath.Join(".", "app", "resources")
+	app1Dir                  = filepath.Join(".", "webapp")
+	app1ResourcesDir         = filepath.Join(".", "webapp", "resources")
+	app1ConfigFile           = filepath.Join(".", "webapp", "config.yaml")
+	app2Dir                  = filepath.Join(".", "backend")
+	configFilePath           = filepath.Join("..", "testdata", "test_run_config.yaml")
 )
 
 func TestRunConfigParser(t *testing.T) {
