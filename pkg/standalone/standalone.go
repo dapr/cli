@@ -1052,18 +1052,27 @@ func downloadFile(dir string, url string) (string, error) {
 	fileName := tokens[len(tokens)-1]
 
 	filepath := path.Join(dir, fileName)
-	_, err := os.Stat(filepath)
+
+	print.InfoStatusEvent(os.Stdout, "  => download to: %s", filepath)
+
+	fileStat, err := os.Stat(filepath)
 	if os.IsExist(err) {
 		return "", nil
 	}
+
+	if fileStat.Size() > 0 {
+		print.InfoStatusEvent(os.Stdout, "  => %s already exists", fileName)
+		return filepath, nil
+	}
+
 	client := http.Client{ //nolint:exhaustruct
-		Timeout: 0,
+		Timeout: 5 * time.Minute,
 		Transport: &http.Transport{ //nolint:exhaustruct
 			Dial: (&net.Dialer{ //nolint:exhaustruct
-				Timeout: 30 * time.Second,
+				Timeout: 60 * time.Second,
 			}).Dial,
-			TLSHandshakeTimeout:   15 * time.Second,
-			ResponseHeaderTimeout: 15 * time.Second,
+			TLSHandshakeTimeout:   5 * time.Minute,
+			ResponseHeaderTimeout: 5 * time.Minute,
 			Proxy:                 http.ProxyFromEnvironment,
 		},
 	}
