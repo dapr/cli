@@ -14,6 +14,7 @@ limitations under the License.
 package standalone
 
 import (
+	"fmt"
 	"os"
 	path_filepath "path/filepath"
 	"runtime"
@@ -68,42 +69,72 @@ func DefaultConfigFilePath() string {
 }
 
 // emptyAndCopyFiles copies files from src to dest. It deletes the existing files in dest before copying from src.
+// this method also deletes the components dir and makes it as a symlink to resources directory.
+// please see this comment for more details:https://github.com/dapr/cli/pull/1149#issuecomment-1364424345
 // TODO: Remove this function when `--components-path` flag is removed.
 func emptyAndCopyFiles(src, dest string) error {
 	if _, err := os.Stat(src); err != nil {
-		// if the src directory does not exist, return nil, because there is nothing to copy from.
+		// if the src directory does not exist, create symlink and return nil, because there is nothing to copy from.
 		if os.IsNotExist(err) {
+			err = createSymLink(dest, src)
+			if err != nil {
+				return err
+			}
 			return nil
 		}
-		return err
+		return fmt.Errorf("error reading directory %s: %w", src, err)
 	}
 	files, err := os.ReadDir(dest)
 	if err != nil {
-		return err
+		return fmt.Errorf("error reading files from %s: %w", dest, err)
 	}
 	for _, file := range files {
 		err = os.Remove(path_filepath.Join(dest, file.Name()))
 		if err != nil {
-			return err
+			return fmt.Errorf("error removing file %s: %w", file.Name(), err)
 		}
 	}
 	files, err = os.ReadDir(src)
 	if err != nil {
-		return err
+		return fmt.Errorf("error reading files from %s: %w", src, err)
 	}
 	if len(files) > 0 {
 		print.InfoStatusEvent(os.Stdout, "Moving files from %q to %q", src, dest)
+		var content []byte
 		for _, file := range files {
-			content, err := os.ReadFile(path_filepath.Join(src, file.Name()))
+			content, err = os.ReadFile(path_filepath.Join(src, file.Name()))
 			if err != nil {
-				return err
+				return fmt.Errorf("error reading file %s: %w", file.Name(), err)
 			}
 			// #nosec G306
 			err = os.WriteFile(path_filepath.Join(dest, file.Name()), content, 0o644)
 			if err != nil {
-				return err
+				return fmt.Errorf("error writing file %s: %w", file.Name(), err)
 			}
 		}
+	}
+	// delete the components dir and make it as a symlink to resources directory.
+	err = os.RemoveAll(src)
+	if err != nil {
+		return fmt.Errorf("error removing directory %s: %w", src, err)
+	}
+	err = createSymLink(dest, src)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func createSymLink(dirName, symLinkName string) error {
+	if _, err := os.Stat(dirName); err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("directory %s does not exist", dirName)
+		}
+		return fmt.Errorf("error reading directory %s: %w", dirName, err)
+	}
+	err := os.Symlink(dirName, symLinkName)
+	if err != nil {
+		return fmt.Errorf("error creating symlink from %s to %s: %w", dirName, symLinkName, err)
 	}
 	return nil
 }

@@ -308,7 +308,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		}
 		print.InfoStatusEvent(os.Stdout, "Use `%s ps` to check running containers.", runtimeCmd)
 	}
-	// TODO: remove below method when components-path flag is removed.
+	// TODO: remove below method when usages of components-path flag and components directory removed completely.
 	err = emptyAndCopyFiles(DefaultComponentsDirPath(), DefaultResourcesDirPath())
 	if err != nil {
 		return err
