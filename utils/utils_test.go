@@ -14,6 +14,7 @@ limitations under the License.
 package utils
 
 import (
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -162,4 +163,56 @@ func TestGetVersionAndImageVariant(t *testing.T) {
 			assert.Equal(t, tc.expectedImageVariant, imageVariant)
 		})
 	}
+}
+
+func TestValidateFilePaths(t *testing.T) {
+	dirName := createTempDir(t, "test_validate_paths")
+	defer cleanupTempDir(t, dirName)
+	valideFile := createTempFile(t, dirName, "valid_test_file.yaml")
+	testcases := []struct {
+		name        string
+		input       []string
+		expectedErr bool
+	}{
+		{
+			name:        "empty list",
+			input:       []string{},
+			expectedErr: false,
+		},
+		{
+			name:        "list with valid file path",
+			input:       []string{valideFile},
+			expectedErr: false,
+		},
+		{
+			name:        "list with invalid file path",
+			input:       []string{"invalid_file_path"},
+			expectedErr: true,
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := ValidateFilePaths(tc.input...)
+			assert.Equal(t, tc.expectedErr, actual != nil)
+		})
+	}
+}
+
+func createTempDir(t *testing.T, tempDirName string) string {
+	dirName, err := os.MkdirTemp("", tempDirName)
+	assert.NoError(t, err)
+	return dirName
+}
+
+func createTempFile(t *testing.T, tempDirName, fileName string) string {
+	file, err := os.CreateTemp(tempDirName, fileName)
+	assert.NoError(t, err)
+	defer file.Close()
+	return file.Name()
+}
+
+func cleanupTempDir(t *testing.T, dirName string) {
+	err := os.RemoveAll(dirName)
+	assert.NoError(t, err)
 }

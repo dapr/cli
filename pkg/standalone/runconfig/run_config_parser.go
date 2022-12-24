@@ -14,11 +14,11 @@ limitations under the License.
 package runconfig
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
-	"sync"
 
 	"github.com/dapr/cli/utils"
 
@@ -31,11 +31,11 @@ const APPS = "apps"
 func (a *AppsRunConfig) ParseAppsConfig(configFile string) ([]map[string]string, error) {
 	bytes, err := os.ReadFile(configFile)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error in reading the provided app config file: %w", err)
 	}
 	err = yaml.Unmarshal(bytes, &a)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error in parsing the provided app config file: %w", err)
 	}
 	keyMappings, err := a.getKeyMappingFromYaml(bytes)
 	if err != nil {
@@ -46,7 +46,7 @@ func (a *AppsRunConfig) ParseAppsConfig(configFile string) ([]map[string]string,
 
 func (a *AppsRunConfig) ValidateRunConfig() error {
 	if a.Version == 0 {
-		return fmt.Errorf("required filed %q not found in the provided app config file", "version")
+		return errors.New("required field 'version' not found in the provided run template file")
 	}
 	// validate all paths in commons.
 	err := utils.ValidateFilePaths(a.Common.ConfigFile, a.Common.ResourcesPath)
@@ -54,11 +54,11 @@ func (a *AppsRunConfig) ValidateRunConfig() error {
 		return err
 	}
 	for i := 0; i < len(a.Apps); i++ {
-		if a.Apps[i].AppDir == "" {
-			return fmt.Errorf("required filed %q not found in the provided app config file", "app_dir")
+		if a.Apps[i].AppDirPath == "" {
+			return errors.New("required filed 'app_dir_path' not found in the provided app config file")
 		}
 		// validate all paths in apps.
-		err := utils.ValidateFilePaths(a.Apps[i].ConfigFile, a.Apps[i].ResourcesPath, a.Apps[i].AppDir)
+		err := utils.ValidateFilePaths(a.Apps[i].ConfigFile, a.Apps[i].ResourcesPath, a.Apps[i].AppDirPath)
 		if err != nil {
 			return err
 		}
@@ -73,7 +73,7 @@ func (a *AppsRunConfig) getKeyMappingFromYaml(bytes []byte) ([]map[string]string
 	tempMap := make(map[string]interface{})
 	err := yaml.Unmarshal(bytes, &tempMap)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error in parsing the provided app config file to extract provided parameters: %w", err)
 	}
 	apps := tempMap[APPS].([]interface{})
 	for _, app := range apps {
@@ -88,41 +88,23 @@ func (a *AppsRunConfig) getKeyMappingFromYaml(bytes []byte) ([]map[string]string
 
 // GetApps returns a list of apps with the merged values fopr the keys from common section of the yaml file.
 func (a *AppsRunConfig) GetApps(keyMappings []map[string]string) []Apps {
-	var wg sync.WaitGroup
-	wg.Add(2)
-
 	// get a mapping of parsed values from the yaml file for the common section.
-	sharedRunConfigMap := make(map[string]reflect.Value)
-	go func() {
-		defer wg.Done()
-		sharedConfigSchema := reflect.ValueOf(a.Common.SharedRunConfig)
-		for i := 0; i < sharedConfigSchema.NumField(); i++ {
-			valueField := sharedConfigSchema.Field(i).Interface()
-			typeField := sharedConfigSchema.Type().Field(i)
-			sharedRunConfigMap[typeField.Name] = reflect.ValueOf(valueField)
-		}
-	}()
+	sharedRunConfigMapChan := make(chan map[string]reflect.Value)
+	go a.getSharedRunConfigMap(sharedRunConfigMapChan)
 
 	// get a list of maps with key as the field name and value as the reflect value of the field for the apps section of the yaml file.
-	appRunConfigList := make([]map[string]reflect.Value, 0)
-	go func() {
-		defer wg.Done()
-		for j := 0; j < len(a.Apps); j++ {
-			// set appID to appDir if not provided.
-			if a.Apps[j].AppID == "" {
-				a.Apps[j].AppID = filepath.Dir(a.Apps[j].AppDir)
-			}
-			appSchema := reflect.ValueOf(a.Apps[j].RunConfig.SharedRunConfig)
-			appRunConfigMap := make(map[string]reflect.Value)
-			for i := 0; i < appSchema.NumField(); i++ {
-				valueField := appSchema.Field(i).Interface()
-				typeField := appSchema.Type().Field(i)
-				appRunConfigMap[typeField.Name] = reflect.ValueOf(valueField)
-			}
-			appRunConfigList = append(appRunConfigList, appRunConfigMap)
+	appRunConfigListChan := make(chan []map[string]reflect.Value)
+	go a.getAppRunConfigList(appRunConfigListChan)
+
+	var sharedRunConfigMap map[string]reflect.Value
+	var appRunConfigList []map[string]reflect.Value
+
+	for i := 0; i < 2; i++ {
+		select {
+		case sharedRunConfigMap = <-sharedRunConfigMapChan:
+		case appRunConfigList = <-appRunConfigListChan:
 		}
-	}()
-	wg.Wait()
+	}
 
 	// merge appRunConfigList and sharedRunConfigMap only if that field is not set in the apps section of the yaml file.
 	for index, appRunConfigMap := range appRunConfigList {
@@ -181,4 +163,36 @@ func (a *AppsRunConfig) GetApps(keyMappings []map[string]string) []Apps {
 		}
 	}
 	return a.Apps
+}
+
+// getSharedRunConfigMap returns a map with key as the field name and value as the reflect value of the field for the common section of the yaml file.
+func (a *AppsRunConfig) getSharedRunConfigMap(sharedRunConfigMapChan chan map[string]reflect.Value) {
+	sharedRunConfigMap := make(map[string]reflect.Value)
+	sharedConfigSchema := reflect.ValueOf(a.Common.SharedRunConfig)
+	for i := 0; i < sharedConfigSchema.NumField(); i++ {
+		valueField := sharedConfigSchema.Field(i).Interface()
+		typeField := sharedConfigSchema.Type().Field(i)
+		sharedRunConfigMap[typeField.Name] = reflect.ValueOf(valueField)
+	}
+	sharedRunConfigMapChan <- sharedRunConfigMap
+}
+
+// getAppRunConfigList returns a list of maps with key as the field name and value as the reflect value of the field for the apps section of the yaml file.
+func (a *AppsRunConfig) getAppRunConfigList(appRunConfigListChan chan []map[string]reflect.Value) {
+	appRunConfigList := make([]map[string]reflect.Value, 0)
+	for j := 0; j < len(a.Apps); j++ {
+		// set appID to appDir if not provided.
+		if a.Apps[j].AppID == "" {
+			a.Apps[j].AppID = filepath.Dir(a.Apps[j].AppDirPath)
+		}
+		appSchema := reflect.ValueOf(a.Apps[j].RunConfig.SharedRunConfig)
+		appRunConfigMap := make(map[string]reflect.Value)
+		for i := 0; i < appSchema.NumField(); i++ {
+			valueField := appSchema.Field(i).Interface()
+			typeField := appSchema.Type().Field(i)
+			appRunConfigMap[typeField.Name] = reflect.ValueOf(valueField)
+		}
+		appRunConfigList = append(appRunConfigList, appRunConfigMap)
+	}
+	appRunConfigListChan <- appRunConfigList
 }

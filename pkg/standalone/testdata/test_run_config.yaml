@@ -1,7 +1,7 @@
 
 version: 1
 common:
-  resources_dir: ./app/resources
+  resources_path: ./app/resources
   app_protocol: HTTP
   app_health_probe_timeout: 10
   env:
@@ -10,14 +10,14 @@ common:
     - name: tty
       value: sts
 apps:
-  - app_dir: ./webapp/
-    resources_dir: ./webapp/resources
+  - app_dir_path: ./webapp/
+    resources_path: ./webapp/resources
     config_file: ./webapp/config.yaml
     app_port: 8080
     app_health_probe_timeout: 1
     command: ["python3", "app.py"]
   - app_id: backend
-    app_dir: ./backend/
+    app_dir_path: ./backend/
     app_protocol: GRPC
     app_port: 3000
     unix_domain_socket: /tmp/test-socket

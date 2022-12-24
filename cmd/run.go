@@ -94,6 +94,7 @@ dapr run --app-id myapp --app-port 3000 --app-protocol grpc -- go run main.go
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(appsRunConfigFile) > 0 {
 			executeRunWithAppsConfigFile(appsRunConfigFile)
+			return
 		}
 		if len(args) == 0 {
 			fmt.Println(print.WhiteBold("WARNING: no application command found."))

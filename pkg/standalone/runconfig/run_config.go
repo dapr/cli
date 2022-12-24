@@ -23,7 +23,7 @@ type AppsRunConfig struct {
 
 type Apps struct {
 	standalone.RunConfig `yaml:",inline"`
-	AppDir               string     `yaml:"app_dir"`
+	AppDirPath           string     `yaml:"app_dir_path"`
 	Env                  []EnvItems `yaml:"env"`
 }
 

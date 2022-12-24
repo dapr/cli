@@ -326,7 +326,7 @@ func ValidateFilePaths(filePaths ...string) error {
 	for _, path := range filePaths {
 		if path != "" {
 			if _, err := os.Stat(path); err != nil {
-				return err
+				return fmt.Errorf("error in getting the file info for %s: %w", path, err)
 			}
 		}
 	}

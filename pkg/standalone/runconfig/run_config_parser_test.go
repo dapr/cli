@@ -59,7 +59,7 @@ func TestValidationsInRunConfig(t *testing.T) {
 
 	// check mangatory fields are not empty.
 	for _, app := range config.Apps {
-		assert.NotEmpty(t, app.AppDir)
+		assert.NotEmpty(t, app.AppDirPath)
 	}
 
 	// provided files/directories does not exist.
@@ -74,11 +74,11 @@ func TestValidationsInRunConfig(t *testing.T) {
 	assert.Nil(t, err)
 
 	// negative case- app-dir field is empty.
-	temp := config.Apps[0].AppDir
-	config.Apps[0].AppDir = ""
+	temp := config.Apps[0].AppDirPath
+	config.Apps[0].AppDirPath = ""
 	err = config.ValidateRunConfig()
 	assert.NotNil(t, err)
-	config.Apps[0].AppDir = temp
+	config.Apps[0].AppDirPath = temp
 
 	// tear down the created files.
 	tearDownCreatedFiles(t)
@@ -108,6 +108,7 @@ func TestGetApps(t *testing.T) {
 	assert.Equal(t, "HTTP", apps[0].AppProtocol)
 	assert.Equal(t, "GRPC", apps[1].AppProtocol)
 	assert.Equal(t, 8080, apps[0].AppPort)
+	assert.Equal(t, 3000, apps[1].AppPort)
 	assert.Equal(t, 1, apps[0].AppHealthTimeout)
 	assert.Equal(t, 10, apps[1].AppHealthTimeout)
 	assert.Equal(t, "", apps[0].UnixDomainSocket)

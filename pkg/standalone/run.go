@@ -57,7 +57,7 @@ type SharedRunConfig struct {
 	MaxConcurrency     int    `arg:"app-max-concurrency" yaml:"_appmax_concurrency"`
 	PlacementHostAddr  string `arg:"placement-host-address" yaml:"placement_host_address"`
 	ComponentsPath     string `arg:"components-path" yaml:"components_dir"`
-	ResourcesPath      string `arg:"resources-path" yaml:"resources_dir"`
+	ResourcesPath      string `arg:"resources-path" yaml:"resources_path"`
 	AppSSL             bool   `arg:"app-ssl" yaml:"app_ssl"`
 	MaxRequestBodySize int    `arg:"dapr-http-max-request-size" yaml:"dapr_http_max_request_size"`
 	HTTPReadBufferSize int    `arg:"dapr-http-read-buffer-size" yaml:"dapr_http_read_buffer_size"`
