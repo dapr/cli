@@ -68,11 +68,11 @@ func DefaultConfigFilePath() string {
 	return path_filepath.Join(defaultDaprDirPath(), defaultConfigFileName)
 }
 
-// emptyAndCopyFiles copies files from src to dest. It deletes the existing files in dest before copying from src.
+// copyFilesAndCreateSymlink copies files from src to dest. It deletes the existing files in dest before copying from src.
 // this method also deletes the components dir and makes it as a symlink to resources directory.
 // please see this comment for more details:https://github.com/dapr/cli/pull/1149#issuecomment-1364424345
 // TODO: Remove this function when `--components-path` flag is removed.
-func emptyAndCopyFiles(src, dest string) error {
+func copyFilesAndCreateSymlink(src, dest string) error {
 	if _, err := os.Stat(src); err != nil {
 		// if the src directory does not exist, create symlink and return nil, because there is nothing to copy from.
 		if os.IsNotExist(err) {

@@ -19,13 +19,10 @@ limitations under the License.
 package standalone_test
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/dapr/cli/tests/e2e/common"
-	"github.com/dapr/cli/tests/e2e/spawn"
 	"github.com/dapr/cli/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -46,28 +43,23 @@ func TestCompToResrcDirMig(t *testing.T) {
 	// Ensure a clean environment.
 	must(t, cmdUninstall, "failed to uninstall Dapr")
 
-	// install dapr.
+	// install dapr -> installs dapr, creates resources dir and symlink components dir.
 	ensureDaprInstallation(t)
 
-	// rename resources to components dir.
-	renameResourcesDir(t)
-
-	// dapr run should work with only components dir.
-	// 2nd parameter is true to indicate that only components dir is present.
-	checkDaprRunPrecedenceTest(t, true)
-
-	// dapr uninstall without --all flag should work.
-	uninstallWithoutAllFlag(t)
-
-	// dapr init should duplicate files from components dir to resources dir.
-	initTest(t)
+	// check dapr run -> should not load in-memory component.
+	checkDaprRunPrecedenceTest(t, false)
 
 	// copy a in memomy state store component to resources dir.
 	copyInMemStateStore(t)
 
-	// check dapr run precedence order, resources dir 1st then components dir.
-	// 2nd parameter is false to indicate that both components and resources dir are present.
-	checkDaprRunPrecedenceTest(t, false)
+	// check dapr run -> should load in-memory component.
+	checkDaprRunPrecedenceTest(t, true)
+
+	// dapr run with --components-path flag -> should load in-memory component.
+	checkDaprRunPrecedenceTest(t, true, "--components-path", defaultComponentsDirPath)
+
+	// dapr run with --resources-path flag -> should load in-memory component.
+	checkDaprRunPrecedenceTest(t, true, "--resources-path", defaultResourcesDirPath)
 }
 
 func copyInMemStateStore(t *testing.T) {
@@ -78,59 +70,20 @@ func copyInMemStateStore(t *testing.T) {
 	assert.NoError(t, err, "cannot write testdata/resources/test-statestore.yaml file to resources directory")
 }
 
-func initTest(t *testing.T) {
-	daprRuntimeVersion, _ := common.GetVersionsFromEnv(t, false)
-
-	output, err := cmdInit(daprRuntimeVersion)
-	t.Log(output)
-	require.NoError(t, err, "init failed")
-	assert.Contains(t, output, "Success! Dapr is up and running.")
-
-	homeDir, err := os.UserHomeDir()
-	require.NoError(t, err, "failed to get user home directory")
-
-	daprPath := filepath.Join(homeDir, ".dapr")
-	require.DirExists(t, daprPath, "Directory %s does not exist", daprPath)
-	require.DirExists(t, defaultComponentsDirPath, "Components dir does not exist")
-	require.DirExists(t, defaultResourcesDirPath, "Resources dir does not exist")
-}
-
-func checkDaprRunPrecedenceTest(t *testing.T, onlyCompDirPresent bool) {
+func checkDaprRunPrecedenceTest(t *testing.T, inMemoryCompPresent bool, flags ...string) {
 	args := []string{
 		"--app-id", "testapp",
 		"--", "bash", "-c", "echo 'test'",
 	}
+	args = append(args, flags...)
 	output, err := cmdRun("", args...)
 	t.Log(output)
 	require.NoError(t, err, "run failed")
-	if onlyCompDirPresent {
-		assert.NotContains(t, output, "component loaded. name: test-statestore, type: state.in-memory/v1")
-	} else {
+	if inMemoryCompPresent {
 		assert.Contains(t, output, "component loaded. name: test-statestore, type: state.in-memory/v1")
+	} else {
+		assert.NotContains(t, output, "component loaded. name: test-statestore, type: state.in-memory/v1")
 	}
 	assert.Contains(t, output, "Exited App successfully")
 	assert.Contains(t, output, "Exited Dapr successfully")
-}
-
-func uninstallWithoutAllFlag(t *testing.T) {
-	uninstallArgs := []string{"uninstall"}
-	daprContainerRuntime := containerRuntime()
-
-	// Add --container-runtime flag only if daprContainerRuntime is not empty, or overridden via args.
-	// This is only valid for non-slim mode.
-	if !isSlimMode() && daprContainerRuntime != "" {
-		uninstallArgs = append(uninstallArgs, "--container-runtime", daprContainerRuntime)
-	}
-	_, error := spawn.Command(common.GetDaprPath(), uninstallArgs...)
-	if error != nil {
-		assert.NoError(t, error, "failed to uninstall Dapr")
-	}
-}
-
-func renameResourcesDir(t *testing.T) {
-	err := os.Rename(defaultResourcesDirPath, defaultComponentsDirPath)
-	if err != nil {
-		mesg := fmt.Sprintf("pre-req to TestCompToResrcDirMig failed. error renaming components dir to resources dir: %s", err)
-		assert.NoError(t, err, mesg)
-	}
 }
