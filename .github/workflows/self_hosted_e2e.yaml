@@ -110,6 +110,9 @@ jobs:
             fi
           fi
         shell: bash
+      - name: Set the test timeout - MacOS
+        if: matrix.os == 'macos-latest'
+        run: echo "E2E_SH_TEST_TIMEOUT=20m" >> $GITHUB_ENV
       - name: Run E2E tests with GHCR
         # runs every 6hrs
         if: github.event.schedule == '0 */6 * * *'
@@ -117,6 +120,7 @@ jobs:
           DAPR_DEFAULT_IMAGE_REGISTRY: ghcr
           DAPR_E2E_INIT_SLIM: ${{ contains(matrix.os, 'windows-latest') || contains(matrix.dapr_install_mode, 'slim') }}
           CONTAINER_RUNTIME: ${{ env.CONTAINER_RUNTIME }}
+          E2E_SH_TEST_TIMEOUT: ${{ env.E2E_SH_TEST_TIMEOUT }}
         run: |
           export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-standalone.json
           echo "TEST_OUTPUT_FILE=$TEST_OUTPUT_FILE" >> $GITHUB_ENV
