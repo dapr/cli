@@ -70,6 +70,7 @@ export GOOS ?= $(TARGET_OS_LOCAL)
 export BINARY_EXT ?= $(BINARY_EXT_LOCAL)
 
 TEST_OUTPUT_FILE ?= test_output.json
+E2E_SH_TEST_TIMEOUT ?= 10m
 
 # Use the variable H to add a header (equivalent to =>) to informational output
 H = $(shell printf "\033[34;1m=>\033[0m")
@@ -175,7 +176,7 @@ e2e-build-run-upgrade: build test-e2e-upgrade
 ################################################################################
 .PHONY: test-e2e-sh
 test-e2e-sh: test-deps
-	gotestsum --jsonfile $(TEST_OUTPUT_FILE) --format standard-verbose -- -count=1 -tags=e2e ./tests/e2e/standalone/...
+	gotestsum --jsonfile $(TEST_OUTPUT_FILE) --format standard-verbose -- -timeout $(E2E_SH_TEST_TIMEOUT) -count=1 -tags=e2e ./tests/e2e/standalone/...
 
 ################################################################################
 # Build, E2E Tests for Self-Hosted											   #

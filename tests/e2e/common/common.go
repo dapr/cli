@@ -50,12 +50,13 @@ const (
 )
 
 type VersionDetails struct {
-	RuntimeVersion      string
-	DashboardVersion    string
-	ImageVariant        string
-	CustomResourceDefs  []string
-	ClusterRoles        []string
-	ClusterRoleBindings []string
+	RuntimeVersion       string
+	DashboardVersion     string
+	ImageVariant         string
+	CustomResourceDefs   []string
+	ClusterRoles         []string
+	ClusterRoleBindings  []string
+	UseDaprLatestVersion bool
 }
 
 type TestOptions struct {
@@ -71,20 +72,26 @@ type TestCase struct {
 	Callable func(*testing.T)
 }
 
-// GetVersionsFromEnv will return values from required environment variables,
+// GetVersionsFromEnv will return values from required environment variables.
+// parameter `latest` is used to determine if the latest versions of dapr & dashboard should be used.
 // if environment variables are not set it fails the test.
-func GetVersionsFromEnv(t *testing.T) (string, string) {
+func GetVersionsFromEnv(t *testing.T, latest bool) (string, string) {
 	var daprRuntimeVersion, daprDashboardVersion string
-
-	if runtimeVersion, ok := os.LookupEnv("DAPR_RUNTIME_VERSION"); ok {
+	runtimeEnvVar := "DAPR_RUNTIME_PINNED_VERSION"
+	dashboardEnvVar := "DAPR_DASHBOARD_PINNED_VERSION"
+	if latest {
+		runtimeEnvVar = "DAPR_RUNTIME_LATEST_VERSION"
+		dashboardEnvVar = "DAPR_DASHBOARD_LATEST_VERSION"
+	}
+	if runtimeVersion, ok := os.LookupEnv(runtimeEnvVar); ok {
 		daprRuntimeVersion = runtimeVersion
 	} else {
-		t.Fatalf("env var \"DAPR_RUNTIME_VERSION\" not set")
+		t.Fatalf("env var \"%s\" not set", runtimeEnvVar)
 	}
-	if dashboardVersion, ok := os.LookupEnv("DAPR_DASHBOARD_VERSION"); ok {
+	if dashboardVersion, ok := os.LookupEnv(dashboardEnvVar); ok {
 		daprDashboardVersion = dashboardVersion
 	} else {
-		t.Fatalf("env var \"DAPR_DASHBOARD_VERSION\" not set")
+		t.Fatalf("env var \"%s\" not set", dashboardEnvVar)
 	}
 	return daprRuntimeVersion, daprDashboardVersion
 }
@@ -180,6 +187,27 @@ func GetTestsOnUninstall(details VersionDetails, opts TestOptions) []TestCase {
 		{"check mtls error " + details.RuntimeVersion, uninstallMTLSTest()},
 		{"check status error " + details.RuntimeVersion, statusTestOnUninstall()},
 	}
+}
+
+func GetTestForCertRenewal(currentVersionDetails VersionDetails, installOpts TestOptions) []TestCase {
+	tests := []TestCase{}
+	tests = append(tests, []TestCase{
+		{"Renew certificate which expires in less than 30 days", GenerateNewCertAndRenew(currentVersionDetails, installOpts)},
+	}...)
+	tests = append(tests, GetTestsPostCertificateRenewal(currentVersionDetails, installOpts)...)
+	tests = append(tests, []TestCase{
+		{"Cert Expiry warning message check " + currentVersionDetails.RuntimeVersion, CheckMTLSStatus(currentVersionDetails, installOpts, true)},
+	}...)
+
+	// tests for certificate renewal with provided certificates.
+	tests = append(tests, []TestCase{
+		{"Renew certificate which expires in after 30 days", UseProvidedNewCertAndRenew(currentVersionDetails, installOpts)},
+	}...)
+	tests = append(tests, GetTestsPostCertificateRenewal(currentVersionDetails, installOpts)...)
+	tests = append(tests, []TestCase{
+		{"Cert Expiry no warning message check " + currentVersionDetails.RuntimeVersion, CheckMTLSStatus(currentVersionDetails, installOpts, false)},
+	}...)
+	return tests
 }
 
 func GetTestsPostCertificateRenewal(details VersionDetails, opts TestOptions) []TestCase {
@@ -437,7 +465,17 @@ func GenerateNewCertAndRenew(details VersionDetails, opts TestOptions) func(t *t
 		err := exportCurrentCertificate(daprPath)
 		require.NoError(t, err, "expected no error on certificate exporting")
 
-		output, err := spawn.Command(daprPath, "mtls", "renew-certificate", "-k", "--valid-until", "20", "--restart")
+		args := []string{
+			"mtls",
+			"renew-certificate",
+			"-k",
+			"--valid-until", "20",
+			"--restart",
+		}
+		if details.ImageVariant != "" {
+			args = append(args, "--image-variant", details.ImageVariant)
+		}
+		output, err := spawn.Command(daprPath, args...)
 		t.Log(output)
 		require.NoError(t, err, "expected no error on certificate renewal")
 
@@ -464,6 +502,9 @@ func UseProvidedPrivateKeyAndRenewCerts(details VersionDetails, opts TestOptions
 			"mtls", "renew-certificate", "-k",
 			"--private-key", "../testdata/example-root.key",
 			"--valid-until", "20",
+		}
+		if details.ImageVariant != "" {
+			args = append(args, "--image-variant", details.ImageVariant)
 		}
 		output, err := spawn.Command(daprPath, args...)
 		t.Log(output)
@@ -494,6 +535,9 @@ func UseProvidedNewCertAndRenew(details VersionDetails, opts TestOptions) func(t
 			"--issuer-private-key", "./certs/issuer.key",
 			"--issuer-public-certificate", "./certs/issuer.crt",
 			"--restart",
+		}
+		if details.ImageVariant != "" {
+			args = append(args, "--image-variant", details.ImageVariant)
 		}
 		output, err := spawn.Command(daprPath, args...)
 		t.Log(output)
@@ -661,8 +705,10 @@ func installTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 			"init", "-k",
 			"--wait",
 			"-n", DaprTestNamespace,
-			"--runtime-version", details.RuntimeVersion,
 			"--log-as-json",
+		}
+		if !details.UseDaprLatestVersion {
+			args = append(args, "--runtime-version", details.RuntimeVersion)
 		}
 		if opts.HAEnabled {
 			args = append(args, "--enable-ha")

@@ -48,8 +48,8 @@ func cmdDashboard(ctx context.Context, port string) error {
 // in GitHub actions Windows runner.
 //
 // Arguments to the init command can be passed via args.
-func cmdInit(runtimeVersion string, args ...string) (string, error) {
-	initArgs := []string{"init", "--log-as-json", "--runtime-version", runtimeVersion}
+func cmdInit(args ...string) (string, error) {
+	initArgs := []string{"init", "--log-as-json"}
 	daprContainerRuntime := containerRuntime()
 
 	if isSlimMode() {
