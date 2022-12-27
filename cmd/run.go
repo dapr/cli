@@ -28,7 +28,7 @@ import (
 	"github.com/dapr/cli/pkg/metadata"
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/pkg/standalone"
-	"github.com/dapr/cli/pkg/standalone/runconfig"
+	"github.com/dapr/cli/pkg/standalone/runfileconfig"
 	"github.com/dapr/cli/utils"
 )
 
@@ -58,7 +58,7 @@ var (
 	appHealthThreshold int
 	enableAPILogging   bool
 	apiListenAddresses string
-	appsRunConfigFile  string
+	runFileConfig      string
 )
 
 const (
@@ -92,8 +92,8 @@ dapr run --app-id myapp --app-port 3000 --app-protocol grpc -- go run main.go
 		viper.BindPFlag("placement-host-address", cmd.Flags().Lookup("placement-host-address"))
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(appsRunConfigFile) > 0 {
-			executeRunWithAppsConfigFile(appsRunConfigFile)
+		if len(runFileConfig) > 0 {
+			executeRunWithAppsConfigFile(runFileConfig)
 			return
 		}
 		if len(args) == 0 {
@@ -405,13 +405,13 @@ func init() {
 	RunCmd.Flags().IntVar(&appHealthThreshold, "app-health-threshold", 0, "Number of consecutive failures for the app to be considered unhealthy")
 	RunCmd.Flags().BoolVar(&enableAPILogging, "enable-api-logging", false, "Log API calls at INFO verbosity. Valid values are: true or false")
 	RunCmd.Flags().StringVar(&apiListenAddresses, "dapr-listen-addresses", "", "Comma separated list of IP addresses that sidecar will listen to")
-	RunCmd.Flags().StringVarP(&appsRunConfigFile, "run-file", "f", "", "Path to the configuration file for the apps to run")
+	RunCmd.Flags().StringVarP(&runFileConfig, "run-file", "f", "", "Path to the configuration file for the apps to run")
 	RootCmd.AddCommand(RunCmd)
 }
 
-func executeRunWithAppsConfigFile(configFile string) {
-	config := runconfig.AppsRunConfig{}
-	keyMappings, err := config.ParseAppsConfig(configFile)
+func executeRunWithAppsConfigFile(runFileConfig string) {
+	config := runfileconfig.RunFileConfig{}
+	keyMappings, err := config.ParseAppsConfig(runFileConfig)
 	if err != nil {
 		print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error parsing apps config file: %s", err))
 		os.Exit(1)

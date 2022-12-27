@@ -11,7 +11,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package runconfig
+package runfileconfig
 
 import (
 	"os"
@@ -32,7 +32,7 @@ var (
 )
 
 func TestRunConfigParser(t *testing.T) {
-	appsRunConfig := AppsRunConfig{}
+	appsRunConfig := RunFileConfig{}
 	keyMappings, err := appsRunConfig.ParseAppsConfig(configFilePath)
 
 	assert.Nil(t, err)
@@ -54,7 +54,7 @@ func TestValidationsInRunConfig(t *testing.T) {
 	// tear down the created files.
 	tearDownCreatedFiles(t)
 
-	config := AppsRunConfig{}
+	config := RunFileConfig{}
 	config.ParseAppsConfig(configFilePath)
 
 	// check mangatory fields are not empty.
@@ -94,7 +94,7 @@ func TestGetApps(t *testing.T) {
 
 	tearDownCreatedFiles(t)
 
-	config := AppsRunConfig{}
+	config := RunFileConfig{}
 	config.ParseAppsConfig(configFilePath)
 
 	// create the files/directories provided in the config file.
@@ -118,7 +118,7 @@ func TestGetApps(t *testing.T) {
 	tearDownCreatedFiles(t)
 }
 
-func createProvidedFiles(t *testing.T, config AppsRunConfig) {
+func createProvidedFiles(t *testing.T, config RunFileConfig) {
 	err := os.MkdirAll(commonResourcesDir, os.ModePerm)
 	assert.Nil(t, err)
 	err = os.MkdirAll(app1ResourcesDir, os.ModePerm)

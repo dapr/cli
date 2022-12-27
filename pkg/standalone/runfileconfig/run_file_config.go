@@ -11,11 +11,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package runconfig
+package runfileconfig
 
 import "github.com/dapr/cli/pkg/standalone"
 
-type AppsRunConfig struct {
+type RunFileConfig struct {
 	Common  Common `yaml:"common"`
 	Apps    []Apps `yaml:"apps"`
 	Version int    `yaml:"version"`

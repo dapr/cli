@@ -11,7 +11,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package runconfig
+package runfileconfig
 
 import (
 	"errors"
@@ -29,7 +29,7 @@ import (
 // constants for the keys from the yaml file.
 const APPS = "apps"
 
-func (a *AppsRunConfig) ParseAppsConfig(configFile string) ([]map[string]string, error) {
+func (a *RunFileConfig) ParseAppsConfig(configFile string) ([]map[string]string, error) {
 	bytes, err := os.ReadFile(configFile)
 	if err != nil {
 		return nil, fmt.Errorf("error in reading the provided app config file: %w", err)
@@ -45,7 +45,7 @@ func (a *AppsRunConfig) ParseAppsConfig(configFile string) ([]map[string]string,
 	return keyMappings, nil
 }
 
-func (a *AppsRunConfig) ValidateRunConfig() error {
+func (a *RunFileConfig) ValidateRunConfig() error {
 	if a.Version == 0 {
 		return errors.New("required field 'version' not found in the provided run template file")
 	}
@@ -69,7 +69,7 @@ func (a *AppsRunConfig) ValidateRunConfig() error {
 
 // getKeyMappingFromYaml returns a list of maps with key as the field name and value as the type of the field.
 // It is used in getting the configured keys from the YAML file for the apps.
-func (a *AppsRunConfig) getKeyMappingFromYaml(bytes []byte) ([]map[string]string, error) {
+func (a *RunFileConfig) getKeyMappingFromYaml(bytes []byte) ([]map[string]string, error) {
 	result := make([]map[string]string, 0)
 	tempMap := make(map[string]interface{})
 	err := yaml.Unmarshal(bytes, &tempMap)
@@ -88,7 +88,7 @@ func (a *AppsRunConfig) getKeyMappingFromYaml(bytes []byte) ([]map[string]string
 }
 
 // GetApps returns a list of apps with the merged values fopr the keys from common section of the yaml file.
-func (a *AppsRunConfig) GetApps(keyMappings []map[string]string) []Apps {
+func (a *RunFileConfig) GetApps(keyMappings []map[string]string) []Apps {
 	// get a mapping of parsed values from the yaml file for the common section.
 	sharedRunConfigMapChan := make(chan map[string]reflect.Value)
 	go a.getSharedRunConfigMap(sharedRunConfigMapChan)
@@ -170,7 +170,7 @@ func (a *AppsRunConfig) GetApps(keyMappings []map[string]string) []Apps {
 }
 
 // getSharedRunConfigMap returns a map with key as the field name and value as the reflect value of the field for the common section of the yaml file.
-func (a *AppsRunConfig) getSharedRunConfigMap(sharedRunConfigMapChan chan map[string]reflect.Value) {
+func (a *RunFileConfig) getSharedRunConfigMap(sharedRunConfigMapChan chan map[string]reflect.Value) {
 	sharedRunConfigMap := make(map[string]reflect.Value)
 	sharedConfigSchema := reflect.ValueOf(a.Common.SharedRunConfig)
 	for i := 0; i < sharedConfigSchema.NumField(); i++ {
@@ -182,7 +182,7 @@ func (a *AppsRunConfig) getSharedRunConfigMap(sharedRunConfigMapChan chan map[st
 }
 
 // getAppRunConfigList returns a list of maps with key as the field name and value as the reflect value of the field for the apps section of the yaml file.
-func (a *AppsRunConfig) getAppRunConfigList(appRunConfigListChan chan []map[string]reflect.Value) {
+func (a *RunFileConfig) getAppRunConfigList(appRunConfigListChan chan []map[string]reflect.Value) {
 	appRunConfigList := make([]map[string]reflect.Value, 0)
 	for j := 0; j < len(a.Apps); j++ {
 		// set appID to appDir if not provided.
