@@ -322,6 +322,7 @@ func GetVersionAndImageVariant(imageTag string) (string, string) {
 	return imageTag, ""
 }
 
+// Returns true if all the given files paths are valid.
 func ValidateFilePaths(filePaths ...string) error {
 	for _, path := range filePaths {
 		if path != "" {

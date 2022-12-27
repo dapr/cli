@@ -20,6 +20,7 @@ import (
 	"path/filepath"
 	"reflect"
 
+	"github.com/dapr/cli/pkg/standalone"
 	"github.com/dapr/cli/utils"
 
 	"gopkg.in/yaml.v2"
@@ -67,7 +68,7 @@ func (a *AppsRunConfig) ValidateRunConfig() error {
 }
 
 // getKeyMappingFromYaml returns a list of maps with key as the field name and value as the type of the field.
-// it is used in getting the configured keys from the yaml file for the apps.
+// It is used in getting the configured keys from the YAML file for the apps.
 func (a *AppsRunConfig) getKeyMappingFromYaml(bytes []byte) ([]map[string]string, error) {
 	result := make([]map[string]string, 0)
 	tempMap := make(map[string]interface{})
@@ -141,6 +142,9 @@ func (a *AppsRunConfig) GetApps(keyMappings []map[string]string) []Apps {
 				a.Apps[i].RunConfig.SharedRunConfig.ResourcesPath = value.Interface().(string)
 			case "ComponentsPath":
 				a.Apps[i].RunConfig.SharedRunConfig.ComponentsPath = value.Interface().(string)
+				if a.Apps[i].RunConfig.SharedRunConfig.ComponentsPath == "" {
+					a.Apps[i].RunConfig.SharedRunConfig.ComponentsPath = standalone.DefaultComponentsDirPath()
+				}
 			case "AppSSL":
 				a.Apps[i].RunConfig.SharedRunConfig.AppSSL = value.Interface().(bool)
 			case "MaxRequestBodySize":

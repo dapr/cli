@@ -168,7 +168,7 @@ func TestGetVersionAndImageVariant(t *testing.T) {
 func TestValidateFilePaths(t *testing.T) {
 	dirName := createTempDir(t, "test_validate_paths")
 	defer cleanupTempDir(t, dirName)
-	valideFile := createTempFile(t, dirName, "valid_test_file.yaml")
+	validFile := createTempFile(t, dirName, "valid_test_file.yaml")
 	testcases := []struct {
 		name        string
 		input       []string
@@ -181,7 +181,7 @@ func TestValidateFilePaths(t *testing.T) {
 		},
 		{
 			name:        "list with valid file path",
-			input:       []string{valideFile},
+			input:       []string{validFile},
 			expectedErr: false,
 		},
 		{
