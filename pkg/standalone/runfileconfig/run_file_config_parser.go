@@ -69,18 +69,7 @@ func (a *RunFileConfig) ValidateRunConfig(runFilePath string) error {
 }
 
 // GetApps returns a list of apps with the merged values forthe keys from common section of the YAML file.
-func (a *RunFileConfig) GetApps(filePath string) ([]Apps, error) {
-	bytes, err := utils.ReadFile(filePath)
-	if err != nil {
-		return nil, err
-	}
-	appsKeys, err := a.getAppsKeysFromYaml(bytes)
-	if err != nil {
-		return nil, err
-	}
-	if len(a.Apps) != len(appsKeys) {
-		return nil, errors.New("error in parsing the provided app config file to extract provided configurations keys")
-	}
+func (a *RunFileConfig) GetApps() ([]Apps, error) {
 	sharedConfigType := reflect.TypeOf(a.Common.SharedRunConfig)
 	fields := reflect.VisibleFields(sharedConfigType)
 	// Iterate for each field in common(shared configurations).
@@ -89,9 +78,8 @@ func (a *RunFileConfig) GetApps(filePath string) ([]Apps, error) {
 		// Iterate for each app's configurations.
 		for i := range a.Apps {
 			appVal := reflect.ValueOf(a.Apps[i].RunConfig.SharedRunConfig).FieldByName(field.Name)
-			_, ok := appsKeys[i][field.Name]
-			// apppVal is the default value for the type and "ok" is for checking if this default value is not set explicitly in the app's configuration.
-			if appVal.IsZero() && !ok {
+			// If apppVal is the default value for the type.
+			if appVal.IsZero() {
 				// Here FieldByName always returns a valid value, it can also be zero but the field always exists.
 				reflect.ValueOf(&a.Apps[i].RunConfig.SharedRunConfig).
 					Elem().
@@ -106,27 +94,6 @@ func (a *RunFileConfig) GetApps(filePath string) ([]Apps, error) {
 		}
 	}
 	return a.Apps, nil
-}
-
-// getAppsKeysFromYaml returns a list of maps with key as the field name and value as the type of the field.
-// It is used in getting the configured keys from the YAML file for the apps.
-// It is needed as it might be possible that the user wants to provide a default value for one of the app's key.
-func (a *RunFileConfig) getAppsKeysFromYaml(bytes []byte) ([]map[string]string, error) {
-	result := make([]map[string]string, 0)
-	tempMap := make(map[string]interface{})
-	err := yaml.Unmarshal(bytes, &tempMap)
-	if err != nil {
-		return nil, fmt.Errorf("error in parsing the provided app config file to extract provided configurations: %w", err)
-	}
-	apps := tempMap[APPS].([]interface{})
-	for _, app := range apps {
-		keyMaps := make(map[string]string)
-		for k, v := range app.(map[interface{}]interface{}) {
-			keyMaps[k.(string)] = reflect.TypeOf(v).String()
-		}
-		result = append(result, keyMaps)
-	}
-	return result, nil
 }
 
 // resolvePathToAbsAndValidate resolves the relative paths in run file to absolute path and validates the file path.

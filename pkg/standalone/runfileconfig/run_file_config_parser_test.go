@@ -82,7 +82,7 @@ func TestGetApps(t *testing.T) {
 	config := RunFileConfig{}
 	config.ParseAppsConfig(validRunFilePath)
 
-	apps, err := config.GetApps(validRunFilePath)
+	apps, err := config.GetApps()
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(apps))
 	assert.Equal(t, "webapp", apps[0].AppID)

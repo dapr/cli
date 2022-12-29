@@ -421,7 +421,7 @@ func executeRunWithAppsConfigFile(runFilePath string) {
 		print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error validating apps config file: %s", err))
 		os.Exit(1)
 	}
-	apps, err := config.GetApps(runFilePath)
+	apps, err := config.GetApps()
 	if err != nil {
 		print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error getting apps from config file: %s", err))
 		os.Exit(1)
