@@ -23,6 +23,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"time"
@@ -322,14 +323,25 @@ func GetVersionAndImageVariant(imageTag string) (string, string) {
 	return imageTag, ""
 }
 
-// Returns true if all the given files paths are valid.
-func ValidateFilePaths(filePaths ...string) error {
-	for _, path := range filePaths {
-		if path != "" {
-			if _, err := os.Stat(path); err != nil {
-				return fmt.Errorf("error in getting the file info for %s: %w", path, err)
-			}
+// Returns true if the given file path is valid.
+func ValidateFilePaths(filePath string) error {
+	if filePath != "" {
+		if _, err := os.Stat(filePath); err != nil {
+			return fmt.Errorf("error in getting the file info for %s: %w", filePath, err)
 		}
 	}
 	return nil
+}
+
+// GetAbsPath returns the absolute path of the given file path and base directory.
+func GetAbsPath(baseDir, path string) string {
+	if path == "" {
+		return ""
+	}
+	if filepath.IsAbs(path) {
+		return path
+	}
+	pathArr := strings.Split(path, string(os.PathSeparator))
+	absPath := filepath.Join(baseDir, filepath.Join(pathArr[1:]...))
+	return absPath
 }

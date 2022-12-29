@@ -15,6 +15,7 @@ package utils
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -171,30 +172,70 @@ func TestValidateFilePaths(t *testing.T) {
 	validFile := createTempFile(t, dirName, "valid_test_file.yaml")
 	testcases := []struct {
 		name        string
-		input       []string
+		input       string
 		expectedErr bool
 	}{
 		{
-			name:        "empty list",
-			input:       []string{},
+			name:        "empty file path",
+			input:       "",
 			expectedErr: false,
 		},
 		{
-			name:        "list with valid file path",
-			input:       []string{validFile},
+			name:        "valid file path",
+			input:       validFile,
 			expectedErr: false,
 		},
 		{
-			name:        "list with invalid file path",
-			input:       []string{"invalid_file_path"},
+			name:        "invalid file path",
+			input:       "invalid_file_path",
 			expectedErr: true,
 		},
 	}
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := ValidateFilePaths(tc.input...)
+			actual := ValidateFilePaths(tc.input)
 			assert.Equal(t, tc.expectedErr, actual != nil)
+		})
+	}
+}
+
+func TestGetAbsPath(t *testing.T) {
+	ex, err := os.Executable()
+	assert.NoError(t, err)
+	baseDir := filepath.Dir(ex)
+
+	testcases := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "empty path",
+			input:    "",
+			expected: "",
+		},
+		{
+			name:     "relative path-1",
+			input:    "./relative/path",
+			expected: filepath.Join(baseDir, "relative", "path"),
+		},
+		{
+			name:     "relative path-2",
+			input:    "../relative/path",
+			expected: filepath.Join(baseDir, "relative", "path"),
+		},
+		{
+			name:     "absolute path",
+			input:    "/absolute/path",
+			expected: "/absolute/path",
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := GetAbsPath(baseDir, tc.input)
+			assert.Equal(t, tc.expected, actual)
 		})
 	}
 }

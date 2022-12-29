@@ -58,7 +58,7 @@ var (
 	appHealthThreshold int
 	enableAPILogging   bool
 	apiListenAddresses string
-	runFileConfig      string
+	runFilePath        string
 )
 
 const (
@@ -92,8 +92,8 @@ dapr run --app-id myapp --app-port 3000 --app-protocol grpc -- go run main.go
 		viper.BindPFlag("placement-host-address", cmd.Flags().Lookup("placement-host-address"))
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(runFileConfig) > 0 {
-			executeRunWithAppsConfigFile(runFileConfig)
+		if len(runFilePath) > 0 {
+			executeRunWithAppsConfigFile(runFilePath)
 			return
 		}
 		if len(args) == 0 {
@@ -405,18 +405,18 @@ func init() {
 	RunCmd.Flags().IntVar(&appHealthThreshold, "app-health-threshold", 0, "Number of consecutive failures for the app to be considered unhealthy")
 	RunCmd.Flags().BoolVar(&enableAPILogging, "enable-api-logging", false, "Log API calls at INFO verbosity. Valid values are: true or false")
 	RunCmd.Flags().StringVar(&apiListenAddresses, "dapr-listen-addresses", "", "Comma separated list of IP addresses that sidecar will listen to")
-	RunCmd.Flags().StringVarP(&runFileConfig, "run-file", "f", "", "Path to the configuration file for the apps to run")
+	RunCmd.Flags().StringVarP(&runFilePath, "run-file", "f", "", "Path to the configuration file for the apps to run")
 	RootCmd.AddCommand(RunCmd)
 }
 
-func executeRunWithAppsConfigFile(runFileConfig string) {
+func executeRunWithAppsConfigFile(runFilePath string) {
 	config := runfileconfig.RunFileConfig{}
-	keyMappings, err := config.ParseAppsConfig(runFileConfig)
+	keyMappings, err := config.ParseAppsConfig(runFilePath)
 	if err != nil {
 		print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error parsing apps config file: %s", err))
 		os.Exit(1)
 	}
-	err = config.ValidateRunConfig()
+	err = config.ValidateRunConfig(runFilePath)
 	if err != nil {
 		print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error validating apps config file: %s", err))
 		os.Exit(1)

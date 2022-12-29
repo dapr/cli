@@ -14,7 +14,6 @@ limitations under the License.
 package runfileconfig
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -22,18 +21,14 @@ import (
 )
 
 var (
-	commonResourcesParentDir = filepath.Join(".", "app")
-	commonResourcesDir       = filepath.Join(".", "app", "resources")
-	app1Dir                  = filepath.Join(".", "webapp")
-	app1ResourcesDir         = filepath.Join(".", "webapp", "resources")
-	app1ConfigFile           = filepath.Join(".", "webapp", "config.yaml")
-	app2Dir                  = filepath.Join(".", "backend")
-	configFilePath           = filepath.Join("..", "testdata", "test_run_config.yaml")
+	validRunFilePath    = filepath.Join("..", "testdata", "runfileconfig", "test_run_config.yaml")
+	invalidRunFilePath1 = filepath.Join("..", "testdata", "runfileconfig", "test_run_config_invalid_path.yaml")
+	invalidRunFilePath2 = filepath.Join("..", "testdata", "runfileconfig", "test_run_config_empty_app_dir.yaml")
 )
 
 func TestRunConfigParser(t *testing.T) {
 	appsRunConfig := RunFileConfig{}
-	keyMappings, err := appsRunConfig.ParseAppsConfig(configFilePath)
+	keyMappings, err := appsRunConfig.ParseAppsConfig(validRunFilePath)
 
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(keyMappings))
@@ -50,38 +45,37 @@ func TestRunConfigParser(t *testing.T) {
 	assert.Equal(t, "", firstAppConfig.UnixDomainSocket)
 }
 
-func TestValidationsInRunConfig(t *testing.T) {
-	// tear down the created files.
-	tearDownCreatedFiles(t)
-
-	config := RunFileConfig{}
-	config.ParseAppsConfig(configFilePath)
-
-	// check mangatory fields are not empty.
-	for _, app := range config.Apps {
-		assert.NotEmpty(t, app.AppDirPath)
+func TestValidateRunConfig(t *testing.T) {
+	testcases := []struct {
+		name        string
+		input       string
+		expectedErr bool
+	}{
+		{
+			name:        "valid run config",
+			input:       validRunFilePath,
+			expectedErr: false,
+		},
+		{
+			name:        "invalid run config - empty app dir path",
+			input:       invalidRunFilePath2,
+			expectedErr: true,
+		},
+		{
+			name:        "invalid run config - invalid path",
+			input:       invalidRunFilePath1,
+			expectedErr: true,
+		},
 	}
 
-	// provided files/directories does not exist.
-	err := config.ValidateRunConfig()
-	assert.NotNil(t, err)
-
-	// create the files/directories provided in the config file.
-	createProvidedFiles(t, config)
-
-	// positive case- all files and directories exist.
-	err = config.ValidateRunConfig()
-	assert.Nil(t, err)
-
-	// negative case- app-dir field is empty.
-	temp := config.Apps[0].AppDirPath
-	config.Apps[0].AppDirPath = ""
-	err = config.ValidateRunConfig()
-	assert.NotNil(t, err)
-	config.Apps[0].AppDirPath = temp
-
-	// tear down the created files.
-	tearDownCreatedFiles(t)
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			config := RunFileConfig{}
+			config.ParseAppsConfig(tc.input)
+			actualErr := config.ValidateRunConfig(tc.input)
+			assert.Equal(t, tc.expectedErr, actualErr != nil)
+		})
+	}
 }
 
 func TestGetApps(t *testing.T) {
@@ -92,13 +86,8 @@ func TestGetApps(t *testing.T) {
 		map[string]string{"app_dir": "string", "app_id": "string", "app_port": "int", "app_protocol": "string", "command": "[]interface {}", "env": "[]interface {}", "unix_domain_socket": "string"},
 	)
 
-	tearDownCreatedFiles(t)
-
 	config := RunFileConfig{}
-	config.ParseAppsConfig(configFilePath)
-
-	// create the files/directories provided in the config file.
-	createProvidedFiles(t, config)
+	config.ParseAppsConfig(validRunFilePath)
 
 	apps := config.GetApps(keymapping)
 
@@ -113,30 +102,4 @@ func TestGetApps(t *testing.T) {
 	assert.Equal(t, 10, apps[1].AppHealthTimeout)
 	assert.Equal(t, "", apps[0].UnixDomainSocket)
 	assert.Equal(t, "/tmp/test-socket", apps[1].UnixDomainSocket)
-
-	// tear down the created files.
-	tearDownCreatedFiles(t)
-}
-
-func createProvidedFiles(t *testing.T, config RunFileConfig) {
-	err := os.MkdirAll(commonResourcesDir, os.ModePerm)
-	assert.Nil(t, err)
-	err = os.MkdirAll(app1ResourcesDir, os.ModePerm)
-	assert.Nil(t, err)
-	err = os.MkdirAll(app1Dir, os.ModePerm)
-	assert.Nil(t, err)
-	err = os.MkdirAll(app2Dir, os.ModePerm)
-	assert.Nil(t, err)
-	configFile, err := os.Create(app1ConfigFile)
-	assert.Nil(t, err)
-	configFile.Close()
-}
-
-func tearDownCreatedFiles(t *testing.T) {
-	err := os.RemoveAll(commonResourcesParentDir)
-	assert.Nil(t, err)
-	err = os.RemoveAll(app1Dir)
-	assert.Nil(t, err)
-	err = os.RemoveAll(app2Dir)
-	assert.Nil(t, err)
 }

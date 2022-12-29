@@ -29,8 +29,9 @@ import (
 // constants for the keys from the yaml file.
 const APPS = "apps"
 
-func (a *RunFileConfig) ParseAppsConfig(configFile string) ([]map[string]string, error) {
-	bytes, err := os.ReadFile(configFile)
+func (a *RunFileConfig) ParseAppsConfig(runFilePath string) ([]map[string]string, error) {
+	var err error
+	bytes, err := os.ReadFile(runFilePath)
 	if err != nil {
 		return nil, fmt.Errorf("error in reading the provided app config file: %w", err)
 	}
@@ -45,12 +46,18 @@ func (a *RunFileConfig) ParseAppsConfig(configFile string) ([]map[string]string,
 	return keyMappings, nil
 }
 
-func (a *RunFileConfig) ValidateRunConfig() error {
+// ValidateRunConfig validates the run file config for mandatory fields and valid paths.
+func (a *RunFileConfig) ValidateRunConfig(runFilePath string) error {
+	baseDir, err := filepath.Abs(filepath.Dir(runFilePath))
+	if err != nil {
+		return fmt.Errorf("error in getting the absolute path of the provided run template file: %w", err)
+	}
 	if a.Version == 0 {
 		return errors.New("required field 'version' not found in the provided run template file")
 	}
-	// validate all paths in commons.
-	err := utils.ValidateFilePaths(a.Common.ConfigFile, a.Common.ResourcesPath)
+
+	// resolve relative path to absolute and validate all paths in commons.
+	err = a.resolvePathToAbsAndValidate(baseDir, &a.Common.ConfigFile, &a.Common.ResourcesPath)
 	if err != nil {
 		return err
 	}
@@ -58,8 +65,8 @@ func (a *RunFileConfig) ValidateRunConfig() error {
 		if a.Apps[i].AppDirPath == "" {
 			return errors.New("required filed 'app_dir_path' not found in the provided app config file")
 		}
-		// validate all paths in apps.
-		err := utils.ValidateFilePaths(a.Apps[i].ConfigFile, a.Apps[i].ResourcesPath, a.Apps[i].AppDirPath)
+		// resolve relative path to absolute and validate all paths for app.
+		err := a.resolvePathToAbsAndValidate(baseDir, &a.Apps[i].ConfigFile, &a.Apps[i].ResourcesPath, &a.Apps[i].AppDirPath)
 		if err != nil {
 			return err
 		}
@@ -69,6 +76,7 @@ func (a *RunFileConfig) ValidateRunConfig() error {
 
 // getKeyMappingFromYaml returns a list of maps with key as the field name and value as the type of the field.
 // It is used in getting the configured keys from the YAML file for the apps.
+// It is needed as it might be possible that the user wants to provide a default value for one of the app's key.
 func (a *RunFileConfig) getKeyMappingFromYaml(bytes []byte) ([]map[string]string, error) {
 	result := make([]map[string]string, 0)
 	tempMap := make(map[string]interface{})
@@ -199,4 +207,23 @@ func (a *RunFileConfig) getAppRunConfigList(appRunConfigListChan chan []map[stri
 		appRunConfigList = append(appRunConfigList, appRunConfigMap)
 	}
 	appRunConfigListChan <- appRunConfigList
+}
+
+// resolvePathToAbsAndValidate resolves the relative paths in run file to absolute path and validates the file path.
+func (a *RunFileConfig) resolvePathToAbsAndValidate(baseDir string, paths ...*string) error {
+	var err error
+	for _, path := range paths {
+		if *path == "" {
+			continue
+		}
+		absPath := utils.GetAbsPath(baseDir, *path)
+		if err != nil {
+			return err
+		}
+		*path = absPath
+		if err = utils.ValidateFilePaths(*path); err != nil {
+			return err
+		}
+	}
+	return nil
 }
