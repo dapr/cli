@@ -127,23 +127,27 @@ func executeAgainstRunningDapr(t *testing.T, f func(), daprArgs ...string) {
 // ensureDaprInstallation ensures that Dapr is installed.
 // If Dapr is not installed, a new installation is attempted.
 func ensureDaprInstallation(t *testing.T) {
-	daprRuntimeVersion, _ := common.GetVersionsFromEnv(t, false)
 	homeDir, err := os.UserHomeDir()
 	require.NoError(t, err, "failed to get user home directory")
 
 	daprPath := filepath.Join(homeDir, ".dapr")
-	_, err = os.Stat(daprPath)
-	if os.IsNotExist(err) {
-		args := []string{
-			"--runtime-version", daprRuntimeVersion,
+	if _, err = os.Stat(daprPath); err != nil {
+		if os.IsNotExist(err) {
+			installDapr(t)
+		} else {
+			// Some other error occurred.
+			require.NoError(t, err, "failed to stat dapr installation")
 		}
-		_, err = cmdInit(args...)
-		require.NoError(t, err, "failed to install dapr")
-	} else if err != nil {
-		// Some other error occurred.
-		require.NoError(t, err, "failed to stat dapr installation")
 	}
-
+	daprBinPath := filepath.Join(daprPath, "bin")
+	if _, err = os.Stat(daprBinPath); err != nil {
+		if os.IsNotExist(err) {
+			installDapr(t)
+		} else {
+			// Some other error occurred.
+			require.NoError(t, err, "failed to stat dapr installation")
+		}
+	}
 	// Slim mode does not have any resources by default.
 	// Install the resources required by the tests.
 	if isSlimMode() {
@@ -157,6 +161,15 @@ func containerRuntime() string {
 		return daprContainerRuntime
 	}
 	return ""
+}
+
+func installDapr(t *testing.T) {
+	daprRuntimeVersion, _ := common.GetVersionsFromEnv(t, false)
+	args := []string{
+		"--runtime-version", daprRuntimeVersion,
+	}
+	_, err := cmdInit(args...)
+	require.NoError(t, err, "failed to install dapr")
 }
 
 func uninstallDapr(uninstallArgs ...string) (string, error) {

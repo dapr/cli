@@ -122,14 +122,14 @@ func cmdStop(appId string, args ...string) (string, error) {
 func cmdUninstallAll(args ...string) (string, error) {
 	uninstallArgs := []string{"uninstall", "--all"}
 	uninstallArgs = append(uninstallArgs, args...)
-	return uninstallDapr(uninstallArgs)
+	return uninstallDapr(uninstallArgs...)
 }
 
 // cmdUninstall uninstalls Dapr without --all flag and returns the command output and error.
 func cmdUninstall(args ...string) (string, error) {
 	uninstallArgs := []string{"uninstall"}
 	uninstallArgs = append(uninstallArgs, args...)
-	return uninstallDapr(uninstallArgs)
+	return uninstallDapr(uninstallArgs...)
 }
 
 // cmdVersion checks the version of Dapr and returns the command output and error.

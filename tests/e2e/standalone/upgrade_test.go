@@ -19,6 +19,7 @@ limitations under the License.
 package standalone_test
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -65,11 +66,11 @@ func TestResourcesLoadPrecedence(t *testing.T) {
 
 		// dapr run with both flags --resources-path and --components-path.
 		args := []string{
-			"--components-path", defaultComponentsDirPath, 
-			"--resources-path", defaultResourcesDirPath
+			"--components-path", defaultComponentsDirPath,
+			"--resources-path", defaultResourcesDirPath,
 		}
 		testDaprRunOutput(t, true, args...)
-	}
+	})
 
 	t.Run("with pre-existing components directory", func(t *testing.T) {
 		// Ensure a clean environment.
@@ -87,7 +88,7 @@ func TestResourcesLoadPrecedence(t *testing.T) {
 		// uninstall without removing the components directory.
 		must(t, cmdUninstall, "failed to uninstall Dapr")
 
-		// install dapr -> installs dapr. It does following - 
+		// install dapr -> installs dapr. It does following -
 		// 1) creates resources directory. 2)copy resources from components to resources directory.
 		// 3) delete components directory. 4) creates symlink components for resources directory.
 		ensureDaprInstallation(t)
@@ -100,7 +101,7 @@ func TestResourcesLoadPrecedence(t *testing.T) {
 
 		// dapr run with --resources-path flag -> should also load the in-memory component.
 		testDaprRunOutput(t, true, "--resources-path", defaultResourcesDirPath)
-	}
+	})
 
 	t.Run("add resources to components directory post dapr install", func(t *testing.T) {
 		// Ensure a clean environment.
@@ -123,7 +124,7 @@ func TestResourcesLoadPrecedence(t *testing.T) {
 
 		// dapr run with --resources-path flag -> should also load the in-memory component.
 		testDaprRunOutput(t, true, "--resources-path", defaultResourcesDirPath)
-	}
+	})
 }
 
 func prepareComponentsDir(t *testing.T) {
