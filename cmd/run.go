@@ -411,7 +411,7 @@ func init() {
 
 func executeRunWithAppsConfigFile(runFilePath string) {
 	config := runfileconfig.RunFileConfig{}
-	keyMappings, err := config.ParseAppsConfig(runFilePath)
+	err := config.ParseAppsConfig(runFilePath)
 	if err != nil {
 		print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error parsing apps config file: %s", err))
 		os.Exit(1)
@@ -421,7 +421,11 @@ func executeRunWithAppsConfigFile(runFilePath string) {
 		print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error validating apps config file: %s", err))
 		os.Exit(1)
 	}
-	apps := config.GetApps(keyMappings)
+	apps, err := config.GetApps(runFilePath)
+	if err != nil {
+		print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error getting apps from config file: %s", err))
+		os.Exit(1)
+	}
 	if len(apps) == 0 {
 		print.FailureStatusEvent(os.Stdout, "No apps to run")
 		os.Exit(1)

@@ -16,11 +16,9 @@ package runfileconfig
 import (
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"reflect"
 
-	"github.com/dapr/cli/pkg/standalone"
 	"github.com/dapr/cli/utils"
 
 	"gopkg.in/yaml.v2"
@@ -29,21 +27,17 @@ import (
 // constants for the keys from the yaml file.
 const APPS = "apps"
 
-func (a *RunFileConfig) ParseAppsConfig(runFilePath string) ([]map[string]string, error) {
+func (a *RunFileConfig) ParseAppsConfig(runFilePath string) error {
 	var err error
-	bytes, err := os.ReadFile(runFilePath)
+	bytes, err := utils.ReadFile(runFilePath)
 	if err != nil {
-		return nil, fmt.Errorf("error in reading the provided app config file: %w", err)
+		return err
 	}
 	err = yaml.Unmarshal(bytes, &a)
 	if err != nil {
-		return nil, fmt.Errorf("error in parsing the provided app config file: %w", err)
+		return fmt.Errorf("error in parsing the provided app config file: %w", err)
 	}
-	keyMappings, err := a.getKeyMappingFromYaml(bytes)
-	if err != nil {
-		return nil, err
-	}
-	return keyMappings, nil
+	return nil
 }
 
 // ValidateRunConfig validates the run file config for mandatory fields and valid paths.
@@ -74,15 +68,55 @@ func (a *RunFileConfig) ValidateRunConfig(runFilePath string) error {
 	return nil
 }
 
-// getKeyMappingFromYaml returns a list of maps with key as the field name and value as the type of the field.
+// GetApps returns a list of apps with the merged values forthe keys from common section of the YAML file.
+func (a *RunFileConfig) GetApps(filePath string) ([]Apps, error) {
+	bytes, err := utils.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+	appsKeys, err := a.getAppsKeysFromYaml(bytes)
+	if err != nil {
+		return nil, err
+	}
+	if len(a.Apps) != len(appsKeys) {
+		return nil, errors.New("error in parsing the provided app config file to extract provided configurations keys")
+	}
+	sharedConfigType := reflect.TypeOf(a.Common.SharedRunConfig)
+	fields := reflect.VisibleFields(sharedConfigType)
+	// Iterate for each field in common(shared configurations).
+	for _, field := range fields {
+		val := reflect.ValueOf(a.Common.SharedRunConfig).FieldByName(field.Name)
+		// Iterate for each app's configurations.
+		for i := range a.Apps {
+			appVal := reflect.ValueOf(a.Apps[i].RunConfig.SharedRunConfig).FieldByName(field.Name)
+			_, ok := appsKeys[i][field.Name]
+			// apppVal is the default value for the type and "ok" is for checking if this default value is not set explicitly in the app's configuration.
+			if appVal.IsZero() && !ok {
+				// Here FieldByName always returns a valid value, it can also be zero but the field always exists.
+				reflect.ValueOf(&a.Apps[i].RunConfig.SharedRunConfig).
+					Elem().
+					FieldByName(field.Name).
+					Set(val)
+			}
+		}
+	}
+	for i := range a.Apps {
+		if a.Apps[i].AppID == "" {
+			a.Apps[i].AppID = filepath.Dir(a.Apps[i].AppDirPath)
+		}
+	}
+	return a.Apps, nil
+}
+
+// getAppsKeysFromYaml returns a list of maps with key as the field name and value as the type of the field.
 // It is used in getting the configured keys from the YAML file for the apps.
 // It is needed as it might be possible that the user wants to provide a default value for one of the app's key.
-func (a *RunFileConfig) getKeyMappingFromYaml(bytes []byte) ([]map[string]string, error) {
+func (a *RunFileConfig) getAppsKeysFromYaml(bytes []byte) ([]map[string]string, error) {
 	result := make([]map[string]string, 0)
 	tempMap := make(map[string]interface{})
 	err := yaml.Unmarshal(bytes, &tempMap)
 	if err != nil {
-		return nil, fmt.Errorf("error in parsing the provided app config file to extract provided parameters: %w", err)
+		return nil, fmt.Errorf("error in parsing the provided app config file to extract provided configurations: %w", err)
 	}
 	apps := tempMap[APPS].([]interface{})
 	for _, app := range apps {
@@ -93,120 +127,6 @@ func (a *RunFileConfig) getKeyMappingFromYaml(bytes []byte) ([]map[string]string
 		result = append(result, keyMaps)
 	}
 	return result, nil
-}
-
-// GetApps returns a list of apps with the merged values fopr the keys from common section of the yaml file.
-func (a *RunFileConfig) GetApps(keyMappings []map[string]string) []Apps {
-	// get a mapping of parsed values from the yaml file for the common section.
-	sharedRunConfigMapChan := make(chan map[string]reflect.Value)
-	go a.getSharedRunConfigMap(sharedRunConfigMapChan)
-
-	// get a list of maps with key as the field name and value as the reflect value of the field for the apps section of the yaml file.
-	appRunConfigListChan := make(chan []map[string]reflect.Value)
-	go a.getAppRunConfigList(appRunConfigListChan)
-
-	var sharedRunConfigMap map[string]reflect.Value
-	var appRunConfigList []map[string]reflect.Value
-
-	for i := 0; i < 2; i++ {
-		select {
-		case sharedRunConfigMap = <-sharedRunConfigMapChan:
-		case appRunConfigList = <-appRunConfigListChan:
-		}
-	}
-
-	// merge appRunConfigList and sharedRunConfigMap only if that field is not set in the apps section of the yaml file.
-	for index, appRunConfigMap := range appRunConfigList {
-		for key, value := range appRunConfigMap {
-			if _, exist := keyMappings[index][key]; !exist {
-				if value.IsZero() {
-					if val, ok := sharedRunConfigMap[key]; ok {
-						appRunConfigMap[key] = val
-					}
-				}
-			}
-		}
-	}
-
-	// set the merged values in the Apps struct.
-	for i, appRunConfigMap := range appRunConfigList {
-		for key, value := range appRunConfigMap {
-			switch key {
-			case "ConfigFile":
-				a.Apps[i].RunConfig.SharedRunConfig.ConfigFile = value.Interface().(string)
-			case "AppProtocol":
-				a.Apps[i].RunConfig.SharedRunConfig.AppProtocol = value.Interface().(string)
-			case "APIListenAddresses":
-				a.Apps[i].RunConfig.SharedRunConfig.APIListenAddresses = value.Interface().(string)
-			case "EnableProfiling":
-				a.Apps[i].RunConfig.SharedRunConfig.EnableProfiling = value.Interface().(bool)
-			case "LogLevel":
-				a.Apps[i].RunConfig.SharedRunConfig.LogLevel = value.Interface().(string)
-			case "MaxConcurrency":
-				a.Apps[i].RunConfig.SharedRunConfig.MaxConcurrency = value.Interface().(int)
-			case "PlacementHostAddr":
-				a.Apps[i].RunConfig.SharedRunConfig.PlacementHostAddr = value.Interface().(string)
-			case "ResourcesPath":
-				a.Apps[i].RunConfig.SharedRunConfig.ResourcesPath = value.Interface().(string)
-			case "ComponentsPath":
-				a.Apps[i].RunConfig.SharedRunConfig.ComponentsPath = value.Interface().(string)
-				if a.Apps[i].RunConfig.SharedRunConfig.ComponentsPath == "" {
-					a.Apps[i].RunConfig.SharedRunConfig.ComponentsPath = standalone.DefaultComponentsDirPath()
-				}
-			case "AppSSL":
-				a.Apps[i].RunConfig.SharedRunConfig.AppSSL = value.Interface().(bool)
-			case "MaxRequestBodySize":
-				a.Apps[i].RunConfig.SharedRunConfig.MaxRequestBodySize = value.Interface().(int)
-			case "HTTPReadBufferSize":
-				a.Apps[i].RunConfig.SharedRunConfig.HTTPReadBufferSize = value.Interface().(int)
-			case "EnableAppHealth":
-				a.Apps[i].RunConfig.SharedRunConfig.EnableAppHealth = value.Interface().(bool)
-			case "AppHealthPath":
-				a.Apps[i].RunConfig.SharedRunConfig.AppHealthPath = value.Interface().(string)
-			case "AppHealthInterval":
-				a.Apps[i].RunConfig.SharedRunConfig.AppHealthInterval = value.Interface().(int)
-			case "AppHealthTimeout":
-				a.Apps[i].RunConfig.SharedRunConfig.AppHealthTimeout = value.Interface().(int)
-			case "AppHealthThreshold":
-				a.Apps[i].RunConfig.SharedRunConfig.AppHealthThreshold = value.Interface().(int)
-			case "EnableAPILogging":
-				a.Apps[i].RunConfig.SharedRunConfig.EnableAPILogging = value.Interface().(bool)
-			}
-		}
-	}
-	return a.Apps
-}
-
-// getSharedRunConfigMap returns a map with key as the field name and value as the reflect value of the field for the common section of the yaml file.
-func (a *RunFileConfig) getSharedRunConfigMap(sharedRunConfigMapChan chan map[string]reflect.Value) {
-	sharedRunConfigMap := make(map[string]reflect.Value)
-	sharedConfigSchema := reflect.ValueOf(a.Common.SharedRunConfig)
-	for i := 0; i < sharedConfigSchema.NumField(); i++ {
-		valueField := sharedConfigSchema.Field(i).Interface()
-		typeField := sharedConfigSchema.Type().Field(i)
-		sharedRunConfigMap[typeField.Name] = reflect.ValueOf(valueField)
-	}
-	sharedRunConfigMapChan <- sharedRunConfigMap
-}
-
-// getAppRunConfigList returns a list of maps with key as the field name and value as the reflect value of the field for the apps section of the yaml file.
-func (a *RunFileConfig) getAppRunConfigList(appRunConfigListChan chan []map[string]reflect.Value) {
-	appRunConfigList := make([]map[string]reflect.Value, 0)
-	for j := 0; j < len(a.Apps); j++ {
-		// set appID to appDir if not provided.
-		if a.Apps[j].AppID == "" {
-			a.Apps[j].AppID = filepath.Dir(a.Apps[j].AppDirPath)
-		}
-		appSchema := reflect.ValueOf(a.Apps[j].RunConfig.SharedRunConfig)
-		appRunConfigMap := make(map[string]reflect.Value)
-		for i := 0; i < appSchema.NumField(); i++ {
-			valueField := appSchema.Field(i).Interface()
-			typeField := appSchema.Type().Field(i)
-			appRunConfigMap[typeField.Name] = reflect.ValueOf(valueField)
-		}
-		appRunConfigList = append(appRunConfigList, appRunConfigMap)
-	}
-	appRunConfigListChan <- appRunConfigList
 }
 
 // resolvePathToAbsAndValidate resolves the relative paths in run file to absolute path and validates the file path.

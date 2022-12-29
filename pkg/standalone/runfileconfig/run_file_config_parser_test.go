@@ -28,10 +28,10 @@ var (
 
 func TestRunConfigParser(t *testing.T) {
 	appsRunConfig := RunFileConfig{}
-	keyMappings, err := appsRunConfig.ParseAppsConfig(validRunFilePath)
+	err := appsRunConfig.ParseAppsConfig(validRunFilePath)
 
 	assert.Nil(t, err)
-	assert.Equal(t, 2, len(keyMappings))
+	assert.Equal(t, 2, len(appsRunConfig.Apps))
 
 	assert.Equal(t, 1, appsRunConfig.Version)
 	assert.NotEmpty(t, appsRunConfig.Common.ResourcesPath)
@@ -79,18 +79,11 @@ func TestValidateRunConfig(t *testing.T) {
 }
 
 func TestGetApps(t *testing.T) {
-	keymapping := []map[string]string{}
-	keymapping = append(
-		keymapping,
-		map[string]string{"AppHealthTimeout": "int", "app_dir": "string", "app_port": "int", "command": "[]interface {}", "config_file": "string", "resources_dir": "string"},
-		map[string]string{"app_dir": "string", "app_id": "string", "app_port": "int", "app_protocol": "string", "command": "[]interface {}", "env": "[]interface {}", "unix_domain_socket": "string"},
-	)
-
 	config := RunFileConfig{}
 	config.ParseAppsConfig(validRunFilePath)
 
-	apps := config.GetApps(keymapping)
-
+	apps, err := config.GetApps(validRunFilePath)
+	assert.Nil(t, err)
 	assert.Equal(t, 2, len(apps))
 	assert.Equal(t, "webapp", apps[0].AppID)
 	assert.Equal(t, "backend", apps[1].AppID)

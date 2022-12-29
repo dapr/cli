@@ -15,23 +15,28 @@ package runfileconfig
 
 import "github.com/dapr/cli/pkg/standalone"
 
+// RunFileConfig represents the complete configuration options for the run file.
+// It is meant to be used with - "dapr run --run-file <path-to-run-file>" command.
 type RunFileConfig struct {
 	Common  Common `yaml:"common"`
 	Apps    []Apps `yaml:"apps"`
 	Version int    `yaml:"version"`
 }
 
+// Apps represents the configuration options for the apps in the run file.
 type Apps struct {
 	standalone.RunConfig `yaml:",inline"`
 	AppDirPath           string     `yaml:"app_dir_path"`
 	Env                  []EnvItems `yaml:"env"`
 }
 
+// Common represents the configuration options for the common section in the run file.
 type Common struct {
 	Env                        []EnvItems `yaml:"env"`
 	standalone.SharedRunConfig `yaml:",inline"`
 }
 
+// EnvItems represents the env configuration options that are present in commmon and/or individual app's section.
 type EnvItems struct {
 	Name  string `yaml:"name"`
 	Value string `yaml:"value"`

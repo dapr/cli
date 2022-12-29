@@ -56,7 +56,7 @@ type SharedRunConfig struct {
 	LogLevel           string `arg:"log-level" yaml:"log_level"`
 	MaxConcurrency     int    `arg:"app-max-concurrency" yaml:"_appmax_concurrency"`
 	PlacementHostAddr  string `arg:"placement-host-address" yaml:"placement_host_address"`
-	ComponentsPath     string `arg:"components-path" yaml:"components_dir"`
+	ComponentsPath     string `arg:"components-path"`
 	ResourcesPath      string `arg:"resources-path" yaml:"resources_path"`
 	AppSSL             bool   `arg:"app-ssl" yaml:"app_ssl"`
 	MaxRequestBodySize int    `arg:"dapr-http-max-request-size" yaml:"dapr_http_max_request_size"`
@@ -260,7 +260,7 @@ func (config *RunConfig) getArgs() []string {
 }
 
 // Recursive function to get all the args from the config struct.
-// this is needed because the config struct has embedded struct.
+// This is needed because the config struct has embedded struct.
 func getArgsFromSchema(schema reflect.Value, args []string) []string {
 	for i := 0; i < schema.NumField(); i++ {
 		valueField := schema.Field(i).Interface()
@@ -268,6 +268,7 @@ func getArgsFromSchema(schema reflect.Value, args []string) []string {
 		key := typeField.Tag.Get("arg")
 		if typeField.Type.Kind() == reflect.Struct {
 			args = getArgsFromSchema(schema.Field(i), args)
+			continue
 		}
 		if len(key) == 0 {
 			continue

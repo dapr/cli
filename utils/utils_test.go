@@ -223,7 +223,7 @@ func TestGetAbsPath(t *testing.T) {
 		{
 			name:     "relative path-2",
 			input:    "../relative/path",
-			expected: filepath.Join(baseDir, "relative", "path"),
+			expected: filepath.Join(baseDir, "..", "relative", "path"),
 		},
 		{
 			name:     "absolute path",
@@ -236,6 +236,33 @@ func TestGetAbsPath(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			actual := GetAbsPath(baseDir, tc.input)
 			assert.Equal(t, tc.expected, actual)
+		})
+	}
+}
+
+func TestReadFile(t *testing.T) {
+	fileName := createTempFile(t, "", "test_read_file")
+	defer cleanupTempDir(t, fileName)
+	testcases := []struct {
+		name        string
+		input       string
+		expectedErr bool
+	}{
+		{
+			name:        "empty file path",
+			input:       "",
+			expectedErr: true,
+		},
+		{
+			name:        "valid file path",
+			input:       fileName,
+			expectedErr: false,
+		},
+	}
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, actual := ReadFile(tc.input)
+			assert.Equal(t, tc.expectedErr, actual != nil)
 		})
 	}
 }
@@ -253,7 +280,7 @@ func createTempFile(t *testing.T, tempDirName, fileName string) string {
 	return file.Name()
 }
 
-func cleanupTempDir(t *testing.T, dirName string) {
-	err := os.RemoveAll(dirName)
+func cleanupTempDir(t *testing.T, fileName string) {
+	err := os.RemoveAll(fileName)
 	assert.NoError(t, err)
 }

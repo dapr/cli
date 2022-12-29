@@ -341,7 +341,14 @@ func GetAbsPath(baseDir, path string) string {
 	if filepath.IsAbs(path) {
 		return path
 	}
-	pathArr := strings.Split(path, string(os.PathSeparator))
-	absPath := filepath.Join(baseDir, filepath.Join(pathArr[1:]...))
+	absPath := filepath.Join(baseDir, filepath.Clean(path))
 	return absPath
+}
+
+func ReadFile(filePath string) ([]byte, error) {
+	bytes, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("error in reading the provided app config file: %w", err)
+	}
+	return bytes, nil
 }
