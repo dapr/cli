@@ -29,6 +29,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/dapr/cli/tests/e2e/common"
+	"github.com/dapr/cli/tests/e2e/spawn"
 	"github.com/dapr/cli/utils"
 )
 
@@ -156,4 +157,15 @@ func containerRuntime() string {
 		return daprContainerRuntime
 	}
 	return ""
+}
+
+func uninstallDapr(uninstallArgs ...string) (string, error) {
+	daprContainerRuntime := containerRuntime()
+
+	// Add --container-runtime flag only if daprContainerRuntime is not empty, or overridden via args.
+	// This is only valid for non-slim mode.
+	if !isSlimMode() && daprContainerRuntime != "" && !utils.Contains(uninstallArgs, "--container-runtime") {
+		uninstallArgs = append(uninstallArgs, "--container-runtime", daprContainerRuntime)
+	}
+	return spawn.Command(common.GetDaprPath(), uninstallArgs...)
 }

@@ -73,7 +73,8 @@ func DefaultConfigFilePath() string {
 // please see this comment for more details:https://github.com/dapr/cli/pull/1149#issuecomment-1364424345
 // TODO: Remove this function when `--components-path` flag is removed.
 func copyFilesAndCreateSymlink(src, dest string) error {
-	if _, err := os.Stat(src); err != nil {
+	var err error
+	if _, err = os.Stat(src); err != nil {
 		// if the src directory does not exist, create symlink and return nil, because there is nothing to copy from.
 		if os.IsNotExist(err) {
 			err = createSymLink(dest, src)
@@ -84,24 +85,36 @@ func copyFilesAndCreateSymlink(src, dest string) error {
 		}
 		return fmt.Errorf("error reading directory %s: %w", src, err)
 	}
-	files, err := os.ReadDir(dest)
+	if err = moveDir(src, dest); err != nil {
+		return err
+	}
+	if err = createSymLink(dest, src); err != nil {
+		return err
+	}
+	return nil
+}
+
+// moveDir moves files from src to dest. If there are files in src, it deletes the existing files in dest before copying from src.
+func moveDir(src, dest string) error {
+	destFiles, err := os.ReadDir(dest)
 	if err != nil {
 		return fmt.Errorf("error reading files from %s: %w", dest, err)
 	}
-	for _, file := range files {
-		err = os.Remove(path_filepath.Join(dest, file.Name()))
-		if err != nil {
-			return fmt.Errorf("error removing file %s: %w", file.Name(), err)
-		}
-	}
-	files, err = os.ReadDir(src)
+	srcFiles, err := os.ReadDir(src)
 	if err != nil {
 		return fmt.Errorf("error reading files from %s: %w", src, err)
 	}
-	if len(files) > 0 {
+	if len(srcFiles) > 0 {
+		// delete the existing files in dest before copying from src iff there are files in src.
+		for _, file := range destFiles {
+			err = os.Remove(path_filepath.Join(dest, file.Name()))
+			if err != nil {
+				return fmt.Errorf("error removing file %s: %w", file.Name(), err)
+			}
+		}
 		print.InfoStatusEvent(os.Stdout, "Moving files from %q to %q", src, dest)
 		var content []byte
-		for _, file := range files {
+		for _, file := range srcFiles {
 			content, err = os.ReadFile(path_filepath.Join(src, file.Name()))
 			if err != nil {
 				return fmt.Errorf("error reading file %s: %w", file.Name(), err)
@@ -118,23 +131,20 @@ func copyFilesAndCreateSymlink(src, dest string) error {
 	if err != nil {
 		return fmt.Errorf("error removing directory %s: %w", src, err)
 	}
-	err = createSymLink(dest, src)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
-func createSymLink(dirName, symLinkName string) error {
+// createSymLink creates a symlink from dirName to symLink.
+func createSymLink(dirName, symLink string) error {
 	if _, err := os.Stat(dirName); err != nil {
 		if os.IsNotExist(err) {
 			return fmt.Errorf("directory %s does not exist", dirName)
 		}
 		return fmt.Errorf("error reading directory %s: %w", dirName, err)
 	}
-	err := os.Symlink(dirName, symLinkName)
+	err := os.Symlink(dirName, symLink)
 	if err != nil {
-		return fmt.Errorf("error creating symlink from %s to %s: %w", dirName, symLinkName, err)
+		return fmt.Errorf("error creating symlink from %s to %s: %w", dirName, symLink, err)
 	}
 	return nil
 }

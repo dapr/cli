@@ -25,8 +25,8 @@ func TestCreateSymLink(t *testing.T) {
 	// create a temp dir to hold the symlink and actual directory.
 	tempDir := createTempDir(t, "dapr-test", "")
 	defer cleanupTempDir(t, tempDir)
-	rsrcDir := createTempDir(t, "resources", tempDir)
-	existingSymLinkDir := createTempDir(t, "components_exist", tempDir)
+	originalDir := createTempDir(t, "original_dir", tempDir)
+	existingSymLinkDir := createTempDir(t, "new_name_exist", tempDir)
 	tests := []struct {
 		name          string
 		actualDirName string
@@ -35,19 +35,19 @@ func TestCreateSymLink(t *testing.T) {
 	}{
 		{
 			name:          "create symlink for resources directory",
-			actualDirName: rsrcDir,
-			symLinkName:   path_filepath.Join(tempDir, "components"),
+			actualDirName: originalDir,
+			symLinkName:   path_filepath.Join(tempDir, "new_name"),
 			expectedError: false,
 		},
 		{
 			name:          "create symlink when resources directory does not exist",
 			actualDirName: "invalid-dir",
-			symLinkName:   "components",
+			symLinkName:   "new_name",
 			expectedError: true,
 		},
 		{
 			name:          "create symlink when symlink named directory already exists",
-			actualDirName: rsrcDir,
+			actualDirName: originalDir,
 			symLinkName:   existingSymLinkDir,
 			expectedError: true,
 		},
@@ -64,38 +64,92 @@ func TestCopyFilesAndCreateSymlink(t *testing.T) {
 	// create a temp dir to hold the symlink and actual directory.
 	tempDir := createTempDir(t, "dapr-test", "")
 	defer cleanupTempDir(t, tempDir)
-	rsrcDir := createTempDir(t, "resources", tempDir)
-	cmptDir := createTempDir(t, "components", tempDir)
-	cmptFile := createTempFile(t, cmptDir, "pubsub.yaml")
-	rsrcFile := createTempFile(t, cmptDir, "pubsub-rsrc.yaml")
+	destDir := createTempDir(t, "dest", tempDir)
+	srcDir := createTempDir(t, "src", tempDir)
+	srcFile := createTempFile(t, srcDir, "pubsub.yaml")
 	tests := []struct {
 		name            string
-		actualDirName   string
-		symLinkName     string
+		destDirName     string
+		srcDirName      string
 		expectedError   bool
 		presentFileName string
 	}{
 		{
-			name:            "copy files and create symlink for resources directory when components dir exists",
-			actualDirName:   rsrcDir,
-			symLinkName:     cmptDir,
+			name:            "copy files and create symlink for destination directory when source dir exists",
+			destDirName:     destDir,
+			srcDirName:      srcDir,
 			expectedError:   false,
-			presentFileName: cmptFile,
+			presentFileName: srcFile,
 		},
 		{
-			name:            "copy files and create symlink for resources directory when components dir does not exists",
-			actualDirName:   rsrcDir,
-			symLinkName:     path_filepath.Join(tempDir, "components-not-exist"),
+			name:            "copy files and create symlink for destination directory when source dir does not exists",
+			destDirName:     destDir,
+			srcDirName:      path_filepath.Join(tempDir, "non-existent-source-dir"),
 			expectedError:   false,
-			presentFileName: rsrcFile,
+			presentFileName: path_filepath.Base(srcFile),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := copyFilesAndCreateSymlink(tt.symLinkName, tt.actualDirName)
+			err := copyFilesAndCreateSymlink(tt.srcDirName, tt.destDirName)
 			assert.Equal(t, tt.expectedError, err != nil)
 			// check if the files are copied.
-			assert.FileExists(t, path_filepath.Join(tt.symLinkName, path_filepath.Base(tt.presentFileName)))
+			assert.FileExists(t, path_filepath.Join(tt.srcDirName, path_filepath.Base(tt.presentFileName)))
+		})
+	}
+}
+
+func TestMoveDir(t *testing.T) {
+	// create a temp dir to hold the source and destination directory.
+	tempDir := createTempDir(t, "dapr-test", "")
+	defer cleanupTempDir(t, tempDir)
+	// create a file in the source and destination directory.
+	src1 := createTempDir(t, "src1", tempDir)
+	dest2 := createTempDir(t, "dest2", tempDir)
+	srcFile := createTempFile(t, src1, "pubsub.yaml")
+	destFile := createTempFile(t, dest2, "pubsub-dest.yaml")
+	tests := []struct {
+		name            string
+		srcDirName      string
+		destDirName     string
+		expectedError   bool
+		presentFileName string
+	}{
+		{
+			name:            "move directory when source directory contains files",
+			srcDirName:      src1,
+			destDirName:     createTempDir(t, "dest1", tempDir),
+			expectedError:   false,
+			presentFileName: path_filepath.Base(srcFile),
+		},
+		{
+			name:            "move directory when source directory does not contain files",
+			srcDirName:      createTempDir(t, "src2", tempDir),
+			destDirName:     dest2,
+			expectedError:   false,
+			presentFileName: path_filepath.Base(destFile),
+		},
+		{
+			name:          "move directory when source directory does not exists",
+			srcDirName:    path_filepath.Join(tempDir, "non-existent-source-dir"),
+			destDirName:   createTempDir(t, "dest3", tempDir),
+			expectedError: true,
+		},
+		{
+			name:          "move directory when destination directory does not exists",
+			srcDirName:    createTempDir(t, "src4", tempDir),
+			destDirName:   path_filepath.Join(tempDir, "non-existent-dir-dir"),
+			expectedError: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := moveDir(tt.srcDirName, tt.destDirName)
+			assert.Equal(t, tt.expectedError, err != nil)
+			if tt.presentFileName != "" {
+				// check if the files are moved correctly.
+				assert.FileExists(t, path_filepath.Join(tt.destDirName, tt.presentFileName))
+			}
 		})
 	}
 }

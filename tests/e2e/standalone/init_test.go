@@ -42,7 +42,7 @@ func TestStandaloneInit(t *testing.T) {
 		}
 
 		// Ensure a clean environment
-		must(t, cmdUninstall, "failed to uninstall Dapr")
+		must(t, cmdUninstallAll, "failed to uninstall Dapr")
 		args := []string{
 			"--runtime-version", daprRuntimeVersion,
 			"--image-registry", "smplregistry.io/owner",
@@ -58,7 +58,7 @@ func TestStandaloneInit(t *testing.T) {
 		}
 
 		// Ensure a clean environment
-		must(t, cmdUninstall, "failed to uninstall Dapr")
+		must(t, cmdUninstallAll, "failed to uninstall Dapr")
 		args := []string{
 			"--runtime-version", daprRuntimeVersion,
 			"--image-registry", "localhost:5000",
@@ -71,7 +71,7 @@ func TestStandaloneInit(t *testing.T) {
 
 	t.Run("init should error out if container runtime is not valid", func(t *testing.T) {
 		// Ensure a clean environment
-		must(t, cmdUninstall, "failed to uninstall Dapr")
+		must(t, cmdUninstallAll, "failed to uninstall Dapr")
 		args := []string{
 			"--runtime-version", daprRuntimeVersion,
 			"--container-runtime", "invalid",
@@ -83,7 +83,7 @@ func TestStandaloneInit(t *testing.T) {
 
 	t.Run("init", func(t *testing.T) {
 		// Ensure a clean environment
-		must(t, cmdUninstall, "failed to uninstall Dapr")
+		must(t, cmdUninstallAll, "failed to uninstall Dapr")
 
 		args := []string{
 			"--runtime-version", daprRuntimeVersion,
@@ -106,7 +106,7 @@ func TestStandaloneInit(t *testing.T) {
 
 	t.Run("init with mariner images", func(t *testing.T) {
 		// Ensure a clean environment
-		must(t, cmdUninstall, "failed to uninstall Dapr")
+		must(t, cmdUninstallAll, "failed to uninstall Dapr")
 
 		args := []string{
 			"--runtime-version", daprRuntimeVersion,
@@ -130,7 +130,7 @@ func TestStandaloneInit(t *testing.T) {
 
 	t.Run("init without runtime-version flag", func(t *testing.T) {
 		// Ensure a clean environment
-		must(t, cmdUninstall, "failed to uninstall Dapr")
+		must(t, cmdUninstallAll, "failed to uninstall Dapr")
 
 		output, err := cmdInit()
 		t.Log(output)
