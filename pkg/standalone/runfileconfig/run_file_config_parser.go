@@ -18,7 +18,9 @@ import (
 	"fmt"
 	"path/filepath"
 	"reflect"
+	"strings"
 
+	"github.com/dapr/cli/pkg/standalone"
 	"github.com/dapr/cli/utils"
 
 	"gopkg.in/yaml.v2"
@@ -78,6 +80,7 @@ func (a *RunFileConfig) GetApps(runFilePath string) ([]Apps, error) {
 	if err != nil {
 		return nil, err
 	}
+	a.resolveResourcesAndConfigFilePaths()
 	a.mergeCommonAndAppsSharedRunConfig()
 	// Resolve app ids if not provided in the run file.
 	err = a.setAppIDIfEmpty()
@@ -149,4 +152,35 @@ func (a *RunFileConfig) resolvePathToAbsAndValidate(baseDir string, paths ...*st
 		}
 	}
 	return nil
+}
+
+// Resolve resources and config file paths for each app.
+// precedence order for resources_path -> apps[i].resources_path > apps[i].app_dir_path/.dapr/resources > common.resources_path > dapr default resources path
+// precedence order for config_file -> apps[i].config_file > apps[i].app_dir_path/.dapr/config.yaml > common.config_file > dapr default config file
+func (a *RunFileConfig) resolveResourcesAndConfigFilePaths() {
+	for i := range a.Apps {
+		app := &a.Apps[i]
+		// Resolve resources path if not provided in specific app's config.
+		if app.ResourcesPath == "" {
+			localResourcesDir := filepath.Join(app.AppDirPath, ".dapr", "resources")
+			if err := utils.ValidateFilePaths(localResourcesDir); err == nil {
+				app.ResourcesPath = localResourcesDir
+			} else if len(strings.TrimSpace(a.Common.ResourcesPath)) > 0 {
+				app.ResourcesPath = a.Common.ResourcesPath
+			} else {
+				app.ResourcesPath = standalone.DefaultComponentsDirPath()
+			}
+		}
+		// Resolve config file path if not provided in specific app's config.
+		if app.ConfigFile == "" {
+			localConfigFile := filepath.Join(app.AppDirPath, ".dapr", "config.yaml")
+			if err := utils.ValidateFilePaths(localConfigFile); err == nil {
+				app.ConfigFile = localConfigFile
+			} else if len(strings.TrimSpace(a.Common.ConfigFile)) > 0 {
+				app.ConfigFile = a.Common.ConfigFile
+			} else {
+				app.ConfigFile = standalone.DefaultConfigFilePath()
+			}
+		}
+	}
 }

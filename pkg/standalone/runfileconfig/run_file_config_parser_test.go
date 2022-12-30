@@ -95,6 +95,19 @@ func TestGetApps(t *testing.T) {
 	assert.Equal(t, 10, apps[1].AppHealthTimeout)
 	assert.Equal(t, "", apps[0].UnixDomainSocket)
 	assert.Equal(t, "/tmp/test-socket", apps[1].UnixDomainSocket)
+
+	// test resources_path and config_path after precedence order logic.
+	assert.Equal(t, filepath.Join(apps[0].AppDirPath, "resources"), apps[0].ResourcesPath)
+	assert.Equal(t, filepath.Join(apps[1].AppDirPath, ".dapr", "resources"), apps[1].ResourcesPath)
+
+	assert.Equal(t, filepath.Join(apps[0].AppDirPath, "config.yaml"), apps[0].ConfigFile)
+	assert.Equal(t, filepath.Join(apps[1].AppDirPath, ".dapr", "config.yaml"), apps[1].ConfigFile)
+
+	// temporarily set apps[0].ResourcesPath to empty string to test it is getting picked from common section.
+	apps[0].ResourcesPath = ""
+	config.resolveResourcesAndConfigFilePaths()
+	assert.Equal(t, config.Common.ResourcesPath, apps[0].ResourcesPath)
+	assert.Equal(t, filepath.Join(apps[1].AppDirPath, ".dapr", "resources"), apps[1].ResourcesPath)
 }
 
 func TestGetBasePathFromAbsPath(t *testing.T) {
