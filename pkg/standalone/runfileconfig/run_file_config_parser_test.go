@@ -14,6 +14,7 @@ limitations under the License.
 package runfileconfig
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -105,19 +106,19 @@ func TestGetBasePathFromAbsPath(t *testing.T) {
 	}{
 		{
 			name:          "valid absolute path",
-			input:         "/tmp/test",
+			input:         filepath.Join(os.TempDir(), "test"),
 			expectedErr:   false,
 			expectedAppID: "test",
 		},
 		{
 			name:          "invalid absolute path",
-			input:         "../test/",
+			input:         filepath.Join("..", "test"),
 			expectedErr:   true,
 			expectedAppID: "",
 		},
 		{
 			name:          "invalid absolute path",
-			input:         "./test/",
+			input:         filepath.Join(".", "test"),
 			expectedErr:   true,
 			expectedAppID: "",
 		},
