@@ -68,33 +68,7 @@ func DefaultConfigFilePath() string {
 	return path_filepath.Join(defaultDaprDirPath(), defaultConfigFileName)
 }
 
-// copyFilesAndCreateSymlink copies files from src to dest. It deletes the existing files in dest before copying from src.
-// this method also deletes the components dir and makes it as a symlink to resources directory.
-// please see this comment for more details:https://github.com/dapr/cli/pull/1149#issuecomment-1364424345
-// TODO: Remove this function when `--components-path` flag is removed.
-func copyFilesAndCreateSymlink(src, dest string) error {
-	var err error
-	if _, err = os.Stat(src); err != nil {
-		// if the src directory does not exist, create symlink and return nil, because there is nothing to copy from.
-		if os.IsNotExist(err) {
-			err = createSymLink(dest, src)
-			if err != nil {
-				return err
-			}
-			return nil
-		}
-		return fmt.Errorf("error reading directory %s: %w", src, err)
-	}
-	if err = moveDir(src, dest); err != nil {
-		return err
-	}
-	if err = createSymLink(dest, src); err != nil {
-		return err
-	}
-	return nil
-}
-
-// moveDir moves files from src to dest. If there are files in src, it deletes the existing files in dest before copying from src.
+// moveDir moves files from src to dest. If there are files in src, it deletes the existing files in dest before copying from src and then deletes the src directory.
 func moveDir(src, dest string) error {
 	destFiles, err := os.ReadDir(dest)
 	if err != nil {
@@ -105,7 +79,7 @@ func moveDir(src, dest string) error {
 		return fmt.Errorf("error reading files from %s: %w", src, err)
 	}
 	if len(srcFiles) > 0 {
-		// delete the existing files in dest before copying from src iff there are files in src.
+		// delete the existing files in dest before copying from src if there are files in src.
 		for _, file := range destFiles {
 			err = os.Remove(path_filepath.Join(dest, file.Name()))
 			if err != nil {
@@ -126,7 +100,6 @@ func moveDir(src, dest string) error {
 			}
 		}
 	}
-	// delete the components dir and make it as a symlink to resources directory.
 	err = os.RemoveAll(src)
 	if err != nil {
 		return fmt.Errorf("error removing directory %s: %w", src, err)

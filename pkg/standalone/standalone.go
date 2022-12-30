@@ -1242,3 +1242,29 @@ func setAirGapInit(fromDir string) {
 	// mostly this is used for unit testing aprat from one use in Init() function.
 	isAirGapInit = (len(strings.TrimSpace(fromDir)) != 0)
 }
+
+// copyFilesAndCreateSymlink copies files from src to dest. It deletes the existing files in dest before copying from src.
+// this method also deletes the src dir and makes it as a symlink to resources directory.
+// please see this comment for more details:https://github.com/dapr/cli/pull/1149#issuecomment-1364424345
+// TODO: Remove this function when `--components-path` flag is removed.
+func copyFilesAndCreateSymlink(src, dest string) error {
+	var err error
+	if _, err = os.Stat(src); err != nil {
+		// if the src directory does not exist, create symlink and return nil, because there is nothing to copy from.
+		if os.IsNotExist(err) {
+			err = createSymLink(dest, src)
+			if err != nil {
+				return err
+			}
+			return nil
+		}
+		return fmt.Errorf("error reading directory %s: %w", src, err)
+	}
+	if err = moveDir(src, dest); err != nil {
+		return err
+	}
+	if err = createSymLink(dest, src); err != nil {
+		return err
+	}
+	return nil
+}
