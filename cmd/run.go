@@ -411,17 +411,7 @@ func init() {
 
 func executeRunWithAppsConfigFile(runFilePath string) {
 	config := runfileconfig.RunFileConfig{}
-	err := config.ParseAppsConfig(runFilePath)
-	if err != nil {
-		print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error parsing apps config file: %s", err))
-		os.Exit(1)
-	}
-	err = config.ValidateRunConfig(runFilePath)
-	if err != nil {
-		print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error validating apps config file: %s", err))
-		os.Exit(1)
-	}
-	apps, err := config.GetApps()
+	apps, err := config.GetApps(runFilePath)
 	if err != nil {
 		print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error getting apps from config file: %s", err))
 		os.Exit(1)

@@ -24,10 +24,8 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// constants for the keys from the yaml file.
-const APPS = "apps"
-
-func (a *RunFileConfig) ParseAppsConfig(runFilePath string) error {
+// Parse the provided run file into a RunFileConfig struct.
+func (a *RunFileConfig) parseAppsConfig(runFilePath string) error {
 	var err error
 	bytes, err := utils.ReadFile(runFilePath)
 	if err != nil {
@@ -40,8 +38,9 @@ func (a *RunFileConfig) ParseAppsConfig(runFilePath string) error {
 	return nil
 }
 
-// ValidateRunConfig validates the run file config for mandatory fields and valid paths.
-func (a *RunFileConfig) ValidateRunConfig(runFilePath string) error {
+// validateRunConfig validates the run file config for mandatory fields.
+// It also resolves relative paths to absolute paths and validates them.
+func (a *RunFileConfig) validateRunConfig(runFilePath string) error {
 	baseDir, err := filepath.Abs(filepath.Dir(runFilePath))
 	if err != nil {
 		return fmt.Errorf("error in getting the absolute path of the provided run template file: %w", err)
@@ -68,8 +67,28 @@ func (a *RunFileConfig) ValidateRunConfig(runFilePath string) error {
 	return nil
 }
 
-// GetApps returns a list of apps with the merged values forthe keys from common section of the YAML file.
-func (a *RunFileConfig) GetApps() ([]Apps, error) {
+// GetApps orchestrates the parsing of supplied run file, validating fields and consolidating SharedRunConfig for the apps.
+// It returns a list of apps with the merged values for the SharedRunConfig from common section of the YAML file.
+func (a *RunFileConfig) GetApps(runFilePath string) ([]Apps, error) {
+	err := a.parseAppsConfig(runFilePath)
+	if err != nil {
+		return nil, err
+	}
+	err = a.validateRunConfig(runFilePath)
+	if err != nil {
+		return nil, err
+	}
+	a.mergeCommonAndAppsSharedRunConfig()
+	// Resolve app ids if not provided in the run file.
+	err = a.setAppIDIfEmpty()
+	if err != nil {
+		return nil, err
+	}
+	return a.Apps, nil
+}
+
+// mergeCommonAndAppsSharedRunConfig merges the common section of the run file with the apps section.
+func (a *RunFileConfig) mergeCommonAndAppsSharedRunConfig() {
 	sharedConfigType := reflect.TypeOf(a.Common.SharedRunConfig)
 	fields := reflect.VisibleFields(sharedConfigType)
 	// Iterate for each field in common(shared configurations).
@@ -88,12 +107,29 @@ func (a *RunFileConfig) GetApps() ([]Apps, error) {
 			}
 		}
 	}
+}
+
+// Set AppID to the directory name of app_dir_path.
+// app_dir_path is a mandatory field in the run file and at this point it is already validated and resolved to its absolute path.
+func (a *RunFileConfig) setAppIDIfEmpty() error {
 	for i := range a.Apps {
 		if a.Apps[i].AppID == "" {
-			a.Apps[i].AppID = filepath.Dir(a.Apps[i].AppDirPath)
+			basePath, err := a.getBasePathFromAbsPath(a.Apps[i].AppDirPath)
+			if err != nil {
+				return err
+			}
+			a.Apps[i].AppID = basePath
 		}
 	}
-	return a.Apps, nil
+	return nil
+}
+
+// Gets the base path from the absolute path of the app_dir_path.
+func (a *RunFileConfig) getBasePathFromAbsPath(appDirPath string) (string, error) {
+	if filepath.IsAbs(appDirPath) {
+		return filepath.Base(appDirPath), nil
+	}
+	return "", fmt.Errorf("error in getting the base path from the provided app_dir_path %q: ", appDirPath)
 }
 
 // resolvePathToAbsAndValidate resolves the relative paths in run file to absolute path and validates the file path.

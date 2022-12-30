@@ -28,7 +28,7 @@ var (
 
 func TestRunConfigParser(t *testing.T) {
 	appsRunConfig := RunFileConfig{}
-	err := appsRunConfig.ParseAppsConfig(validRunFilePath)
+	err := appsRunConfig.parseAppsConfig(validRunFilePath)
 
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(appsRunConfig.Apps))
@@ -71,8 +71,8 @@ func TestValidateRunConfig(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			config := RunFileConfig{}
-			config.ParseAppsConfig(tc.input)
-			actualErr := config.ValidateRunConfig(tc.input)
+			config.parseAppsConfig(tc.input)
+			actualErr := config.validateRunConfig(tc.input)
 			assert.Equal(t, tc.expectedErr, actualErr != nil)
 		})
 	}
@@ -80,9 +80,8 @@ func TestValidateRunConfig(t *testing.T) {
 
 func TestGetApps(t *testing.T) {
 	config := RunFileConfig{}
-	config.ParseAppsConfig(validRunFilePath)
 
-	apps, err := config.GetApps()
+	apps, err := config.GetApps(validRunFilePath)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(apps))
 	assert.Equal(t, "webapp", apps[0].AppID)
@@ -95,4 +94,41 @@ func TestGetApps(t *testing.T) {
 	assert.Equal(t, 10, apps[1].AppHealthTimeout)
 	assert.Equal(t, "", apps[0].UnixDomainSocket)
 	assert.Equal(t, "/tmp/test-socket", apps[1].UnixDomainSocket)
+}
+
+func TestGetBasePathFromAbsPath(t *testing.T) {
+	testcases := []struct {
+		name          string
+		input         string
+		expectedErr   bool
+		expectedAppID string
+	}{
+		{
+			name:          "valid absolute path",
+			input:         "/tmp/test",
+			expectedErr:   false,
+			expectedAppID: "test",
+		},
+		{
+			name:          "invalid absolute path",
+			input:         "../test/",
+			expectedErr:   true,
+			expectedAppID: "",
+		},
+		{
+			name:          "invalid absolute path",
+			input:         "./test/",
+			expectedErr:   true,
+			expectedAppID: "",
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			runFileConfig := RunFileConfig{}
+			appID, actualErr := runFileConfig.getBasePathFromAbsPath(tc.input)
+			assert.Equal(t, tc.expectedErr, actualErr != nil)
+			assert.Equal(t, tc.expectedAppID, appID)
+		})
+	}
 }
