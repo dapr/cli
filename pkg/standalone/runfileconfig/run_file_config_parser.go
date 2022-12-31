@@ -82,6 +82,7 @@ func (a *RunFileConfig) GetApps(runFilePath string) ([]Apps, error) {
 	}
 	a.resolveResourcesAndConfigFilePaths()
 	a.mergeCommonAndAppsSharedRunConfig()
+	a.mergeCommonAndAppsEnv()
 	// Resolve app ids if not provided in the run file.
 	err = a.setAppIDIfEmpty()
 	if err != nil {
@@ -155,8 +156,8 @@ func (a *RunFileConfig) resolvePathToAbsAndValidate(baseDir string, paths ...*st
 }
 
 // Resolve resources and config file paths for each app.
-// precedence order for resources_path -> apps[i].resources_path > apps[i].app_dir_path/.dapr/resources > common.resources_path > dapr default resources path
-// precedence order for config_file -> apps[i].config_file > apps[i].app_dir_path/.dapr/config.yaml > common.config_file > dapr default config file
+// precedence order for resources_path -> apps[i].resources_path > apps[i].app_dir_path/.dapr/resources > common.resources_path > dapr default resources path.
+// precedence order for config_file -> apps[i].config_file > apps[i].app_dir_path/.dapr/config.yaml > common.config_file > dapr default config file.
 func (a *RunFileConfig) resolveResourcesAndConfigFilePaths() {
 	for i := range a.Apps {
 		app := &a.Apps[i]
@@ -180,6 +181,29 @@ func (a *RunFileConfig) resolveResourcesAndConfigFilePaths() {
 				app.ConfigFile = a.Common.ConfigFile
 			} else {
 				app.ConfigFile = standalone.DefaultConfigFilePath()
+			}
+		}
+	}
+}
+
+// mergeCommonAndAppsEnv merges envs from common and individual app section.
+// If env is present in both common and app, then the env from app is used.
+// If env is present in common but not in app, then the env from common is used.
+// If env is present in app but not in common, then the env from app is used.
+func (a *RunFileConfig) mergeCommonAndAppsEnv() {
+	for i := range a.Common.Env {
+		envName := a.Common.Env[i].Name
+		for j := range a.Apps {
+			envFound := false
+			appEnv := a.Apps[j].Env
+			for k := range appEnv {
+				if envName == appEnv[k].Name {
+					envFound = true
+					break
+				}
+			}
+			if !envFound {
+				a.Apps[j].Env = append(a.Apps[j].Env, a.Common.Env[i])
 			}
 		}
 	}

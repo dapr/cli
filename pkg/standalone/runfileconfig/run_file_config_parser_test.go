@@ -108,6 +108,14 @@ func TestGetApps(t *testing.T) {
 	config.resolveResourcesAndConfigFilePaths()
 	assert.Equal(t, config.Common.ResourcesPath, apps[0].ResourcesPath)
 	assert.Equal(t, filepath.Join(apps[1].AppDirPath, ".dapr", "resources"), apps[1].ResourcesPath)
+
+	// test merged envs from common and app sections.
+	assert.Equal(t, 2, len(apps[0].Env))
+	assert.Equal(t, 2, len(apps[1].Env))
+	assert.Equal(t, "DEBUG", apps[0].Env[0].Name)
+	assert.Equal(t, "false", apps[0].Env[0].Value)
+	assert.Equal(t, "DEBUG", apps[1].Env[0].Name)
+	assert.Equal(t, "true", apps[1].Env[0].Value)
 }
 
 func TestGetBasePathFromAbsPath(t *testing.T) {

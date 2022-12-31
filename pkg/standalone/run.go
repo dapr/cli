@@ -33,6 +33,12 @@ import (
 
 const sentryDefaultAddress = "localhost:50001"
 
+// EnvItems represents the env configuration options that are present in commmon and/or individual app's section.
+type EnvItems struct {
+	Name  string `yaml:"name"`
+	Value string `yaml:"value"`
+}
+
 // RunConfig represents the application configuration parameters.
 type RunConfig struct {
 	AppID            string   `env:"APP_ID" arg:"app-id" yaml:"app_id"`
@@ -46,6 +52,7 @@ type RunConfig struct {
 	InternalGRPCPort int      `arg:"dapr-internal-grpc-port" yaml:"dapr_internal_grpc_port"`
 	DaprPathCmdFlag  string   `yaml:"dapr_path_cmd_flag"`
 	SharedRunConfig  `yaml:",inline"`
+	Env              []EnvItems `yaml:"env"`
 }
 
 // SharedRunConfig represents the application configuration parameters, which can be shared across many apps.
@@ -310,6 +317,9 @@ func (config *RunConfig) getEnv() []string {
 
 		value := fmt.Sprintf("%v", reflect.ValueOf(valueField))
 		env = append(env, fmt.Sprintf("%s=%v", key, value))
+	}
+	for i := range config.Env {
+		env = append(env, fmt.Sprintf("%s=%v", config.Env[i].Name, config.Env[i].Value))
 	}
 	return env
 }
