@@ -72,7 +72,9 @@ export BINARY_EXT ?= $(BINARY_EXT_LOCAL)
 TEST_OUTPUT_FILE ?= test_output.json
 
 # Set the default timeout for tests to 10 minutes
-E2E_SH_TEST_TIMEOUT ?= $(if $(E2E_SH_TEST_TIMEOUT), $(E2E_SH_TEST_TIMEOUT), 10m)
+ifndef E2E_SH_TEST_TIMEOUT
+  override E2E_SH_TEST_TIMEOUT := 10m
+endif
 
 # Use the variable H to add a header (equivalent to =>) to informational output
 H = $(shell printf "\033[34;1m=>\033[0m")
