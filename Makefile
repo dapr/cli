@@ -70,7 +70,9 @@ export GOOS ?= $(TARGET_OS_LOCAL)
 export BINARY_EXT ?= $(BINARY_EXT_LOCAL)
 
 TEST_OUTPUT_FILE ?= test_output.json
-E2E_SH_TEST_TIMEOUT ?= 10m
+
+# Set the default timeout for tests to 10 minutes
+E2E_SH_TEST_TIMEOUT ?= $(if $(E2E_SH_TEST_TIMEOUT), $(E2E_SH_TEST_TIMEOUT), 10m)
 
 # Use the variable H to add a header (equivalent to =>) to informational output
 H = $(shell printf "\033[34;1m=>\033[0m")
