@@ -148,12 +148,13 @@ func isBinaryInstallationRequired(binaryFilePrefix, binInstallDir string) (bool,
 }
 
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
-func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool, imageRegistryURL string, fromDir string, containerRuntime string, imageVariant string, inputInstallPath string) error {
+func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool,
+	imageRegistryURL string, fromDir string, containerRuntime string, imageVariant string, daprInstallPath string) error {
 	var err error
 	var bundleDet bundleDetails
 	containerRuntime = strings.TrimSpace(containerRuntime)
 	fromDir = strings.TrimSpace(fromDir)
-	inputInstallPath = strings.TrimSpace(inputInstallPath)
+	daprInstallPath = strings.TrimSpace(daprInstallPath)
 	// AirGap init flow is true when fromDir var is set i.e. --from-dir flag has value.
 	setAirGapInit(fromDir)
 	if !slimMode {
@@ -211,7 +212,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 
 	print.InfoStatusEvent(os.Stdout, "Installing runtime version %s", runtimeVersion)
 
-	installDir, err := GetDaprPath(inputInstallPath)
+	installDir, err := GetDaprPath(daprInstallPath)
 	if err != nil {
 		return err
 	}

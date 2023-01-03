@@ -90,8 +90,7 @@ func TestStandaloneVersionNonDefaultDaprPath(t *testing.T) {
 		assert.NoError(t, err)
 		defer os.RemoveAll(daprPath) // clean up
 
-		os.Setenv("DAPR_PATH", daprPath)
-		defer os.Unsetenv("DAPR_PATH")
+		t.Setenv("DAPR_PATH", daprPath)
 
 		daprRuntimeVersion, _ := common.GetVersionsFromEnv(t, false)
 		output, err := cmdInit("--runtime-version", daprRuntimeVersion)
@@ -126,8 +125,7 @@ func TestStandaloneVersionNonDefaultDaprPath(t *testing.T) {
 		assert.NoError(t, err)
 		defer os.RemoveAll(daprPath2) // clean up
 
-		os.Setenv("DAPR_PATH", daprPath2)
-		defer os.Unsetenv("DAPR_PATH")
+		t.Setenv("DAPR_PATH", daprPath2)
 
 		daprRuntimeVersion, _ := common.GetVersionsFromEnv(t, false)
 		output, err := cmdInit("--runtime-version", daprRuntimeVersion, "--dapr-path", daprPath1)
