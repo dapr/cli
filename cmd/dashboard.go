@@ -79,7 +79,13 @@ dapr dashboard -k -p 0
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		if dashboardVersionCmd {
-			fmt.Println(standalone.GetDashboardVersion())
+			dashboardVer, err := standalone.GetDashboardVersion(daprPath)
+			if err != nil {
+				print.FailureStatusEvent(os.Stderr, "Failed to get Dapr install directory: %v", err)
+				os.Exit(1)
+			}
+
+			fmt.Println(dashboardVer)
 			os.Exit(0)
 		}
 
@@ -179,9 +185,14 @@ dapr dashboard -k -p 0
 			<-portForward.GetStop()
 		} else {
 			// Standalone mode.
-			err := standalone.NewDashboardCmd(dashboardLocalPort).Run()
+			dashboardCmd, err := standalone.NewDashboardCmd(daprPath, dashboardLocalPort)
 			if err != nil {
-				print.FailureStatusEvent(os.Stderr, "Dapr dashboard not found. Is Dapr installed?")
+				print.FailureStatusEvent(os.Stderr, "Failed to get Dapr install	directory: %v", err)
+			} else {
+				err = dashboardCmd.Run()
+				if err != nil {
+					print.FailureStatusEvent(os.Stderr, "Dapr dashboard failed to run: %v", err)
+				}
 			}
 		}
 	},
@@ -199,5 +210,6 @@ func init() {
 	DashboardCmd.Flags().IntVarP(&dashboardLocalPort, "port", "p", defaultLocalPort, "The local port on which to serve Dapr dashboard")
 	DashboardCmd.Flags().StringVarP(&dashboardNamespace, "namespace", "n", daprSystemNamespace, "The namespace where Dapr dashboard is running")
 	DashboardCmd.Flags().BoolP("help", "h", false, "Print this help message")
+
 	RootCmd.AddCommand(DashboardCmd)
 }
