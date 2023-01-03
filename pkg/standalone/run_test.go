@@ -78,7 +78,7 @@ func setupRun(t *testing.T) {
 	resourcesDir := GetDaprResourcesPath(myDaprPath)
 	configFile := GetDaprConfigPath(myDaprPath)
 	err = os.MkdirAll(resourcesDir, 0o700)
-	assert.Equal(t, nil, err, "Unable to setup components dir before running test")
+	assert.Equal(t, nil, err, "Unable to setup resources dir before running test")
 	file, err := os.Create(configFile)
 	file.Close()
 	assert.Equal(t, nil, err, "Unable to create config file before running test")
@@ -92,7 +92,7 @@ func tearDownRun(t *testing.T) {
 	configFile := GetDaprConfigPath(myDaprPath)
 
 	err = os.RemoveAll(componentsDir)
-	assert.Equal(t, nil, err, "Unable to delete default components dir after running test")
+	assert.Equal(t, nil, err, "Unable to delete default resources dir after running test")
 	err = os.Remove(configFile)
 	assert.Equal(t, nil, err, "Unable to delete default config file after running test")
 }
@@ -115,7 +115,7 @@ func assertCommonArgs(t *testing.T, basicConfig *RunConfig, output *RunOutput) {
 	assertArgumentEqual(t, "app-max-concurrency", "-1", output.DaprCMD.Args)
 	assertArgumentEqual(t, "app-protocol", "http", output.DaprCMD.Args)
 	assertArgumentEqual(t, "app-port", "3000", output.DaprCMD.Args)
-	assertArgumentEqual(t, "components-path", GetDaprComponentsPath(daprPath), output.DaprCMD.Args)
+	assertArgumentEqual(t, "components-path", GetDaprResourcesPath(daprPath), output.DaprCMD.Args)
 	assertArgumentEqual(t, "app-ssl", "", output.DaprCMD.Args)
 	assertArgumentEqual(t, "metrics-port", "9001", output.DaprCMD.Args)
 	assertArgumentEqual(t, "dapr-http-max-request-size", "-1", output.DaprCMD.Args)
@@ -169,14 +169,14 @@ func TestRun(t *testing.T) {
 	myDaprPath, err := GetDaprPath("")
 	assert.NoError(t, err)
 
-	componentsDir := GetDaprComponentsPath(myDaprPath)
+	resourcesDir := GetDaprResourcesPath(myDaprPath)
 	configFile := GetDaprConfigPath(myDaprPath)
 
 	sharedRunConfig := &SharedRunConfig{
 		LogLevel:           "WARN",
 		EnableProfiling:    false,
 		AppProtocol:        "http",
-		ComponentsPath:     componentsDir,
+		ComponentsPath:     resourcesDir,
 		AppSSL:             true,
 		MaxRequestBodySize: -1,
 		HTTPReadBufferSize: -1,

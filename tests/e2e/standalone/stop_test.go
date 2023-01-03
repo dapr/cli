@@ -24,6 +24,8 @@ import (
 )
 
 func TestStandaloneStop(t *testing.T) {
+	// Ensure a clean environment.
+	must(t, cmdUninstallAll, "failed to uninstall Dapr")
 	ensureDaprInstallation(t)
 
 	executeAgainstRunningDapr(t, func() {
