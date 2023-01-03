@@ -135,8 +135,8 @@ func ensureDaprInstallation(t *testing.T) {
 		args := []string{
 			"--runtime-version", daprRuntimeVersion,
 		}
-		_, err = cmdInit(args...)
-		require.NoError(t, err, "failed to install dapr")
+		output, err := cmdInit(args...)
+		require.NoError(t, err, "failed to install dapr:%v", output)
 	} else if err != nil {
 		// Some other error occurred.
 		require.NoError(t, err, "failed to stat dapr installation")
