@@ -70,10 +70,10 @@ func lookupBinaryFilePath(inputInstallPath string, binaryFilePrefix string) (str
 	return binaryFilePathWithDir(getDaprBinPath(daprPath), binaryFilePrefix), nil
 }
 
-func DaprComponentsPath(daprDir string) string {
+func GetDaprComponentsPath(daprDir string) string {
 	return path_filepath.Join(daprDir, defaultComponentsDirName)
 }
 
-func DaprConfigPath(daprDir string) string {
+func GetDaprConfigPath(daprDir string) string {
 	return path_filepath.Join(daprDir, defaultConfigFileName)
 }

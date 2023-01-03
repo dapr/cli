@@ -105,12 +105,12 @@ dapr run --app-id myapp --dapr-path /usr/local/dapr
 
 		// Fallback to default config file if not specified.
 		if configFile == "" {
-			configFile = standalone.DaprConfigPath(daprDirPath)
+			configFile = standalone.GetDaprConfigPath(daprDirPath)
 		}
 
 		// Fallback to default components directory if not specified.
 		if componentsPath == "" {
-			componentsPath = standalone.DaprComponentsPath(daprDirPath)
+			componentsPath = standalone.GetDaprComponentsPath(daprDirPath)
 		}
 
 		if unixDomainSocket != "" {

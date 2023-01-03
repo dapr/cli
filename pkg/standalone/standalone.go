@@ -667,8 +667,8 @@ func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error
 	var err error
 
 	// Make default components & config.
-	componentsDir := DaprComponentsPath(info.installDir)
-	configPath := DaprConfigPath(info.installDir)
+	componentsDir := GetDaprComponentsPath(info.installDir)
+	configPath := GetDaprConfigPath(info.installDir)
 
 	err = createRedisPubSub(redisHost, componentsDir)
 	if err != nil {
@@ -694,7 +694,7 @@ func createSlimConfiguration(wg *sync.WaitGroup, errorChan chan<- error, info in
 		return
 	}
 
-	configPath := DaprConfigPath(info.installDir)
+	configPath := GetDaprConfigPath(info.installDir)
 	// For --slim we pass empty string so that we do not configure zipkin.
 	err := createDefaultConfiguration("", configPath)
 	if err != nil {
@@ -705,7 +705,7 @@ func createSlimConfiguration(wg *sync.WaitGroup, errorChan chan<- error, info in
 
 func makeDefaultComponentsDir(installDir string) error {
 	// Make default components directory.
-	componentsDir := DaprComponentsPath(installDir)
+	componentsDir := GetDaprComponentsPath(installDir)
 	//nolint
 	_, err := os.Stat(componentsDir)
 	if os.IsNotExist(err) {

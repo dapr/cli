@@ -75,8 +75,8 @@ func setupRun(t *testing.T) {
 	myDaprPath, err := GetDaprPath("")
 	assert.NoError(t, err)
 
-	componentsDir := DaprComponentsPath(myDaprPath)
-	configFile := DaprConfigPath(myDaprPath)
+	componentsDir := GetDaprComponentsPath(myDaprPath)
+	configFile := GetDaprConfigPath(myDaprPath)
 	err = os.MkdirAll(componentsDir, 0o700)
 	assert.Equal(t, nil, err, "Unable to setup components dir before running test")
 	file, err := os.Create(configFile)
@@ -88,8 +88,8 @@ func tearDownRun(t *testing.T) {
 	myDaprPath, err := GetDaprPath("")
 	assert.NoError(t, err)
 
-	componentsDir := DaprComponentsPath(myDaprPath)
-	configFile := DaprConfigPath(myDaprPath)
+	componentsDir := GetDaprComponentsPath(myDaprPath)
+	configFile := GetDaprConfigPath(myDaprPath)
 
 	err = os.RemoveAll(componentsDir)
 	assert.Equal(t, nil, err, "Unable to delete default components dir after running test")
@@ -104,6 +104,9 @@ func assertCommonArgs(t *testing.T, basicConfig *RunConfig, output *RunOutput) {
 	assert.Equal(t, 8000, output.DaprHTTPPort)
 	assert.Equal(t, 50001, output.DaprGRPCPort)
 
+	daprPath, err := GetDaprPath("")
+	assert.NoError(t, err)
+
 	assert.Contains(t, output.DaprCMD.Args[0], "daprd")
 	assertArgumentEqual(t, "app-id", "MyID", output.DaprCMD.Args)
 	assertArgumentEqual(t, "dapr-http-port", "8000", output.DaprCMD.Args)
@@ -112,7 +115,7 @@ func assertCommonArgs(t *testing.T, basicConfig *RunConfig, output *RunOutput) {
 	assertArgumentEqual(t, "app-max-concurrency", "-1", output.DaprCMD.Args)
 	assertArgumentEqual(t, "app-protocol", "http", output.DaprCMD.Args)
 	assertArgumentEqual(t, "app-port", "3000", output.DaprCMD.Args)
-	assertArgumentEqual(t, "components-path", defaultComponentsDirName, output.DaprCMD.Args)
+	assertArgumentEqual(t, "components-path", GetDaprComponentsPath(daprPath), output.DaprCMD.Args)
 	assertArgumentEqual(t, "app-ssl", "", output.DaprCMD.Args)
 	assertArgumentEqual(t, "metrics-port", "9001", output.DaprCMD.Args)
 	assertArgumentEqual(t, "dapr-http-max-request-size", "-1", output.DaprCMD.Args)
@@ -166,8 +169,8 @@ func TestRun(t *testing.T) {
 	myDaprPath, err := GetDaprPath("")
 	assert.NoError(t, err)
 
-	componentsDir := DaprComponentsPath(myDaprPath)
-	configFile := DaprConfigPath(myDaprPath)
+	componentsDir := GetDaprComponentsPath(myDaprPath)
+	configFile := GetDaprConfigPath(myDaprPath)
 
 	basicConfig := &RunConfig{
 		AppID:              "MyID",
