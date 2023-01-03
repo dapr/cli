@@ -14,6 +14,8 @@ limitations under the License.
 package utils
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -162,4 +164,123 @@ func TestGetVersionAndImageVariant(t *testing.T) {
 			assert.Equal(t, tc.expectedImageVariant, imageVariant)
 		})
 	}
+}
+
+func TestValidateFilePaths(t *testing.T) {
+	dirName := createTempDir(t, "test_validate_paths")
+	defer cleanupTempDir(t, dirName)
+	validFile := createTempFile(t, dirName, "valid_test_file.yaml")
+	testcases := []struct {
+		name        string
+		input       string
+		expectedErr bool
+	}{
+		{
+			name:        "empty file path",
+			input:       "",
+			expectedErr: false,
+		},
+		{
+			name:        "valid file path",
+			input:       validFile,
+			expectedErr: false,
+		},
+		{
+			name:        "invalid file path",
+			input:       "invalid_file_path",
+			expectedErr: true,
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := ValidateFilePaths(tc.input)
+			assert.Equal(t, tc.expectedErr, actual != nil)
+		})
+	}
+}
+
+func TestGetAbsPath(t *testing.T) {
+	ex, err := os.Executable()
+	assert.NoError(t, err)
+	baseDir := filepath.Dir(ex)
+
+	testcases := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "empty path",
+			input:    "",
+			expected: "",
+		},
+		{
+			name:     "relative path-1",
+			input:    "./relative/path",
+			expected: filepath.Join(baseDir, "relative", "path"),
+		},
+		{
+			name:     "relative path-2",
+			input:    "../relative/path",
+			expected: filepath.Join(baseDir, "..", "relative", "path"),
+		},
+		{
+			name:     "absolute path",
+			input:    "/absolute/path",
+			expected: "/absolute/path",
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := GetAbsPath(baseDir, tc.input)
+			assert.Equal(t, tc.expected, actual)
+		})
+	}
+}
+
+func TestReadFile(t *testing.T) {
+	fileName := createTempFile(t, "", "test_read_file")
+	defer cleanupTempDir(t, fileName)
+	testcases := []struct {
+		name        string
+		input       string
+		expectedErr bool
+	}{
+		{
+			name:        "empty file path",
+			input:       "",
+			expectedErr: true,
+		},
+		{
+			name:        "valid file path",
+			input:       fileName,
+			expectedErr: false,
+		},
+	}
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, actual := ReadFile(tc.input)
+			assert.Equal(t, tc.expectedErr, actual != nil)
+		})
+	}
+}
+
+func createTempDir(t *testing.T, tempDirName string) string {
+	dirName, err := os.MkdirTemp("", tempDirName)
+	assert.NoError(t, err)
+	return dirName
+}
+
+func createTempFile(t *testing.T, tempDirName, fileName string) string {
+	file, err := os.CreateTemp(tempDirName, fileName)
+	assert.NoError(t, err)
+	defer file.Close()
+	return file.Name()
+}
+
+func cleanupTempDir(t *testing.T, fileName string) {
+	err := os.RemoveAll(fileName)
+	assert.NoError(t, err)
 }

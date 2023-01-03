@@ -29,16 +29,34 @@ const (
 	defaultConfigFileName = "config.yaml"
 )
 
-func defaultDaprDirPath() string {
-	homeDir, _ := os.UserHomeDir()
-	return path_filepath.Join(homeDir, defaultDaprDirName)
+// GetDaprPath returns the dapr installation path.
+// The order of precedence is:
+//  1. From --dapr-path command line flag
+//  2. From DAPR_PATH environment variable
+//  3. $HOME/.dapr
+func GetDaprPath(inputInstallPath string) (string, error) {
+	if inputInstallPath != "" {
+		return inputInstallPath, nil
+	}
+
+	envDaprDir := os.Getenv("DAPR_PATH")
+	if envDaprDir != "" {
+		return envDaprDir, nil
+	}
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+
+	return path_filepath.Join(homeDir, defaultDaprDirName), nil
 }
 
-func defaultDaprBinPath() string {
-	return path_filepath.Join(defaultDaprDirPath(), defaultDaprBinDirName)
+func getDaprBinPath(daprDir string) string {
+	return path_filepath.Join(daprDir, defaultDaprBinDirName)
 }
 
-func binaryFilePath(binaryDir string, binaryFilePrefix string) string {
+func binaryFilePathWithDir(binaryDir string, binaryFilePrefix string) string {
 	binaryPath := path_filepath.Join(binaryDir, binaryFilePrefix)
 	if runtime.GOOS == daprWindowsOS {
 		binaryPath += ".exe"
@@ -46,26 +64,35 @@ func binaryFilePath(binaryDir string, binaryFilePrefix string) string {
 	return binaryPath
 }
 
-func DefaultComponentsDirPath() string {
-	return path_filepath.Join(defaultDaprDirPath(), utils.DefaultComponentsDirName)
+func lookupBinaryFilePath(inputInstallPath string, binaryFilePrefix string) (string, error) {
+	daprPath, err := GetDaprPath(inputInstallPath)
+	if err != nil {
+		return "", err
+	}
+
+	return binaryFilePathWithDir(getDaprBinPath(daprPath), binaryFilePrefix), nil
 }
 
-func DefaultResourcesDirPath() string {
-	return path_filepath.Join(defaultDaprDirPath(), utils.DefaultResourcesDirName)
+func GetDaprComponentsPath(daprDir string) string {
+	return path_filepath.Join(daprDir, utils.DefaultComponentsDirName)
+}
+
+func GetDaprResourcesPath(daprDir string) string {
+	return path_filepath.Join(daprDir, utils.DefaultResourcesDirName)
+}
+
+func GetDaprConfigPath(daprDir string) string {
+	return path_filepath.Join(daprDir, defaultConfigFileName)
 }
 
 // GetResourcesDir returns the path to the resources directory if it exists, otherwise it returns the path of components directory.
 // TODO: Remove this function and replace all its usage with above defined `DefaultResourcesDirPath` when `--components-path` flag is removed.
-func GetResourcesDir() string {
-	defaultResourcesDirPath := DefaultResourcesDirPath()
+func GetResourcesDir(daprDir string) string {
+	defaultResourcesDirPath := GetDaprResourcesPath(daprDir)
 	if _, err := os.Stat(defaultResourcesDirPath); os.IsNotExist(err) {
-		return DefaultComponentsDirPath()
+		return GetDaprComponentsPath(daprDir)
 	}
 	return defaultResourcesDirPath
-}
-
-func DefaultConfigFilePath() string {
-	return path_filepath.Join(defaultDaprDirPath(), defaultConfigFileName)
 }
 
 // moveDir moves files from src to dest. If there are files in src, it deletes the existing files in dest before copying from src and then deletes the src directory.

@@ -168,8 +168,8 @@ func installDapr(t *testing.T) {
 	args := []string{
 		"--runtime-version", daprRuntimeVersion,
 	}
-	_, err := cmdInit(args...)
-	require.NoError(t, err, "failed to install dapr")
+	output, err := cmdInit(args...)
+	require.NoError(t, err, "failed to install dapr:%v", output)
 }
 
 func uninstallDapr(uninstallArgs ...string) (string, error) {
