@@ -172,24 +172,27 @@ func TestRun(t *testing.T) {
 	componentsDir := GetDaprComponentsPath(myDaprPath)
 	configFile := GetDaprConfigPath(myDaprPath)
 
-	basicConfig := &RunConfig{
-		AppID:              "MyID",
-		AppPort:            3000,
-		HTTPPort:           8000,
-		GRPCPort:           50001,
+	sharedRunConfig := &SharedRunConfig{
 		LogLevel:           "WARN",
-		Arguments:          []string{"MyCommand", "--my-arg"},
 		EnableProfiling:    false,
-		ProfilePort:        9090,
-		Protocol:           "http",
+		AppProtocol:        "http",
 		ComponentsPath:     componentsDir,
 		AppSSL:             true,
-		MetricsPort:        9001,
 		MaxRequestBodySize: -1,
-		InternalGRPCPort:   5050,
 		HTTPReadBufferSize: -1,
 		EnableAPILogging:   true,
 		APIListenAddresses: "127.0.0.1",
+	}
+	basicConfig := &RunConfig{
+		AppID:            "MyID",
+		AppPort:          3000,
+		HTTPPort:         8000,
+		GRPCPort:         50001,
+		Command:          []string{"MyCommand", "--my-arg"},
+		ProfilePort:      9090,
+		MetricsPort:      9001,
+		InternalGRPCPort: 5050,
+		SharedRunConfig:  *sharedRunConfig,
 	}
 
 	t.Run("run happy http", func(t *testing.T) {
@@ -203,7 +206,7 @@ func TestRun(t *testing.T) {
 	})
 
 	t.Run("run without app command", func(t *testing.T) {
-		basicConfig.Arguments = nil
+		basicConfig.Command = nil
 		basicConfig.LogLevel = "INFO"
 		basicConfig.EnableAPILogging = true
 		basicConfig.ConfigFile = configFile

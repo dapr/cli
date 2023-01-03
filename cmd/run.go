@@ -28,6 +28,7 @@ import (
 	"github.com/dapr/cli/pkg/metadata"
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/pkg/standalone"
+	"github.com/dapr/cli/pkg/standalone/runfileconfig"
 	"github.com/dapr/cli/utils"
 )
 
@@ -57,6 +58,7 @@ var (
 	appHealthThreshold int
 	enableAPILogging   bool
 	apiListenAddresses string
+	runFilePath        string
 )
 
 const (
@@ -93,6 +95,10 @@ dapr run --app-id myapp --dapr-path /usr/local/dapr
 		viper.BindPFlag("placement-host-address", cmd.Flags().Lookup("placement-host-address"))
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		if len(runFilePath) > 0 {
+			executeRunWithAppsConfigFile(runFilePath)
+			return
+		}
 		if len(args) == 0 {
 			fmt.Println(print.WhiteBold("WARNING: no application command found."))
 		}
@@ -126,35 +132,38 @@ dapr run --app-id myapp --dapr-path /usr/local/dapr
 			}
 		}
 
-		output, err := standalone.Run(&standalone.RunConfig{
-			AppID:              appID,
-			AppPort:            appPort,
-			HTTPPort:           port,
-			GRPCPort:           grpcPort,
+		sharedRunConfig := &standalone.SharedRunConfig{
 			ConfigFile:         configFile,
-			Arguments:          args,
 			EnableProfiling:    enableProfiling,
-			ProfilePort:        profilePort,
 			LogLevel:           logLevel,
 			MaxConcurrency:     maxConcurrency,
-			Protocol:           protocol,
+			AppProtocol:        protocol,
 			PlacementHostAddr:  viper.GetString("placement-host-address"),
 			ComponentsPath:     componentsPath,
 			ResourcesPath:      resourcesPath,
 			AppSSL:             appSSL,
-			MetricsPort:        metricsPort,
 			MaxRequestBodySize: maxRequestBodySize,
 			HTTPReadBufferSize: readBufferSize,
-			UnixDomainSocket:   unixDomainSocket,
 			EnableAppHealth:    enableAppHealth,
 			AppHealthPath:      appHealthPath,
 			AppHealthInterval:  appHealthInterval,
 			AppHealthTimeout:   appHealthTimeout,
 			AppHealthThreshold: appHealthThreshold,
 			EnableAPILogging:   enableAPILogging,
-			InternalGRPCPort:   internalGRPCPort,
-			DaprPathCmdFlag:    daprPath,
 			APIListenAddresses: apiListenAddresses,
+		}
+		output, err := standalone.Run(&standalone.RunConfig{
+			AppID:            appID,
+			AppPort:          appPort,
+			HTTPPort:         port,
+			GRPCPort:         grpcPort,
+			ProfilePort:      profilePort,
+			Command:          args,
+			MetricsPort:      metricsPort,
+			UnixDomainSocket: unixDomainSocket,
+			InternalGRPCPort: internalGRPCPort,
+			DaprPathCmdFlag:  daprPath,
+			SharedRunConfig:  *sharedRunConfig,
 		})
 		if err != nil {
 			print.FailureStatusEvent(os.Stderr, err.Error())
@@ -416,5 +425,19 @@ func init() {
 	RunCmd.Flags().IntVar(&appHealthThreshold, "app-health-threshold", 0, "Number of consecutive failures for the app to be considered unhealthy")
 	RunCmd.Flags().BoolVar(&enableAPILogging, "enable-api-logging", false, "Log API calls at INFO verbosity. Valid values are: true or false")
 	RunCmd.Flags().StringVar(&apiListenAddresses, "dapr-listen-addresses", "", "Comma separated list of IP addresses that sidecar will listen to")
+	RunCmd.Flags().StringVarP(&runFilePath, "run-file", "f", "", "Path to the configuration file for the apps to run")
 	RootCmd.AddCommand(RunCmd)
+}
+
+func executeRunWithAppsConfigFile(runFilePath string) {
+	config := runfileconfig.RunFileConfig{}
+	apps, err := config.GetApps(runFilePath)
+	if err != nil {
+		print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error getting apps from config file: %s", err))
+		os.Exit(1)
+	}
+	if len(apps) == 0 {
+		print.FailureStatusEvent(os.Stdout, "No apps to run")
+		os.Exit(1)
+	}
 }
