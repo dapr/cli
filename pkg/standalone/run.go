@@ -50,7 +50,6 @@ type RunConfig struct {
 	MetricsPort      int      `env:"DAPR_METRICS_PORT" arg:"metrics-port" yaml:"metrics_port"`
 	UnixDomainSocket string   `arg:"unix-domain-socket" yaml:"unix_domain_socket"`
 	InternalGRPCPort int      `arg:"dapr-internal-grpc-port" yaml:"dapr_internal_grpc_port"`
-	DaprPathCmdFlag  string   `yaml:"dapr_path_cmd_flag"`
 	SharedRunConfig  `yaml:",inline"`
 	Env              []EnvItems `yaml:"env"`
 }
@@ -75,6 +74,7 @@ type SharedRunConfig struct {
 	AppHealthTimeout   int    `arg:"app-health-probe-timeout" ifneq:"0" yaml:"app_health_probe_timeout"`
 	AppHealthThreshold int    `arg:"app-health-threshold" ifneq:"0" yaml:"app_health_threshold"`
 	EnableAPILogging   bool   `arg:"enable-api-logging" yaml:"enable_api_logging"`
+	DaprPathCmdFlag    string `yaml:"dapr_path_cmd_flag"`
 }
 
 func (meta *DaprMeta) newAppID() string {
