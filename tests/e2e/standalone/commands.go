@@ -18,7 +18,7 @@ package standalone_test
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/dapr/cli/tests/e2e/common"
@@ -29,7 +29,7 @@ import (
 // cmdDashboard runs the Dapr dashboard and blocks until it is started.
 // If the context is done, the dashboard is stopped.
 func cmdDashboard(ctx context.Context, port string) error {
-	stdOutChan, err := spawn.CommandWithContext(ctx, common.GetDaprPath(), "dashboard", "--port", port)
+	stdOutChan, stdErrChan, err := spawn.CommandWithContext(ctx, common.GetDaprPath(), "dashboard", "--port", port)
 	if err != nil {
 		return err
 	}
@@ -38,7 +38,13 @@ func cmdDashboard(ctx context.Context, port string) error {
 			return nil
 		}
 	}
-	return errors.New("Dashboard could not be started")
+
+	errOutput := ""
+	for output := range stdErrChan {
+		errOutput += output
+	}
+
+	return fmt.Errorf("Dashboard could not be started: %s", errOutput)
 }
 
 // cmdInit installs Dapr with the init command and returns the command output and error.
@@ -137,12 +143,14 @@ func cmdUninstall(args ...string) (string, error) {
 
 // cmdVersion checks the version of Dapr and returns the command output and error.
 // output can be empty or "json"
-func cmdVersion(output string) (string, error) {
-	args := []string{"version"}
+func cmdVersion(output string, args ...string) (string, error) {
+	verArgs := []string{"version"}
 
 	if output != "" {
-		args = append(args, "-o", output)
+		verArgs = append(verArgs, "-o", output)
 	}
 
-	return spawn.Command(common.GetDaprPath(), args...)
+	verArgs = append(verArgs, args...)
+
+	return spawn.Command(common.GetDaprPath(), verArgs...)
 }

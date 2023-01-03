@@ -44,6 +44,7 @@ type RunConfig struct {
 	MetricsPort      int      `env:"DAPR_METRICS_PORT" arg:"metrics-port" yaml:"metrics_port"`
 	UnixDomainSocket string   `arg:"unix-domain-socket" yaml:"unix_domain_socket"`
 	InternalGRPCPort int      `arg:"dapr-internal-grpc-port" yaml:"dapr_internal_grpc_port"`
+	DaprPathCmdFlag  string   `yaml:"dapr_path_cmd_flag"`
 	SharedRunConfig  `yaml:",inline"`
 }
 
@@ -325,7 +326,11 @@ type RunOutput struct {
 }
 
 func getDaprCommand(config *RunConfig) (*exec.Cmd, error) {
-	daprCMD := binaryFilePath(defaultDaprBinPath(), "daprd")
+	daprCMD, err := lookupBinaryFilePath(config.DaprPathCmdFlag, "daprd")
+	if err != nil {
+		return nil, err
+	}
+
 	args := config.getArgs()
 	cmd := exec.Command(daprCMD, args...)
 	return cmd, nil
