@@ -161,7 +161,10 @@ func TestStandaloneRun(t *testing.T) {
 }
 
 func TestStandaloneRunNonDefaultDaprPath(t *testing.T) {
-	// these tests timeout on MacOS for some reason
+	// Uninstall Dapr at the end of the test since it's being installed in a non-default location.
+	t.Cleanup(func() {
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+	})
 
 	t.Run("run with flag", func(t *testing.T) {
 		// Ensure a clean environment
@@ -235,29 +238,30 @@ func TestStandaloneRunNonDefaultDaprPath(t *testing.T) {
 		// Ensure a clean environment
 		must(t, cmdUninstall, "failed to uninstall Dapr")
 
-		daprPath1, err := os.MkdirTemp("", "dapr-e2e-run-with-envflag-1-*")
+		daprPathForEnv, err := os.MkdirTemp("", "dapr-e2e-run-with-envflag-1-*")
 		assert.NoError(t, err)
-		defer os.RemoveAll(daprPath1) // clean up
-		daprPath2, err := os.MkdirTemp("", "dapr-e2e-run-with-envflag-2-*")
-		assert.NoError(t, err)
-		defer os.RemoveAll(daprPath2) // clean up
+		defer os.RemoveAll(daprPathForEnv) // clean up
 
-		t.Setenv("DAPR_PATH", daprPath1)
+		daprPathForFlag, err := os.MkdirTemp("", "dapr-e2e-run-with-envflag-2-*")
+		assert.NoError(t, err)
+		defer os.RemoveAll(daprPathForFlag) // clean up
+
+		t.Setenv("DAPR_PATH", daprPathForEnv)
 
 		daprRuntimeVersion, _ := common.GetVersionsFromEnv(t, false)
 
-		output, err := cmdInit("--runtime-version", daprRuntimeVersion, "--dapr-path", daprPath2)
+		output, err := cmdInit("--runtime-version", daprRuntimeVersion, "--dapr-path", daprPathForFlag)
 		t.Log(output)
 		require.NoError(t, err, "init failed")
 		assert.Contains(t, output, "Success! Dapr is up and running.")
 
 		args := []string{
-			"--dapr-path", daprPath2,
+			"--dapr-path", daprPathForFlag,
 			"--app-id", "run_with_dapr_path_flag",
 			"--", "bash", "-c", "echo 'test'",
 		}
 
-		flagDaprdBinPath := filepath.Join(daprPath2, "bin", "daprd")
+		flagDaprdBinPath := filepath.Join(daprPathForFlag, "bin", "daprd")
 		if runtime.GOOS == "windows" {
 			flagDaprdBinPath += ".exe"
 		}
@@ -275,7 +279,7 @@ func TestStandaloneRunNonDefaultDaprPath(t *testing.T) {
 		defaultDaprPath := filepath.Join(homeDir, ".dapr")
 		assert.NoFileExists(t, defaultDaprPath)
 
-		envDaprBinPath := filepath.Join(daprPath1, "bin")
+		envDaprBinPath := filepath.Join(daprPathForEnv, "bin")
 		assert.NoFileExists(t, envDaprBinPath)
 	})
 }
