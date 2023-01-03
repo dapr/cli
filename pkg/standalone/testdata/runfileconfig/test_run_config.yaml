@@ -1,4 +1,3 @@
-
 version: 1
 common:
   resources_path: ./app/resources
