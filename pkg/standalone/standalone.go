@@ -148,8 +148,7 @@ func isBinaryInstallationRequired(binaryFilePrefix, binInstallDir string) (bool,
 }
 
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
-func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool,
-	imageRegistryURL string, fromDir string, containerRuntime string, imageVariant string, daprInstallPath string) error {
+func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool, imageRegistryURL string, fromDir string, containerRuntime string, imageVariant string, daprInstallPath string) error {
 	var err error
 	var bundleDet bundleDetails
 	containerRuntime = strings.TrimSpace(containerRuntime)
