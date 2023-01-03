@@ -18,7 +18,6 @@ package standalone_test
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -45,7 +44,7 @@ func cmdDashboard(ctx context.Context, port string) error {
 		errOutput += output
 	}
 
-	return errors.New(fmt.Sprintf("Dashboard could not be started:%v", errOutput))
+	return fmt.Errorf("Dashboard could not be started: %s", errOutput)
 }
 
 // cmdInit installs Dapr with the init command and returns the command output and error.

@@ -211,11 +211,11 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 
 	print.InfoStatusEvent(os.Stdout, "Installing runtime version %s", runtimeVersion)
 
-	installDir, err := GetDaprDirPath(inputInstallPath)
+	installDir, err := GetDaprPath(inputInstallPath)
 	if err != nil {
 		return err
 	}
-	daprBinDir := daprBinPath(installDir)
+	daprBinDir := getDaprBinPath(installDir)
 	err = prepareDaprInstallDir(daprBinDir)
 	if err != nil {
 		return err
@@ -606,7 +606,7 @@ func installBinary(version, binaryFilePrefix, githubRepo string, info initInfo) 
 		filepath string
 	)
 
-	dir := daprBinPath(info.installDir)
+	dir := getDaprBinPath(info.installDir)
 	if isAirGapInit {
 		filepath = path_filepath.Join(info.fromDir, *info.bundleDet.BinarySubDir, binaryName(binaryFilePrefix))
 	} else {

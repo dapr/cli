@@ -75,11 +75,11 @@ func removeDir(dirPath string) error {
 func Uninstall(uninstallAll bool, dockerNetwork string, containerRuntime string, inputInstallPath string) error {
 	var containerErrs []error
 	inputInstallPath = strings.TrimSpace(inputInstallPath)
-	installDir, err := GetDaprDirPath(inputInstallPath)
+	installDir, err := GetDaprPath(inputInstallPath)
 	if err != nil {
 		return err
 	}
-	daprBinDir := daprBinPath(installDir)
+	daprBinDir := getDaprBinPath(installDir)
 
 	placementFilePath := binaryFilePathWithDir(daprBinDir, placementServiceFilePrefix)
 	_, placementErr := os.Stat(placementFilePath) // check if the placement binary exists.
@@ -101,7 +101,7 @@ func Uninstall(uninstallAll bool, dockerNetwork string, containerRuntime string,
 	if uninstallAll {
 		err = removeDir(installDir)
 		if err != nil {
-			print.WarningStatusEvent(os.Stdout, "WARNING: could not delete dapr dir %s: %v", installDir, err)
+			print.WarningStatusEvent(os.Stdout, "WARNING: could not delete dapr dir %s: %s", installDir, err)
 		}
 	}
 

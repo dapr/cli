@@ -26,19 +26,21 @@ const (
 	defaultConfigFileName    = "config.yaml"
 )
 
-// GetDaprDirPath - return the dapr installation path to employ. In order of
-// precednce:
-//  1. if present --dapr-path command line flag specified by the user
-//  2. if present DAPR_PATH environment variable
+// GetDaprPath returns the dapr installation path.
+// The order of precedence is:
+//  1. From --dapr-path command line flag
+//  2. From DAPR_PATH environment variable
 //  3. $HOME/.dapr
-func GetDaprDirPath(inputInstallPath string) (string, error) {
+func GetDaprPath(inputInstallPath string) (string, error) {
 	if inputInstallPath != "" {
 		return inputInstallPath, nil
 	}
+
 	envDaprDir := os.Getenv("DAPR_PATH")
 	if envDaprDir != "" {
 		return envDaprDir, nil
 	}
+
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
@@ -47,7 +49,7 @@ func GetDaprDirPath(inputInstallPath string) (string, error) {
 	return path_filepath.Join(homeDir, defaultDaprDirName), nil
 }
 
-func daprBinPath(daprDir string) string {
+func getDaprBinPath(daprDir string) string {
 	return path_filepath.Join(daprDir, defaultDaprBinDirName)
 }
 
@@ -60,12 +62,12 @@ func binaryFilePathWithDir(binaryDir string, binaryFilePrefix string) string {
 }
 
 func lookupBinaryFilePath(inputInstallPath string, binaryFilePrefix string) (string, error) {
-	daprPath, err := GetDaprDirPath(inputInstallPath)
+	daprPath, err := GetDaprPath(inputInstallPath)
 	if err != nil {
 		return "", err
 	}
 
-	return binaryFilePathWithDir(daprBinPath(daprPath), binaryFilePrefix), nil
+	return binaryFilePathWithDir(getDaprBinPath(daprPath), binaryFilePrefix), nil
 }
 
 func DaprComponentsPath(daprDir string) string {
