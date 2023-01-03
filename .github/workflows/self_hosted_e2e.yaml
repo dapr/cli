@@ -132,6 +132,7 @@ jobs:
         env:
           DAPR_E2E_INIT_SLIM: ${{ contains(matrix.os, 'windows-latest') || contains(matrix.dapr_install_mode, 'slim') }}
           CONTAINER_RUNTIME: ${{ env.CONTAINER_RUNTIME }}
+          E2E_SH_TEST_TIMEOUT: ${{ env.E2E_SH_TEST_TIMEOUT }}
         run: |
           export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-standalone.json
           echo "TEST_OUTPUT_FILE=$TEST_OUTPUT_FILE" >> $GITHUB_ENV
