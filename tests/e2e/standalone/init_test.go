@@ -130,7 +130,7 @@ func TestStandaloneInit(t *testing.T) {
 
 	t.Run("init with --dapr-path flag", func(t *testing.T) {
 		// Ensure a clean environment
-		must(t, cmdUninstall, "failed to uninstall Dapr")
+		must(t, cmdUninstallAll, "failed to uninstall Dapr")
 
 		daprPath, err := os.MkdirTemp("", "dapr-e2e-init-with-flag-*")
 		assert.NoError(t, err)
@@ -148,7 +148,7 @@ func TestStandaloneInit(t *testing.T) {
 
 	t.Run("init with DAPR_PATH env var", func(t *testing.T) {
 		// Ensure a clean environment
-		must(t, cmdUninstall, "failed to uninstall Dapr")
+		must(t, cmdUninstallAll, "failed to uninstall Dapr")
 
 		daprPath, err := os.MkdirTemp("", "dapr-e2e-init-with-env-var-*")
 		assert.NoError(t, err)
@@ -168,7 +168,7 @@ func TestStandaloneInit(t *testing.T) {
 
 	t.Run("init with --dapr-path flag and DAPR_PATH env var", func(t *testing.T) {
 		// Ensure a clean environment
-		must(t, cmdUninstall, "failed to uninstall Dapr")
+		must(t, cmdUninstallAll, "failed to uninstall Dapr")
 
 		daprPath1, err := os.MkdirTemp("", "dapr-e2e-init-with-flag-and-env-1-*")
 		assert.NoError(t, err)

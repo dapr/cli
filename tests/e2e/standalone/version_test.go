@@ -55,7 +55,7 @@ func TestStandaloneVersion(t *testing.T) {
 func TestStandaloneVersionNonDefaultDaprPath(t *testing.T) {
 	t.Run("version with flag", func(t *testing.T) {
 		// Ensure a clean environment
-		must(t, cmdUninstall, "failed to uninstall Dapr")
+		must(t, cmdUninstallAll, "failed to uninstall Dapr")
 
 		daprPath, err := os.MkdirTemp("", "dapr-e2e-ver-with-flag-*")
 		assert.NoError(t, err)
@@ -84,7 +84,7 @@ func TestStandaloneVersionNonDefaultDaprPath(t *testing.T) {
 
 	t.Run("version with env var", func(t *testing.T) {
 		// Ensure a clean environment
-		must(t, cmdUninstall, "failed to uninstall Dapr")
+		must(t, cmdUninstallAll, "failed to uninstall Dapr")
 
 		daprPath, err := os.MkdirTemp("", "dapr-e2e-ver-with-env-*")
 		assert.NoError(t, err)
@@ -115,7 +115,7 @@ func TestStandaloneVersionNonDefaultDaprPath(t *testing.T) {
 
 	t.Run("version with both flag and env var", func(t *testing.T) {
 		// Ensure a clean environment
-		must(t, cmdUninstall, "failed to uninstall Dapr")
+		must(t, cmdUninstallAll, "failed to uninstall Dapr")
 
 		daprPath1, err := os.MkdirTemp("", "dapr-e2e-ver-with-both-flag-*")
 		assert.NoError(t, err)

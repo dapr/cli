@@ -37,6 +37,11 @@ var (
 
 // Tests precedence for --components-path and --resources-path flags.
 func TestResourcesLoadPrecedence(t *testing.T) {
+	t.Cleanup(func() {
+		// Ensure environment is clean after tests are complete.
+		must(t, cmdUninstallAll, "failed to uninstall Dapr")
+	})
+
 	homeDir, err := os.UserHomeDir()
 	assert.NoError(t, err, "cannot get user home directory")
 	defaultComponentsDirPath = filepath.Join(homeDir, ".dapr", utils.DefaultComponentsDirName)

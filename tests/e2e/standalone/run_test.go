@@ -178,12 +178,12 @@ func TestStandaloneRun(t *testing.T) {
 func TestStandaloneRunNonDefaultDaprPath(t *testing.T) {
 	// Uninstall Dapr at the end of the test since it's being installed in a non-default location.
 	t.Cleanup(func() {
-		must(t, cmdUninstall, "failed to uninstall Dapr")
+		must(t, cmdUninstallAll, "failed to uninstall Dapr")
 	})
 
 	t.Run("run with flag", func(t *testing.T) {
 		// Ensure a clean environment
-		must(t, cmdUninstall, "failed to uninstall Dapr")
+		must(t, cmdUninstallAll, "failed to uninstall Dapr")
 
 		daprPath, err := os.MkdirTemp("", "dapr-e2e-run-with-flag-*")
 		assert.NoError(t, err)
@@ -216,7 +216,7 @@ func TestStandaloneRunNonDefaultDaprPath(t *testing.T) {
 
 	t.Run("run with env var", func(t *testing.T) {
 		// Ensure a clean environment
-		must(t, cmdUninstall, "failed to uninstall Dapr")
+		must(t, cmdUninstallAll, "failed to uninstall Dapr")
 
 		daprPath, err := os.MkdirTemp("", "dapr-e2e-run-with-env-*")
 		assert.NoError(t, err)
@@ -251,7 +251,7 @@ func TestStandaloneRunNonDefaultDaprPath(t *testing.T) {
 
 	t.Run("run with both flag and env var", func(t *testing.T) {
 		// Ensure a clean environment
-		must(t, cmdUninstall, "failed to uninstall Dapr")
+		must(t, cmdUninstallAll, "failed to uninstall Dapr")
 
 		daprPathForEnv, err := os.MkdirTemp("", "dapr-e2e-run-with-envflag-1-*")
 		assert.NoError(t, err)
