@@ -159,8 +159,8 @@ func (a *RunFileConfig) resolvePathToAbsAndValidate(baseDir string, paths ...*st
 }
 
 // Resolve resources and config file paths for each app.
-// precedence order for resources_path -> apps[i].resources_path > apps[i].app_dir_path/.dapr/resources > common.resources_path > dapr default resources path.
-// precedence order for config_file -> apps[i].config_file > apps[i].app_dir_path/.dapr/config.yaml > common.config_file > dapr default config file.
+// Precedence order for resources_path -> apps[i].resources_path > apps[i].app_dir_path/.dapr/resources > common.resources_path > dapr default resources path.
+// Precedence order for config_file -> apps[i].config_file > apps[i].app_dir_path/.dapr/config.yaml > common.config_file > dapr default config file.
 func (a *RunFileConfig) resolveResourcesAndConfigFilePaths() error {
 	for i := range a.Apps {
 		app := &a.Apps[i]

@@ -28,6 +28,9 @@ var (
 )
 
 func TestRunConfigParser(t *testing.T) {
+	tearDownFn := testSetup(t)
+	defer tearDownFn(t)
+
 	appsRunConfig := RunFileConfig{}
 	err := appsRunConfig.parseAppsConfig(validRunFilePath)
 
@@ -47,6 +50,9 @@ func TestRunConfigParser(t *testing.T) {
 }
 
 func TestValidateRunConfig(t *testing.T) {
+	tearDownFn := testSetup(t)
+	defer tearDownFn(t)
+
 	testcases := []struct {
 		name        string
 		input       string
@@ -80,6 +86,9 @@ func TestValidateRunConfig(t *testing.T) {
 }
 
 func TestGetApps(t *testing.T) {
+	tearDownFn := testSetup(t)
+	defer tearDownFn(t)
+
 	config := RunFileConfig{}
 
 	apps, err := config.GetApps(validRunFilePath)
@@ -152,5 +161,53 @@ func TestGetBasePathFromAbsPath(t *testing.T) {
 			assert.Equal(t, tc.expectedErr, actualErr != nil)
 			assert.Equal(t, tc.expectedAppID, appID)
 		})
+	}
+}
+
+// Expected directory and file structures from this method:
+// 1) testdata/runfileconfig/app/resources.
+// 2) testdata/runfileconfig/backend/.dapr/resources.
+// 3) testdata/runfileconfig/backend/.dapr/config.yaml.
+// 4) testdata/runfileconfig/webapp/resources.
+// 5) testdata/runfileconfig/webapp/config.yaml.
+func testSetup(t *testing.T) func(t *testing.T) {
+	baseDir := filepath.Join("..", "testdata", "runfileconfig")
+
+	// These paths are according to the values present in the testdata/runfileconfig/test_run_config.yaml file.
+	commonResourcesPath := filepath.Join(baseDir, "app", "resources")
+
+	backendAppResourcesPath := filepath.Join(baseDir, "backend", ".dapr", "resources")
+	backendAppConfigPath := filepath.Join(baseDir, "backend", ".dapr", "config.yaml")
+
+	webappAppResourcesPath := filepath.Join(baseDir, "webapp", "resources")
+	webAppAppConfigPath := filepath.Join(baseDir, "webapp", "config.yaml")
+
+	var err error
+	err = os.MkdirAll(commonResourcesPath, 0o777)
+	assert.Nil(t, err)
+
+	err = os.MkdirAll(backendAppResourcesPath, 0o777)
+	assert.Nil(t, err)
+
+	backendConfigFile, err := os.Create(backendAppConfigPath)
+	assert.Nil(t, err)
+	err = backendConfigFile.Close()
+	assert.Nil(t, err)
+
+	err = os.MkdirAll(webappAppResourcesPath, 0o777)
+	assert.Nil(t, err)
+
+	webAppConfigFile, err := os.Create(webAppAppConfigPath)
+	assert.Nil(t, err)
+	err = webAppConfigFile.Close()
+	assert.Nil(t, err)
+
+	return func(t *testing.T) {
+		err := os.RemoveAll(filepath.Join(baseDir, "app"))
+		assert.Nil(t, err)
+		err = os.RemoveAll(filepath.Join(baseDir, "backend"))
+		assert.Nil(t, err)
+		err = os.RemoveAll(filepath.Join(baseDir, "webapp"))
+		assert.Nil(t, err)
 	}
 }
