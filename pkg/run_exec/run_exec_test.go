@@ -1,5 +1,5 @@
 /*
-Copyright 2021 The Dapr Authors
+Copyright 2023 The Dapr Authors
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -11,7 +11,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package standalone
+package run_exec
 
 import (
 	"fmt"
@@ -21,6 +21,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/dapr/cli/pkg/standalone"
 )
 
 func assertArgumentEqual(t *testing.T, key string, expectedValue string, args []string) {
@@ -72,11 +74,11 @@ func assertArgumentContains(t *testing.T, key string, expectedValue string, args
 }
 
 func setupRun(t *testing.T) {
-	myDaprPath, err := GetDaprPath("")
+	myDaprPath, err := standalone.GetDaprPath("")
 	assert.NoError(t, err)
 
-	componentsDir := GetDaprComponentsPath(myDaprPath)
-	configFile := GetDaprConfigPath(myDaprPath)
+	componentsDir := standalone.GetDaprComponentsPath(myDaprPath)
+	configFile := standalone.GetDaprConfigPath(myDaprPath)
 	err = os.MkdirAll(componentsDir, 0o700)
 	assert.Equal(t, nil, err, "Unable to setup components dir before running test")
 	file, err := os.Create(configFile)
@@ -85,11 +87,11 @@ func setupRun(t *testing.T) {
 }
 
 func tearDownRun(t *testing.T) {
-	myDaprPath, err := GetDaprPath("")
+	myDaprPath, err := standalone.GetDaprPath("")
 	assert.NoError(t, err)
 
-	componentsDir := GetDaprComponentsPath(myDaprPath)
-	configFile := GetDaprConfigPath(myDaprPath)
+	componentsDir := standalone.GetDaprComponentsPath(myDaprPath)
+	configFile := standalone.GetDaprConfigPath(myDaprPath)
 
 	err = os.RemoveAll(componentsDir)
 	assert.Equal(t, nil, err, "Unable to delete default components dir after running test")
@@ -97,14 +99,14 @@ func tearDownRun(t *testing.T) {
 	assert.Equal(t, nil, err, "Unable to delete default config file after running test")
 }
 
-func assertCommonArgs(t *testing.T, basicConfig *RunConfig, output *RunOutput) {
+func assertCommonArgs(t *testing.T, basicConfig *standalone.RunConfig, output *RunOutput) {
 	assert.NotNil(t, output)
 
 	assert.Equal(t, "MyID", output.AppID)
 	assert.Equal(t, 8000, output.DaprHTTPPort)
 	assert.Equal(t, 50001, output.DaprGRPCPort)
 
-	daprPath, err := GetDaprPath("")
+	daprPath, err := standalone.GetDaprPath("")
 	assert.NoError(t, err)
 
 	assert.Contains(t, output.DaprCMD.Args[0], "daprd")
@@ -115,7 +117,7 @@ func assertCommonArgs(t *testing.T, basicConfig *RunConfig, output *RunOutput) {
 	assertArgumentEqual(t, "app-max-concurrency", "-1", output.DaprCMD.Args)
 	assertArgumentEqual(t, "app-protocol", "http", output.DaprCMD.Args)
 	assertArgumentEqual(t, "app-port", "3000", output.DaprCMD.Args)
-	assertArgumentEqual(t, "components-path", GetDaprComponentsPath(daprPath), output.DaprCMD.Args)
+	assertArgumentEqual(t, "components-path", standalone.GetDaprComponentsPath(daprPath), output.DaprCMD.Args)
 	assertArgumentEqual(t, "app-ssl", "", output.DaprCMD.Args)
 	assertArgumentEqual(t, "metrics-port", "9001", output.DaprCMD.Args)
 	assertArgumentEqual(t, "dapr-http-max-request-size", "-1", output.DaprCMD.Args)
@@ -124,7 +126,7 @@ func assertCommonArgs(t *testing.T, basicConfig *RunConfig, output *RunOutput) {
 	assertArgumentEqual(t, "dapr-listen-addresses", "127.0.0.1", output.DaprCMD.Args)
 }
 
-func assertAppEnv(t *testing.T, config *RunConfig, output *RunOutput) {
+func assertAppEnv(t *testing.T, config *standalone.RunConfig, output *RunOutput) {
 	envSet := make(map[string]bool)
 	for _, env := range output.AppCMD.Env {
 		envSet[env] = true
@@ -139,7 +141,7 @@ func assertAppEnv(t *testing.T, config *RunConfig, output *RunOutput) {
 	}
 }
 
-func getEnvSet(config *RunConfig) []string {
+func getEnvSet(config *standalone.RunConfig) []string {
 	set := []string{
 		getEnv("DAPR_GRPC_PORT", config.GRPCPort),
 		getEnv("DAPR_HTTP_PORT", config.HTTPPort),
@@ -166,13 +168,13 @@ func TestRun(t *testing.T) {
 	// Setup the tearDown routine to run in the end.
 	defer tearDownRun(t)
 
-	myDaprPath, err := GetDaprPath("")
+	myDaprPath, err := standalone.GetDaprPath("")
 	assert.NoError(t, err)
 
-	componentsDir := GetDaprComponentsPath(myDaprPath)
-	configFile := GetDaprConfigPath(myDaprPath)
+	componentsDir := standalone.GetDaprComponentsPath(myDaprPath)
+	configFile := standalone.GetDaprConfigPath(myDaprPath)
 
-	sharedRunConfig := &SharedRunConfig{
+	sharedRunConfig := &standalone.SharedRunConfig{
 		LogLevel:           "WARN",
 		EnableProfiling:    false,
 		AppProtocol:        "http",
@@ -183,7 +185,7 @@ func TestRun(t *testing.T) {
 		EnableAPILogging:   true,
 		APIListenAddresses: "127.0.0.1",
 	}
-	basicConfig := &RunConfig{
+	basicConfig := &standalone.RunConfig{
 		AppID:            "MyID",
 		AppPort:          3000,
 		HTTPPort:         8000,
@@ -196,7 +198,7 @@ func TestRun(t *testing.T) {
 	}
 
 	t.Run("run happy http", func(t *testing.T) {
-		output, err := Run(basicConfig)
+		output, err := NewOutput(basicConfig)
 		assert.NoError(t, err)
 
 		assertCommonArgs(t, basicConfig, output)
@@ -210,11 +212,11 @@ func TestRun(t *testing.T) {
 		basicConfig.LogLevel = "INFO"
 		basicConfig.EnableAPILogging = true
 		basicConfig.ConfigFile = configFile
-		output, err := Run(basicConfig)
+		output, err := NewOutput(basicConfig)
 		assert.NoError(t, err)
 
 		assertCommonArgs(t, basicConfig, output)
-		assertArgumentContains(t, "config", defaultConfigFileName, output.DaprCMD.Args)
+		assertArgumentContains(t, "config", standalone.DefaultConfigFileName, output.DaprCMD.Args)
 		assert.Nil(t, output.AppCMD)
 	})
 
@@ -222,7 +224,7 @@ func TestRun(t *testing.T) {
 		basicConfig.HTTPPort = -1
 		basicConfig.GRPCPort = -1
 		basicConfig.MetricsPort = -1
-		output, err := Run(basicConfig)
+		output, err := NewOutput(basicConfig)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, output)
@@ -233,7 +235,7 @@ func TestRun(t *testing.T) {
 	})
 
 	t.Run("app health check flags missing if not set", func(t *testing.T) {
-		output, err := Run(basicConfig)
+		output, err := NewOutput(basicConfig)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, output)
@@ -248,7 +250,7 @@ func TestRun(t *testing.T) {
 
 	t.Run("enable app health checks with default flags", func(t *testing.T) {
 		basicConfig.EnableAppHealth = true
-		output, err := Run(basicConfig)
+		output, err := NewOutput(basicConfig)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, output)
@@ -269,7 +271,7 @@ func TestRun(t *testing.T) {
 		basicConfig.AppHealthTimeout = 200
 		basicConfig.AppHealthThreshold = 1
 		basicConfig.AppHealthPath = "/foo"
-		output, err := Run(basicConfig)
+		output, err := NewOutput(basicConfig)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, output)

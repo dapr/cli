@@ -29,6 +29,16 @@ const (
 	windowsOS = "windows"
 )
 
+type logStatus string
+
+const (
+	LogSuccess logStatus = "success"
+	LogFailure logStatus = "failure"
+	LogWarning logStatus = "warning"
+	LogInfo    logStatus = "info"
+	LogPending logStatus = "pending"
+)
+
 type Result bool
 
 const (
@@ -56,10 +66,19 @@ func IsJSONLogEnabled() bool {
 	return logAsJSON
 }
 
+// StatusEvent reports a event log with given status.
+func StatusEvent(w io.Writer, status logStatus, fmtstr string, a ...any) {
+	if logAsJSON {
+		logJSON(w, string(status), fmt.Sprintf(fmtstr, a...))
+	} else {
+		fmt.Fprintf(w, "%s\n", fmt.Sprintf(fmtstr, a...))
+	}
+}
+
 // SuccessStatusEvent reports on a success event.
 func SuccessStatusEvent(w io.Writer, fmtstr string, a ...interface{}) {
 	if logAsJSON {
-		logJSON(w, "success", fmt.Sprintf(fmtstr, a...))
+		logJSON(w, string(LogSuccess), fmt.Sprintf(fmtstr, a...))
 	} else if runtime.GOOS == windowsOS {
 		fmt.Fprintf(w, "%s\n", fmt.Sprintf(fmtstr, a...))
 	} else {
@@ -70,7 +89,7 @@ func SuccessStatusEvent(w io.Writer, fmtstr string, a ...interface{}) {
 // FailureStatusEvent reports on a failure event.
 func FailureStatusEvent(w io.Writer, fmtstr string, a ...interface{}) {
 	if logAsJSON {
-		logJSON(w, "failure", fmt.Sprintf(fmtstr, a...))
+		logJSON(w, string(LogFailure), fmt.Sprintf(fmtstr, a...))
 	} else if runtime.GOOS == windowsOS {
 		fmt.Fprintf(w, "%s\n", fmt.Sprintf(fmtstr, a...))
 	} else {
@@ -81,7 +100,7 @@ func FailureStatusEvent(w io.Writer, fmtstr string, a ...interface{}) {
 // WarningStatusEvent reports on a failure event.
 func WarningStatusEvent(w io.Writer, fmtstr string, a ...interface{}) {
 	if logAsJSON {
-		logJSON(w, "warning", fmt.Sprintf(fmtstr, a...))
+		logJSON(w, string(LogWarning), fmt.Sprintf(fmtstr, a...))
 	} else if runtime.GOOS == windowsOS {
 		fmt.Fprintf(w, "%s\n", fmt.Sprintf(fmtstr, a...))
 	} else {
@@ -92,7 +111,7 @@ func WarningStatusEvent(w io.Writer, fmtstr string, a ...interface{}) {
 // PendingStatusEvent reports on a pending event.
 func PendingStatusEvent(w io.Writer, fmtstr string, a ...interface{}) {
 	if logAsJSON {
-		logJSON(w, "pending", fmt.Sprintf(fmtstr, a...))
+		logJSON(w, string(LogPending), fmt.Sprintf(fmtstr, a...))
 	} else if runtime.GOOS == windowsOS {
 		fmt.Fprintf(w, "%s\n", fmt.Sprintf(fmtstr, a...))
 	} else {
@@ -103,7 +122,7 @@ func PendingStatusEvent(w io.Writer, fmtstr string, a ...interface{}) {
 // InfoStatusEvent reports status information on an event.
 func InfoStatusEvent(w io.Writer, fmtstr string, a ...interface{}) {
 	if logAsJSON {
-		logJSON(w, "info", fmt.Sprintf(fmtstr, a...))
+		logJSON(w, string(LogInfo), fmt.Sprintf(fmtstr, a...))
 	} else if runtime.GOOS == windowsOS {
 		fmt.Fprintf(w, "%s\n", fmt.Sprintf(fmtstr, a...))
 	} else {
@@ -117,7 +136,7 @@ func Spinner(w io.Writer, fmtstr string, a ...interface{}) func(result Result) {
 	var s *spinner.Spinner
 
 	if logAsJSON {
-		logJSON(w, "pending", msg)
+		logJSON(w, string(LogPending), msg)
 	} else if runtime.GOOS == windowsOS {
 		fmt.Fprintf(w, "%s\n", msg)
 

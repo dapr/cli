@@ -124,7 +124,7 @@ func (config *RunConfig) validatePort(portName string, portPtr *int, meta *DaprM
 	return nil
 }
 
-func (config *RunConfig) validate() error {
+func (config *RunConfig) Validate() error {
 	meta, err := newDaprMeta()
 	if err != nil {
 		return err
@@ -314,18 +314,7 @@ func (config *RunConfig) getEnv() []string {
 	return env
 }
 
-// RunOutput represents the run output.
-type RunOutput struct {
-	DaprCMD      *exec.Cmd
-	DaprErr      error
-	DaprHTTPPort int
-	DaprGRPCPort int
-	AppID        string
-	AppCMD       *exec.Cmd
-	AppErr       error
-}
-
-func getDaprCommand(config *RunConfig) (*exec.Cmd, error) {
+func GetDaprCommand(config *RunConfig) (*exec.Cmd, error) {
 	daprCMD, err := lookupBinaryFilePath(config.DaprPathCmdFlag, "daprd")
 	if err != nil {
 		return nil, err
@@ -358,7 +347,7 @@ func mtlsEndpoint(configFile string) string {
 	return ""
 }
 
-func getAppCommand(config *RunConfig) *exec.Cmd {
+func GetAppCommand(config *RunConfig) *exec.Cmd {
 	argCount := len(config.Command)
 
 	if argCount == 0 {
@@ -376,29 +365,4 @@ func getAppCommand(config *RunConfig) *exec.Cmd {
 	cmd.Env = append(cmd.Env, config.getEnv()...)
 
 	return cmd
-}
-
-func Run(config *RunConfig) (*RunOutput, error) {
-	//nolint
-	err := config.validate()
-	if err != nil {
-		return nil, err
-	}
-
-	daprCMD, err := getDaprCommand(config)
-	if err != nil {
-		return nil, err
-	}
-
-	//nolint
-	var appCMD *exec.Cmd = getAppCommand(config)
-	return &RunOutput{
-		DaprCMD:      daprCMD,
-		DaprErr:      nil,
-		AppCMD:       appCMD,
-		AppErr:       nil,
-		AppID:        config.AppID,
-		DaprHTTPPort: config.HTTPPort,
-		DaprGRPCPort: config.GRPCPort,
-	}, nil
 }

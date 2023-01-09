@@ -23,7 +23,7 @@ const (
 	defaultDaprDirName       = ".dapr"
 	defaultDaprBinDirName    = "bin"
 	defaultComponentsDirName = "components"
-	defaultConfigFileName    = "config.yaml"
+	DefaultConfigFileName    = "config.yaml"
 )
 
 // GetDaprPath returns the dapr installation path.
@@ -75,5 +75,5 @@ func GetDaprComponentsPath(daprDir string) string {
 }
 
 func GetDaprConfigPath(daprDir string) string {
-	return path_filepath.Join(daprDir, defaultConfigFileName)
+	return path_filepath.Join(daprDir, DefaultConfigFileName)
 }
