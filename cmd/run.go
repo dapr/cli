@@ -516,7 +516,7 @@ func executeRunWithAppsConfigFile(runFilePath string) {
 	}
 }
 
-func getRunConfig(apps *runfileconfig.Apps) (*standalone.RunConfig, error) {
+func getRunConfig(apps *runfileconfig.App) (*standalone.RunConfig, error) {
 	return &apps.RunConfig, nil
 }
 

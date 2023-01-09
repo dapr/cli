@@ -69,7 +69,7 @@ func (a *RunFileConfig) validateRunConfig(runFilePath string) error {
 
 // GetApps orchestrates the parsing of supplied run file, validating fields and consolidating SharedRunConfig for the apps.
 // It returns a list of apps with the merged values for the SharedRunConfig from common section of the YAML file.
-func (a *RunFileConfig) GetApps(runFilePath string) ([]Apps, error) {
+func (a *RunFileConfig) GetApps(runFilePath string) ([]App, error) {
 	err := a.parseAppsConfig(runFilePath)
 	if err != nil {
 		return nil, err

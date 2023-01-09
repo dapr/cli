@@ -19,12 +19,12 @@ import "github.com/dapr/cli/pkg/standalone"
 // It is meant to be used with - "dapr run --run-file <path-to-run-file>" command.
 type RunFileConfig struct {
 	Common  Common `yaml:"common"`
-	Apps    []Apps `yaml:"apps"`
+	Apps    []App  `yaml:"apps"`
 	Version int    `yaml:"version"`
 }
 
-// Apps represents the configuration options for the apps in the run file.
-type Apps struct {
+// App represents the configuration options for the apps in the run file.
+type App struct {
 	standalone.RunConfig `yaml:",inline"`
 	AppDirPath           string     `yaml:"app_dir_path"`
 	Env                  []EnvItems `yaml:"env"`
