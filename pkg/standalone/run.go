@@ -55,7 +55,7 @@ type SharedRunConfig struct {
 	APIListenAddresses string `arg:"dapr-listen-addresses" yaml:"api_listen_addresses"`
 	EnableProfiling    bool   `arg:"enable-profiling" yaml:"enable_profiling"`
 	LogLevel           string `arg:"log-level" yaml:"log_level"`
-	MaxConcurrency     int    `arg:"app-max-concurrency" yaml:"_appmax_concurrency"`
+	MaxConcurrency     int    `arg:"app-max-concurrency" yaml:"app_max_concurrency"`
 	PlacementHostAddr  string `arg:"placement-host-address" yaml:"placement_host_address"`
 	ComponentsPath     string `arg:"components-path"`
 	ResourcesPath      string `arg:"resources-path" yaml:"resources_path"`
@@ -79,12 +79,16 @@ func (meta *DaprMeta) newAppID() string {
 	}
 }
 
-func (config *RunConfig) validateComponentPath() error {
-	_, err := os.Stat(config.ComponentsPath)
+func (config *RunConfig) validateResourcesPath() error {
+	dirPath := config.ResourcesPath
+	if dirPath == "" {
+		dirPath = config.ComponentsPath
+	}
+	_, err := os.Stat(dirPath)
 	if err != nil {
 		return err
 	}
-	componentsLoader := components.NewStandaloneComponents(modes.StandaloneConfig{ComponentsPath: config.ComponentsPath})
+	componentsLoader := components.NewStandaloneComponents(modes.StandaloneConfig{ComponentsPath: dirPath})
 	_, err = componentsLoader.LoadComponents()
 	if err != nil {
 		return err
@@ -134,7 +138,7 @@ func (config *RunConfig) Validate() error {
 		config.AppID = meta.newAppID()
 	}
 
-	err = config.validateComponentPath()
+	err = config.validateResourcesPath()
 	if err != nil {
 		return err
 	}

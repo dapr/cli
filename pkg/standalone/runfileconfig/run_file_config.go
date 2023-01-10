@@ -13,7 +13,14 @@ limitations under the License.
 
 package runfileconfig
 
-import "github.com/dapr/cli/pkg/standalone"
+import (
+	"errors"
+	"io"
+	"os"
+	"path/filepath"
+
+	"github.com/dapr/cli/pkg/standalone"
+)
 
 // RunFileConfig represents the complete configuration options for the run file.
 // It is meant to be used with - "dapr run --run-file <path-to-run-file>" command.
@@ -28,6 +35,8 @@ type App struct {
 	standalone.RunConfig `yaml:",inline"`
 	AppDirPath           string     `yaml:"app_dir_path"`
 	Env                  []EnvItems `yaml:"env"`
+	appLogFile           *os.File
+	daprdLogFile         *os.File
 }
 
 // Common represents the configuration options for the common section in the run file.
@@ -40,4 +49,58 @@ type Common struct {
 type EnvItems struct {
 	Name  string `yaml:"name"`
 	Value string `yaml:"value"`
+}
+
+func (a *App) GetLogsDir() string {
+	logsPath := filepath.Join(a.AppDirPath, ".dapr", "logs")
+	if _, err := os.Stat(logsPath); errors.Is(err, os.ErrNotExist) {
+		os.MkdirAll(logsPath, 0o755)
+	}
+	return logsPath
+}
+
+func (a *App) GetAppLogFileWriter() (io.WriteCloser, error) {
+	logsPath := a.GetLogsDir()
+	f, err := os.Create(filepath.Join(logsPath, "app.log"))
+	if err != nil {
+		a.appLogFile = f
+	}
+	return f, err
+}
+
+func (a *App) GetDaprdLogFileWriter() (io.WriteCloser, error) {
+	logsPath := a.GetLogsDir()
+	f, err := os.Create(filepath.Join(logsPath, "daprd.log"))
+	if err != nil {
+		a.daprdLogFile = f
+	}
+	return f, err
+}
+
+func (a *App) CloseAppLogFile() error {
+	if a.appLogFile != nil {
+		return a.appLogFile.Close()
+	}
+	return nil
+}
+
+func (a *App) CloseDaprdLogFile() error {
+	if a.daprdLogFile != nil {
+		return a.daprdLogFile.Close()
+	}
+	return nil
+}
+
+func (a *App) GetAppLogFileName() string {
+	if a.appLogFile != nil {
+		return a.appLogFile.Name()
+	}
+	return ""
+}
+
+func (a *App) GetDaprdLogFileName() string {
+	if a.daprdLogFile != nil {
+		return a.daprdLogFile.Name()
+	}
+	return ""
 }
