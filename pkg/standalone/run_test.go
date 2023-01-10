@@ -281,4 +281,42 @@ func TestRun(t *testing.T) {
 		assert.Regexp(t, regexp.MustCompile(`( |^)--app-health-probe-timeout( |=)200`), argsFlattened)
 		assert.Regexp(t, regexp.MustCompile(`( |^)--app-health-threshold( |=)1`), argsFlattened)
 	})
+
+	t.Run("test setting defaults from struct tag", func(t *testing.T) {
+		basicConfig.AppPort = 0
+		basicConfig.HTTPPort = 0
+		basicConfig.GRPCPort = 0
+		basicConfig.MetricsPort = 0
+		basicConfig.ProfilePort = 0
+		basicConfig.EnableProfiling = true
+		basicConfig.MaxConcurrency = 0
+		basicConfig.MaxRequestBodySize = 0
+		basicConfig.HTTPReadBufferSize = 0
+
+		basicConfig.setDefaultFromScehma()
+
+		assert.Equal(t, -1, basicConfig.AppPort)
+		assert.True(t, basicConfig.HTTPPort == -1)
+		assert.True(t, basicConfig.GRPCPort == -1)
+		assert.True(t, basicConfig.MetricsPort == -1)
+		assert.True(t, basicConfig.ProfilePort == -1)
+		assert.True(t, basicConfig.EnableProfiling)
+		assert.Equal(t, -1, basicConfig.MaxConcurrency)
+		assert.Equal(t, -1, basicConfig.MaxRequestBodySize)
+		assert.Equal(t, -1, basicConfig.HTTPReadBufferSize)
+
+		// Test after Validate gets called.
+		err := basicConfig.validate()
+		assert.NoError(t, err)
+
+		assert.Equal(t, 0, basicConfig.AppPort)
+		assert.True(t, basicConfig.HTTPPort > 0)
+		assert.True(t, basicConfig.GRPCPort > 0)
+		assert.True(t, basicConfig.MetricsPort > 0)
+		assert.True(t, basicConfig.ProfilePort > 0)
+		assert.True(t, basicConfig.EnableProfiling)
+		assert.Equal(t, -1, basicConfig.MaxConcurrency)
+		assert.Equal(t, -1, basicConfig.MaxRequestBodySize)
+		assert.Equal(t, -1, basicConfig.HTTPReadBufferSize)
+	})
 }

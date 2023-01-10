@@ -20,6 +20,7 @@ import (
 	"os/exec"
 	"reflect"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/Pallinder/sillyname-go"
@@ -36,14 +37,14 @@ const sentryDefaultAddress = "localhost:50001"
 // RunConfig represents the application configuration parameters.
 type RunConfig struct {
 	AppID            string   `env:"APP_ID" arg:"app-id" yaml:"app_id"`
-	AppPort          int      `env:"APP_PORT" arg:"app-port" yaml:"app_port"`
-	HTTPPort         int      `env:"DAPR_HTTP_PORT" arg:"dapr-http-port" yaml:"dapr_http_port"`
-	GRPCPort         int      `env:"DAPR_GRPC_PORT" arg:"dapr-grpc-port" yaml:"dapr_grpc_port"`
-	ProfilePort      int      `arg:"profile-port" yaml:"profile_port"`
+	AppPort          int      `env:"APP_PORT" arg:"app-port" yaml:"app_port" default:"-1"`
+	HTTPPort         int      `env:"DAPR_HTTP_PORT" arg:"dapr-http-port" yaml:"dapr_http_port" default:"-1"`
+	GRPCPort         int      `env:"DAPR_GRPC_PORT" arg:"dapr-grpc-port" yaml:"dapr_grpc_port" default:"-1"`
+	ProfilePort      int      `arg:"profile-port" yaml:"profile_port" default:"-1"`
 	Command          []string `yaml:"command"`
-	MetricsPort      int      `env:"DAPR_METRICS_PORT" arg:"metrics-port" yaml:"metrics_port"`
+	MetricsPort      int      `env:"DAPR_METRICS_PORT" arg:"metrics-port" yaml:"metrics_port" default:"-1"`
 	UnixDomainSocket string   `arg:"unix-domain-socket" yaml:"unix_domain_socket"`
-	InternalGRPCPort int      `arg:"dapr-internal-grpc-port" yaml:"dapr_internal_grpc_port"`
+	InternalGRPCPort int      `arg:"dapr-internal-grpc-port" yaml:"dapr_internal_grpc_port" default:"-1"`
 	DaprPathCmdFlag  string   `yaml:"dapr_path_cmd_flag"`
 	SharedRunConfig  `yaml:",inline"`
 }
@@ -55,13 +56,13 @@ type SharedRunConfig struct {
 	APIListenAddresses string `arg:"dapr-listen-addresses" yaml:"api_listen_addresses"`
 	EnableProfiling    bool   `arg:"enable-profiling" yaml:"enable_profiling"`
 	LogLevel           string `arg:"log-level" yaml:"log_level"`
-	MaxConcurrency     int    `arg:"app-max-concurrency" yaml:"_appmax_concurrency"`
+	MaxConcurrency     int    `arg:"app-max-concurrency" yaml:"app_max_concurrency" default:"-1"`
 	PlacementHostAddr  string `arg:"placement-host-address" yaml:"placement_host_address"`
 	ComponentsPath     string `arg:"components-path"`
 	ResourcesPath      string `arg:"resources-path" yaml:"resources_path"`
 	AppSSL             bool   `arg:"app-ssl" yaml:"app_ssl"`
-	MaxRequestBodySize int    `arg:"dapr-http-max-request-size" yaml:"dapr_http_max_request_size"`
-	HTTPReadBufferSize int    `arg:"dapr-http-read-buffer-size" yaml:"dapr_http_read_buffer_size"`
+	MaxRequestBodySize int    `arg:"dapr-http-max-request-size" yaml:"dapr_http_max_request_size" default:"-1"`
+	HTTPReadBufferSize int    `arg:"dapr-http-read-buffer-size" yaml:"dapr_http_read_buffer_size" default:"-1"`
 	EnableAppHealth    bool   `arg:"enable-app-health-check" yaml:"enable_app_health_check"`
 	AppHealthPath      string `arg:"app-health-check-path" yaml:"app_health_check_path"`
 	AppHealthInterval  int    `arg:"app-health-probe-interval" ifneq:"0" yaml:"app_health_probe_interval"`
@@ -293,6 +294,30 @@ func getArgsFromSchema(schema reflect.Value, args []string) []string {
 	return args
 }
 
+func (config *RunConfig) setDefaultFromScehma() {
+	schema := reflect.ValueOf(*config)
+	config.setRecursivelyDefaultVal(schema)
+}
+
+func (config *RunConfig) setRecursivelyDefaultVal(schema reflect.Value) {
+	for i := 0; i < schema.NumField(); i++ {
+		valueField := schema.Field(i)
+		typeField := schema.Type().Field(i)
+		if typeField.Type.Kind() == reflect.Struct {
+			config.setRecursivelyDefaultVal(valueField)
+			continue
+		}
+		if valueField.IsZero() && len(typeField.Tag.Get("default")) != 0 {
+			switch valueField.Kind() {
+			case reflect.Int:
+				if val, err := strconv.ParseInt(typeField.Tag.Get("default"), 10, 64); err == nil {
+					reflect.ValueOf(config).Elem().FieldByName(typeField.Name).Set(reflect.ValueOf(int(val)).Convert(valueField.Type()))
+				}
+			}
+		}
+	}
+}
+
 func (config *RunConfig) getEnv() []string {
 	env := []string{}
 	schema := reflect.ValueOf(*config)
@@ -379,6 +404,8 @@ func getAppCommand(config *RunConfig) *exec.Cmd {
 }
 
 func Run(config *RunConfig) (*RunOutput, error) {
+	// set default values from RunConfig struct's tag.
+	config.setDefaultFromScehma()
 	//nolint
 	err := config.validate()
 	if err != nil {
