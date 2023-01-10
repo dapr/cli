@@ -32,7 +32,10 @@ import (
 	modes "github.com/dapr/dapr/pkg/config/modes"
 )
 
-const sentryDefaultAddress = "localhost:50001"
+const (
+	sentryDefaultAddress = "localhost:50001"
+	DEFAULT              = "default"
+)
 
 // RunConfig represents the application configuration parameters.
 type RunConfig struct {
@@ -294,23 +297,23 @@ func getArgsFromSchema(schema reflect.Value, args []string) []string {
 	return args
 }
 
-func (config *RunConfig) setDefaultFromScehma() {
+func (config *RunConfig) setDefaultFromSchema() {
 	schema := reflect.ValueOf(*config)
-	config.setRecursivelyDefaultVal(schema)
+	config.setDefaultFromSchemaRecursive(schema)
 }
 
-func (config *RunConfig) setRecursivelyDefaultVal(schema reflect.Value) {
+func (config *RunConfig) setDefaultFromSchemaRecursive(schema reflect.Value) {
 	for i := 0; i < schema.NumField(); i++ {
 		valueField := schema.Field(i)
 		typeField := schema.Type().Field(i)
 		if typeField.Type.Kind() == reflect.Struct {
-			config.setRecursivelyDefaultVal(valueField)
+			config.setDefaultFromSchemaRecursive(valueField)
 			continue
 		}
-		if valueField.IsZero() && len(typeField.Tag.Get("default")) != 0 {
+		if valueField.IsZero() && len(typeField.Tag.Get(DEFAULT)) != 0 {
 			switch valueField.Kind() {
 			case reflect.Int:
-				if val, err := strconv.ParseInt(typeField.Tag.Get("default"), 10, 64); err == nil {
+				if val, err := strconv.ParseInt(typeField.Tag.Get(DEFAULT), 10, 64); err == nil {
 					reflect.ValueOf(config).Elem().FieldByName(typeField.Name).Set(reflect.ValueOf(int(val)).Convert(valueField.Type()))
 				}
 			}
@@ -405,7 +408,7 @@ func getAppCommand(config *RunConfig) *exec.Cmd {
 
 func Run(config *RunConfig) (*RunOutput, error) {
 	// set default values from RunConfig struct's tag.
-	config.setDefaultFromScehma()
+	config.setDefaultFromSchema()
 	//nolint
 	err := config.validate()
 	if err != nil {

@@ -293,7 +293,7 @@ func TestRun(t *testing.T) {
 		basicConfig.MaxRequestBodySize = 0
 		basicConfig.HTTPReadBufferSize = 0
 
-		basicConfig.setDefaultFromScehma()
+		basicConfig.setDefaultFromSchema()
 
 		assert.Equal(t, -1, basicConfig.AppPort)
 		assert.True(t, basicConfig.HTTPPort == -1)
