@@ -133,3 +133,47 @@ func TestGetBasePathFromAbsPath(t *testing.T) {
 		})
 	}
 }
+
+func TestResolveAppCMD(t *testing.T) {
+	tempBaseDir, err := os.MkdirTemp("", "test")
+	assert.NoError(t, err)
+	file, err := os.Create(filepath.Join(tempBaseDir, "app.js"))
+	assert.NoError(t, err)
+	file.Close()
+	defer os.RemoveAll(tempBaseDir)
+	testcases := []struct {
+		name        string
+		input       []string
+		expectedErr bool
+		isAbsPath   bool
+	}{
+		{
+			name:        "valid app command",
+			input:       []string{"node", "app.js"},
+			expectedErr: false,
+			isAbsPath:   true,
+		},
+		{
+			name:        "non-existent file path in app command",
+			input:       []string{"python3", "app.py"},
+			expectedErr: true,
+			isAbsPath:   true,
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			runFileConfig := RunFileConfig{}
+			err := runFileConfig.parseAppsConfig(validRunFilePath)
+			assert.NoError(t, err)
+			runFileConfig.Apps[0].AppDirPath = tempBaseDir
+			runFileConfig.Apps[1].AppDirPath = tempBaseDir
+			runFileConfig.Apps[0].Command = tc.input
+			runFileConfig.Apps[1].Command = tc.input
+			actualErr := runFileConfig.resolveAppCMD()
+			assert.Equal(t, tc.expectedErr, actualErr != nil)
+			assert.Equal(t, tc.isAbsPath, filepath.IsAbs(runFileConfig.Apps[0].Command[1]))
+			assert.Equal(t, tc.isAbsPath, filepath.IsAbs(runFileConfig.Apps[1].Command[1]))
+		})
+	}
+}
