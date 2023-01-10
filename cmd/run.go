@@ -171,6 +171,7 @@ dapr run --app-id myapp --dapr-path /usr/local/dapr
 			print.FailureStatusEvent(os.Stderr, err.Error())
 			os.Exit(1)
 		}
+		// TODO: In future release replace following logic with the refactored functions seen below.
 
 		sigCh := make(chan os.Signal, 1)
 		setupShutdownNotify(sigCh)
@@ -469,12 +470,25 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 		}
 		// Store runState in an array.
 		runStates = append(runStates, runState)
+
+		// Metadata API is only available if app has started listening to port, so wait for app to start before calling metadata API.
+		// The PID is put as 0, so as to not kill CLI process when any one of the apps is stopped.
+		_ = putCLIProcessIDInMeta(runState, 0)
+
+		if runState.AppCMD.Command != nil {
+			_ = putAppCommandInMeta(&runConfig, runState)
+		} else {
+			print.StatusEvent(runState.DaprCMD.OutputWriter, print.LogSuccess, "You're up and running! Dapr logs will appear here.\n")
+		}
 		logInfomationalStatusToStdout(app)
 	}
 	// If all apps have been started and there are no errors in starting the apps wait for signal from sigCh.
 	if !exitWithError {
 		// After all apps started wait for sigCh.
 		<-sigCh
+		// To add a new line in Stdout.
+		fmt.Println()
+		print.InfoStatusEvent(os.Stdout, "Received signal to stop Dapr and app processes. Shutting down Dapr and app processes.")
 	}
 
 	// Stop daprd and app processes for each runState.
@@ -541,8 +555,7 @@ func executeRunWithAppsConfigFile(runFilePath string) {
 	}
 }
 
-// startDaprdAndAppProcesses is a function to start the App process and the associated Daprd process
-// This function also calls metadata API to put CLI process ID and the associated App command
+// startDaprdAndAppProcesses is a function to start the App process and the associated Daprd process.
 // This should be called as a blocking function call.
 func startDaprdAndAppProcesses(runConfig *standalone.RunConfig, commandDir string, sigCh chan os.Signal,
 	daprdOutputWriter io.Writer, daprdErrorWriter io.Writer,
@@ -597,15 +610,6 @@ func startDaprdAndAppProcesses(runConfig *standalone.RunConfig, commandDir strin
 		// Start App failed, try to stop Dapr and exit.
 		err = killDaprdProcess(runState)
 		return nil, err
-	}
-
-	// Metadata API is only available if app has started listening to port, so wait for app to start before calling metadata API.
-	_ = putCLIProcessIDInMeta(runState)
-
-	if runState.AppCMD.Command != nil {
-		_ = putAppCommandInMeta(runConfig, runState)
-	} else {
-		print.StatusEvent(runState.DaprCMD.OutputWriter, print.LogSuccess, "You're up and running! Dapr logs will appear here.\n")
 	}
 	return runState, nil
 }
@@ -677,15 +681,25 @@ func startAppProcess(runConfig *standalone.RunConfig, runE *runExec.RunExec,
 	outScanner := bufio.NewScanner(stdOutPipe)
 	go func() {
 		for errScanner.Scan() {
-			// Directly output app logs to the error writer only prefixing with '== APP =='.
-			fmt.Fprintln(runE.AppCMD.ErrorWriter, print.Blue(fmt.Sprintf("== APP == %s", errScanner.Text())))
+			if runE.AppCMD.ErrorWriter == os.Stderr {
+				// Add color and prefix to log and output to Stderr.
+				fmt.Fprintln(runE.AppCMD.ErrorWriter, print.Blue(fmt.Sprintf("== APP == %s", errScanner.Text())))
+			} else {
+				// Directly output app logs to the error writer.
+				fmt.Fprintln(runE.AppCMD.ErrorWriter, errScanner.Text())
+			}
 		}
 	}()
 
 	go func() {
 		for outScanner.Scan() {
-			// Directly output app logs to the output writer only prefixing with '== APP =='.
-			fmt.Fprintln(runE.AppCMD.OutputWriter, print.Blue(fmt.Sprintf("== APP == %s", outScanner.Text())))
+			if runE.AppCMD.OutputWriter == os.Stdout {
+				// Add color and prefix to log and output to Stdout.
+				fmt.Fprintln(runE.AppCMD.OutputWriter, print.Blue(fmt.Sprintf("== APP == %s", outScanner.Text())))
+			} else {
+				// Directly output app logs to the output writer.
+				fmt.Fprintln(runE.AppCMD.OutputWriter, outScanner.Text())
+			}
 		}
 	}()
 
@@ -819,10 +833,10 @@ func killAppProcess(runE *runExec.RunExec) error {
 }
 
 // putCLIProcessIDInMeta puts the CLI process ID in metadata so that it can be used by the CLI to stop the CLI process.
-func putCLIProcessIDInMeta(runE *runExec.RunExec) error {
+func putCLIProcessIDInMeta(runE *runExec.RunExec, pid int) error {
 	// For now putting this as 0, since we do not want the dapr stop command for a single to kill the CLI process,
 	// thereby killing all the apps that are running via dapr run -f.
-	err := metadata.Put(runE.DaprHTTPPort, "cliPID", "0", runE.AppID, unixDomainSocket)
+	err := metadata.Put(runE.DaprHTTPPort, "cliPID", strconv.Itoa(pid), runE.AppID, unixDomainSocket)
 	if err != nil {
 		print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogWarning, "Could not update sidecar metadata for cliPID: %s", err.Error())
 		return err

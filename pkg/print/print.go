@@ -17,6 +17,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"runtime"
 	"sync"
 	"time"
@@ -71,7 +72,24 @@ func StatusEvent(w io.Writer, status logStatus, fmtstr string, a ...any) {
 	if logAsJSON {
 		logJSON(w, string(status), fmt.Sprintf(fmtstr, a...))
 	} else {
-		fmt.Fprintf(w, "%s\n", fmt.Sprintf(fmtstr, a...))
+		if (w == os.Stdout || w == os.Stderr) && runtime.GOOS != windowsOS {
+			switch status {
+			case LogSuccess:
+				fmt.Fprintf(w, "✅  %s\n", fmt.Sprintf(fmtstr, a...))
+			case LogFailure:
+				fmt.Fprintf(w, "❌  %s\n", fmt.Sprintf(fmtstr, a...))
+			case LogWarning:
+				fmt.Fprintf(w, "⚠  %s\n", fmt.Sprintf(fmtstr, a...))
+			case LogPending:
+				fmt.Fprintf(w, "⌛  %s\n", fmt.Sprintf(fmtstr, a...))
+			case LogInfo:
+				fmt.Fprintf(w, "ℹ️  %s\n", fmt.Sprintf(fmtstr, a...))
+			default:
+				fmt.Fprintf(w, "%s\n", fmt.Sprintf(fmtstr, a...))
+			}
+		} else {
+			fmt.Fprintf(w, "%s\n", fmt.Sprintf(fmtstr, a...))
+		}
 	}
 }
 
