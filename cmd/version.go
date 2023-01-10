@@ -29,7 +29,7 @@ var output string
 
 var VersionCmd = &cobra.Command{
 	Use:   "version",
-	Short: "Print Dapr runtime and Cli version.",
+	Short: "Print Dapr runtime and Cli version",
 	Example: `
 # Version for Dapr
 dapr version --output json
