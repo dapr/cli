@@ -28,7 +28,7 @@ import (
 
 	"github.com/dapr/cli/pkg/metadata"
 	"github.com/dapr/cli/pkg/print"
-	runExec "github.com/dapr/cli/pkg/run_exec"
+	runExec "github.com/dapr/cli/pkg/runexec"
 	"github.com/dapr/cli/pkg/standalone"
 	"github.com/dapr/cli/pkg/standalone/runfileconfig"
 	"github.com/dapr/cli/utils"
@@ -439,7 +439,7 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 
 	runStates := make([]*runExec.RunExec, 0, len(apps))
 	for _, app := range apps {
-		// Get Run Config for different apps
+		// Get Run Config for different apps.
 		runConfig := app.RunConfig
 
 		// Validate validates the configs and modifies the ports to free ports, appId etc.
@@ -467,17 +467,17 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 			exitWithError = true
 			break
 		}
-		// Store runState in an array
+		// Store runState in an array.
 		runStates = append(runStates, runState)
 		logInfomationalStatusToStdout(app)
 	}
-	// If all apps have been started and there are no errors in starting the apps wait for signal from sigCh
+	// If all apps have been started and there are no errors in starting the apps wait for signal from sigCh.
 	if !exitWithError {
-		// After all apps started wait for sigCh
+		// After all apps started wait for sigCh.
 		<-sigCh
 	}
 
-	// Stop daprd and app processes for each runState
+	// Stop daprd and app processes for each runState.
 	exitWithError, closeError := gracefullyShutdownAppsAndCloseResources(runStates, apps)
 
 	for _, app := range apps {
@@ -507,7 +507,7 @@ func gracefullyShutdownAppsAndCloseResources(runState []*runExec.RunExec, apps [
 		}
 	}
 	var err error
-	// close log file resources
+	// close log file resources.
 	for _, app := range apps {
 		hasErr := app.CloseAppLogFile()
 		if err == nil && hasErr != nil {
@@ -543,7 +543,7 @@ func executeRunWithAppsConfigFile(runFilePath string) {
 
 // startDaprdAndAppProcesses is a function to start the App process and the associated Daprd process
 // This function also calls metadata API to put CLI process ID and the associated App command
-// This should be called as a blocking function call
+// This should be called as a blocking function call.
 func startDaprdAndAppProcesses(runConfig *standalone.RunConfig, commandDir string, sigCh chan os.Signal,
 	daprdOutputWriter io.Writer, daprdErrorWriter io.Writer,
 	appOutputWriter io.Writer, appErrorWriter io.Writer,
@@ -583,8 +583,8 @@ func startDaprdAndAppProcesses(runConfig *standalone.RunConfig, commandDir strin
 
 	go startDaprdProcess(runConfig, runState, daprRunning, sigCh, startErrChan)
 
-	daprStarted := <-daprRunning
-	if !daprStarted {
+	// Wait for daprRunning channel output.
+	if daprStarted := <-daprRunning; !daprStarted {
 		startErr := <-startErrChan
 		print.StatusEvent(daprdErrorWriter, print.LogFailure, "Error starting daprd process: %s", startErr.Error())
 		return nil, err
@@ -592,8 +592,8 @@ func startDaprdAndAppProcesses(runConfig *standalone.RunConfig, commandDir strin
 
 	go startAppProcess(runConfig, runState, appRunning, sigCh, startErrChan)
 
-	appRunStatus := <-appRunning
-	if !appRunStatus {
+	// Wait for appRunnning channel output.
+	if appStarted := <-appRunning; !appStarted {
 		// Start App failed, try to stop Dapr and exit.
 		err = killDaprdProcess(runState)
 		return nil, err
@@ -611,11 +611,11 @@ func startDaprdAndAppProcesses(runConfig *standalone.RunConfig, commandDir strin
 }
 
 // stopDaprdAndAppProcesses is a function to stop the App process and the associated Daprd process
-// This should be called as a blocking function call
+// This should be called as a blocking function call.
 func stopDaprdAndAppProcesses(runState *runExec.RunExec) bool {
 	var err error
 	print.StatusEvent(runState.DaprCMD.OutputWriter, print.LogInfo, "\ntermination signal received: shutting down")
-	// Only if two different output writers are present run the following print statement
+	// Only if two different output writers are present run the following print statement.
 	if runState.AppCMD.OutputWriter != runState.DaprCMD.OutputWriter {
 		print.StatusEvent(runState.AppCMD.OutputWriter, print.LogInfo, "\ntermination signal received: shutting down")
 	}
@@ -648,7 +648,7 @@ func stopDaprdAndAppProcesses(runState *runExec.RunExec) bool {
 }
 
 // startAppsProcess, starts the App process and calls wait in a goroutine
-// This function should be called as a goroutine
+// This function should be called as a goroutine.
 func startAppProcess(runConfig *standalone.RunConfig, runE *runExec.RunExec,
 	appRunning chan bool, sigCh chan os.Signal, errorChan chan error,
 ) {
@@ -677,14 +677,14 @@ func startAppProcess(runConfig *standalone.RunConfig, runE *runExec.RunExec,
 	outScanner := bufio.NewScanner(stdOutPipe)
 	go func() {
 		for errScanner.Scan() {
-			// Directly output app logs to the error writer only prefixing with == APP ==
+			// Directly output app logs to the error writer only prefixing with '== APP =='.
 			fmt.Fprintln(runE.AppCMD.ErrorWriter, print.Blue(fmt.Sprintf("== APP == %s", errScanner.Text())))
 		}
 	}()
 
 	go func() {
 		for outScanner.Scan() {
-			// Directly output app logs to the output writer only prefixing with == APP ==
+			// Directly output app logs to the output writer only prefixing with '== APP =='.
 			fmt.Fprintln(runE.AppCMD.OutputWriter, print.Blue(fmt.Sprintf("== APP == %s", outScanner.Text())))
 		}
 	}()
@@ -712,7 +712,7 @@ func startAppProcess(runConfig *standalone.RunConfig, runE *runExec.RunExec,
 }
 
 // startDaprdProcess, starts the Daprd process and calls wait in a goroutine
-// This function should be called as a goroutine
+// This function should be called as a goroutine.
 func startDaprdProcess(runConfig *standalone.RunConfig, runE *runExec.RunExec,
 	daprRunning chan bool, sigCh chan os.Signal, errorChan chan error,
 ) {
@@ -771,13 +771,12 @@ func startDaprdProcess(runConfig *standalone.RunConfig, runE *runExec.RunExec,
 				sidecarUp = false
 				print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogWarning, "Dapr sidecar is not listening on GRPC socket: %s", err.Error())
 			}
-
 		} else {
 			print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogInfo, "Checking if Dapr sidecar is listening on HTTP port %v", runE.DaprHTTPPort)
 			err = utils.IsDaprListeningOnPort(runE.DaprHTTPPort, time.Duration(runtimeWaitTimeoutInSeconds)*time.Second)
 			if err != nil {
 				sidecarUp = false
-				print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogWarning, "Dapr sidecar is not listening on HTTP port: %s", runE.AppID, err.Error())
+				print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogWarning, "Dapr sidecar is not listening on HTTP port: %s", err.Error())
 			}
 
 			print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogInfo, "Checking if Dapr sidecar is listening on GRPC port %v", runE.DaprGRPCPort)
@@ -797,7 +796,7 @@ func startDaprdProcess(runConfig *standalone.RunConfig, runE *runExec.RunExec,
 	daprRunning <- true
 }
 
-// killDaprdProcess is used to kill the Daprd process and return error on failure
+// killDaprdProcess is used to kill the Daprd process and return error on failure.
 func killDaprdProcess(runE *runExec.RunExec) error {
 	err := runE.DaprCMD.Command.Process.Kill()
 	if err != nil {
@@ -808,7 +807,7 @@ func killDaprdProcess(runE *runExec.RunExec) error {
 	return nil
 }
 
-// killAppProcess is used to kill the App process and return error on failure
+// killAppProcess is used to kill the App process and return error on failure.
 func killAppProcess(runE *runExec.RunExec) error {
 	err := runE.AppCMD.Command.Process.Kill()
 	if err != nil {

@@ -24,6 +24,7 @@ import (
 	v1alpha1 "github.com/dapr/dapr/pkg/apis/configuration/v1alpha1"
 )
 
+//nolint:dupword
 func TestConfigurations(t *testing.T) {
 	now := meta_v1.Now()
 	formattedNow := now.Format("2006-01-02 15:04.05")

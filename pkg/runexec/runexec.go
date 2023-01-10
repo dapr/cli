@@ -11,7 +11,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package run_exec
+package runexec
 
 import (
 	"fmt"
@@ -81,7 +81,7 @@ func (c *CmdProcess) WithOutputWriter(w io.Writer) {
 	c.OutputWriter = w
 }
 
-// SetStdout should be called after WithOutputWriter
+// SetStdout should be called after WithOutputWriter.
 func (c *CmdProcess) SetStdout() error {
 	if c.Command == nil {
 		return fmt.Errorf("command is nil")
@@ -94,7 +94,7 @@ func (c *CmdProcess) WithErrorWriter(w io.Writer) {
 	c.ErrorWriter = w
 }
 
-// SetStdErr should be called after WithErrorWriter
+// SetStdErr should be called after WithErrorWriter.
 func (c *CmdProcess) SetStderr() error {
 	if c.Command == nil {
 		return fmt.Errorf("command is nil")
