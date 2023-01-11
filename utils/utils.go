@@ -33,10 +33,13 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/gocarina/gocsv"
 	"github.com/olekukonko/tablewriter"
+	"github.com/spf13/afero"
 	"gopkg.in/yaml.v2"
 )
 
 type ContainerRuntime string
+
+var Afs = afero.Afero{Fs: afero.NewOsFs()}
 
 const (
 	DOCKER ContainerRuntime = "docker"
@@ -326,7 +329,7 @@ func GetVersionAndImageVariant(imageTag string) (string, string) {
 // Returns true if the given file path is valid.
 func ValidateFilePaths(filePath string) error {
 	if filePath != "" {
-		if _, err := os.Stat(filePath); err != nil {
+		if _, err := Afs.Stat(filePath); err != nil {
 			return fmt.Errorf("error in getting the file info for %s: %w", filePath, err)
 		}
 	}

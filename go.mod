@@ -35,7 +35,10 @@ require (
 	sigs.k8s.io/yaml v1.3.0
 )
 
-require github.com/evanphx/json-patch v5.6.0+incompatible
+require (
+	github.com/evanphx/json-patch v5.6.0+incompatible
+	github.com/spf13/afero v1.9.3
+)
 
 require (
 	cloud.google.com/go/compute v1.6.1 // indirect
@@ -164,7 +167,6 @@ require (
 	github.com/shopspring/decimal v1.2.0 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/sony/gobreaker v0.4.2-0.20210216022020-dd874f9dd33b // indirect
-	github.com/spf13/afero v1.8.2 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect

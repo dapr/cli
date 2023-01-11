@@ -18,6 +18,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/dapr/cli/utils"
+
+	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -135,12 +138,15 @@ func TestGetBasePathFromAbsPath(t *testing.T) {
 }
 
 func TestResolveAppCMD(t *testing.T) {
-	tempBaseDir, err := os.MkdirTemp("", "test")
+	originalFS := utils.Afs
+	defer func() { utils.Afs = originalFS }()
+	utils.Afs = afero.Afero{Fs: afero.NewMemMapFs()}
+	tempBaseDir, err := utils.Afs.TempDir("", "test")
 	assert.NoError(t, err)
-	file, err := os.Create(filepath.Join(tempBaseDir, "app.js"))
+	file, err := utils.Afs.Create(filepath.Join(tempBaseDir, "app.js"))
 	assert.NoError(t, err)
 	file.Close()
-	defer os.RemoveAll(tempBaseDir)
+
 	testcases := []struct {
 		name        string
 		input       []string
