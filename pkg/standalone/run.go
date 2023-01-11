@@ -34,7 +34,7 @@ import (
 
 const (
 	sentryDefaultAddress = "localhost:50001"
-	DEFAULT              = "default"
+	defaultStructTagKey  = "default"
 )
 
 // RunConfig represents the application configuration parameters.
@@ -310,10 +310,10 @@ func (config *RunConfig) setDefaultFromSchemaRecursive(schema reflect.Value) {
 			config.setDefaultFromSchemaRecursive(valueField)
 			continue
 		}
-		if valueField.IsZero() && len(typeField.Tag.Get(DEFAULT)) != 0 {
+		if valueField.IsZero() && len(typeField.Tag.Get(defaultStructTagKey)) != 0 {
 			switch valueField.Kind() {
 			case reflect.Int:
-				if val, err := strconv.ParseInt(typeField.Tag.Get(DEFAULT), 10, 64); err == nil {
+				if val, err := strconv.ParseInt(typeField.Tag.Get(defaultStructTagKey), 10, 64); err == nil {
 					reflect.ValueOf(config).Elem().FieldByName(typeField.Name).Set(reflect.ValueOf(int(val)).Convert(valueField.Type()))
 				}
 			}
