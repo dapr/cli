@@ -22,10 +22,9 @@ import (
 )
 
 const (
-	// app log prefix
-	APP_LOG_FILE_PREFIX   = "app"
-	DAPRD_LOG_FILE_PREFIX = "daprd"
-	LOG_FILE_EXTENSION    = ".log"
+	appLogFileNamePrefix   = "app"
+	daprdLogFileNamePrefix = "daprd"
+	logFileExtension       = ".log"
 )
 
 // RunFileConfig represents the complete configuration options for the run file.
@@ -82,11 +81,11 @@ func (a *App) GetDaprdLogFileWriter() (io.WriteCloser, error) {
 }
 
 func getAppLogFileName() string {
-	return APP_LOG_FILE_PREFIX + LOG_FILE_EXTENSION
+	return appLogFileNamePrefix + logFileExtension
 }
 
 func getDaprdLogFileName() string {
-	return DAPRD_LOG_FILE_PREFIX + LOG_FILE_EXTENSION
+	return daprdLogFileNamePrefix + logFileExtension
 }
 
 func (a *App) CloseAppLogFile() error {

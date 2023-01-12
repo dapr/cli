@@ -441,8 +441,7 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 
 	runStates := make([]*runExec.RunExec, 0, len(apps))
 	for _, app := range apps {
-
-		// Set defaults if zero value provided in config yaml
+		// Set defaults if zero value provided in config yaml.
 		app.RunConfig.SetDefaultFromSchema()
 
 		// Validate validates the configs and modifies the ports to free ports, appId etc.
