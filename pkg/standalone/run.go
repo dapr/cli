@@ -45,17 +45,16 @@ type EnvItems struct {
 
 // RunConfig represents the application configuration parameters.
 type RunConfig struct {
-	AppID            string   `env:"APP_ID" arg:"app-id" yaml:"app_id"`
-	AppPort          int      `env:"APP_PORT" arg:"app-port" yaml:"app_port" default:"-1"`
-	HTTPPort         int      `env:"DAPR_HTTP_PORT" arg:"dapr-http-port" yaml:"dapr_http_port" default:"-1"`
-	GRPCPort         int      `env:"DAPR_GRPC_PORT" arg:"dapr-grpc-port" yaml:"dapr_grpc_port" default:"-1"`
-	ProfilePort      int      `arg:"profile-port" yaml:"profile_port" default:"-1"`
-	Command          []string `yaml:"command"`
-	MetricsPort      int      `env:"DAPR_METRICS_PORT" arg:"metrics-port" yaml:"metrics_port" default:"-1"`
-	UnixDomainSocket string   `arg:"unix-domain-socket" yaml:"unix_domain_socket"`
-	InternalGRPCPort int      `arg:"dapr-internal-grpc-port" yaml:"dapr_internal_grpc_port" default:"-1"`
-	DaprPathCmdFlag  string   `yaml:"dapr_path_cmd_flag"`
 	SharedRunConfig  `yaml:",inline"`
+	AppID            string     `env:"APP_ID" arg:"app-id" yaml:"app_id"`
+	AppPort          int        `env:"APP_PORT" arg:"app-port" yaml:"app_port" default:"-1"`
+	HTTPPort         int        `env:"DAPR_HTTP_PORT" arg:"dapr-http-port" yaml:"dapr_http_port" default:"-1"`
+	GRPCPort         int        `env:"DAPR_GRPC_PORT" arg:"dapr-grpc-port" yaml:"dapr_grpc_port" default:"-1"`
+	ProfilePort      int        `arg:"profile-port" yaml:"profile_port" default:"-1"`
+	Command          []string   `yaml:"command"`
+	MetricsPort      int        `env:"DAPR_METRICS_PORT" arg:"metrics-port" yaml:"metrics_port" default:"-1"`
+	UnixDomainSocket string     `arg:"unix-domain-socket" yaml:"unix_domain_socket"`
+	InternalGRPCPort int        `arg:"dapr-internal-grpc-port" yaml:"dapr_internal_grpc_port" default:"-1"`
 	Env              []EnvItems `yaml:"env"`
 }
 
@@ -79,7 +78,7 @@ type SharedRunConfig struct {
 	AppHealthTimeout   int    `arg:"app-health-probe-timeout" ifneq:"0" yaml:"app_health_probe_timeout"`
 	AppHealthThreshold int    `arg:"app-health-threshold" ifneq:"0" yaml:"app_health_threshold"`
 	EnableAPILogging   bool   `arg:"enable-api-logging" yaml:"enable_api_logging"`
-	DaprPathCmdFlag    string `yaml:"dapr_path_cmd_flag"`
+	DaprPathCmdFlag    string `yaml:"dapr_path"`
 }
 
 func (meta *DaprMeta) newAppID() string {

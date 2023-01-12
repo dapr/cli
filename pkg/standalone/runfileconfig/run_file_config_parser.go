@@ -52,7 +52,7 @@ func (a *RunFileConfig) validateRunConfig(runFilePath string) error {
 	}
 
 	// resolve relative path to absolute and validate all paths in commons.
-	err = a.resolvePathToAbsAndValidate(baseDir, &a.Common.ConfigFile, &a.Common.ResourcesPath)
+	err = a.resolvePathToAbsAndValidate(baseDir, &a.Common.ConfigFile, &a.Common.ResourcesPath, &a.Common.DaprPathCmdFlag)
 	if err != nil {
 		return err
 	}
@@ -66,7 +66,7 @@ func (a *RunFileConfig) validateRunConfig(runFilePath string) error {
 			return err
 		}
 		// All other paths present inside the specific app's in the YAML file, should be resolved relative to AppDirPath for that app.
-		err = a.resolvePathToAbsAndValidate(a.Apps[i].AppDirPath, &a.Apps[i].ConfigFile, &a.Apps[i].ResourcesPath)
+		err = a.resolvePathToAbsAndValidate(a.Apps[i].AppDirPath, &a.Apps[i].ConfigFile, &a.Apps[i].ResourcesPath, &a.Apps[i].DaprPathCmdFlag)
 		if err != nil {
 			return err
 		}
@@ -171,7 +171,7 @@ func (a *RunFileConfig) resolveResourcesAndConfigFilePaths() error {
 		app := &a.Apps[i]
 		// Resolve resources path if not provided in specific app's config.
 		if app.ResourcesPath == "" {
-			localResourcesDir := filepath.Join(app.AppDirPath, ".dapr", "resources")
+			localResourcesDir := filepath.Join(app.AppDirPath, standalone.DefaultDaprDirName, standalone.ResourcesDirName)
 			if err := utils.ValidateFilePaths(localResourcesDir); err == nil {
 				app.ResourcesPath = localResourcesDir
 			} else if len(strings.TrimSpace(a.Common.ResourcesPath)) > 0 {
@@ -186,7 +186,7 @@ func (a *RunFileConfig) resolveResourcesAndConfigFilePaths() error {
 		}
 		// Resolve config file path if not provided in specific app's config.
 		if app.ConfigFile == "" {
-			localConfigFile := filepath.Join(app.AppDirPath, ".dapr", "config.yaml")
+			localConfigFile := filepath.Join(app.AppDirPath, standalone.DefaultDaprDirName, standalone.DefaultConfigFileName)
 			if err := utils.ValidateFilePaths(localConfigFile); err == nil {
 				app.ConfigFile = localConfigFile
 			} else if len(strings.TrimSpace(a.Common.ConfigFile)) > 0 {
