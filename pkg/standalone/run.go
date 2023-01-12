@@ -90,12 +90,12 @@ func (config *RunConfig) validateResourcesPath() error {
 	}
 	_, err := os.Stat(dirPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("error validating resources path %q : %w", dirPath, err)
 	}
 	componentsLoader := components.NewStandaloneComponents(modes.StandaloneConfig{ComponentsPath: dirPath})
 	_, err = componentsLoader.LoadComponents()
 	if err != nil {
-		return err
+		return fmt.Errorf("error validating components in resources path %s : %w", dirPath, err)
 	}
 	return nil
 }

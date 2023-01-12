@@ -512,7 +512,7 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 }
 
 func logInfomationalStatusToStdout(app runfileconfig.App) {
-	print.InfoStatusEvent(os.Stdout, "Started Dapr with app id %s. HTTP Port: %d. gRPC Port: %d",
+	print.InfoStatusEvent(os.Stdout, "Started Dapr with app id %q. HTTP Port: %d. gRPC Port: %d",
 		app.AppID, app.RunConfig.HTTPPort, app.RunConfig.GRPCPort)
 	print.InfoStatusEvent(os.Stdout, "Writing log files to directory : %s", app.GetLogsDir())
 }
@@ -858,6 +858,6 @@ func putAppCommandInMeta(runConfig standalone.RunConfig, runState *runExec.RunEx
 		print.StatusEvent(runState.DaprCMD.OutputWriter, print.LogWarning, "Could not update sidecar metadata for appCommand: %s", err.Error())
 		return err
 	}
-	print.StatusEvent(runState.DaprCMD.OutputWriter, print.LogSuccess, "You're up and running! Both Dapr and your app logs will appear here.\n")
+	print.StatusEvent(runState.DaprCMD.OutputWriter, print.LogSuccess, "You're up and running! Dapr logs will appear here.\n")
 	return nil
 }
