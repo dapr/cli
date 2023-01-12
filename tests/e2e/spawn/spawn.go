@@ -15,8 +15,12 @@ package spawn
 
 import (
 	"bufio"
+	"bytes"
 	"context"
+	"fmt"
 	"os/exec"
+	"syscall"
+	"time"
 )
 
 // CommandWithContext runs a command with its arguments in background.
@@ -71,4 +75,38 @@ func Command(command string, arguments ...string) (string, error) {
 	}
 
 	return string(outBytes), err
+}
+
+// CommandExecWithContext runs a command with its arguments, kills the command after context is done
+// and returns the combined stdout, stderr or the error.
+func CommandExecWithContext(ctx context.Context, command string, arguments ...string) (string, error) {
+	cmd := exec.Command(command, arguments...)
+	var b bytes.Buffer
+	cmd.Stdout = &b
+	cmd.Stderr = &b
+
+	err := cmd.Start()
+	if err != nil {
+		return "", fmt.Errorf("error starting command : %w", err)
+	}
+
+	go func() {
+		waitErr := cmd.Wait()
+		if waitErr != nil {
+			fmt.Printf("error waiting for command : %s\n", waitErr)
+		}
+	}()
+	<-ctx.Done()
+	if cmd.ProcessState == nil || !cmd.ProcessState.Exited() {
+		cmd.Process.Signal(syscall.SIGTERM)
+		time.Sleep(10 * time.Second)
+		if cmd.ProcessState == nil || !cmd.ProcessState.Exited() {
+			err = cmd.Process.Kill()
+			if err != nil {
+				return b.String(), fmt.Errorf("error killing command : %w", err)
+			}
+		}
+	}
+
+	return b.String(), nil
 }
