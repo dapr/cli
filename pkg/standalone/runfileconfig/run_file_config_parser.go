@@ -60,8 +60,13 @@ func (a *RunFileConfig) validateRunConfig(runFilePath string) error {
 		if a.Apps[i].AppDirPath == "" {
 			return errors.New("required filed 'app_dir_path' not found in the provided app config file")
 		}
-		// resolve relative path to absolute and validate all paths for app.
-		err := a.resolvePathToAbsAndValidate(baseDir, &a.Apps[i].ConfigFile, &a.Apps[i].ResourcesPath, &a.Apps[i].AppDirPath)
+		// It resolves the relative AppDirPath to absolute path and validates it.
+		err := a.resolvePathToAbsAndValidate(baseDir, &a.Apps[i].AppDirPath)
+		if err != nil {
+			return err
+		}
+		// All other paths present inside the specific app's in the YAML file, should be resolved relative to AppDirPath for that app.
+		err = a.resolvePathToAbsAndValidate(a.Apps[i].AppDirPath, &a.Apps[i].ConfigFile, &a.Apps[i].ResourcesPath)
 		if err != nil {
 			return err
 		}

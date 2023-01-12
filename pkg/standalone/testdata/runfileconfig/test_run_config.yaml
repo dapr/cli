@@ -10,8 +10,8 @@ common:
       value: sts
 apps:
   - app_dir_path: ./webapp/
-    resources_path: ./webapp/resources
-    config_file: ./webapp/config.yaml
+    resources_path: ./resources
+    config_file: ./config.yaml
     app_port: 8080
     app_health_probe_timeout: 1
     command: ["python3", "app.py"]
