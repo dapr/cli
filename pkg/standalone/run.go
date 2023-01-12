@@ -55,7 +55,7 @@ type RunConfig struct {
 // SharedRunConfig represents the application configuration parameters, which can be shared across many apps.
 type SharedRunConfig struct {
 	ConfigFile         string `arg:"config" yaml:"config_file"`
-	AppProtocol        string `arg:"app-protocol" yaml:"app_protocol"`
+	AppProtocol        string `arg:"app-protocol" yaml:"app_protocol" default:"http"`
 	APIListenAddresses string `arg:"dapr-listen-addresses" yaml:"api_listen_addresses"`
 	EnableProfiling    bool   `arg:"enable-profiling" yaml:"enable_profiling"`
 	LogLevel           string `arg:"log-level" yaml:"log_level"`
@@ -316,6 +316,9 @@ func (config *RunConfig) setDefaultFromSchemaRecursive(schema reflect.Value) {
 				if val, err := strconv.ParseInt(typeField.Tag.Get(defaultStructTagKey), 10, 64); err == nil {
 					reflect.ValueOf(config).Elem().FieldByName(typeField.Name).Set(reflect.ValueOf(int(val)).Convert(valueField.Type()))
 				}
+			case reflect.String:
+				val := typeField.Tag.Get(defaultStructTagKey)
+				reflect.ValueOf(config).Elem().FieldByName(typeField.Name).Set(reflect.ValueOf(val).Convert(valueField.Type()))
 			}
 		}
 	}

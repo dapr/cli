@@ -292,6 +292,7 @@ func TestRun(t *testing.T) {
 		basicConfig.MaxConcurrency = 0
 		basicConfig.MaxRequestBodySize = 0
 		basicConfig.HTTPReadBufferSize = 0
+		basicConfig.AppProtocol = ""
 
 		basicConfig.setDefaultFromSchema()
 
@@ -304,6 +305,7 @@ func TestRun(t *testing.T) {
 		assert.Equal(t, -1, basicConfig.MaxConcurrency)
 		assert.Equal(t, -1, basicConfig.MaxRequestBodySize)
 		assert.Equal(t, -1, basicConfig.HTTPReadBufferSize)
+		assert.Equal(t, "http", basicConfig.AppProtocol)
 
 		// Test after Validate gets called.
 		err := basicConfig.validate()
@@ -318,5 +320,6 @@ func TestRun(t *testing.T) {
 		assert.Equal(t, -1, basicConfig.MaxConcurrency)
 		assert.Equal(t, -1, basicConfig.MaxRequestBodySize)
 		assert.Equal(t, -1, basicConfig.HTTPReadBufferSize)
+		assert.Equal(t, "http", basicConfig.AppProtocol)
 	})
 }
