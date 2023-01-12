@@ -83,10 +83,6 @@ func (a *RunFileConfig) GetApps(runFilePath string) ([]Apps, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = a.resolveAppCMD()
-	if err != nil {
-		return nil, err
-	}
 	a.mergeCommonAndAppsSharedRunConfig()
 	// Resolve app ids if not provided in the run file.
 	err = a.setAppIDIfEmpty()
@@ -94,22 +90,6 @@ func (a *RunFileConfig) GetApps(runFilePath string) ([]Apps, error) {
 		return nil, err
 	}
 	return a.Apps, nil
-}
-
-// resolveAppCMD modifies the file path in app's command to absolute file path.
-// If it already is an absolute path, it does nothing.
-func (a *RunFileConfig) resolveAppCMD() error {
-	for i := range a.Apps {
-		size := len(a.Apps[i].RunConfig.Command)
-		if size > 0 {
-			path := &a.Apps[i].RunConfig.Command[size-1]
-			err := a.resolvePathToAbsAndValidate(a.Apps[i].AppDirPath, path)
-			if err != nil {
-				return fmt.Errorf("error in resolving command path for app %s: %w", a.Apps[i].AppID, err)
-			}
-		}
-	}
-	return nil
 }
 
 // mergeCommonAndAppsSharedRunConfig merges the common section of the run file with the apps section.
