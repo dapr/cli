@@ -104,6 +104,8 @@ func (c *CmdProcess) SetStderr() error {
 }
 
 func NewOutput(config *standalone.RunConfig) (*RunOutput, error) {
+	// set default values from RunConfig struct's tag.
+	config.SetDefaultFromSchema()
 	//nolint
 	err := config.Validate()
 	if err != nil {
