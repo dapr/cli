@@ -14,12 +14,18 @@ limitations under the License.
 package runfileconfig
 
 import (
-	"errors"
 	"io"
 	"os"
 	"path/filepath"
 
 	"github.com/dapr/cli/pkg/standalone"
+)
+
+const (
+	// app log prefix
+	APP_LOG_FILE_PREFIX   = "app"
+	DAPRD_LOG_FILE_PREFIX = "daprd"
+	LOG_FILE_EXTENSION    = ".log"
 )
 
 // RunFileConfig represents the complete configuration options for the run file.
@@ -53,15 +59,13 @@ type EnvItems struct {
 
 func (a *App) GetLogsDir() string {
 	logsPath := filepath.Join(a.AppDirPath, ".dapr", "logs")
-	if _, err := os.Stat(logsPath); errors.Is(err, os.ErrNotExist) {
-		os.MkdirAll(logsPath, 0o755)
-	}
+	os.MkdirAll(logsPath, 0o755)
 	return logsPath
 }
 
 func (a *App) GetAppLogFileWriter() (io.WriteCloser, error) {
 	logsPath := a.GetLogsDir()
-	f, err := os.Create(filepath.Join(logsPath, "app.log"))
+	f, err := os.Create(filepath.Join(logsPath, getAppLogFileName()))
 	if err != nil {
 		a.appLogFile = f
 	}
@@ -70,11 +74,19 @@ func (a *App) GetAppLogFileWriter() (io.WriteCloser, error) {
 
 func (a *App) GetDaprdLogFileWriter() (io.WriteCloser, error) {
 	logsPath := a.GetLogsDir()
-	f, err := os.Create(filepath.Join(logsPath, "daprd.log"))
+	f, err := os.Create(filepath.Join(logsPath, getDaprdLogFileName()))
 	if err != nil {
 		a.daprdLogFile = f
 	}
 	return f, err
+}
+
+func getAppLogFileName() string {
+	return APP_LOG_FILE_PREFIX + LOG_FILE_EXTENSION
+}
+
+func getDaprdLogFileName() string {
+	return DAPRD_LOG_FILE_PREFIX + LOG_FILE_EXTENSION
 }
 
 func (a *App) CloseAppLogFile() error {

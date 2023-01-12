@@ -434,22 +434,28 @@ func init() {
 
 func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 	var exitWithError bool
+
 	// setup shutdown notify channel.
 	sigCh := make(chan os.Signal, 1)
 	setupShutdownNotify(sigCh)
 
 	runStates := make([]*runExec.RunExec, 0, len(apps))
 	for _, app := range apps {
-		// Get Run Config for different apps.
-		runConfig := app.RunConfig
+
+		// Set defaults if zero value provided in config yaml
+		app.RunConfig.SetDefaultFromSchema()
 
 		// Validate validates the configs and modifies the ports to free ports, appId etc.
-		err := runConfig.Validate()
+		err := app.RunConfig.Validate()
 		if err != nil {
-			print.FailureStatusEvent(os.Stderr, "Error validating run config for app %s present in %s: %s", runConfig.AppID, runFilePath, err.Error())
+			print.FailureStatusEvent(os.Stderr, "Error validating run config for app %s present in %s: %s", app.RunConfig.AppID, runFilePath, err.Error())
 			exitWithError = true
 			break
 		}
+
+		// Get Run Config for different apps.
+		runConfig := app.RunConfig
+
 		appLogWriter, err := app.GetAppLogFileWriter()
 		if err != nil {
 			print.FailureStatusEvent(os.Stderr, "Error getting log file for app %s present in %s: %s", runConfig.AppID, runFilePath, err.Error())
@@ -476,7 +482,7 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 		_ = putCLIProcessIDInMeta(runState, 0)
 
 		if runState.AppCMD.Command != nil {
-			_ = putAppCommandInMeta(&runConfig, runState)
+			_ = putAppCommandInMeta(runConfig, runState)
 		} else {
 			print.StatusEvent(runState.DaprCMD.OutputWriter, print.LogSuccess, "You're up and running! Dapr logs will appear here.\n")
 		}
@@ -845,7 +851,7 @@ func putCLIProcessIDInMeta(runE *runExec.RunExec, pid int) error {
 }
 
 // putAppCommandInMeta puts the app command in metadata so that it can be used by the CLI to stop the app.
-func putAppCommandInMeta(runConfig *standalone.RunConfig, runState *runExec.RunExec) error {
+func putAppCommandInMeta(runConfig standalone.RunConfig, runState *runExec.RunExec) error {
 	appCommand := strings.Join(runConfig.Command, " ")
 	print.StatusEvent(runState.DaprCMD.OutputWriter, print.LogInfo, "Updating metadata for app command: %s", appCommand)
 	err := metadata.Put(runState.DaprHTTPPort, "appCommand", appCommand, runState.AppID, runConfig.UnixDomainSocket)

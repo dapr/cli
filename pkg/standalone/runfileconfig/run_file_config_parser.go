@@ -63,7 +63,7 @@ func (a *RunFileConfig) validateRunConfig(runFilePath string) error {
 		if err != nil {
 			return err
 		}
-		// All other paths present inside the specific app's in the YAML file, should be resolved relative to AppDirPath for that app.
+		// All other relative paths present inside the specific app's in the YAML file, should be resolved relative to AppDirPath for that app.
 		err = a.resolvePathToAbsAndValidate(a.Apps[i].AppDirPath, &a.Apps[i].ConfigFile, &a.Apps[i].ResourcesPath)
 		if err != nil {
 			return err
