@@ -31,6 +31,5 @@ type Apps struct {
 
 // Common represents the configuration options for the common section in the run file.
 type Common struct {
-	Env                        []standalone.EnvItems `yaml:"env"`
 	standalone.SharedRunConfig `yaml:",inline"`
 }
