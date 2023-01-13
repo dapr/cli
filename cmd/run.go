@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -62,6 +63,7 @@ var (
 )
 
 const (
+	defaultRunFileName          = "dapr.yaml"
 	runtimeWaitTimeoutInSeconds = 60
 )
 
@@ -96,7 +98,12 @@ dapr run --app-id myapp --dapr-path /usr/local/dapr
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(runFilePath) > 0 {
-			executeRunWithAppsConfigFile(runFilePath)
+			runConfigFilePath, err := getRunFilePath(runFilePath)
+			if err != nil {
+				print.FailureStatusEvent(os.Stderr, "Failed to get run file path: %v", err)
+				os.Exit(1)
+			}
+			executeRunWithAppsConfigFile(runConfigFilePath)
 			return
 		}
 		if len(args) == 0 {
@@ -440,4 +447,19 @@ func executeRunWithAppsConfigFile(runFilePath string) {
 		print.FailureStatusEvent(os.Stdout, "No apps to run")
 		os.Exit(1)
 	}
+}
+
+// getRunFilePath returns the path to the run file.
+// If the provided path is a path to a YAML file then return the same.
+// Else it returns the path of "dapr.yaml" in the provided directory.
+func getRunFilePath(path string) (string, error) {
+	fs := afero.Afero{Fs: afero.NewOsFs()}
+	if utils.IsYAMLFile(path, fs) {
+		return path, nil
+	}
+	filePath, err := utils.FindFileInDir(path, defaultRunFileName, fs)
+	if err != nil {
+		return "", err
+	}
+	return filePath, nil
 }

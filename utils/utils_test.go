@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -263,6 +264,99 @@ func TestReadFile(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			_, actual := ReadFile(tc.input)
 			assert.Equal(t, tc.expectedErr, actual != nil)
+		})
+	}
+}
+
+func TestIsYamlFile(t *testing.T) {
+	fs := afero.Afero{Fs: afero.NewMemMapFs()}
+	validYamlPath := "valid.yaml"
+	invalidFilePath := "invalid.json"
+	dirPath := "test"
+	_, err := fs.Create(validYamlPath)
+	assert.NoError(t, err)
+	_, err = fs.Create(invalidFilePath)
+	assert.NoError(t, err)
+
+	err = fs.Mkdir(dirPath, 0o755)
+	assert.NoError(t, err)
+
+	testcases := []struct {
+		name     string
+		input    string
+		expected bool
+	}{
+		{
+			name:     "valid yaml file path",
+			input:    validYamlPath,
+			expected: true,
+		},
+		{
+			name:     "valid yml file path",
+			input:    invalidFilePath,
+			expected: false,
+		},
+		{
+			name:     "valid yml file path",
+			input:    dirPath,
+			expected: false,
+		},
+	}
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := IsYAMLFile(tc.input, fs)
+			assert.Equal(t, tc.expected, actual)
+		})
+	}
+}
+
+func TestFindFileInDir(t *testing.T) {
+	fs := afero.Afero{Fs: afero.NewMemMapFs()}
+	invalidDir := "invalid_dir"
+	validDirPath := "valid_dir"
+	validDirWithNoDaprYAML := "valid_dir_no_dapr_yaml"
+
+	err := fs.Mkdir(validDirPath, 0o755)
+	assert.NoError(t, err)
+
+	err = fs.Mkdir(validDirWithNoDaprYAML, 0o755)
+	assert.NoError(t, err)
+
+	_, err = fs.Create(filepath.Join(validDirPath, "dapr.yaml"))
+	assert.NoError(t, err)
+	_, err = fs.Create(filepath.Join(validDirPath, "test1.yaml"))
+	assert.NoError(t, err)
+
+	testcases := []struct {
+		name             string
+		input            string
+		expectedErr      bool
+		expectedFilePath string
+	}{
+		{
+			name:             "valid yaml file path",
+			input:            validDirPath,
+			expectedErr:      false,
+			expectedFilePath: filepath.Join(validDirPath, "dapr.yaml"),
+		},
+		{
+			name:             "valid yml file path",
+			input:            validDirWithNoDaprYAML,
+			expectedErr:      true,
+			expectedFilePath: "",
+		},
+		{
+			name:             "valid yml file path",
+			input:            invalidDir,
+			expectedErr:      true,
+			expectedFilePath: "",
+		},
+	}
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			filePath, err := FindFileInDir(tc.input, "dapr.yaml", fs)
+			assert.Equal(t, tc.expectedErr, err != nil)
+			assert.Equal(t, tc.expectedFilePath, filePath)
 		})
 	}
 }

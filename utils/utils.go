@@ -33,6 +33,7 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/gocarina/gocsv"
 	"github.com/olekukonko/tablewriter"
+	"github.com/spf13/afero"
 	"gopkg.in/yaml.v2"
 )
 
@@ -351,4 +352,29 @@ func ReadFile(filePath string) ([]byte, error) {
 		return nil, fmt.Errorf("error in reading the provided app config file: %w", err)
 	}
 	return bytes, nil
+}
+
+// IsYAMLFile returns true if the given file path is a valid YAML file.
+func IsYAMLFile(filePath string, fs afero.Afero) bool {
+	fileInfo, err := fs.Stat(filepath.Clean(filePath))
+	if err != nil {
+		return false
+	}
+	isDir := fileInfo.IsDir()
+	hasYAMLExtension := strings.HasSuffix(filePath, ".yaml") || strings.HasSuffix(filePath, ".yml")
+	return !isDir && hasYAMLExtension
+}
+
+// FindFileInDir finds and returns the path of the given file name in the given directory.
+func FindFileInDir(dirPath, fileName string, fs afero.Afero) (string, error) {
+	files, err := fs.ReadDir(filepath.Clean(dirPath))
+	if err != nil {
+		return "", fmt.Errorf("error reading directory %q : %w", dirPath, err)
+	}
+	for _, f := range files {
+		if !f.IsDir() && f.Name() == fileName {
+			return filepath.Join(dirPath, fileName), nil
+		}
+	}
+	return "", fmt.Errorf("no %q file found in directory %q", fileName, dirPath)
 }
