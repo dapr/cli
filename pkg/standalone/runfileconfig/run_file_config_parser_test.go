@@ -14,7 +14,6 @@ limitations under the License.
 package runfileconfig
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -29,9 +28,6 @@ var (
 )
 
 func TestRunConfigFile(t *testing.T) {
-	tearDownFn := testSetup(t)
-	defer tearDownFn(t)
-
 	t.Run("test run config parser", func(t *testing.T) {
 		appsRunConfig := RunFileConfig{}
 		err := appsRunConfig.parseAppsConfig(validRunFilePath)
@@ -158,74 +154,4 @@ func TestGetBasePathFromAbsPath(t *testing.T) {
 			assert.Equal(t, tc.expectedAppID, appID)
 		})
 	}
-}
-
-// Expected directory and file structures from this method:
-// 1) testdata/runfileconfig/app/resources.
-// 2) testdata/runfileconfig/backend/.dapr/resources.
-// 3) testdata/runfileconfig/backend/.dapr/config.yaml.
-// 4) testdata/runfileconfig/webapp/resources.
-// 5) testdata/runfileconfig/webapp/config.yaml.
-func testSetup(t *testing.T) func(t *testing.T) {
-	baseDir := filepath.Join("..", "testdata", "runfileconfig")
-
-	// These paths are according to the values present in the testdata/runfileconfig/test_run_config.yaml file.
-	commonResourcesPath := filepath.Join(baseDir, "app", "resources")
-
-	backendAppResourcesPath := filepath.Join(baseDir, "backend", ".dapr", "resources")
-	backendAppConfigPath := filepath.Join(baseDir, "backend", ".dapr", "config.yaml")
-
-	webappAppResourcesPath := filepath.Join(baseDir, "webapp", "resources")
-	webAppAppConfigPath := filepath.Join(baseDir, "webapp", "config.yaml")
-
-	err := createDirPath(commonResourcesPath, backendAppResourcesPath, webappAppResourcesPath)
-	assert.Nil(t, err)
-
-	err = createFile(webAppAppConfigPath, backendAppConfigPath)
-	assert.Nil(t, err)
-
-	return func(t *testing.T) {
-		err := removeAllDirPaths(filepath.Join(baseDir, "app"), filepath.Join(baseDir, "backend"), filepath.Join(baseDir, "webapp"))
-		assert.Nil(t, err)
-	}
-}
-
-// Helper function to create slice of directory paths.
-func createDirPath(dirPaths ...string) error {
-	for _, path := range dirPaths {
-		if path != "" {
-			if err := os.MkdirAll(path, 0o777); err != nil {
-				return fmt.Errorf("error in creating the directory path %s: %w", path, err)
-			}
-		}
-	}
-	return nil
-}
-
-// Helper function to create slice of file paths.
-func createFile(filePaths ...string) error {
-	for _, path := range filePaths {
-		if path != "" {
-			file, err := os.Create(path)
-			if err != nil {
-				return fmt.Errorf("error in creating the file %s: %w", path, err)
-			}
-			if err := file.Close(); err != nil {
-				return fmt.Errorf("error in closing the file %s: %w", path, err)
-			}
-		}
-	}
-	return nil
-}
-
-// Helper function to remove slice of directory paths.
-func removeAllDirPaths(dirPaths ...string) error {
-	for _, path := range dirPaths {
-		if path != "" {
-			if err := os.RemoveAll(path); err != nil {
-				return fmt.Errorf("error in removing the directory path %s: %w", path, err)
-			}
-		}
-	}
-	return nil
 }
