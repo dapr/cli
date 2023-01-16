@@ -169,7 +169,7 @@ func (a *RunFileConfig) resolvePathToAbsAndValidate(baseDir string, paths ...*st
 func (a *RunFileConfig) resolveResourcesAndConfigFilePaths() error {
 	for i := range a.Apps {
 		app := &a.Apps[i]
-		// Make sure apps's "DaprPathCmdFlag" is updated here as it is used in deciding precendence for resources and config path.
+		// Make sure apps's "DaprPathCmdFlag" is updated here as it is used in deciding precedence for resources and config path.
 		if app.DaprPathCmdFlag == "" {
 			app.DaprPathCmdFlag = a.Common.DaprPathCmdFlag
 		}
