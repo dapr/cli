@@ -20,6 +20,7 @@ import (
 	"os/exec"
 	"reflect"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/Pallinder/sillyname-go"
@@ -31,41 +32,51 @@ import (
 	modes "github.com/dapr/dapr/pkg/config/modes"
 )
 
-const sentryDefaultAddress = "localhost:50001"
+const (
+	sentryDefaultAddress = "localhost:50001"
+	defaultStructTagKey  = "default"
+)
 
 // RunConfig represents the application configuration parameters.
 type RunConfig struct {
-	AppID              string `env:"APP_ID" arg:"app-id"`
-	AppPort            int    `env:"APP_PORT" arg:"app-port"`
-	HTTPPort           int    `env:"DAPR_HTTP_PORT" arg:"dapr-http-port"`
-	GRPCPort           int    `env:"DAPR_GRPC_PORT" arg:"dapr-grpc-port"`
-	ConfigFile         string `arg:"config"`
-	Protocol           string `arg:"app-protocol"`
-	Arguments          []string
-	APIListenAddresses string `arg:"dapr-listen-addresses"`
-	EnableProfiling    bool   `arg:"enable-profiling"`
-	ProfilePort        int    `arg:"profile-port"`
-	LogLevel           string `arg:"log-level"`
-	MaxConcurrency     int    `arg:"app-max-concurrency"`
-	PlacementHostAddr  string `arg:"placement-host-address"`
+	AppID            string   `env:"APP_ID" arg:"app-id" yaml:"app_id"`
+	AppPort          int      `env:"APP_PORT" arg:"app-port" yaml:"app_port" default:"-1"`
+	HTTPPort         int      `env:"DAPR_HTTP_PORT" arg:"dapr-http-port" yaml:"dapr_http_port" default:"-1"`
+	GRPCPort         int      `env:"DAPR_GRPC_PORT" arg:"dapr-grpc-port" yaml:"dapr_grpc_port" default:"-1"`
+	ProfilePort      int      `arg:"profile-port" yaml:"profile_port" default:"-1"`
+	Command          []string `yaml:"command"`
+	MetricsPort      int      `env:"DAPR_METRICS_PORT" arg:"metrics-port" yaml:"metrics_port" default:"-1"`
+	UnixDomainSocket string   `arg:"unix-domain-socket" yaml:"unix_domain_socket"`
+	InternalGRPCPort int      `arg:"dapr-internal-grpc-port" yaml:"dapr_internal_grpc_port" default:"-1"`
+	DaprPathCmdFlag  string   `yaml:"dapr_path_cmd_flag"`
+	SharedRunConfig  `yaml:",inline"`
+}
+
+// SharedRunConfig represents the application configuration parameters, which can be shared across many apps.
+type SharedRunConfig struct {
+	ConfigFile         string `arg:"config" yaml:"config_file"`
+	AppProtocol        string `arg:"app-protocol" yaml:"app_protocol" default:"http"`
+	APIListenAddresses string `arg:"dapr-listen-addresses" yaml:"api_listen_addresses"`
+	EnableProfiling    bool   `arg:"enable-profiling" yaml:"enable_profiling"`
+	LogLevel           string `arg:"log-level" yaml:"log_level"`
+	MaxConcurrency     int    `arg:"app-max-concurrency" yaml:"app_max_concurrency" default:"-1"`
+	PlacementHostAddr  string `arg:"placement-host-address" yaml:"placement_host_address"`
 	ComponentsPath     string `arg:"components-path"`
-	AppSSL             bool   `arg:"app-ssl"`
-	MetricsPort        int    `env:"DAPR_METRICS_PORT" arg:"metrics-port"`
-	MaxRequestBodySize int    `arg:"dapr-http-max-request-size"`
-	HTTPReadBufferSize int    `arg:"dapr-http-read-buffer-size"`
-	UnixDomainSocket   string `arg:"unix-domain-socket"`
-	InternalGRPCPort   int    `arg:"dapr-internal-grpc-port"`
-	EnableAppHealth    bool   `arg:"enable-app-health-check"`
-	AppHealthPath      string `arg:"app-health-check-path"`
-	AppHealthInterval  int    `arg:"app-health-probe-interval" ifneq:"0"`
-	AppHealthTimeout   int    `arg:"app-health-probe-timeout" ifneq:"0"`
-	AppHealthThreshold int    `arg:"app-health-threshold" ifneq:"0"`
-	EnableAPILogging   bool   `arg:"enable-api-logging"`
+	ResourcesPath      string `arg:"resources-path" yaml:"resources_path"`
+	AppSSL             bool   `arg:"app-ssl" yaml:"app_ssl"`
+	MaxRequestBodySize int    `arg:"dapr-http-max-request-size" yaml:"dapr_http_max_request_size" default:"-1"`
+	HTTPReadBufferSize int    `arg:"dapr-http-read-buffer-size" yaml:"dapr_http_read_buffer_size" default:"-1"`
+	EnableAppHealth    bool   `arg:"enable-app-health-check" yaml:"enable_app_health_check"`
+	AppHealthPath      string `arg:"app-health-check-path" yaml:"app_health_check_path"`
+	AppHealthInterval  int    `arg:"app-health-probe-interval" ifneq:"0" yaml:"app_health_probe_interval"`
+	AppHealthTimeout   int    `arg:"app-health-probe-timeout" ifneq:"0" yaml:"app_health_probe_timeout"`
+	AppHealthThreshold int    `arg:"app-health-threshold" ifneq:"0" yaml:"app_health_threshold"`
+	EnableAPILogging   bool   `arg:"enable-api-logging" yaml:"enable_api_logging"`
 }
 
 func (meta *DaprMeta) newAppID() string {
 	for {
-		appID := strings.ReplaceAll(sillyname.GenerateStupidName(), " ", "-")
+		appID := strings.ToLower(strings.ReplaceAll(sillyname.GenerateStupidName(), " ", "-"))
 		if !meta.idExists(appID) {
 			return appID
 		}
@@ -130,6 +141,10 @@ func (config *RunConfig) validate() error {
 	err = config.validateComponentPath()
 	if err != nil {
 		return err
+	}
+
+	if config.ResourcesPath != "" {
+		config.ComponentsPath = ""
 	}
 
 	if config.AppPort < 0 {
@@ -231,11 +246,35 @@ func newDaprMeta() (*DaprMeta, error) {
 
 func (config *RunConfig) getArgs() []string {
 	args := []string{}
+
 	schema := reflect.ValueOf(*config)
+	args = getArgsFromSchema(schema, args)
+
+	if config.ConfigFile != "" {
+		sentryAddress := mtlsEndpoint(config.ConfigFile)
+		if sentryAddress != "" {
+			// mTLS is enabled locally, set it up.
+			args = append(args, "--enable-mtls", "--sentry-address", sentryAddress)
+		}
+	}
+
+	if print.IsJSONLogEnabled() {
+		args = append(args, "--log-as-json")
+	}
+	return args
+}
+
+// Recursive function to get all the args from the config struct.
+// This is needed because the config struct has embedded struct.
+func getArgsFromSchema(schema reflect.Value, args []string) []string {
 	for i := 0; i < schema.NumField(); i++ {
 		valueField := schema.Field(i).Interface()
 		typeField := schema.Type().Field(i)
 		key := typeField.Tag.Get("arg")
+		if typeField.Type.Kind() == reflect.Struct {
+			args = getArgsFromSchema(schema.Field(i), args)
+			continue
+		}
 		if len(key) == 0 {
 			continue
 		}
@@ -255,19 +294,34 @@ func (config *RunConfig) getArgs() []string {
 			}
 		}
 	}
-	if config.ConfigFile != "" {
-		sentryAddress := mtlsEndpoint(config.ConfigFile)
-		if sentryAddress != "" {
-			// mTLS is enabled locally, set it up.
-			args = append(args, "--enable-mtls", "--sentry-address", sentryAddress)
+	return args
+}
+
+func (config *RunConfig) setDefaultFromSchema() {
+	schema := reflect.ValueOf(*config)
+	config.setDefaultFromSchemaRecursive(schema)
+}
+
+func (config *RunConfig) setDefaultFromSchemaRecursive(schema reflect.Value) {
+	for i := 0; i < schema.NumField(); i++ {
+		valueField := schema.Field(i)
+		typeField := schema.Type().Field(i)
+		if typeField.Type.Kind() == reflect.Struct {
+			config.setDefaultFromSchemaRecursive(valueField)
+			continue
+		}
+		if valueField.IsZero() && len(typeField.Tag.Get(defaultStructTagKey)) != 0 {
+			switch valueField.Kind() {
+			case reflect.Int:
+				if val, err := strconv.ParseInt(typeField.Tag.Get(defaultStructTagKey), 10, 64); err == nil {
+					reflect.ValueOf(config).Elem().FieldByName(typeField.Name).Set(reflect.ValueOf(int(val)).Convert(valueField.Type()))
+				}
+			case reflect.String:
+				val := typeField.Tag.Get(defaultStructTagKey)
+				reflect.ValueOf(config).Elem().FieldByName(typeField.Name).Set(reflect.ValueOf(val).Convert(valueField.Type()))
+			}
 		}
 	}
-
-	if print.IsJSONLogEnabled() {
-		args = append(args, "--log-as-json")
-	}
-
-	return args
 }
 
 func (config *RunConfig) getEnv() []string {
@@ -303,7 +357,11 @@ type RunOutput struct {
 }
 
 func getDaprCommand(config *RunConfig) (*exec.Cmd, error) {
-	daprCMD := binaryFilePath(defaultDaprBinPath(), "daprd")
+	daprCMD, err := lookupBinaryFilePath(config.DaprPathCmdFlag, "daprd")
+	if err != nil {
+		return nil, err
+	}
+
 	args := config.getArgs()
 	cmd := exec.Command(daprCMD, args...)
 	return cmd, nil
@@ -332,16 +390,16 @@ func mtlsEndpoint(configFile string) string {
 }
 
 func getAppCommand(config *RunConfig) *exec.Cmd {
-	argCount := len(config.Arguments)
+	argCount := len(config.Command)
 
 	if argCount == 0 {
 		return nil
 	}
-	command := config.Arguments[0]
+	command := config.Command[0]
 
 	args := []string{}
 	if argCount > 1 {
-		args = config.Arguments[1:]
+		args = config.Command[1:]
 	}
 
 	cmd := exec.Command(command, args...)
@@ -352,6 +410,8 @@ func getAppCommand(config *RunConfig) *exec.Cmd {
 }
 
 func Run(config *RunConfig) (*RunOutput, error) {
+	// set default values from RunConfig struct's tag.
+	config.setDefaultFromSchema()
 	//nolint
 	err := config.validate()
 	if err != nil {

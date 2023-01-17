@@ -26,16 +26,34 @@ const (
 	defaultConfigFileName    = "config.yaml"
 )
 
-func defaultDaprDirPath() string {
-	homeDir, _ := os.UserHomeDir()
-	return path_filepath.Join(homeDir, defaultDaprDirName)
+// GetDaprPath returns the dapr installation path.
+// The order of precedence is:
+//  1. From --dapr-path command line flag
+//  2. From DAPR_PATH environment variable
+//  3. $HOME/.dapr
+func GetDaprPath(inputInstallPath string) (string, error) {
+	if inputInstallPath != "" {
+		return inputInstallPath, nil
+	}
+
+	envDaprDir := os.Getenv("DAPR_PATH")
+	if envDaprDir != "" {
+		return envDaprDir, nil
+	}
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+
+	return path_filepath.Join(homeDir, defaultDaprDirName), nil
 }
 
-func defaultDaprBinPath() string {
-	return path_filepath.Join(defaultDaprDirPath(), defaultDaprBinDirName)
+func getDaprBinPath(daprDir string) string {
+	return path_filepath.Join(daprDir, defaultDaprBinDirName)
 }
 
-func binaryFilePath(binaryDir string, binaryFilePrefix string) string {
+func binaryFilePathWithDir(binaryDir string, binaryFilePrefix string) string {
 	binaryPath := path_filepath.Join(binaryDir, binaryFilePrefix)
 	if runtime.GOOS == daprWindowsOS {
 		binaryPath += ".exe"
@@ -43,10 +61,19 @@ func binaryFilePath(binaryDir string, binaryFilePrefix string) string {
 	return binaryPath
 }
 
-func DefaultComponentsDirPath() string {
-	return path_filepath.Join(defaultDaprDirPath(), defaultComponentsDirName)
+func lookupBinaryFilePath(inputInstallPath string, binaryFilePrefix string) (string, error) {
+	daprPath, err := GetDaprPath(inputInstallPath)
+	if err != nil {
+		return "", err
+	}
+
+	return binaryFilePathWithDir(getDaprBinPath(daprPath), binaryFilePrefix), nil
 }
 
-func DefaultConfigFilePath() string {
-	return path_filepath.Join(defaultDaprDirPath(), defaultConfigFileName)
+func GetDaprComponentsPath(daprDir string) string {
+	return path_filepath.Join(daprDir, defaultComponentsDirName)
+}
+
+func GetDaprConfigPath(daprDir string) string {
+	return path_filepath.Join(daprDir, defaultConfigFileName)
 }

@@ -26,6 +26,7 @@ import (
 	"k8s.io/helm/pkg/strvals"
 
 	"github.com/dapr/cli/pkg/print"
+	"github.com/dapr/cli/utils"
 	"github.com/dapr/dapr/pkg/sentry/ca"
 	"github.com/dapr/dapr/pkg/sentry/certs"
 )
@@ -37,6 +38,7 @@ type RenewCertificateParams struct {
 	RootPrivateKeyFilePath    string
 	ValidUntil                time.Duration
 	Timeout                   uint
+	ImageVariant              string
 }
 
 func RenewCertificate(conf RenewCertificateParams) error {
@@ -63,7 +65,7 @@ func RenewCertificate(conf RenewCertificateParams) error {
 		}
 	}
 	print.InfoStatusEvent(os.Stdout, "Updating certifcates in your Kubernetes cluster")
-	err = renewCertificate(rootCertBytes, issuerCertBytes, issuerKeyBytes, conf.Timeout)
+	err = renewCertificate(rootCertBytes, issuerCertBytes, issuerKeyBytes, conf.Timeout, conf.ImageVariant)
 	if err != nil {
 		return err
 	}
@@ -86,13 +88,24 @@ func parseCertificateFiles(rootCert, issuerCert, issuerKey string) ([]byte, []by
 	return rootCertBytes, issuerCertBytes, issuerKeyBytes, nil
 }
 
-func renewCertificate(rootCert, issuerCert, issuerKey []byte, timeout uint) error {
+func renewCertificate(rootCert, issuerCert, issuerKey []byte, timeout uint, imageVariant string) error {
+	var daprVersion, daprImageVariant string
 	status, err := GetDaprResourcesStatus()
 	if err != nil {
 		return err
 	}
-	daprVersion := GetDaprVersion(status)
+	daprVersion = GetDaprVersion(status)
 	print.InfoStatusEvent(os.Stdout, "Dapr control plane version %s detected in namespace %s", daprVersion, status[0].Namespace)
+
+	// Get the control plane version from daprversion(1.x.x-mariner), if image variant is provided.
+	// Here, imageVariant is used only to extract the actual control plane version,
+	// and do some validation on top of that.
+	if imageVariant != "" {
+		daprVersion, daprImageVariant = utils.GetVersionAndImageVariant(daprVersion)
+		if daprImageVariant != imageVariant {
+			return fmt.Errorf("error in parsing dapr version. found image variant %q is not same as provided value %q", daprImageVariant, imageVariant)
+		}
+	}
 
 	helmConf, err := helmConfig(status[0].Namespace)
 	if err != nil {
@@ -104,11 +117,14 @@ func renewCertificate(rootCert, issuerCert, issuerKey []byte, timeout uint) erro
 		return err
 	}
 	upgradeClient := helm.NewUpgrade(helmConf)
+
+	// Reuse the existing helm configuration values i.e. tags, registry, etc.
 	upgradeClient.ReuseValues = true
 	upgradeClient.Wait = true
 	upgradeClient.Timeout = time.Duration(timeout) * time.Second
 	upgradeClient.Namespace = status[0].Namespace
 
+	// Override the helm configuration values with the new certificates.
 	vals, err := createHelmParamsForNewCertificates(string(rootCert), string(issuerCert), string(issuerKey))
 	if err != nil {
 		return err

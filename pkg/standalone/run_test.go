@@ -55,10 +55,29 @@ func assertArgumentNotEqual(t *testing.T, key string, expectedValue string, args
 	assert.NotEqual(t, expectedValue, value)
 }
 
+func assertArgumentContains(t *testing.T, key string, expectedValue string, args []string) {
+	var value string
+	for index, arg := range args {
+		if arg == "--"+key {
+			nextIndex := index + 1
+			if nextIndex < len(args) {
+				if !strings.HasPrefix(args[nextIndex], "--") {
+					value = args[nextIndex]
+				}
+			}
+		}
+	}
+
+	assert.Contains(t, value, expectedValue)
+}
+
 func setupRun(t *testing.T) {
-	componentsDir := DefaultComponentsDirPath()
-	configFile := DefaultConfigFilePath()
-	err := os.MkdirAll(componentsDir, 0o700)
+	myDaprPath, err := GetDaprPath("")
+	assert.NoError(t, err)
+
+	componentsDir := GetDaprComponentsPath(myDaprPath)
+	configFile := GetDaprConfigPath(myDaprPath)
+	err = os.MkdirAll(componentsDir, 0o700)
 	assert.Equal(t, nil, err, "Unable to setup components dir before running test")
 	file, err := os.Create(configFile)
 	file.Close()
@@ -66,9 +85,15 @@ func setupRun(t *testing.T) {
 }
 
 func tearDownRun(t *testing.T) {
-	err := os.RemoveAll(DefaultComponentsDirPath())
+	myDaprPath, err := GetDaprPath("")
+	assert.NoError(t, err)
+
+	componentsDir := GetDaprComponentsPath(myDaprPath)
+	configFile := GetDaprConfigPath(myDaprPath)
+
+	err = os.RemoveAll(componentsDir)
 	assert.Equal(t, nil, err, "Unable to delete default components dir after running test")
-	err = os.Remove(DefaultConfigFilePath())
+	err = os.Remove(configFile)
 	assert.Equal(t, nil, err, "Unable to delete default config file after running test")
 }
 
@@ -79,6 +104,9 @@ func assertCommonArgs(t *testing.T, basicConfig *RunConfig, output *RunOutput) {
 	assert.Equal(t, 8000, output.DaprHTTPPort)
 	assert.Equal(t, 50001, output.DaprGRPCPort)
 
+	daprPath, err := GetDaprPath("")
+	assert.NoError(t, err)
+
 	assert.Contains(t, output.DaprCMD.Args[0], "daprd")
 	assertArgumentEqual(t, "app-id", "MyID", output.DaprCMD.Args)
 	assertArgumentEqual(t, "dapr-http-port", "8000", output.DaprCMD.Args)
@@ -87,7 +115,7 @@ func assertCommonArgs(t *testing.T, basicConfig *RunConfig, output *RunOutput) {
 	assertArgumentEqual(t, "app-max-concurrency", "-1", output.DaprCMD.Args)
 	assertArgumentEqual(t, "app-protocol", "http", output.DaprCMD.Args)
 	assertArgumentEqual(t, "app-port", "3000", output.DaprCMD.Args)
-	assertArgumentEqual(t, "components-path", DefaultComponentsDirPath(), output.DaprCMD.Args)
+	assertArgumentEqual(t, "components-path", GetDaprComponentsPath(daprPath), output.DaprCMD.Args)
 	assertArgumentEqual(t, "app-ssl", "", output.DaprCMD.Args)
 	assertArgumentEqual(t, "metrics-port", "9001", output.DaprCMD.Args)
 	assertArgumentEqual(t, "dapr-http-max-request-size", "-1", output.DaprCMD.Args)
@@ -138,24 +166,33 @@ func TestRun(t *testing.T) {
 	// Setup the tearDown routine to run in the end.
 	defer tearDownRun(t)
 
-	basicConfig := &RunConfig{
-		AppID:              "MyID",
-		AppPort:            3000,
-		HTTPPort:           8000,
-		GRPCPort:           50001,
+	myDaprPath, err := GetDaprPath("")
+	assert.NoError(t, err)
+
+	componentsDir := GetDaprComponentsPath(myDaprPath)
+	configFile := GetDaprConfigPath(myDaprPath)
+
+	sharedRunConfig := &SharedRunConfig{
 		LogLevel:           "WARN",
-		Arguments:          []string{"MyCommand", "--my-arg"},
 		EnableProfiling:    false,
-		ProfilePort:        9090,
-		Protocol:           "http",
-		ComponentsPath:     DefaultComponentsDirPath(),
+		AppProtocol:        "http",
+		ComponentsPath:     componentsDir,
 		AppSSL:             true,
-		MetricsPort:        9001,
 		MaxRequestBodySize: -1,
-		InternalGRPCPort:   5050,
 		HTTPReadBufferSize: -1,
 		EnableAPILogging:   true,
 		APIListenAddresses: "127.0.0.1",
+	}
+	basicConfig := &RunConfig{
+		AppID:            "MyID",
+		AppPort:          3000,
+		HTTPPort:         8000,
+		GRPCPort:         50001,
+		Command:          []string{"MyCommand", "--my-arg"},
+		ProfilePort:      9090,
+		MetricsPort:      9001,
+		InternalGRPCPort: 5050,
+		SharedRunConfig:  *sharedRunConfig,
 	}
 
 	t.Run("run happy http", func(t *testing.T) {
@@ -169,15 +206,15 @@ func TestRun(t *testing.T) {
 	})
 
 	t.Run("run without app command", func(t *testing.T) {
-		basicConfig.Arguments = nil
+		basicConfig.Command = nil
 		basicConfig.LogLevel = "INFO"
 		basicConfig.EnableAPILogging = true
-		basicConfig.ConfigFile = DefaultConfigFilePath()
+		basicConfig.ConfigFile = configFile
 		output, err := Run(basicConfig)
 		assert.NoError(t, err)
 
 		assertCommonArgs(t, basicConfig, output)
-		assertArgumentEqual(t, "config", DefaultConfigFilePath(), output.DaprCMD.Args)
+		assertArgumentContains(t, "config", defaultConfigFileName, output.DaprCMD.Args)
 		assert.Nil(t, output.AppCMD)
 	})
 
@@ -243,5 +280,46 @@ func TestRun(t *testing.T) {
 		assert.Regexp(t, regexp.MustCompile(`( |^)--app-health-probe-interval( |=)2`), argsFlattened)
 		assert.Regexp(t, regexp.MustCompile(`( |^)--app-health-probe-timeout( |=)200`), argsFlattened)
 		assert.Regexp(t, regexp.MustCompile(`( |^)--app-health-threshold( |=)1`), argsFlattened)
+	})
+
+	t.Run("test setting defaults from struct tag", func(t *testing.T) {
+		basicConfig.AppPort = 0
+		basicConfig.HTTPPort = 0
+		basicConfig.GRPCPort = 0
+		basicConfig.MetricsPort = 0
+		basicConfig.ProfilePort = 0
+		basicConfig.EnableProfiling = true
+		basicConfig.MaxConcurrency = 0
+		basicConfig.MaxRequestBodySize = 0
+		basicConfig.HTTPReadBufferSize = 0
+		basicConfig.AppProtocol = ""
+
+		basicConfig.setDefaultFromSchema()
+
+		assert.Equal(t, -1, basicConfig.AppPort)
+		assert.True(t, basicConfig.HTTPPort == -1)
+		assert.True(t, basicConfig.GRPCPort == -1)
+		assert.True(t, basicConfig.MetricsPort == -1)
+		assert.True(t, basicConfig.ProfilePort == -1)
+		assert.True(t, basicConfig.EnableProfiling)
+		assert.Equal(t, -1, basicConfig.MaxConcurrency)
+		assert.Equal(t, -1, basicConfig.MaxRequestBodySize)
+		assert.Equal(t, -1, basicConfig.HTTPReadBufferSize)
+		assert.Equal(t, "http", basicConfig.AppProtocol)
+
+		// Test after Validate gets called.
+		err := basicConfig.validate()
+		assert.NoError(t, err)
+
+		assert.Equal(t, 0, basicConfig.AppPort)
+		assert.True(t, basicConfig.HTTPPort > 0)
+		assert.True(t, basicConfig.GRPCPort > 0)
+		assert.True(t, basicConfig.MetricsPort > 0)
+		assert.True(t, basicConfig.ProfilePort > 0)
+		assert.True(t, basicConfig.EnableProfiling)
+		assert.Equal(t, -1, basicConfig.MaxConcurrency)
+		assert.Equal(t, -1, basicConfig.MaxRequestBodySize)
+		assert.Equal(t, -1, basicConfig.HTTPReadBufferSize)
+		assert.Equal(t, "http", basicConfig.AppProtocol)
 	})
 }

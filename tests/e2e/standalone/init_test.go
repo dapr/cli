@@ -34,7 +34,7 @@ import (
 )
 
 func TestStandaloneInit(t *testing.T) {
-	daprRuntimeVersion, daprDashboardVersion := common.GetVersionsFromEnv(t)
+	daprRuntimeVersion, daprDashboardVersion := common.GetVersionsFromEnv(t, false)
 
 	t.Run("init with invalid private registry", func(t *testing.T) {
 		if isSlimMode() {
@@ -43,8 +43,11 @@ func TestStandaloneInit(t *testing.T) {
 
 		// Ensure a clean environment
 		must(t, cmdUninstall, "failed to uninstall Dapr")
-
-		output, err := cmdInit(daprRuntimeVersion, "--image-registry", "smplregistry.io/owner")
+		args := []string{
+			"--runtime-version", daprRuntimeVersion,
+			"--image-registry", "smplregistry.io/owner",
+		}
+		output, err := cmdInit(args...)
 		t.Log(output)
 		require.Error(t, err, "init failed")
 	})
@@ -56,8 +59,12 @@ func TestStandaloneInit(t *testing.T) {
 
 		// Ensure a clean environment
 		must(t, cmdUninstall, "failed to uninstall Dapr")
-
-		output, err := cmdInit(daprRuntimeVersion, "--image-registry", "localhost:5000", "--from-dir", "./local-dir")
+		args := []string{
+			"--runtime-version", daprRuntimeVersion,
+			"--image-registry", "localhost:5000",
+			"--from-dir", "./local-dir",
+		}
+		output, err := cmdInit(args...)
 		require.Error(t, err, "expected error if both flags are given")
 		require.Contains(t, output, "both --image-registry and --from-dir flags cannot be given at the same time")
 	})
@@ -65,8 +72,11 @@ func TestStandaloneInit(t *testing.T) {
 	t.Run("init should error out if container runtime is not valid", func(t *testing.T) {
 		// Ensure a clean environment
 		must(t, cmdUninstall, "failed to uninstall Dapr")
-
-		output, err := cmdInit(daprRuntimeVersion, "--container-runtime", "invalid")
+		args := []string{
+			"--runtime-version", daprRuntimeVersion,
+			"--container-runtime", "invalid",
+		}
+		output, err := cmdInit(args...)
 		require.Error(t, err, "expected error if container runtime is invalid")
 		require.Contains(t, output, "Invalid container runtime")
 	})
@@ -75,7 +85,10 @@ func TestStandaloneInit(t *testing.T) {
 		// Ensure a clean environment
 		must(t, cmdUninstall, "failed to uninstall Dapr")
 
-		output, err := cmdInit(daprRuntimeVersion)
+		args := []string{
+			"--runtime-version", daprRuntimeVersion,
+		}
+		output, err := cmdInit(args...)
 		t.Log(output)
 		require.NoError(t, err, "init failed")
 		assert.Contains(t, output, "Success! Dapr is up and running.")
@@ -95,7 +108,11 @@ func TestStandaloneInit(t *testing.T) {
 		// Ensure a clean environment
 		must(t, cmdUninstall, "failed to uninstall Dapr")
 
-		output, err := cmdInit(daprRuntimeVersion, "--image-variant", "mariner")
+		args := []string{
+			"--runtime-version", daprRuntimeVersion,
+			"--image-variant", "mariner",
+		}
+		output, err := cmdInit(args...)
 		t.Log(output)
 		require.NoError(t, err, "init failed")
 		assert.Contains(t, output, "Success! Dapr is up and running.")
@@ -108,6 +125,88 @@ func TestStandaloneInit(t *testing.T) {
 
 		verifyContainers(t, daprRuntimeVersion+"-mariner")
 		verifyBinaries(t, daprPath, daprRuntimeVersion, daprDashboardVersion)
+		verifyConfigs(t, daprPath)
+	})
+
+	t.Run("init with --dapr-path flag", func(t *testing.T) {
+		// Ensure a clean environment
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+
+		daprPath, err := os.MkdirTemp("", "dapr-e2e-init-with-flag-*")
+		assert.NoError(t, err)
+		defer os.RemoveAll(daprPath) // clean up
+
+		output, err := cmdInit("--runtime-version", daprRuntimeVersion, "--dapr-path", daprPath)
+		t.Log(output)
+		require.NoError(t, err, "init failed")
+		assert.Contains(t, output, "Success! Dapr is up and running.")
+
+		verifyContainers(t, daprRuntimeVersion)
+		verifyBinaries(t, daprPath, daprRuntimeVersion, daprDashboardVersion)
+		verifyConfigs(t, daprPath)
+	})
+
+	t.Run("init with DAPR_PATH env var", func(t *testing.T) {
+		// Ensure a clean environment
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+
+		daprPath, err := os.MkdirTemp("", "dapr-e2e-init-with-env-var-*")
+		assert.NoError(t, err)
+		defer os.RemoveAll(daprPath) // clean up
+
+		t.Setenv("DAPR_PATH", daprPath)
+
+		output, err := cmdInit("--runtime-version", daprRuntimeVersion)
+		t.Log(output)
+		require.NoError(t, err, "init failed")
+		assert.Contains(t, output, "Success! Dapr is up and running.")
+
+		verifyContainers(t, daprRuntimeVersion)
+		verifyBinaries(t, daprPath, daprRuntimeVersion, daprDashboardVersion)
+		verifyConfigs(t, daprPath)
+	})
+
+	t.Run("init with --dapr-path flag and DAPR_PATH env var", func(t *testing.T) {
+		// Ensure a clean environment
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+
+		daprPath1, err := os.MkdirTemp("", "dapr-e2e-init-with-flag-and-env-1-*")
+		assert.NoError(t, err)
+		defer os.RemoveAll(daprPath1) // clean up
+		daprPath2, err := os.MkdirTemp("", "dapr-e2e-init-with-flag-and-env-2-*")
+		assert.NoError(t, err)
+		defer os.RemoveAll(daprPath2) // clean up
+
+		t.Setenv("DAPR_PATH", daprPath1)
+
+		output, err := cmdInit("--runtime-version", daprRuntimeVersion, "--dapr-path", daprPath2)
+		t.Log(output)
+		require.NoError(t, err, "init failed")
+		assert.Contains(t, output, "Success! Dapr is up and running.")
+
+		verifyContainers(t, daprRuntimeVersion)
+		verifyBinaries(t, daprPath2, daprRuntimeVersion, daprDashboardVersion)
+		verifyConfigs(t, daprPath2)
+	})
+
+	t.Run("init without runtime-version flag", func(t *testing.T) {
+		// Ensure a clean environment
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+
+		output, err := cmdInit()
+		t.Log(output)
+		require.NoError(t, err, "init failed")
+		assert.Contains(t, output, "Success! Dapr is up and running.")
+
+		homeDir, err := os.UserHomeDir()
+		require.NoError(t, err, "failed to get user home directory")
+
+		daprPath := filepath.Join(homeDir, ".dapr")
+		require.DirExists(t, daprPath, "Directory %s does not exist", daprPath)
+
+		latestDaprRuntimeVersion, latestDaprDashboardVersion := common.GetVersionsFromEnv(t, true)
+		verifyContainers(t, latestDaprRuntimeVersion)
+		verifyBinaries(t, daprPath, latestDaprRuntimeVersion, latestDaprDashboardVersion)
 		verifyConfigs(t, daprPath)
 	})
 }

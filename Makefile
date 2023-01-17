@@ -71,6 +71,11 @@ export BINARY_EXT ?= $(BINARY_EXT_LOCAL)
 
 TEST_OUTPUT_FILE ?= test_output.json
 
+# Set the default timeout for tests to 10 minutes
+ifndef E2E_SH_TEST_TIMEOUT
+  override E2E_SH_TEST_TIMEOUT := 10m
+endif
+
 # Use the variable H to add a header (equivalent to =>) to informational output
 H = $(shell printf "\033[34;1m=>\033[0m")
 
@@ -179,7 +184,7 @@ e2e-build-run-upgrade: build test-e2e-upgrade
 ################################################################################
 .PHONY: test-e2e-sh
 test-e2e-sh: test-deps
-	gotestsum --jsonfile $(TEST_OUTPUT_FILE) --format standard-verbose -- -count=1 -tags=e2e ./tests/e2e/standalone/...
+	gotestsum --jsonfile $(TEST_OUTPUT_FILE) --format standard-verbose -- -timeout $(E2E_SH_TEST_TIMEOUT) -count=1 -tags=e2e ./tests/e2e/standalone/...
 
 ################################################################################
 # Build, E2E Tests for Self-Hosted											   #

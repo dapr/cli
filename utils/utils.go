@@ -23,6 +23,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"time"
@@ -40,6 +41,8 @@ type ContainerRuntime string
 const (
 	DOCKER ContainerRuntime = "docker"
 	PODMAN ContainerRuntime = "podman"
+
+	marinerImageVariantName = "mariner"
 
 	socketFormat = "%s/dapr-%s-%s.socket"
 )
@@ -71,8 +74,6 @@ func Contains[T comparable](vs []T, x T) bool {
 	}
 	return false
 }
-
-const marinerImageVariantName = "mariner"
 
 // PrintTable to print in the table format.
 func PrintTable(csvContent string) {
@@ -309,4 +310,45 @@ func GetVariantVersion(version, imageVariant string) string {
 		return version
 	}
 	return fmt.Sprintf("%s-%s", version, imageVariant)
+}
+
+// Returns image version and variant.
+// Expected imageTag format: <version>-<variant>, i.e. 1.0.0-mariner or 1.0.0-rc.1-mariner.
+func GetVersionAndImageVariant(imageTag string) (string, string) {
+	imageVersionOffset := strings.LastIndex(imageTag, "-")
+	imageVariant := imageTag[imageVersionOffset+1:]
+	if imageVariant == marinerImageVariantName {
+		return imageTag[:imageVersionOffset], imageVariant
+	}
+	return imageTag, ""
+}
+
+// Returns true if the given file path is valid.
+func ValidateFilePaths(filePath string) error {
+	if filePath != "" {
+		if _, err := os.Stat(filePath); err != nil {
+			return fmt.Errorf("error in getting the file info for %s: %w", filePath, err)
+		}
+	}
+	return nil
+}
+
+// GetAbsPath returns the absolute path of the given file path and base directory.
+func GetAbsPath(baseDir, path string) string {
+	if path == "" {
+		return ""
+	}
+	if filepath.IsAbs(path) {
+		return path
+	}
+	absPath := filepath.Join(baseDir, filepath.Clean(path))
+	return absPath
+}
+
+func ReadFile(filePath string) ([]byte, error) {
+	bytes, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("error in reading the provided app config file: %w", err)
+	}
+	return bytes, nil
 }
