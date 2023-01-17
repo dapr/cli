@@ -22,7 +22,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -453,11 +452,10 @@ func executeRunWithAppsConfigFile(runFilePath string) {
 // If the provided path is a path to a YAML file then return the same.
 // Else it returns the path of "dapr.yaml" in the provided directory.
 func getRunFilePath(path string) (string, error) {
-	fs := afero.Afero{Fs: afero.NewOsFs()}
-	if utils.IsYAMLFile(path, fs) {
+	if utils.IsYAMLFile(path) {
 		return path, nil
 	}
-	filePath, err := utils.FindFileInDir(path, defaultRunFileName, fs)
+	filePath, err := utils.FindFileInDir(path, defaultRunFileName)
 	if err != nil {
 		return "", err
 	}
