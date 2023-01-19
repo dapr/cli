@@ -194,7 +194,7 @@ func TestValidateFilePaths(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := ValidateFilePaths(tc.input)
+			actual := ValidateFilePath(tc.input)
 			assert.Equal(t, tc.expectedErr, actual != nil)
 		})
 	}
@@ -263,6 +263,68 @@ func TestReadFile(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			_, actual := ReadFile(tc.input)
 			assert.Equal(t, tc.expectedErr, actual != nil)
+		})
+	}
+}
+
+// Following is the directory and file structure created for this test in the os's default temp directory:
+// test_find_file_in_dir/valid_dir/dapr.yaml.
+// test_find_file_in_dir/valid_dir/test1.yaml.
+// test_find_file_in_dir/valid_dir_no_dapr_yaml.
+func TestFindFileInDir(t *testing.T) {
+	nonExistentDirName := "invalid_dir"
+	validDirNameWithDaprYAMLFile := "valid_dir"
+	validDirWithNoDaprYAML := "valid_dir_no_dapr_yaml"
+
+	dirName := createTempDir(t, "test_find_file_in_dir")
+	t.Cleanup(func() {
+		cleanupTempDir(t, dirName)
+	})
+
+	err := os.Mkdir(filepath.Join(dirName, validDirNameWithDaprYAMLFile), 0o755)
+	assert.NoError(t, err)
+
+	err = os.Mkdir(filepath.Join(dirName, validDirWithNoDaprYAML), 0o755)
+	assert.NoError(t, err)
+
+	fl, err := os.Create(filepath.Join(dirName, validDirNameWithDaprYAMLFile, "dapr.yaml"))
+	assert.NoError(t, err)
+	fl.Close()
+
+	fl, err = os.Create(filepath.Join(dirName, validDirNameWithDaprYAMLFile, "test1.yaml"))
+	assert.NoError(t, err)
+	fl.Close()
+
+	testcases := []struct {
+		name             string
+		input            string
+		expectedErr      bool
+		expectedFilePath string
+	}{
+		{
+			name:             "valid directory path with dapr.yaml file",
+			input:            filepath.Join(dirName, validDirNameWithDaprYAMLFile),
+			expectedErr:      false,
+			expectedFilePath: filepath.Join(dirName, validDirNameWithDaprYAMLFile, "dapr.yaml"),
+		},
+		{
+			name:             "valid directory path with no dapr.yaml file",
+			input:            filepath.Join(dirName, validDirWithNoDaprYAML),
+			expectedErr:      true,
+			expectedFilePath: "",
+		},
+		{
+			name:             "non existent dir",
+			input:            nonExistentDirName,
+			expectedErr:      true,
+			expectedFilePath: "",
+		},
+	}
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			filePath, err := FindFileInDir(tc.input, "dapr.yaml")
+			assert.Equal(t, tc.expectedErr, err != nil)
+			assert.Equal(t, tc.expectedFilePath, filePath)
 		})
 	}
 }

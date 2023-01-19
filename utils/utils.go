@@ -324,7 +324,7 @@ func GetVersionAndImageVariant(imageTag string) (string, string) {
 }
 
 // Returns true if the given file path is valid.
-func ValidateFilePaths(filePath string) error {
+func ValidateFilePath(filePath string) error {
 	if filePath != "" {
 		if _, err := os.Stat(filePath); err != nil {
 			return fmt.Errorf("error in getting the file info for %s: %w", filePath, err)
@@ -351,4 +351,13 @@ func ReadFile(filePath string) ([]byte, error) {
 		return nil, fmt.Errorf("error in reading the provided app config file: %w", err)
 	}
 	return bytes, nil
+}
+
+// FindFileInDir finds and returns the path of the given file name in the given directory.
+func FindFileInDir(dirPath, fileName string) (string, error) {
+	filePath := filepath.Join(dirPath, fileName)
+	if err := ValidateFilePath(filePath); err != nil {
+		return "", fmt.Errorf("error in validating the file path %q: %w", filePath, err)
+	}
+	return filePath, nil
 }

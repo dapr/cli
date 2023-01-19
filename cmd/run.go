@@ -62,6 +62,7 @@ var (
 )
 
 const (
+	defaultRunTemplateFileName  = "dapr.yaml"
 	runtimeWaitTimeoutInSeconds = 60
 )
 
@@ -96,7 +97,12 @@ dapr run --app-id myapp --dapr-path /usr/local/dapr
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(runFilePath) > 0 {
-			executeRunWithAppsConfigFile(runFilePath)
+			runConfigFilePath, err := getRunFilePath(runFilePath)
+			if err != nil {
+				print.FailureStatusEvent(os.Stderr, "Failed to get run file path: %v", err)
+				os.Exit(1)
+			}
+			executeRunWithAppsConfigFile(runConfigFilePath)
 			return
 		}
 		if len(args) == 0 {
@@ -440,4 +446,26 @@ func executeRunWithAppsConfigFile(runFilePath string) {
 		print.FailureStatusEvent(os.Stdout, "No apps to run")
 		os.Exit(1)
 	}
+}
+
+// getRunFilePath returns the path to the run file.
+// If the provided path is a path to a YAML file then return the same.
+// Else it returns the path of "dapr.yaml" in the provided directory.
+func getRunFilePath(path string) (string, error) {
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return "", fmt.Errorf("error getting file info for %s: %w", path, err)
+	}
+	if fileInfo.IsDir() {
+		filePath, err := utils.FindFileInDir(path, defaultRunTemplateFileName)
+		if err != nil {
+			return "", err
+		}
+		return filePath, nil
+	}
+	hasYAMLExtension := strings.HasSuffix(path, ".yaml") || strings.HasSuffix(path, ".yml")
+	if !hasYAMLExtension {
+		return "", fmt.Errorf("file %q is not a YAML file", path)
+	}
+	return path, nil
 }
