@@ -154,13 +154,13 @@ func TestRunConfigFile(t *testing.T) {
 		err = config.validateRunConfig(runFileForPrecedenceRuleDaprDir)
 		assert.NoError(t, err)
 
-		app1_data := getResourcesAndConfigFilePaths(t, config.Apps[0].DaprdInstallPath)
-		app1_resources_path := app1_data[0]
-		app1_config_file_path := app1_data[1]
+		app1Data := getResourcesAndConfigFilePaths(t, config.Apps[0].DaprdInstallPath)
+		app1ResourcesPath := app1Data[0]
+		app1ConfigFilePath := app1Data[1]
 
-		app2_data := getResourcesAndConfigFilePaths(t, config.Apps[1].DaprdInstallPath)
-		app2_resources_path := app2_data[0]
-		app2_config_file_path := app2_data[1]
+		app2Data := getResourcesAndConfigFilePaths(t, config.Apps[1].DaprdInstallPath)
+		app2ResourcesPath := app2Data[0]
+		app2ConfigFilePath := app2Data[1]
 		testcases := []struct {
 			name                   string
 			expectedResourcesPath  string
@@ -169,14 +169,14 @@ func TestRunConfigFile(t *testing.T) {
 		}{
 			{
 				name:                   "resources_path and config_path are resolved from dapr's default installation path.",
-				expectedResourcesPath:  app1_resources_path,
-				expectedConfigFilePath: app1_config_file_path,
+				expectedResourcesPath:  app1ResourcesPath,
+				expectedConfigFilePath: app1ConfigFilePath,
 				appIndex:               0,
 			},
 			{
 				name:                   "resources_path and config_path are resolved from dapr's custom installation path.",
-				expectedResourcesPath:  app2_resources_path,
-				expectedConfigFilePath: app2_config_file_path,
+				expectedResourcesPath:  app2ResourcesPath,
+				expectedConfigFilePath: app2ConfigFilePath,
 				appIndex:               1,
 			},
 		}
@@ -265,7 +265,7 @@ func TestGetBasePathFromAbsPath(t *testing.T) {
 // getResoucresAndConfigFilePaths returns a list containing resources and config file paths in order.
 func getResourcesAndConfigFilePaths(t *testing.T, daprInstallPath string) []string {
 	t.Helper()
-	var result = make([]string, 2)
+	result := make([]string, 2)
 	var daprDirPath string
 	var err error
 	if daprInstallPath == "" {

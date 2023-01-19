@@ -20,9 +20,9 @@ import (
 )
 
 const (
-	DefaultDaprDirName    = ".dapr"
-	DefaultConfigFileName = "config.yaml"
-	ResourcesDirName      = "resources"
+	DefaultDaprDirName      = ".dapr"
+	DefaultConfigFileName   = "config.yaml"
+	DefaultResourcesDirName = "resources"
 
 	defaultDaprBinDirName    = "bin"
 	defaultComponentsDirName = "components"
