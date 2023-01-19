@@ -1,0 +1,10 @@
+version: 1
+common:
+apps:
+# tests resources_path and config_file resolved from dapr's default installation directory.
+  - app_id: app_default_dapr_dir
+    app_dir_path: ./app_precedence_rule/
+# tests resources_path and config_file resolved from dapr's custom installation directory.
+  - app_id: app_custom_dapr_dir
+    app_dir_path: ./app_precedence_rule/
+    dapr_path: ../custom_dapr_dir

@@ -18,7 +18,9 @@ import (
 	"fmt"
 	"path/filepath"
 	"reflect"
+	"strings"
 
+	"github.com/dapr/cli/pkg/standalone"
 	"github.com/dapr/cli/utils"
 
 	"gopkg.in/yaml.v2"
@@ -50,7 +52,7 @@ func (a *RunFileConfig) validateRunConfig(runFilePath string) error {
 	}
 
 	// resolve relative path to absolute and validate all paths in commons.
-	err = a.resolvePathToAbsAndValidate(baseDir, &a.Common.ConfigFile, &a.Common.ResourcesPath)
+	err = a.resolvePathToAbsAndValidate(baseDir, &a.Common.ConfigFile, &a.Common.ResourcesPath, &a.Common.DaprdInstallPath)
 	if err != nil {
 		return err
 	}
@@ -64,7 +66,7 @@ func (a *RunFileConfig) validateRunConfig(runFilePath string) error {
 			return err
 		}
 		// All other paths present inside the specific app's in the YAML file, should be resolved relative to AppDirPath for that app.
-		err = a.resolvePathToAbsAndValidate(a.Apps[i].AppDirPath, &a.Apps[i].ConfigFile, &a.Apps[i].ResourcesPath)
+		err = a.resolvePathToAbsAndValidate(a.Apps[i].AppDirPath, &a.Apps[i].ConfigFile, &a.Apps[i].ResourcesPath, &a.Apps[i].DaprdInstallPath)
 		if err != nil {
 			return err
 		}
@@ -83,7 +85,12 @@ func (a *RunFileConfig) GetApps(runFilePath string) ([]Apps, error) {
 	if err != nil {
 		return nil, err
 	}
+	err = a.resolveResourcesAndConfigFilePaths()
+	if err != nil {
+		return nil, err
+	}
 	a.mergeCommonAndAppsSharedRunConfig()
+	a.mergeCommonAndAppsEnv()
 	// Resolve app ids if not provided in the run file.
 	err = a.setAppIDIfEmpty()
 	if err != nil {
@@ -152,6 +159,88 @@ func (a *RunFileConfig) resolvePathToAbsAndValidate(baseDir string, paths ...*st
 		if err = utils.ValidateFilePaths(*path); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// Resolve resources and config file paths for each app.
+func (a *RunFileConfig) resolveResourcesAndConfigFilePaths() error {
+	for i := range a.Apps {
+		app := &a.Apps[i]
+		// Make sure apps's "DaprPathCmdFlag" is updated here as it is used in deciding precedence for resources and config path.
+		if app.DaprdInstallPath == "" {
+			app.DaprdInstallPath = a.Common.DaprdInstallPath
+		}
+
+		err := a.resolveResourcesFilePath(app)
+		if err != nil {
+			return fmt.Errorf("error in resolving resources path for app %q: %w", app.AppID, err)
+		}
+
+		err = a.resolveConfigFilePath(app)
+		if err != nil {
+			return fmt.Errorf("error in resolving config file path for app %q: %w", app.AppID, err)
+		}
+	}
+	return nil
+}
+
+// mergeCommonAndAppsEnv merges env maps from common and individual apps.
+// Precedence order for envs -> apps[i].envs > common.envs.
+func (a *RunFileConfig) mergeCommonAndAppsEnv() {
+	for i := range a.Apps {
+		for k, v := range a.Common.Env {
+			if _, ok := a.Apps[i].Env[k]; !ok {
+				a.Apps[i].Env[k] = v
+			}
+		}
+	}
+}
+
+// resolveResourcesFilePath resolves the resources path for the app.
+// Precedence order for resources_path -> apps[i].resources_path > apps[i].app_dir_path/.dapr/resources > common.resources_path > dapr default resources path.
+func (a *RunFileConfig) resolveResourcesFilePath(app *Apps) error {
+	if app.ResourcesPath != "" {
+		return nil
+	}
+	localResourcesDir := filepath.Join(app.AppDirPath, standalone.DefaultDaprDirName, standalone.DefaultResourcesDirName)
+	if err := utils.ValidateFilePaths(localResourcesDir); err == nil {
+		app.ResourcesPath = localResourcesDir
+	} else if len(strings.TrimSpace(a.Common.ResourcesPath)) > 0 {
+		app.ResourcesPath = a.Common.ResourcesPath
+	} else if app.DaprdInstallPath != "" {
+		daprDirPath := filepath.Join(app.DaprdInstallPath, standalone.DefaultDaprDirName)
+		app.ResourcesPath = standalone.GetDaprComponentsPath(daprDirPath)
+	} else {
+		daprDirPath, err := standalone.GetDaprPath(app.DaprdInstallPath)
+		if err != nil {
+			return fmt.Errorf("error getting dapr install path: %w", err)
+		}
+		app.ResourcesPath = standalone.GetDaprComponentsPath(daprDirPath)
+	}
+	return nil
+}
+
+// resolveConfigFilePath resolves the config file path for the app.
+// Precedence order for config_file -> apps[i].config_file > apps[i].app_dir_path/.dapr/config.yaml > common.config_file > dapr default config file.
+func (a *RunFileConfig) resolveConfigFilePath(app *Apps) error {
+	if app.ConfigFile != "" {
+		return nil
+	}
+	localConfigFile := filepath.Join(app.AppDirPath, standalone.DefaultDaprDirName, standalone.DefaultConfigFileName)
+	if err := utils.ValidateFilePaths(localConfigFile); err == nil {
+		app.ConfigFile = localConfigFile
+	} else if len(strings.TrimSpace(a.Common.ConfigFile)) > 0 {
+		app.ConfigFile = a.Common.ConfigFile
+	} else if app.DaprdInstallPath != "" {
+		daprDirPath := filepath.Join(app.DaprdInstallPath, standalone.DefaultDaprDirName)
+		app.ConfigFile = standalone.GetDaprConfigPath(daprDirPath)
+	} else {
+		daprDirPath, err := standalone.GetDaprPath(app.DaprdInstallPath)
+		if err != nil {
+			return fmt.Errorf("error getting dapr install path: %w", err)
+		}
+		app.ConfigFile = standalone.GetDaprConfigPath(daprDirPath)
 	}
 	return nil
 }
