@@ -4,10 +4,8 @@ common:
   app_protocol: HTTP
   app_health_probe_timeout: 10
   env:
-    - name: DEBUG
-      value: false
-    - name: tty
-      value: sts
+    DEBUG: false
+    tty: sts
 apps:
   - app_dir_path: ./webapp/
     resources_path: ./resources
@@ -21,6 +19,5 @@ apps:
     app_port: 3000
     unix_domain_socket: /tmp/test-socket
     env:
-    - name: DEBUG
-      value: true
+      DEBUG: true
     command: ["./backend"]

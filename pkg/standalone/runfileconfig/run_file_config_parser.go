@@ -180,6 +180,9 @@ func (a *RunFileConfig) resolveResourcesAndConfigFilePaths() error {
 				app.ResourcesPath = localResourcesDir
 			} else if len(strings.TrimSpace(a.Common.ResourcesPath)) > 0 {
 				app.ResourcesPath = a.Common.ResourcesPath
+			} else if app.DaprdInstallPath != "" {
+				daprDirPath := filepath.Join(app.DaprdInstallPath, standalone.DefaultDaprDirName)
+				app.ResourcesPath = standalone.GetDaprComponentsPath(daprDirPath)
 			} else {
 				daprDirPath, err := standalone.GetDaprPath(app.DaprdInstallPath)
 				if err != nil {
@@ -195,6 +198,9 @@ func (a *RunFileConfig) resolveResourcesAndConfigFilePaths() error {
 				app.ConfigFile = localConfigFile
 			} else if len(strings.TrimSpace(a.Common.ConfigFile)) > 0 {
 				app.ConfigFile = a.Common.ConfigFile
+			} else if app.DaprdInstallPath != "" {
+				daprDirPath := filepath.Join(app.DaprdInstallPath, standalone.DefaultDaprDirName)
+				app.ConfigFile = standalone.GetDaprConfigPath(daprDirPath)
 			} else {
 				daprDirPath, err := standalone.GetDaprPath(app.DaprdInstallPath)
 				if err != nil {
@@ -207,24 +213,13 @@ func (a *RunFileConfig) resolveResourcesAndConfigFilePaths() error {
 	return nil
 }
 
-// mergeCommonAndAppsEnv merges envs from common and individual app section.
-// If env is present in both common and app, then the env from app is used.
-// If env is present in common but not in app, then the env from common is used.
-// If env is present in app but not in common, then the env from app is used.
+// mergeCommonAndAppsEnv merges env maps from common and individual apps.
+// Precedence order for envs -> apps[i].envs > common.envs.
 func (a *RunFileConfig) mergeCommonAndAppsEnv() {
-	for i := range a.Common.Env {
-		envName := a.Common.Env[i].Name
-		for j := range a.Apps {
-			envFound := false
-			appEnv := a.Apps[j].Env
-			for k := range appEnv {
-				if envName == appEnv[k].Name {
-					envFound = true
-					break
-				}
-			}
-			if !envFound {
-				a.Apps[j].Env = append(a.Apps[j].Env, a.Common.Env[i])
+	for i := range a.Apps {
+		for k, v := range a.Common.Env {
+			if _, ok := a.Apps[i].Env[k]; !ok {
+				a.Apps[i].Env[k] = v
 			}
 		}
 	}
