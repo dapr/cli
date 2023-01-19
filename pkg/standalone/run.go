@@ -39,6 +39,7 @@ const (
 
 // RunConfig represents the application configuration parameters.
 type RunConfig struct {
+	SharedRunConfig  `yaml:",inline"`
 	AppID            string   `env:"APP_ID" arg:"app-id" yaml:"app_id"`
 	AppPort          int      `env:"APP_PORT" arg:"app-port" yaml:"app_port" default:"-1"`
 	HTTPPort         int      `env:"DAPR_HTTP_PORT" arg:"dapr-http-port" yaml:"dapr_http_port" default:"-1"`
@@ -48,30 +49,30 @@ type RunConfig struct {
 	MetricsPort      int      `env:"DAPR_METRICS_PORT" arg:"metrics-port" yaml:"metrics_port" default:"-1"`
 	UnixDomainSocket string   `arg:"unix-domain-socket" yaml:"unix_domain_socket"`
 	InternalGRPCPort int      `arg:"dapr-internal-grpc-port" yaml:"dapr_internal_grpc_port" default:"-1"`
-	DaprPathCmdFlag  string   `yaml:"dapr_path_cmd_flag"`
-	SharedRunConfig  `yaml:",inline"`
 }
 
 // SharedRunConfig represents the application configuration parameters, which can be shared across many apps.
 type SharedRunConfig struct {
-	ConfigFile         string `arg:"config" yaml:"config_file"`
-	AppProtocol        string `arg:"app-protocol" yaml:"app_protocol" default:"http"`
-	APIListenAddresses string `arg:"dapr-listen-addresses" yaml:"api_listen_addresses"`
-	EnableProfiling    bool   `arg:"enable-profiling" yaml:"enable_profiling"`
-	LogLevel           string `arg:"log-level" yaml:"log_level"`
-	MaxConcurrency     int    `arg:"app-max-concurrency" yaml:"app_max_concurrency" default:"-1"`
-	PlacementHostAddr  string `arg:"placement-host-address" yaml:"placement_host_address"`
-	ComponentsPath     string `arg:"components-path"`
-	ResourcesPath      string `arg:"resources-path" yaml:"resources_path"`
-	AppSSL             bool   `arg:"app-ssl" yaml:"app_ssl"`
-	MaxRequestBodySize int    `arg:"dapr-http-max-request-size" yaml:"dapr_http_max_request_size" default:"-1"`
-	HTTPReadBufferSize int    `arg:"dapr-http-read-buffer-size" yaml:"dapr_http_read_buffer_size" default:"-1"`
-	EnableAppHealth    bool   `arg:"enable-app-health-check" yaml:"enable_app_health_check"`
-	AppHealthPath      string `arg:"app-health-check-path" yaml:"app_health_check_path"`
-	AppHealthInterval  int    `arg:"app-health-probe-interval" ifneq:"0" yaml:"app_health_probe_interval"`
-	AppHealthTimeout   int    `arg:"app-health-probe-timeout" ifneq:"0" yaml:"app_health_probe_timeout"`
-	AppHealthThreshold int    `arg:"app-health-threshold" ifneq:"0" yaml:"app_health_threshold"`
-	EnableAPILogging   bool   `arg:"enable-api-logging" yaml:"enable_api_logging"`
+	ConfigFile         string            `arg:"config" yaml:"config_file"`
+	AppProtocol        string            `arg:"app-protocol" yaml:"app_protocol" default:"http"`
+	APIListenAddresses string            `arg:"dapr-listen-addresses" yaml:"api_listen_addresses"`
+	EnableProfiling    bool              `arg:"enable-profiling" yaml:"enable_profiling"`
+	LogLevel           string            `arg:"log-level" yaml:"log_level"`
+	MaxConcurrency     int               `arg:"app-max-concurrency" yaml:"app_max_concurrency" default:"-1"`
+	PlacementHostAddr  string            `arg:"placement-host-address" yaml:"placement_host_address"`
+	ComponentsPath     string            `arg:"components-path"`
+	ResourcesPath      string            `arg:"resources-path" yaml:"resources_path"`
+	AppSSL             bool              `arg:"app-ssl" yaml:"app_ssl"`
+	MaxRequestBodySize int               `arg:"dapr-http-max-request-size" yaml:"dapr_http_max_request_size" default:"-1"`
+	HTTPReadBufferSize int               `arg:"dapr-http-read-buffer-size" yaml:"dapr_http_read_buffer_size" default:"-1"`
+	EnableAppHealth    bool              `arg:"enable-app-health-check" yaml:"enable_app_health_check"`
+	AppHealthPath      string            `arg:"app-health-check-path" yaml:"app_health_check_path"`
+	AppHealthInterval  int               `arg:"app-health-probe-interval" ifneq:"0" yaml:"app_health_probe_interval"`
+	AppHealthTimeout   int               `arg:"app-health-probe-timeout" ifneq:"0" yaml:"app_health_probe_timeout"`
+	AppHealthThreshold int               `arg:"app-health-threshold" ifneq:"0" yaml:"app_health_threshold"`
+	EnableAPILogging   bool              `arg:"enable-api-logging" yaml:"enable_api_logging"`
+	DaprdInstallPath   string            `yaml:"dapr_path"`
+	Env                map[string]string `yaml:"env"`
 }
 
 func (meta *DaprMeta) newAppID() string {
@@ -346,11 +347,14 @@ func (config *RunConfig) getEnv() []string {
 		value := fmt.Sprintf("%v", reflect.ValueOf(valueField))
 		env = append(env, fmt.Sprintf("%s=%v", key, value))
 	}
+	for k, v := range config.Env {
+		env = append(env, fmt.Sprintf("%s=%v", k, v))
+	}
 	return env
 }
 
 func GetDaprCommand(config *RunConfig) (*exec.Cmd, error) {
-	daprCMD, err := lookupBinaryFilePath(config.DaprPathCmdFlag, "daprd")
+	daprCMD, err := lookupBinaryFilePath(config.DaprdInstallPath, "daprd")
 	if err != nil {
 		return nil, err
 	}

@@ -38,22 +38,14 @@ type RunFileConfig struct {
 // App represents the configuration options for the apps in the run file.
 type App struct {
 	standalone.RunConfig `yaml:",inline"`
-	AppDirPath           string     `yaml:"app_dir_path"`
-	Env                  []EnvItems `yaml:"env"`
+	AppDirPath           string `yaml:"app_dir_path"`
 	appLogFile           *os.File
 	daprdLogFile         *os.File
 }
 
 // Common represents the configuration options for the common section in the run file.
 type Common struct {
-	Env                        []EnvItems `yaml:"env"`
 	standalone.SharedRunConfig `yaml:",inline"`
-}
-
-// EnvItems represents the env configuration options that are present in commmon and/or individual app's section.
-type EnvItems struct {
-	Name  string `yaml:"name"`
-	Value string `yaml:"value"`
 }
 
 func (a *App) GetLogsDir() string {

@@ -153,6 +153,7 @@ dapr run --app-id myapp --dapr-path /usr/local/dapr
 			AppHealthThreshold: appHealthThreshold,
 			EnableAPILogging:   enableAPILogging,
 			APIListenAddresses: apiListenAddresses,
+			DaprdInstallPath:   daprPath,
 		}
 		output, err := runExec.NewOutput(&standalone.RunConfig{
 			AppID:            appID,
@@ -164,7 +165,6 @@ dapr run --app-id myapp --dapr-path /usr/local/dapr
 			MetricsPort:      metricsPort,
 			UnixDomainSocket: unixDomainSocket,
 			InternalGRPCPort: internalGRPCPort,
-			DaprPathCmdFlag:  daprPath,
 			SharedRunConfig:  *sharedRunConfig,
 		})
 		if err != nil {
