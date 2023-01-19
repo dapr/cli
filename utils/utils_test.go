@@ -194,7 +194,7 @@ func TestValidateFilePaths(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := ValidateFilePaths(tc.input)
+			actual := ValidateFilePath(tc.input)
 			assert.Equal(t, tc.expectedErr, actual != nil)
 		})
 	}
@@ -263,54 +263,6 @@ func TestReadFile(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			_, actual := ReadFile(tc.input)
 			assert.Equal(t, tc.expectedErr, actual != nil)
-		})
-	}
-}
-
-func TestIsYamlFile(t *testing.T) {
-	validYamlPath := "valid.yaml"
-	invalidFilePath := "invalid.json"
-	dirPath := "test"
-
-	dirName := createTempDir(t, "test_is_yaml_file")
-	t.Cleanup(func() {
-		cleanupTempDir(t, dirName)
-	})
-	validYAMLFile, err := os.Create(filepath.Join(dirName, validYamlPath))
-	assert.NoError(t, err)
-	validYAMLFile.Close()
-
-	invalidYAMLfile, err := os.Create(filepath.Join(dirName, invalidFilePath))
-	assert.NoError(t, err)
-	invalidYAMLfile.Close()
-
-	aDirectory := createTempDir(t, dirPath)
-
-	testcases := []struct {
-		name     string
-		input    string
-		expected bool
-	}{
-		{
-			name:     "valid yaml file path",
-			input:    validYAMLFile.Name(),
-			expected: true,
-		},
-		{
-			name:     "valid yml file path",
-			input:    invalidYAMLfile.Name(),
-			expected: false,
-		},
-		{
-			name:     "valid yml file path",
-			input:    aDirectory,
-			expected: false,
-		},
-	}
-	for _, tc := range testcases {
-		t.Run(tc.name, func(t *testing.T) {
-			actual := IsYAMLFile(tc.input)
-			assert.Equal(t, tc.expected, actual)
 		})
 	}
 }

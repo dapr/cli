@@ -62,7 +62,7 @@ var (
 )
 
 const (
-	defaultRunFileName          = "dapr.yaml"
+	defaultRunTemplateFileName  = "dapr.yaml"
 	runtimeWaitTimeoutInSeconds = 60
 )
 
@@ -452,12 +452,22 @@ func executeRunWithAppsConfigFile(runFilePath string) {
 // If the provided path is a path to a YAML file then return the same.
 // Else it returns the path of "dapr.yaml" in the provided directory.
 func getRunFilePath(path string) (string, error) {
-	if utils.IsYAMLFile(path) {
-		return path, nil
-	}
-	filePath, err := utils.FindFileInDir(path, defaultRunFileName)
+	fileInfo, err := os.Stat(path)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error getting file info for %s: %w", path, err)
 	}
-	return filePath, nil
+	if fileInfo.IsDir() {
+		filePath, err := utils.FindFileInDir(path, defaultRunTemplateFileName)
+		if err != nil {
+			return "", err
+		}
+		fmt.Println("Using run file: ", filePath)
+		return filePath, nil
+	}
+	hasYAMLExtension := strings.HasSuffix(path, ".yaml") || strings.HasSuffix(path, ".yml")
+	if !hasYAMLExtension {
+		return "", fmt.Errorf("file %q is not a YAML file", path)
+	}
+	fmt.Println("Using run file file: ", path)
+	return path, nil
 }

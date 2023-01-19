@@ -149,7 +149,7 @@ func (a *RunFileConfig) resolvePathToAbsAndValidate(baseDir string, paths ...*st
 			return err
 		}
 		*path = absPath
-		if err = utils.ValidateFilePaths(*path); err != nil {
+		if err = utils.ValidateFilePath(*path); err != nil {
 			return err
 		}
 	}
