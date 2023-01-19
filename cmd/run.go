@@ -461,13 +461,11 @@ func getRunFilePath(path string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		fmt.Println("Using run file: ", filePath)
 		return filePath, nil
 	}
 	hasYAMLExtension := strings.HasSuffix(path, ".yaml") || strings.HasSuffix(path, ".yml")
 	if !hasYAMLExtension {
 		return "", fmt.Errorf("file %q is not a YAML file", path)
 	}
-	fmt.Println("Using run file file: ", path)
 	return path, nil
 }

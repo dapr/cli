@@ -267,6 +267,10 @@ func TestReadFile(t *testing.T) {
 	}
 }
 
+// Following is the directory and file structure created for this test in the os's default temp directory:
+// test_find_file_in_dir/valid_dir/dapr.yaml.
+// test_find_file_in_dir/valid_dir/test1.yaml.
+// test_find_file_in_dir/valid_dir_no_dapr_yaml.
 func TestFindFileInDir(t *testing.T) {
 	nonExistentDirName := "invalid_dir"
 	validDirNameWithDaprYAMLFile := "valid_dir"
