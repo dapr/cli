@@ -77,7 +77,7 @@ type SharedRunConfig struct {
 	AppHealthTimeout   int        `arg:"app-health-probe-timeout" ifneq:"0" yaml:"app_health_probe_timeout"`
 	AppHealthThreshold int        `arg:"app-health-threshold" ifneq:"0" yaml:"app_health_threshold"`
 	EnableAPILogging   bool       `arg:"enable-api-logging" yaml:"enable_api_logging"`
-	DaprPathCmdFlag    string     `yaml:"dapr_path"`
+	DaprdInstallPath   string     `yaml:"dapr_path"`
 	Env                []EnvItems `yaml:"env"`
 }
 
@@ -367,7 +367,7 @@ type RunOutput struct {
 }
 
 func getDaprCommand(config *RunConfig) (*exec.Cmd, error) {
-	daprCMD, err := lookupBinaryFilePath(config.DaprPathCmdFlag, "daprd")
+	daprCMD, err := lookupBinaryFilePath(config.DaprdInstallPath, "daprd")
 	if err != nil {
 		return nil, err
 	}

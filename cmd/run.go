@@ -151,7 +151,7 @@ dapr run --app-id myapp --dapr-path /usr/local/dapr
 			AppHealthThreshold: appHealthThreshold,
 			EnableAPILogging:   enableAPILogging,
 			APIListenAddresses: apiListenAddresses,
-			DaprPathCmdFlag:    daprPath,
+			DaprdInstallPath:   daprPath,
 		}
 		output, err := standalone.Run(&standalone.RunConfig{
 			AppID:            appID,

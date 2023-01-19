@@ -52,7 +52,7 @@ func (a *RunFileConfig) validateRunConfig(runFilePath string) error {
 	}
 
 	// resolve relative path to absolute and validate all paths in commons.
-	err = a.resolvePathToAbsAndValidate(baseDir, &a.Common.ConfigFile, &a.Common.ResourcesPath, &a.Common.DaprPathCmdFlag)
+	err = a.resolvePathToAbsAndValidate(baseDir, &a.Common.ConfigFile, &a.Common.ResourcesPath, &a.Common.DaprdInstallPath)
 	if err != nil {
 		return err
 	}
@@ -66,7 +66,7 @@ func (a *RunFileConfig) validateRunConfig(runFilePath string) error {
 			return err
 		}
 		// All other paths present inside the specific app's in the YAML file, should be resolved relative to AppDirPath for that app.
-		err = a.resolvePathToAbsAndValidate(a.Apps[i].AppDirPath, &a.Apps[i].ConfigFile, &a.Apps[i].ResourcesPath, &a.Apps[i].DaprPathCmdFlag)
+		err = a.resolvePathToAbsAndValidate(a.Apps[i].AppDirPath, &a.Apps[i].ConfigFile, &a.Apps[i].ResourcesPath, &a.Apps[i].DaprdInstallPath)
 		if err != nil {
 			return err
 		}
@@ -170,8 +170,8 @@ func (a *RunFileConfig) resolveResourcesAndConfigFilePaths() error {
 	for i := range a.Apps {
 		app := &a.Apps[i]
 		// Make sure apps's "DaprPathCmdFlag" is updated here as it is used in deciding precedence for resources and config path.
-		if app.DaprPathCmdFlag == "" {
-			app.DaprPathCmdFlag = a.Common.DaprPathCmdFlag
+		if app.DaprdInstallPath == "" {
+			app.DaprdInstallPath = a.Common.DaprdInstallPath
 		}
 		// Resolve resources path if not provided in specific app's config.
 		if app.ResourcesPath == "" {
@@ -181,7 +181,7 @@ func (a *RunFileConfig) resolveResourcesAndConfigFilePaths() error {
 			} else if len(strings.TrimSpace(a.Common.ResourcesPath)) > 0 {
 				app.ResourcesPath = a.Common.ResourcesPath
 			} else {
-				daprDirPath, err := standalone.GetDaprPath(app.DaprPathCmdFlag)
+				daprDirPath, err := standalone.GetDaprPath(app.DaprdInstallPath)
 				if err != nil {
 					return fmt.Errorf("error getting dapr install path: %w", err)
 				}
@@ -196,7 +196,7 @@ func (a *RunFileConfig) resolveResourcesAndConfigFilePaths() error {
 			} else if len(strings.TrimSpace(a.Common.ConfigFile)) > 0 {
 				app.ConfigFile = a.Common.ConfigFile
 			} else {
-				daprDirPath, err := standalone.GetDaprPath(app.DaprPathCmdFlag)
+				daprDirPath, err := standalone.GetDaprPath(app.DaprdInstallPath)
 				if err != nil {
 					return fmt.Errorf("error getting dapr install path: %w", err)
 				}

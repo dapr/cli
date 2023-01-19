@@ -18,6 +18,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/dapr/cli/pkg/standalone"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -28,11 +30,11 @@ var (
 )
 
 func TestRunConfigFile(t *testing.T) {
-	t.Run("test run config parser", func(t *testing.T) {
+	t.Run("test parse valid run template", func(t *testing.T) {
 		appsRunConfig := RunFileConfig{}
 		err := appsRunConfig.parseAppsConfig(validRunFilePath)
 
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, 2, len(appsRunConfig.Apps))
 
 		assert.Equal(t, 1, appsRunConfig.Version)
@@ -47,11 +49,11 @@ func TestRunConfigFile(t *testing.T) {
 		assert.Equal(t, "", firstAppConfig.UnixDomainSocket)
 	})
 
-	t.Run("test run GetApps", func(t *testing.T) {
+	t.Run("test GetApps", func(t *testing.T) {
 		config := RunFileConfig{}
 
 		apps, err := config.GetApps(validRunFilePath)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, 2, len(apps))
 		assert.Equal(t, "webapp", apps[0].AppID)
 		assert.Equal(t, "backend", apps[1].AppID)
@@ -85,7 +87,84 @@ func TestRunConfigFile(t *testing.T) {
 		assert.Equal(t, "DEBUG", apps[1].Env[0].Name)
 		assert.Equal(t, "true", apps[1].Env[0].Value)
 	})
-	t.Run("test validate config files", func(t *testing.T) {
+
+	t.Run("test precedence logic for resources-path and dapr config file", func(t *testing.T) {
+		config := RunFileConfig{}
+
+		err := config.parseAppsConfig(validRunFilePath)
+		assert.NoError(t, err)
+		err = config.validateRunConfig(validRunFilePath)
+		assert.NoError(t, err)
+
+		daprDirPath, err := standalone.GetDaprPath(config.Apps[0].DaprdInstallPath)
+		assert.NoError(t, err)
+		configFilePath := standalone.GetDaprConfigPath(daprDirPath)
+
+		// temporarily set dapr's installation directory to Config.Apps[1].AppDirPath.
+		tDaprDirPath, err := standalone.GetDaprPath(config.Apps[1].AppDirPath)
+		assert.NoError(t, err)
+		configFilePathWithCustomDaprdDir := standalone.GetDaprConfigPath(tDaprDirPath)
+
+		testcases := []struct {
+			name                      string
+			setResourcesAndConfigPath bool
+			setDaprdInstallPath       bool
+			expectedResourcesPath     string
+			expectedConfigFilePath    string
+			appIndex                  int
+		}{
+			{
+				name:                      "resources_path and config_path is set in app section",
+				setResourcesAndConfigPath: false,
+				setDaprdInstallPath:       false,
+				expectedResourcesPath:     filepath.Join(config.Apps[0].AppDirPath, "resources"),
+				expectedConfigFilePath:    filepath.Join(config.Apps[0].AppDirPath, "config.yaml"),
+				appIndex:                  0,
+			},
+			{
+				name:                      "resources_path and config_path present in .dapr directory under appDirPath",
+				setResourcesAndConfigPath: false,
+				setDaprdInstallPath:       false,
+				expectedResourcesPath:     filepath.Join(config.Apps[1].AppDirPath, ".dapr", "resources"),
+				expectedConfigFilePath:    filepath.Join(config.Apps[1].AppDirPath, ".dapr", "config.yaml"),
+				appIndex:                  1,
+			},
+			{
+				name:                      "temporarily set ResourcesPath and configPath to empty string in app's section",
+				setResourcesAndConfigPath: true,
+				setDaprdInstallPath:       false,
+				expectedResourcesPath:     config.Common.ResourcesPath, // from common section.
+				expectedConfigFilePath:    configFilePath,              // from dapr's installation directory.
+				appIndex:                  0,
+			},
+			{
+				name:                      "custom dapr install path with empty ResourcesPath and configPath in app's section",
+				setResourcesAndConfigPath: true,
+				setDaprdInstallPath:       true,
+				expectedResourcesPath:     config.Common.ResourcesPath,      // from common section.
+				expectedConfigFilePath:    configFilePathWithCustomDaprdDir, // from dapr's custom installation directory.
+				appIndex:                  0,
+			},
+		}
+
+		for _, tc := range testcases {
+			t.Run(tc.name, func(t *testing.T) {
+				if tc.setResourcesAndConfigPath {
+					config.Apps[tc.appIndex].ResourcesPath = ""
+					config.Apps[tc.appIndex].ConfigFile = ""
+				}
+				if tc.setDaprdInstallPath {
+					config.Apps[tc.appIndex].DaprdInstallPath = config.Apps[1].AppDirPath // set to apps[1].AppDirPath teporarily.
+				}
+				// test precedence logic for resources_path and config_path.
+				config.resolveResourcesAndConfigFilePaths()
+				assert.Equal(t, tc.expectedResourcesPath, config.Apps[tc.appIndex].ResourcesPath)
+				assert.Equal(t, tc.expectedConfigFilePath, config.Apps[tc.appIndex].ConfigFile)
+			})
+		}
+	})
+
+	t.Run("test validate run config", func(t *testing.T) {
 		testcases := []struct {
 			name        string
 			input       string
