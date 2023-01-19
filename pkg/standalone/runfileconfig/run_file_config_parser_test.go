@@ -271,8 +271,6 @@ func getResourcesAndConfigFilePaths(t *testing.T, daprInstallPath string) []stri
 	if daprInstallPath == "" {
 		daprDirPath, err = standalone.GetDaprPath(daprInstallPath)
 		assert.NoError(t, err)
-		result[0] = standalone.GetDaprComponentsPath(daprDirPath)
-		result[1] = standalone.GetDaprConfigPath(daprDirPath)
 	} else {
 		daprDirPath = filepath.Join(daprInstallPath, standalone.DefaultDaprDirName)
 	}
