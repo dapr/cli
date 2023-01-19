@@ -62,19 +62,23 @@ func (a *App) GetLogsDir() string {
 	return logsPath
 }
 
-func (a *App) GetAppLogFileWriter() (io.WriteCloser, error) {
+// SetAndGetAppLogWriter creates the log file, sets internal file handle
+// and returns the file writer for app log file.
+func (a *App) SetAndGetAppLogWriter() (io.WriteCloser, error) {
 	logsPath := a.GetLogsDir()
 	f, err := os.Create(filepath.Join(logsPath, getAppLogFileName()))
-	if err != nil {
+	if err == nil {
 		a.appLogFile = f
 	}
 	return f, err
 }
 
-func (a *App) GetDaprdLogFileWriter() (io.WriteCloser, error) {
+// SetAndGetDaprdLogWriter creates the log file, sets internal file handle
+// and returns the file writer for daprd log file.
+func (a *App) SetAndGetDaprdLogWriter() (io.WriteCloser, error) {
 	logsPath := a.GetLogsDir()
 	f, err := os.Create(filepath.Join(logsPath, getDaprdLogFileName()))
-	if err != nil {
+	if err == nil {
 		a.daprdLogFile = f
 	}
 	return f, err

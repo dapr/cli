@@ -455,21 +455,24 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 		// Get Run Config for different apps.
 		runConfig := app.RunConfig
 
-		appLogWriter, err := app.GetAppLogFileWriter()
+		appLogWriter, err := app.SetAndGetAppLogWriter()
 		if err != nil {
-			print.FailureStatusEvent(os.Stderr, "Error getting log file for app %s present in %s: %s", runConfig.AppID, runFilePath, err.Error())
+			print.StatusEvent(os.Stderr, print.LogFailure, "Error getting log file for app %s present in %s: %s", runConfig.AppID, runFilePath, err.Error())
 			exitWithError = true
 			break
 		}
-		daprdLogWriter, err := app.GetDaprdLogFileWriter()
+		daprdLogWriter, err := app.SetAndGetDaprdLogWriter()
 		if err != nil {
-			print.FailureStatusEvent(os.Stderr, "Error getting log file for app %s present in %s: %s", runConfig.AppID, runFilePath, err.Error())
+			print.StatusEvent(os.Stderr, print.LogFailure, "Error getting log file for app %s present in %s: %s", runConfig.AppID, runFilePath, err.Error())
 			exitWithError = true
 			break
 		}
+		// create a multiwriter to write to both app and daprd log files.
+		appDaprdWriter := io.MultiWriter(appLogWriter, daprdLogWriter)
 		runState, err := startDaprdAndAppProcesses(&runConfig, app.AppDirPath, sigCh, daprdLogWriter, daprdLogWriter, appLogWriter, appLogWriter)
 		if err != nil {
-			print.FailureStatusEvent(os.Stdout, "Error starting Dapr and app: %s", err.Error())
+			print.StatusEvent(os.Stdout, print.LogFailure, "Error starting Dapr and app (%q): %s", app.AppID, err.Error())
+			print.StatusEvent(appDaprdWriter, print.LogFailure, "Error starting Dapr and app (%q): %s", app.AppID, err.Error())
 			exitWithError = true
 			break
 		}
@@ -482,10 +485,9 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 
 		if runState.AppCMD.Command != nil {
 			_ = putAppCommandInMeta(runConfig, runState)
-		} else {
-			print.StatusEvent(runState.DaprCMD.OutputWriter, print.LogSuccess, "You're up and running! Dapr logs will appear here.\n")
 		}
-		logInfomationalStatusToStdout(app)
+		print.StatusEvent(runState.DaprCMD.OutputWriter, print.LogSuccess, "You're up and running! Dapr logs will appear here.\n")
+		logInformationalStatusToStdout(app)
 	}
 	// If all apps have been started and there are no errors in starting the apps wait for signal from sigCh.
 	if !exitWithError {
@@ -511,7 +513,7 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 	return exitWithError, closeError
 }
 
-func logInfomationalStatusToStdout(app runfileconfig.App) {
+func logInformationalStatusToStdout(app runfileconfig.App) {
 	print.InfoStatusEvent(os.Stdout, "Started Dapr with app id %q. HTTP Port: %d. gRPC Port: %d",
 		app.AppID, app.RunConfig.HTTPPort, app.RunConfig.GRPCPort)
 	print.InfoStatusEvent(os.Stdout, "Writing log files to directory : %s", app.GetLogsDir())
@@ -544,17 +546,17 @@ func executeRunWithAppsConfigFile(runFilePath string) {
 	config := runfileconfig.RunFileConfig{}
 	apps, err := config.GetApps(runFilePath)
 	if err != nil {
-		print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error getting apps from config file: %s", err))
+		print.StatusEvent(os.Stdout, print.LogFailure, "Error getting apps from config file: %s", err)
 		os.Exit(1)
 	}
 	if len(apps) == 0 {
-		print.FailureStatusEvent(os.Stdout, "No apps to run")
+		print.StatusEvent(os.Stdout, print.LogFailure, "No apps to run")
 		os.Exit(1)
 	}
 	exitWithError, closeErr := executeRun(runFilePath, apps)
 	if exitWithError {
 		if closeErr != nil {
-			print.FailureStatusEvent(os.Stdout, fmt.Sprintf("Error closing resources: %s", closeErr))
+			print.StatusEvent(os.Stdout, print.LogFailure, "Error closing resources: %s", closeErr)
 		}
 		os.Exit(1)
 	}
