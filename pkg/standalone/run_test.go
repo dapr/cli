@@ -214,7 +214,7 @@ func TestRun(t *testing.T) {
 		assert.NoError(t, err)
 
 		assertCommonArgs(t, basicConfig, output)
-		assertArgumentContains(t, "config", defaultConfigFileName, output.DaprCMD.Args)
+		assertArgumentContains(t, "config", DefaultConfigFileName, output.DaprCMD.Args)
 		assert.Nil(t, output.AppCMD)
 	})
 
