@@ -302,13 +302,13 @@ func TestFindFileInDir(t *testing.T) {
 		expectedFilePath string
 	}{
 		{
-			name:             "valid yaml file path with dapr.yaml file",
+			name:             "valid directory path with dapr.yaml file",
 			input:            filepath.Join(dirName, validDirNameWithDaprYAMLFile),
 			expectedErr:      false,
 			expectedFilePath: filepath.Join(dirName, validDirNameWithDaprYAMLFile, "dapr.yaml"),
 		},
 		{
-			name:             "valid yml file path with no dapr.yaml file",
+			name:             "valid directory path with no dapr.yaml file",
 			input:            filepath.Join(dirName, validDirWithNoDaprYAML),
 			expectedErr:      true,
 			expectedFilePath: "",
