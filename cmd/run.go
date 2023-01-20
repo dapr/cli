@@ -99,6 +99,10 @@ dapr run --app-id myapp --dapr-path /usr/local/dapr
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(runFilePath) > 0 {
+			if runtime.GOOS == "windows" {
+				print.FailureStatusEvent(os.Stderr, "The run command with run file is not supported on Windows")
+				os.Exit(1)
+			}
 			runConfigFilePath, err := getRunFilePath(runFilePath)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, "Failed to get run file path: %v", err)
@@ -461,21 +465,22 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 		// Get Run Config for different apps.
 		runConfig := app.RunConfig
 
-		appLogWriter, err := app.SetAndGetAppLogWriter()
+		err = app.CreateAppLogFile()
 		if err != nil {
 			print.StatusEvent(os.Stderr, print.LogFailure, "Error getting log file for app %s present in %s: %s", runConfig.AppID, runFilePath, err.Error())
 			exitWithError = true
 			break
 		}
-		daprdLogWriter, err := app.SetAndGetDaprdLogWriter()
+		err = app.CreateDaprdLogFile()
 		if err != nil {
 			print.StatusEvent(os.Stderr, print.LogFailure, "Error getting log file for app %s present in %s: %s", runConfig.AppID, runFilePath, err.Error())
 			exitWithError = true
 			break
 		}
 		// create a multiwriter to write to both app and daprd log files.
-		appDaprdWriter := io.MultiWriter(appLogWriter, daprdLogWriter)
-		runState, err := startDaprdAndAppProcesses(&runConfig, app.AppDirPath, sigCh, daprdLogWriter, daprdLogWriter, appLogWriter, appLogWriter)
+		appDaprdWriter := io.MultiWriter(app.AppLogWriteCloser, app.DaprdLogWriteCloser)
+		runState, err := startDaprdAndAppProcesses(&runConfig, app.AppDirPath, sigCh,
+			app.DaprdLogWriteCloser, app.DaprdLogWriteCloser, app.AppLogWriteCloser, app.AppLogWriteCloser)
 		if err != nil {
 			print.StatusEvent(os.Stdout, print.LogFailure, "Error starting Dapr and app (%q): %s", app.AppID, err.Error())
 			print.StatusEvent(appDaprdWriter, print.LogFailure, "Error starting Dapr and app (%q): %s", app.AppID, err.Error())

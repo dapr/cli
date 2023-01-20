@@ -25,6 +25,7 @@ const (
 	appLogFileNamePrefix   = "app"
 	daprdLogFileNamePrefix = "daprd"
 	logFileExtension       = ".log"
+	logsDir                = "logs"
 )
 
 // RunFileConfig represents the complete configuration options for the run file.
@@ -39,8 +40,10 @@ type RunFileConfig struct {
 type App struct {
 	standalone.RunConfig `yaml:",inline"`
 	AppDirPath           string `yaml:"app_dir_path"`
-	appLogFile           *os.File
-	daprdLogFile         *os.File
+	AppLogFileName       string
+	DaprdLogFileName     string
+	AppLogWriteCloser    io.WriteCloser
+	DaprdLogWriteCloser  io.WriteCloser
 }
 
 // Common represents the configuration options for the common section in the run file.
@@ -49,31 +52,33 @@ type Common struct {
 }
 
 func (a *App) GetLogsDir() string {
-	logsPath := filepath.Join(a.AppDirPath, ".dapr", "logs")
+	logsPath := filepath.Join(a.AppDirPath, standalone.DefaultDaprDirName, logsDir)
 	os.MkdirAll(logsPath, 0o755)
 	return logsPath
 }
 
-// SetAndGetAppLogWriter creates the log file, sets internal file handle
-// and returns the file writer for app log file.
-func (a *App) SetAndGetAppLogWriter() (io.WriteCloser, error) {
+// CreateAppLogFile creates the log file, sets internal file handle
+// and returns error if any.
+func (a *App) CreateAppLogFile() error {
 	logsPath := a.GetLogsDir()
 	f, err := os.Create(filepath.Join(logsPath, getAppLogFileName()))
 	if err == nil {
-		a.appLogFile = f
+		a.AppLogWriteCloser = f
+		a.AppLogFileName = f.Name()
 	}
-	return f, err
+	return err
 }
 
-// SetAndGetDaprdLogWriter creates the log file, sets internal file handle
-// and returns the file writer for daprd log file.
-func (a *App) SetAndGetDaprdLogWriter() (io.WriteCloser, error) {
+// CreateDaprdLogFile creates the log file, sets internal file handle
+// and returns error if any.
+func (a *App) CreateDaprdLogFile() error {
 	logsPath := a.GetLogsDir()
 	f, err := os.Create(filepath.Join(logsPath, getDaprdLogFileName()))
 	if err == nil {
-		a.daprdLogFile = f
+		a.DaprdLogWriteCloser = f
+		a.DaprdLogFileName = f.Name()
 	}
-	return f, err
+	return err
 }
 
 func getAppLogFileName() string {
@@ -85,29 +90,15 @@ func getDaprdLogFileName() string {
 }
 
 func (a *App) CloseAppLogFile() error {
-	if a.appLogFile != nil {
-		return a.appLogFile.Close()
+	if a.AppLogWriteCloser != nil {
+		return a.AppLogWriteCloser.Close()
 	}
 	return nil
 }
 
 func (a *App) CloseDaprdLogFile() error {
-	if a.daprdLogFile != nil {
-		return a.daprdLogFile.Close()
+	if a.DaprdLogWriteCloser != nil {
+		return a.DaprdLogWriteCloser.Close()
 	}
 	return nil
-}
-
-func (a *App) GetAppLogFileName() string {
-	if a.appLogFile != nil {
-		return a.appLogFile.Name()
-	}
-	return ""
-}
-
-func (a *App) GetDaprdLogFileName() string {
-	if a.daprdLogFile != nil {
-		return a.daprdLogFile.Name()
-	}
-	return ""
 }
