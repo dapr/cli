@@ -24,7 +24,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"time"
 
@@ -238,20 +237,16 @@ func MarshalAndWriteTable(writer io.Writer, in interface{}) error {
 }
 
 func PrintDetail(writer io.Writer, outputFormat string, list interface{}) error {
-	obj := list
-	s := reflect.ValueOf(list)
-	if s.Kind() == reflect.Slice && s.Len() == 1 {
-		obj = s.Index(0).Interface()
-	}
-
 	var err error
 	output := []byte{}
 
 	switch outputFormat {
 	case "yaml":
-		output, err = yaml.Marshal(obj)
+		output, err = yaml.Marshal(list)
 	case "json":
-		output, err = json.MarshalIndent(obj, "", "  ")
+		output, err = json.MarshalIndent(list, "", "  ")
+	default:
+		err = fmt.Errorf("unsupported output format: %s", outputFormat)
 	}
 	if err != nil {
 		return err
