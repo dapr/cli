@@ -14,6 +14,8 @@ limitations under the License.
 package utils
 
 import (
+	"bytes"
+	"math"
 	"os"
 	"path/filepath"
 	"testing"
@@ -325,6 +327,91 @@ func TestFindFileInDir(t *testing.T) {
 			filePath, err := FindFileInDir(tc.input, "dapr.yaml")
 			assert.Equal(t, tc.expectedErr, err != nil)
 			assert.Equal(t, tc.expectedFilePath, filePath)
+		})
+	}
+}
+
+func TestPrintDetail(t *testing.T) {
+	type fooStruct struct {
+		Field1 string
+		Field2 int
+	}
+
+	testcases := []struct {
+		name        string
+		format      string
+		list        interface{}
+		expected    string
+		shouldError bool
+	}{
+		{
+			name:        "multiple items in JSON format",
+			format:      "json",
+			list:        []fooStruct{{Field1: "test1", Field2: 1}, {Field1: "test2", Field2: 2}},
+			expected:    "[\n  {\n    \"Field1\": \"test1\",\n    \"Field2\": 1\n  },\n  {\n    \"Field1\": \"test2\",\n    \"Field2\": 2\n  }\n]",
+			shouldError: false,
+		},
+		{
+			name:        "single item in JSON format",
+			format:      "json",
+			list:        []fooStruct{{Field1: "test1", Field2: 1}},
+			expected:    "[\n  {\n    \"Field1\": \"test1\",\n    \"Field2\": 1\n  }\n]",
+			shouldError: false,
+		},
+		{
+			name:        "no items in JSON format",
+			format:      "json",
+			list:        []fooStruct{},
+			expected:    "[]",
+			shouldError: false,
+		},
+		{
+			name:        "multiple items in YAML format",
+			format:      "yaml",
+			list:        []fooStruct{{Field1: "test1", Field2: 1}, {Field1: "test2", Field2: 2}},
+			expected:    "- field1: test1\n  field2: 1\n- field1: test2\n  field2: 2\n",
+			shouldError: false,
+		},
+		{
+			name:        "single item in YAML format",
+			format:      "yaml",
+			list:        []fooStruct{{Field1: "test1", Field2: 1}},
+			expected:    "- field1: test1\n  field2: 1\n",
+			shouldError: false,
+		},
+		{
+			name:        "no items in YAML format",
+			format:      "yaml",
+			list:        []fooStruct{},
+			expected:    "[]\n",
+			shouldError: false,
+		},
+		{
+			name:        "invalid format",
+			format:      "invalid",
+			list:        []fooStruct{},
+			expected:    "",
+			shouldError: true,
+		},
+		{
+			name:        "invalid JSON",
+			format:      "json",
+			list:        math.Inf(1),
+			expected:    "",
+			shouldError: true,
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			err := PrintDetail(&buf, tc.format, tc.list)
+			if tc.shouldError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tc.expected, buf.String())
+			}
 		})
 	}
 }

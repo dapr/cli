@@ -139,7 +139,7 @@ func TestComponents(t *testing.T) {
 			name:           "Yaml one config",
 			configName:     "",
 			outputFormat:   "yaml",
-			expectedOutput: "name: appConfig\nnamespace: \"\"\nspec:\n  type: state.redis\n  version: v1\n  ignoreerrors: false\n  metadata: []\n  inittimeout: \"\"\n",
+			expectedOutput: "- name: appConfig\n  namespace: \"\"\n  spec:\n    type: state.redis\n    version: v1\n    ignoreerrors: false\n    metadata: []\n    inittimeout: \"\"\n",
 			errString:      "",
 			errorExpected:  false,
 			k8sConfig: []v1alpha1.Component{
@@ -189,7 +189,7 @@ func TestComponents(t *testing.T) {
 			name:           "Json one config",
 			configName:     "",
 			outputFormat:   "json",
-			expectedOutput: "{\n  \"name\": \"appConfig\",\n  \"namespace\": \"\",\n  \"spec\": {\n    \"type\": \"state.redis\",\n    \"version\": \"v1\",\n    \"ignoreErrors\": false,\n    \"metadata\": null,\n    \"initTimeout\": \"\"\n  }\n}",
+			expectedOutput: "[\n  {\n    \"name\": \"appConfig\",\n    \"namespace\": \"\",\n    \"spec\": {\n      \"type\": \"state.redis\",\n      \"version\": \"v1\",\n      \"ignoreErrors\": false,\n      \"metadata\": null,\n      \"initTimeout\": \"\"\n    }\n  }\n]",
 			errString:      "",
 			errorExpected:  false,
 			k8sConfig: []v1alpha1.Component{
