@@ -24,8 +24,8 @@ cli
 
 # CLI's auto-generated components directory
 **/components
-# Auto generated .dapr directory
-**/.dapr
+# Auto generated logs dir inside .dapr directory
+**/.dapr/logs
 
 test_output.json
 

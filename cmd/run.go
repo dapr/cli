@@ -467,7 +467,7 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 		runConfig := app.RunConfig
 		err = app.CreateDaprdLogFile()
 		if err != nil {
-			print.StatusEvent(os.Stderr, print.LogFailure, "Error getting log file for app %q present in %s: %s", runConfig.AppID, runFilePath, err.Error())
+			print.StatusEvent(os.Stderr, print.LogFailure, "Error getting daprd log file for app %q present in %s: %s", runConfig.AppID, runFilePath, err.Error())
 			exitWithError = true
 			break
 		}
@@ -483,7 +483,7 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 		} else {
 			err = app.CreateAppLogFile()
 			if err != nil {
-				print.StatusEvent(os.Stderr, print.LogFailure, "Error getting log file for app %q present in %s: %s", runConfig.AppID, runFilePath, err.Error())
+				print.StatusEvent(os.Stderr, print.LogFailure, "Error getting app log file for app %q present in %s: %s", runConfig.AppID, runFilePath, err.Error())
 				exitWithError = true
 				break
 			}
@@ -522,7 +522,7 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 	}
 
 	// Stop daprd and app processes for each runState.
-	_, closeError := gracefullyShutdownAppsAndCloseResources(runStates, apps)
+	closeError := gracefullyShutdownAppsAndCloseResources(runStates, apps)
 
 	for _, app := range apps {
 		runConfig := app.RunConfig
@@ -542,13 +542,9 @@ func logInformationalStatusToStdout(app runfileconfig.App) {
 	print.InfoStatusEvent(os.Stdout, "Writing log files to directory : %s", app.GetLogsDir())
 }
 
-func gracefullyShutdownAppsAndCloseResources(runState []*runExec.RunExec, apps []runfileconfig.App) (bool, error) {
-	exitWithError := false
+func gracefullyShutdownAppsAndCloseResources(runState []*runExec.RunExec, apps []runfileconfig.App) error {
 	for _, s := range runState {
-		hasErr := stopDaprdAndAppProcesses(s)
-		if !exitWithError && hasErr {
-			exitWithError = true
-		}
+		stopDaprdAndAppProcesses(s)
 	}
 	var err error
 	// close log file resources.
@@ -562,7 +558,7 @@ func gracefullyShutdownAppsAndCloseResources(runState []*runExec.RunExec, apps [
 			err = hasErr
 		}
 	}
-	return exitWithError, err
+	return err
 }
 
 func executeRunWithAppsConfigFile(runFilePath string) {

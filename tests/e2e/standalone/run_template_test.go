@@ -330,12 +330,13 @@ func assertLogOutputForRunTemplateExec(t *testing.T, appTestOutput AppTestOutput
 	daprdLogPath := filepath.Join(appTestOutput.baseLogDirPath, daprdLogFileName)
 	readAndAssertLogFileContents(t, daprdLogPath, appTestOutput.daprdLogContent)
 
-	if !appTestOutput.appLogDoesNotExist {
-		appLogFileName, err := lookUpFileFullName(appTestOutput.baseLogDirPath, "app")
-		require.NoError(t, err, "failed to find app log file")
-		appLogPath := filepath.Join(appTestOutput.baseLogDirPath, appLogFileName)
-		readAndAssertLogFileContents(t, appLogPath, appTestOutput.appLogContents)
+	if appTestOutput.appLogDoesNotExist {
+		return
 	}
+	appLogFileName, err := lookUpFileFullName(appTestOutput.baseLogDirPath, "app")
+	require.NoError(t, err, "failed to find app log file")
+	appLogPath := filepath.Join(appTestOutput.baseLogDirPath, appLogFileName)
+	readAndAssertLogFileContents(t, appLogPath, appTestOutput.appLogContents)
 }
 
 func readAndAssertLogFileContents(t *testing.T, logFilePath string, expectedContent []string) {
