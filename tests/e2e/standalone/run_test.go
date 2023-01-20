@@ -125,7 +125,7 @@ func TestStandaloneRun(t *testing.T) {
 		assert.Contains(t, output, "Exited Dapr successfully")
 	})
 
-	t.Run(fmt.Sprintf("check run with resources-path flag"), func(t *testing.T) {
+	t.Run("check run with nonexistent resources-path", func(t *testing.T) {
 		args := []string{
 			"--app-id", "testapp",
 			"--resources-path", "../testdata/nonexistentdir",
@@ -133,17 +133,16 @@ func TestStandaloneRun(t *testing.T) {
 		}
 		output, err := cmdRun("", args...)
 		t.Log(output)
-		require.NoError(t, err, "run failed")
-		assert.Contains(t, output, "failed to load components: open ../testdata/nonexistentdir:")
-		assert.Contains(t, output, "Exited App successfully")
-		assert.Contains(t, output, "Exited Dapr successfully")
+		require.Error(t, err, "run did not fail")
+	})
 
-		args = []string{
+	t.Run("check run with resources-path", func(t *testing.T) {
+		args := []string{
 			"--app-id", "testapp",
 			"--resources-path", "../testdata/resources",
 			"--", "bash", "-c", "echo 'test'",
 		}
-		output, err = cmdRun("", args...)
+		output, err := cmdRun("", args...)
 		t.Log(output)
 		require.NoError(t, err, "run failed")
 		assert.Contains(t, output, "component loaded. name: test-statestore, type: state.in-memory/v1")
