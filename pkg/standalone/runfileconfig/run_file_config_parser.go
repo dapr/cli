@@ -65,7 +65,7 @@ func (a *RunFileConfig) validateRunConfig(runFilePath string) error {
 		if err != nil {
 			return err
 		}
-		// All other paths present inside the specific app's in the YAML file, should be resolved relative to AppDirPath for that app.
+		// All other relative paths present inside the specific app's in the YAML file, should be resolved relative to AppDirPath for that app.
 		err = a.resolvePathToAbsAndValidate(a.Apps[i].AppDirPath, &a.Apps[i].ConfigFile, &a.Apps[i].ResourcesPath, &a.Apps[i].DaprdInstallPath)
 		if err != nil {
 			return err
@@ -76,7 +76,7 @@ func (a *RunFileConfig) validateRunConfig(runFilePath string) error {
 
 // GetApps orchestrates the parsing of supplied run file, validating fields and consolidating SharedRunConfig for the apps.
 // It returns a list of apps with the merged values for the SharedRunConfig from common section of the YAML file.
-func (a *RunFileConfig) GetApps(runFilePath string) ([]Apps, error) {
+func (a *RunFileConfig) GetApps(runFilePath string) ([]App, error) {
 	err := a.parseAppsConfig(runFilePath)
 	if err != nil {
 		return nil, err
@@ -199,7 +199,7 @@ func (a *RunFileConfig) mergeCommonAndAppsEnv() {
 
 // resolveResourcesFilePath resolves the resources path for the app.
 // Precedence order for resources_path -> apps[i].resources_path > apps[i].app_dir_path/.dapr/resources > common.resources_path > dapr default resources path.
-func (a *RunFileConfig) resolveResourcesFilePath(app *Apps) error {
+func (a *RunFileConfig) resolveResourcesFilePath(app *App) error {
 	if app.ResourcesPath != "" {
 		return nil
 	}
@@ -223,7 +223,7 @@ func (a *RunFileConfig) resolveResourcesFilePath(app *Apps) error {
 
 // resolveConfigFilePath resolves the config file path for the app.
 // Precedence order for config_file -> apps[i].config_file > apps[i].app_dir_path/.dapr/config.yaml > common.config_file > dapr default config file.
-func (a *RunFileConfig) resolveConfigFilePath(app *Apps) error {
+func (a *RunFileConfig) resolveConfigFilePath(app *App) error {
 	if app.ConfigFile != "" {
 		return nil
 	}
