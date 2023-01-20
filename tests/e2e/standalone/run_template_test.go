@@ -22,6 +22,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -33,10 +34,11 @@ import (
 )
 
 type AppTestOutput struct {
-	appID           string
-	appLogContents  []string
-	daprdLogContent []string
-	baseLogDirPath  string
+	appID              string
+	appLogContents     []string
+	daprdLogContent    []string
+	baseLogDirPath     string
+	appLogDoesNotExist bool
 }
 
 func TestRunWithTemplateFile(t *testing.T) {
@@ -45,12 +47,19 @@ func TestRunWithTemplateFile(t *testing.T) {
 	}
 	ensureDaprInstallation(t)
 	t.Cleanup(func() {
+		// remove dapr installation after all tests in this function.
 		must(t, cmdUninstall, "failed to uninstall Dapr")
 	})
-	t.Run(fmt.Sprintf("check run with -f file"), func(t *testing.T) {
-		// This test is dependent on run template file in ../testdata/multipleapps/dapr.yaml
+	// These tests are dependent on run template files in ../testdata/run-template-files folder.
+
+	t.Run("invalid template file wrong emit metrics app run", func(t *testing.T) {
+		t.Cleanup(func() {
+			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
+			os.RemoveAll("../../apps/emit-metrics/.dapr/logs")
+			os.RemoveAll("../../apps/processor/.dapr/logs")
+		})
 		args := []string{
-			"-f", "../testdata/dapr.yaml",
+			"-f", "../testdata/run-template-files/wrong_emit_metrics_app_dapr.yaml",
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
@@ -60,12 +69,62 @@ func TestRunWithTemplateFile(t *testing.T) {
 		// Deterministic output for template file, so we can assert line by line
 		lines := strings.Split(output, "\n")
 		assert.GreaterOrEqual(t, len(lines), 4, "expected at least 4 lines in output of starting two apps")
-		assert.Contains(t, lines[0], "Started Dapr with app id \"processor\". HTTP Port: 3510.")
-		assert.Contains(t, lines[1], "Writing log files to directory")
-		assert.Contains(t, lines[1], "tests/apps/processor/.dapr/logs")
-		assert.Contains(t, lines[2], "Started Dapr with app id \"emit-metrics\". HTTP Port: 3511.")
-		assert.Contains(t, lines[3], "Writing log files to directory")
-		assert.Contains(t, lines[3], "tests/apps/emit-metrics/.dapr/logs")
+		assert.Contains(t, lines[1], "Started Dapr with app id \"processor\". HTTP Port: 3510.")
+		assert.Contains(t, lines[2], "Writing log files to directory")
+		assert.Contains(t, lines[2], "tests/apps/processor/.dapr/logs")
+		assert.Contains(t, lines[4], "Started Dapr with app id \"emit-metrics\". HTTP Port: 3511.")
+		assert.Contains(t, lines[5], "Writing log files to directory")
+		assert.Contains(t, lines[5], "tests/apps/emit-metrics/.dapr/logs")
+		assert.Contains(t, output, "Received signal to stop Dapr and app processes. Shutting down Dapr and app processes.")
+		appTestOutput := AppTestOutput{
+			appID:          "processor",
+			baseLogDirPath: "../../apps/processor/.dapr/logs",
+			daprdLogContent: []string{
+				"http server is running on port 3510",
+				"You're up and running! Dapr logs will appear here.",
+			},
+		}
+		assertLogOutputForRunTemplateExec(t, appTestOutput)
+		appTestOutput = AppTestOutput{
+			appID:          "emit-metrics",
+			baseLogDirPath: "../../apps/emit-metrics/.dapr/logs",
+			appLogContents: []string{
+				"stat wrongappname.go: no such file or directory",
+				"The App process exited with error code: exit status 1",
+			},
+			daprdLogContent: []string{
+				"termination signal received: shutting down",
+				"Exited Dapr successfully",
+			},
+		}
+		assertLogOutputForRunTemplateExec(t, appTestOutput)
+	})
+
+	t.Run("valid template file", func(t *testing.T) {
+		t.Cleanup(func() {
+			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
+			os.RemoveAll("../../apps/emit-metrics/.dapr/logs")
+			os.RemoveAll("../../apps/processor/.dapr/logs")
+		})
+		args := []string{
+			"-f", "../testdata/run-template-files/dapr.yaml",
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		output, err := cmdRunWithContext(ctx, "", args...)
+		t.Logf(output)
+		require.NoError(t, err, "run failed")
+		// Deterministic output for template file, so we can assert line by line
+		lines := strings.Split(output, "\n")
+		assert.GreaterOrEqual(t, len(lines), 6, "expected at least 6 lines in output of starting two apps")
+		assert.Contains(t, lines[0], "Validating config and starting app \"processor\"")
+		assert.Contains(t, lines[1], "Started Dapr with app id \"processor\". HTTP Port: 3510.")
+		assert.Contains(t, lines[2], "Writing log files to directory")
+		assert.Contains(t, lines[2], "tests/apps/processor/.dapr/logs")
+		assert.Contains(t, lines[3], "Validating config and starting app \"emit-metrics\"")
+		assert.Contains(t, lines[4], "Started Dapr with app id \"emit-metrics\". HTTP Port: 3511.")
+		assert.Contains(t, lines[5], "Writing log files to directory")
+		assert.Contains(t, lines[5], "tests/apps/emit-metrics/.dapr/logs")
 		assert.Contains(t, output, "Received signal to stop Dapr and app processes. Shutting down Dapr and app processes.")
 		appTestOutput := AppTestOutput{
 			appID:          "processor",
@@ -83,7 +142,8 @@ func TestRunWithTemplateFile(t *testing.T) {
 			appID:          "emit-metrics",
 			baseLogDirPath: "../../apps/emit-metrics/.dapr/logs",
 			appLogContents: []string{
-				"DAPR_HTTP_PORT set to  3511",
+				"DAPR_HTTP_PORT set to 3511",
+				"DAPR_HOST_ADD set to localhost",
 				"Metrics with ID 3 sent",
 			},
 			daprdLogContent: []string{
@@ -94,23 +154,211 @@ func TestRunWithTemplateFile(t *testing.T) {
 		}
 		assertLogOutputForRunTemplateExec(t, appTestOutput)
 	})
+
+	t.Run("invalid template file env var not set", func(t *testing.T) {
+		t.Cleanup(func() {
+			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
+			os.RemoveAll("../../apps/emit-metrics/.dapr/logs")
+			os.RemoveAll("../../apps/processor/.dapr/logs")
+		})
+		args := []string{
+			"-f", "../testdata/run-template-files/env_var_not_set_dapr.yaml",
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		output, err := cmdRunWithContext(ctx, "", args...)
+		t.Logf(output)
+		require.NoError(t, err, "run failed")
+		// Deterministic output for template file, so we can assert line by line
+		lines := strings.Split(output, "\n")
+		assert.GreaterOrEqual(t, len(lines), 6, "expected at least 6 lines in output of starting two apps")
+		assert.Contains(t, lines[1], "Started Dapr with app id \"processor\". HTTP Port: 3510.")
+		assert.Contains(t, lines[2], "Writing log files to directory")
+		assert.Contains(t, lines[2], "tests/apps/processor/.dapr/logs")
+		assert.Contains(t, lines[4], "Started Dapr with app id \"emit-metrics\". HTTP Port: 3511.")
+		assert.Contains(t, lines[5], "Writing log files to directory")
+		assert.Contains(t, lines[5], "tests/apps/emit-metrics/.dapr/logs")
+		assert.Contains(t, output, "Received signal to stop Dapr and app processes. Shutting down Dapr and app processes.")
+		appTestOutput := AppTestOutput{
+			appID:          "processor",
+			baseLogDirPath: "../../apps/processor/.dapr/logs",
+			daprdLogContent: []string{
+				"http server is running on port 3510",
+				"You're up and running! Dapr logs will appear here.",
+			},
+		}
+		assertLogOutputForRunTemplateExec(t, appTestOutput)
+		appTestOutput = AppTestOutput{
+			appID:          "emit-metrics",
+			baseLogDirPath: "../../apps/emit-metrics/.dapr/logs",
+			appLogContents: []string{
+				"DAPR_HTTP_PORT set to 3511",
+				"exit status 1",
+				"Error exiting App: exit status 1",
+			},
+			daprdLogContent: []string{
+				"termination signal received: shutting down",
+				"Exited Dapr successfully",
+			},
+		}
+		assertLogOutputForRunTemplateExec(t, appTestOutput)
+	})
+
+	t.Run("valid template file no app command", func(t *testing.T) {
+		t.Cleanup(func() {
+			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
+			os.RemoveAll("../../apps/emit-metrics/.dapr/logs")
+			os.RemoveAll("../../apps/processor/.dapr/logs")
+		})
+		args := []string{
+			"-f", "../testdata/run-template-files/no_app_command.yaml",
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		output, err := cmdRunWithContext(ctx, "", args...)
+		t.Logf(output)
+		require.NoError(t, err, "run failed")
+		// Deterministic output for template file, so we can assert line by line
+		lines := strings.Split(output, "\n")
+		assert.GreaterOrEqual(t, len(lines), 7, "expected at least 7 lines in output of starting two apps with one app not having a command")
+		assert.Contains(t, lines[1], "Started Dapr with app id \"processor\". HTTP Port: 3510.")
+		assert.Contains(t, lines[2], "Writing log files to directory")
+		assert.Contains(t, lines[2], "tests/apps/processor/.dapr/logs")
+		assert.Contains(t, lines[4], "No application command found for app \"emit-metrics\" present in")
+		assert.Contains(t, lines[5], "Started Dapr with app id \"emit-metrics\". HTTP Port: 3511.")
+		assert.Contains(t, lines[6], "Writing log files to directory")
+		assert.Contains(t, lines[6], "tests/apps/emit-metrics/.dapr/logs")
+		assert.Contains(t, output, "Received signal to stop Dapr and app processes. Shutting down Dapr and app processes.")
+		appTestOutput := AppTestOutput{
+			appID:          "processor",
+			baseLogDirPath: "../../apps/processor/.dapr/logs",
+			appLogContents: []string{
+				"Starting server in port 9081...",
+				"termination signal received: shutting down",
+			},
+			daprdLogContent: []string{
+				"http server is running on port 3510",
+				"You're up and running! Dapr logs will appear here.",
+			},
+		}
+		assertLogOutputForRunTemplateExec(t, appTestOutput)
+		appTestOutput = AppTestOutput{
+			appID:              "emit-metrics",
+			baseLogDirPath:     "../../apps/emit-metrics/.dapr/logs",
+			appLogDoesNotExist: true,
+			daprdLogContent: []string{
+				"termination signal received: shutting down",
+				"Exited Dapr successfully",
+			},
+		}
+		assertLogOutputForRunTemplateExec(t, appTestOutput)
+	})
+
+	t.Run("valid template file empty app command", func(t *testing.T) {
+		t.Cleanup(func() {
+			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
+			os.RemoveAll("../../apps/emit-metrics/.dapr/logs")
+			os.RemoveAll("../../apps/processor/.dapr/logs")
+		})
+		args := []string{
+			"-f", "../testdata/run-template-files/empty_app_command.yaml",
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		output, err := cmdRunWithContext(ctx, "", args...)
+		t.Logf(output)
+		require.Error(t, err, "run must fail")
+		// Deterministic output for template file, so we can assert line by line
+		lines := strings.Split(output, "\n")
+		assert.GreaterOrEqual(t, len(lines), 5, "expected at least 5 lines in output of starting two apps with last app having an empty command")
+		assert.Contains(t, lines[1], "Started Dapr with app id \"processor\". HTTP Port: 3510.")
+		assert.Contains(t, lines[2], "Writing log files to directory")
+		assert.Contains(t, lines[2], "tests/apps/processor/.dapr/logs")
+		assert.Contains(t, lines[4], "Error starting Dapr and app (\"emit-metrics\"): exec: no command")
+		appTestOutput := AppTestOutput{
+			appID:          "processor",
+			baseLogDirPath: "../../apps/processor/.dapr/logs",
+			appLogContents: []string{
+				"Starting server in port 9081...",
+				"termination signal received: shutting down",
+			},
+			daprdLogContent: []string{
+				"http server is running on port 3510",
+				"You're up and running! Dapr logs will appear here.",
+			},
+		}
+		assertLogOutputForRunTemplateExec(t, appTestOutput)
+		appTestOutput = AppTestOutput{
+			appID:          "emit-metrics",
+			baseLogDirPath: "../../apps/emit-metrics/.dapr/logs",
+			appLogContents: []string{
+				"Error starting app process: exec: no command",
+			},
+			daprdLogContent: []string{
+				"Error starting Dapr and app (\"emit-metrics\"): exec: no command",
+			},
+		}
+		assertLogOutputForRunTemplateExec(t, appTestOutput)
+	})
+}
+
+func TestRunTemplateFileWithoutDaprInit(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Skipping test on Windows")
+	}
+	// remove any dapr installation before this test.
+	must(t, cmdUninstall, "failed to uninstall Dapr")
+	t.Run("valid template file without dapr init", func(t *testing.T) {
+		args := []string{
+			"-f", "../testdata/run-template-files/no_app_command.yaml",
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		output, err := cmdRunWithContext(ctx, "", args...)
+		t.Logf(output)
+		require.Error(t, err, "run must fail")
+		assert.Contains(t, output, " Error starting Dapr and app (\"processor\"): fork/exec")
+		assert.Contains(t, output, "daprd: no such file or directory")
+	})
 }
 
 func assertLogOutputForRunTemplateExec(t *testing.T, appTestOutput AppTestOutput) {
-	daprdLogPath := filepath.Join(appTestOutput.baseLogDirPath, "daprd.log")
-	appLogPath := filepath.Join(appTestOutput.baseLogDirPath, "app.log")
-	assert.FileExists(t, daprdLogPath, "daprd log must exist")
-	assert.FileExists(t, appLogPath, "app log must exist")
-	fileContents, err := ioutil.ReadFile(daprdLogPath)
-	assert.NoError(t, err, "failed to read daprd log")
+	// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
+	// This is true for the tests in this file.
+	daprdLogFileName, err := lookUpFileFullName(appTestOutput.baseLogDirPath, "daprd")
+	require.NoError(t, err, "failed to find daprd log file")
+	daprdLogPath := filepath.Join(appTestOutput.baseLogDirPath, daprdLogFileName)
+	readAndAssertLogFileContents(t, daprdLogPath, appTestOutput.daprdLogContent)
+
+	if !appTestOutput.appLogDoesNotExist {
+		appLogFileName, err := lookUpFileFullName(appTestOutput.baseLogDirPath, "app")
+		require.NoError(t, err, "failed to find app log file")
+		appLogPath := filepath.Join(appTestOutput.baseLogDirPath, appLogFileName)
+		readAndAssertLogFileContents(t, appLogPath, appTestOutput.appLogContents)
+	}
+}
+
+func readAndAssertLogFileContents(t *testing.T, logFilePath string, expectedContent []string) {
+	assert.FileExists(t, logFilePath, "log file %s must exist", logFilePath)
+	fileContents, err := ioutil.ReadFile(logFilePath)
+	assert.NoError(t, err, "failed to read %s log", logFilePath)
 	contentString := string(fileContents)
-	for _, line := range appTestOutput.daprdLogContent {
+	for _, line := range expectedContent {
 		assert.Contains(t, contentString, line, "expected logline to be present")
 	}
-	fileContents, err = ioutil.ReadFile(appLogPath)
-	assert.NoError(t, err, "failed to read app log")
-	contentString = string(fileContents)
-	for _, line := range appTestOutput.appLogContents {
-		assert.Contains(t, contentString, line, "expected logline to be present")
+}
+
+// lookUpFileFullName looks up the full name of the first file with partial name match in the directory.
+func lookUpFileFullName(dirPath, partialFilename string) (string, error) {
+	// Look for the file in the current directory
+	files, err := ioutil.ReadDir(dirPath)
+	if err != nil {
+		return "", err
 	}
+	for _, file := range files {
+		if strings.Contains(file.Name(), partialFilename) {
+			return file.Name(), nil
+		}
+	}
+	return "", fmt.Errorf("failed to find file with partial name %s in directory %s", partialFilename, dirPath)
 }

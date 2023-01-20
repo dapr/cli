@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"time"
@@ -14,18 +14,24 @@ type Metrics struct {
 }
 
 func main() {
-	var baseURL string
+	var host string
+	var port string
 	client := http.Client{}
-	val, ok := os.LookupEnv("DAPR_HTTP_PORT")
-	if !ok {
-		fmt.Println("DAPR_HTTP_PORT not set defaulting to 3500")
-		baseURL = "http://localhost:3500"
+	if val, ok := os.LookupEnv("DAPR_HTTP_PORT"); !ok {
+		log.Fatalf("DAPR_HTTP_PORT not automatically injected")
 	} else {
-		fmt.Println("DAPR_HTTP_PORT set to ", val)
-		baseURL = "http://localhost:" + val
+		log.Println("DAPR_HTTP_PORT set to", val)
+		port = val
 	}
-	finalURL := baseURL + "/metrics"
-	fmt.Println("Sending metrics to ", finalURL)
+	// DAPR_HOST_ADD needs to be an env set in dapr.yaml file
+	if val, ok := os.LookupEnv("DAPR_HOST_ADD"); !ok {
+		log.Fatalf("DAPR_HOST_ADD not set")
+	} else {
+		log.Println("DAPR_HOST_ADD set to", val)
+		host = val
+	}
+	finalURL := "http://" + host + ":" + port + "/metrics"
+	log.Println("Sending metrics to ", finalURL)
 	for i := 0; i < 2000; i++ {
 		time.Sleep(1 * time.Second)
 		metrics := Metrics{
@@ -33,7 +39,7 @@ func main() {
 		}
 		b, err := json.Marshal(metrics)
 		if err != nil {
-			fmt.Println("Got error while marshalling metrics ", err)
+			log.Println("Got error while marshalling metrics ", err)
 			continue
 		}
 		// Send metrics to Dapr
@@ -42,15 +48,15 @@ func main() {
 		req.Header.Set("dapr-app-id", "processor")
 		r, err := client.Do(req)
 		if err != nil {
-			fmt.Println("Got error while sending a request to 'processor' app ", err)
+			log.Println("Got error while sending a request to 'processor' app ", err)
 			continue
 		}
 		defer r.Body.Close()
 		if r.StatusCode != http.StatusOK {
-			fmt.Printf("Error sending metrics with %d to 'processor' app got status code %d\n", i, r.StatusCode)
-			fmt.Printf("Status %s \n", r.Status)
+			log.Printf("Error sending metrics with %d to 'processor' app got status code %d\n", i, r.StatusCode)
+			log.Printf("Status %s \n", r.Status)
 			continue
 		}
-		fmt.Printf("Metrics with ID %d sent \n", i)
+		log.Printf("Metrics with ID %d sent \n", i)
 	}
 }

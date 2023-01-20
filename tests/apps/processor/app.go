@@ -27,6 +27,7 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Println("Error decoding body: ", err)
 		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 	fmt.Println("Received metrics: ", metrics)
 	w.WriteHeader(http.StatusOK)
