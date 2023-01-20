@@ -208,9 +208,6 @@ func (a *RunFileConfig) resolveResourcesFilePath(app *Apps) error {
 		app.ResourcesPath = localResourcesDir
 	} else if len(strings.TrimSpace(a.Common.ResourcesPath)) > 0 {
 		app.ResourcesPath = a.Common.ResourcesPath
-	} else if app.DaprdInstallPath != "" {
-		daprDirPath := filepath.Join(app.DaprdInstallPath, standalone.DefaultDaprDirName)
-		app.ResourcesPath = standalone.GetDaprComponentsPath(daprDirPath)
 	} else {
 		daprDirPath, err := standalone.GetDaprPath(app.DaprdInstallPath)
 		if err != nil {
@@ -232,9 +229,6 @@ func (a *RunFileConfig) resolveConfigFilePath(app *Apps) error {
 		app.ConfigFile = localConfigFile
 	} else if len(strings.TrimSpace(a.Common.ConfigFile)) > 0 {
 		app.ConfigFile = a.Common.ConfigFile
-	} else if app.DaprdInstallPath != "" {
-		daprDirPath := filepath.Join(app.DaprdInstallPath, standalone.DefaultDaprDirName)
-		app.ConfigFile = standalone.GetDaprConfigPath(daprDirPath)
 	} else {
 		daprDirPath, err := standalone.GetDaprPath(app.DaprdInstallPath)
 		if err != nil {
