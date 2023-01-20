@@ -451,36 +451,48 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 
 	runStates := make([]*runExec.RunExec, 0, len(apps))
 	for _, app := range apps {
+		print.StatusEvent(os.Stdout, print.LogInfo, "Validating config and starting app %q", app.RunConfig.AppID)
 		// Set defaults if zero value provided in config yaml.
 		app.RunConfig.SetDefaultFromSchema()
 
 		// Validate validates the configs and modifies the ports to free ports, appId etc.
 		err := app.RunConfig.Validate()
 		if err != nil {
-			print.FailureStatusEvent(os.Stderr, "Error validating run config for app %s present in %s: %s", app.RunConfig.AppID, runFilePath, err.Error())
+			print.FailureStatusEvent(os.Stderr, "Error validating run config for app %q present in %s: %s", app.RunConfig.AppID, runFilePath, err.Error())
 			exitWithError = true
 			break
 		}
 
 		// Get Run Config for different apps.
 		runConfig := app.RunConfig
-
-		err = app.CreateAppLogFile()
-		if err != nil {
-			print.StatusEvent(os.Stderr, print.LogFailure, "Error getting log file for app %s present in %s: %s", runConfig.AppID, runFilePath, err.Error())
-			exitWithError = true
-			break
-		}
 		err = app.CreateDaprdLogFile()
 		if err != nil {
-			print.StatusEvent(os.Stderr, print.LogFailure, "Error getting log file for app %s present in %s: %s", runConfig.AppID, runFilePath, err.Error())
+			print.StatusEvent(os.Stderr, print.LogFailure, "Error getting log file for app %q present in %s: %s", runConfig.AppID, runFilePath, err.Error())
 			exitWithError = true
 			break
 		}
-		// create a multiwriter to write to both app and daprd log files.
-		appDaprdWriter := io.MultiWriter(app.AppLogWriteCloser, app.DaprdLogWriteCloser)
+		// Combined multiwriter for logs.
+		var appDaprdWriter io.Writer
+		// appLogWriterCloser is used when app command is present.
+		var appLogWriterCloser io.WriteCloser
+		daprdLogWriterCloser := app.DaprdLogWriteCloser
+		if len(runConfig.Command) == 0 {
+			print.StatusEvent(os.Stdout, print.LogWarning, "No application command found for app %q present in %s", runConfig.AppID, runFilePath)
+			appDaprdWriter = app.DaprdLogWriteCloser
+			appLogWriterCloser = app.DaprdLogWriteCloser
+		} else {
+			err = app.CreateAppLogFile()
+			if err != nil {
+				print.StatusEvent(os.Stderr, print.LogFailure, "Error getting log file for app %q present in %s: %s", runConfig.AppID, runFilePath, err.Error())
+				exitWithError = true
+				break
+			}
+			appDaprdWriter = io.MultiWriter(app.AppLogWriteCloser, app.DaprdLogWriteCloser)
+			appLogWriterCloser = app.AppLogWriteCloser
+		}
+
 		runState, err := startDaprdAndAppProcesses(&runConfig, app.AppDirPath, sigCh,
-			app.DaprdLogWriteCloser, app.DaprdLogWriteCloser, app.AppLogWriteCloser, app.AppLogWriteCloser)
+			daprdLogWriterCloser, daprdLogWriterCloser, appLogWriterCloser, appLogWriterCloser)
 		if err != nil {
 			print.StatusEvent(os.Stdout, print.LogFailure, "Error starting Dapr and app (%q): %s", app.AppID, err.Error())
 			print.StatusEvent(appDaprdWriter, print.LogFailure, "Error starting Dapr and app (%q): %s", app.AppID, err.Error())
@@ -510,7 +522,7 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 	}
 
 	// Stop daprd and app processes for each runState.
-	exitWithError, closeError := gracefullyShutdownAppsAndCloseResources(runStates, apps)
+	_, closeError := gracefullyShutdownAppsAndCloseResources(runStates, apps)
 
 	for _, app := range apps {
 		runConfig := app.RunConfig
@@ -600,34 +612,52 @@ func startDaprdAndAppProcesses(runConfig *standalone.RunConfig, commandDir strin
 		print.StatusEvent(appErrorWriter, print.LogFailure, "Error getting app command with args : %s", err.Error())
 		return nil, err
 	}
-	// appCmd does not need to call SetStdout and SetStderr since output is being read processed and then written
-	// to the output and error writers for an app.
-	appCmd.WithOutputWriter(appOutputWriter)
-	appCmd.WithErrorWriter(appErrorWriter)
-	if strings.TrimSpace(commandDir) != "" {
-		appCmd.Command.Dir = commandDir
+	if appCmd.Command != nil {
+		// If an app is being run, set the command directory for that app.
+		// appCmd does not need to call SetStdout and SetStderr since output is being read processed and then written
+		// to the output and error writers for an app.
+		appCmd.WithOutputWriter(appOutputWriter)
+		appCmd.WithErrorWriter(appErrorWriter)
+		if strings.TrimSpace(commandDir) != "" {
+			appCmd.Command.Dir = commandDir
+		}
 	}
 
 	runState := runExec.New(runConfig, daprCMD, appCmd)
 
-	startErrChan := make(chan error)
+	startErrChan := make(chan error, 1)
 
+	// Start daprd process.
 	go startDaprdProcess(runConfig, runState, daprRunning, sigCh, startErrChan)
 
 	// Wait for daprRunning channel output.
 	if daprStarted := <-daprRunning; !daprStarted {
 		startErr := <-startErrChan
 		print.StatusEvent(daprdErrorWriter, print.LogFailure, "Error starting daprd process: %s", startErr.Error())
-		return nil, err
+		return nil, startErr
 	}
 
+	// No application command is present.
+	if appCmd.Command == nil {
+		print.StatusEvent(appOutputWriter, print.LogWarning, "No application command present")
+		return runState, nil
+	}
+
+	// Start App process.
 	go startAppProcess(runConfig, runState, appRunning, sigCh, startErrChan)
 
 	// Wait for appRunnning channel output.
 	if appStarted := <-appRunning; !appStarted {
-		// Start App failed, try to stop Dapr and exit.
+		startErr := <-startErrChan
+		print.StatusEvent(appErrorWriter, print.LogFailure, "Error starting app process: %s", startErr.Error())
+		// Start App failed so try to stop daprd process.
 		err = killDaprdProcess(runState)
-		return nil, err
+		if err != nil {
+			print.StatusEvent(daprdErrorWriter, print.LogFailure, "Error stopping daprd process: %s", err.Error())
+			print.StatusEvent(appErrorWriter, print.LogFailure, "Error stopping daprd process: %s", err.Error())
+		}
+		// Return the error from starting the app process.
+		return nil, startErr
 	}
 	return runState, nil
 }
@@ -637,8 +667,9 @@ func startDaprdAndAppProcesses(runConfig *standalone.RunConfig, commandDir strin
 func stopDaprdAndAppProcesses(runState *runExec.RunExec) bool {
 	var err error
 	print.StatusEvent(runState.DaprCMD.OutputWriter, print.LogInfo, "\ntermination signal received: shutting down")
-	// Only if two different output writers are present run the following print statement.
-	if runState.AppCMD.OutputWriter != runState.DaprCMD.OutputWriter {
+	// Only if app command is present and
+	// if two different output writers are present run the following print statement.
+	if runState.AppCMD.Command != nil && runState.AppCMD.OutputWriter != runState.DaprCMD.OutputWriter {
 		print.StatusEvent(runState.AppCMD.OutputWriter, print.LogInfo, "\ntermination signal received: shutting down")
 	}
 
@@ -841,6 +872,9 @@ func killDaprdProcess(runE *runExec.RunExec) error {
 
 // killAppProcess is used to kill the App process and return error on failure.
 func killAppProcess(runE *runExec.RunExec) error {
+	if runE.AppCMD.Command == nil {
+		return nil
+	}
 	err := runE.AppCMD.Command.Process.Kill()
 	if err != nil {
 		print.StatusEvent(runE.DaprCMD.ErrorWriter, print.LogFailure, "Error exiting App: %s", err)
