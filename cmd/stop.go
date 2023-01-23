@@ -14,7 +14,10 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
+	"runtime"
 
 	"github.com/spf13/cobra"
 
@@ -30,13 +33,39 @@ var StopCmd = &cobra.Command{
 	Example: `
 # Stop Dapr application
 dapr stop --app-id <ID>
+
+# Stop multiple apps by providing a run config file
+dapr stop --run-file dapr.yaml
+
+# Stop multiple apps by providing a directory path containing the run config file(dapr.yaml)
+dapr stop --run-file /path/to/directory
 `,
 	Run: func(cmd *cobra.Command, args []string) {
+		var err error
+		if len(runFilePath) > 0 {
+			if runtime.GOOS == string(WINDOWS) {
+				print.FailureStatusEvent(os.Stderr, "The stop command with run file is not supported on Windows")
+				os.Exit(1)
+			}
+			runFilePath, err = getRunFilePath(runFilePath)
+			if err != nil {
+				print.FailureStatusEvent(os.Stderr, "Failed to get run file path: %v", err)
+				os.Exit(1)
+			}
+			err = executeStopWithRunFile(runFilePath)
+			if err != nil {
+				print.FailureStatusEvent(os.Stderr, "failed to stop Dapr and app processes: %s", err)
+			} else {
+				print.SuccessStatusEvent(os.Stdout, "Dapr and app processes stopped successfully")
+			}
+			return
+		}
 		if stopAppID != "" {
 			args = append(args, stopAppID)
 		}
+		cliPIDToNoOfApps := standalone.GetCLiPIDCountMap()
 		for _, appID := range args {
-			err := standalone.Stop(appID)
+			err = standalone.Stop(appID, cliPIDToNoOfApps)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, "failed to stop app id %s: %s", appID, err)
 			} else {
@@ -48,6 +77,15 @@ dapr stop --app-id <ID>
 
 func init() {
 	StopCmd.Flags().StringVarP(&stopAppID, "app-id", "a", "", "The application id to be stopped")
+	StopCmd.Flags().StringVarP(&runFilePath, "run-file", "f", "", "Path to the configuration file for the apps to run")
 	StopCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	RootCmd.AddCommand(StopCmd)
+}
+
+func executeStopWithRunFile(runFilePath string) error {
+	absFilePath, err := filepath.Abs(runFilePath)
+	if err != nil {
+		return fmt.Errorf("failed to get abosulte file path for %s: %w", runFilePath, err)
+	}
+	return standalone.StopAppsWithRunFile(absFilePath)
 }

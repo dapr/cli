@@ -46,6 +46,12 @@ type daprVersion struct {
 	RuntimeVersion string `json:"Runtime version"`
 }
 
+type osType string
+
+const (
+	WINDOWS osType = "windows"
+)
+
 var (
 	daprVer   daprVersion
 	logAsJSON bool

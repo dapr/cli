@@ -41,6 +41,7 @@ type ListOutput struct {
 	CliPID             int    `csv:"CLI PID"   json:"cliPid"             yaml:"cliPid"`
 	MaxRequestBodySize int    `csv:"-"         json:"maxRequestBodySize" yaml:"maxRequestBodySize"` // Additional field, not displayed in table.
 	HTTPReadBufferSize int    `csv:"-"         json:"httpReadBufferSize" yaml:"httpReadBufferSize"` // Additional field, not displayed in table.
+	RunFile            string `csv:"RUN_FILE"         json:"runFile"            yaml:"runFile"`
 }
 
 func (d *daprProcess) List() ([]ListOutput, error) {
@@ -99,11 +100,13 @@ func List() ([]ListOutput, error) {
 			appID := argumentsMap["--app-id"]
 			appCmd := ""
 			cliPIDString := ""
+			runFilePath := ""
 			socket := argumentsMap["--unix-domain-socket"]
 			appMetadata, err := metadata.Get(httpPort, appID, socket)
 			if err == nil {
 				appCmd = appMetadata.Extended["appCommand"]
 				cliPIDString = appMetadata.Extended["cliPID"]
+				runFilePath = appMetadata.Extended["runFile"]
 			}
 
 			// Parse functions return an error on bad input.
@@ -134,6 +137,7 @@ func List() ([]ListOutput, error) {
 				Command:            utils.TruncateString(appCmd, 20),
 				MaxRequestBodySize: maxRequestBodySize,
 				HTTPReadBufferSize: httpReadBufferSize,
+				RunFile:            runFilePath,
 			}
 
 			// filter only dashboard instance.
@@ -155,4 +159,16 @@ func getIntArg(argMap map[string]string, argKey string, argDef int) int {
 		}
 	}
 	return argDef
+}
+
+func GetCLiPIDCountMap() map[int]int {
+	cliPIDCountMap := make(map[int]int)
+	apps, err := List()
+	if err != nil {
+		return nil
+	}
+	for _, app := range apps {
+		cliPIDCountMap[app.CliPID]++
+	}
+	return cliPIDCountMap
 }

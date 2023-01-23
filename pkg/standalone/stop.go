@@ -23,7 +23,7 @@ import (
 )
 
 // Stop terminates the application process.
-func Stop(appID string) error {
+func Stop(appID string, cliPIDToNoOfApps map[int]int) error {
 	apps, err := List()
 	if err != nil {
 		return err
@@ -34,8 +34,9 @@ func Stop(appID string) error {
 			var pid string
 			// Kill the Daprd process if Daprd was started without CLI, otherwise
 			// kill the CLI process which also kills the associated Daprd process.
-			if a.CliPID == 0 {
+			if a.CliPID == 0 || cliPIDToNoOfApps[a.CliPID] > 1 {
 				pid = fmt.Sprintf("%v", a.DaprdPID)
+				cliPIDToNoOfApps[a.CliPID]--
 			} else {
 				pid = fmt.Sprintf("%v", a.CliPID)
 			}
@@ -47,4 +48,19 @@ func Stop(appID string) error {
 	}
 
 	return fmt.Errorf("couldn't find app id %s", appID)
+}
+
+// StopAppsWithRunFile terminates the daprd and application processes with the given run file.
+func StopAppsWithRunFile(runFilePath string) error {
+	apps, err := List()
+	if err != nil {
+		return err
+	}
+	for _, a := range apps {
+		if a.RunFile == runFilePath {
+			_, err := utils.RunCmdAndWait("kill", fmt.Sprintf("%v", a.CliPID))
+			return err
+		}
+	}
+	return fmt.Errorf("couldn't find apps with run file %q", runFilePath)
 }
