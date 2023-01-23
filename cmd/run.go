@@ -106,7 +106,7 @@ dapr run --run-file /path/to/directory
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(runFilePath) > 0 {
-			if runtime.GOOS == string(WINDOWS) {
+			if runtime.GOOS == string(windowsOsType) {
 				print.FailureStatusEvent(os.Stderr, "The run command with run file is not supported on Windows")
 				os.Exit(1)
 			}
@@ -140,7 +140,7 @@ dapr run --run-file /path/to/directory
 
 		if unixDomainSocket != "" {
 			// TODO(@daixiang0): add Windows support.
-			if runtime.GOOS == string(WINDOWS) {
+			if runtime.GOOS == string(windowsOsType) {
 				print.FailureStatusEvent(os.Stderr, "The unix-domain-socket option is not supported on Windows")
 				os.Exit(1)
 			} else {
@@ -510,13 +510,13 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 		runStates = append(runStates, runState)
 
 		// Metadata API is only available if app has started listening to port, so wait for app to start before calling metadata API.
-		_ = putCLIProcessIDInMeta(runState, os.Getpid())
+		putCLIProcessIDInMeta(runState, os.Getpid())
 
 		// Update extended metadata with run file path.
-		_ = putRunFilePathInMeta(runState, runFilePath)
+		putRunFilePathInMeta(runState, runFilePath)
 
 		if runState.AppCMD.Command != nil {
-			_ = putAppCommandInMeta(runConfig, runState)
+			putAppCommandInMeta(runConfig, runState)
 		}
 		print.StatusEvent(runState.DaprCMD.OutputWriter, print.LogSuccess, "You're up and running! Dapr logs will appear here.\n")
 		logInformationalStatusToStdout(app)
@@ -894,43 +894,37 @@ func killAppProcess(runE *runExec.RunExec) error {
 }
 
 // putCLIProcessIDInMeta puts the CLI process ID in metadata so that it can be used by the CLI to stop the CLI process.
-func putCLIProcessIDInMeta(runE *runExec.RunExec, pid int) error {
-	// For now putting this as 0, since we do not want the dapr stop command for a single to kill the CLI process,
-	// thereby killing all the apps that are running via dapr run -f.
+func putCLIProcessIDInMeta(runE *runExec.RunExec, pid int) {
+	print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogInfo, "Updating metadata for cliPID: %d", pid)
 	err := metadata.Put(runE.DaprHTTPPort, "cliPID", strconv.Itoa(pid), runE.AppID, unixDomainSocket)
 	if err != nil {
 		print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogWarning, "Could not update sidecar metadata for cliPID: %s", err.Error())
-		return err
 	}
-	return nil
 }
 
 // putAppCommandInMeta puts the app command in metadata so that it can be used by the CLI to stop the app.
-func putAppCommandInMeta(runConfig standalone.RunConfig, runState *runExec.RunExec) error {
+func putAppCommandInMeta(runConfig standalone.RunConfig, runE *runExec.RunExec) {
 	appCommand := strings.Join(runConfig.Command, " ")
-	print.StatusEvent(runState.DaprCMD.OutputWriter, print.LogInfo, "Updating metadata for app command: %s", appCommand)
-	err := metadata.Put(runState.DaprHTTPPort, "appCommand", appCommand, runState.AppID, runConfig.UnixDomainSocket)
+	print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogInfo, "Updating metadata for app command: %s", appCommand)
+	err := metadata.Put(runE.DaprHTTPPort, "appCommand", appCommand, runE.AppID, runConfig.UnixDomainSocket)
 	if err != nil {
-		print.StatusEvent(runState.DaprCMD.OutputWriter, print.LogWarning, "Could not update sidecar metadata for appCommand: %s", err.Error())
-		return err
+		print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogWarning, "Could not update sidecar metadata for appCommand: %s", err.Error())
+		return
 	}
-	print.StatusEvent(runState.DaprCMD.OutputWriter, print.LogSuccess, "You're up and running! Dapr logs will appear here.\n")
-	return nil
+	print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogSuccess, "You're up and running! Dapr logs will appear here.\n")
 }
 
 // putRunFilePathInMeta puts the absolute path of run file in metadata so that it can be used by the CLI to stop all apps started by this run file.
-func putRunFilePathInMeta(runE *runExec.RunExec, runFilePath string) error {
+func putRunFilePathInMeta(runE *runExec.RunExec, runFilePath string) {
 	runFilePath, err := filepath.Abs(runFilePath)
 	if err != nil {
 		print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogWarning, "Could not get absolute path for run file: %s", err.Error())
-		return err
+		return
 	}
 	err = metadata.Put(runE.DaprHTTPPort, "runFile", runFilePath, runE.AppID, unixDomainSocket)
 	if err != nil {
 		print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogWarning, "Could not update sidecar metadata for runFile: %s", err.Error())
-		return err
 	}
-	return nil
 }
 
 // getRunFilePath returns the path to the run file.

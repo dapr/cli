@@ -69,7 +69,7 @@ dapr publish --publish-app-id myapp --pubsub target --topic sample --data '{"key
 		client := standalone.NewClient()
 		// TODO(@daixiang0): add Windows support.
 		if publishSocket != "" {
-			if runtime.GOOS == string(WINDOWS) {
+			if runtime.GOOS == string(windowsOsType) {
 				print.FailureStatusEvent(os.Stderr, "The unix-domain-socket option is not supported on Windows")
 				os.Exit(1)
 			} else {

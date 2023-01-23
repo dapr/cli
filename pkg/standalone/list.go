@@ -41,7 +41,7 @@ type ListOutput struct {
 	CliPID             int    `csv:"CLI PID"   json:"cliPid"             yaml:"cliPid"`
 	MaxRequestBodySize int    `csv:"-"         json:"maxRequestBodySize" yaml:"maxRequestBodySize"` // Additional field, not displayed in table.
 	HTTPReadBufferSize int    `csv:"-"         json:"httpReadBufferSize" yaml:"httpReadBufferSize"` // Additional field, not displayed in table.
-	RunFile            string `csv:"RUN_FILE"         json:"runFile"            yaml:"runFile"`
+	RunFile            string `csv:"RUN_FILE"  json:"runFile"            yaml:"runFile"`
 }
 
 func (d *daprProcess) List() ([]ListOutput, error) {
@@ -161,8 +161,8 @@ func getIntArg(argMap map[string]string, argKey string, argDef int) int {
 	return argDef
 }
 
-// GetCLiPIDCountMap returns a map of cliPID to count of apps started with the same PPID.
-func GetCLiPIDCountMap() map[int]int {
+// GetCLIPIDCountMap returns a map of CLI PIDs to number of apps started with it.
+func GetCLIPIDCountMap() map[int]int {
 	cliPIDCountMap := make(map[int]int)
 	apps, err := List()
 	if err != nil {

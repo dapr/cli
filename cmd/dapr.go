@@ -49,7 +49,7 @@ type daprVersion struct {
 type osType string
 
 const (
-	WINDOWS osType = "windows"
+	windowsOsType osType = "windows"
 )
 
 var (

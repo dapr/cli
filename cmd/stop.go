@@ -43,8 +43,8 @@ dapr stop --run-file /path/to/directory
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error
 		if len(runFilePath) > 0 {
-			if runtime.GOOS == string(WINDOWS) {
-				print.FailureStatusEvent(os.Stderr, "The stop command with run file is not supported on Windows")
+			if runtime.GOOS == string(windowsOsType) {
+				print.FailureStatusEvent(os.Stderr, "Stop command with run file is not supported on Windows")
 				os.Exit(1)
 			}
 			runFilePath, err = getRunFilePath(runFilePath)
@@ -63,7 +63,7 @@ dapr stop --run-file /path/to/directory
 		if stopAppID != "" {
 			args = append(args, stopAppID)
 		}
-		cliPIDToNoOfApps := standalone.GetCLiPIDCountMap()
+		cliPIDToNoOfApps := standalone.GetCLIPIDCountMap()
 		for _, appID := range args {
 			err = standalone.Stop(appID, cliPIDToNoOfApps)
 			if err != nil {
@@ -85,7 +85,7 @@ func init() {
 func executeStopWithRunFile(runFilePath string) error {
 	absFilePath, err := filepath.Abs(runFilePath)
 	if err != nil {
-		return fmt.Errorf("failed to get abosulte file path for %s: %w", runFilePath, err)
+		return fmt.Errorf("failed to get absolute file path for %s: %w", runFilePath, err)
 	}
 	return standalone.StopAppsWithRunFile(absFilePath)
 }
