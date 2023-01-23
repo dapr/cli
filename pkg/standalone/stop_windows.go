@@ -21,7 +21,7 @@ import (
 )
 
 // Stop terminates the application process.
-func Stop(appID string) error {
+func Stop(appID string, cliPIDToNoOfApps map[int]int) error {
 	apps, err := List()
 	if err != nil {
 		return err
