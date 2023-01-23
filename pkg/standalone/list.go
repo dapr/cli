@@ -161,6 +161,7 @@ func getIntArg(argMap map[string]string, argKey string, argDef int) int {
 	return argDef
 }
 
+// GetCLiPIDCountMap returns a map of cliPID to count of apps started with the same PPID.
 func GetCLiPIDCountMap() map[int]int {
 	cliPIDCountMap := make(map[int]int)
 	apps, err := List()
