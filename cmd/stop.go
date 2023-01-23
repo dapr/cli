@@ -54,7 +54,7 @@ dapr stop --run-file /path/to/directory
 			}
 			err = executeStopWithRunFile(runFilePath)
 			if err != nil {
-				print.FailureStatusEvent(os.Stderr, "failed to stop Dapr and app processes: %s", err)
+				print.FailureStatusEvent(os.Stderr, "Failed to stop Dapr and app processes: %s", err)
 			} else {
 				print.SuccessStatusEvent(os.Stdout, "Dapr and app processes stopped successfully")
 			}
