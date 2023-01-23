@@ -42,3 +42,8 @@ func Stop(appID string, cliPIDToNoOfApps map[int]int) error {
 
 	return fmt.Errorf("couldn't find app id %s", appID)
 }
+
+// StopAppsWithRunFile terminates the daprd and application processes with the given run file.
+func StopAppsWithRunFile(runFilePath string) error {
+	return fmt.Errorf("the method %q is not implemented on Windows", "StopAppsWithRunFile")
+}
