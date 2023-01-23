@@ -266,14 +266,8 @@ func TestGetBasePathFromAbsPath(t *testing.T) {
 func getResourcesAndConfigFilePaths(t *testing.T, daprInstallPath string) []string {
 	t.Helper()
 	result := make([]string, 2)
-	var daprDirPath string
-	var err error
-	if daprInstallPath == "" {
-		daprDirPath, err = standalone.GetDaprPath(daprInstallPath)
-		assert.NoError(t, err)
-	} else {
-		daprDirPath = filepath.Join(daprInstallPath, standalone.DefaultDaprDirName)
-	}
+	daprDirPath, err := standalone.GetDaprPath(daprInstallPath)
+	assert.NoError(t, err)
 	result[0] = standalone.GetDaprComponentsPath(daprDirPath)
 	result[1] = standalone.GetDaprConfigPath(daprDirPath)
 	return result
