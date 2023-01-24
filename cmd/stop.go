@@ -77,7 +77,7 @@ dapr stop --run-file /path/to/directory
 
 func init() {
 	StopCmd.Flags().StringVarP(&stopAppID, "app-id", "a", "", "The application id to be stopped")
-	StopCmd.Flags().StringVarP(&runFilePath, "run-file", "f", "", "Path to the configuration file for the apps to run")
+	StopCmd.Flags().StringVarP(&runFilePath, "run-file", "f", "", "Path to the run template file for the list of apps to stop")
 	StopCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	RootCmd.AddCommand(StopCmd)
 }
