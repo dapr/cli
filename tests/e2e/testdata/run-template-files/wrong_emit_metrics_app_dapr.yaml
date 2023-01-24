@@ -1,0 +1,13 @@
+version: 1
+apps:
+  - app_dir_path: ../../../apps/processor/
+    app_port: 9081
+    dapr_http_port: 3510
+    command: ["go","run", "app.go"]
+  - app_id: emit-metrics
+    app_dir_path: ../../../apps/emit-metrics/
+    dapr_http_port: 3511
+    env:
+      DAPR_HOST_ADD: localhost
+    # Set wrong app name
+    command: ["go","run", "wrongappname.go"]
