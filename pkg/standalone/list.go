@@ -41,6 +41,7 @@ type ListOutput struct {
 	CliPID             int    `csv:"CLI PID"   json:"cliPid"             yaml:"cliPid"`
 	MaxRequestBodySize int    `csv:"-"         json:"maxRequestBodySize" yaml:"maxRequestBodySize"` // Additional field, not displayed in table.
 	HTTPReadBufferSize int    `csv:"-"         json:"httpReadBufferSize" yaml:"httpReadBufferSize"` // Additional field, not displayed in table.
+	RunTemplatePath    string `csv:"RUN_TEMPLATE_PATH"  json:"runTemplatePath"            yaml:"runTemplatePath"`
 }
 
 func (d *daprProcess) List() ([]ListOutput, error) {
@@ -99,11 +100,13 @@ func List() ([]ListOutput, error) {
 			appID := argumentsMap["--app-id"]
 			appCmd := ""
 			cliPIDString := ""
+			runTemplatePath := ""
 			socket := argumentsMap["--unix-domain-socket"]
 			appMetadata, err := metadata.Get(httpPort, appID, socket)
 			if err == nil {
 				appCmd = appMetadata.Extended["appCommand"]
 				cliPIDString = appMetadata.Extended["cliPID"]
+				runTemplatePath = appMetadata.Extended["runTemplatePath"]
 			}
 
 			// Parse functions return an error on bad input.
@@ -134,6 +137,7 @@ func List() ([]ListOutput, error) {
 				Command:            utils.TruncateString(appCmd, 20),
 				MaxRequestBodySize: maxRequestBodySize,
 				HTTPReadBufferSize: httpReadBufferSize,
+				RunTemplatePath:    runTemplatePath,
 			}
 
 			// filter only dashboard instance.
@@ -155,4 +159,13 @@ func getIntArg(argMap map[string]string, argKey string, argDef int) int {
 		}
 	}
 	return argDef
+}
+
+// GetCLIPIDCountMap returns a map of CLI PIDs to number of apps started with it.
+func GetCLIPIDCountMap(apps []ListOutput) map[int]int {
+	cliPIDCountMap := make(map[int]int, len(apps))
+	for _, app := range apps {
+		cliPIDCountMap[app.CliPID]++
+	}
+	return cliPIDCountMap
 }

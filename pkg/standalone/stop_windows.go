@@ -14,6 +14,7 @@ limitations under the License.
 package standalone
 
 import (
+	"errors"
 	"fmt"
 	"syscall"
 
@@ -21,12 +22,7 @@ import (
 )
 
 // Stop terminates the application process.
-func Stop(appID string) error {
-	apps, err := List()
-	if err != nil {
-		return err
-	}
-
+func Stop(appID string, cliPIDToNoOfApps map[int]int, apps []ListOutput) error {
 	for _, a := range apps {
 		if a.AppID == appID {
 			eventName, _ := syscall.UTF16FromString(fmt.Sprintf("dapr_cli_%v", a.CliPID))
@@ -39,6 +35,10 @@ func Stop(appID string) error {
 			return err
 		}
 	}
-
 	return fmt.Errorf("couldn't find app id %s", appID)
+}
+
+// StopAppsWithRunFile terminates the daprd and application processes with the given run file.
+func StopAppsWithRunFile(runFilePath string) error {
+	return errors.New("stopping apps with run template file is not supported on windows")
 }
