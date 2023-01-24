@@ -63,9 +63,14 @@ dapr stop --run-file /path/to/directory
 		if stopAppID != "" {
 			args = append(args, stopAppID)
 		}
-		cliPIDToNoOfApps := standalone.GetCLIPIDCountMap()
+		apps, err := standalone.List()
+		if err != nil {
+			print.FailureStatusEvent(os.Stderr, "failed to get list of apps started by dapr : %s", err)
+			os.Exit(1)
+		}
+		cliPIDToNoOfApps := standalone.GetCLIPIDCountMap(apps)
 		for _, appID := range args {
-			err = standalone.Stop(appID, cliPIDToNoOfApps)
+			err = standalone.Stop(appID, cliPIDToNoOfApps, apps)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, "failed to stop app id %s: %s", appID, err)
 			} else {

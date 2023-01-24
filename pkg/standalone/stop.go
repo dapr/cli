@@ -23,12 +23,7 @@ import (
 )
 
 // Stop terminates the application process.
-func Stop(appID string, cliPIDToNoOfApps map[int]int) error {
-	apps, err := List()
-	if err != nil {
-		return err
-	}
-
+func Stop(appID string, cliPIDToNoOfApps map[int]int, apps []ListOutput) error {
 	for _, a := range apps {
 		if a.AppID == appID {
 			var pid string
@@ -46,7 +41,6 @@ func Stop(appID string, cliPIDToNoOfApps map[int]int) error {
 			return err
 		}
 	}
-
 	return fmt.Errorf("couldn't find app id %s", appID)
 }
 

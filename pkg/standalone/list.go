@@ -162,12 +162,8 @@ func getIntArg(argMap map[string]string, argKey string, argDef int) int {
 }
 
 // GetCLIPIDCountMap returns a map of CLI PIDs to number of apps started with it.
-func GetCLIPIDCountMap() map[int]int {
-	cliPIDCountMap := make(map[int]int)
-	apps, err := List()
-	if err != nil {
-		return nil
-	}
+func GetCLIPIDCountMap(apps []ListOutput) map[int]int {
+	cliPIDCountMap := make(map[int]int, len(apps))
 	for _, app := range apps {
 		cliPIDCountMap[app.CliPID]++
 	}
