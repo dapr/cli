@@ -51,16 +51,16 @@ func Stop(appID string, cliPIDToNoOfApps map[int]int) error {
 }
 
 // StopAppsWithRunFile terminates the daprd and application processes with the given run file.
-func StopAppsWithRunFile(runFilePath string) error {
+func StopAppsWithRunFile(runTemplatePath string) error {
 	apps, err := List()
 	if err != nil {
 		return err
 	}
 	for _, a := range apps {
-		if a.RunFile == runFilePath {
+		if a.RunTemplatePath == runTemplatePath {
 			_, err := utils.RunCmdAndWait("kill", fmt.Sprintf("%v", a.CliPID))
 			return err
 		}
 	}
-	return fmt.Errorf("couldn't find apps with run file %q", runFilePath)
+	return fmt.Errorf("couldn't find apps with run file %q", runTemplatePath)
 }

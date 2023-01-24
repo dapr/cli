@@ -921,7 +921,7 @@ func putRunFilePathInMeta(runE *runExec.RunExec, runFilePath string) {
 		print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogWarning, "Could not get absolute path for run file: %s", err.Error())
 		return
 	}
-	err = metadata.Put(runE.DaprHTTPPort, "runFile", runFilePath, runE.AppID, unixDomainSocket)
+	err = metadata.Put(runE.DaprHTTPPort, "runTemplatePath", runFilePath, runE.AppID, unixDomainSocket)
 	if err != nil {
 		print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogWarning, "Could not update sidecar metadata for runFile: %s", err.Error())
 	}
