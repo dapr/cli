@@ -137,6 +137,11 @@ func cmdStop(appId string, args ...string) (string, error) {
 	return spawn.Command(common.GetDaprPath(), stopArgs...)
 }
 
+func cmdStopWithRunTemplate(runTemplateFile string, args ...string) (string, error) {
+	stopArgs := append([]string{"stop", "--log-as-json", "-f", runTemplateFile}, args...)
+	return spawn.Command(common.GetDaprPath(), stopArgs...)
+}
+
 // cmdUninstall uninstalls Dapr with --all flag and returns the command output and error.
 func cmdUninstall(args ...string) (string, error) {
 	uninstallArgs := []string{"uninstall", "--all"}
