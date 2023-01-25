@@ -1,15 +1,15 @@
 version: 1
 common:
-  resources_path: ./app/resources
-  config_file: ./app/config.yaml
+  resourcesPath: ./app/resources
+  configFilePath: ./app/config.yaml
 apps:
-# tests resources_path and config_file resolved from app's section.
-  - app_dir_path: ./webapp/
-    resources_path: ./resources
-    config_file: ./config.yaml
-# tests resources_path and config_file resolved from app/.dapr folder.
-  - app_id: backend
-    app_dir_path: ./backend/
-# tests resources_path and config_file resolved from common's section.
-  - app_id: app_common_section
-    app_dir_path: ./app_precedence_rule/
+# tests resourcesPath and config_file resolved from app's section.
+  - appDirPath: ./webapp/
+    resourcesPath: ./resources
+    configFilePath: ./config.yaml
+# tests resourcesPath and config_file resolved from app/.dapr folder.
+  - appID: backend
+    appDirPath: ./backend/
+# tests resourcesPath and config_file resolved from common's section.
+  - appID: app_common_section
+    appDirPath: ./app_precedence_rule/
