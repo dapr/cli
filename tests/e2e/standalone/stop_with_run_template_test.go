@@ -1,3 +1,6 @@
+//go:build e2e || template
+// +build e2e template
+
 /*
 Copyright 2023 The Dapr Authors
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,6 +19,7 @@ limitations under the License.
 package standalone_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"runtime"
@@ -31,31 +35,29 @@ func TestStopAppsStartedWithRunTemplate(t *testing.T) {
 		t.Skip("Skipping test on windows")
 	}
 	ensureDaprInstallation(t)
-	// t.Cleanup(func() {
-	// 	// remove dapr installation after all tests in this function.
-	// 	must(t, tearDownTestSetup, "failed to remove test setup for stopping apps started with run template")
-	// })
+	t.Cleanup(func() {
+		// remove dapr installation after all tests in this function.
+		tearDownTestSetup(t)
+	})
 
 	t.Run("stop apps by passing run template file", func(t *testing.T) {
 		go ensureAllAppsStartedWithRunTemplate(t)
 		time.Sleep(10 * time.Second)
+		cliPID := getCLIPID(t)
 		output, err := cmdStopWithRunTemplate("../testdata/run-template-files/dapr.yaml")
 		assert.NoError(t, err, "failed to stop apps started with run template")
 		assert.Contains(t, output, "Dapr and app processes stopped successfully")
-		output, _ = cmdList("")
-		fmt.Println(output, "::output1")
-		removeRemainingApps()
+		verifyCLIPIDNotExist(t, cliPID)
 	})
 
 	t.Run("stop apps by passing a directory containing dapr.yaml", func(t *testing.T) {
 		go ensureAllAppsStartedWithRunTemplate(t)
 		time.Sleep(10 * time.Second)
+		cliPID := getCLIPID(t)
 		output, err := cmdStopWithRunTemplate("../testdata/run-template-files")
 		assert.NoError(t, err, "failed to stop apps started with run template")
 		assert.Contains(t, output, "Dapr and app processes stopped successfully")
-		output, _ = cmdList("")
-		fmt.Println(output, "::output2")
-		removeRemainingApps()
+		verifyCLIPIDNotExist(t, cliPID)
 	})
 
 	t.Run("stop apps by passing an invalid directory", func(t *testing.T) {
@@ -64,22 +66,22 @@ func TestStopAppsStartedWithRunTemplate(t *testing.T) {
 		output, err := cmdStopWithRunTemplate("../testdata/invalid-dir")
 		assert.Contains(t, output, "Failed to get run file path")
 		assert.Error(t, err, "failed to stop apps started with run template")
-		output, _ = cmdList("")
-		fmt.Println(output, "::output3")
-		removeRemainingApps()
+		// cleanup started apps
+		output, err = cmdStopWithRunTemplate("../testdata/run-template-files")
+		assert.NoError(t, err, "failed to stop apps started with run template")
+		assert.Contains(t, output, "Dapr and app processes stopped successfully")
 	})
 
 	t.Run("stop apps started with run template", func(t *testing.T) {
 		go ensureAllAppsStartedWithRunTemplate(t)
 		time.Sleep(10 * time.Second)
-		output, err := cmdStop("emit-metrics", "processor")
+		cliPID := getCLIPID(t)
+		output, err := cmdStopWithAppID("emit-metrics", "processor")
 		assert.NoError(t, err, "failed to stop apps started with run template")
 		assert.Contains(t, output, "app stopped successfully: emit-metrics")
 		assert.Contains(t, output, "app stopped successfully: processor")
 		assert.NotContains(t, output, "Dapr and app processes stopped successfully")
-		output, _ = cmdList("")
-		fmt.Println(output, "::output4")
-		removeRemainingApps()
+		verifyCLIPIDNotExist(t, cliPID)
 	})
 }
 
@@ -91,10 +93,6 @@ func ensureAllAppsStartedWithRunTemplate(t *testing.T) {
 	require.NoError(t, err, "run failed")
 }
 
-func removeRemainingApps() {
-	cmdStop("emit-metrics", "processor")
-}
-
 func tearDownTestSetup(t *testing.T) {
 	// remove dapr installation after all tests in this function.
 	must(t, cmdUninstall, "failed to uninstall Dapr")
@@ -102,8 +100,17 @@ func tearDownTestSetup(t *testing.T) {
 	os.RemoveAll("../../apps/processor/.dapr/logs")
 }
 
-func verifyCLIPID(t *testing.T, pid string) {
+func getCLIPID(t *testing.T) string {
 	output, err := cmdList("json")
 	require.NoError(t, err, "failed to list apps")
-	assert.Contains(t, output, pid)
+	result := []map[string]interface{}{}
+	err = json.Unmarshal([]byte(output), &result)
+	assert.Equal(t, 2, len(result))
+	return fmt.Sprintf("%v", result[0]["cliPid"])
+}
+
+func verifyCLIPIDNotExist(t *testing.T, pid string) {
+	output, err := cmdList("")
+	require.NoError(t, err, "failed to list apps")
+	assert.NotContains(t, output, pid)
 }

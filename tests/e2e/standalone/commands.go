@@ -131,15 +131,16 @@ func cmdRunWithContext(ctx context.Context, unixDomainSocket string, args ...str
 	return spawn.CommandExecWithContext(ctx, common.GetDaprPath(), runArgs...)
 }
 
-// cmdStop stops the specified app and returns the command output and error.
-func cmdStop(appId string, args ...string) (string, error) {
+// cmdStopWithAppID stops the specified app with app id and returns the command output and error.
+func cmdStopWithAppID(appId string, args ...string) (string, error) {
 	stopArgs := append([]string{"stop", "--log-as-json", "--app-id", appId}, args...)
-	return spawn.Command(common.GetDaprPath(), stopArgs...)
+	return daprStop(stopArgs...)
 }
 
+// cmdStopWithRunTemplate stops the apps started with run template file and returns the command output and error.
 func cmdStopWithRunTemplate(runTemplateFile string, args ...string) (string, error) {
 	stopArgs := append([]string{"stop", "--log-as-json", "-f", runTemplateFile}, args...)
-	return spawn.Command(common.GetDaprPath(), stopArgs...)
+	return daprStop(stopArgs...)
 }
 
 // cmdUninstall uninstalls Dapr with --all flag and returns the command output and error.
