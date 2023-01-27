@@ -68,7 +68,7 @@ func TestRunConfigFile(t *testing.T) {
 		assert.Equal(t, "", apps[0].UnixDomainSocket)
 		assert.Equal(t, "/tmp/test-socket", apps[1].UnixDomainSocket)
 
-		// test resources_path and config_path after precedence order logic.
+		// test resourcesPath and configPath after precedence order logic.
 		assert.Equal(t, filepath.Join(apps[0].AppDirPath, "resources"), apps[0].ResourcesPath)
 		assert.Equal(t, filepath.Join(apps[1].AppDirPath, ".dapr", "resources"), apps[1].ResourcesPath)
 
@@ -110,21 +110,21 @@ func TestRunConfigFile(t *testing.T) {
 			appIndex               int
 		}{
 			{
-				name:                   "resources_path and config_path are set in app section",
+				name:                   "resourcesPath and configPath are set in app section",
 				disableCommonSection:   false,
 				expectedResourcesPath:  filepath.Join(config.Apps[0].AppDirPath, "resources"),
 				expectedConfigFilePath: filepath.Join(config.Apps[0].AppDirPath, "config.yaml"),
 				appIndex:               0,
 			},
 			{
-				name:                   "resources_path and config_path present in .dapr directory under appDirPath",
+				name:                   "resourcesPath and configPath present in .dapr directory under appDirPath",
 				disableCommonSection:   false,
 				expectedResourcesPath:  filepath.Join(config.Apps[1].AppDirPath, ".dapr", "resources"),
 				expectedConfigFilePath: filepath.Join(config.Apps[1].AppDirPath, ".dapr", "config.yaml"),
 				appIndex:               1,
 			},
 			{
-				name:                   "resources_path and config_path are resolved from common's section",
+				name:                   "resourcesPath and configPath are resolved from common's section",
 				disableCommonSection:   false,
 				expectedResourcesPath:  config.Common.ResourcesPath, // from common section.
 				expectedConfigFilePath: config.Common.ConfigFile,    // from common section.
@@ -138,7 +138,7 @@ func TestRunConfigFile(t *testing.T) {
 					config.Common.ResourcesPath = ""
 					config.Common.ConfigFile = ""
 				}
-				// test precedence logic for resources_path and config_path.
+				// test precedence logic for resourcesPath and configPath.
 				config.resolveResourcesAndConfigFilePaths()
 				assert.Equal(t, tc.expectedResourcesPath, config.Apps[tc.appIndex].ResourcesPath)
 				assert.Equal(t, tc.expectedConfigFilePath, config.Apps[tc.appIndex].ConfigFile)
@@ -168,13 +168,13 @@ func TestRunConfigFile(t *testing.T) {
 			appIndex               int
 		}{
 			{
-				name:                   "resources_path and config_path are resolved from dapr's default installation path.",
+				name:                   "resourcesPath and configPath are resolved from dapr's default installation path.",
 				expectedResourcesPath:  app1ResourcesPath,
 				expectedConfigFilePath: app1ConfigFilePath,
 				appIndex:               0,
 			},
 			{
-				name:                   "resources_path and config_path are resolved from dapr's custom installation path.",
+				name:                   "resourcesPath and configPath are resolved from dapr's custom installation path.",
 				expectedResourcesPath:  app2ResourcesPath,
 				expectedConfigFilePath: app2ConfigFilePath,
 				appIndex:               1,
@@ -183,7 +183,7 @@ func TestRunConfigFile(t *testing.T) {
 
 		for _, tc := range testcases {
 			t.Run(tc.name, func(t *testing.T) {
-				// test precedence logic for resources_path and config_path.
+				// test precedence logic for resourcesPath and configPath.
 				config.resolveResourcesAndConfigFilePaths()
 				assert.Equal(t, tc.expectedResourcesPath, config.Apps[tc.appIndex].ResourcesPath)
 				assert.Equal(t, tc.expectedConfigFilePath, config.Apps[tc.appIndex].ConfigFile)

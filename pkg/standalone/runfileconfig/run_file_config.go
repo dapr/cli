@@ -39,7 +39,7 @@ type RunFileConfig struct {
 // App represents the configuration options for the apps in the run file.
 type App struct {
 	standalone.RunConfig `yaml:",inline"`
-	AppDirPath           string `yaml:"app_dir_path"`
+	AppDirPath           string `yaml:"appDirPath"`
 	AppLogFileName       string
 	DaprdLogFileName     string
 	AppLogWriteCloser    io.WriteCloser
