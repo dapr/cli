@@ -1,10 +1,10 @@
 version: 1
 apps:
-  - app_dir_path: ../../../apps/processor/
-    app_port: 9081
-    dapr_http_port: 3510
+  - appDirPath: ../../../apps/processor/
+    appPort: 9081
+    daprHTTPPort: 3510
     command: ["go","run", "app.go"]
-  - app_id: emit-metrics
-    app_dir_path: ../../../apps/emit-metrics/
-    dapr_http_port: 3511  # required env var DAPR_HOST_ADD not set in the yaml file
+  - appID: emit-metrics
+    appDirPath: ../../../apps/emit-metrics/
+    daprHTTPPort: 3511  # required env var DAPR_HOST_ADD not set in the yaml file
     command: ["go","run", "app.go"]
