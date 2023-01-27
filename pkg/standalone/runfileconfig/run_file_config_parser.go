@@ -58,7 +58,7 @@ func (a *RunFileConfig) validateRunConfig(runFilePath string) error {
 	}
 	for i := 0; i < len(a.Apps); i++ {
 		if a.Apps[i].AppDirPath == "" {
-			return errors.New("required filed 'app_dir_path' not found in the provided app config file")
+			return errors.New("required field 'appDirPath' not found in the provided app config file")
 		}
 		// It resolves the relative AppDirPath to absolute path and validates it.
 		err := a.resolvePathToAbsAndValidate(baseDir, &a.Apps[i].AppDirPath)
@@ -121,8 +121,8 @@ func (a *RunFileConfig) mergeCommonAndAppsSharedRunConfig() {
 	}
 }
 
-// Set AppID to the directory name of app_dir_path.
-// app_dir_path is a mandatory field in the run file and at this point it is already validated and resolved to its absolute path.
+// Set AppID to the directory name of appDirPath.
+// appDirPath is a mandatory field in the run file and at this point it is already validated and resolved to its absolute path.
 func (a *RunFileConfig) setAppIDIfEmpty() error {
 	for i := range a.Apps {
 		if a.Apps[i].AppID == "" {
@@ -136,12 +136,12 @@ func (a *RunFileConfig) setAppIDIfEmpty() error {
 	return nil
 }
 
-// Gets the base path from the absolute path of the app_dir_path.
+// Gets the base path from the absolute path of the appDirPath.
 func (a *RunFileConfig) getBasePathFromAbsPath(appDirPath string) (string, error) {
 	if filepath.IsAbs(appDirPath) {
 		return filepath.Base(appDirPath), nil
 	}
-	return "", fmt.Errorf("error in getting the base path from the provided app_dir_path %q: ", appDirPath)
+	return "", fmt.Errorf("error in getting the base path from the provided appDirPath %q: ", appDirPath)
 }
 
 // resolvePathToAbsAndValidate resolves the relative paths in run file to absolute path and validates the file path.
@@ -198,7 +198,7 @@ func (a *RunFileConfig) mergeCommonAndAppsEnv() {
 }
 
 // resolveResourcesFilePath resolves the resources path for the app.
-// Precedence order for resources_path -> apps[i].resources_path > apps[i].app_dir_path/.dapr/resources > common.resources_path > dapr default resources path.
+// Precedence order for resourcesPath -> apps[i].resourcesPath > apps[i].appDirPath/.dapr/resources > common.resourcesPath > dapr default resources path.
 func (a *RunFileConfig) resolveResourcesFilePath(app *App) error {
 	if app.ResourcesPath != "" {
 		return nil
@@ -219,7 +219,7 @@ func (a *RunFileConfig) resolveResourcesFilePath(app *App) error {
 }
 
 // resolveConfigFilePath resolves the config file path for the app.
-// Precedence order for config_file -> apps[i].config_file > apps[i].app_dir_path/.dapr/config.yaml > common.config_file > dapr default config file.
+// Precedence order for configFile -> apps[i].configFile > apps[i].appDirPath/.dapr/config.yaml > common.configFile > dapr default config file.
 func (a *RunFileConfig) resolveConfigFilePath(app *App) error {
 	if app.ConfigFile != "" {
 		return nil
