@@ -208,7 +208,7 @@ func TestRunConfigFile(t *testing.T) {
 				expectedErr: true,
 			},
 			{
-				name:        "invalid run config - invalid path",
+				name:        "invalid run config - invalid app dir path",
 				input:       invalidRunFilePath1,
 				expectedErr: true,
 			},
