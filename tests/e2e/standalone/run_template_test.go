@@ -53,13 +53,15 @@ func TestRunWithTemplateFile(t *testing.T) {
 	// These tests are dependent on run template files in ../testdata/run-template-files folder.
 
 	t.Run("invalid template file wrong emit metrics app run", func(t *testing.T) {
+		runFilePath := "../testdata/run-template-files/wrong_emit_metrics_app_dapr.yaml"
 		t.Cleanup(func() {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
 			os.RemoveAll("../../apps/emit-metrics/.dapr/logs")
 			os.RemoveAll("../../apps/processor/.dapr/logs")
+			stopAllApps(t, runFilePath)
 		})
 		args := []string{
-			"-f", "../testdata/run-template-files/wrong_emit_metrics_app_dapr.yaml",
+			"-f", runFilePath,
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
@@ -101,13 +103,15 @@ func TestRunWithTemplateFile(t *testing.T) {
 	})
 
 	t.Run("valid template file", func(t *testing.T) {
+		runFilePath := "../testdata/run-template-files/dapr.yaml"
 		t.Cleanup(func() {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
 			os.RemoveAll("../../apps/emit-metrics/.dapr/logs")
 			os.RemoveAll("../../apps/processor/.dapr/logs")
+			stopAllApps(t, runFilePath)
 		})
 		args := []string{
-			"-f", "../testdata/run-template-files/dapr.yaml",
+			"-f", runFilePath,
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
@@ -156,13 +160,15 @@ func TestRunWithTemplateFile(t *testing.T) {
 	})
 
 	t.Run("invalid template file env var not set", func(t *testing.T) {
+		runFilePath := "../testdata/run-template-files/env_var_not_set_dapr.yaml"
 		t.Cleanup(func() {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
 			os.RemoveAll("../../apps/emit-metrics/.dapr/logs")
 			os.RemoveAll("../../apps/processor/.dapr/logs")
+			stopAllApps(t, runFilePath)
 		})
 		args := []string{
-			"-f", "../testdata/run-template-files/env_var_not_set_dapr.yaml",
+			"-f", runFilePath,
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
@@ -205,13 +211,15 @@ func TestRunWithTemplateFile(t *testing.T) {
 	})
 
 	t.Run("valid template file no app command", func(t *testing.T) {
+		runFilePath := "../testdata/run-template-files/no_app_command.yaml"
 		t.Cleanup(func() {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
 			os.RemoveAll("../../apps/emit-metrics/.dapr/logs")
 			os.RemoveAll("../../apps/processor/.dapr/logs")
+			stopAllApps(t, runFilePath)
 		})
 		args := []string{
-			"-f", "../testdata/run-template-files/no_app_command.yaml",
+			"-f", runFilePath,
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
@@ -255,13 +263,15 @@ func TestRunWithTemplateFile(t *testing.T) {
 	})
 
 	t.Run("valid template file empty app command", func(t *testing.T) {
+		runFilePath := "../testdata/run-template-files/empty_app_command.yaml"
 		t.Cleanup(func() {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
 			os.RemoveAll("../../apps/emit-metrics/.dapr/logs")
 			os.RemoveAll("../../apps/processor/.dapr/logs")
+			stopAllApps(t, runFilePath)
 		})
 		args := []string{
-			"-f", "../testdata/run-template-files/empty_app_command.yaml",
+			"-f", runFilePath,
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
@@ -362,4 +372,9 @@ func lookUpFileFullName(dirPath, partialFilename string) (string, error) {
 		}
 	}
 	return "", fmt.Errorf("failed to find file with partial name %s in directory %s", partialFilename, dirPath)
+}
+
+func stopAllApps(t *testing.T, runfile string) {
+	_, err := cmdStopWithRunTemplate(runfile)
+	require.NoError(t, err, "failed to stop apps")
 }
