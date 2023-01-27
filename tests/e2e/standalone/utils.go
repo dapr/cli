@@ -29,7 +29,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/dapr/cli/tests/e2e/common"
-	"github.com/dapr/cli/tests/e2e/spawn"
 )
 
 // getSocketCases return different unix socket paths for testing across Dapr commands.
@@ -156,8 +155,4 @@ func containerRuntime() string {
 		return daprContainerRuntime
 	}
 	return ""
-}
-
-func daprStop(stopArgs ...string) (string, error) {
-	return spawn.Command(common.GetDaprPath(), stopArgs...)
 }

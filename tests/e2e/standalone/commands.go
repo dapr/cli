@@ -143,6 +143,11 @@ func cmdStopWithRunTemplate(runTemplateFile string, args ...string) (string, err
 	return daprStop(stopArgs...)
 }
 
+// daprStop stops Dapr with the stop command and returns the command output and error.
+func daprStop(stopArgs ...string) (string, error) {
+	return spawn.Command(common.GetDaprPath(), stopArgs...)
+}
+
 // cmdUninstall uninstalls Dapr with --all flag and returns the command output and error.
 func cmdUninstall(args ...string) (string, error) {
 	uninstallArgs := []string{"uninstall", "--all"}

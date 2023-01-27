@@ -61,7 +61,7 @@ func StopAppsWithRunFile(runTemplatePath string) error {
 				return err
 			}
 			// Kill the whole process group.
-			_, err = utils.RunCmdAndWait("kill", "-SIGTERM", "--", fmt.Sprintf("-%v", pgid))
+			_, err = utils.RunCmdAndWait("kill", "-SIGINT", "--", fmt.Sprintf("-%v", pgid))
 			return err
 		}
 	}
