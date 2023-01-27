@@ -1,0 +1,23 @@
+version: 1
+common:
+  resourcesPath: ./app/resources
+  appProtocol: HTTP
+  appHealthProbeTimeout: 10
+  env:
+    DEBUG: false
+    tty: sts
+apps:
+  - appDirPath: ./webapp/
+    resourcesPath: ./resources
+    configFilePath: ./config.yaml
+    appPort: 8080
+    appHealthProbeTimeout: 1
+    command: ["python3", "app.py"]
+  - appID: backend
+    appDirPath: ./backend/
+    appProtocol: GRPC
+    appPort: 3000
+    unixDomainSocket: /tmp/test-socket
+    env:
+      DEBUG: true
+    command: ["./backend"]

@@ -46,9 +46,16 @@ type daprVersion struct {
 	RuntimeVersion string `json:"Runtime version"`
 }
 
+type osType string
+
+const (
+	windowsOsType osType = "windows"
+)
+
 var (
 	daprVer   daprVersion
 	logAsJSON bool
+	daprPath  string
 )
 
 // Execute adds all child commands to the root command.
@@ -56,9 +63,12 @@ func Execute(version, apiVersion string) {
 	RootCmd.Version = version
 	api.RuntimeAPIVersion = apiVersion
 
+	// err intentionally ignored since daprd may not yet be installed.
+	runtimeVer, _ := standalone.GetRuntimeVersion(daprPath)
+
 	daprVer = daprVersion{
 		CliVersion:     version,
-		RuntimeVersion: strings.ReplaceAll(standalone.GetRuntimeVersion(), "\n", ""),
+		RuntimeVersion: strings.ReplaceAll(runtimeVer, "\n", ""),
 	}
 
 	cobra.OnInitialize(initConfig)
@@ -87,5 +97,6 @@ func initConfig() {
 }
 
 func init() {
+	RootCmd.PersistentFlags().StringVarP(&daprPath, "dapr-path", "", "", "The path to the dapr installation directory")
 	RootCmd.PersistentFlags().BoolVarP(&logAsJSON, "log-as-json", "", false, "Log output in JSON format")
 }

@@ -70,7 +70,11 @@ export GOOS ?= $(TARGET_OS_LOCAL)
 export BINARY_EXT ?= $(BINARY_EXT_LOCAL)
 
 TEST_OUTPUT_FILE ?= test_output.json
-E2E_SH_TEST_TIMEOUT ?= 10m
+
+# Set the default timeout for tests to 10 minutes
+ifndef E2E_SH_TEST_TIMEOUT
+  override E2E_SH_TEST_TIMEOUT := 10m
+endif
 
 # Use the variable H to add a header (equivalent to =>) to informational output
 H = $(shell printf "\033[34;1m=>\033[0m")
@@ -149,7 +153,7 @@ test: test-deps
 ################################################################################
 .PHONY: test-e2e-k8s
 test-e2e-k8s: test-deps
-	gotestsum --jsonfile $(TEST_OUTPUT_FILE) --format standard-verbose -- -timeout 20m -count=1 -tags=e2e ./tests/e2e/kubernetes/... 
+	gotestsum --jsonfile $(TEST_OUTPUT_FILE) --format standard-verbose -- -timeout 20m -count=1 -tags=e2e ./tests/e2e/kubernetes/...
 
 ################################################################################
 # Build, E2E Tests for Kubernetes											   #
@@ -170,6 +174,13 @@ test-e2e-upgrade: test-deps
 .PHONY: e2e-build-run-upgrade
 e2e-build-run-upgrade: build test-e2e-upgrade
 
+
+################################################################################
+# E2E Tests for Self-Hosted	Template exec											       #
+################################################################################
+.PHONY: test-e2e-sh-template
+test-e2e-sh-template: test-deps
+	gotestsum --jsonfile $(TEST_OUTPUT_FILE) --format standard-verbose -- -timeout $(E2E_SH_TEST_TIMEOUT) -count=1 -tags=template ./tests/e2e/standalone/...
 
 ################################################################################
 # E2E Tests for Self-Hosted												       #

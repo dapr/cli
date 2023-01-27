@@ -24,6 +24,7 @@ import (
 	v1alpha1 "github.com/dapr/dapr/pkg/apis/configuration/v1alpha1"
 )
 
+//nolint:dupword
 func TestConfigurations(t *testing.T) {
 	now := meta_v1.Now()
 	formattedNow := now.Format("2006-01-02 15:04.05")
@@ -129,7 +130,7 @@ func TestConfigurations(t *testing.T) {
 			name:           "Yaml one config",
 			configName:     "",
 			outputFormat:   "yaml",
-			expectedOutput: "name: appConfig\nnamespace: default\nspec:\n  apphttppipelinespec:\n    handlers: []\n  httppipelinespec:\n    handlers: []\n  tracingspec:\n    samplingrate: \"\"\n    stdout: false\n    zipkin:\n      endpointaddresss: \"\"\n    otel:\n      protocol: \"\"\n      endpointAddress: \"\"\n      isSecure: false\n  metricspec:\n    enabled: false\n  mtlsspec:\n    enabled: false\n    workloadcertttl: \"\"\n    allowedclockskew: \"\"\n  secrets:\n    scopes: []\n  accesscontrolspec:\n    defaultAction: \"\"\n    trustDomain: \"\"\n    policies: []\n  nameresolutionspec:\n    component: \"\"\n    version: \"\"\n    configuration:\n      json:\n        raw: []\n  features: []\n  apispec:\n    allowed: []\n  componentsspec: {}\n",
+			expectedOutput: "- name: appConfig\n  namespace: default\n  spec:\n    apphttppipelinespec:\n      handlers: []\n    httppipelinespec:\n      handlers: []\n    tracingspec:\n      samplingrate: \"\"\n      stdout: false\n      zipkin:\n        endpointaddresss: \"\"\n      otel:\n        protocol: \"\"\n        endpointAddress: \"\"\n        isSecure: false\n    metricspec:\n      enabled: false\n    mtlsspec:\n      enabled: false\n      workloadcertttl: \"\"\n      allowedclockskew: \"\"\n    secrets:\n      scopes: []\n    accesscontrolspec:\n      defaultAction: \"\"\n      trustDomain: \"\"\n      policies: []\n    nameresolutionspec:\n      component: \"\"\n      version: \"\"\n      configuration:\n        json:\n          raw: []\n    features: []\n    apispec:\n      allowed: []\n    componentsspec: {}\n",
 			errString:      "",
 			errorExpected:  false,
 			k8sConfig: []v1alpha1.Configuration{
@@ -173,7 +174,7 @@ func TestConfigurations(t *testing.T) {
 			name:           "Json one config",
 			configName:     "",
 			outputFormat:   "json",
-			expectedOutput: "{\n  \"name\": \"appConfig\",\n  \"namespace\": \"default\",\n  \"spec\": {\n    \"appHttpPipeline\": {\n      \"handlers\": null\n    },\n    \"httpPipeline\": {\n      \"handlers\": null\n    },\n    \"tracing\": {\n      \"samplingRate\": \"\",\n      \"stdout\": false,\n      \"zipkin\": {\n        \"endpointAddress\": \"\"\n      },\n      \"otel\": {\n        \"protocol\": \"\",\n        \"endpointAddress\": \"\",\n        \"isSecure\": false\n      }\n    },\n    \"metric\": {\n      \"enabled\": false\n    },\n    \"mtls\": {\n      \"enabled\": false,\n      \"workloadCertTTL\": \"\",\n      \"allowedClockSkew\": \"\"\n    },\n    \"secrets\": {\n      \"scopes\": null\n    },\n    \"accessControl\": {\n      \"defaultAction\": \"\",\n      \"trustDomain\": \"\",\n      \"policies\": null\n    },\n    \"nameResolution\": {\n      \"component\": \"\",\n      \"version\": \"\",\n      \"configuration\": null\n    },\n    \"api\": {},\n    \"components\": {}\n  }\n}",
+			expectedOutput: "[\n  {\n    \"name\": \"appConfig\",\n    \"namespace\": \"default\",\n    \"spec\": {\n      \"appHttpPipeline\": {\n        \"handlers\": null\n      },\n      \"httpPipeline\": {\n        \"handlers\": null\n      },\n      \"tracing\": {\n        \"samplingRate\": \"\",\n        \"stdout\": false,\n        \"zipkin\": {\n          \"endpointAddress\": \"\"\n        },\n        \"otel\": {\n          \"protocol\": \"\",\n          \"endpointAddress\": \"\",\n          \"isSecure\": false\n        }\n      },\n      \"metric\": {\n        \"enabled\": false\n      },\n      \"mtls\": {\n        \"enabled\": false,\n        \"workloadCertTTL\": \"\",\n        \"allowedClockSkew\": \"\"\n      },\n      \"secrets\": {\n        \"scopes\": null\n      },\n      \"accessControl\": {\n        \"defaultAction\": \"\",\n        \"trustDomain\": \"\",\n        \"policies\": null\n      },\n      \"nameResolution\": {\n        \"component\": \"\",\n        \"version\": \"\",\n        \"configuration\": null\n      },\n      \"api\": {},\n      \"components\": {}\n    }\n  }\n]",
 			errString:      "",
 			errorExpected:  false,
 			k8sConfig: []v1alpha1.Configuration{
