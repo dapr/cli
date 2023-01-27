@@ -52,18 +52,23 @@ const (
 	pubSubYamlFileName     = "pubsub.yaml"
 	stateStoreYamlFileName = "statestore.yaml"
 
-	// used when DAPR_DEFAULT_IMAGE_REGISTRY is not set.
+	// accepted DAPR_DEFAULT_IMAGE_REGISTRY values.
 	dockerContainerRegistryName = "dockerhub"
-	daprDockerImageName         = "daprio/dapr"
-	redisDockerImageName        = "redis:6"
-	zipkinDockerImageName       = "openzipkin/zipkin"
+	githubContainerRegistryName = "ghcr"
+
+	// used when DAPR_DEFAULT_IMAGE_REGISTRY is not set.
+	daprDockerImageName   = "docker.io/daprio/dapr"
+	redisDockerImageName  = "docker.io/redis:6"
+	zipkinDockerImageName = "docker.io/openzipkin/zipkin"
 
 	// used when DAPR_DEFAULT_IMAGE_REGISTRY is set as GHCR.
-	githubContainerRegistryName = "ghcr"
-	ghcrURI                     = "ghcr.io/dapr"
-	daprGhcrImageName           = "dapr"
-	redisGhcrImageName          = "3rdparty/redis:6"
-	zipkinGhcrImageName         = "3rdparty/zipkin"
+	dockerURI = "docker.io"
+	ghcrURI   = "ghcr.io"
+
+	// used when DAPR_DEFAULT_IMAGE_REGISTRY is set as GHCR or image-registry flag is set.
+	daprGhcrImageName   = "dapr/dapr"
+	redisGhcrImageName  = "dapr/3rdparty/redis:6"
+	zipkinGhcrImageName = "dapr/3rdparty/zipkin"
 
 	// DaprPlacementContainerName is the container name of placement service.
 	DaprPlacementContainerName = "dapr_placement"
@@ -77,7 +82,6 @@ const (
 
 var (
 	defaultImageRegistryName string
-	privateRegTemplateString = "%s/dapr/%s"
 	isAirGapInit             bool
 )
 
@@ -152,9 +156,9 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 	var err error
 	var bundleDet bundleDetails
 	containerRuntime = strings.TrimSpace(containerRuntime)
-	fromDir = strings.TrimSpace(fromDir)
 	daprInstallPath = strings.TrimSpace(daprInstallPath)
 	// AirGap init flow is true when fromDir var is set i.e. --from-dir flag has value.
+	fromDir = strings.TrimSpace(fromDir)
 	setAirGapInit(fromDir)
 	if !slimMode {
 		// If --slim installation is not requested, check if docker is installed.
@@ -1224,11 +1228,10 @@ func useGHCR(imageInfo daprImageInfo, fromDir string) bool {
 
 func resolveImageURI(imageInfo daprImageInfo) (string, error) {
 	if strings.TrimSpace(imageInfo.imageRegistryURL) != "" {
-		if imageInfo.imageRegistryURL == ghcrURI || imageInfo.imageRegistryURL == "docker.io" {
-			err := fmt.Errorf("flag --image-registry not set correctly. It cannot be %q or \"docker.io\"", ghcrURI)
-			return "", err
+		if imageInfo.imageRegistryURL == ghcrURI || imageInfo.imageRegistryURL == dockerURI {
+			return "", fmt.Errorf("flag --image-registry not set correctly. It cannot be %q or %q", ghcrURI, dockerURI)
 		}
-		return fmt.Sprintf(privateRegTemplateString, imageInfo.imageRegistryURL, imageInfo.ghcrImageName), nil
+		return imageInfo.imageRegistryURL + "/" + imageInfo.ghcrImageName, nil
 	}
 	switch imageInfo.imageRegistryName {
 	case dockerContainerRegistryName:
