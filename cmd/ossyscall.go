@@ -20,8 +20,17 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/dapr/cli/pkg/print"
 )
 
 func setupShutdownNotify(sigCh chan os.Signal) {
 	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
+}
+
+// createProcessGroupID creates a process group id for the current process.
+func createProcessGroupID() {
+	if err := syscall.Setpgid(0, 0); err != nil {
+		print.WarningStatusEvent(os.Stdout, "Failed to create process group id: %s", err.Error())
+	}
 }

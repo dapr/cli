@@ -22,7 +22,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -459,10 +458,7 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 
 	runStates := make([]*runExec.RunExec, 0, len(apps))
 	// Create a process group id for all the apps and daprd processes started.
-	err := syscall.Setpgid(0, 0)
-	if err != nil {
-		print.WarningStatusEvent(os.Stdout, "Failed to create process group id: %s", err.Error())
-	}
+	createProcessGroupID()
 	for _, app := range apps {
 		print.StatusEvent(os.Stdout, print.LogInfo, "Validating config and starting app %q", app.RunConfig.AppID)
 		// Set defaults if zero value provided in config yaml.
