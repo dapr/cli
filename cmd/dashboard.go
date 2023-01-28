@@ -65,6 +65,9 @@ dapr dashboard
 # Start dashboard locally in a specified port 
 dapr dashboard -p 9999
 
+# Start dashboard locally on a random port which is free.
+dapr dashboard -p 0
+
 # Port forward to dashboard in Kubernetes 
 dapr dashboard -k 
 
@@ -96,6 +99,12 @@ dapr dashboard -k -p 0
 
 		if dashboardLocalPort < 0 {
 			print.FailureStatusEvent(os.Stderr, "Invalid port: %v", dashboardLocalPort)
+			os.Exit(1)
+		}
+
+		if err := utils.CheckIfPortAvailable(dashboardLocalPort); err != nil {
+			print.FailureStatusEvent(os.Stderr, "Please select a different port with %q flag: %s", "-p", err)
+			print.InfoStatusEvent(os.Stdout, "You can also use port 0 to select a random free port.")
 			os.Exit(1)
 		}
 
