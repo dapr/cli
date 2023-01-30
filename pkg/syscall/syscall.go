@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cmd
+package syscall
 
 import (
 	"os"
@@ -24,12 +24,12 @@ import (
 	"github.com/dapr/cli/pkg/print"
 )
 
-func setupShutdownNotify(sigCh chan os.Signal) {
+func SetupShutdownNotify(sigCh chan os.Signal) {
 	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
 }
 
-// createProcessGroupID creates a process group id for the current process.
-func createProcessGroupID() {
+// createProcessGroupID creates a process group ID for the current process.
+func CreateProcessGroupID() {
 	if err := syscall.Setpgid(0, 0); err != nil {
 		print.WarningStatusEvent(os.Stdout, "Failed to create process group id: %s", err.Error())
 	}

@@ -32,6 +32,7 @@ import (
 	runExec "github.com/dapr/cli/pkg/runexec"
 	"github.com/dapr/cli/pkg/standalone"
 	"github.com/dapr/cli/pkg/standalone/runfileconfig"
+	dapr_syscall "github.com/dapr/cli/pkg/syscall"
 	"github.com/dapr/cli/utils"
 )
 
@@ -191,7 +192,7 @@ dapr run --run-file /path/to/directory
 		// TODO: In future release replace following logic with the refactored functions seen below.
 
 		sigCh := make(chan os.Signal, 1)
-		setupShutdownNotify(sigCh)
+		dapr_syscall.SetupShutdownNotify(sigCh)
 
 		daprRunning := make(chan bool, 1)
 		appRunning := make(chan bool, 1)
@@ -454,11 +455,15 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 
 	// setup shutdown notify channel.
 	sigCh := make(chan os.Signal, 1)
-	setupShutdownNotify(sigCh)
+	dapr_syscall.SetupShutdownNotify(sigCh)
 
 	runStates := make([]*runExec.RunExec, 0, len(apps))
-	// Create a process group id for all the apps and daprd processes started.
-	createProcessGroupID()
+
+	// Creates a separate process group ID for current process i.e. "dapr run -f".
+	// All the subprocess and their grand children inherits this PGID.
+	// This is done to provide a better grouping, which can be used to control all the proceses started by "dapr run -f".
+	dapr_syscall.CreateProcessGroupID()
+
 	for _, app := range apps {
 		print.StatusEvent(os.Stdout, print.LogInfo, "Validating config and starting app %q", app.RunConfig.AppID)
 		// Set defaults if zero value provided in config yaml.

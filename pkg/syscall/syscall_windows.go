@@ -11,7 +11,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cmd
+package syscall
 
 import (
 	"fmt"
@@ -41,7 +41,7 @@ func setupShutdownNotify(sigCh chan os.Signal) {
 	}()
 }
 
-// createProcessGroupID creates a process group id for the current process.
+// createProcessGroupID creates a process group ID for the current process.
 func createProcessGroupID() {
 	// No-op on Windows
 	print.WarningStatusEvent(os.Stdout, "Creating process group id is not implemented on Windows")
