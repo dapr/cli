@@ -266,6 +266,7 @@ func IsAddressLegal(address string) bool {
 	return isLegal
 }
 
+// CheckIfPortAvailable returns an error if the port is not available else returns nil.
 func CheckIfPortAvailable(port int) error {
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
