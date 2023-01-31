@@ -78,9 +78,9 @@ jobs:
           podman machine init
           podman machine start
           echo "CONTAINER_RUNTIME=podman" >> $GITHUB_ENV
-      - name: Determine latest Dapr Runtime version including Pre-releases
+      - name: Determine latest stable Dapr Runtime version
         run: |
-          export RUNTIME_VERSION=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/dapr/dapr/releases | grep tag_name | awk -F':' '{print $2}' | tr -d '", ' | sed '/-/! s/$/_/' | sort -V | sed 's/_$//' | tr -d 'v' | tail -1)
+          export RUNTIME_VERSION=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/dapr/dapr/releases/latest | grep tag_name | awk -F':' '{print $2}' | tr -d '", ' | sed '/-/! s/$/_/' | sort -V | sed 's/_$//' | tr -d 'v' | tail -1)
           if [[ -z "$RUNTIME_VERSION" ]]; then
             echo "Could not fetch the latest Dapr Runtime version. Using default version $DAPR_RUNTIME_PINNED_VERSION"
             echo "DAPR_RUNTIME_LATEST_VERSION=$DAPR_RUNTIME_PINNED_VERSION" >> $GITHUB_ENV
@@ -94,9 +94,9 @@ jobs:
             fi
           fi
         shell: bash
-      - name: Determine latest Dapr Dashboard version including Pre-releases
+      - name: Determine latest stable Dapr Dashboard version
         run: |
-          export DASHBOARD_VERSION=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/dapr/dashboard/releases | grep tag_name | awk -F':' '{print $2}' | tr -d '", ' | sed '/-/! s/$/_/' | sort -V | sed 's/_$//' | tr -d 'v' | tail -1)
+          export DASHBOARD_VERSION=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/dapr/dashboard/releases/latest | grep tag_name | awk -F':' '{print $2}' | tr -d '", ' | sed '/-/! s/$/_/' | sort -V | sed 's/_$//' | tr -d 'v' | tail -1)
           if [[ -z "$DASHBOARD_VERSION" ]]; then
             echo "Could not fetch the latest Dapr Dashboard version. Using default version $DAPR_DASHBOARD_PINNED_VERSION"
             echo "DAPR_DASHBOARD_LATEST_VERSION=$DAPR_DASHBOARD_PINNED_VERSION" >> $GITHUB_ENV
