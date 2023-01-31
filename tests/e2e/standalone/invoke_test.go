@@ -30,7 +30,10 @@ import (
 
 func TestStandaloneInvoke(t *testing.T) {
 	ensureDaprInstallation(t)
-
+	t.Cleanup(func() {
+		// remove dapr installation after all tests in this function.
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+	})
 	s := daprHttp.NewService(":9987")
 
 	err := s.AddServiceInvocationHandler("/test", func(ctx context.Context, e *common.InvocationEvent) (*common.Content, error) {

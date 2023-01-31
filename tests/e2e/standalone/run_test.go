@@ -31,7 +31,10 @@ import (
 
 func TestStandaloneRun(t *testing.T) {
 	ensureDaprInstallation(t)
-
+	t.Cleanup(func() {
+		// remove dapr installation after all tests in this function.
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+	})
 	for _, path := range getSocketCases() {
 		t.Run(fmt.Sprintf("normal exit, socket: %s", path), func(t *testing.T) {
 			output, err := cmdRun(path, "--", "bash", "-c", "echo test")

@@ -36,6 +36,11 @@ import (
 func TestStandaloneInit(t *testing.T) {
 	daprRuntimeVersion, daprDashboardVersion := common.GetVersionsFromEnv(t, false)
 
+	t.Cleanup(func() {
+		// remove dapr installation after all tests in this function.
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+	})
+
 	t.Run("init with invalid private registry", func(t *testing.T) {
 		if isSlimMode() {
 			t.Skip("Skipping init with private registry test because of slim installation")

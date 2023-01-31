@@ -33,7 +33,10 @@ import (
 
 func TestStandaloneList(t *testing.T) {
 	ensureDaprInstallation(t)
-
+	t.Cleanup(func() {
+		// remove dapr installation after all tests in this function.
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+	})
 	executeAgainstRunningDapr(t, func() {
 		output, err := cmdList("")
 		t.Log(output)
