@@ -18,10 +18,19 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+
+	"github.com/phayes/freeport"
 )
 
 // NewDashboardCmd creates the command to run dashboard.
 func NewDashboardCmd(inputInstallPath string, port int) (*exec.Cmd, error) {
+	if port == 0 {
+		freePort, err := freeport.GetFreePort()
+		if err != nil {
+			return nil, err
+		}
+		port = freePort
+	}
 	dashboardPath, err := lookupBinaryFilePath(inputInstallPath, "dashboard")
 	if err != nil {
 		return nil, err
