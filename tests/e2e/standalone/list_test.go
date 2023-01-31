@@ -33,7 +33,6 @@ import (
 
 func TestStandaloneList(t *testing.T) {
 	ensureDaprInstallation(t)
-
 	executeAgainstRunningDapr(t, func() {
 		output, err := cmdList("")
 		t.Log(output)
