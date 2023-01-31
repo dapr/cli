@@ -31,6 +31,11 @@ func SetupShutdownNotify(sigCh chan os.Signal) {
 // CreateProcessGroupID creates a process group ID for the current process.
 // Reference - https://man7.org/linux/man-pages/man2/setpgid.2.html.
 func CreateProcessGroupID() {
+	// Below is some excerpt from the above link Setpgid() -
+	// setpgid() sets the PGID of the process specified by pid to pgid.
+	// If pid is zero, then the process ID of the calling process is
+	// used.  If pgid is zero, then the PGID of the process specified by
+	// pid is made the same as its process ID.
 	if err := syscall.Setpgid(0, 0); err != nil {
 		print.WarningStatusEvent(os.Stdout, "Failed to create process group id: %s", err.Error())
 	}

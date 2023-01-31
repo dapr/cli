@@ -460,7 +460,7 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 	runStates := make([]*runExec.RunExec, 0, len(apps))
 
 	// Creates a separate process group ID for current process i.e. "dapr run -f".
-	// All the subprocess and their grand children inherits this PGID.
+	// All the subprocess and their grandchildren inherit this PGID.
 	// This is done to provide a better grouping, which can be used to control all the proceses started by "dapr run -f".
 	daprsyscall.CreateProcessGroupID()
 
