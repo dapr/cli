@@ -17,6 +17,7 @@ limitations under the License.
 package kubernetes_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/dapr/cli/tests/e2e/common"

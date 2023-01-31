@@ -30,10 +30,6 @@ import (
 
 func TestStandalonePublish(t *testing.T) {
 	ensureDaprInstallation(t)
-	t.Cleanup(func() {
-		// remove dapr installation after all tests in this function.
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
 	sub := &common.Subscription{
 		PubsubName: "pubsub",
 		Topic:      "sample",

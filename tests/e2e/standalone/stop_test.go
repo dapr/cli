@@ -25,10 +25,6 @@ import (
 
 func TestStandaloneStop(t *testing.T) {
 	ensureDaprInstallation(t)
-	t.Cleanup(func() {
-		// remove dapr installation after all tests in this function.
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
 	executeAgainstRunningDapr(t, func() {
 		t.Run("stop", func(t *testing.T) {
 			output, err := cmdStopWithAppID("dapr_e2e_stop")
