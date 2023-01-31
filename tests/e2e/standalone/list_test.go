@@ -60,7 +60,7 @@ func TestStandaloneList(t *testing.T) {
 		require.Error(t, err, "dapr list should fail with an invalid output format")
 
 		// We can call stop so as not to wait for the app to time out
-		output, err = cmdStop("dapr_e2e_list")
+		output, err = cmdStopWithAppID("dapr_e2e_list")
 		t.Log(output)
 		require.NoError(t, err, "dapr stop failed")
 		assert.Contains(t, output, "app stopped successfully: dapr_e2e_list")
@@ -89,7 +89,7 @@ func TestStandaloneList(t *testing.T) {
 		// TODO: remove this condition when `dapr stop` starts working for Windows.
 		// See https://github.com/dapr/cli/issues/1034.
 		if runtime.GOOS != "windows" {
-			output, err = cmdStop("daprd_e2e_list")
+			output, err = cmdStopWithAppID("daprd_e2e_list")
 			t.Log(output)
 			require.NoError(t, err, "dapr stop failed")
 			assert.Contains(t, output, "app stopped successfully: daprd_e2e_list")
