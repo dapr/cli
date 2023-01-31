@@ -36,9 +36,9 @@ func ensureCleanEnv(t *testing.T, useDaprLatestVersion bool) {
 	currentVersionDetails = common.VersionDetails{
 		RuntimeVersion:       currentRuntimeVersion,
 		DashboardVersion:     currentDashboardVersion,
-		CustomResourceDefs:   []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io"},
-		ClusterRoles:         []string{"dapr-operator-admin", "dashboard-reader"},
-		ClusterRoleBindings:  []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+		CustomResourceDefs:   []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io"},
+		ClusterRoles:         []string{"dapr-dashboard", "dapr-injector", "dapr-operator-admin", "dapr-placement", "dapr-sentry"},
+		ClusterRoleBindings:  []string{"dapr-operator-admin", "dapr-dashboard", "dapr-injector", "dapr-placement", "dapr-sentry"},
 		ImageVariant:         "",
 		UseDaprLatestVersion: useDaprLatestVersion,
 	}
