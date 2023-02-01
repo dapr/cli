@@ -31,7 +31,10 @@ import (
 
 func TestStandaloneRun(t *testing.T) {
 	ensureDaprInstallation(t)
-
+	t.Cleanup(func() {
+		// remove dapr installation after all tests in this function.
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+	})
 	for _, path := range getSocketCases() {
 		t.Run(fmt.Sprintf("normal exit, socket: %s", path), func(t *testing.T) {
 			output, err := cmdRun(path, "--", "bash", "-c", "echo test")
@@ -91,7 +94,8 @@ func TestStandaloneRun(t *testing.T) {
 		output, err := cmdRun("", args...)
 		t.Log(output)
 		require.NoError(t, err, "run failed")
-		assert.Contains(t, output, "level=info msg=\"HTTP API Called: PUT /v1.0/metadata/appCommand")
+		assert.Contains(t, output, "level=info msg=\"HTTP API Called\" app_id=enableApiLogging_info")
+		assert.Contains(t, output, "method=\"PUT /v1.0/metadata/{key}\"")
 		assert.Contains(t, output, "Exited App successfully")
 		assert.Contains(t, output, "Exited Dapr successfully")
 	})
@@ -107,7 +111,7 @@ func TestStandaloneRun(t *testing.T) {
 		require.NoError(t, err, "run failed")
 		assert.Contains(t, output, "Exited App successfully")
 		assert.Contains(t, output, "Exited Dapr successfully")
-		assert.NotContains(t, output, "level=info msg=\"HTTP API Called: PUT /v1.0/metadata/appCommand\"")
+		assert.NotContains(t, output, "level=info msg=\"HTTP API Called\" app_id=enableApiLogging_info")
 	})
 
 	t.Run(fmt.Sprintf("check run with log JSON enabled"), func(t *testing.T) {
