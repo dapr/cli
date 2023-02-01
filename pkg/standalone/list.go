@@ -39,6 +39,7 @@ type ListOutput struct {
 	Created            string `csv:"CREATED"   json:"created"            yaml:"created"`
 	DaprdPID           int    `csv:"DAPRD PID" json:"daprdPid"           yaml:"daprdPid"`
 	CliPID             int    `csv:"CLI PID"   json:"cliPid"             yaml:"cliPid"`
+	AppPID             int    `csv:"APP PID"   json:"appPid"             yaml:"appPid"`
 	MaxRequestBodySize int    `csv:"-"         json:"maxRequestBodySize" yaml:"maxRequestBodySize"` // Additional field, not displayed in table.
 	HTTPReadBufferSize int    `csv:"-"         json:"httpReadBufferSize" yaml:"httpReadBufferSize"` // Additional field, not displayed in table.
 	RunTemplatePath    string `csv:"RUN_TEMPLATE_PATH"  json:"runTemplatePath"            yaml:"runTemplatePath"`
@@ -99,14 +100,21 @@ func List() ([]ListOutput, error) {
 
 			appID := argumentsMap["--app-id"]
 			appCmd := ""
+			appPIDString := ""
 			cliPIDString := ""
 			runTemplatePath := ""
 			socket := argumentsMap["--unix-domain-socket"]
 			appMetadata, err := metadata.Get(httpPort, appID, socket)
 			if err == nil {
 				appCmd = appMetadata.Extended["appCommand"]
+				appPIDString = appMetadata.Extended["appPID"]
 				cliPIDString = appMetadata.Extended["cliPID"]
 				runTemplatePath = appMetadata.Extended["runTemplatePath"]
+			}
+
+			appPID, err := strconv.Atoi(appPIDString)
+			if err != nil {
+				appPID = 0
 			}
 
 			// Parse functions return an error on bad input.
@@ -130,6 +138,7 @@ func List() ([]ListOutput, error) {
 				DaprdPID:           daprPID,
 				CliPID:             cliPID,
 				AppID:              appID,
+				AppPID:             appPID,
 				HTTPPort:           httpPort,
 				GRPCPort:           grpcPort,
 				AppPort:            appPort,
