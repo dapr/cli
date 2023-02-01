@@ -532,10 +532,10 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 
 		if runState.AppCMD.Command != nil {
 			putAppCommandInMeta(runConfig, runState)
-		}
 
-		if runState.AppCMD.Command.Process != nil {
-			putAppProcessIDInMeta(runState)
+			if runState.AppCMD.Command.Process != nil {
+				putAppProcessIDInMeta(runState)
+			}
 		}
 
 		print.StatusEvent(runState.DaprCMD.OutputWriter, print.LogSuccess, "You're up and running! Dapr logs will appear here.\n")
