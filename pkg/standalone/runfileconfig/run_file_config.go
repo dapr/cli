@@ -80,8 +80,8 @@ func (a *App) CreateDaprdLogFile() error {
 	return err
 }
 
-// createLogFile creates the log file and returns error if any.
-// It also adds the current timestamp to the file name as a suffix.
+// createLogFile creates the log file and returns the file handle and error if any.
+// It also adds the app ID as a prefix and the current timestamp to the file name as a suffix.
 func (a *App) createLogFile(logType string) (*os.File, error) {
 	logsPath := a.GetLogsDir()
 	fpath := filepath.Join(logsPath, a.AppID+"_"+logType+"_"+time.Now().Format("20060102150405")+logFileExtension)
