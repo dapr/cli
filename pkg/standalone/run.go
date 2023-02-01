@@ -84,6 +84,15 @@ func (meta *DaprMeta) newAppID() string {
 	}
 }
 
+func (config *RunConfig) validateAppID(meta *DaprMeta) error {
+	if config.AppID == "" {
+		config.AppID = meta.newAppID()
+	} else if meta.idExists(config.AppID) {
+		return fmt.Errorf("invalid configuration for AppID. App id %q is not available", config.AppID)
+	}
+	return nil
+}
+
 func (config *RunConfig) validateResourcesPath() error {
 	dirPath := config.ResourcesPath
 	if dirPath == "" {
@@ -139,8 +148,9 @@ func (config *RunConfig) Validate() error {
 		return err
 	}
 
-	if config.AppID == "" {
-		config.AppID = meta.newAppID()
+	err = config.validateAppID(meta)
+	if err != nil {
+		return err
 	}
 
 	err = config.validateResourcesPath()

@@ -1,0 +1,6 @@
+version: 1
+apps:
+  - appDirPath: ../../../apps/processor/
+    appID: app1
+  - appID: app1
+    appDirPath: ../../../apps/emit-metrics/
