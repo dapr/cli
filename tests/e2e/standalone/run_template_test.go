@@ -329,14 +329,15 @@ func TestRunWithTemplateFile(t *testing.T) {
 		require.Error(t, err, "run must fail")
 		// Deterministic output for template file, so we can assert line by line
 		lines := strings.Split(output, "\n")
-		assert.GreaterOrEqual(t, len(lines), 4, "expected at least 4 lines in output of starting two apps with duplicate app id")
-		assert.Contains(t, lines[0], "Validating config and starting app \"app1\"")
-		assert.Contains(t, lines[1], "No application command found for app \"app1\"")
-		assert.Contains(t, lines[2], "Started Dapr with app id \"app1\". HTTP Port:")
-		assert.Contains(t, lines[3], "Writing log files to directory")
-		assert.Contains(t, lines[4], "Validating config and starting app \"app1\"")
-		assert.Contains(t, lines[5], "Error validating run config for app \"app1\"")
-		assert.Contains(t, lines[5], "App ID \"app1\" is already in use")
+		assert.GreaterOrEqual(t, len(lines), 5, "expected at least 5 lines in output of starting two apps with duplicate app id")
+		assert.Contains(t, lines[0], "This is a preview feature and subject to change in future releases.")
+		assert.Contains(t, lines[1], "Validating config and starting app \"app1\"")
+		assert.Contains(t, lines[2], "No application command found for app \"app1\"")
+		assert.Contains(t, lines[3], "Started Dapr with app id \"app1\". HTTP Port:")
+		assert.Contains(t, lines[4], "Writing log files to directory")
+		assert.Contains(t, lines[5], "Validating config and starting app \"app1\"")
+		assert.Contains(t, lines[6], "Error validating run config for app \"app1\"")
+		assert.Contains(t, lines[6], "App ID \"app1\" is already in use")
 	})
 }
 
