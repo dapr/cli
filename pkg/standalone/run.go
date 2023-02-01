@@ -88,7 +88,7 @@ func (config *RunConfig) validateAppID(meta *DaprMeta) error {
 	if config.AppID == "" {
 		config.AppID = meta.newAppID()
 	} else if meta.idExists(config.AppID) {
-		return fmt.Errorf("invalid configuration for AppID. App id %q is not available", config.AppID)
+		return fmt.Errorf("invalid configuration for appID. App ID %q is already in use", config.AppID)
 	}
 	return nil
 }

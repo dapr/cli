@@ -335,7 +335,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		assert.Contains(t, lines[3], "Writing log files to directory")
 		assert.Contains(t, lines[4], "Validating config and starting app \"app1\"")
 		assert.Contains(t, lines[5], "Error validating run config for app \"app1\"")
-		assert.Contains(t, lines[5], "App id \"app1\" is not available")
+		assert.Contains(t, lines[5], "App ID \"app1\" is already in use")
 	})
 }
 

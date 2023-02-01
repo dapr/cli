@@ -157,6 +157,18 @@ func TestStandaloneRun(t *testing.T) {
 		require.Contains(t, output, "-a, --app-id string", "expected usage to be printed")
 		require.Contains(t, output, "The id for your application, used for service discovery", "expected usage to be printed")
 	})
+
+	executeAgainstRunningDapr(t, func() {
+		t.Run("run another app with duplicate app id ", func(t *testing.T) {
+			output, err := cmdRun("", "--app-id", "dapr_e2e_dup")
+			t.Log(output)
+			require.Error(t, err, "dapr run failed")
+			assert.Contains(t, output, "invalid configuration for appID. App ID \"dapr_e2e_dup\" is already in use")
+			output, err = cmdStopWithAppID("dapr_e2e_dup")
+			t.Log(output)
+			require.NoError(t, err, "dapr stop failed")
+		})
+	}, "run", "--app-id", "dapr_e2e_dup")
 }
 
 func TestStandaloneRunNonDefaultDaprPath(t *testing.T) {
