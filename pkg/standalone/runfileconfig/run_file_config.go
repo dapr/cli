@@ -61,7 +61,7 @@ func (a *App) GetLogsDir() string {
 // CreateAppLogFile creates the log file, sets internal file handle
 // and returns error if any.
 func (a *App) CreateAppLogFile() error {
-	f, err := a.createLogFile(getAppLogFileName())
+	f, err := a.createLogFile(appLogFileNamePrefix)
 	if err == nil {
 		a.AppLogWriteCloser = f
 		a.AppLogFileName = f.Name()
@@ -72,7 +72,7 @@ func (a *App) CreateAppLogFile() error {
 // CreateDaprdLogFile creates the log file, sets internal file handle
 // and returns error if any.
 func (a *App) CreateDaprdLogFile() error {
-	f, err := a.createLogFile(getDaprdLogFileName())
+	f, err := a.createLogFile(daprdLogFileNamePrefix)
 	if err == nil {
 		a.DaprdLogWriteCloser = f
 		a.DaprdLogFileName = f.Name()
@@ -84,17 +84,9 @@ func (a *App) CreateDaprdLogFile() error {
 // It also adds the current timestamp to the file name as a suffix.
 func (a *App) createLogFile(filename string) (*os.File, error) {
 	logsPath := a.GetLogsDir()
-	fpath := filepath.Join(logsPath, filename+"-"+time.Now().Format("20060102150405"))
+	fpath := filepath.Join(logsPath, filename+"_"+time.Now().Format("20060102150405")+logFileExtension)
 	f, err := os.Create(fpath)
 	return f, err
-}
-
-func getAppLogFileName() string {
-	return appLogFileNamePrefix + logFileExtension
-}
-
-func getDaprdLogFileName() string {
-	return daprdLogFileNamePrefix + logFileExtension
 }
 
 func (a *App) CloseAppLogFile() error {
