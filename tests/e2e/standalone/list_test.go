@@ -148,7 +148,7 @@ func listJsonOutputCheck(t *testing.T, output string) {
 	assert.Equal(t, 3555, int(result[0]["httpPort"].(float64)), "expected http port to match")
 	assert.Equal(t, 4555, int(result[0]["grpcPort"].(float64)), "expected grpc port to match")
 	assert.Equal(t, 0, int(result[0]["appPort"].(float64)), "expected app port to match")
-	assert.GreaterOrEqual(t, 0, result[0]["appPid"], "expected an app PID (a real value or zero)")
+	assert.GreaterOrEqual(t, result[0]["appPid"], 0, "expected an app PID (a real value or zero)")
 }
 
 func listYamlOutputCheck(t *testing.T, output string) {
@@ -163,5 +163,5 @@ func listYamlOutputCheck(t *testing.T, output string) {
 	assert.Equal(t, 3555, result[0]["httpPort"], "expected http port to match")
 	assert.Equal(t, 4555, result[0]["grpcPort"], "expected grpc port to match")
 	assert.Equal(t, 0, result[0]["appPort"], "expected app port to match")
-	assert.GreaterOrEqual(t, 0, result[0]["appPid"], "expected an app PID (a real value or zero)")
+	assert.GreaterOrEqual(t, result[0]["appPid"], 0, "expected an app PID (a real value or zero)")
 }
