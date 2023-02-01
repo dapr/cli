@@ -148,7 +148,7 @@ func TestStandalonePublish(t *testing.T) {
 				assert.Equal(t, []byte("{\"cli\": \"is_working\"}"), event.Data)
 			})
 
-			output, err := cmdStop("pub_e2e")
+			output, err := cmdStopWithAppID("pub_e2e")
 			t.Log(output)
 			require.NoError(t, err, "dapr stop failed")
 			assert.Contains(t, output, "app stopped successfully: pub_e2e")

@@ -18,6 +18,7 @@ package standalone
 
 import (
 	"fmt"
+	"syscall"
 
 	"github.com/dapr/cli/utils"
 )
@@ -52,7 +53,15 @@ func StopAppsWithRunFile(runTemplatePath string) error {
 	}
 	for _, a := range apps {
 		if a.RunTemplatePath == runTemplatePath {
-			_, err := utils.RunCmdAndWait("kill", fmt.Sprintf("%v", a.CliPID))
+			// Get the process group id of the CLI process.
+			pgid, err := syscall.Getpgid(a.CliPID)
+			if err != nil {
+				// Fall back to cliPID if pgid is not available.
+				_, err = utils.RunCmdAndWait("kill", fmt.Sprintf("%v", a.CliPID))
+				return err
+			}
+			// Kill the whole process group.
+			err = syscall.Kill(-pgid, syscall.SIGINT)
 			return err
 		}
 	}
