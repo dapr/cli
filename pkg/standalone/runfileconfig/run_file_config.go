@@ -17,6 +17,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/dapr/cli/pkg/standalone"
 )
@@ -60,8 +61,7 @@ func (a *App) GetLogsDir() string {
 // CreateAppLogFile creates the log file, sets internal file handle
 // and returns error if any.
 func (a *App) CreateAppLogFile() error {
-	logsPath := a.GetLogsDir()
-	f, err := os.Create(filepath.Join(logsPath, getAppLogFileName()))
+	f, err := a.createLogFile(appLogFileNamePrefix)
 	if err == nil {
 		a.AppLogWriteCloser = f
 		a.AppLogFileName = f.Name()
@@ -72,8 +72,7 @@ func (a *App) CreateAppLogFile() error {
 // CreateDaprdLogFile creates the log file, sets internal file handle
 // and returns error if any.
 func (a *App) CreateDaprdLogFile() error {
-	logsPath := a.GetLogsDir()
-	f, err := os.Create(filepath.Join(logsPath, getDaprdLogFileName()))
+	f, err := a.createLogFile(daprdLogFileNamePrefix)
 	if err == nil {
 		a.DaprdLogWriteCloser = f
 		a.DaprdLogFileName = f.Name()
@@ -81,12 +80,13 @@ func (a *App) CreateDaprdLogFile() error {
 	return err
 }
 
-func getAppLogFileName() string {
-	return appLogFileNamePrefix + logFileExtension
-}
-
-func getDaprdLogFileName() string {
-	return daprdLogFileNamePrefix + logFileExtension
+// createLogFile creates the log file and returns the file handle and error if any.
+// It also adds the app ID as a prefix and the current timestamp to the file name as a suffix.
+func (a *App) createLogFile(logType string) (*os.File, error) {
+	logsPath := a.GetLogsDir()
+	fpath := filepath.Join(logsPath, a.AppID+"_"+logType+"_"+time.Now().Format("20060102150405")+logFileExtension)
+	f, err := os.Create(fpath)
+	return f, err
 }
 
 func (a *App) CloseAppLogFile() error {

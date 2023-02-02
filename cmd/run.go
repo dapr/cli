@@ -472,6 +472,8 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 	// This is done to provide a better grouping, which can be used to control all the proceses started by "dapr run -f".
 	daprsyscall.CreateProcessGroupID()
 
+	print.WarningStatusEvent(os.Stdout, "This is a preview feature and subject to change in future releases.")
+
 	for _, app := range apps {
 		print.StatusEvent(os.Stdout, print.LogInfo, "Validating config and starting app %q", app.RunConfig.AppID)
 		// Set defaults if zero value provided in config yaml.

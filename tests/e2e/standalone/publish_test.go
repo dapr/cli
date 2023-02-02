@@ -30,7 +30,6 @@ import (
 
 func TestStandalonePublish(t *testing.T) {
 	ensureDaprInstallation(t)
-
 	sub := &common.Subscription{
 		PubsubName: "pubsub",
 		Topic:      "sample",

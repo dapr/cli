@@ -31,7 +31,6 @@ import (
 
 func TestStandaloneVersion(t *testing.T) {
 	ensureDaprInstallation(t)
-
 	t.Run("version", func(t *testing.T) {
 		output, err := cmdVersion("")
 		t.Log(output)
@@ -53,6 +52,10 @@ func TestStandaloneVersion(t *testing.T) {
 }
 
 func TestStandaloneVersionNonDefaultDaprPath(t *testing.T) {
+	t.Cleanup(func() {
+		// remove dapr installation after all tests in this function.
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+	})
 	t.Run("version with flag", func(t *testing.T) {
 		// Ensure a clean environment
 		must(t, cmdUninstall, "failed to uninstall Dapr")
