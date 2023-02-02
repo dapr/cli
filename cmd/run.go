@@ -360,6 +360,14 @@ dapr run --run-file /path/to/directory
 		}
 
 		if output.AppCMD != nil {
+			if output.AppCMD.Process != nil {
+				print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Updating metadata for appPID: %d", output.AppCMD.Process.Pid))
+				err = metadata.Put(output.DaprHTTPPort, "appPID", strconv.Itoa(output.AppCMD.Process.Pid), appID, unixDomainSocket)
+				if err != nil {
+					print.WarningStatusEvent(os.Stdout, "Could not update sidecar metadata for appPID: %s", err.Error())
+				}
+			}
+
 			appCommand := strings.Join(args, " ")
 			print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Updating metadata for app command: %s", appCommand))
 			err = metadata.Put(output.DaprHTTPPort, "appCommand", appCommand, appID, unixDomainSocket)
@@ -526,7 +534,12 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 
 		if runState.AppCMD.Command != nil {
 			putAppCommandInMeta(runConfig, runState)
+
+			if runState.AppCMD.Command.Process != nil {
+				putAppProcessIDInMeta(runState)
+			}
 		}
+
 		print.StatusEvent(runState.DaprCMD.OutputWriter, print.LogSuccess, "You're up and running! Dapr logs will appear here.\n")
 		logInformationalStatusToStdout(app)
 	}
@@ -907,6 +920,14 @@ func putCLIProcessIDInMeta(runE *runExec.RunExec, pid int) {
 	}
 }
 
+func putAppProcessIDInMeta(runE *runExec.RunExec) {
+	print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogInfo, "Updating metadata for appPID: %d", runE.AppCMD.Command.Process.Pid)
+	err := metadata.Put(runE.DaprHTTPPort, "appPID", strconv.Itoa(runE.AppCMD.Command.Process.Pid), runE.AppID, unixDomainSocket)
+	if err != nil {
+		print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogWarning, "Could not update sidecar metadata for appPID: %s", err.Error())
+	}
+}
+
 // putAppCommandInMeta puts the app command in metadata so that it can be used by the CLI to stop the app.
 func putAppCommandInMeta(runConfig standalone.RunConfig, runE *runExec.RunExec) {
 	appCommand := strings.Join(runConfig.Command, " ")
@@ -916,7 +937,6 @@ func putAppCommandInMeta(runConfig standalone.RunConfig, runE *runExec.RunExec) 
 		print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogWarning, "Could not update sidecar metadata for appCommand: %s", err.Error())
 		return
 	}
-	print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogSuccess, "You're up and running! Dapr logs will appear here.\n")
 }
 
 // putRunFilePathInMeta puts the absolute path of run file in metadata so that it can be used by the CLI to stop all apps started by this run file.
