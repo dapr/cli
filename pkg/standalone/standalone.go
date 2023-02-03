@@ -215,7 +215,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 
 	print.InfoStatusEvent(os.Stdout, "Installing runtime version %s", runtimeVersion)
 
-	installDir, err := GetDaprPath(daprInstallPath)
+	installDir, err := GetDaprRuntimePath(daprInstallPath)
 	if err != nil {
 		return err
 	}

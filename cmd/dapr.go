@@ -58,11 +58,11 @@ const (
 )
 
 var (
-	cliVersion  string
-	versionFlag bool
-	daprVer     daprVersion
-	logAsJSON   bool
-	daprPath    string
+	cliVersion      string
+	versionFlag     bool
+	daprVer         daprVersion
+	logAsJSON       bool
+	daprRuntimePath string
 )
 
 // Execute adds all child commands to the root command.
@@ -89,7 +89,7 @@ func initConfig() {
 		print.EnableJSONFormat()
 	}
 	// err intentionally ignored since daprd may not yet be installed.
-	runtimeVer, _ := standalone.GetRuntimeVersion(daprPath)
+	runtimeVer, _ := standalone.GetRuntimeVersion(daprRuntimePath)
 
 	daprVer = daprVersion{
 		// Set in Execute() method in this file before initConfig() is called by cmd.Execute().
@@ -104,6 +104,6 @@ func initConfig() {
 
 func init() {
 	RootCmd.Flags().BoolVarP(&versionFlag, "version", "v", false, "version for dapr")
-	RootCmd.PersistentFlags().StringVarP(&daprPath, "dapr-path", "", "", "The path to the dapr installation directory")
+	RootCmd.PersistentFlags().StringVarP(&daprRuntimePath, "runtime-path", "", "", "The path to the dapr runtime installation directory")
 	RootCmd.PersistentFlags().BoolVarP(&logAsJSON, "log-as-json", "", false, "Log output in JSON format")
 }

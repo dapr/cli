@@ -74,7 +74,7 @@ func assertArgumentContains(t *testing.T, key string, expectedValue string, args
 }
 
 func setupRun(t *testing.T) {
-	myDaprPath, err := standalone.GetDaprPath("")
+	myDaprPath, err := standalone.GetDaprRuntimePath("")
 	assert.NoError(t, err)
 
 	componentsDir := standalone.GetDaprComponentsPath(myDaprPath)
@@ -87,7 +87,7 @@ func setupRun(t *testing.T) {
 }
 
 func tearDownRun(t *testing.T) {
-	myDaprPath, err := standalone.GetDaprPath("")
+	myDaprPath, err := standalone.GetDaprRuntimePath("")
 	assert.NoError(t, err)
 
 	componentsDir := standalone.GetDaprComponentsPath(myDaprPath)
@@ -106,7 +106,7 @@ func assertCommonArgs(t *testing.T, basicConfig *standalone.RunConfig, output *R
 	assert.Equal(t, 8000, output.DaprHTTPPort)
 	assert.Equal(t, 50001, output.DaprGRPCPort)
 
-	daprPath, err := standalone.GetDaprPath("")
+	daprPath, err := standalone.GetDaprRuntimePath("")
 	assert.NoError(t, err)
 
 	assert.Contains(t, output.DaprCMD.Args[0], "daprd")
@@ -168,7 +168,7 @@ func TestRun(t *testing.T) {
 	// Setup the tearDown routine to run in the end.
 	defer tearDownRun(t)
 
-	myDaprPath, err := standalone.GetDaprPath("")
+	myDaprPath, err := standalone.GetDaprRuntimePath("")
 	assert.NoError(t, err)
 
 	componentsDir := standalone.GetDaprComponentsPath(myDaprPath)

@@ -71,7 +71,7 @@ type SharedRunConfig struct {
 	AppHealthTimeout   int               `arg:"app-health-probe-timeout" ifneq:"0" yaml:"appHealthProbeTimeout"`
 	AppHealthThreshold int               `arg:"app-health-threshold" ifneq:"0" yaml:"appHealthThreshold"`
 	EnableAPILogging   bool              `arg:"enable-api-logging" yaml:"enableApiLogging"`
-	DaprdInstallPath   string            `yaml:"daprPath"`
+	DaprdInstallPath   string            `yaml:"runtimePath"`
 	Env                map[string]string `yaml:"env"`
 }
 

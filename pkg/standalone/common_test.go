@@ -27,30 +27,30 @@ func TestGetDaprPath(t *testing.T) {
 	require.NoError(t, err, "error getting home dir")
 
 	t.Run("without flag value or env var", func(t *testing.T) {
-		p, err := GetDaprPath("")
+		p, err := GetDaprRuntimePath("")
 		require.NoError(t, err)
 		assert.Equal(t, p, path_filepath.Join(homeDir, DefaultDaprDirName), "path should be $HOME/.dapr")
-		p, err = GetDaprPath("      ")
+		p, err = GetDaprRuntimePath("      ")
 		require.NoError(t, err)
 		assert.Equal(t, path_filepath.Join(homeDir, DefaultDaprDirName), p, "path should be $HOME/.dapr")
 
-		t.Setenv("DAPR_PATH", "      ")
-		p, err = GetDaprPath("")
+		t.Setenv("DAPR_RUNTIME_PATH", "      ")
+		p, err = GetDaprRuntimePath("")
 		require.NoError(t, err)
 		assert.Equal(t, path_filepath.Join(homeDir, DefaultDaprDirName), p, "path should be $HOME/.dapr")
 	})
 
 	t.Run("with flag value", func(t *testing.T) {
 		input := path_filepath.Join("path", "to", "dapr")
-		p, err := GetDaprPath(input)
+		p, err := GetDaprRuntimePath(input)
 		require.NoError(t, err)
 		assert.Equal(t, path_filepath.Join(input, ".dapr"), p, "path should be /path/to/dapr/.dapr")
 	})
 
 	t.Run("with env var", func(t *testing.T) {
 		input := path_filepath.Join("path", "to", "dapr")
-		t.Setenv("DAPR_PATH", input)
-		p, err := GetDaprPath("")
+		t.Setenv("DAPR_RUNTIME_PATH", input)
+		p, err := GetDaprRuntimePath("")
 		require.NoError(t, err)
 		assert.Equal(t, path_filepath.Join(input, ".dapr"), p, "path should be /path/to/dapr/.dapr")
 	})
@@ -58,8 +58,8 @@ func TestGetDaprPath(t *testing.T) {
 	t.Run("with flag value and env var", func(t *testing.T) {
 		input := path_filepath.Join("path", "to", "dapr")
 		input2 := path_filepath.Join("path", "to", "dapr2")
-		t.Setenv("DAPR_PATH", input2)
-		p, err := GetDaprPath(input)
+		t.Setenv("DAPR_RUNTIME_PATH", input2)
+		p, err := GetDaprRuntimePath(input)
 		require.NoError(t, err)
 		assert.Equal(t, path_filepath.Join(input, ".dapr"), p, "path should be /path/to/dapr/.dapr")
 	})

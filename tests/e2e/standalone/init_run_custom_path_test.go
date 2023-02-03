@@ -28,23 +28,23 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestStandaloneInitRunUninstallNonDefaultDaprPath covers init, version, run and uninstall with --dapr-path flag.
+// TestStandaloneInitRunUninstallNonDefaultDaprPath covers init, version, run and uninstall with --runtime-path flag.
 func TestStandaloneInitRunUninstallNonDefaultDaprPath(t *testing.T) {
 	// Ensure a clean environment
 	must(t, cmdUninstall, "failed to uninstall Dapr")
-	t.Run("run with dapr path flag", func(t *testing.T) {
+	t.Run("run with runtime path flag", func(t *testing.T) {
 		daprPath, err := os.MkdirTemp("", "dapr-e2e-run-with-flag-*")
 		assert.NoError(t, err)
 		defer os.RemoveAll(daprPath) // clean up
 
 		daprRuntimeVersion, _ := common.GetVersionsFromEnv(t, false)
-		output, err := cmdInit("--runtime-version", daprRuntimeVersion, "--dapr-path", daprPath)
+		output, err := cmdInit("--runtime-version", daprRuntimeVersion, "--runtime-path", daprPath)
 		t.Log(output)
 		require.NoError(t, err, "init failed")
 		assert.Contains(t, output, "Success! Dapr is up and running.")
 
 		// check version
-		output, err = cmdVersion("", "--dapr-path", daprPath)
+		output, err = cmdVersion("", "--runtime-path", daprPath)
 		t.Log(output)
 		require.NoError(t, err, "dapr version failed")
 		lines := strings.Split(output, "\n")
@@ -55,8 +55,8 @@ func TestStandaloneInitRunUninstallNonDefaultDaprPath(t *testing.T) {
 		assert.Contains(t, lines[1], daprRuntimeVersion)
 
 		args := []string{
-			"--dapr-path", daprPath,
-			"--app-id", "run_with_dapr_path_flag",
+			"--runtime-path", daprPath,
+			"--app-id", "run_with_dapr_runtime_path_flag",
 			"--", "bash", "-c", "echo 'test'",
 		}
 
@@ -73,7 +73,7 @@ func TestStandaloneInitRunUninstallNonDefaultDaprPath(t *testing.T) {
 		assert.NoFileExists(t, defaultDaprPath)
 
 		// Uninstall Dapr at the end of the test since it's being installed in a non-default location.
-		must(t, cmdUninstall, "failed to uninstall Dapr from custom path flag", "--dapr-path", daprPath)
+		must(t, cmdUninstall, "failed to uninstall Dapr from custom path flag", "--runtime-path", daprPath)
 		customDaprPath := filepath.Join(daprPath, ".dapr")
 		assert.NoDirExists(t, customDaprPath)
 		assert.DirExists(t, daprPath)
@@ -83,12 +83,12 @@ func TestStandaloneInitRunUninstallNonDefaultDaprPath(t *testing.T) {
 		assert.Len(t, f, 0)
 	})
 
-	t.Run("run with env var", func(t *testing.T) {
+	t.Run("run with custom runtime path env var", func(t *testing.T) {
 		daprPath, err := os.MkdirTemp("", "dapr-e2e-run-with-env-*")
 		assert.NoError(t, err)
 		defer os.RemoveAll(daprPath) // clean up
 
-		t.Setenv("DAPR_PATH", daprPath)
+		t.Setenv("DAPR_RUNTIME_PATH", daprPath)
 
 		daprRuntimeVersion, _ := common.GetVersionsFromEnv(t, false)
 
@@ -98,7 +98,7 @@ func TestStandaloneInitRunUninstallNonDefaultDaprPath(t *testing.T) {
 		assert.Contains(t, output, "Success! Dapr is up and running.")
 
 		// check version
-		output, err = cmdVersion("", "--dapr-path", daprPath)
+		output, err = cmdVersion("", "--runtime-path", daprPath)
 		t.Log(output)
 		require.NoError(t, err, "dapr version failed")
 		lines := strings.Split(output, "\n")
@@ -109,7 +109,7 @@ func TestStandaloneInitRunUninstallNonDefaultDaprPath(t *testing.T) {
 		assert.Contains(t, lines[1], daprRuntimeVersion)
 
 		args := []string{
-			"--app-id", "run_with_dapr_path_flag",
+			"--app-id", "run_with_dapr_runtime_path_flag",
 			"--", "bash", "-c", "echo 'test'",
 		}
 
@@ -136,7 +136,7 @@ func TestStandaloneInitRunUninstallNonDefaultDaprPath(t *testing.T) {
 		assert.Len(t, f, 0)
 	})
 
-	t.Run("run with both flag and env var", func(t *testing.T) {
+	t.Run("run with both runtime path flag and env var", func(t *testing.T) {
 		daprPathEnv, err := os.MkdirTemp("", "dapr-e2e-run-with-envflag-1-*")
 		assert.NoError(t, err)
 		defer os.RemoveAll(daprPathEnv) // clean up
@@ -145,17 +145,17 @@ func TestStandaloneInitRunUninstallNonDefaultDaprPath(t *testing.T) {
 		assert.NoError(t, err)
 		defer os.RemoveAll(daprPathFlag) // clean up
 
-		t.Setenv("DAPR_PATH", daprPathEnv)
+		t.Setenv("DAPR_RUNTIME_PATH", daprPathEnv)
 
 		daprRuntimeVersion, _ := common.GetVersionsFromEnv(t, false)
 
-		output, err := cmdInit("--runtime-version", daprRuntimeVersion, "--dapr-path", daprPathFlag)
+		output, err := cmdInit("--runtime-version", daprRuntimeVersion, "--runtime-path", daprPathFlag)
 		t.Log(output)
 		require.NoError(t, err, "init failed")
 		assert.Contains(t, output, "Success! Dapr is up and running.")
 
 		// check version
-		output, err = cmdVersion("", "--dapr-path", daprPathFlag)
+		output, err = cmdVersion("", "--runtime-path", daprPathFlag)
 		t.Log(output)
 		require.NoError(t, err, "dapr version failed")
 		lines := strings.Split(output, "\n")
@@ -166,8 +166,8 @@ func TestStandaloneInitRunUninstallNonDefaultDaprPath(t *testing.T) {
 		assert.Contains(t, lines[1], daprRuntimeVersion)
 
 		args := []string{
-			"--dapr-path", daprPathFlag,
-			"--app-id", "run_with_dapr_path_flag",
+			"--runtime-path", daprPathFlag,
+			"--app-id", "run_with_dapr_runtime_path_flag",
 			"--", "bash", "-c", "echo 'test'",
 		}
 
@@ -193,7 +193,7 @@ func TestStandaloneInitRunUninstallNonDefaultDaprPath(t *testing.T) {
 		assert.NoDirExists(t, envDaprBinPath)
 
 		// Uninstall Dapr at the end of the test since it's being installed in a non-default location.
-		must(t, cmdUninstall, "failed to uninstall Dapr from custom path flag", "--dapr-path", daprPathFlag)
+		must(t, cmdUninstall, "failed to uninstall Dapr from custom path flag", "--runtime-path", daprPathFlag)
 		customDaprPath := filepath.Join(daprPathFlag, ".dapr")
 		assert.NoDirExists(t, customDaprPath)
 		assert.DirExists(t, daprPathFlag)

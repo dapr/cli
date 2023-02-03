@@ -83,7 +83,7 @@ dapr init --image-variant <variant>
 
 # Initialize Dapr inside a ".dapr" directory present in a non-default location
 # Folder .dapr will be created in folder pointed to by <path-to-install-directory>
-dapr init --dapr-path <path-to-install-directory>
+dapr init --runtime-path <path-to-install-directory>
 
 # See more at: https://docs.dapr.io/getting-started/
 `,
@@ -96,8 +96,8 @@ dapr init --dapr-path <path-to-install-directory>
 			imageRegistryURI := ""
 			var err error
 
-			if len(strings.TrimSpace(daprPath)) != 0 {
-				print.FailureStatusEvent(os.Stderr, "--dapr-path is only valid for self-hosted mode")
+			if len(strings.TrimSpace(daprRuntimePath)) != 0 {
+				print.FailureStatusEvent(os.Stderr, "--runtime-path is only valid for self-hosted mode")
 				os.Exit(1)
 			}
 
@@ -151,7 +151,7 @@ dapr init --dapr-path <path-to-install-directory>
 				print.FailureStatusEvent(os.Stdout, "Invalid container runtime. Supported values are docker and podman.")
 				os.Exit(1)
 			}
-			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode, imageRegistryURI, fromDir, containerRuntime, imageVariant, daprPath)
+			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode, imageRegistryURI, fromDir, containerRuntime, imageVariant, daprRuntimePath)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)
