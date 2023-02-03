@@ -80,8 +80,7 @@ func Execute(version, apiVersion string) {
 }
 
 func printVersion() {
-	template := fmt.Sprintf(cliVersionTemplateString, daprVer.CliVersion, daprVer.RuntimeVersion)
-	fmt.Printf(template)
+	fmt.Printf(cliVersionTemplateString, daprVer.CliVersion, daprVer.RuntimeVersion)
 }
 
 // Function is called as a preRun initializer for each command executed.
