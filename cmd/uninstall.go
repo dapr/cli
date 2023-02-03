@@ -48,7 +48,8 @@ dapr uninstall --all
 # Uninstall from Kubernetes
 dapr uninstall -k
 
-# Uninstall Dapr from non-default install directory (default is $HOME/.dapr)
+# Uninstall Dapr from non-default install directory
+# This will remove the .dapr directory present in the path <path-to-install-directory>
 dapr uninstall --dapr-path <path-to-install-directory>
 `,
 	PreRun: func(cmd *cobra.Command, args []string) {

@@ -17,6 +17,7 @@ import (
 	"os"
 	path_filepath "path/filepath"
 	"runtime"
+	"strings"
 )
 
 const (
@@ -30,17 +31,18 @@ const (
 
 // GetDaprPath returns the dapr installation path.
 // The order of precedence is:
-//  1. From --dapr-path command line flag
-//  2. From DAPR_PATH environment variable
+//  1. From --dapr-path command line flag appended with `.dapr`
+//  2. From DAPR_PATH environment variable appended with `.dapr`
 //  3. $HOME/.dapr
 func GetDaprPath(inputInstallPath string) (string, error) {
-	if inputInstallPath != "" {
-		return inputInstallPath, nil
+	installPath := strings.TrimSpace(inputInstallPath)
+	if installPath != "" {
+		return path_filepath.Join(installPath, DefaultDaprDirName), nil
 	}
 
-	envDaprDir := os.Getenv("DAPR_PATH")
+	envDaprDir := strings.TrimSpace(os.Getenv("DAPR_PATH"))
 	if envDaprDir != "" {
-		return envDaprDir, nil
+		return path_filepath.Join(envDaprDir, DefaultDaprDirName), nil
 	}
 
 	homeDir, err := os.UserHomeDir()
