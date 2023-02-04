@@ -51,19 +51,29 @@ func StopAppsWithRunFile(runTemplatePath string) error {
 	if err != nil {
 		return err
 	}
+	cliPIDSet := make(map[int]struct{})
+	exists := struct{}{}
 	for _, a := range apps {
 		if a.RunTemplatePath == runTemplatePath {
+			if _, ok := cliPIDSet[a.CliPID]; ok {
+				continue
+			}
+			cliPIDSet[a.CliPID] = exists
 			// Get the process group id of the CLI process.
 			pgid, err := syscall.Getpgid(a.CliPID)
+			// return err and fail stop execution in case of any error as it is guaranteed that apps started with CLI will have a valid pgid.
 			if err != nil {
-				// Fall back to cliPID if pgid is not available.
-				_, err = utils.RunCmdAndWait("kill", fmt.Sprintf("%v", a.CliPID))
 				return err
 			}
 			// Kill the whole process group.
 			err = syscall.Kill(-pgid, syscall.SIGINT)
-			return err
+			if err != nil {
+				return err
+			}
 		}
+	}
+	if len(cliPIDSet) > 0 {
+		return nil
 	}
 	return fmt.Errorf("couldn't find apps with run file %q", runTemplatePath)
 }
