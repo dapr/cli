@@ -30,19 +30,20 @@ const (
 )
 
 // GetDaprRuntimePath returns the dapr runtime installation path.
+// daprRuntimePath is based on the --runtime-path command line flag.
 // The order of precedence is:
 //  1. From --runtime-path command line flag appended with `.dapr`
 //  2. From DAPR_RUNTIME_PATH environment variable appended with `.dapr`
 //  3. default $HOME/.dapr
-func GetDaprRuntimePath(inputInstallPath string) (string, error) {
-	installPath := strings.TrimSpace(inputInstallPath)
-	if installPath != "" {
-		return path_filepath.Join(installPath, DefaultDaprDirName), nil
+func GetDaprRuntimePath(daprRuntimePath string) (string, error) {
+	runtimePath := strings.TrimSpace(daprRuntimePath)
+	if runtimePath != "" {
+		return path_filepath.Join(runtimePath, DefaultDaprDirName), nil
 	}
 
-	envDaprDir := strings.TrimSpace(os.Getenv("DAPR_RUNTIME_PATH"))
-	if envDaprDir != "" {
-		return path_filepath.Join(envDaprDir, DefaultDaprDirName), nil
+	envRuntimePath := strings.TrimSpace(os.Getenv("DAPR_RUNTIME_PATH"))
+	if envRuntimePath != "" {
+		return path_filepath.Join(envRuntimePath, DefaultDaprDirName), nil
 	}
 
 	homeDir, err := os.UserHomeDir()
