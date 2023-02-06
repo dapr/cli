@@ -30,7 +30,10 @@ func TestGetDaprPath(t *testing.T) {
 		p, err := GetDaprRuntimePath("")
 		require.NoError(t, err)
 		assert.Equal(t, p, path_filepath.Join(homeDir, DefaultDaprDirName), "path should be $HOME/.dapr")
-		p, err = GetDaprRuntimePath("      ")
+	})
+
+	t.Run("check trim spaces", func(t *testing.T) {
+		p, err := GetDaprRuntimePath("      ")
 		require.NoError(t, err)
 		assert.Equal(t, path_filepath.Join(homeDir, DefaultDaprDirName), p, "path should be $HOME/.dapr")
 
