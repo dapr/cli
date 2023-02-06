@@ -93,7 +93,7 @@ dapr run --app-id myapp
 dapr run --app-id myapp --app-port 3000 --app-protocol grpc -- go run main.go
 
 # Run sidecar only specifying dapr runtime installation directory
-dapr run --app-id myapp --dapr-path /usr/local/dapr
+dapr run --app-id myapp --runtime-path /usr/local/dapr
 
 # Run multiple apps by providing path of a run config file
 dapr run --run-file dapr.yaml
@@ -123,7 +123,7 @@ dapr run --run-file /path/to/directory
 			fmt.Println(print.WhiteBold("WARNING: no application command found."))
 		}
 
-		daprDirPath, err := standalone.GetDaprPath(daprPath)
+		daprDirPath, err := standalone.GetDaprRuntimePath(daprRuntimePath)
 		if err != nil {
 			print.FailureStatusEvent(os.Stderr, "Failed to get Dapr install directory: %v", err)
 			os.Exit(1)
@@ -171,7 +171,7 @@ dapr run --run-file /path/to/directory
 			AppHealthThreshold: appHealthThreshold,
 			EnableAPILogging:   enableAPILogging,
 			APIListenAddresses: apiListenAddresses,
-			DaprdInstallPath:   daprPath,
+			DaprdInstallPath:   daprRuntimePath,
 		}
 		output, err := runExec.NewOutput(&standalone.RunConfig{
 			AppID:            appID,

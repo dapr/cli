@@ -30,15 +30,20 @@ var RootCmd = &cobra.Command{
 	Use:   "dapr",
 	Short: "Dapr CLI",
 	Long: `
-	  __                
+	  __
      ____/ /___ _____  _____
     / __  / __ '/ __ \/ ___/
-   / /_/ / /_/ / /_/ / /    
-   \__,_/\__,_/ .___/_/     
-	     /_/            
-									   
+   / /_/ / /_/ / /_/ / /
+   \__,_/\__,_/ .___/_/
+	     /_/
+
 ===============================
 Distributed Application Runtime`,
+	Run: func(cmd *cobra.Command, args []string) {
+		if versionFlag {
+			printVersion()
+		}
+	},
 }
 
 type daprVersion struct {
@@ -53,27 +58,20 @@ const (
 )
 
 var (
-	daprVer   daprVersion
-	logAsJSON bool
-	daprPath  string
+	cliVersion      string
+	versionFlag     bool
+	daprVer         daprVersion
+	logAsJSON       bool
+	daprRuntimePath string
 )
 
 // Execute adds all child commands to the root command.
 func Execute(version, apiVersion string) {
-	RootCmd.Version = version
+	// Need to be set here as it is accessed in initConfig.
+	cliVersion = version
 	api.RuntimeAPIVersion = apiVersion
 
-	// err intentionally ignored since daprd may not yet be installed.
-	runtimeVer, _ := standalone.GetRuntimeVersion(daprPath)
-
-	daprVer = daprVersion{
-		CliVersion:     version,
-		RuntimeVersion: strings.ReplaceAll(runtimeVer, "\n", ""),
-	}
-
 	cobra.OnInitialize(initConfig)
-
-	setVersion()
 
 	if err := RootCmd.Execute(); err != nil {
 		fmt.Println(err)
@@ -81,14 +79,22 @@ func Execute(version, apiVersion string) {
 	}
 }
 
-func setVersion() {
-	template := fmt.Sprintf(cliVersionTemplateString, daprVer.CliVersion, daprVer.RuntimeVersion)
-	RootCmd.SetVersionTemplate(template)
+func printVersion() {
+	fmt.Printf(cliVersionTemplateString, daprVer.CliVersion, daprVer.RuntimeVersion)
 }
 
+// Function is called as a preRun initializer for each command executed.
 func initConfig() {
 	if logAsJSON {
 		print.EnableJSONFormat()
+	}
+	// err intentionally ignored since daprd may not yet be installed.
+	runtimeVer, _ := standalone.GetRuntimeVersion(daprRuntimePath)
+
+	daprVer = daprVersion{
+		// Set in Execute() method in this file before initConfig() is called by cmd.Execute().
+		CliVersion:     cliVersion,
+		RuntimeVersion: strings.ReplaceAll(runtimeVer, "\n", ""),
 	}
 
 	viper.SetEnvPrefix("dapr")
@@ -97,6 +103,7 @@ func initConfig() {
 }
 
 func init() {
-	RootCmd.PersistentFlags().StringVarP(&daprPath, "dapr-path", "", "", "The path to the dapr installation directory")
+	RootCmd.Flags().BoolVarP(&versionFlag, "version", "v", false, "version for dapr")
+	RootCmd.PersistentFlags().StringVarP(&daprRuntimePath, "runtime-path", "", "", "The path to the dapr runtime installation directory")
 	RootCmd.PersistentFlags().BoolVarP(&logAsJSON, "log-as-json", "", false, "Log output in JSON format")
 }

@@ -17,6 +17,7 @@ import (
 	"os"
 	path_filepath "path/filepath"
 	"runtime"
+	"strings"
 )
 
 const (
@@ -28,19 +29,20 @@ const (
 	defaultComponentsDirName = "components"
 )
 
-// GetDaprPath returns the dapr installation path.
+// GetDaprRuntimePath returns the dapr runtime installation path.
 // The order of precedence is:
-//  1. From --dapr-path command line flag
-//  2. From DAPR_PATH environment variable
-//  3. $HOME/.dapr
-func GetDaprPath(inputInstallPath string) (string, error) {
-	if inputInstallPath != "" {
-		return inputInstallPath, nil
+//  1. From --runtime-path command line flag appended with `.dapr`
+//  2. From DAPR_RUNTIME_PATH environment variable appended with `.dapr`
+//  3. default $HOME/.dapr
+func GetDaprRuntimePath(inputInstallPath string) (string, error) {
+	installPath := strings.TrimSpace(inputInstallPath)
+	if installPath != "" {
+		return path_filepath.Join(installPath, DefaultDaprDirName), nil
 	}
 
-	envDaprDir := os.Getenv("DAPR_PATH")
+	envDaprDir := strings.TrimSpace(os.Getenv("DAPR_RUNTIME_PATH"))
 	if envDaprDir != "" {
-		return envDaprDir, nil
+		return path_filepath.Join(envDaprDir, DefaultDaprDirName), nil
 	}
 
 	homeDir, err := os.UserHomeDir()
@@ -64,7 +66,7 @@ func binaryFilePathWithDir(binaryDir string, binaryFilePrefix string) string {
 }
 
 func lookupBinaryFilePath(inputInstallPath string, binaryFilePrefix string) (string, error) {
-	daprPath, err := GetDaprPath(inputInstallPath)
+	daprPath, err := GetDaprRuntimePath(inputInstallPath)
 	if err != nil {
 		return "", err
 	}

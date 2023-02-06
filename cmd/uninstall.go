@@ -48,8 +48,9 @@ dapr uninstall --all
 # Uninstall from Kubernetes
 dapr uninstall -k
 
-# Uninstall Dapr from non-default install directory (default is $HOME/.dapr)
-dapr uninstall --dapr-path <path-to-install-directory>
+# Uninstall Dapr from non-default install directory
+# This will remove the .dapr directory present in the path <path-to-install-directory>
+dapr uninstall --runtime-path <path-to-install-directory>
 `,
 	PreRun: func(cmd *cobra.Command, args []string) {
 		viper.BindPFlag("network", cmd.Flags().Lookup("network"))
@@ -59,8 +60,8 @@ dapr uninstall --dapr-path <path-to-install-directory>
 		var err error
 
 		if uninstallKubernetes {
-			if len(strings.TrimSpace(daprPath)) != 0 {
-				print.FailureStatusEvent(os.Stderr, "--dapr-path is only valid for self-hosted mode")
+			if len(strings.TrimSpace(daprRuntimePath)) != 0 {
+				print.FailureStatusEvent(os.Stderr, "--runtime-path is only valid for self-hosted mode")
 				os.Exit(1)
 			}
 
@@ -73,7 +74,7 @@ dapr uninstall --dapr-path <path-to-install-directory>
 			}
 			print.InfoStatusEvent(os.Stdout, "Removing Dapr from your machine...")
 			dockerNetwork := viper.GetString("network")
-			err = standalone.Uninstall(uninstallAll, dockerNetwork, uninstallContainerRuntime, daprPath)
+			err = standalone.Uninstall(uninstallAll, dockerNetwork, uninstallContainerRuntime, daprRuntimePath)
 		}
 
 		if err != nil {

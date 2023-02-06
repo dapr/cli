@@ -31,7 +31,7 @@ var BuildInfoCmd = &cobra.Command{
 dapr build-info
 `,
 	Run: func(cmd *cobra.Command, args []string) {
-		out, err := standalone.GetBuildInfo(daprPath, RootCmd.Version)
+		out, err := standalone.GetBuildInfo(daprRuntimePath, cliVersion)
 		if err != nil {
 			print.FailureStatusEvent(os.Stderr, "Error getting build info: %s", err.Error())
 			os.Exit(1)
