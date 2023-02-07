@@ -140,9 +140,6 @@ dapr init --runtime-path <path-to-install-directory>
 				print.FailureStatusEvent(os.Stderr, "both --image-registry and --from-dir flags cannot be given at the same time")
 				os.Exit(1)
 			}
-			if len(strings.TrimSpace(fromDir)) != 0 {
-				print.WarningStatusEvent(os.Stdout, "Local bundle installation using --from-dir flag is currently a preview feature and is subject to change. It is only available from CLI version 1.7 onwards.")
-			}
 			if len(imageRegistryURI) != 0 {
 				warnForPrivateRegFeat()
 			}
