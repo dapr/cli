@@ -332,8 +332,8 @@ github.com/d2g/hardwareaddr v0.0.0-20190221164911-e7d9fbe030e4/go.mod h1:bMl4RjI
 github.com/danieljoos/wincred v1.1.0/go.mod h1:XYlo+eRTsVA9aHGp7NGjFkPla4m+DCL7hqDjlFjiygg=
 github.com/dapr/components-contrib v1.10.0-rc.4 h1:qpA9l8e7X7ZLHnhtnqRB6iwcSAn1KiViyg6fLx41R4I=
 github.com/dapr/components-contrib v1.10.0-rc.4/go.mod h1:8OvVS4m3kK/ocDqhVYKdu4j7OS4gPlbXMi+eRjlPAwc=
-github.com/dapr/dapr v1.10.0-rc.3 h1:70Sw8SVVEqOUtSW8XipcCAQHc6IKKgmXhs4ErIetP/Y=
-github.com/dapr/dapr v1.10.0-rc.3/go.mod h1:hHGc3P6ZXrWMlIKmXOMgZc70xCdIDUVSuJgfzOPeycs=
+github.com/dapr/dapr v1.10.0-rc.4 h1:FH3CNjhglEp3kMls5ykwtQnx+JYm2pRFsGft8XuGjWU=
+github.com/dapr/dapr v1.10.0-rc.4/go.mod h1:hHGc3P6ZXrWMlIKmXOMgZc70xCdIDUVSuJgfzOPeycs=
 github.com/dapr/go-sdk v1.6.0 h1:jg5A2khSCHF8bGZsig5RWN/gD0jjitszc2V6Uq2pPdY=
 github.com/dapr/go-sdk v1.6.0/go.mod h1:KLQBltoD9K0w5hKTihdcyg9Epob9gypwL5dYcQzPro4=
 github.com/dapr/kit v0.0.4 h1:i+7TIN4crC1Mo0JFyWpIkwAE8orlliA0O6/ibvs2AaE=
