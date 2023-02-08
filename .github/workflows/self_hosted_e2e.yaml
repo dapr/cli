@@ -146,4 +146,6 @@ jobs:
         uses: actions/upload-artifact@master
         with:
           name: ${{ matrix.target_os }}_${{ matrix.target_arch }}_e2e_standalone.json
-          path: ${{ env.TEST_OUTPUT_FILE }}
+          path: |
+            ${{ env.TEST_OUTPUT_FILE }}
+            $GITHUB_WORKSPACE/tests/apps/**/*.log
