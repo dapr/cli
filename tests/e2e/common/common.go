@@ -80,8 +80,8 @@ func GetVersionsFromEnv(t *testing.T, latest bool) (string, string) {
 	runtimeEnvVar := "DAPR_RUNTIME_PINNED_VERSION"
 	dashboardEnvVar := "DAPR_DASHBOARD_PINNED_VERSION"
 	if latest {
-		runtimeEnvVar = "DAPR_RUNTIME_LATEST_VERSION"
-		dashboardEnvVar = "DAPR_DASHBOARD_LATEST_VERSION"
+		runtimeEnvVar = "DAPR_RUNTIME_LATEST_STABLE_VERSION"
+		dashboardEnvVar = "DAPR_DASHBOARD_LATEST_STABLE_VERSION"
 	}
 	if runtimeVersion, ok := os.LookupEnv(runtimeEnvVar); ok {
 		daprRuntimeVersion = runtimeVersion
