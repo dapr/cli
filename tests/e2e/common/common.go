@@ -708,7 +708,7 @@ func installTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 			"--log-as-json",
 		}
 		if !details.UseDaprLatestVersion {
-			args = append(args, "--runtime-version", details.RuntimeVersion)
+			args = append(args, "--runtime-version", details.RuntimeVersion, "--dashboard-version", details.DashboardVersion)
 		}
 		if opts.HAEnabled {
 			args = append(args, "--enable-ha")
