@@ -1,5 +1,5 @@
-//go:build e2e
-// +build e2e
+//go:build e2e && !template
+// +build e2e,!template
 
 /*
 Copyright 2022 The Dapr Authors
@@ -148,7 +148,7 @@ func TestStandalonePublish(t *testing.T) {
 				assert.Equal(t, []byte("{\"cli\": \"is_working\"}"), event.Data)
 			})
 
-			output, err := cmdStop("pub_e2e")
+			output, err := cmdStopWithAppID("pub_e2e")
 			t.Log(output)
 			require.NoError(t, err, "dapr stop failed")
 			assert.Contains(t, output, "app stopped successfully: pub_e2e")

@@ -23,7 +23,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
-	"reflect"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -237,20 +237,16 @@ func MarshalAndWriteTable(writer io.Writer, in interface{}) error {
 }
 
 func PrintDetail(writer io.Writer, outputFormat string, list interface{}) error {
-	obj := list
-	s := reflect.ValueOf(list)
-	if s.Kind() == reflect.Slice && s.Len() == 1 {
-		obj = s.Index(0).Interface()
-	}
-
 	var err error
 	output := []byte{}
 
 	switch outputFormat {
 	case "yaml":
-		output, err = yaml.Marshal(obj)
+		output, err = yaml.Marshal(list)
 	case "json":
-		output, err = json.MarshalIndent(obj, "", "  ")
+		output, err = json.MarshalIndent(list, "", "  ")
+	default:
+		err = fmt.Errorf("unsupported output format: %s", outputFormat)
 	}
 	if err != nil {
 		return err
@@ -268,6 +264,16 @@ func IsAddressLegal(address string) bool {
 		isLegal = true
 	}
 	return isLegal
+}
+
+// CheckIfPortAvailable returns an error if the port is not available else returns nil.
+func CheckIfPortAvailable(port int) error {
+	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	if err != nil {
+		return err
+	}
+	ln.Close()
+	return nil
 }
 
 // GetEnv get value from environment variable.
@@ -320,4 +326,43 @@ func GetVersionAndImageVariant(imageTag string) (string, string) {
 		return imageTag[:imageVersionOffset], imageVariant
 	}
 	return imageTag, ""
+}
+
+// Returns true if the given file path is valid.
+func ValidateFilePath(filePath string) error {
+	if filePath != "" {
+		if _, err := os.Stat(filePath); err != nil {
+			return fmt.Errorf("error in getting the file info for %s: %w", filePath, err)
+		}
+	}
+	return nil
+}
+
+// GetAbsPath returns the absolute path of the given file path and base directory.
+func GetAbsPath(baseDir, path string) string {
+	if path == "" {
+		return ""
+	}
+	if filepath.IsAbs(path) {
+		return path
+	}
+	absPath := filepath.Join(baseDir, filepath.Clean(path))
+	return absPath
+}
+
+func ReadFile(filePath string) ([]byte, error) {
+	bytes, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("error in reading the provided app config file: %w", err)
+	}
+	return bytes, nil
+}
+
+// FindFileInDir finds and returns the path of the given file name in the given directory.
+func FindFileInDir(dirPath, fileName string) (string, error) {
+	filePath := filepath.Join(dirPath, fileName)
+	if err := ValidateFilePath(filePath); err != nil {
+		return "", fmt.Errorf("error in validating the file path %q: %w", filePath, err)
+	}
+	return filePath, nil
 }

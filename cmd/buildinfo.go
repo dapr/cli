@@ -15,9 +15,11 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 
+	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/pkg/standalone"
 )
 
@@ -29,7 +31,12 @@ var BuildInfoCmd = &cobra.Command{
 dapr build-info
 `,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(standalone.GetBuildInfo(RootCmd.Version))
+		out, err := standalone.GetBuildInfo(daprPath, RootCmd.Version)
+		if err != nil {
+			print.FailureStatusEvent(os.Stderr, "Error getting build info: %s", err.Error())
+			os.Exit(1)
+		}
+		fmt.Println(out)
 	},
 }
 

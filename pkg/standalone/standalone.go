@@ -52,18 +52,23 @@ const (
 	pubSubYamlFileName     = "pubsub.yaml"
 	stateStoreYamlFileName = "statestore.yaml"
 
-	// used when DAPR_DEFAULT_IMAGE_REGISTRY is not set.
+	// accepted DAPR_DEFAULT_IMAGE_REGISTRY values.
 	dockerContainerRegistryName = "dockerhub"
-	daprDockerImageName         = "daprio/dapr"
-	redisDockerImageName        = "redis:6"
-	zipkinDockerImageName       = "openzipkin/zipkin"
+	githubContainerRegistryName = "ghcr"
+
+	// used when DAPR_DEFAULT_IMAGE_REGISTRY is not set.
+	daprDockerImageName   = "docker.io/daprio/dapr"
+	redisDockerImageName  = "docker.io/redis:6"
+	zipkinDockerImageName = "docker.io/openzipkin/zipkin"
 
 	// used when DAPR_DEFAULT_IMAGE_REGISTRY is set as GHCR.
-	githubContainerRegistryName = "ghcr"
-	ghcrURI                     = "ghcr.io/dapr"
-	daprGhcrImageName           = "dapr"
-	redisGhcrImageName          = "3rdparty/redis:6"
-	zipkinGhcrImageName         = "3rdparty/zipkin"
+	dockerURI = "docker.io"
+	ghcrURI   = "ghcr.io"
+
+	// used when DAPR_DEFAULT_IMAGE_REGISTRY is set as GHCR or image-registry flag is set.
+	daprGhcrImageName   = "dapr/dapr"
+	redisGhcrImageName  = "dapr/3rdparty/redis:6"
+	zipkinGhcrImageName = "dapr/3rdparty/zipkin"
 
 	// DaprPlacementContainerName is the container name of placement service.
 	DaprPlacementContainerName = "dapr_placement"
@@ -77,7 +82,6 @@ const (
 
 var (
 	defaultImageRegistryName string
-	privateRegTemplateString = "%s/dapr/%s"
 	isAirGapInit             bool
 )
 
@@ -117,6 +121,7 @@ type componentMetadataItem struct {
 
 type initInfo struct {
 	fromDir          string
+	installDir       string
 	bundleDet        *bundleDetails
 	slimMode         bool
 	runtimeVersion   string
@@ -135,8 +140,8 @@ type daprImageInfo struct {
 }
 
 // Check if the previous version is already installed.
-func isBinaryInstallationRequired(binaryFilePrefix, installDir string) (bool, error) {
-	binaryPath := binaryFilePath(installDir, binaryFilePrefix)
+func isBinaryInstallationRequired(binaryFilePrefix, binInstallDir string) (bool, error) {
+	binaryPath := binaryFilePathWithDir(binInstallDir, binaryFilePrefix)
 
 	// first time install?
 	_, err := os.Stat(binaryPath)
@@ -147,12 +152,13 @@ func isBinaryInstallationRequired(binaryFilePrefix, installDir string) (bool, er
 }
 
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
-func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool, imageRegistryURL string, fromDir string, containerRuntime string, imageVariant string) error {
+func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool, imageRegistryURL string, fromDir string, containerRuntime string, imageVariant string, daprInstallPath string) error {
 	var err error
 	var bundleDet bundleDetails
 	containerRuntime = strings.TrimSpace(containerRuntime)
-	fromDir = strings.TrimSpace(fromDir)
+	daprInstallPath = strings.TrimSpace(daprInstallPath)
 	// AirGap init flow is true when fromDir var is set i.e. --from-dir flag has value.
+	fromDir = strings.TrimSpace(fromDir)
 	setAirGapInit(fromDir)
 	if !slimMode {
 		// If --slim installation is not requested, check if docker is installed.
@@ -209,7 +215,11 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 
 	print.InfoStatusEvent(os.Stdout, "Installing runtime version %s", runtimeVersion)
 
-	daprBinDir := defaultDaprBinPath()
+	installDir, err := GetDaprPath(daprInstallPath)
+	if err != nil {
+		return err
+	}
+	daprBinDir := getDaprBinPath(installDir)
 	err = prepareDaprInstallDir(daprBinDir)
 	if err != nil {
 		return err
@@ -244,7 +254,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 	defer stopSpinning(print.Failure)
 
 	// Make default components directory.
-	err = makeDefaultComponentsDir()
+	err = makeDefaultComponentsDir(installDir)
 	if err != nil {
 		return err
 	}
@@ -253,6 +263,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		// values in bundleDet can be nil if fromDir is empty, so must be used in conjunction with fromDir.
 		bundleDet:        &bundleDet,
 		fromDir:          fromDir,
+		installDir:       installDir,
 		slimMode:         slimMode,
 		runtimeVersion:   runtimeVersion,
 		dashboardVersion: dashboardVersion,
@@ -599,7 +610,7 @@ func installBinary(version, binaryFilePrefix, githubRepo string, info initInfo) 
 		filepath string
 	)
 
-	dir := defaultDaprBinPath()
+	dir := getDaprBinPath(info.installDir)
 	if isAirGapInit {
 		filepath = path_filepath.Join(info.fromDir, *info.bundleDet.BinarySubDir, binaryName(binaryFilePrefix))
 	} else {
@@ -658,8 +669,9 @@ func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error
 	}
 	var err error
 
-	// Make default components directory.
-	componentsDir := DefaultComponentsDirPath()
+	// Make default components & config.
+	componentsDir := GetDaprComponentsPath(info.installDir)
+	configPath := GetDaprConfigPath(info.installDir)
 
 	err = createRedisPubSub(redisHost, componentsDir)
 	if err != nil {
@@ -671,7 +683,7 @@ func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error
 		errorChan <- fmt.Errorf("error creating redis statestore component file: %w", err)
 		return
 	}
-	err = createDefaultConfiguration(zipkinHost, DefaultConfigFilePath())
+	err = createDefaultConfiguration(zipkinHost, configPath)
 	if err != nil {
 		errorChan <- fmt.Errorf("error creating default configuration file: %w", err)
 		return
@@ -685,17 +697,18 @@ func createSlimConfiguration(wg *sync.WaitGroup, errorChan chan<- error, info in
 		return
 	}
 
+	configPath := GetDaprConfigPath(info.installDir)
 	// For --slim we pass empty string so that we do not configure zipkin.
-	err := createDefaultConfiguration("", DefaultConfigFilePath())
+	err := createDefaultConfiguration("", configPath)
 	if err != nil {
 		errorChan <- fmt.Errorf("error creating default configuration file: %w", err)
 		return
 	}
 }
 
-func makeDefaultComponentsDir() error {
+func makeDefaultComponentsDir(installDir string) error {
 	// Make default components directory.
-	componentsDir := DefaultComponentsDirPath()
+	componentsDir := GetDaprComponentsPath(installDir)
 	//nolint
 	_, err := os.Stat(componentsDir)
 	if os.IsNotExist(err) {
@@ -1215,11 +1228,10 @@ func useGHCR(imageInfo daprImageInfo, fromDir string) bool {
 
 func resolveImageURI(imageInfo daprImageInfo) (string, error) {
 	if strings.TrimSpace(imageInfo.imageRegistryURL) != "" {
-		if imageInfo.imageRegistryURL == ghcrURI || imageInfo.imageRegistryURL == "docker.io" {
-			err := fmt.Errorf("flag --image-registry not set correctly. It cannot be %q or \"docker.io\"", ghcrURI)
-			return "", err
+		if imageInfo.imageRegistryURL == ghcrURI || imageInfo.imageRegistryURL == dockerURI {
+			return "", fmt.Errorf("flag --image-registry not set correctly. It cannot be %q or %q", ghcrURI, dockerURI)
 		}
-		return fmt.Sprintf(privateRegTemplateString, imageInfo.imageRegistryURL, imageInfo.ghcrImageName), nil
+		return imageInfo.imageRegistryURL + "/" + imageInfo.ghcrImageName, nil
 	}
 	switch imageInfo.imageRegistryName {
 	case dockerContainerRegistryName:

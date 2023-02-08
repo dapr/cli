@@ -1,0 +1,6 @@
+version: 1
+common:
+apps:
+  - appDirPath: ./webapp/
+  - appID: backend
+    appDirPath: ./invalid_backend/

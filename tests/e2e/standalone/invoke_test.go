@@ -1,5 +1,5 @@
-//go:build e2e
-// +build e2e
+//go:build e2e && !template
+// +build e2e,!template
 
 /*
 Copyright 2022 The Dapr Authors
@@ -102,7 +102,7 @@ func TestStandaloneInvoke(t *testing.T) {
 				assert.Contains(t, output, "error invoking app invoke_e2e: 404 Not Found")
 			})
 
-			output, err := cmdStop("invoke_e2e")
+			output, err := cmdStopWithAppID("invoke_e2e")
 			t.Log(output)
 			require.NoError(t, err, "dapr stop failed")
 			assert.Contains(t, output, "app stopped successfully: invoke_e2e")

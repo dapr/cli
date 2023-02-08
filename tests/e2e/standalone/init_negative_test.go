@@ -1,5 +1,5 @@
-//go:build e2e
-// +build e2e
+//go:build e2e && !template
+// +build e2e,!template
 
 /*
 Copyright 2022 The Dapr Authors
@@ -50,7 +50,7 @@ func TestStandaloneInitNegatives(t *testing.T) {
 	})
 
 	t.Run("stop without install", func(t *testing.T) {
-		output, err := cmdStop("test")
+		output, err := cmdStopWithAppID("test")
 		require.NoError(t, err, "expected no error on stop without install")
 		require.Contains(t, output, "failed to stop app id test: couldn't find app id test", "expected output to match")
 	})

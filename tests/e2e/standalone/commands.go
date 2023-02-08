@@ -1,5 +1,5 @@
-//go:build e2e
-// +build e2e
+//go:build e2e || template
+// +build e2e template
 
 /*
 Copyright 2022 The Dapr Authors
@@ -18,7 +18,7 @@ package standalone_test
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/dapr/cli/tests/e2e/common"
@@ -29,7 +29,7 @@ import (
 // cmdDashboard runs the Dapr dashboard and blocks until it is started.
 // If the context is done, the dashboard is stopped.
 func cmdDashboard(ctx context.Context, port string) error {
-	stdOutChan, err := spawn.CommandWithContext(ctx, common.GetDaprPath(), "dashboard", "--port", port)
+	stdOutChan, stdErrChan, err := spawn.CommandWithContext(ctx, common.GetDaprPath(), "dashboard", "--port", port)
 	if err != nil {
 		return err
 	}
@@ -38,7 +38,13 @@ func cmdDashboard(ctx context.Context, port string) error {
 			return nil
 		}
 	}
-	return errors.New("Dashboard could not be started")
+
+	errOutput := ""
+	for output := range stdErrChan {
+		errOutput += output
+	}
+
+	return fmt.Errorf("Dashboard could not be started: %s", errOutput)
 }
 
 // cmdInit installs Dapr with the init command and returns the command output and error.
@@ -113,9 +119,32 @@ func cmdRun(unixDomainSocket string, args ...string) (string, error) {
 	return spawn.Command(common.GetDaprPath(), runArgs...)
 }
 
-// cmdStop stops the specified app and returns the command output and error.
-func cmdStop(appId string, args ...string) (string, error) {
+// cmdRun runs a Dapr instance and returns the command output and error.
+func cmdRunWithContext(ctx context.Context, unixDomainSocket string, args ...string) (string, error) {
+	runArgs := []string{"run"}
+
+	if unixDomainSocket != "" {
+		runArgs = append(runArgs, "--unix-domain-socket", unixDomainSocket)
+	}
+
+	runArgs = append(runArgs, args...)
+	return spawn.CommandExecWithContext(ctx, common.GetDaprPath(), runArgs...)
+}
+
+// cmdStopWithAppID stops the specified app with app id and returns the command output and error.
+func cmdStopWithAppID(appId string, args ...string) (string, error) {
 	stopArgs := append([]string{"stop", "--log-as-json", "--app-id", appId}, args...)
+	return daprStop(stopArgs...)
+}
+
+// cmdStopWithRunTemplate stops the apps started with run template file and returns the command output and error.
+func cmdStopWithRunTemplate(runTemplateFile string, args ...string) (string, error) {
+	stopArgs := append([]string{"stop", "--log-as-json", "-f", runTemplateFile}, args...)
+	return daprStop(stopArgs...)
+}
+
+// daprStop stops Dapr with the stop command and returns the command output and error.
+func daprStop(stopArgs ...string) (string, error) {
 	return spawn.Command(common.GetDaprPath(), stopArgs...)
 }
 
@@ -137,12 +166,14 @@ func cmdUninstall(args ...string) (string, error) {
 
 // cmdVersion checks the version of Dapr and returns the command output and error.
 // output can be empty or "json"
-func cmdVersion(output string) (string, error) {
-	args := []string{"version"}
+func cmdVersion(output string, args ...string) (string, error) {
+	verArgs := []string{"version"}
 
 	if output != "" {
-		args = append(args, "-o", output)
+		verArgs = append(verArgs, "-o", output)
 	}
 
-	return spawn.Command(common.GetDaprPath(), args...)
+	verArgs = append(verArgs, args...)
+
+	return spawn.Command(common.GetDaprPath(), verArgs...)
 }

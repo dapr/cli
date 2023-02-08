@@ -141,7 +141,7 @@ if (!(Test-Path $zipFilePath -PathType Leaf)) {
 Write-Output "Extracting $zipFilePath..."
 Microsoft.Powershell.Archive\Expand-Archive -Force -Path $zipFilePath -DestinationPath $DaprRoot
 if (!(Test-Path $DaprCliFilePath -PathType Leaf)) {
-    throw "Failed to download Dapr Cli archieve - $zipFilePath"
+    throw "Failed to download Dapr Cli archive - $zipFilePath"
 }
 
 # Check the Dapr CLI version

@@ -73,7 +73,7 @@ dapr invoke --unix-domain-socket --app-id target --method sample --verb GET
 
 		// TODO(@daixiang0): add Windows support.
 		if invokeSocket != "" {
-			if runtime.GOOS == "windows" {
+			if runtime.GOOS == string(windowsOsType) {
 				print.FailureStatusEvent(os.Stderr, "The unix-domain-socket option is not supported on Windows")
 				os.Exit(1)
 			} else {

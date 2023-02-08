@@ -17,24 +17,30 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strconv"
+
+	"github.com/phayes/freeport"
 )
 
 // NewDashboardCmd creates the command to run dashboard.
-func NewDashboardCmd(port int) *exec.Cmd {
-	// Use the default binary install location.
-	dashboardPath := defaultDaprBinPath()
-	binaryName := "dashboard"
-	if runtime.GOOS == daprWindowsOS {
-		binaryName = "dashboard.exe"
+func NewDashboardCmd(inputInstallPath string, port int) (*exec.Cmd, error) {
+	if port == 0 {
+		freePort, err := freeport.GetFreePort()
+		if err != nil {
+			return nil, err
+		}
+		port = freePort
+	}
+	dashboardPath, err := lookupBinaryFilePath(inputInstallPath, "dashboard")
+	if err != nil {
+		return nil, err
 	}
 
 	// Construct command to run dashboard.
 	return &exec.Cmd{
-		Path:   filepath.Join(dashboardPath, binaryName),
-		Args:   []string{binaryName, "--port", strconv.Itoa(port)},
-		Dir:    dashboardPath,
+		Path:   dashboardPath,
+		Args:   []string{filepath.Base(dashboardPath), "--port", strconv.Itoa(port)},
+		Dir:    filepath.Dir(dashboardPath),
 		Stdout: os.Stdout,
-	}
+	}, nil
 }

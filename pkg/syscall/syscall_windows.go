@@ -11,7 +11,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cmd
+package syscall
 
 import (
 	"fmt"
@@ -24,7 +24,7 @@ import (
 	"github.com/dapr/cli/pkg/print"
 )
 
-func setupShutdownNotify(sigCh chan os.Signal) {
+func SetupShutdownNotify(sigCh chan os.Signal) {
 	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
 
 	// Unlike Linux/Mac, you can't just send a SIGTERM from another process.
@@ -39,4 +39,10 @@ func setupShutdownNotify(sigCh chan os.Signal) {
 		}
 		sigCh <- os.Interrupt
 	}()
+}
+
+// CreateProcessGroupID creates a process group ID for the current process.
+func CreateProcessGroupID() {
+	// No-op on Windows
+	print.WarningStatusEvent(os.Stdout, "Creating process group id is not implemented on Windows")
 }

@@ -16,6 +16,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -46,6 +47,9 @@ dapr uninstall --all
 
 # Uninstall from Kubernetes
 dapr uninstall -k
+
+# Uninstall Dapr from non-default install directory (default is $HOME/.dapr)
+dapr uninstall --dapr-path <path-to-install-directory>
 `,
 	PreRun: func(cmd *cobra.Command, args []string) {
 		viper.BindPFlag("network", cmd.Flags().Lookup("network"))
@@ -55,6 +59,11 @@ dapr uninstall -k
 		var err error
 
 		if uninstallKubernetes {
+			if len(strings.TrimSpace(daprPath)) != 0 {
+				print.FailureStatusEvent(os.Stderr, "--dapr-path is only valid for self-hosted mode")
+				os.Exit(1)
+			}
+
 			print.InfoStatusEvent(os.Stdout, "Removing Dapr from your cluster...")
 			err = kubernetes.Uninstall(uninstallNamespace, uninstallAll, timeout)
 		} else {
@@ -64,7 +73,7 @@ dapr uninstall -k
 			}
 			print.InfoStatusEvent(os.Stdout, "Removing Dapr from your machine...")
 			dockerNetwork := viper.GetString("network")
-			err = standalone.Uninstall(uninstallAll, dockerNetwork, uninstallContainerRuntime)
+			err = standalone.Uninstall(uninstallAll, dockerNetwork, uninstallContainerRuntime, daprPath)
 		}
 
 		if err != nil {
