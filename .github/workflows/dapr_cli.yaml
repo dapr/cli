@@ -63,6 +63,36 @@ jobs:
           go-version: ${{ env.GOVER }}
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
+      - name: Cache Go modules (Linux)
+        if: matrix.target_os == 'linux'
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ matrix.target_os }}-${{ matrix.target_arch }}-go-${{ env.GOVER }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ matrix.target_os }}-${{ matrix.target_arch }}-go-${{ env.GOVER }}-
+      - name: Cache Go modules (Windows)
+        if: matrix.target_os == 'windows'
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~\AppData\Local\go-build
+            ~\go\pkg\mod
+          key: ${{ matrix.target_os }}-${{ matrix.target_arch }}-go-${{ env.GOVER }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ matrix.target_os }}-${{ matrix.target_arch }}-go-${{ env.GOVER }}-
+      - name: Cache Go modules (macOS)
+        if: matrix.target_os == 'darwin'
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/Library/Caches/go-build
+            ~/go/pkg/mod
+          key: ${{ matrix.target_os }}-${{ matrix.target_arch }}-go-${{ env.GOVER }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ matrix.target_os }}-${{ matrix.target_arch }}-go-${{ env.GOVER }}-
       - name: Run golangci-lint
         if: matrix.target_arch == 'amd64' && matrix.target_os == 'linux'
         uses: golangci/golangci-lint-action@v3.2.0

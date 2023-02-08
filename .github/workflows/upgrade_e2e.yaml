@@ -80,9 +80,19 @@ jobs:
       with:
         go-version: ${{ env.GOVER }}
     - name: Check out code onto GOPATH
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         path: ./src/github.com/dapr/cli
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ matrix.k8s-version }}-${{ matrix.kind-version }}-go-${{ env.GOVER }}-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ matrix.k8s-version }}-${{ matrix.kind-version }}-go-${{ env.GOVER }}-
+
 
     - name: Configure KinD
       # Generate a KinD configuration file that uses:

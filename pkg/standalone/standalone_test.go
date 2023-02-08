@@ -96,7 +96,9 @@ func TestResolveImageWithGHCR(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		test := test
 		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
 			got, err := resolveImageURI(test.args)
 			assert.Equal(t, test.expectErr, err != nil)
 			assert.Equal(t, test.expect, got)
@@ -140,7 +142,9 @@ func TestResolveImageWithDockerHub(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		test := test
 		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
 			got, err := resolveImageURI(test.args)
 			assert.Equal(t, test.expectErr, err != nil)
 			assert.Equal(t, test.expect, got)
@@ -184,7 +188,9 @@ func TestResolveImageWithPrivateRegistry(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		test := test
 		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
 			got, err := resolveImageURI(test.args)
 			assert.Equal(t, test.expectErr, err != nil)
 			assert.Equal(t, test.expect, got)
