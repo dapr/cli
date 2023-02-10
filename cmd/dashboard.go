@@ -62,14 +62,14 @@ var DashboardCmd = &cobra.Command{
 # Start dashboard locally
 dapr dashboard
 
-# Start dashboard locally in a specified port 
+# Start dashboard locally in a specified port
 dapr dashboard -p 9999
 
 # Start dashboard locally on a random port which is free.
 dapr dashboard -p 0
 
-# Port forward to dashboard in Kubernetes 
-dapr dashboard -k 
+# Port forward to dashboard in Kubernetes
+dapr dashboard -k
 
 # Port forward to dashboard in Kubernetes on all addresses in a specified port
 dapr dashboard -k -p 9999 -a 0.0.0.0
@@ -82,7 +82,7 @@ dapr dashboard -k -p 0
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		if dashboardVersionCmd {
-			dashboardVer, err := standalone.GetDashboardVersion(daprPath)
+			dashboardVer, err := standalone.GetDashboardVersion(daprRuntimePath)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, "Failed to get Dapr install directory: %v", err)
 				os.Exit(1)
@@ -194,7 +194,7 @@ dapr dashboard -k -p 0
 			<-portForward.GetStop()
 		} else {
 			// Standalone mode.
-			dashboardCmd, err := standalone.NewDashboardCmd(daprPath, dashboardLocalPort)
+			dashboardCmd, err := standalone.NewDashboardCmd(daprRuntimePath, dashboardLocalPort)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, "Failed to get Dapr install	directory: %v", err)
 			} else {

@@ -209,7 +209,7 @@ func (a *RunFileConfig) resolveResourcesFilePath(app *App) error {
 	} else if len(strings.TrimSpace(a.Common.ResourcesPath)) > 0 {
 		app.ResourcesPath = a.Common.ResourcesPath
 	} else {
-		daprDirPath, err := standalone.GetDaprPath(app.DaprdInstallPath)
+		daprDirPath, err := standalone.GetDaprRuntimePath(app.DaprdInstallPath)
 		if err != nil {
 			return fmt.Errorf("error getting dapr install path: %w", err)
 		}
@@ -230,7 +230,7 @@ func (a *RunFileConfig) resolveConfigFilePath(app *App) error {
 	} else if len(strings.TrimSpace(a.Common.ConfigFile)) > 0 {
 		app.ConfigFile = a.Common.ConfigFile
 	} else {
-		daprDirPath, err := standalone.GetDaprPath(app.DaprdInstallPath)
+		daprDirPath, err := standalone.GetDaprRuntimePath(app.DaprdInstallPath)
 		if err != nil {
 			return fmt.Errorf("error getting dapr install path: %w", err)
 		}

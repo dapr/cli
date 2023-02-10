@@ -25,7 +25,6 @@ import (
 
 func TestStandaloneStop(t *testing.T) {
 	ensureDaprInstallation(t)
-
 	executeAgainstRunningDapr(t, func() {
 		t.Run("stop", func(t *testing.T) {
 			output, err := cmdStopWithAppID("dapr_e2e_stop")
