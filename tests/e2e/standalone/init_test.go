@@ -108,9 +108,9 @@ func TestStandaloneInit(t *testing.T) {
 		daprPath := filepath.Join(homeDir, ".dapr")
 		require.DirExists(t, daprPath, "Directory %s does not exist", daprPath)
 
-		verifyContainers(t, daprRuntimeVersion)
+		verifyContainers(t, daprRuntimeVersion, false)
 		verifyBinaries(t, daprPath, daprRuntimeVersion, daprDashboardVersion)
-		verifyConfigs(t, daprPath)
+		verifyConfigs(t, daprPath, false)
 	})
 
 	t.Run("init with mariner images", func(t *testing.T) {
@@ -133,9 +133,70 @@ func TestStandaloneInit(t *testing.T) {
 		daprPath := filepath.Join(homeDir, ".dapr")
 		require.DirExists(t, daprPath, "Directory %s does not exist", daprPath)
 
-		verifyContainers(t, daprRuntimeVersion+"-mariner")
+		verifyContainers(t, daprRuntimeVersion+"-mariner", false)
 		verifyBinaries(t, daprPath, daprRuntimeVersion, daprDashboardVersion)
-		verifyConfigs(t, daprPath)
+		verifyConfigs(t, daprPath, false)
+	})
+
+	t.Run("init with --dapr-path flag", func(t *testing.T) {
+		// Ensure a clean environment
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+
+		daprPath, err := os.MkdirTemp("", "dapr-e2e-init-with-flag-*")
+		assert.NoError(t, err)
+		defer os.RemoveAll(daprPath) // clean up
+
+		output, err := cmdInit("--runtime-version", daprRuntimeVersion, "--dapr-path", daprPath)
+		t.Log(output)
+		require.NoError(t, err, "init failed")
+		assert.Contains(t, output, "Success! Dapr is up and running.")
+
+		verifyContainers(t, daprRuntimeVersion, false)
+		verifyBinaries(t, daprPath, daprRuntimeVersion, daprDashboardVersion)
+		verifyConfigs(t, daprPath, false)
+	})
+
+	t.Run("init with DAPR_PATH env var", func(t *testing.T) {
+		// Ensure a clean environment
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+
+		daprPath, err := os.MkdirTemp("", "dapr-e2e-init-with-env-var-*")
+		assert.NoError(t, err)
+		defer os.RemoveAll(daprPath) // clean up
+
+		t.Setenv("DAPR_PATH", daprPath)
+
+		output, err := cmdInit("--runtime-version", daprRuntimeVersion)
+		t.Log(output)
+		require.NoError(t, err, "init failed")
+		assert.Contains(t, output, "Success! Dapr is up and running.")
+
+		verifyContainers(t, daprRuntimeVersion, false)
+		verifyBinaries(t, daprPath, daprRuntimeVersion, daprDashboardVersion)
+		verifyConfigs(t, daprPath, false)
+	})
+
+	t.Run("init with --dapr-path flag and DAPR_PATH env var", func(t *testing.T) {
+		// Ensure a clean environment
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+
+		daprPath1, err := os.MkdirTemp("", "dapr-e2e-init-with-flag-and-env-1-*")
+		assert.NoError(t, err)
+		defer os.RemoveAll(daprPath1) // clean up
+		daprPath2, err := os.MkdirTemp("", "dapr-e2e-init-with-flag-and-env-2-*")
+		assert.NoError(t, err)
+		defer os.RemoveAll(daprPath2) // clean up
+
+		t.Setenv("DAPR_PATH", daprPath1)
+
+		output, err := cmdInit("--runtime-version", daprRuntimeVersion, "--dapr-path", daprPath2)
+		t.Log(output)
+		require.NoError(t, err, "init failed")
+		assert.Contains(t, output, "Success! Dapr is up and running.")
+
+		verifyContainers(t, daprRuntimeVersion, false)
+		verifyBinaries(t, daprPath2, daprRuntimeVersion, daprDashboardVersion)
+		verifyConfigs(t, daprPath2, false)
 	})
 
 	t.Run("init without runtime-version flag", func(t *testing.T) {
@@ -154,16 +215,16 @@ func TestStandaloneInit(t *testing.T) {
 		require.DirExists(t, daprPath, "Directory %s does not exist", daprPath)
 
 		latestDaprRuntimeVersion, latestDaprDashboardVersion := common.GetVersionsFromEnv(t, true)
-		verifyContainers(t, latestDaprRuntimeVersion)
+		verifyContainers(t, latestDaprRuntimeVersion, false)
 		verifyBinaries(t, daprPath, latestDaprRuntimeVersion, latestDaprDashboardVersion)
-		verifyConfigs(t, daprPath)
+		verifyConfigs(t, daprPath, false)
 	})
 }
 
 // verifyContainers ensures that the correct containers are up and running.
 // Note, in case of slim installation, the containers are not installed and
 // this test is automatically skipped.
-func verifyContainers(t *testing.T, daprRuntimeVersion string) {
+func verifyContainers(t *testing.T, daprRuntimeVersion string, isAirgapInit bool) {
 	t.Run("verifyContainers", func(t *testing.T) {
 		if isSlimMode() {
 			t.Log("Skipping container verification because of slim installation")
@@ -178,8 +239,10 @@ func verifyContainers(t *testing.T, daprRuntimeVersion string) {
 
 		daprContainers := map[string]string{
 			"dapr_placement": daprRuntimeVersion,
-			"dapr_zipkin":    "",
-			"dapr_redis":     "",
+		}
+		if !isAirgapInit {
+			daprContainers["dapr_zipkin"] = ""
+			daprContainers["dapr_redis"] = ""
 		}
 
 		for _, container := range containers {
@@ -241,10 +304,10 @@ func verifyBinaries(t *testing.T, daprPath, runtimeVersion, dashboardVersion str
 
 // verifyConfigs ensures that the Dapr configuration and component YAMLs
 // are present in the correct path and have the correct values.
-func verifyConfigs(t *testing.T, daprPath string) {
+func verifyConfigs(t *testing.T, daprPath string, isAirgapInit bool) {
 	configSpec := map[interface{}]interface{}{}
 	// tracing is not enabled in slim mode by default.
-	if !isSlimMode() {
+	if !(isSlimMode() || isAirgapInit) {
 		configSpec = map[interface{}]interface{}{
 			"tracing": map[interface{}]interface{}{
 				"samplingRate": "1",
@@ -267,7 +330,7 @@ func verifyConfigs(t *testing.T, daprPath string) {
 	}
 
 	// The default components are not installed in slim mode.
-	if !isSlimMode() {
+	if !(isSlimMode() || isAirgapInit) {
 		configs[filepath.Join("components", "statestore.yaml")] = map[string]interface{}{
 			"apiVersion": "dapr.io/v1alpha1",
 			"kind":       "Component",

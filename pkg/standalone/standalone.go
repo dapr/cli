@@ -122,7 +122,7 @@ type componentMetadataItem struct {
 type initInfo struct {
 	fromDir          string
 	installDir       string
-	bundleDet        *bundleDetails
+	bundleDet        *BundleDetails
 	slimMode         bool
 	runtimeVersion   string
 	dashboardVersion string
@@ -154,7 +154,7 @@ func isBinaryInstallationRequired(binaryFilePrefix, binInstallDir string) (bool,
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
 func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool, imageRegistryURL string, fromDir string, containerRuntime string, imageVariant string, daprInstallPath string) error {
 	var err error
-	var bundleDet bundleDetails
+	var bundleDet BundleDetails
 	containerRuntime = strings.TrimSpace(containerRuntime)
 	daprInstallPath = strings.TrimSpace(daprInstallPath)
 	// AirGap init flow is true when fromDir var is set i.e. --from-dir flag has value.
@@ -195,9 +195,9 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 
 	// If --from-dir flag is given try parsing the details from the expected details file in the specified directory.
 	if isAirGapInit {
-		bundleDet = bundleDetails{}
-		detailsFilePath := path_filepath.Join(fromDir, bundleDetailsFileName)
-		err = bundleDet.readAndParseDetails(detailsFilePath)
+		bundleDet = BundleDetails{}
+		detailsFilePath := path_filepath.Join(fromDir, BundleDetailsFileName)
+		err = bundleDet.ReadAndParseDetails(detailsFilePath)
 		if err != nil {
 			return fmt.Errorf("error parsing details file from bundle location: %w", err)
 		}

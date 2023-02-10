@@ -42,8 +42,11 @@ jobs:
       ARCHIVE_OUTDIR: dist/archives
       DAPR_RUNTIME_PINNED_VERSION: "1.10.0-rc.4"
       DAPR_DASHBOARD_PINNED_VERSION: 0.11.0
+      DAPR_BUNDLE_PINNED_VERSION: "1.9.6"
       DAPR_RUNTIME_LATEST_STABLE_VERSION:
       DAPR_DASHBOARD_LATEST_STABLE_VERSION:
+      DAPR_BUNDLE_LATEST_STABLE_VERSION:
+      GOLANG_PROTOBUF_REGISTRATION_CONFLICT: ignore
     strategy:
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
@@ -111,6 +114,34 @@ jobs:
           export LATEST_STABLE_DASHBOARD_VERSION=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/dapr/dashboard/releases/latest | grep tag_name | awk -F':' '{print $2}' | tr -d '", ' | sed '/-/! s/$/_/' | sort -V | sed 's/_$//' | tr -d 'v' | tail -1)
           echo "Found $LATEST_STABLE_DASHBOARD_VERSION"
           echo "DAPR_DASHBOARD_LATEST_STABLE_VERSION=$LATEST_STABLE_DASHBOARD_VERSION" >> $GITHUB_ENV
+        shell: bash
+      - name: Determine latest stable Dapr Bundle version
+        run: |
+          set -e
+          export BUNDLE_VERSION=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/dapr/installer-bundle/releases/latest | grep tag_name | awk -F':' '{print $2}' | tr -d '", ' | sed '/-/! s/$/_/' | sort -V | sed 's/_$//' | tr -d 'v' | tail -1)
+          if [[ -z "$BUNDLE_VERSION" ]]; then
+            echo "Could not fetch the latest Dapr Installer Bundle version. Using default version $DAPR_BUNDLE_PINNED_VERSION"
+            echo "DAPR_BUNDLE_LATEST_STABLE_VERSION=$DAPR_BUNDLE_PINNED_VERSION" >> $GITHUB_ENV
+          else
+            echo "Found $BUNDLE_VERSION"
+            echo "DAPR_BUNDLE_LATEST_STABLE_VERSION=$BUNDLE_VERSION" >> $GITHUB_ENV
+          fi
+        shell: bash
+      - name: Download latest Dapr Bundle
+        run: |
+          set -e
+          echo $GOOS
+          DownloadURL="https://github.com/dapr/installer-bundle/releases/download/v$DAPR_BUNDLE_LATEST_STABLE_VERSION/daprbundle_${GOOS}_${GOARCH}"
+          if [[ $GOOS = 'windows' ]]; then
+            curl -SsL $DownloadURL.zip -o daprbundle.zip
+            7z.exe x daprbundle.zip
+          else
+            curl -SsL $DownloadURL.tar.gz -o daprbundle.tar.gz
+            tar -xvf daprbundle.tar.gz
+          fi
+          export DAPR_E2E_INIT_AIRGAP_DIR=$GITHUB_WORKSPACE/daprbundle
+          echo "DAPR_E2E_INIT_AIRGAP_DIR=$DAPR_E2E_INIT_AIRGAP_DIR" >> $GITHUB_ENV
+          echo "$DAPR_E2E_INIT_AIRGAP_DIR"
         shell: bash
       - name: Set the test timeout - MacOS
         if: matrix.os == 'macos-latest'

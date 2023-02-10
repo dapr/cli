@@ -20,9 +20,9 @@ import (
 	"strings"
 )
 
-const bundleDetailsFileName = "details.json"
+const BundleDetailsFileName = "details.json"
 
-type bundleDetails struct {
+type BundleDetails struct {
 	RuntimeVersion    *string `json:"daprd"`
 	DashboardVersion  *string `json:"dashboard"`
 	CLIVersion        *string `json:"cli"`
@@ -32,8 +32,8 @@ type bundleDetails struct {
 	DaprImageFileName *string `json:"daprImageFileName"`
 }
 
-// readAndParseDetails reads the file in detailsFilePath and tries to parse it into the bundleDetails struct.
-func (b *bundleDetails) readAndParseDetails(detailsFilePath string) error {
+// ReadAndParseDetails reads the file in detailsFilePath and tries to parse it into the BundleDetails struct.
+func (b *BundleDetails) ReadAndParseDetails(detailsFilePath string) error {
 	bytes, err := os.ReadFile(detailsFilePath)
 	if err != nil {
 		return err
@@ -55,10 +55,10 @@ func isStringNilOrEmpty(val *string) bool {
 	return val == nil || strings.TrimSpace(*val) == ""
 }
 
-func (b *bundleDetails) getPlacementImageName() string {
+func (b *BundleDetails) getPlacementImageName() string {
 	return *b.DaprImageName
 }
 
-func (b *bundleDetails) getPlacementImageFileName() string {
+func (b *BundleDetails) getPlacementImageFileName() string {
 	return *b.DaprImageFileName
 }

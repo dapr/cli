@@ -37,8 +37,8 @@ func TestParseDetails(t *testing.T) {
 	defer os.Remove(f.Name())
 	f.WriteString(correctDetails)
 	f.Close()
-	bd := bundleDetails{}
-	err = bd.readAndParseDetails(f.Name())
+	bd := BundleDetails{}
+	err = bd.ReadAndParseDetails(f.Name())
 	assert.NoError(t, err, "expected no error on parsing correct details in file")
 	assert.Equal(t, "1.7.0", *bd.RuntimeVersion, "expected versions to match")
 	assert.Equal(t, "0.10.0", *bd.DashboardVersion, "expected versions to match")
@@ -63,8 +63,8 @@ func TestParseDetailsMissingDetails(t *testing.T) {
 	defer os.Remove(f.Name())
 	f.WriteString(missingDetails)
 	f.Close()
-	bd := bundleDetails{}
-	err = bd.readAndParseDetails(f.Name())
+	bd := BundleDetails{}
+	err = bd.ReadAndParseDetails(f.Name())
 	assert.Error(t, err, "expected error on parsing missing details in file")
 }
 
@@ -85,8 +85,8 @@ func TestParseDetailsEmptyDetails(t *testing.T) {
 	defer os.Remove(f.Name())
 	f.WriteString(missingDetails)
 	f.Close()
-	bd := bundleDetails{}
-	err = bd.readAndParseDetails(f.Name())
+	bd := BundleDetails{}
+	err = bd.ReadAndParseDetails(f.Name())
 	assert.Error(t, err, "expected error on parsing missing details in file")
 }
 
@@ -97,7 +97,7 @@ func TestParseDetailsMissingFile(t *testing.T) {
 	}
 	f.Close()
 	os.Remove(f.Name())
-	bd := bundleDetails{}
-	err = bd.readAndParseDetails(f.Name())
+	bd := BundleDetails{}
+	err = bd.ReadAndParseDetails(f.Name())
 	assert.Error(t, err, "expected error on parsing missing details file")
 }
