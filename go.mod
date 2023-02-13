@@ -7,7 +7,7 @@ require (
 	github.com/Azure/go-autorest/autorest/adal v0.9.22 // indirect
 	github.com/Pallinder/sillyname-go v0.0.0-20130730142914-97aeae9e6ba1
 	github.com/briandowns/spinner v1.19.0
-	github.com/dapr/dapr v1.10.0-rc.4
+	github.com/dapr/dapr v1.10.0-rc.6
 	github.com/dapr/go-sdk v1.6.0
 	github.com/docker/docker v20.10.20+incompatible
 	github.com/fatih/color v1.13.0
