@@ -57,7 +57,7 @@ var InitCmd = &cobra.Command{
 dapr init
 
 # Initialize Dapr in self-hosted mode with a provided docker image registry. Image looked up as <registry-url>/<image>.
-# Check docs or README for more information on the format of the image path that is required. 
+# Check docs or README for more information on the format of the image path that is required.
 dapr init --image-registry <registry-url>
 
 # Initialize Dapr in Kubernetes
@@ -81,8 +81,9 @@ dapr init --from-dir <path-to-directory>
 # Initialize dapr with a particular image variant. Allowed values: "mariner"
 dapr init --image-variant <variant>
 
-# Initialize Dapr to non-default install directory (default is $HOME/.dapr)
-dapr init --dapr-path <path-to-install-directory>
+# Initialize Dapr inside a ".dapr" directory present in a non-default location
+# Folder .dapr will be created in folder pointed to by <path-to-install-directory>
+dapr init --runtime-path <path-to-install-directory>
 
 # See more at: https://docs.dapr.io/getting-started/
 `,
@@ -95,8 +96,8 @@ dapr init --dapr-path <path-to-install-directory>
 			imageRegistryURI := ""
 			var err error
 
-			if len(strings.TrimSpace(daprPath)) != 0 {
-				print.FailureStatusEvent(os.Stderr, "--dapr-path is only valid for self-hosted mode")
+			if len(strings.TrimSpace(daprRuntimePath)) != 0 {
+				print.FailureStatusEvent(os.Stderr, "--runtime-path is only valid for self-hosted mode")
 				os.Exit(1)
 			}
 
@@ -150,7 +151,7 @@ dapr init --dapr-path <path-to-install-directory>
 				print.FailureStatusEvent(os.Stdout, "Invalid container runtime. Supported values are docker and podman.")
 				os.Exit(1)
 			}
-			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode, imageRegistryURI, fromDir, containerRuntime, imageVariant, daprPath)
+			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode, imageRegistryURI, fromDir, containerRuntime, imageVariant, daprRuntimePath)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)

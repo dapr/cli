@@ -433,3 +433,38 @@ func TestKubernetesInstallwithoutRuntimeVersionFlag(t *testing.T) {
 		t.Run(tc.Name, tc.Callable)
 	}
 }
+
+func TestK8sInstallwithoutRuntimeVersionwithMarinerImagesFlag(t *testing.T) {
+	// ensure clean env for test
+	ensureCleanEnv(t, true)
+
+	//	install with mariner images
+	currentVersionDetails.ImageVariant = "mariner"
+
+	tests := []common.TestCase{}
+	installOpts := common.TestOptions{
+		HAEnabled:             false,
+		MTLSEnabled:           true,
+		ApplyComponentChanges: true,
+		CheckResourceExists: map[common.Resource]bool{
+			common.CustomResourceDefs:  true,
+			common.ClusterRoles:        true,
+			common.ClusterRoleBindings: true,
+		},
+	}
+
+	tests = append(tests, common.GetTestsOnInstall(currentVersionDetails, installOpts)...)
+
+	// teardown everything
+	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
+		CheckResourceExists: map[common.Resource]bool{
+			common.CustomResourceDefs:  true,
+			common.ClusterRoles:        false,
+			common.ClusterRoleBindings: false,
+		},
+	})...)
+
+	for _, tc := range tests {
+		t.Run(tc.Name, tc.Callable)
+	}
+}
