@@ -151,7 +151,7 @@ jobs:
           # Parse repository to get owner and repo names
           OWNER_NAME="${GITHUB_REPOSITORY%%/*}"
           REPO_NAME="${GITHUB_REPOSITORY#*/}"
-          export GITHUB_TOKEN=${{ secrets.DAPR_BOT_TOKEN }}
+          export GITHUB_TOKEN=${{ secrets.ALL_TOKEN }}
           echo "Uploading Dapr CLI Binaries to GitHub Release"
           github-release upload \
             --owner $OWNER_NAME --repo $REPO_NAME \
@@ -163,8 +163,6 @@ jobs:
     name: Publish to winget-pkgs
     needs: publish
     if: startswith(github.ref, 'refs/tags/v')
-    env:
-      WINGETCREATE_VERSION: 1.1.2.0
     runs-on: windows-latest
     steps:
       - name: Check out code
@@ -174,11 +172,11 @@ jobs:
       - name: Update winget manifests
         shell: pwsh
         run: |
-          $url = "https://github.com/dapr/cli/releases/download/v${{ env.REL_VERSION }}/dapr.msi"
-          iwr https://github.com/microsoft/winget-create/releases/download/v${{ env.WINGETCREATE_VERSION }}/wingetcreate.exe -OutFile wingetcreate.exe
+          $url = "https://github.com/shivamkm07/cli/releases/download/v${{ env.REL_VERSION }}/dapr.msi"
+          iwr https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
           if("${{ env.REL_VERSION }}".Contains("-rc.")){
             $PackageIdentifier="Dapr.CLI.Preview"
           } else{
             $PackageIdentifier="Dapr.CLI"
           }
-          .\wingetcreate.exe update "$PackageIdentifier" --submit --urls "$url|x64" --version "${{ env.REL_VERSION }}" --token "${{ secrets.DAPR_BOT_TOKEN }}"
+          .\wingetcreate.exe update "$PackageIdentifier" --submit --urls "$url|x64" --version "${{ env.REL_VERSION }}" --token "${{ secrets.ALL_TOKEN }}"
