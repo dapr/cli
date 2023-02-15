@@ -327,10 +327,10 @@ github.com/d2g/dhcp4 v0.0.0-20170904100407-a1d1b6c41b1c/go.mod h1:Ct2BUK8SB0YC1S
 github.com/d2g/dhcp4client v1.0.0/go.mod h1:j0hNfjhrt2SxUOw55nL0ATM/z4Yt3t2Kd1mW34z5W5s=
 github.com/d2g/dhcp4server v0.0.0-20181031114812-7d4a0a7f59a5/go.mod h1:Eo87+Kg/IX2hfWJfwxMzLyuSZyxSoAug2nGa1G2QAi8=
 github.com/d2g/hardwareaddr v0.0.0-20190221164911-e7d9fbe030e4/go.mod h1:bMl4RjIciD2oAxI7DmWRx6gbeqrkoLqv3MV0vzNad+I=
-github.com/dapr/components-contrib v1.10.0-rc.6 h1:TUvTb8LsFZjTMNpjVgBbF48byJz05IXJ7R6kM/kdBeo=
-github.com/dapr/components-contrib v1.10.0-rc.6/go.mod h1:sr+nhohYQCtKM5bALE6zXF3RhqnMQmQ3u8R1WlW5FU0=
-github.com/dapr/dapr v1.10.0-rc.8 h1:4jTxkPcbB1mJLvl94Mx0SGq6t3jY1j5TgwVZ6wnbp4M=
-github.com/dapr/dapr v1.10.0-rc.8/go.mod h1:SmCylfoSWRkEBS7Dce/rTU5w1KqObb94Kh1dKDSuVRI=
+github.com/dapr/components-contrib v1.10.0-rc.9 h1:iHVmtJ1Tc4Y1XaxA+LMLpKEfAanwSudXRAD+/+kgG8Q=
+github.com/dapr/components-contrib v1.10.0-rc.9/go.mod h1:JM3xDSSDVb+ot246VZndZZK1K8Ft/6Ch2FtXW1Jbbhk=
+github.com/dapr/dapr v1.10.0-rc.9 h1:9Xx8MylAtQu3YVFnB1EpTolZGuYtc7HpAT85LaKGLZo=
+github.com/dapr/dapr v1.10.0-rc.9/go.mod h1:FoDlQyiJm0BSgPGwxGsTvQZ5zVeE0SWNzq8PAs5c6gc=
 github.com/dapr/go-sdk v1.6.0 h1:jg5A2khSCHF8bGZsig5RWN/gD0jjitszc2V6Uq2pPdY=
 github.com/dapr/go-sdk v1.6.0/go.mod h1:KLQBltoD9K0w5hKTihdcyg9Epob9gypwL5dYcQzPro4=
 github.com/dapr/kit v0.0.4 h1:i+7TIN4crC1Mo0JFyWpIkwAE8orlliA0O6/ibvs2AaE=
