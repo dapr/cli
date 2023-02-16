@@ -2,7 +2,7 @@ name: "CI - Test Features"
 on:
   push:
     branches:
-      - main
+      - master
   pull_request:
     paths:
       - "dev-container-feature/**"

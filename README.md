@@ -222,7 +222,7 @@ To install the Dapr CLI in a dev container or GitHub Codespace, add the followin
 }
 ```
 
-Restart your dev container or GitHub Codespace and run `dapr init` to initialize the Dapr CLI.
+Restart your dev container or GitHub Codespace and run `dapr init` to initialize Dapr.
 
 For more details, see the docs for dev containers with [Visual Studio Code](https://code.visualstudio.com/docs/devcontainers/containers#_dev-container-features) and [GitHub Codespaces](https://docs.github.com/en/codespaces/setting-up-your-project-for-codespaces/configuring-dev-containers/adding-features-to-a-devcontainer-file).
 
