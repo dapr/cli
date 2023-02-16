@@ -15,7 +15,7 @@ Install the Dapr CLI
 
 | Options Id | Description | Type | Default Value |
 |-----|-----|-----|-----|
-| version | Enter a version (or latest) | string | latest |
+| version | Version of the Dapr CLI to install (or "latest") | string | latest |
 
 
 
