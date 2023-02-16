@@ -10,7 +10,7 @@
         "latest"
       ],
       "default": "latest",
-      "description": "Enter a version (or latest)"
+      "description": "Version of the Dapr CLI to install (or \"latest\")"
     }
   }
 }
