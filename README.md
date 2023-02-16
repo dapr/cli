@@ -214,7 +214,7 @@ $ dapr init --container-runtime podman
 
 #### In a dev container or GitHub Codespace
 
-To install Dapr in a dev container or GitHub Codespace, add the following to your `devcontainer.json` file:
+To install the Dapr CLI in a dev container or GitHub Codespace, add the following to your `devcontainer.json` file:
 
 ```jsonc
 "features": {
