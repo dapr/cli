@@ -75,7 +75,9 @@ func TestContainerRuntimeUtils(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			actualValid := IsValidContainerRuntime(tc.input)
 			if actualValid != tc.valid {
 				t.Errorf("expected %v, got %v", tc.valid, actualValid)
@@ -117,7 +119,9 @@ func TestContains(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			actualValid := Contains(tc.input, tc.expected)
 			if actualValid != tc.valid {
 				t.Errorf("expected %v, got %v", tc.valid, actualValid)
@@ -160,7 +164,9 @@ func TestGetVersionAndImageVariant(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			version, imageVariant := GetVersionAndImageVariant(tc.input)
 			assert.Equal(t, tc.expectedVersion, version)
 			assert.Equal(t, tc.expectedImageVariant, imageVariant)
@@ -195,7 +201,9 @@ func TestValidateFilePaths(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			actual := ValidateFilePath(tc.input)
 			assert.Equal(t, tc.expectedErr, actual != nil)
 		})
@@ -235,7 +243,9 @@ func TestGetAbsPath(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			actual := GetAbsPath(baseDir, tc.input)
 			assert.Equal(t, tc.expected, actual)
 		})
@@ -262,7 +272,9 @@ func TestReadFile(t *testing.T) {
 		},
 	}
 	for _, tc := range testcases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			_, actual := ReadFile(tc.input)
 			assert.Equal(t, tc.expectedErr, actual != nil)
 		})
@@ -323,7 +335,9 @@ func TestFindFileInDir(t *testing.T) {
 		},
 	}
 	for _, tc := range testcases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			filePath, err := FindFileInDir(tc.input, "dapr.yaml")
 			assert.Equal(t, tc.expectedErr, err != nil)
 			assert.Equal(t, tc.expectedFilePath, filePath)
@@ -403,7 +417,9 @@ func TestPrintDetail(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			var buf bytes.Buffer
 			err := PrintDetail(&buf, tc.format, tc.list)
 			if tc.shouldError {
