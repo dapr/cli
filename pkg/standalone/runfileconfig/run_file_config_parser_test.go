@@ -32,6 +32,7 @@ var (
 )
 
 func TestRunConfigFile(t *testing.T) {
+	t.Parallel()
 	t.Run("test parse valid run template", func(t *testing.T) {
 		appsRunConfig := RunFileConfig{}
 		err := appsRunConfig.parseAppsConfig(validRunFilePath)
