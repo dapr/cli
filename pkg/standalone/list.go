@@ -21,10 +21,11 @@ import (
 	ps "github.com/mitchellh/go-ps"
 	process "github.com/shirou/gopsutil/process"
 
+	"github.com/dapr/dapr/pkg/runtime"
+
 	"github.com/dapr/cli/pkg/age"
 	"github.com/dapr/cli/pkg/metadata"
 	"github.com/dapr/cli/utils"
-	"github.com/dapr/dapr/pkg/runtime"
 )
 
 // ListOutput represents the application ID, application port and creation time.
@@ -77,9 +78,16 @@ func List() ([]ListOutput, error) {
 				continue
 			}
 
+			// Parse command line arguments. `daprd --flag1 value1 --enable-flag2 --flag3 value3`
 			argumentsMap := make(map[string]string)
-			for i := 1; i < len(cmdLineItems)-1; i += 2 {
-				argumentsMap[cmdLineItems[i]] = cmdLineItems[i+1]
+			for i := 1; i < len(cmdLineItems)-1; {
+				if !strings.HasPrefix(cmdLineItems[i+1], "--") {
+					argumentsMap[cmdLineItems[i]] = cmdLineItems[i+1]
+					i += 2
+				} else {
+					argumentsMap[cmdLineItems[i]] = ""
+					i++
+				}
 			}
 
 			httpPort := getIntArg(argumentsMap, "--dapr-http-port", runtime.DefaultDaprHTTPPort)
