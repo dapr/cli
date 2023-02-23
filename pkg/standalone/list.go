@@ -78,7 +78,7 @@ func List() ([]ListOutput, error) {
 				continue
 			}
 
-			// Parse command line arguments. `daprd --flag1 value1 --enable-flag2 --flag3 value3`
+			// Parse command line arguments, example format for cmdLine `daprd --flag1 value1 --enable-flag2 --flag3 value3`.
 			argumentsMap := make(map[string]string)
 			for i := 1; i < len(cmdLineItems)-1; {
 				if !strings.HasPrefix(cmdLineItems[i+1], "--") {
