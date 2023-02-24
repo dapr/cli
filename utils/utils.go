@@ -24,7 +24,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/dapr/cli/pkg/print"
@@ -38,25 +40,45 @@ import (
 type ContainerRuntime string
 
 const (
-	DOCKER ContainerRuntime = "docker"
-	PODMAN ContainerRuntime = "podman"
+	DOCKER     ContainerRuntime = "docker"
+	PODMAN     ContainerRuntime = "podman"
+	CONTAINERD ContainerRuntime = "containerd"
+
+	MACOS = runtime.GOOS == "darwin"
 
 	marinerImageVariantName = "mariner"
 
 	socketFormat = "%s/dapr-%s-%s.socket"
 )
 
+var (
+	cacheOnce    sync.Once
+	supportMacos bool
+)
+
+var IsValidRuntimeOnMacos = func(containerRuntime string) bool {
+	cacheOnce.Do(func() {
+		containerRuntime = strings.TrimSpace(containerRuntime)
+		supportMacos = containerRuntime == string(CONTAINERD) && !MACOS
+	})
+	return supportMacos
+}
+
 // IsValidContainerRuntime checks if the input is a valid container runtime.
-// Valid container runtimes are docker and podman.
+// Valid container runtimes are docker and podman and containerd.
 func IsValidContainerRuntime(containerRuntime string) bool {
 	containerRuntime = strings.TrimSpace(containerRuntime)
-	return containerRuntime == string(DOCKER) || containerRuntime == string(PODMAN)
+	return containerRuntime == string(DOCKER) || containerRuntime == string(PODMAN) || IsValidRuntimeOnMacos(containerRuntime)
 }
 
 // GetContainerRuntimeCmd returns a valid container runtime to be used by CLI operations.
-// If the input is a valid container runtime, it is returned as is.
+// If the input is a valid container runtime, it is returned client tool.
 // Otherwise the default container runtime, docker, is returned.
 func GetContainerRuntimeCmd(containerRuntime string) string {
+	// containerd runtime use nerdctl tool.
+	if IsValidRuntimeOnMacos(containerRuntime) {
+		return "nerdctl"
+	}
 	if IsValidContainerRuntime(containerRuntime) {
 		return strings.TrimSpace(containerRuntime)
 	}
@@ -186,6 +208,23 @@ func IsPodmanInstalled() bool {
 		return false
 	}
 	return true
+}
+
+// IsContainerdInstalled checks whether nerdctl and containerd is installed/running.
+func IsContainerdInstalled() bool {
+	if MACOS {
+		print.FailureStatusEvent(os.Stderr, "containerd is not supported on macos")
+		return false
+	}
+	if _, err := RunCmdAndWait("nerdctl", "info"); err != nil {
+		print.FailureStatusEvent(os.Stderr, err.Error())
+		return false
+	}
+	return true
+}
+
+func ContainerRuntimeAvailable() bool {
+	return IsDockerInstalled() || IsPodmanInstalled() || IsContainerdInstalled()
 }
 
 // IsDaprListeningOnPort checks if Dapr is litening to a given port.
