@@ -31,6 +31,18 @@ func TestContainerRuntimeUtils(t *testing.T) {
 		valid    bool
 	}{
 		{
+			name:     "containerd runtime is valid, and nerdctl is returned",
+			input:    "containerd",
+			expected: "nerdctl",
+			valid:    !MACOS,
+		},
+		{
+			name:     "containerd runtime with extra spaces is valid, and nerdctl is returned",
+			input:    "  containerd  ",
+			expected: "nerdctl",
+			valid:    !MACOS,
+		},
+		{
 			name:     "podman runtime is valid, and is returned as is",
 			input:    "podman",
 			expected: "podman",
@@ -176,7 +188,9 @@ func TestGetVersionAndImageVariant(t *testing.T) {
 
 func TestValidateFilePaths(t *testing.T) {
 	dirName := createTempDir(t, "test_validate_paths")
-	defer cleanupTempDir(t, dirName)
+	t.Cleanup(func() {
+		cleanupTempDir(t, dirName)
+	})
 	validFile := createTempFile(t, dirName, "valid_test_file.yaml")
 	testcases := []struct {
 		name        string
@@ -254,7 +268,9 @@ func TestGetAbsPath(t *testing.T) {
 
 func TestReadFile(t *testing.T) {
 	fileName := createTempFile(t, "", "test_read_file")
-	defer cleanupTempDir(t, fileName)
+	t.Cleanup(func() {
+		cleanupTempDir(t, fileName)
+	})
 	testcases := []struct {
 		name        string
 		input       string

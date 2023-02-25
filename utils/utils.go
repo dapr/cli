@@ -26,7 +26,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/dapr/cli/pkg/print"
@@ -51,17 +50,9 @@ const (
 	socketFormat = "%s/dapr-%s-%s.socket"
 )
 
-var (
-	cacheOnce    sync.Once
-	supportMacos bool
-)
-
 var IsValidRuntimeOnMacos = func(containerRuntime string) bool {
-	cacheOnce.Do(func() {
-		containerRuntime = strings.TrimSpace(containerRuntime)
-		supportMacos = containerRuntime == string(CONTAINERD) && !MACOS
-	})
-	return supportMacos
+	containerRuntime = strings.TrimSpace(containerRuntime)
+	return containerRuntime == string(CONTAINERD) && !MACOS
 }
 
 // IsValidContainerRuntime checks if the input is a valid container runtime.
