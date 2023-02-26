@@ -350,6 +350,26 @@ func GetAbsPath(baseDir, path string) string {
 	return absPath
 }
 
+// ResolveHomeDir resolves prefix of the given path, if present, to the user's home directory and returns it
+func ResolveHomeDir(filePath string) (string, error) {
+	if filePath == "" {
+		return "", nil
+	}
+	homeDirPrefixes := []string{"~/", "$HOME/"}
+	for _, homeDirPrefix := range homeDirPrefixes {
+		if strings.HasPrefix(filePath, homeDirPrefix) {
+			homeDir, err := os.UserHomeDir()
+			if err != nil {
+				return "", fmt.Errorf("error in getting the home directory for %s: %w", filePath, err)
+			}
+			filePath = filepath.Join(homeDir, filePath[len(homeDirPrefix):])
+			break
+		}
+	}
+
+	return filePath, nil
+}
+
 func ReadFile(filePath string) ([]byte, error) {
 	bytes, err := os.ReadFile(filePath)
 	if err != nil {
