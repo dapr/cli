@@ -252,6 +252,63 @@ func TestGetAbsPath(t *testing.T) {
 	}
 }
 
+func TestResolveHomeDir(t *testing.T) {
+	homeDir, err := os.UserHomeDir()
+	assert.NoError(t, err)
+
+	testcases := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "empty path",
+			input:    "",
+			expected: "",
+		},
+		{
+			name:     "home directory prefix with ~/",
+			input:    "~/home/path",
+			expected: filepath.Join(homeDir, "home", "path"),
+		},
+		{
+			name:     "home directory prefix with ~/.",
+			input:    "~/./home/path",
+			expected: filepath.Join(homeDir, ".", "home", "path"),
+		},
+		{
+			name:     "home directory prefix with ~/..",
+			input:    "$HOME/../home/path",
+			expected: filepath.Join(homeDir, "..", "home", "path"),
+		},
+		{
+			name:     "home directory prefix with $HOME/",
+			input:    "$HOME/home/path",
+			expected: filepath.Join(homeDir, "home", "path"),
+		},
+		{
+			name:     "no home directory prefix",
+			input:    "../home/path",
+			expected: "../home/path",
+		},
+		{
+			name:     "absolute path",
+			input:    "/absolute/path",
+			expected: "/absolute/path",
+		},
+	}
+
+	for _, tc := range testcases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			actual, err := ResolveHomeDir(tc.input)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.expected, actual)
+		})
+	}
+}
+
 func TestReadFile(t *testing.T) {
 	fileName := createTempFile(t, "", "test_read_file")
 	defer cleanupTempDir(t, fileName)
