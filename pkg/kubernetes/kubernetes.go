@@ -42,15 +42,18 @@ const (
 )
 
 type InitConfiguration struct {
-	Version          string
-	Namespace        string
-	EnableMTLS       bool
-	EnableHA         bool
-	Args             []string
-	Wait             bool
-	Timeout          uint
-	ImageRegistryURI string
-	ImageVariant     string
+	Version                   string
+	Namespace                 string
+	EnableMTLS                bool
+	EnableHA                  bool
+	Args                      []string
+	Wait                      bool
+	Timeout                   uint
+	ImageRegistryURI          string
+	ImageVariant              string
+	RootCertificateFilePath   string
+	IssuerCertificateFilePath string
+	IssuerPrivateKeyFilePath  string
 }
 
 // Init deploys the Dapr operator using the supplied runtime version.
@@ -168,6 +171,21 @@ func chartValues(config InitConfiguration, version string) (map[string]interface
 		globalVals = append(globalVals, fmt.Sprintf("global.registry=%s", config.ImageRegistryURI))
 	}
 	globalVals = append(globalVals, config.Args...)
+
+	if config.RootCertificateFilePath != "" && config.IssuerCertificateFilePath != "" && config.IssuerPrivateKeyFilePath != "" {
+		rootCertBytes, issuerCertBytes, issuerKeyBytes, err := parseCertificateFiles(
+			config.RootCertificateFilePath,
+			config.IssuerCertificateFilePath,
+			config.IssuerPrivateKeyFilePath,
+		)
+		if err != nil {
+			return nil, err
+		}
+		globalVals = append(globalVals, fmt.Sprintf("dapr_sentry.tls.root.certPEM=%s", string(rootCertBytes)),
+			fmt.Sprintf("dapr_sentry.tls.issuer.certPEM=%s", string(issuerCertBytes)),
+			fmt.Sprintf("dapr_sentry.tls.issuer.keyPEM=%s", string(issuerKeyBytes)),
+		)
+	}
 
 	for _, v := range globalVals {
 		if err := strvals.ParseInto(v, chartVals); err != nil {
