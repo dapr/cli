@@ -162,7 +162,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 	setAirGapInit(fromDir)
 	if !slimMode {
 		// If --slim installation is not requested, check if docker or podman or containerd is installed.
-		if !utils.ContainerRuntimeAvailable() {
+		if !utils.ContainerRuntimeAvailable(containerRuntime) {
 			return fmt.Errorf("could not connect to container. %v may not be installed or running", containerRuntime)
 		}
 

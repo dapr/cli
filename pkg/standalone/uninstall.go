@@ -90,7 +90,7 @@ func Uninstall(uninstallAll bool, dockerNetwork string, containerRuntime string,
 		print.WarningStatusEvent(os.Stdout, "WARNING: could not delete dapr bin dir: %s", daprBinDir)
 	}
 
-	if utils.ContainerRuntimeAvailable() {
+	if utils.ContainerRuntimeAvailable(containerRuntime) {
 		containerRuntime = strings.TrimSpace(containerRuntime)
 		runtimeCmd := utils.GetContainerRuntimeCmd(containerRuntime)
 		containerErrs = removeContainers(uninstallPlacementContainer, uninstallAll, dockerNetwork, runtimeCmd)

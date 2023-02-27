@@ -214,8 +214,16 @@ func IsContainerdInstalled() bool {
 	return true
 }
 
-func ContainerRuntimeAvailable() bool {
-	return IsDockerInstalled() || IsPodmanInstalled() || IsContainerdInstalled()
+func ContainerRuntimeAvailable(containerRuntime string) bool {
+	containerRuntime = strings.TrimSpace(containerRuntime)
+	switch ContainerRuntime(containerRuntime) {
+	case PODMAN:
+		return IsPodmanInstalled()
+	case CONTAINERD:
+		return IsContainerdInstalled()
+	default:
+		return IsDockerInstalled()
+	}
 }
 
 // IsDaprListeningOnPort checks if Dapr is litening to a given port.
