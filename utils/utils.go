@@ -43,7 +43,8 @@ const (
 	PODMAN     ContainerRuntime = "podman"
 	CONTAINERD ContainerRuntime = "containerd"
 
-	MACOS = runtime.GOOS == "darwin"
+	NERDCTL = "nerdctl"
+	MACOS   = runtime.GOOS == "darwin"
 
 	marinerImageVariantName = "mariner"
 
@@ -68,7 +69,7 @@ func IsValidContainerRuntime(containerRuntime string) bool {
 func GetContainerRuntimeCmd(containerRuntime string) string {
 	// containerd runtime use nerdctl tool.
 	if IsValidRuntimeOnMacos(containerRuntime) {
-		return "nerdctl"
+		return NERDCTL
 	}
 	if IsValidContainerRuntime(containerRuntime) {
 		return strings.TrimSpace(containerRuntime)
