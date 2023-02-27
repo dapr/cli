@@ -69,7 +69,7 @@ dapr uninstall --runtime-path <path-to-install-directory>
 			err = kubernetes.Uninstall(uninstallNamespace, uninstallAll, timeout)
 		} else {
 			if !utils.IsValidContainerRuntime(uninstallContainerRuntime) {
-				print.FailureStatusEvent(os.Stdout, "Invalid container runtime. Supported values are docker and podman and containerd.")
+				print.FailureStatusEvent(os.Stdout, "Invalid container runtime. Supported values are docker, podman and containerd.")
 				os.Exit(1)
 			}
 			print.InfoStatusEvent(os.Stdout, "Removing Dapr from your machine...")
@@ -92,6 +92,6 @@ func init() {
 	UninstallCmd.Flags().String("network", "", "The Docker network from which to remove the Dapr runtime")
 	UninstallCmd.Flags().StringVarP(&uninstallNamespace, "namespace", "n", "dapr-system", "The Kubernetes namespace to uninstall Dapr from")
 	UninstallCmd.Flags().BoolP("help", "h", false, "Print this help message")
-	UninstallCmd.Flags().StringVarP(&uninstallContainerRuntime, "container-runtime", "", "docker", "The container runtime to use. Supported values are docker (default) and podman and containerd")
+	UninstallCmd.Flags().StringVarP(&uninstallContainerRuntime, "container-runtime", "", "docker", "The container runtime to use. Supported values are docker (default),  podman and containerd")
 	RootCmd.AddCommand(UninstallCmd)
 }

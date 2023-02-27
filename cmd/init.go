@@ -148,7 +148,7 @@ dapr init --runtime-path <path-to-install-directory>
 			}
 
 			if !utils.IsValidContainerRuntime(containerRuntime) {
-				print.FailureStatusEvent(os.Stdout, "Invalid container runtime. Supported values are docker and podman and containerd.")
+				print.FailureStatusEvent(os.Stdout, "Invalid container runtime. Supported values are docker, podman and containerd.")
 				os.Exit(1)
 			}
 			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode, imageRegistryURI, fromDir, containerRuntime, imageVariant, daprRuntimePath)
@@ -194,7 +194,7 @@ func init() {
 	InitCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	InitCmd.Flags().StringArrayVar(&values, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
 	InitCmd.Flags().String("image-registry", "", "Custom/private docker image repository URL")
-	InitCmd.Flags().StringVarP(&containerRuntime, "container-runtime", "", "docker", "The container runtime to use. Supported values are docker (default) and podman and containerd")
+	InitCmd.Flags().StringVarP(&containerRuntime, "container-runtime", "", "docker", "The container runtime to use. Supported values are docker (default),  podman and containerd")
 
 	RootCmd.AddCommand(InitCmd)
 }
