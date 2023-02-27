@@ -112,7 +112,7 @@ func Uninstall(uninstallAll bool, dockerNetwork string, containerRuntime string,
 	}
 
 	for _, e := range containerErrs {
-		err = fmt.Errorf("%w \n %s", err, e)
+		err = fmt.Errorf("%w \n %w", err, e)
 	}
 	return err
 }
