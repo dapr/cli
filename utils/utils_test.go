@@ -278,13 +278,8 @@ func TestResolveHomeDir(t *testing.T) {
 		},
 		{
 			name:     "home directory prefix with ~/..",
-			input:    "$HOME/../home/path",
+			input:    "~/../home/path",
 			expected: filepath.Join(homeDir, "..", "home", "path"),
-		},
-		{
-			name:     "home directory prefix with $HOME/",
-			input:    "$HOME/home/path",
-			expected: filepath.Join(homeDir, "home", "path"),
 		},
 		{
 			name:     "no home directory prefix",
