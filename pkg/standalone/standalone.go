@@ -32,6 +32,8 @@ import (
 	"time"
 
 	"github.com/fatih/color"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"gopkg.in/yaml.v2"
 
 	"github.com/dapr/cli/pkg/print"
@@ -164,7 +166,8 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		// If --slim installation is not requested, check if docker is installed.
 		conatinerRuntimeAvailable := utils.IsDockerInstalled() || utils.IsPodmanInstalled()
 		if !conatinerRuntimeAvailable {
-			return errors.New("could not connect to Docker. Docker may not be installed or running")
+			caser := cases.Title(language.English)
+			return fmt.Errorf("could not connect to %s. %s may not be installed or running", caser.String(containerRuntime), caser.String(containerRuntime))
 		}
 
 		// Initialize default registry only if any of --slim or --image-registry or --from-dir are not given.
