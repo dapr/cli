@@ -25,6 +25,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -95,6 +96,27 @@ func TestStandaloneList(t *testing.T) {
 		}
 
 		cmd.Process.Kill()
+	})
+
+	t.Run("daprd instance started by run in list", func(t *testing.T) {
+		go func() {
+			// starts dapr run in a goroutine
+			runoutput, err := cmdRun("", "--app-id", "dapr_e2e_list", "--dapr-http-port", "3555", "--dapr-grpc-port", "4555", "--app-port", "0", "--enable-app-health-check", "--", "bash", "-c", "sleep 15; exit 0")
+			t.Log(runoutput)
+			require.NoError(t, err, "run failed")
+			// daprd starts and sleep for 50s, this ensures daprd started by `dapr run ...` is stopped
+			time.Sleep(15 * time.Second)
+			assert.Contains(t, runoutput, "Exited Dapr successfully")
+		}()
+
+		// wait for daprd to start
+		time.Sleep(time.Second)
+		output, err := cmdList("")
+		t.Log(output)
+		require.NoError(t, err, "dapr list failed with dapr run instance")
+		listOutputCheck(t, output, true)
+		// sleep to wait dapr run exit, in case have effect on other tests
+		time.Sleep(15 * time.Second)
 	})
 
 	t.Run("dashboard instance should not be listed", func(t *testing.T) {
