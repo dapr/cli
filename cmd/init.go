@@ -176,7 +176,7 @@ func verifyCustomCertFlags(cmd *cobra.Command) error {
 	issuerCert := cmd.Flags().Lookup("issuer-public-certificate")
 
 	if ca.Changed && len(strings.TrimSpace(ca.Value.String())) == 0 {
-		return errors.New("non empty value of --ca-root_certificate must be provided")
+		return errors.New("non empty value of --ca-root-certificate must be provided")
 	}
 	if issuerKey.Changed && len(strings.TrimSpace(issuerKey.Value.String())) == 0 {
 		return errors.New("non empty value of --issuer-private-key must be provided")
