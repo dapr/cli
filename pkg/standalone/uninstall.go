@@ -113,7 +113,8 @@ func Uninstall(uninstallAll bool, dockerNetwork string, containerRuntime string,
 
 	// TODO move to use errors.Join once we move to go 1.20.
 	for _, e := range containerErrs {
-		err = fmt.Errorf("%w \n %w", err, e)
+		// For 1.19 only one %w is allowed.
+		err = fmt.Errorf("%w \n %s", err, e) //nolint: errorlint
 	}
 	return err
 }
