@@ -58,11 +58,11 @@ jobs:
             target_arch: arm
     steps:
       - name: Set up Go ${{ env.GOVER }}
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: ${{ env.GOVER }}
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Cache Go modules (Linux)
         if: matrix.target_os == 'linux'
         uses: actions/cache@v3
@@ -121,7 +121,7 @@ jobs:
         run: make test
       - name: Codecov
         if: matrix.target_arch == 'amd64' && matrix.target_os == 'linux'
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v3
       - name: Run make release to build and archive binaries
         run: |
           mkdir -p ${{ env.ARCHIVE_OUTDIR }}
@@ -196,7 +196,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Parse release version and set REL_VERSION
         run: python ./.github/scripts/get_release_version.py
       - name: Update winget manifests
