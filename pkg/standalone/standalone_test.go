@@ -315,11 +315,10 @@ func TestIsAirGapInit(t *testing.T) {
 func TestInitLogActualContainerRuntimeName(t *testing.T) {
 	tests := []struct {
 		containerRuntime string
-		expected         string
 		testName         string
 	}{
-		{"podman", "Podman", "Init should log Podman as container runtime"},
-		{"docker", "Docker", "Init should log Docker as container runtime"},
+		{"podman", "Init should log podman as container runtime"},
+		{"docker", "Init should log docker as container runtime"},
 	}
 	conatinerRuntimeAvailable := utils.IsDockerInstalled() || utils.IsPodmanInstalled()
 	if conatinerRuntimeAvailable {
@@ -329,7 +328,7 @@ func TestInitLogActualContainerRuntimeName(t *testing.T) {
 		t.Run(test.testName, func(t *testing.T) {
 			err := Init(latestVersion, latestVersion, "", false, "", "", test.containerRuntime, "", "")
 			assert.NotNil(t, err)
-			assert.Contains(t, err.Error(), test.expected)
+			assert.Contains(t, err.Error(), test.containerRuntime)
 		})
 
 	}
