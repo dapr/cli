@@ -75,7 +75,7 @@ func removeDir(dirPath string) error {
 func Uninstall(uninstallAll bool, dockerNetwork string, containerRuntime string, inputInstallPath string) error {
 	var containerErrs []error
 	inputInstallPath = strings.TrimSpace(inputInstallPath)
-	installDir, err := GetDaprPath(inputInstallPath)
+	installDir, err := GetDaprRuntimePath(inputInstallPath)
 	if err != nil {
 		return err
 	}

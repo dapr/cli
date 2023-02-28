@@ -1,5 +1,5 @@
-//go:build e2e
-// +build e2e
+//go:build e2e && !template
+// +build e2e,!template
 
 /*
 Copyright 2022 The Dapr Authors
@@ -33,7 +33,6 @@ import (
 
 func TestStandaloneList(t *testing.T) {
 	ensureDaprInstallation(t)
-
 	executeAgainstRunningDapr(t, func() {
 		output, err := cmdList("")
 		t.Log(output)
@@ -60,7 +59,7 @@ func TestStandaloneList(t *testing.T) {
 		require.Error(t, err, "dapr list should fail with an invalid output format")
 
 		// We can call stop so as not to wait for the app to time out
-		output, err = cmdStop("dapr_e2e_list")
+		output, err = cmdStopWithAppID("dapr_e2e_list")
 		t.Log(output)
 		require.NoError(t, err, "dapr stop failed")
 		assert.Contains(t, output, "app stopped successfully: dapr_e2e_list")
@@ -89,7 +88,7 @@ func TestStandaloneList(t *testing.T) {
 		// TODO: remove this condition when `dapr stop` starts working for Windows.
 		// See https://github.com/dapr/cli/issues/1034.
 		if runtime.GOOS != "windows" {
-			output, err = cmdStop("daprd_e2e_list")
+			output, err = cmdStopWithAppID("daprd_e2e_list")
 			t.Log(output)
 			require.NoError(t, err, "dapr stop failed")
 			assert.Contains(t, output, "app stopped successfully: daprd_e2e_list")
@@ -124,7 +123,7 @@ func listOutputCheck(t *testing.T, output string, isCli bool) {
 	// only one app is runnning at this time
 	fields := strings.Fields(lines[0])
 	// Fields splits on space, so Created time field might be split again
-	assert.GreaterOrEqual(t, len(fields), 4, "expected at least 4 fields in components output")
+	assert.GreaterOrEqual(t, len(fields), 10, "expected at least 10 fields in components output")
 	if isCli {
 		assert.Equal(t, "dapr_e2e_list", fields[0], "expected name to match")
 	} else {
@@ -133,30 +132,35 @@ func listOutputCheck(t *testing.T, output string, isCli bool) {
 	assert.Equal(t, "3555", fields[1], "expected http port to match")
 	assert.Equal(t, "4555", fields[2], "expected grpc port to match")
 	assert.Equal(t, "0", fields[3], "expected app port to match")
+	assert.NotEmpty(t, fields[9], "expected an app PID (a real value or zero)")
 }
 
 func listJsonOutputCheck(t *testing.T, output string) {
-	var result map[string]interface{}
+	var result []map[string]interface{}
 
 	err := json.Unmarshal([]byte(output), &result)
 
 	assert.NoError(t, err, "output was not valid JSON")
 
-	assert.Equal(t, "dapr_e2e_list", result["appId"], "expected name to match")
-	assert.Equal(t, 3555, int(result["httpPort"].(float64)), "expected http port to match")
-	assert.Equal(t, 4555, int(result["grpcPort"].(float64)), "expected grpc port to match")
-	assert.Equal(t, 0, int(result["appPort"].(float64)), "expected app port to match")
+	assert.Len(t, result, 1, "expected one app to be running")
+	assert.Equal(t, "dapr_e2e_list", result[0]["appId"], "expected name to match")
+	assert.Equal(t, 3555, int(result[0]["httpPort"].(float64)), "expected http port to match")
+	assert.Equal(t, 4555, int(result[0]["grpcPort"].(float64)), "expected grpc port to match")
+	assert.Equal(t, 0, int(result[0]["appPort"].(float64)), "expected app port to match")
+	assert.GreaterOrEqual(t, int(result[0]["appPid"].(float64)), 0, "expected an app PID (a real value or zero)")
 }
 
 func listYamlOutputCheck(t *testing.T, output string) {
-	var result map[string]interface{}
+	var result []map[string]interface{}
 
 	err := yaml.Unmarshal([]byte(output), &result)
 
 	assert.NoError(t, err, "output was not valid YAML")
 
-	assert.Equal(t, "dapr_e2e_list", result["appId"], "expected name to match")
-	assert.Equal(t, 3555, result["httpPort"], "expected http port to match")
-	assert.Equal(t, 4555, result["grpcPort"], "expected grpc port to match")
-	assert.Equal(t, 0, result["appPort"], "expected app port to match")
+	assert.Len(t, result, 1, "expected one app to be running")
+	assert.Equal(t, "dapr_e2e_list", result[0]["appId"], "expected name to match")
+	assert.Equal(t, 3555, result[0]["httpPort"], "expected http port to match")
+	assert.Equal(t, 4555, result[0]["grpcPort"], "expected grpc port to match")
+	assert.Equal(t, 0, result[0]["appPort"], "expected app port to match")
+	assert.GreaterOrEqual(t, result[0]["appPid"], 0, "expected an app PID (a real value or zero)")
 }

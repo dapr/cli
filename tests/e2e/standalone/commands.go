@@ -1,5 +1,5 @@
-//go:build e2e
-// +build e2e
+//go:build e2e || template
+// +build e2e template
 
 /*
 Copyright 2022 The Dapr Authors
@@ -118,9 +118,32 @@ func cmdRun(unixDomainSocket string, args ...string) (string, error) {
 	return spawn.Command(common.GetDaprPath(), runArgs...)
 }
 
-// cmdStop stops the specified app and returns the command output and error.
-func cmdStop(appId string, args ...string) (string, error) {
+// cmdRun runs a Dapr instance and returns the command output and error.
+func cmdRunWithContext(ctx context.Context, unixDomainSocket string, args ...string) (string, error) {
+	runArgs := []string{"run"}
+
+	if unixDomainSocket != "" {
+		runArgs = append(runArgs, "--unix-domain-socket", unixDomainSocket)
+	}
+
+	runArgs = append(runArgs, args...)
+	return spawn.CommandExecWithContext(ctx, common.GetDaprPath(), runArgs...)
+}
+
+// cmdStopWithAppID stops the specified app with app id and returns the command output and error.
+func cmdStopWithAppID(appId string, args ...string) (string, error) {
 	stopArgs := append([]string{"stop", "--log-as-json", "--app-id", appId}, args...)
+	return daprStop(stopArgs...)
+}
+
+// cmdStopWithRunTemplate stops the apps started with run template file and returns the command output and error.
+func cmdStopWithRunTemplate(runTemplateFile string, args ...string) (string, error) {
+	stopArgs := append([]string{"stop", "--log-as-json", "-f", runTemplateFile}, args...)
+	return daprStop(stopArgs...)
+}
+
+// daprStop stops Dapr with the stop command and returns the command output and error.
+func daprStop(stopArgs ...string) (string, error) {
 	return spawn.Command(common.GetDaprPath(), stopArgs...)
 }
 

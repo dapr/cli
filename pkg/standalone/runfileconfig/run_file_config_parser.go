@@ -18,7 +18,9 @@ import (
 	"fmt"
 	"path/filepath"
 	"reflect"
+	"strings"
 
+	"github.com/dapr/cli/pkg/standalone"
 	"github.com/dapr/cli/utils"
 
 	"gopkg.in/yaml.v2"
@@ -50,21 +52,21 @@ func (a *RunFileConfig) validateRunConfig(runFilePath string) error {
 	}
 
 	// resolve relative path to absolute and validate all paths in commons.
-	err = a.resolvePathToAbsAndValidate(baseDir, &a.Common.ConfigFile, &a.Common.ResourcesPath)
+	err = a.resolvePathToAbsAndValidate(baseDir, &a.Common.ConfigFile, &a.Common.ResourcesPath, &a.Common.DaprdInstallPath)
 	if err != nil {
 		return err
 	}
 	for i := 0; i < len(a.Apps); i++ {
 		if a.Apps[i].AppDirPath == "" {
-			return errors.New("required filed 'app_dir_path' not found in the provided app config file")
+			return errors.New("required field 'appDirPath' not found in the provided app config file")
 		}
 		// It resolves the relative AppDirPath to absolute path and validates it.
 		err := a.resolvePathToAbsAndValidate(baseDir, &a.Apps[i].AppDirPath)
 		if err != nil {
 			return err
 		}
-		// All other paths present inside the specific app's in the YAML file, should be resolved relative to AppDirPath for that app.
-		err = a.resolvePathToAbsAndValidate(a.Apps[i].AppDirPath, &a.Apps[i].ConfigFile, &a.Apps[i].ResourcesPath)
+		// All other relative paths present inside the specific app's in the YAML file, should be resolved relative to AppDirPath for that app.
+		err = a.resolvePathToAbsAndValidate(a.Apps[i].AppDirPath, &a.Apps[i].ConfigFile, &a.Apps[i].ResourcesPath, &a.Apps[i].DaprdInstallPath)
 		if err != nil {
 			return err
 		}
@@ -74,7 +76,7 @@ func (a *RunFileConfig) validateRunConfig(runFilePath string) error {
 
 // GetApps orchestrates the parsing of supplied run file, validating fields and consolidating SharedRunConfig for the apps.
 // It returns a list of apps with the merged values for the SharedRunConfig from common section of the YAML file.
-func (a *RunFileConfig) GetApps(runFilePath string) ([]Apps, error) {
+func (a *RunFileConfig) GetApps(runFilePath string) ([]App, error) {
 	err := a.parseAppsConfig(runFilePath)
 	if err != nil {
 		return nil, err
@@ -83,7 +85,12 @@ func (a *RunFileConfig) GetApps(runFilePath string) ([]Apps, error) {
 	if err != nil {
 		return nil, err
 	}
+	err = a.resolveResourcesAndConfigFilePaths()
+	if err != nil {
+		return nil, err
+	}
 	a.mergeCommonAndAppsSharedRunConfig()
+	a.mergeCommonAndAppsEnv()
 	// Resolve app ids if not provided in the run file.
 	err = a.setAppIDIfEmpty()
 	if err != nil {
@@ -114,8 +121,8 @@ func (a *RunFileConfig) mergeCommonAndAppsSharedRunConfig() {
 	}
 }
 
-// Set AppID to the directory name of app_dir_path.
-// app_dir_path is a mandatory field in the run file and at this point it is already validated and resolved to its absolute path.
+// Set AppID to the directory name of appDirPath.
+// appDirPath is a mandatory field in the run file and at this point it is already validated and resolved to its absolute path.
 func (a *RunFileConfig) setAppIDIfEmpty() error {
 	for i := range a.Apps {
 		if a.Apps[i].AppID == "" {
@@ -129,12 +136,12 @@ func (a *RunFileConfig) setAppIDIfEmpty() error {
 	return nil
 }
 
-// Gets the base path from the absolute path of the app_dir_path.
+// Gets the base path from the absolute path of the appDirPath.
 func (a *RunFileConfig) getBasePathFromAbsPath(appDirPath string) (string, error) {
 	if filepath.IsAbs(appDirPath) {
 		return filepath.Base(appDirPath), nil
 	}
-	return "", fmt.Errorf("error in getting the base path from the provided app_dir_path %q: ", appDirPath)
+	return "", fmt.Errorf("error in getting the base path from the provided appDirPath %q: ", appDirPath)
 }
 
 // resolvePathToAbsAndValidate resolves the relative paths in run file to absolute path and validates the file path.
@@ -149,9 +156,85 @@ func (a *RunFileConfig) resolvePathToAbsAndValidate(baseDir string, paths ...*st
 			return err
 		}
 		*path = absPath
-		if err = utils.ValidateFilePaths(*path); err != nil {
+		if err = utils.ValidateFilePath(*path); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// Resolve resources and config file paths for each app.
+func (a *RunFileConfig) resolveResourcesAndConfigFilePaths() error {
+	for i := range a.Apps {
+		app := &a.Apps[i]
+		// Make sure apps's "DaprPathCmdFlag" is updated here as it is used in deciding precedence for resources and config path.
+		if app.DaprdInstallPath == "" {
+			app.DaprdInstallPath = a.Common.DaprdInstallPath
+		}
+
+		err := a.resolveResourcesFilePath(app)
+		if err != nil {
+			return fmt.Errorf("error in resolving resources path for app %q: %w", app.AppID, err)
+		}
+
+		err = a.resolveConfigFilePath(app)
+		if err != nil {
+			return fmt.Errorf("error in resolving config file path for app %q: %w", app.AppID, err)
+		}
+	}
+	return nil
+}
+
+// mergeCommonAndAppsEnv merges env maps from common and individual apps.
+// Precedence order for envs -> apps[i].envs > common.envs.
+func (a *RunFileConfig) mergeCommonAndAppsEnv() {
+	for i := range a.Apps {
+		for k, v := range a.Common.Env {
+			if _, ok := a.Apps[i].Env[k]; !ok {
+				a.Apps[i].Env[k] = v
+			}
+		}
+	}
+}
+
+// resolveResourcesFilePath resolves the resources path for the app.
+// Precedence order for resourcesPath -> apps[i].resourcesPath > apps[i].appDirPath/.dapr/resources > common.resourcesPath > dapr default resources path.
+func (a *RunFileConfig) resolveResourcesFilePath(app *App) error {
+	if app.ResourcesPath != "" {
+		return nil
+	}
+	localResourcesDir := filepath.Join(app.AppDirPath, standalone.DefaultDaprDirName, standalone.DefaultResourcesDirName)
+	if err := utils.ValidateFilePath(localResourcesDir); err == nil {
+		app.ResourcesPath = localResourcesDir
+	} else if len(strings.TrimSpace(a.Common.ResourcesPath)) > 0 {
+		app.ResourcesPath = a.Common.ResourcesPath
+	} else {
+		daprDirPath, err := standalone.GetDaprRuntimePath(app.DaprdInstallPath)
+		if err != nil {
+			return fmt.Errorf("error getting dapr install path: %w", err)
+		}
+		app.ResourcesPath = standalone.GetDaprComponentsPath(daprDirPath)
+	}
+	return nil
+}
+
+// resolveConfigFilePath resolves the config file path for the app.
+// Precedence order for configFile -> apps[i].configFile > apps[i].appDirPath/.dapr/config.yaml > common.configFile > dapr default config file.
+func (a *RunFileConfig) resolveConfigFilePath(app *App) error {
+	if app.ConfigFile != "" {
+		return nil
+	}
+	localConfigFile := filepath.Join(app.AppDirPath, standalone.DefaultDaprDirName, standalone.DefaultConfigFileName)
+	if err := utils.ValidateFilePath(localConfigFile); err == nil {
+		app.ConfigFile = localConfigFile
+	} else if len(strings.TrimSpace(a.Common.ConfigFile)) > 0 {
+		app.ConfigFile = a.Common.ConfigFile
+	} else {
+		daprDirPath, err := standalone.GetDaprRuntimePath(app.DaprdInstallPath)
+		if err != nil {
+			return fmt.Errorf("error getting dapr install path: %w", err)
+		}
+		app.ConfigFile = standalone.GetDaprConfigPath(daprDirPath)
 	}
 	return nil
 }

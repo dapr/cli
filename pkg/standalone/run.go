@@ -39,39 +39,40 @@ const (
 
 // RunConfig represents the application configuration parameters.
 type RunConfig struct {
-	AppID            string   `env:"APP_ID" arg:"app-id" yaml:"app_id"`
-	AppPort          int      `env:"APP_PORT" arg:"app-port" yaml:"app_port" default:"-1"`
-	HTTPPort         int      `env:"DAPR_HTTP_PORT" arg:"dapr-http-port" yaml:"dapr_http_port" default:"-1"`
-	GRPCPort         int      `env:"DAPR_GRPC_PORT" arg:"dapr-grpc-port" yaml:"dapr_grpc_port" default:"-1"`
-	ProfilePort      int      `arg:"profile-port" yaml:"profile_port" default:"-1"`
-	Command          []string `yaml:"command"`
-	MetricsPort      int      `env:"DAPR_METRICS_PORT" arg:"metrics-port" yaml:"metrics_port" default:"-1"`
-	UnixDomainSocket string   `arg:"unix-domain-socket" yaml:"unix_domain_socket"`
-	InternalGRPCPort int      `arg:"dapr-internal-grpc-port" yaml:"dapr_internal_grpc_port" default:"-1"`
-	DaprPathCmdFlag  string   `yaml:"dapr_path_cmd_flag"`
 	SharedRunConfig  `yaml:",inline"`
+	AppID            string   `env:"APP_ID" arg:"app-id" yaml:"appID"`
+	AppPort          int      `env:"APP_PORT" arg:"app-port" yaml:"appPort" default:"-1"`
+	HTTPPort         int      `env:"DAPR_HTTP_PORT" arg:"dapr-http-port" yaml:"daprHTTPPort" default:"-1"`
+	GRPCPort         int      `env:"DAPR_GRPC_PORT" arg:"dapr-grpc-port" yaml:"daprGRPCPort" default:"-1"`
+	ProfilePort      int      `arg:"profile-port" yaml:"profilePort" default:"-1"`
+	Command          []string `yaml:"command"`
+	MetricsPort      int      `env:"DAPR_METRICS_PORT" arg:"metrics-port" yaml:"metricsPort" default:"-1"`
+	UnixDomainSocket string   `arg:"unix-domain-socket" yaml:"unixDomainSocket"`
+	InternalGRPCPort int      `arg:"dapr-internal-grpc-port" yaml:"daprInternalGRPCPort" default:"-1"`
 }
 
 // SharedRunConfig represents the application configuration parameters, which can be shared across many apps.
 type SharedRunConfig struct {
-	ConfigFile         string `arg:"config" yaml:"config_file"`
-	AppProtocol        string `arg:"app-protocol" yaml:"app_protocol" default:"http"`
-	APIListenAddresses string `arg:"dapr-listen-addresses" yaml:"api_listen_addresses"`
-	EnableProfiling    bool   `arg:"enable-profiling" yaml:"enable_profiling"`
-	LogLevel           string `arg:"log-level" yaml:"log_level"`
-	MaxConcurrency     int    `arg:"app-max-concurrency" yaml:"app_max_concurrency" default:"-1"`
-	PlacementHostAddr  string `arg:"placement-host-address" yaml:"placement_host_address"`
-	ComponentsPath     string `arg:"components-path"`
-	ResourcesPath      string `arg:"resources-path" yaml:"resources_path"`
-	AppSSL             bool   `arg:"app-ssl" yaml:"app_ssl"`
-	MaxRequestBodySize int    `arg:"dapr-http-max-request-size" yaml:"dapr_http_max_request_size" default:"-1"`
-	HTTPReadBufferSize int    `arg:"dapr-http-read-buffer-size" yaml:"dapr_http_read_buffer_size" default:"-1"`
-	EnableAppHealth    bool   `arg:"enable-app-health-check" yaml:"enable_app_health_check"`
-	AppHealthPath      string `arg:"app-health-check-path" yaml:"app_health_check_path"`
-	AppHealthInterval  int    `arg:"app-health-probe-interval" ifneq:"0" yaml:"app_health_probe_interval"`
-	AppHealthTimeout   int    `arg:"app-health-probe-timeout" ifneq:"0" yaml:"app_health_probe_timeout"`
-	AppHealthThreshold int    `arg:"app-health-threshold" ifneq:"0" yaml:"app_health_threshold"`
-	EnableAPILogging   bool   `arg:"enable-api-logging" yaml:"enable_api_logging"`
+	ConfigFile         string            `arg:"config" yaml:"configFilePath"`
+	AppProtocol        string            `arg:"app-protocol" yaml:"appProtocol" default:"http"`
+	APIListenAddresses string            `arg:"dapr-listen-addresses" yaml:"apiListenAddresses"`
+	EnableProfiling    bool              `arg:"enable-profiling" yaml:"enableProfiling"`
+	LogLevel           string            `arg:"log-level" yaml:"logLevel"`
+	MaxConcurrency     int               `arg:"app-max-concurrency" yaml:"appMaxConcurrency" default:"-1"`
+	PlacementHostAddr  string            `arg:"placement-host-address" yaml:"placementHostAddress"`
+	ComponentsPath     string            `arg:"components-path"`
+	ResourcesPath      string            `arg:"resources-path" yaml:"resourcesPath"`
+	AppSSL             bool              `arg:"app-ssl" yaml:"appSSL"`
+	MaxRequestBodySize int               `arg:"dapr-http-max-request-size" yaml:"daprHTTPMaxRequestSize" default:"-1"`
+	HTTPReadBufferSize int               `arg:"dapr-http-read-buffer-size" yaml:"daprHTTPReadBufferSize" default:"-1"`
+	EnableAppHealth    bool              `arg:"enable-app-health-check" yaml:"enableAppHealthCheck"`
+	AppHealthPath      string            `arg:"app-health-check-path" yaml:"appHealthCheckPath"`
+	AppHealthInterval  int               `arg:"app-health-probe-interval" ifneq:"0" yaml:"appHealthProbeInterval"`
+	AppHealthTimeout   int               `arg:"app-health-probe-timeout" ifneq:"0" yaml:"appHealthProbeTimeout"`
+	AppHealthThreshold int               `arg:"app-health-threshold" ifneq:"0" yaml:"appHealthThreshold"`
+	EnableAPILogging   bool              `arg:"enable-api-logging" yaml:"enableApiLogging"`
+	DaprdInstallPath   string            `yaml:"runtimePath"`
+	Env                map[string]string `yaml:"env"`
 }
 
 func (meta *DaprMeta) newAppID() string {
@@ -83,15 +84,19 @@ func (meta *DaprMeta) newAppID() string {
 	}
 }
 
-func (config *RunConfig) validateComponentPath() error {
-	_, err := os.Stat(config.ComponentsPath)
-	if err != nil {
-		return err
+func (config *RunConfig) validateResourcesPath() error {
+	dirPath := config.ResourcesPath
+	if dirPath == "" {
+		dirPath = config.ComponentsPath
 	}
-	componentsLoader := components.NewStandaloneComponents(modes.StandaloneConfig{ComponentsPath: config.ComponentsPath})
+	_, err := os.Stat(dirPath)
+	if err != nil {
+		return fmt.Errorf("error validating resources path %q : %w", dirPath, err)
+	}
+	componentsLoader := components.NewStandaloneComponents(modes.StandaloneConfig{ComponentsPath: dirPath})
 	_, err = componentsLoader.LoadComponents()
 	if err != nil {
-		return err
+		return fmt.Errorf("error validating components in resources path %q : %w", dirPath, err)
 	}
 	return nil
 }
@@ -128,7 +133,7 @@ func (config *RunConfig) validatePort(portName string, portPtr *int, meta *DaprM
 	return nil
 }
 
-func (config *RunConfig) validate() error {
+func (config *RunConfig) Validate() error {
 	meta, err := newDaprMeta()
 	if err != nil {
 		return err
@@ -138,7 +143,7 @@ func (config *RunConfig) validate() error {
 		config.AppID = meta.newAppID()
 	}
 
-	err = config.validateComponentPath()
+	err = config.validateResourcesPath()
 	if err != nil {
 		return err
 	}
@@ -297,7 +302,7 @@ func getArgsFromSchema(schema reflect.Value, args []string) []string {
 	return args
 }
 
-func (config *RunConfig) setDefaultFromSchema() {
+func (config *RunConfig) SetDefaultFromSchema() {
 	schema := reflect.ValueOf(*config)
 	config.setDefaultFromSchemaRecursive(schema)
 }
@@ -342,22 +347,14 @@ func (config *RunConfig) getEnv() []string {
 		value := fmt.Sprintf("%v", reflect.ValueOf(valueField))
 		env = append(env, fmt.Sprintf("%s=%v", key, value))
 	}
+	for k, v := range config.Env {
+		env = append(env, fmt.Sprintf("%s=%v", k, v))
+	}
 	return env
 }
 
-// RunOutput represents the run output.
-type RunOutput struct {
-	DaprCMD      *exec.Cmd
-	DaprErr      error
-	DaprHTTPPort int
-	DaprGRPCPort int
-	AppID        string
-	AppCMD       *exec.Cmd
-	AppErr       error
-}
-
-func getDaprCommand(config *RunConfig) (*exec.Cmd, error) {
-	daprCMD, err := lookupBinaryFilePath(config.DaprPathCmdFlag, "daprd")
+func GetDaprCommand(config *RunConfig) (*exec.Cmd, error) {
+	daprCMD, err := lookupBinaryFilePath(config.DaprdInstallPath, "daprd")
 	if err != nil {
 		return nil, err
 	}
@@ -389,7 +386,7 @@ func mtlsEndpoint(configFile string) string {
 	return ""
 }
 
-func getAppCommand(config *RunConfig) *exec.Cmd {
+func GetAppCommand(config *RunConfig) *exec.Cmd {
 	argCount := len(config.Command)
 
 	if argCount == 0 {
@@ -407,31 +404,4 @@ func getAppCommand(config *RunConfig) *exec.Cmd {
 	cmd.Env = append(cmd.Env, config.getEnv()...)
 
 	return cmd
-}
-
-func Run(config *RunConfig) (*RunOutput, error) {
-	// set default values from RunConfig struct's tag.
-	config.setDefaultFromSchema()
-	//nolint
-	err := config.validate()
-	if err != nil {
-		return nil, err
-	}
-
-	daprCMD, err := getDaprCommand(config)
-	if err != nil {
-		return nil, err
-	}
-
-	//nolint
-	var appCMD *exec.Cmd = getAppCommand(config)
-	return &RunOutput{
-		DaprCMD:      daprCMD,
-		DaprErr:      nil,
-		AppCMD:       appCMD,
-		AppErr:       nil,
-		AppID:        config.AppID,
-		DaprHTTPPort: config.HTTPPort,
-		DaprGRPCPort: config.GRPCPort,
-	}, nil
 }

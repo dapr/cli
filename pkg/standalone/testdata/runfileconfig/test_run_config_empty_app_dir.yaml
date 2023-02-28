@@ -1,26 +1,5 @@
-
 version: 1
 common:
-  resources_path: ./app/resources
-  app_protocol: HTTP
-  app_health_probe_timeout: 10
-  env:
-    - name: DEBUG
-      value: false
-    - name: tty
-      value: sts
 apps:
-  - app_dir_path: ./webapp/
-    resources_path: ./resources
-    config_file: ./config.yaml
-    app_port: 8080
-    app_health_probe_timeout: 1
-    command: ["python3", "app.py"]
-  - app_id: backend
-    app_protocol: GRPC
-    app_port: 3000
-    unix_domain_socket: /tmp/test-socket
-    env:
-    - name: DEBUG
-      value: true
-    command: ["./backend"]
+  - appDirPath: ./webapp/
+  - appID: backend

@@ -97,7 +97,9 @@ func TestResolveImageWithGHCR(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		test := test
 		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
 			got, err := resolveImageURI(test.args)
 			assert.Equal(t, test.expectErr, err != nil)
 			assert.Equal(t, test.expect, got)
@@ -106,9 +108,9 @@ func TestResolveImageWithGHCR(t *testing.T) {
 }
 
 func TestResolveImageWithDockerHub(t *testing.T) {
-	expectedRedisImageName := "redis:6"
-	expectedZipkinImageName := "openzipkin/zipkin"
-	expectedPlacementImageName := "daprio/dapr"
+	expectedRedisImageName := "docker.io/redis:6"
+	expectedZipkinImageName := "docker.io/openzipkin/zipkin"
+	expectedPlacementImageName := "docker.io/daprio/dapr"
 
 	redisImageInfo := daprImageInfo{
 		ghcrImageName:      redisGhcrImageName,
@@ -141,7 +143,9 @@ func TestResolveImageWithDockerHub(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		test := test
 		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
 			got, err := resolveImageURI(test.args)
 			assert.Equal(t, test.expectErr, err != nil)
 			assert.Equal(t, test.expect, got)
@@ -185,7 +189,9 @@ func TestResolveImageWithPrivateRegistry(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		test := test
 		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
 			got, err := resolveImageURI(test.args)
 			assert.Equal(t, test.expectErr, err != nil)
 			assert.Equal(t, test.expect, got)

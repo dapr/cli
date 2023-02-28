@@ -14,6 +14,8 @@ limitations under the License.
 package utils
 
 import (
+	"bytes"
+	"math"
 	"os"
 	"path/filepath"
 	"testing"
@@ -73,7 +75,9 @@ func TestContainerRuntimeUtils(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			actualValid := IsValidContainerRuntime(tc.input)
 			if actualValid != tc.valid {
 				t.Errorf("expected %v, got %v", tc.valid, actualValid)
@@ -115,7 +119,9 @@ func TestContains(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			actualValid := Contains(tc.input, tc.expected)
 			if actualValid != tc.valid {
 				t.Errorf("expected %v, got %v", tc.valid, actualValid)
@@ -158,7 +164,9 @@ func TestGetVersionAndImageVariant(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			version, imageVariant := GetVersionAndImageVariant(tc.input)
 			assert.Equal(t, tc.expectedVersion, version)
 			assert.Equal(t, tc.expectedImageVariant, imageVariant)
@@ -193,8 +201,10 @@ func TestValidateFilePaths(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			actual := ValidateFilePaths(tc.input)
+			t.Parallel()
+			actual := ValidateFilePath(tc.input)
 			assert.Equal(t, tc.expectedErr, actual != nil)
 		})
 	}
@@ -233,7 +243,9 @@ func TestGetAbsPath(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			actual := GetAbsPath(baseDir, tc.input)
 			assert.Equal(t, tc.expected, actual)
 		})
@@ -260,9 +272,162 @@ func TestReadFile(t *testing.T) {
 		},
 	}
 	for _, tc := range testcases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			_, actual := ReadFile(tc.input)
 			assert.Equal(t, tc.expectedErr, actual != nil)
+		})
+	}
+}
+
+// Following is the directory and file structure created for this test in the os's default temp directory:
+// test_find_file_in_dir/valid_dir/dapr.yaml.
+// test_find_file_in_dir/valid_dir/test1.yaml.
+// test_find_file_in_dir/valid_dir_no_dapr_yaml.
+func TestFindFileInDir(t *testing.T) {
+	nonExistentDirName := "invalid_dir"
+	validDirNameWithDaprYAMLFile := "valid_dir"
+	validDirWithNoDaprYAML := "valid_dir_no_dapr_yaml"
+
+	dirName := createTempDir(t, "test_find_file_in_dir")
+	t.Cleanup(func() {
+		cleanupTempDir(t, dirName)
+	})
+
+	err := os.Mkdir(filepath.Join(dirName, validDirNameWithDaprYAMLFile), 0o755)
+	assert.NoError(t, err)
+
+	err = os.Mkdir(filepath.Join(dirName, validDirWithNoDaprYAML), 0o755)
+	assert.NoError(t, err)
+
+	fl, err := os.Create(filepath.Join(dirName, validDirNameWithDaprYAMLFile, "dapr.yaml"))
+	assert.NoError(t, err)
+	fl.Close()
+
+	fl, err = os.Create(filepath.Join(dirName, validDirNameWithDaprYAMLFile, "test1.yaml"))
+	assert.NoError(t, err)
+	fl.Close()
+
+	testcases := []struct {
+		name             string
+		input            string
+		expectedErr      bool
+		expectedFilePath string
+	}{
+		{
+			name:             "valid directory path with dapr.yaml file",
+			input:            filepath.Join(dirName, validDirNameWithDaprYAMLFile),
+			expectedErr:      false,
+			expectedFilePath: filepath.Join(dirName, validDirNameWithDaprYAMLFile, "dapr.yaml"),
+		},
+		{
+			name:             "valid directory path with no dapr.yaml file",
+			input:            filepath.Join(dirName, validDirWithNoDaprYAML),
+			expectedErr:      true,
+			expectedFilePath: "",
+		},
+		{
+			name:             "non existent dir",
+			input:            nonExistentDirName,
+			expectedErr:      true,
+			expectedFilePath: "",
+		},
+	}
+	for _, tc := range testcases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			filePath, err := FindFileInDir(tc.input, "dapr.yaml")
+			assert.Equal(t, tc.expectedErr, err != nil)
+			assert.Equal(t, tc.expectedFilePath, filePath)
+		})
+	}
+}
+
+func TestPrintDetail(t *testing.T) {
+	type fooStruct struct {
+		Field1 string
+		Field2 int
+	}
+
+	testcases := []struct {
+		name        string
+		format      string
+		list        interface{}
+		expected    string
+		shouldError bool
+	}{
+		{
+			name:        "multiple items in JSON format",
+			format:      "json",
+			list:        []fooStruct{{Field1: "test1", Field2: 1}, {Field1: "test2", Field2: 2}},
+			expected:    "[\n  {\n    \"Field1\": \"test1\",\n    \"Field2\": 1\n  },\n  {\n    \"Field1\": \"test2\",\n    \"Field2\": 2\n  }\n]",
+			shouldError: false,
+		},
+		{
+			name:        "single item in JSON format",
+			format:      "json",
+			list:        []fooStruct{{Field1: "test1", Field2: 1}},
+			expected:    "[\n  {\n    \"Field1\": \"test1\",\n    \"Field2\": 1\n  }\n]",
+			shouldError: false,
+		},
+		{
+			name:        "no items in JSON format",
+			format:      "json",
+			list:        []fooStruct{},
+			expected:    "[]",
+			shouldError: false,
+		},
+		{
+			name:        "multiple items in YAML format",
+			format:      "yaml",
+			list:        []fooStruct{{Field1: "test1", Field2: 1}, {Field1: "test2", Field2: 2}},
+			expected:    "- field1: test1\n  field2: 1\n- field1: test2\n  field2: 2\n",
+			shouldError: false,
+		},
+		{
+			name:        "single item in YAML format",
+			format:      "yaml",
+			list:        []fooStruct{{Field1: "test1", Field2: 1}},
+			expected:    "- field1: test1\n  field2: 1\n",
+			shouldError: false,
+		},
+		{
+			name:        "no items in YAML format",
+			format:      "yaml",
+			list:        []fooStruct{},
+			expected:    "[]\n",
+			shouldError: false,
+		},
+		{
+			name:        "invalid format",
+			format:      "invalid",
+			list:        []fooStruct{},
+			expected:    "",
+			shouldError: true,
+		},
+		{
+			name:        "invalid JSON",
+			format:      "json",
+			list:        math.Inf(1),
+			expected:    "",
+			shouldError: true,
+		},
+	}
+
+	for _, tc := range testcases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			var buf bytes.Buffer
+			err := PrintDetail(&buf, tc.format, tc.list)
+			if tc.shouldError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tc.expected, buf.String())
+			}
 		})
 	}
 }

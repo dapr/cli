@@ -18,24 +18,21 @@ package standalone
 
 import (
 	"fmt"
+	"syscall"
 
 	"github.com/dapr/cli/utils"
 )
 
 // Stop terminates the application process.
-func Stop(appID string) error {
-	apps, err := List()
-	if err != nil {
-		return err
-	}
-
+func Stop(appID string, cliPIDToNoOfApps map[int]int, apps []ListOutput) error {
 	for _, a := range apps {
 		if a.AppID == appID {
 			var pid string
 			// Kill the Daprd process if Daprd was started without CLI, otherwise
 			// kill the CLI process which also kills the associated Daprd process.
-			if a.CliPID == 0 {
+			if a.CliPID == 0 || cliPIDToNoOfApps[a.CliPID] > 1 {
 				pid = fmt.Sprintf("%v", a.DaprdPID)
+				cliPIDToNoOfApps[a.CliPID]--
 			} else {
 				pid = fmt.Sprintf("%v", a.CliPID)
 			}
@@ -45,6 +42,28 @@ func Stop(appID string) error {
 			return err
 		}
 	}
-
 	return fmt.Errorf("couldn't find app id %s", appID)
+}
+
+// StopAppsWithRunFile terminates the daprd and application processes with the given run file.
+func StopAppsWithRunFile(runTemplatePath string) error {
+	apps, err := List()
+	if err != nil {
+		return err
+	}
+	for _, a := range apps {
+		if a.RunTemplatePath == runTemplatePath {
+			// Get the process group id of the CLI process.
+			pgid, err := syscall.Getpgid(a.CliPID)
+			if err != nil {
+				// Fall back to cliPID if pgid is not available.
+				_, err = utils.RunCmdAndWait("kill", fmt.Sprintf("%v", a.CliPID))
+				return err
+			}
+			// Kill the whole process group.
+			err = syscall.Kill(-pgid, syscall.SIGINT)
+			return err
+		}
+	}
+	return fmt.Errorf("couldn't find apps with run file %q", runTemplatePath)
 }

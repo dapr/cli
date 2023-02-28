@@ -1,5 +1,5 @@
-//go:build e2e
-// +build e2e
+//go:build e2e || template
+// +build e2e template
 
 /*
 Copyright 2022 The Dapr Authors
@@ -164,9 +164,10 @@ func containerRuntime() string {
 }
 
 func installDapr(t *testing.T) {
-	daprRuntimeVersion, _ := common.GetVersionsFromEnv(t, false)
+	daprRuntimeVersion, daprDashboardVersion := common.GetVersionsFromEnv(t, false)
 	args := []string{
 		"--runtime-version", daprRuntimeVersion,
+		"--dashboard-version", daprDashboardVersion,
 	}
 	output, err := cmdInit(args...)
 	require.NoError(t, err, "failed to install dapr:%v", output)
