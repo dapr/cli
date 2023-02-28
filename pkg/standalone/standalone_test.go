@@ -18,6 +18,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/dapr/cli/utils"
 )
 
 func TestStandaloneConfig(t *testing.T) {
@@ -307,6 +309,27 @@ func TestIsAirGapInit(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			setAirGapInit(test.fromDir)
 			assert.Equal(t, test.expect, isAirGapInit)
+		})
+	}
+}
+
+func TestInitLogActualContainerRuntimeName(t *testing.T) {
+	tests := []struct {
+		containerRuntime string
+		testName         string
+	}{
+		{"podman", "Init should log podman as container runtime"},
+		{"docker", "Init should log docker as container runtime"},
+	}
+	conatinerRuntimeAvailable := utils.IsDockerInstalled() || utils.IsPodmanInstalled()
+	if conatinerRuntimeAvailable {
+		t.Skip("Skipping test as container runtime is available")
+	}
+	for _, test := range tests {
+		t.Run(test.testName, func(t *testing.T) {
+			err := Init(latestVersion, latestVersion, "", false, "", "", test.containerRuntime, "", "")
+			assert.NotNil(t, err)
+			assert.Contains(t, err.Error(), test.containerRuntime)
 		})
 	}
 }
