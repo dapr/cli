@@ -99,7 +99,7 @@ func TestStandaloneList(t *testing.T) {
 	})
 
 	t.Run("daprd instance started by run in list", func(t *testing.T) {
-		runoutput, err := cmdRun("", "--app-id", "dapr_e2e_list", "--dapr-http-port", "3555", "--dapr-grpc-port", "4555", "--app-port", "0", "--enable-app-health-check", "--", "bash", "-c", "sleep 5; exit 1")
+		runoutput, err := cmdRun("", "--app-id", "dapr_e2e_list", "--dapr-http-port", "3555", "--dapr-grpc-port", "4555", "--app-port", "0", "--enable-app-health-check", "--", "bash", "-c", "sleep 5; exit 0")
 		t.Log(runoutput)
 		require.NoError(t, err, "run failed")
 
