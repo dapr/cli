@@ -205,6 +205,13 @@ func init() {
 		defaultDashboardVersion = dashboardVersionEnv
 	}
 
+	defaultContainerRuntime := "docker"
+	viper.BindEnv("container_runtime_override", "DAPR_CONTAINER_RUNTIME")
+	containerRuntimeEnv := viper.GetString("container_runtime_override")
+	if containerRuntimeEnv != "" {
+		defaultContainerRuntime = containerRuntimeEnv
+	}
+
 	InitCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Deploy Dapr to a Kubernetes cluster")
 	InitCmd.Flags().BoolVarP(&wait, "wait", "", false, "Wait for Kubernetes initialization to complete")
 	InitCmd.Flags().UintVarP(&timeout, "timeout", "", 300, "The wait timeout for the Kubernetes installation")
@@ -220,10 +227,11 @@ func init() {
 	InitCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	InitCmd.Flags().StringArrayVar(&values, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
 	InitCmd.Flags().String("image-registry", "", "Custom/private docker image repository URL")
-	InitCmd.Flags().StringVarP(&containerRuntime, "container-runtime", "", "docker", "The container runtime to use. Supported values are docker (default) and podman")
+	InitCmd.Flags().StringVarP(&containerRuntime, "container-runtime", "", defaultContainerRuntime, "The container runtime to use. Supported values are docker (default) and podman")
 	InitCmd.Flags().StringVarP(&caRootCertificateFile, "ca-root-certificate", "", "", "The root certificate file")
 	InitCmd.Flags().StringVarP(&issuerPrivateKeyFile, "issuer-private-key", "", "", "The issuer certificate private key")
 	InitCmd.Flags().StringVarP(&issuerPublicCertificateFile, "issuer-public-certificate", "", "", "The issuer certificate")
 	InitCmd.MarkFlagsRequiredTogether("ca-root-certificate", "issuer-private-key", "issuer-public-certificate")
+
 	RootCmd.AddCommand(InitCmd)
 }
