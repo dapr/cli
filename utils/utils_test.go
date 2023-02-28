@@ -24,12 +24,6 @@ import (
 )
 
 func TestContainerRuntimeUtils(t *testing.T) {
-	containerCmd := func() string {
-		if !MACOS {
-			return "nerdctl"
-		}
-		return "docker"
-	}()
 	testcases := []struct {
 		name     string
 		input    string
@@ -39,14 +33,14 @@ func TestContainerRuntimeUtils(t *testing.T) {
 		{
 			name:     "containerd runtime is valid, and nerdctl is returned",
 			input:    "containerd",
-			expected: containerCmd,
-			valid:    !MACOS,
+			expected: "nerdctl",
+			valid:    true,
 		},
 		{
 			name:     "containerd runtime with extra spaces is valid, and nerdctl is returned",
 			input:    "  containerd  ",
-			expected: containerCmd,
-			valid:    !MACOS,
+			expected: "nerdctl",
+			valid:    true,
 		},
 		{
 			name:     "podman runtime is valid, and is returned as is",

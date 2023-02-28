@@ -24,7 +24,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"time"
 
@@ -44,38 +43,33 @@ const (
 	CONTAINERD ContainerRuntime = "containerd"
 
 	NERDCTL = "nerdctl"
-	MACOS   = runtime.GOOS == "darwin"
 
 	marinerImageVariantName = "mariner"
 
 	socketFormat = "%s/dapr-%s-%s.socket"
 )
 
-var IsValidRuntimeOnMacos = func(containerRuntime string) bool {
-	containerRuntime = strings.TrimSpace(containerRuntime)
-	return containerRuntime == string(CONTAINERD) && !MACOS
-}
-
 // IsValidContainerRuntime checks if the input is a valid container runtime.
 // Valid container runtimes are docker and podman and containerd.
 func IsValidContainerRuntime(containerRuntime string) bool {
 	containerRuntime = strings.TrimSpace(containerRuntime)
-	return containerRuntime == string(DOCKER) || containerRuntime == string(PODMAN) || IsValidRuntimeOnMacos(containerRuntime)
+	return containerRuntime == string(DOCKER) || containerRuntime == string(PODMAN) || containerRuntime == string(CONTAINERD)
 }
 
 // GetContainerRuntimeCmd returns a valid container runtime to be used by CLI operations.
 // If the input is a valid container runtime, it is returned client tool.
 // Otherwise the default container runtime, docker, is returned.
 func GetContainerRuntimeCmd(containerRuntime string) string {
-	// containerd runtime use nerdctl tool.
-	if IsValidRuntimeOnMacos(containerRuntime) {
+	switch strings.TrimSpace(containerRuntime) {
+	case string(CONTAINERD):
+		// containerd runtime use nerdctl tool.
 		return NERDCTL
+	case string(PODMAN):
+		return string(PODMAN)
+	default:
+		// Default to docker.
+		return string(DOCKER)
 	}
-	if IsValidContainerRuntime(containerRuntime) {
-		return strings.TrimSpace(containerRuntime)
-	}
-	// Default to docker.
-	return string(DOCKER)
 }
 
 // Contains returns true if vs contains x.
@@ -204,10 +198,6 @@ func IsPodmanInstalled() bool {
 
 // IsContainerdInstalled checks whether nerdctl and containerd is installed/running.
 func IsContainerdInstalled() bool {
-	if MACOS {
-		print.FailureStatusEvent(os.Stderr, "containerd is not supported on macos")
-		return false
-	}
 	if _, err := RunCmdAndWait("nerdctl", "info"); err != nil {
 		print.FailureStatusEvent(os.Stderr, err.Error())
 		return false
