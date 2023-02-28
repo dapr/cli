@@ -205,7 +205,7 @@ func init() {
 		defaultDashboardVersion = dashboardVersionEnv
 	}
 
-	defaultContainerRuntime := "docker"
+	defaultContainerRuntime := string(utils.DOCKER)
 	viper.BindEnv("container_runtime_override", "DAPR_CONTAINER_RUNTIME")
 	containerRuntimeEnv := viper.GetString("container_runtime_override")
 	if containerRuntimeEnv != "" {
