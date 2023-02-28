@@ -47,7 +47,7 @@ func TestStandaloneInit(t *testing.T) {
 		}
 
 		// Ensure a clean environment
-		must(t, cmdUninstall, "failed to uninstall Dapr")
+		must(t, cmdUninstallAll, "failed to uninstall Dapr")
 		args := []string{
 			"--runtime-version", daprRuntimeVersion,
 			"--dashboard-version", daprDashboardVersion,
@@ -64,7 +64,7 @@ func TestStandaloneInit(t *testing.T) {
 		}
 
 		// Ensure a clean environment
-		must(t, cmdUninstall, "failed to uninstall Dapr")
+		must(t, cmdUninstallAll, "failed to uninstall Dapr")
 		args := []string{
 			"--runtime-version", daprRuntimeVersion,
 			"--dashboard-version", daprDashboardVersion,
@@ -78,7 +78,7 @@ func TestStandaloneInit(t *testing.T) {
 
 	t.Run("init should error out if container runtime is not valid", func(t *testing.T) {
 		// Ensure a clean environment
-		must(t, cmdUninstall, "failed to uninstall Dapr")
+		must(t, cmdUninstallAll, "failed to uninstall Dapr")
 		args := []string{
 			"--runtime-version", daprRuntimeVersion,
 			"--dashboard-version", daprDashboardVersion,
@@ -91,7 +91,7 @@ func TestStandaloneInit(t *testing.T) {
 
 	t.Run("init", func(t *testing.T) {
 		// Ensure a clean environment
-		must(t, cmdUninstall, "failed to uninstall Dapr")
+		must(t, cmdUninstallAll, "failed to uninstall Dapr")
 
 		args := []string{
 			"--runtime-version", daprRuntimeVersion,
@@ -115,7 +115,7 @@ func TestStandaloneInit(t *testing.T) {
 
 	t.Run("init with mariner images", func(t *testing.T) {
 		// Ensure a clean environment
-		must(t, cmdUninstall, "failed to uninstall Dapr")
+		must(t, cmdUninstallAll, "failed to uninstall Dapr")
 
 		args := []string{
 			"--runtime-version", daprRuntimeVersion,
@@ -140,7 +140,7 @@ func TestStandaloneInit(t *testing.T) {
 
 	t.Run("init without runtime-version flag", func(t *testing.T) {
 		// Ensure a clean environment
-		must(t, cmdUninstall, "failed to uninstall Dapr")
+		must(t, cmdUninstallAll, "failed to uninstall Dapr")
 
 		output, err := cmdInit()
 		t.Log(output)
@@ -262,7 +262,7 @@ func verifyBinaries(t *testing.T, daprPath, runtimeVersion, dashboardVersion str
 	}
 }
 
-// verifyConfigs ensures that the Dapr configuration and component YAMLs
+// verifyConfigs ensures that the Dapr configuration and resources YAMLs
 // are present in the correct path and have the correct values.
 func verifyConfigs(t *testing.T, daprPath string) {
 	configSpec := map[interface{}]interface{}{}
@@ -289,9 +289,9 @@ func verifyConfigs(t *testing.T, daprPath string) {
 		},
 	}
 
-	// The default components are not installed in slim mode.
+	// The default resources are not installed in slim mode.
 	if !isSlimMode() {
-		configs[filepath.Join("components", "statestore.yaml")] = map[string]interface{}{
+		configs[filepath.Join("resources", "statestore.yaml")] = map[string]interface{}{
 			"apiVersion": "dapr.io/v1alpha1",
 			"kind":       "Component",
 			"metadata": map[interface{}]interface{}{
@@ -316,7 +316,7 @@ func verifyConfigs(t *testing.T, daprPath string) {
 				},
 			},
 		}
-		configs[filepath.Join("components", "pubsub.yaml")] = map[string]interface{}{
+		configs[filepath.Join("resources", "pubsub.yaml")] = map[string]interface{}{
 			"apiVersion": "dapr.io/v1alpha1",
 			"kind":       "Component",
 			"metadata": map[interface{}]interface{}{

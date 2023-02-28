@@ -23,7 +23,6 @@ import (
 
 	"github.com/dapr/cli/tests/e2e/common"
 	"github.com/dapr/cli/tests/e2e/spawn"
-	"github.com/dapr/cli/utils"
 )
 
 // cmdDashboard runs the Dapr dashboard and blocks until it is started.
@@ -148,20 +147,18 @@ func daprStop(stopArgs ...string) (string, error) {
 	return spawn.Command(common.GetDaprPath(), stopArgs...)
 }
 
-// cmdUninstall uninstalls Dapr with --all flag and returns the command output and error.
-func cmdUninstall(args ...string) (string, error) {
+// cmdUninstallAll uninstalls Dapr with --all flag and returns the command output and error.
+func cmdUninstallAll(args ...string) (string, error) {
 	uninstallArgs := []string{"uninstall", "--all"}
-
-	daprContainerRuntime := containerRuntime()
-
-	// Add --container-runtime flag only if daprContainerRuntime is not empty, or overridden via args.
-	// This is only valid for non-slim mode.
-	if !isSlimMode() && daprContainerRuntime != "" && !utils.Contains(args, "--container-runtime") {
-		uninstallArgs = append(uninstallArgs, "--container-runtime", daprContainerRuntime)
-	}
 	uninstallArgs = append(uninstallArgs, args...)
+	return uninstallDapr(uninstallArgs...)
+}
 
-	return spawn.Command(common.GetDaprPath(), uninstallArgs...)
+// cmdUninstall uninstalls Dapr without --all flag and returns the command output and error.
+func cmdUninstall(args ...string) (string, error) {
+	uninstallArgs := []string{"uninstall"}
+	uninstallArgs = append(uninstallArgs, args...)
+	return uninstallDapr(uninstallArgs...)
 }
 
 // cmdVersion checks the version of Dapr and returns the command output and error.

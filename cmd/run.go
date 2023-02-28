@@ -136,7 +136,7 @@ dapr run --run-file /path/to/directory
 
 		// Fallback to default components directory if not specified.
 		if componentsPath == "" {
-			componentsPath = standalone.GetDaprComponentsPath(daprDirPath)
+			componentsPath = standalone.GetResourcesDir(daprDirPath)
 		}
 
 		if unixDomainSocket != "" {

@@ -253,8 +253,8 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 	stopSpinning := print.Spinner(os.Stdout, msg)
 	defer stopSpinning(print.Failure)
 
-	// Make default components directory.
-	err = makeDefaultComponentsDir(installDir)
+	// Make default resources directory.
+	err = makeDefaultResourcesDir(installDir)
 	if err != nil {
 		return err
 	}
@@ -290,9 +290,9 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 
 	stopSpinning(print.Success)
 
-	msg = "Downloaded binaries and completed components set up."
+	msg = "Downloaded binaries and completed resources set up."
 	if isAirGapInit {
-		msg = "Extracted binaries and completed components set up."
+		msg = "Extracted binaries and completed resources set up."
 	}
 	print.SuccessStatusEvent(os.Stdout, msg)
 	print.InfoStatusEvent(os.Stdout, "%s binary has been installed to %s.", daprRuntimeFilePrefix, daprBinDir)
@@ -306,9 +306,10 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		if isAirGapInit {
 			dockerContainerNames = []string{DaprPlacementContainerName}
 		}
+		var ok bool
 		for _, container := range dockerContainerNames {
 			containerName := utils.CreateContainerName(container, dockerNetwork)
-			ok, err := confirmContainerIsRunningOrExists(containerName, true, runtimeCmd)
+			ok, err = confirmContainerIsRunningOrExists(containerName, true, runtimeCmd)
 			if err != nil {
 				return err
 			}
@@ -317,6 +318,11 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 			}
 		}
 		print.InfoStatusEvent(os.Stdout, "Use `%s ps` to check running containers.", runtimeCmd)
+	}
+	// TODO: remove below method when usages of components-path flag and components directory removed completely.
+	err = copyFilesAndCreateSymlink(GetDaprComponentsPath(installDir), GetDaprResourcesPath(installDir))
+	if err != nil {
+		return err
 	}
 	return nil
 }
@@ -669,16 +675,16 @@ func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error
 	}
 	var err error
 
-	// Make default components & config.
-	componentsDir := GetDaprComponentsPath(info.installDir)
+	// Make default resources & config.
+	resourcesDir := GetDaprResourcesPath(info.installDir)
 	configPath := GetDaprConfigPath(info.installDir)
 
-	err = createRedisPubSub(redisHost, componentsDir)
+	err = createRedisPubSub(redisHost, resourcesDir)
 	if err != nil {
 		errorChan <- fmt.Errorf("error creating redis pubsub component file: %w", err)
 		return
 	}
-	err = createRedisStateStore(redisHost, componentsDir)
+	err = createRedisStateStore(redisHost, resourcesDir)
 	if err != nil {
 		errorChan <- fmt.Errorf("error creating redis statestore component file: %w", err)
 		return
@@ -706,19 +712,19 @@ func createSlimConfiguration(wg *sync.WaitGroup, errorChan chan<- error, info in
 	}
 }
 
-func makeDefaultComponentsDir(installDir string) error {
-	// Make default components directory.
-	componentsDir := GetDaprComponentsPath(installDir)
+func makeDefaultResourcesDir(installDir string) error {
+	// Make default resources directory.
+	resourcesDir := GetDaprResourcesPath(installDir)
 	//nolint
-	_, err := os.Stat(componentsDir)
+	_, err := os.Stat(resourcesDir)
 	if os.IsNotExist(err) {
-		errDir := os.MkdirAll(componentsDir, 0o755)
+		errDir := os.MkdirAll(resourcesDir, 0o755)
 		if errDir != nil {
-			return fmt.Errorf("error creating default components folder: %w", errDir)
+			return fmt.Errorf("error creating default resources folder: %w", errDir)
 		}
 	}
 
-	os.Chmod(componentsDir, 0o777)
+	os.Chmod(resourcesDir, 0o777)
 	return nil
 }
 
@@ -1247,4 +1253,30 @@ func resolveImageURI(imageInfo daprImageInfo) (string, error) {
 func setAirGapInit(fromDir string) {
 	// mostly this is used for unit testing aprat from one use in Init() function.
 	isAirGapInit = (len(strings.TrimSpace(fromDir)) != 0)
+}
+
+// copyFilesAndCreateSymlink copies files from src to dest. It deletes the existing files in dest before copying from src.
+// this method also deletes the src dir and makes it as a symlink to resources directory.
+// please see this comment for more details:https://github.com/dapr/cli/pull/1149#issuecomment-1364424345
+// TODO: Remove this function when `--components-path` flag is removed.
+func copyFilesAndCreateSymlink(src, dest string) error {
+	var err error
+	if _, err = os.Stat(src); err != nil {
+		// if the src directory does not exist, create symlink and return nil, because there is nothing to copy from.
+		if os.IsNotExist(err) {
+			err = createSymLink(dest, src)
+			if err != nil {
+				return err
+			}
+			return nil
+		}
+		return fmt.Errorf("error reading directory %s: %w", src, err)
+	}
+	if err = moveDir(src, dest); err != nil {
+		return err
+	}
+	if err = createSymLink(dest, src); err != nil {
+		return err
+	}
+	return nil
 }

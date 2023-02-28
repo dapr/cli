@@ -29,6 +29,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/dapr/cli/tests/e2e/common"
+	"github.com/dapr/cli/tests/e2e/spawn"
+	"github.com/dapr/cli/utils"
 )
 
 // getSocketCases return different unix socket paths for testing across Dapr commands.
@@ -125,29 +127,32 @@ func executeAgainstRunningDapr(t *testing.T, f func(), daprArgs ...string) {
 // ensureDaprInstallation ensures that Dapr is installed.
 // If Dapr is not installed, a new installation is attempted.
 func ensureDaprInstallation(t *testing.T) {
-	daprRuntimeVersion, daprDashboardVersion := common.GetVersionsFromEnv(t, false)
 	homeDir, err := os.UserHomeDir()
 	require.NoError(t, err, "failed to get user home directory")
 
 	daprPath := filepath.Join(homeDir, ".dapr")
-	_, err = os.Stat(daprPath)
-	if os.IsNotExist(err) {
-		args := []string{
-			"--runtime-version", daprRuntimeVersion,
-			"--dashboard-version", daprDashboardVersion,
+	if _, err = os.Stat(daprPath); err != nil {
+		if os.IsNotExist(err) {
+			installDapr(t)
+		} else {
+			// Some other error occurred.
+			require.NoError(t, err, "failed to stat dapr installation")
 		}
-		output, err := cmdInit(args...)
-		require.NoError(t, err, "failed to install dapr:%v", output)
-	} else if err != nil {
-		// Some other error occurred.
-		require.NoError(t, err, "failed to stat dapr installation")
 	}
-
-	// Slim mode does not have any components by default.
-	// Install the components required by the tests.
+	daprBinPath := filepath.Join(daprPath, "bin")
+	if _, err = os.Stat(daprBinPath); err != nil {
+		if os.IsNotExist(err) {
+			installDapr(t)
+		} else {
+			// Some other error occurred.
+			require.NoError(t, err, "failed to stat dapr installation")
+		}
+	}
+	// Slim mode does not have any resources by default.
+	// Install the resources required by the tests.
 	if isSlimMode() {
-		err = createSlimComponents(filepath.Join(daprPath, "components"))
-		require.NoError(t, err, "failed to create components")
+		err = createSlimComponents(filepath.Join(daprPath, utils.DefaultResourcesDirName))
+		require.NoError(t, err, "failed to create resources directory for slim mode")
 	}
 }
 
@@ -156,4 +161,25 @@ func containerRuntime() string {
 		return daprContainerRuntime
 	}
 	return ""
+}
+
+func installDapr(t *testing.T) {
+	daprRuntimeVersion, daprDashboardVersion := common.GetVersionsFromEnv(t, false)
+	args := []string{
+		"--runtime-version", daprRuntimeVersion,
+		"--dashboard-version", daprDashboardVersion,
+	}
+	output, err := cmdInit(args...)
+	require.NoError(t, err, "failed to install dapr:%v", output)
+}
+
+func uninstallDapr(uninstallArgs ...string) (string, error) {
+	daprContainerRuntime := containerRuntime()
+
+	// Add --container-runtime flag only if daprContainerRuntime is not empty, or overridden via args.
+	// This is only valid for non-slim mode.
+	if !isSlimMode() && daprContainerRuntime != "" && !utils.Contains(uninstallArgs, "--container-runtime") {
+		uninstallArgs = append(uninstallArgs, "--container-runtime", daprContainerRuntime)
+	}
+	return spawn.Command(common.GetDaprPath(), uninstallArgs...)
 }

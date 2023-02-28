@@ -77,10 +77,10 @@ func setupRun(t *testing.T) {
 	myDaprPath, err := standalone.GetDaprRuntimePath("")
 	assert.NoError(t, err)
 
-	componentsDir := standalone.GetDaprComponentsPath(myDaprPath)
+	resourcesDir := standalone.GetDaprResourcesPath(myDaprPath)
 	configFile := standalone.GetDaprConfigPath(myDaprPath)
-	err = os.MkdirAll(componentsDir, 0o700)
-	assert.Equal(t, nil, err, "Unable to setup components dir before running test")
+	err = os.MkdirAll(resourcesDir, 0o700)
+	assert.Equal(t, nil, err, "Unable to setup resources dir before running test")
 	file, err := os.Create(configFile)
 	file.Close()
 	assert.Equal(t, nil, err, "Unable to create config file before running test")
@@ -90,11 +90,11 @@ func tearDownRun(t *testing.T) {
 	myDaprPath, err := standalone.GetDaprRuntimePath("")
 	assert.NoError(t, err)
 
-	componentsDir := standalone.GetDaprComponentsPath(myDaprPath)
+	componentsDir := standalone.GetDaprResourcesPath(myDaprPath)
 	configFile := standalone.GetDaprConfigPath(myDaprPath)
 
 	err = os.RemoveAll(componentsDir)
-	assert.Equal(t, nil, err, "Unable to delete default components dir after running test")
+	assert.Equal(t, nil, err, "Unable to delete default resources dir after running test")
 	err = os.Remove(configFile)
 	assert.Equal(t, nil, err, "Unable to delete default config file after running test")
 }
@@ -117,7 +117,7 @@ func assertCommonArgs(t *testing.T, basicConfig *standalone.RunConfig, output *R
 	assertArgumentEqual(t, "app-max-concurrency", "-1", output.DaprCMD.Args)
 	assertArgumentEqual(t, "app-protocol", "http", output.DaprCMD.Args)
 	assertArgumentEqual(t, "app-port", "3000", output.DaprCMD.Args)
-	assertArgumentEqual(t, "components-path", standalone.GetDaprComponentsPath(daprPath), output.DaprCMD.Args)
+	assertArgumentEqual(t, "components-path", standalone.GetDaprResourcesPath(daprPath), output.DaprCMD.Args)
 	assertArgumentEqual(t, "app-ssl", "", output.DaprCMD.Args)
 	assertArgumentEqual(t, "metrics-port", "9001", output.DaprCMD.Args)
 	assertArgumentEqual(t, "dapr-http-max-request-size", "-1", output.DaprCMD.Args)
@@ -171,14 +171,14 @@ func TestRun(t *testing.T) {
 	myDaprPath, err := standalone.GetDaprRuntimePath("")
 	assert.NoError(t, err)
 
-	componentsDir := standalone.GetDaprComponentsPath(myDaprPath)
+	resourcesDir := standalone.GetDaprResourcesPath(myDaprPath)
 	configFile := standalone.GetDaprConfigPath(myDaprPath)
 
 	sharedRunConfig := &standalone.SharedRunConfig{
 		LogLevel:           "WARN",
 		EnableProfiling:    false,
 		AppProtocol:        "http",
-		ComponentsPath:     componentsDir,
+		ComponentsPath:     resourcesDir,
 		AppSSL:             true,
 		MaxRequestBodySize: -1,
 		HTTPReadBufferSize: -1,
@@ -190,8 +190,8 @@ func TestRun(t *testing.T) {
 		AppPort:          3000,
 		HTTPPort:         8000,
 		GRPCPort:         50001,
-		Command:          []string{"MyCommand", "--my-arg"},
 		ProfilePort:      9090,
+		Command:          []string{"MyCommand", "--my-arg"},
 		MetricsPort:      9001,
 		InternalGRPCPort: 5050,
 		SharedRunConfig:  *sharedRunConfig,

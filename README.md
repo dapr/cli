@@ -86,7 +86,7 @@ Output should look like so:
 
 ```
 ⌛  Making the jump to hyperspace...
-✅  Downloaded binaries and completed components set up.
+✅  Downloaded binaries and completed resources set up.
 ℹ️  daprd binary has been installed to  $HOME/.dapr/bin.
 ℹ️  dapr_placement container is running.
 ℹ️  dapr_redis container is running.
@@ -99,9 +99,11 @@ Output should look like so:
 
 This step creates the following defaults:
 
-1. components folder which is later used during `dapr run` unless the `--resources-path` (`--components-path` is deprecated and will be removed in future releases) option is provided. For Linux/MacOS, the default components folder path is `$HOME/.dapr/components` and for Windows it is `%USERPROFILE%\.dapr\components`.
-2. component files in the components folder called `pubsub.yaml` and `statestore.yaml`.
+1. resources folder which is later used during `dapr run` unless the `--resources-path` (`--components-path` is deprecated and will be removed in future releases) option is provided. For Linux/MacOS, the default resources folder path is `$HOME/.dapr/resources` and for Windows it is `%USERPROFILE%\.dapr\resources`.
+2. resoources files in the resources folder called `pubsub.yaml` and `statestore.yaml`.
 3. default config file `$HOME/.dapr/config.yaml` for Linux/MacOS or for Windows at `%USERPROFILE%\.dapr\config.yaml` to enable tracing on `dapr init` call. Can be overridden with the `--config` flag on `dapr run`.
+
+> Note: If there is a `components` directory present in the default dapr installation path `$HOME/.dapr/resources` (for Linux/MacOS) or `%USERPROFILE%\.dapr\resources` (for windows) then `dapr init` will copy the `resources` from the `components` to `resources` directory. This is to ensure safe migration from using `components` to `resources` directory.
 
 #### Slim Init
 
@@ -115,13 +117,15 @@ Output should look like so:
 
 ```bash
 ⌛  Making the jump to hyperspace...
-✅  Downloaded binaries and completed components set up.
+✅  Downloaded binaries and completed resources set up.
 ℹ️  daprd binary has been installed to $HOME/.dapr/bin.
 ℹ️  placement binary has been installed.
 ✅  Success! Dapr is up and running. To get started, go here: https://aka.ms/dapr-getting-started
 ```
 
->Note: When initializing Dapr with the `--slim` flag only the Dapr runtime binary and the placement service binary are installed. An empty default components folder is created with no default configuration files. During `dapr run` user should use `--resources-path` (`--components-path` is deprecated and will be removed in future releases) to point to a components directory with custom configurations files or alternatively place these files in the default directory. For Linux/MacOS, the default components directory path is `$HOME/.dapr/components` and for Windows it is `%USERPROFILE%\.dapr\components`.
+>Note: When initializing Dapr with the `--slim` flag only the Dapr runtime binary and the placement service binary are installed. An empty default `resources` folder is created with no default configuration files. During `dapr run` user should use `--resources-path` (`--components-path` is deprecated and will be removed in future releases) to point to a `resources` directory with custom configurations files or alternatively place these files in the default directory. For Linux/MacOS, the default `resources` directory path is `$HOME/.dapr/resources` and for Windows it is `%USERPROFILE%\.dapr\resources`.
+
+> Note: If there is a `components` directory present in the default dapr installation path `$HOME/.dapr/resources` (for Linux/MacOS) or `%USERPROFILE%\.dapr\resources` (for windows) then `dapr init` will copy the `resources` from the `components` to `resources` directory. This is to ensure safe migration from using `components` to `resources` directory.
 
 #### Install a specific runtime version
 
@@ -444,7 +448,7 @@ Launch Dapr and your app:
 dapr run --app-id nodeapp --app-port 3000 node app.js
 ```
 
-Note: To choose a non-default components folder, use the --resources-path(--components-path is deprecated) option.
+Note: To choose a non-default resources folder, use the --resources-path option (--components-path is deprecated, see https://github.com/dapr/cli/issues/953 for more information).
 
 Invoke your app:
 
@@ -562,8 +566,8 @@ To use a custom path for component definitions
 
 ```bash
 dapr run --resources-path [custom path]
-> Note: --components-path flag is deprecated. It will continue to work until it is removed completely.
 ```
+> Note: --components-path flag is deprecated. It will continue to work until it is removed completely. See https://github.com/dapr/cli/issues/953 for more information.
 
 
 ### List Configurations

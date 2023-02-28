@@ -15,6 +15,7 @@ package standalone
 
 import (
 	"os"
+	path_filepath "path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -307,6 +308,45 @@ func TestIsAirGapInit(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			setAirGapInit(test.fromDir)
 			assert.Equal(t, test.expect, isAirGapInit)
+		})
+	}
+}
+
+func TestCopyFilesAndCreateSymlink(t *testing.T) {
+	// create a temp dir to hold the symlink and actual directory.
+	tempDir := createTempDir(t, "dapr-test", "")
+	defer cleanupTempDir(t, tempDir)
+	destDir := createTempDir(t, "dest", tempDir)
+	srcDir := createTempDir(t, "src", tempDir)
+	srcFile := createTempFile(t, srcDir, "pubsub.yaml")
+	tests := []struct {
+		name            string
+		destDirName     string
+		srcDirName      string
+		expectedError   bool
+		presentFileName string
+	}{
+		{
+			name:            "copy files and create symlink for destination directory when source dir exists",
+			destDirName:     destDir,
+			srcDirName:      srcDir,
+			expectedError:   false,
+			presentFileName: srcFile,
+		},
+		{
+			name:            "copy files and create symlink for destination directory when source dir does not exists",
+			destDirName:     destDir,
+			srcDirName:      path_filepath.Join(tempDir, "non-existent-source-dir"),
+			expectedError:   false,
+			presentFileName: path_filepath.Base(srcFile),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := copyFilesAndCreateSymlink(tt.srcDirName, tt.destDirName)
+			assert.Equal(t, tt.expectedError, err != nil)
+			// check if the files are copied.
+			assert.FileExists(t, path_filepath.Join(tt.srcDirName, path_filepath.Base(tt.presentFileName)))
 		})
 	}
 }

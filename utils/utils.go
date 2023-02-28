@@ -41,6 +41,9 @@ const (
 	DOCKER ContainerRuntime = "docker"
 	PODMAN ContainerRuntime = "podman"
 
+	DefaultComponentsDirName = "components"
+	DefaultResourcesDirName  = "resources"
+
 	marinerImageVariantName = "mariner"
 
 	socketFormat = "%s/dapr-%s-%s.socket"

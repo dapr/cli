@@ -31,7 +31,7 @@ import (
 
 func TestStandaloneUninstall(t *testing.T) {
 	t.Run("uninstall should error out if container runtime is not valid", func(t *testing.T) {
-		output, err := cmdUninstall("--container-runtime", "invalid")
+		output, err := cmdUninstallAll("--container-runtime", "invalid")
 		require.Error(t, err, "expected error if container runtime is invalid")
 		require.Contains(t, output, "Invalid container runtime")
 	})
@@ -39,7 +39,7 @@ func TestStandaloneUninstall(t *testing.T) {
 	t.Run("uninstall", func(t *testing.T) {
 		ensureDaprInstallation(t)
 
-		output, err := cmdUninstall()
+		output, err := cmdUninstallAll()
 		t.Log(output)
 		require.NoError(t, err, "dapr uninstall failed")
 		assert.Contains(t, output, "Dapr has been removed successfully")

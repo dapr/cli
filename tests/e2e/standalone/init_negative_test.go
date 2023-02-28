@@ -27,7 +27,7 @@ import (
 
 func TestStandaloneInitNegatives(t *testing.T) {
 	// Ensure a clean environment
-	must(t, cmdUninstall, "failed to uninstall Dapr")
+	must(t, cmdUninstallAll, "failed to uninstall Dapr")
 
 	homeDir, err := os.UserHomeDir()
 	require.NoError(t, err, "expected no error on querying for os home dir")
@@ -60,7 +60,7 @@ func TestStandaloneInitNegatives(t *testing.T) {
 
 	t.Run("uninstall without install", func(t *testing.T) {
 		t.Parallel()
-		output, err := cmdUninstall()
+		output, err := cmdUninstallAll()
 		require.NoError(t, err, "expected no error on uninstall without install")
 		require.Contains(t, output, "Removing Dapr from your machine...", "expected output to contain message")
 		path := filepath.Join(homeDir, ".dapr", "bin")

@@ -173,6 +173,21 @@ func TestStandaloneRun(t *testing.T) {
 		assert.Contains(t, output, "Exited Dapr successfully")
 	})
 
+	// TODO: Remove this test when the deprecated --components-path flag is removed.
+	t.Run(fmt.Sprintf("check run with components-path flag"), func(t *testing.T) {
+		args := []string{
+			"--app-id", "testapp",
+			"--components-path", "../testdata/resources",
+			"--", "bash", "-c", "echo 'test'",
+		}
+		output, err := cmdRun("", args...)
+		t.Log(output)
+		require.NoError(t, err, "run failed")
+		assert.Contains(t, output, "component loaded. name: test-statestore, type: state.in-memory/v1")
+		assert.Contains(t, output, "Exited App successfully")
+		assert.Contains(t, output, "Exited Dapr successfully")
+	})
+
 	t.Run("run with unknown flags", func(t *testing.T) {
 		output, err := cmdRun("", "--flag")
 		require.Error(t, err, "expected error on run unknown flag")

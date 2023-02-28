@@ -24,6 +24,7 @@ import (
 )
 
 func TestStandaloneStop(t *testing.T) {
+	// Ensure a clean environment.
 	ensureDaprInstallation(t)
 	executeAgainstRunningDapr(t, func() {
 		t.Run("stop", func(t *testing.T) {
