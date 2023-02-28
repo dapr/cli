@@ -17,8 +17,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/dapr/cli/utils"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/dapr/cli/utils"
 )
 
 func TestStandaloneConfig(t *testing.T) {
@@ -330,6 +331,5 @@ func TestInitLogActualContainerRuntimeName(t *testing.T) {
 			assert.NotNil(t, err)
 			assert.Contains(t, err.Error(), test.containerRuntime)
 		})
-
 	}
 }
