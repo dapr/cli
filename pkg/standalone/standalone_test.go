@@ -14,7 +14,6 @@ limitations under the License.
 package standalone
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
@@ -317,16 +316,17 @@ func TestInitLogActualContainerRuntimeName(t *testing.T) {
 	tests := []struct {
 		containerRuntime string
 		expected         string
+		testName         string
 	}{
-		{"podman", "Podman"},
-		{"docker", "Docker"},
+		{"podman", "Podman", "Init should log Podman as container runtime"},
+		{"docker", "Docker", "Init should log Docker as container runtime"},
 	}
 	conatinerRuntimeAvailable := utils.IsDockerInstalled() || utils.IsPodmanInstalled()
 	if conatinerRuntimeAvailable {
 		t.Skip("Skipping test as container runtime is available")
 	}
 	for _, test := range tests {
-		t.Run(fmt.Sprintf("Init should log with %s as container runtime name", test.containerRuntime), func(t *testing.T) {
+		t.Run(test.testName, func(t *testing.T) {
 			err := Init(latestVersion, latestVersion, "", false, "", "", test.containerRuntime, "", "")
 			assert.NotNil(t, err)
 			assert.Contains(t, err.Error(), test.expected)
