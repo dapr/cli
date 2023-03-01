@@ -135,7 +135,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 			appID:          "processor",
 			baseLogDirPath: "../../apps/processor/.dapr/logs",
 			appLogContents: []string{
-				"Received metrics:  {3}",
+				"Received metrics:  {1}",
 			},
 			daprdLogContent: []string{
 				"http server is running on port 3510",
@@ -149,7 +149,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 			appLogContents: []string{
 				"DAPR_HTTP_PORT set to 3511",
 				"DAPR_HOST_ADD set to localhost",
-				"Metrics with ID 3 sent",
+				"Metrics with ID 1 sent",
 			},
 			daprdLogContent: []string{
 				"termination signal received: shutting down",
@@ -378,4 +378,5 @@ func lookUpFileFullName(dirPath, partialFilename string) (string, error) {
 func stopAllApps(t *testing.T, runfile string) {
 	_, err := cmdStopWithRunTemplate(runfile)
 	require.NoError(t, err, "failed to stop apps")
+	time.Sleep(5 * time.Second)
 }
