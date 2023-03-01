@@ -50,7 +50,6 @@ jobs:
     name: E2E tests for K8s (KinD)
     runs-on: ubuntu-latest
     env:
-      GOVER: 1.20.1
       DAPR_RUNTIME_PINNED_VERSION: 1.10.0
       DAPR_DASHBOARD_PINNED_VERSION: 0.12.0
       DAPR_RUNTIME_LATEST_STABLE_VERSION:
@@ -80,10 +79,11 @@ jobs:
           kind-version: v0.16.0
           kind-image-sha: sha256:9be91e9e9cdf116809841fc77ebdb8845443c4c72fe5218f3ae9eb57fdb4bace
     steps:
-    - name: Set up Go ${{ env.GOVER }}
+    - name: Set up Go
       uses: actions/setup-go@v3
+      id: setup-go
       with:
-        go-version: ${{ env.GOVER }}
+        go-version-file: 'go.mod'
     - name: Check out code onto GOPATH
       uses: actions/checkout@v3
       with:
@@ -94,9 +94,9 @@ jobs:
         path: |
           ~/.cache/go-build
           ~/go/pkg/mod
-        key: ${{ matrix.k8s-version }}-${{ matrix.kind-version }}-go-${{ env.GOVER }}-${{ hashFiles('**/go.sum') }}
+        key: ${{ matrix.k8s-version }}-${{ matrix.kind-version }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('**/go.sum') }}
         restore-keys: |
-          ${{ matrix.k8s-version }}-${{ matrix.kind-version }}-go-${{ env.GOVER }}-
+          ${{ matrix.k8s-version }}-${{ matrix.kind-version }}-go-${{ steps.setup-go.outputs.go-version }}-
 
     - name: Configure KinD
       # Generate a KinD configuration file that uses:
