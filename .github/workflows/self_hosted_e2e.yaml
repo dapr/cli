@@ -61,7 +61,7 @@ jobs:
             dapr_install_mode: complete
     steps:
       - name: Set up Go ${{ env.GOVER }}
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: ${{ env.GOVER }}
       - name: Check out code into the Go module directory

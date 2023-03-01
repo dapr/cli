@@ -81,11 +81,11 @@ jobs:
           kind-image-sha: sha256:9be91e9e9cdf116809841fc77ebdb8845443c4c72fe5218f3ae9eb57fdb4bace
     steps:
     - name: Set up Go ${{ env.GOVER }}
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@v3
       with:
         go-version: ${{ env.GOVER }}
     - name: Check out code onto GOPATH
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         path: ./src/github.com/dapr/cli
     - name: Cache Go modules
@@ -124,7 +124,7 @@ jobs:
         # Log the generated kind.yaml for easy reference.
         cat kind.yaml
     - name: Create KinD Cluster
-      uses: helm/kind-action@v1.0.0
+      uses: helm/kind-action@v1.3.0
       with:
         config: kind.yaml
         cluster_name: kind
