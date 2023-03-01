@@ -79,15 +79,15 @@ jobs:
           kind-version: v0.16.0
           kind-image-sha: sha256:9be91e9e9cdf116809841fc77ebdb8845443c4c72fe5218f3ae9eb57fdb4bace
     steps:
+    - name: Check out code onto GOPATH
+      uses: actions/checkout@v3
+      with:
+        path: ./src/github.com/dapr/cli
     - name: Set up Go
       uses: actions/setup-go@v3
       id: setup-go
       with:
         go-version-file: 'go.mod'
-    - name: Check out code onto GOPATH
-      uses: actions/checkout@v3
-      with:
-        path: ./src/github.com/dapr/cli
     - name: Cache Go modules
       uses: actions/cache@v3
       with:
