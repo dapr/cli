@@ -87,7 +87,7 @@ jobs:
       uses: actions/setup-go@v3
       id: setup-go
       with:
-        go-version-file: 'go.mod'
+        go-version-file: './src/github.com/dapr/cli/go.mod'
     - name: Cache Go modules
       uses: actions/cache@v3
       with:
