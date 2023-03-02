@@ -161,9 +161,9 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 	fromDir = strings.TrimSpace(fromDir)
 	setAirGapInit(fromDir)
 	if !slimMode {
-		// If --slim installation is not requested, check if docker or podman or containerd is installed.
+		// If --slim installation is not requested, check if docker, podman or containerd is installed.
 		if !utils.ContainerRuntimeAvailable(containerRuntime) {
-			return fmt.Errorf("could not connect to container. %v may not be installed or running", containerRuntime)
+			return fmt.Errorf("could not connect to %s. %s may not be installed or running", containerRuntime, containerRuntime)
 		}
 
 		// Initialize default registry only if any of --slim or --image-registry or --from-dir are not given.
