@@ -181,6 +181,38 @@ func TestKubernetesHAModeMTLSEnabled(t *testing.T) {
 	}
 }
 
+func TestKubernetesInitWithCustomCert(t *testing.T) {
+	// ensure clean env for test
+	ensureCleanEnv(t, false)
+
+	// setup tests
+	tests := []common.TestCase{}
+	tests = append(tests, common.GetTestsOnInstall(currentVersionDetails, common.TestOptions{
+		HAEnabled:             false,
+		MTLSEnabled:           true,
+		InitWithCustomCert:    true,
+		ApplyComponentChanges: true,
+		CheckResourceExists: map[common.Resource]bool{
+			common.CustomResourceDefs:  true,
+			common.ClusterRoles:        true,
+			common.ClusterRoleBindings: true,
+		},
+	})...)
+
+	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
+		CheckResourceExists: map[common.Resource]bool{
+			common.CustomResourceDefs:  true,
+			common.ClusterRoles:        false,
+			common.ClusterRoleBindings: false,
+		},
+	})...)
+
+	// execute tests
+	for _, tc := range tests {
+		t.Run(tc.Name, tc.Callable)
+	}
+}
+
 // Test for certificate renewal
 
 func TestRenewCertificateMTLSEnabled(t *testing.T) {
