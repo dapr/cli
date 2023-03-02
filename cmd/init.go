@@ -88,7 +88,7 @@ dapr init --runtime-path <path-to-install-directory>
 
 # See more at: https://docs.dapr.io/getting-started/
 `,
-	Run: func(*cobra.Command, []string) {
+	Run: func(cmd *cobra.Command, _ []string) {
 		print.PendingStatusEvent(os.Stdout, "Making the jump to hyperspace...")
 		imageRegistryFlag := strings.TrimSpace(viper.GetString("image-registry"))
 
