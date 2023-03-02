@@ -65,6 +65,7 @@ type TestOptions struct {
 	ApplyComponentChanges bool
 	CheckResourceExists   map[Resource]bool
 	UninstallAll          bool
+	InitWithCustomCert    bool
 }
 
 type TestCase struct {
@@ -237,6 +238,9 @@ func MTLSTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 		require.NoError(t, err, "expected no error on querying for mtls expiry")
 		assert.Contains(t, output, "Root certificate expires in", "expected output to contain string")
 		assert.Contains(t, output, "Expiry date:", "expected output to contain string")
+		if opts.InitWithCustomCert {
+			t.Log("check mtls expiry with custom cert: ", output)
+		}
 
 		// export
 		// check that the dir does not exist now.
@@ -725,6 +729,14 @@ func installTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 		}
 		if details.ImageVariant != "" {
 			args = append(args, "--image-variant", details.ImageVariant)
+		}
+		if opts.InitWithCustomCert {
+			certParam := []string{
+				"--ca-root-certificate", "../testdata/customcerts/root.pem",
+				"--issuer-private-key", "../testdata/customcerts/issuer.key",
+				"--issuer-public-certificate", "../testdata/customcerts/issuer.pem",
+			}
+			args = append(args, certParam...)
 		}
 		output, err := spawn.Command(daprPath, args...)
 		t.Log(output)
