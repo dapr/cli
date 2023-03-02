@@ -52,6 +52,10 @@ var InitCmd = &cobra.Command{
 	PreRun: func(cmd *cobra.Command, args []string) {
 		viper.BindPFlag("network", cmd.Flags().Lookup("network"))
 		viper.BindPFlag("image-registry", cmd.Flags().Lookup("image-registry"))
+
+		runtimeVersion = getConfigurationValue("runtime_version", cmd)
+		dashboardVersion = getConfigurationValue("dashboard-version", cmd)
+		containerRuntime = getConfigurationValue("container-runtime", cmd)
 	},
 	Example: `
 # Initialize Dapr in self-hosted mode
@@ -193,24 +197,8 @@ func warnForPrivateRegFeat() {
 
 func init() {
 	defaultRuntimeVersion := "latest"
-	viper.BindEnv("runtime_version_override", "DAPR_RUNTIME_VERSION")
-	runtimeVersionEnv := viper.GetString("runtime_version_override")
-	if runtimeVersionEnv != "" {
-		defaultRuntimeVersion = runtimeVersionEnv
-	}
 	defaultDashboardVersion := "latest"
-	viper.BindEnv("dashboard_version_override", "DAPR_DASHBOARD_VERSION")
-	dashboardVersionEnv := viper.GetString("dashboard_version_override")
-	if dashboardVersionEnv != "" {
-		defaultDashboardVersion = dashboardVersionEnv
-	}
-
 	defaultContainerRuntime := string(utils.DOCKER)
-	viper.BindEnv("container_runtime_override", "DAPR_CONTAINER_RUNTIME")
-	containerRuntimeEnv := viper.GetString("container_runtime_override")
-	if containerRuntimeEnv != "" {
-		defaultContainerRuntime = containerRuntimeEnv
-	}
 
 	InitCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Deploy Dapr to a Kubernetes cluster")
 	InitCmd.Flags().BoolVarP(&wait, "wait", "", false, "Wait for Kubernetes initialization to complete")
@@ -234,4 +222,16 @@ func init() {
 	InitCmd.MarkFlagsRequiredTogether("ca-root-certificate", "issuer-private-key", "issuer-public-certificate")
 
 	RootCmd.AddCommand(InitCmd)
+}
+
+// getConfigurationValue returns the value for a given configuration key.
+// The value is retrieved from the following sources, in order:
+// Default value
+// Environment variable (respecting registered prefixes)
+// Command line flag
+// Value is returned as a string.
+func getConfigurationValue(n string, cmd *cobra.Command) string {
+	viper.BindEnv(n)
+	viper.BindPFlag(n, cmd.Flags().Lookup(n))
+	return viper.GetString(n)
 }
