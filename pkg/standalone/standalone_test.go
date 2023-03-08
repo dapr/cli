@@ -18,6 +18,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/dapr/cli/utils"
 )
 
 func TestStandaloneConfig(t *testing.T) {
@@ -96,7 +98,9 @@ func TestResolveImageWithGHCR(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		test := test
 		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
 			got, err := resolveImageURI(test.args)
 			assert.Equal(t, test.expectErr, err != nil)
 			assert.Equal(t, test.expect, got)
@@ -140,7 +144,9 @@ func TestResolveImageWithDockerHub(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		test := test
 		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
 			got, err := resolveImageURI(test.args)
 			assert.Equal(t, test.expectErr, err != nil)
 			assert.Equal(t, test.expect, got)
@@ -184,7 +190,9 @@ func TestResolveImageWithPrivateRegistry(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		test := test
 		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
 			got, err := resolveImageURI(test.args)
 			assert.Equal(t, test.expectErr, err != nil)
 			assert.Equal(t, test.expect, got)
@@ -301,6 +309,27 @@ func TestIsAirGapInit(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			setAirGapInit(test.fromDir)
 			assert.Equal(t, test.expect, isAirGapInit)
+		})
+	}
+}
+
+func TestInitLogActualContainerRuntimeName(t *testing.T) {
+	tests := []struct {
+		containerRuntime string
+		testName         string
+	}{
+		{"podman", "Init should log podman as container runtime"},
+		{"docker", "Init should log docker as container runtime"},
+	}
+	conatinerRuntimeAvailable := utils.IsDockerInstalled() || utils.IsPodmanInstalled()
+	if conatinerRuntimeAvailable {
+		t.Skip("Skipping test as container runtime is available")
+	}
+	for _, test := range tests {
+		t.Run(test.testName, func(t *testing.T) {
+			err := Init(latestVersion, latestVersion, "", false, "", "", test.containerRuntime, "", "")
+			assert.NotNil(t, err)
+			assert.Contains(t, err.Error(), test.containerRuntime)
 		})
 	}
 }

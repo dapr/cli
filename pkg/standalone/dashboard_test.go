@@ -20,6 +20,7 @@ import (
 )
 
 func TestDashboardRun(t *testing.T) {
+	t.Parallel()
 	t.Run("build Cmd", func(t *testing.T) {
 		cmd, err := NewDashboardCmd("", 9090)
 

@@ -42,15 +42,18 @@ const (
 )
 
 type InitConfiguration struct {
-	Version          string
-	Namespace        string
-	EnableMTLS       bool
-	EnableHA         bool
-	Args             []string
-	Wait             bool
-	Timeout          uint
-	ImageRegistryURI string
-	ImageVariant     string
+	Version                   string
+	Namespace                 string
+	EnableMTLS                bool
+	EnableHA                  bool
+	Args                      []string
+	Wait                      bool
+	Timeout                   uint
+	ImageRegistryURI          string
+	ImageVariant              string
+	RootCertificateFilePath   string
+	IssuerCertificateFilePath string
+	IssuerPrivateKeyFilePath  string
 }
 
 // Init deploys the Dapr operator using the supplied runtime version.
@@ -159,17 +162,32 @@ func chartValues(config InitConfiguration, version string) (map[string]interface
 	if err != nil {
 		return nil, err
 	}
-	globalVals := []string{
+	helmVals := []string{
 		fmt.Sprintf("global.ha.enabled=%t", config.EnableHA),
 		fmt.Sprintf("global.mtls.enabled=%t", config.EnableMTLS),
 		fmt.Sprintf("global.tag=%s", utils.GetVariantVersion(version, config.ImageVariant)),
 	}
 	if len(config.ImageRegistryURI) != 0 {
-		globalVals = append(globalVals, fmt.Sprintf("global.registry=%s", config.ImageRegistryURI))
+		helmVals = append(helmVals, fmt.Sprintf("global.registry=%s", config.ImageRegistryURI))
 	}
-	globalVals = append(globalVals, config.Args...)
+	helmVals = append(helmVals, config.Args...)
 
-	for _, v := range globalVals {
+	if config.RootCertificateFilePath != "" && config.IssuerCertificateFilePath != "" && config.IssuerPrivateKeyFilePath != "" {
+		rootCertBytes, issuerCertBytes, issuerKeyBytes, err := parseCertificateFiles(
+			config.RootCertificateFilePath,
+			config.IssuerCertificateFilePath,
+			config.IssuerPrivateKeyFilePath,
+		)
+		if err != nil {
+			return nil, err
+		}
+		helmVals = append(helmVals, fmt.Sprintf("dapr_sentry.tls.root.certPEM=%s", string(rootCertBytes)),
+			fmt.Sprintf("dapr_sentry.tls.issuer.certPEM=%s", string(issuerCertBytes)),
+			fmt.Sprintf("dapr_sentry.tls.issuer.keyPEM=%s", string(issuerKeyBytes)),
+		)
+	}
+
+	for _, v := range helmVals {
 		if err := strvals.ParseInto(v, chartVals); err != nil {
 			return nil, err
 		}

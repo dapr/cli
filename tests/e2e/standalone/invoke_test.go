@@ -30,7 +30,6 @@ import (
 
 func TestStandaloneInvoke(t *testing.T) {
 	ensureDaprInstallation(t)
-
 	s := daprHttp.NewService(":9987")
 
 	err := s.AddServiceInvocationHandler("/test", func(ctx context.Context, e *common.InvocationEvent) (*common.Content, error) {

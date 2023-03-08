@@ -93,7 +93,7 @@ dapr run --app-id myapp
 dapr run --app-id myapp --app-port 3000 --app-protocol grpc -- go run main.go
 
 # Run sidecar only specifying dapr runtime installation directory
-dapr run --app-id myapp --dapr-path /usr/local/dapr
+dapr run --app-id myapp --runtime-path /usr/local/dapr
 
 # Run multiple apps by providing path of a run config file
 dapr run --run-file dapr.yaml
@@ -123,7 +123,7 @@ dapr run --run-file /path/to/directory
 			fmt.Println(print.WhiteBold("WARNING: no application command found."))
 		}
 
-		daprDirPath, err := standalone.GetDaprPath(daprPath)
+		daprDirPath, err := standalone.GetDaprRuntimePath(daprRuntimePath)
 		if err != nil {
 			print.FailureStatusEvent(os.Stderr, "Failed to get Dapr install directory: %v", err)
 			os.Exit(1)
@@ -171,7 +171,7 @@ dapr run --run-file /path/to/directory
 			AppHealthThreshold: appHealthThreshold,
 			EnableAPILogging:   enableAPILogging,
 			APIListenAddresses: apiListenAddresses,
-			DaprdInstallPath:   daprPath,
+			DaprdInstallPath:   daprRuntimePath,
 		}
 		output, err := runExec.NewOutput(&standalone.RunConfig{
 			AppID:            appID,
@@ -360,6 +360,14 @@ dapr run --run-file /path/to/directory
 		}
 
 		if output.AppCMD != nil {
+			if output.AppCMD.Process != nil {
+				print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Updating metadata for appPID: %d", output.AppCMD.Process.Pid))
+				err = metadata.Put(output.DaprHTTPPort, "appPID", strconv.Itoa(output.AppCMD.Process.Pid), appID, unixDomainSocket)
+				if err != nil {
+					print.WarningStatusEvent(os.Stdout, "Could not update sidecar metadata for appPID: %s", err.Error())
+				}
+			}
+
 			appCommand := strings.Join(args, " ")
 			print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Updating metadata for app command: %s", appCommand))
 			err = metadata.Put(output.DaprHTTPPort, "appCommand", appCommand, appID, unixDomainSocket)
@@ -464,6 +472,8 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 	// This is done to provide a better grouping, which can be used to control all the proceses started by "dapr run -f".
 	daprsyscall.CreateProcessGroupID()
 
+	print.WarningStatusEvent(os.Stdout, "This is a preview feature and subject to change in future releases.")
+
 	for _, app := range apps {
 		print.StatusEvent(os.Stdout, print.LogInfo, "Validating config and starting app %q", app.RunConfig.AppID)
 		// Set defaults if zero value provided in config yaml.
@@ -524,7 +534,12 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 
 		if runState.AppCMD.Command != nil {
 			putAppCommandInMeta(runConfig, runState)
+
+			if runState.AppCMD.Command.Process != nil {
+				putAppProcessIDInMeta(runState)
+			}
 		}
+
 		print.StatusEvent(runState.DaprCMD.OutputWriter, print.LogSuccess, "You're up and running! Dapr logs will appear here.\n")
 		logInformationalStatusToStdout(app)
 	}
@@ -905,6 +920,14 @@ func putCLIProcessIDInMeta(runE *runExec.RunExec, pid int) {
 	}
 }
 
+func putAppProcessIDInMeta(runE *runExec.RunExec) {
+	print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogInfo, "Updating metadata for appPID: %d", runE.AppCMD.Command.Process.Pid)
+	err := metadata.Put(runE.DaprHTTPPort, "appPID", strconv.Itoa(runE.AppCMD.Command.Process.Pid), runE.AppID, unixDomainSocket)
+	if err != nil {
+		print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogWarning, "Could not update sidecar metadata for appPID: %s", err.Error())
+	}
+}
+
 // putAppCommandInMeta puts the app command in metadata so that it can be used by the CLI to stop the app.
 func putAppCommandInMeta(runConfig standalone.RunConfig, runE *runExec.RunExec) {
 	appCommand := strings.Join(runConfig.Command, " ")
@@ -914,7 +937,6 @@ func putAppCommandInMeta(runConfig standalone.RunConfig, runE *runExec.RunExec) 
 		print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogWarning, "Could not update sidecar metadata for appCommand: %s", err.Error())
 		return
 	}
-	print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogSuccess, "You're up and running! Dapr logs will appear here.\n")
 }
 
 // putRunFilePathInMeta puts the absolute path of run file in metadata so that it can be used by the CLI to stop all apps started by this run file.

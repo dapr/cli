@@ -164,7 +164,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		// If --slim installation is not requested, check if docker is installed.
 		conatinerRuntimeAvailable := utils.IsDockerInstalled() || utils.IsPodmanInstalled()
 		if !conatinerRuntimeAvailable {
-			return errors.New("could not connect to Docker. Docker may not be installed or running")
+			return fmt.Errorf("could not connect to %s. %s may not be installed or running", containerRuntime, containerRuntime)
 		}
 
 		// Initialize default registry only if any of --slim or --image-registry or --from-dir are not given.
@@ -215,7 +215,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 
 	print.InfoStatusEvent(os.Stdout, "Installing runtime version %s", runtimeVersion)
 
-	installDir, err := GetDaprPath(daprInstallPath)
+	installDir, err := GetDaprRuntimePath(daprInstallPath)
 	if err != nil {
 		return err
 	}

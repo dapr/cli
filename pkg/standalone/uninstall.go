@@ -75,7 +75,7 @@ func removeDir(dirPath string) error {
 func Uninstall(uninstallAll bool, dockerNetwork string, containerRuntime string, inputInstallPath string) error {
 	var containerErrs []error
 	inputInstallPath = strings.TrimSpace(inputInstallPath)
-	installDir, err := GetDaprPath(inputInstallPath)
+	installDir, err := GetDaprRuntimePath(inputInstallPath)
 	if err != nil {
 		return err
 	}
@@ -111,8 +111,9 @@ func Uninstall(uninstallAll bool, dockerNetwork string, containerRuntime string,
 		return nil
 	}
 
+	// TODO move to use errors.Join once we move to go 1.20.
 	for _, e := range containerErrs {
-		err = fmt.Errorf("%w \n %s", err, e)
+		err = fmt.Errorf("%w \n %w", err, e)
 	}
 	return err
 }

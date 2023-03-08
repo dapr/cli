@@ -125,7 +125,7 @@ func executeAgainstRunningDapr(t *testing.T, f func(), daprArgs ...string) {
 // ensureDaprInstallation ensures that Dapr is installed.
 // If Dapr is not installed, a new installation is attempted.
 func ensureDaprInstallation(t *testing.T) {
-	daprRuntimeVersion, _ := common.GetVersionsFromEnv(t, false)
+	daprRuntimeVersion, daprDashboardVersion := common.GetVersionsFromEnv(t, false)
 	homeDir, err := os.UserHomeDir()
 	require.NoError(t, err, "failed to get user home directory")
 
@@ -134,6 +134,7 @@ func ensureDaprInstallation(t *testing.T) {
 	if os.IsNotExist(err) {
 		args := []string{
 			"--runtime-version", daprRuntimeVersion,
+			"--dashboard-version", daprDashboardVersion,
 		}
 		output, err := cmdInit(args...)
 		require.NoError(t, err, "failed to install dapr:%v", output)

@@ -32,6 +32,7 @@ var (
 )
 
 func TestRunConfigFile(t *testing.T) {
+	t.Parallel()
 	t.Run("test parse valid run template", func(t *testing.T) {
 		appsRunConfig := RunFileConfig{}
 		err := appsRunConfig.parseAppsConfig(validRunFilePath)
@@ -266,7 +267,7 @@ func TestGetBasePathFromAbsPath(t *testing.T) {
 func getResourcesAndConfigFilePaths(t *testing.T, daprInstallPath string) []string {
 	t.Helper()
 	result := make([]string, 2)
-	daprDirPath, err := standalone.GetDaprPath(daprInstallPath)
+	daprDirPath, err := standalone.GetDaprRuntimePath(daprInstallPath)
 	assert.NoError(t, err)
 	result[0] = standalone.GetDaprComponentsPath(daprDirPath)
 	result[1] = standalone.GetDaprConfigPath(daprDirPath)
