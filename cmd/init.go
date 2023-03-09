@@ -53,7 +53,7 @@ var InitCmd = &cobra.Command{
 		viper.BindPFlag("network", cmd.Flags().Lookup("network"))
 		viper.BindPFlag("image-registry", cmd.Flags().Lookup("image-registry"))
 
-		runtimeVersion = getConfigurationValue("runtime_version", cmd)
+		runtimeVersion = getConfigurationValue("runtime-version", cmd)
 		dashboardVersion = getConfigurationValue("dashboard-version", cmd)
 		containerRuntime = getConfigurationValue("container-runtime", cmd)
 	},
