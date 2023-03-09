@@ -96,6 +96,9 @@ func (a *RunFileConfig) GetApps(runFilePath string) ([]App, error) {
 	if err != nil {
 		return nil, err
 	}
+	if err := a.setAndValidateLogDestination(); err != nil {
+		return nil, err
+	}
 	return a.Apps, nil
 }
 
@@ -119,6 +122,22 @@ func (a *RunFileConfig) mergeCommonAndAppsSharedRunConfig() {
 			}
 		}
 	}
+}
+
+func (a *RunFileConfig) setAndValidateLogDestination() error {
+	for i := range a.Apps {
+		if a.Apps[i].DaprdLogDestination == "" {
+			a.Apps[i].DaprdLogDestination = DefaultDaprdLogDest
+		} else if err := a.Apps[i].DaprdLogDestination.IsValid(); err != nil {
+			return err
+		}
+		if a.Apps[i].AppLogDestination == "" {
+			a.Apps[i].AppLogDestination = DefaultAppLogDest
+		} else if err := a.Apps[i].AppLogDestination.IsValid(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Set AppID to the directory name of appDirPath.

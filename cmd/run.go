@@ -498,8 +498,8 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 		// Combined multiwriter for logs.
 		var appDaprdWriter io.Writer
 		// appLogWriterCloser is used when app command is present.
-		var appLogWriterCloser io.WriteCloser
-		daprdLogWriterCloser := app.DaprdLogWriteCloser
+		var appLogWriterCloser io.Writer
+		daprdLogWriterCloser := getLogWriter(app, app.DaprdLogWriteCloser, app.DaprdLogDestination)
 		if len(runConfig.Command) == 0 {
 			print.StatusEvent(os.Stdout, print.LogWarning, "No application command found for app %q present in %s", runConfig.AppID, runFilePath)
 			appDaprdWriter = app.DaprdLogWriteCloser
@@ -512,9 +512,9 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 				break
 			}
 			appDaprdWriter = io.MultiWriter(app.AppLogWriteCloser, app.DaprdLogWriteCloser)
-			appLogWriterCloser = app.AppLogWriteCloser
+			appLogWriterCloser = getLogWriter(app, app.AppLogWriteCloser, app.AppLogDestination)
 		}
-
+		//appLogWriter := io.MultiWriter(app.AppLogWriteCloser, os.Stdout)
 		runState, err := startDaprdAndAppProcesses(&runConfig, app.AppDirPath, sigCh,
 			daprdLogWriterCloser, daprdLogWriterCloser, appLogWriterCloser, appLogWriterCloser)
 		if err != nil {
@@ -565,6 +565,19 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 	}
 
 	return exitWithError, closeError
+}
+
+func getLogWriter(app runfileconfig.App, fileLogWriterCloser io.WriteCloser, logDestination runfileconfig.LogDestType) io.Writer {
+	var logWriter io.Writer
+	switch logDestination {
+	case runfileconfig.Console:
+		logWriter = os.Stdout
+	case runfileconfig.File:
+		logWriter = fileLogWriterCloser
+	case runfileconfig.FileAndConsole:
+		logWriter = io.MultiWriter(fileLogWriterCloser, os.Stdout)
+	}
+	return logWriter
 }
 
 func logInformationalStatusToStdout(app runfileconfig.App) {
@@ -676,6 +689,7 @@ func startDaprdAndAppProcesses(runConfig *standalone.RunConfig, commandDir strin
 	// Wait for appRunnning channel output.
 	if appStarted := <-appRunning; !appStarted {
 		startErr := <-startErrChan
+		//print.StatusEvent(os.Stdout, print.LogFailure, "Error starting app process: %s", startErr.Error())
 		print.StatusEvent(appErrorWriter, print.LogFailure, "Error starting app process: %s", startErr.Error())
 		// Start App failed so try to stop daprd process.
 		err = killDaprdProcess(runState)
@@ -828,19 +842,18 @@ func startDaprdProcess(runConfig *standalone.RunConfig, runE *runExec.RunExec,
 		daprRunning <- false
 		return
 	}
-
 	go func() {
 		daprdErr := runE.DaprCMD.Command.Wait()
-
 		if daprdErr != nil {
 			runE.DaprCMD.CommandErr = daprdErr
 			print.StatusEvent(runE.DaprCMD.ErrorWriter, print.LogFailure, "The daprd process exited with error code: %s", daprdErr.Error())
 		} else {
-			print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogSuccess, "Exited Dapr successfully")
+			print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogSuccess, "yyyyyyyy")
 		}
 	}()
 
 	if runConfig.AppPort <= 0 {
+		fmt.Println("in app port <= 0")
 		// If app does not listen to port, we can check for Dapr's sidecar health before starting the app.
 		// Otherwise, it creates a deadlock.
 		sidecarUp := true
@@ -893,7 +906,7 @@ func killDaprdProcess(runE *runExec.RunExec) error {
 		print.StatusEvent(runE.DaprCMD.ErrorWriter, print.LogFailure, "Error exiting Dapr: %s", err)
 		return err
 	}
-	print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogSuccess, "Exited Dapr successfully")
+	print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogSuccess, "Exited Daprrrrrr successfully")
 	return nil
 }
 

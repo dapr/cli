@@ -14,6 +14,7 @@ limitations under the License.
 package runfileconfig
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -22,7 +23,15 @@ import (
 	"github.com/dapr/cli/pkg/standalone"
 )
 
+type LogDestType string
+
 const (
+	Console             LogDestType = "console"
+	File                LogDestType = "file"
+	FileAndConsole      LogDestType = "fileAndConsole"
+	DefaultDaprdLogDest             = File
+	DefaultAppLogDest               = FileAndConsole
+
 	appLogFileNamePrefix   = "app"
 	daprdLogFileNamePrefix = "daprd"
 	logFileExtension       = ".log"
@@ -45,6 +54,8 @@ type App struct {
 	DaprdLogFileName     string
 	AppLogWriteCloser    io.WriteCloser
 	DaprdLogWriteCloser  io.WriteCloser
+	DaprdLogDestination  LogDestType `yaml:"daprdLogDestination"`
+	AppLogDestination    LogDestType `yaml:"appLogDestination"`
 }
 
 // Common represents the configuration options for the common section in the run file.
@@ -101,4 +112,16 @@ func (a *App) CloseDaprdLogFile() error {
 		return a.DaprdLogWriteCloser.Close()
 	}
 	return nil
+}
+
+func (l LogDestType) String() string {
+	return string(l)
+}
+
+func (l LogDestType) IsValid() error {
+	switch l {
+	case Console, File, FileAndConsole:
+		return nil
+	}
+	return fmt.Errorf("invalid log destination type: %s", l)
 }
