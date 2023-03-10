@@ -19,6 +19,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"reflect"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -499,6 +501,7 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 		var appDaprdWriter io.Writer
 		// appLogWriterCloser is used when app command is present.
 		var appLogWriterCloser io.Writer
+		var w2 io.Writer
 		daprdLogWriterCloser := getLogWriter(app, app.DaprdLogWriteCloser, app.DaprdLogDestination)
 		if len(runConfig.Command) == 0 {
 			print.StatusEvent(os.Stdout, print.LogWarning, "No application command found for app %q present in %s", runConfig.AppID, runFilePath)
@@ -513,10 +516,10 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 			}
 			appDaprdWriter = io.MultiWriter(app.AppLogWriteCloser, app.DaprdLogWriteCloser)
 			appLogWriterCloser = getLogWriter(app, app.AppLogWriteCloser, app.AppLogDestination)
+			w2 = CustomWriter{w: appLogWriterCloser}
 		}
-		//appLogWriter := io.MultiWriter(app.AppLogWriteCloser, os.Stdout)
 		runState, err := startDaprdAndAppProcesses(&runConfig, app.AppDirPath, sigCh,
-			daprdLogWriterCloser, daprdLogWriterCloser, appLogWriterCloser, appLogWriterCloser)
+			daprdLogWriterCloser, daprdLogWriterCloser, w2, w2)
 		if err != nil {
 			print.StatusEvent(os.Stdout, print.LogFailure, "Error starting Dapr and app (%q): %s", app.AppID, err.Error())
 			print.StatusEvent(appDaprdWriter, print.LogFailure, "Error starting Dapr and app (%q): %s", app.AppID, err.Error())
@@ -689,7 +692,6 @@ func startDaprdAndAppProcesses(runConfig *standalone.RunConfig, commandDir strin
 	// Wait for appRunnning channel output.
 	if appStarted := <-appRunning; !appStarted {
 		startErr := <-startErrChan
-		//print.StatusEvent(os.Stdout, print.LogFailure, "Error starting app process: %s", startErr.Error())
 		print.StatusEvent(appErrorWriter, print.LogFailure, "Error starting app process: %s", startErr.Error())
 		// Start App failed so try to stop daprd process.
 		err = killDaprdProcess(runState)
@@ -773,10 +775,12 @@ func startAppProcess(runConfig *standalone.RunConfig, runE *runExec.RunExec,
 		for errScanner.Scan() {
 			if runE.AppCMD.ErrorWriter == os.Stderr {
 				// Add color and prefix to log and output to Stderr.
-				fmt.Fprintln(runE.AppCMD.ErrorWriter, print.Blue(fmt.Sprintf("== APP == %s", errScanner.Text())))
+				fmt.Fprintln(runE.AppCMD.ErrorWriter, print.Blue(fmt.Sprintf("== APP - %s == %s", runE.AppID,
+					errScanner.Text())))
 			} else {
 				// Directly output app logs to the error writer.
-				fmt.Fprintln(runE.AppCMD.ErrorWriter, errScanner.Text())
+				fmt.Fprintln(runE.AppCMD.ErrorWriter, print.Blue(fmt.Sprintf("== APP - %s == %s", runE.AppID,
+					errScanner.Text())))
 			}
 		}
 	}()
@@ -785,10 +789,10 @@ func startAppProcess(runConfig *standalone.RunConfig, runE *runExec.RunExec,
 		for outScanner.Scan() {
 			if runE.AppCMD.OutputWriter == os.Stdout {
 				// Add color and prefix to log and output to Stdout.
-				fmt.Fprintln(runE.AppCMD.OutputWriter, print.Blue(fmt.Sprintf("== APP == %s", outScanner.Text())))
+				fmt.Fprintln(runE.AppCMD.OutputWriter, print.Blue(fmt.Sprintf("== APP - %s == %s", runE.AppID, outScanner.Text())))
 			} else {
 				// Directly output app logs to the output writer.
-				fmt.Fprintln(runE.AppCMD.OutputWriter, outScanner.Text())
+				fmt.Fprintln(runE.AppCMD.OutputWriter, print.Blue(fmt.Sprintf("== APP - %s == %s", runE.AppID, outScanner.Text())))
 			}
 		}
 	}()
@@ -906,7 +910,7 @@ func killDaprdProcess(runE *runExec.RunExec) error {
 		print.StatusEvent(runE.DaprCMD.ErrorWriter, print.LogFailure, "Error exiting Dapr: %s", err)
 		return err
 	}
-	print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogSuccess, "Exited Daprrrrrr successfully")
+	print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogSuccess, "Exited Dapr successfully")
 	return nil
 }
 
@@ -985,4 +989,37 @@ func getRunFilePath(path string) (string, error) {
 		return "", fmt.Errorf("file %q is not a YAML file", path)
 	}
 	return path, nil
+}
+
+type CustomWriter struct {
+	w io.Writer
+}
+
+func (e CustomWriter) Write(p []byte) (int, error) {
+	var write = func(w io.Writer, isStdIO bool) (int, error) {
+		x := p
+		if !isStdIO {
+			reg := regexp.MustCompile("\x1b\\[[\\d;]+m")
+			x = reg.ReplaceAll(x, []byte(""))
+		}
+		n, err := w.Write(x)
+		if err != nil {
+			return n, err
+		}
+		if n != len(x) {
+			return n, io.ErrShortWrite
+		}
+		return len(x), nil
+	}
+	wIface := reflect.ValueOf(e.w).Interface()
+	switch wType := wIface.(type) {
+	case *os.File:
+		if wType == os.Stderr || wType == os.Stdout {
+			return write(e.w, true)
+		} else {
+			return write(e.w, false)
+		}
+	default:
+		return write(e.w, false)
+	}
 }
