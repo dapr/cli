@@ -516,8 +516,8 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 			}
 			appDaprdWriter = io.MultiWriter(app.AppLogWriteCloser, app.DaprdLogWriteCloser)
 			appLogWriterCloser = getLogWriter(app.AppLogWriteCloser, app.AppLogDestination)
-			customAppLogWriter = CustomLogWriter{w: appLogWriterCloser}
 		}
+		customAppLogWriter = CustomLogWriter{w: appLogWriterCloser}
 		runState, err := startDaprdAndAppProcesses(&runConfig, app.AppDirPath, sigCh,
 			daprdLogWriterCloser, daprdLogWriterCloser, customAppLogWriter, customAppLogWriter)
 		if err != nil {

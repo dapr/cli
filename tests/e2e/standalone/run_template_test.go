@@ -311,6 +311,54 @@ func TestRunWithTemplateFile(t *testing.T) {
 		}
 		assertLogOutputForRunTemplateExec(t, appTestOutput)
 	})
+
+	t.Run("valid template file with app log destination fileAndConsole", func(t *testing.T) {
+		runFilePath := "../testdata/run-template-files/app_output_to_file_and_console.yaml"
+		t.Cleanup(func() {
+			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
+			os.RemoveAll("../../apps/emit-metrics/.dapr/logs")
+			os.RemoveAll("../../apps/processor/.dapr/logs")
+			stopAllApps(t, runFilePath)
+		})
+		args := []string{
+			"-f", runFilePath,
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		output, err := cmdRunWithContext(ctx, "", args...)
+		t.Logf(output)
+		require.NoError(t, err, "run failed")
+		assert.Contains(t, output, "== APP - emit-metrics")
+		assert.Contains(t, output, "== APP - processor")
+		assert.Contains(t, output, "Received signal to stop Dapr and app processes. Shutting down Dapr and app processes.")
+		appTestOutput := AppTestOutput{
+			appID:          "processor",
+			baseLogDirPath: "../../apps/processor/.dapr/logs",
+			appLogContents: []string{
+				"Received metrics:  {1}",
+			},
+			daprdLogContent: []string{
+				"http server is running on port 3510",
+				"You're up and running! Dapr logs will appear here.",
+			},
+		}
+		assertLogOutputForRunTemplateExec(t, appTestOutput)
+		appTestOutput = AppTestOutput{
+			appID:          "emit-metrics",
+			baseLogDirPath: "../../apps/emit-metrics/.dapr/logs",
+			appLogContents: []string{
+				"DAPR_HTTP_PORT set to 3511",
+				"DAPR_HOST_ADD set to localhost",
+				"Metrics with ID 1 sent",
+			},
+			daprdLogContent: []string{
+				"termination signal received: shutting down",
+				"Exited Dapr successfully",
+				"Exited App successfully",
+			},
+		}
+		assertLogOutputForRunTemplateExec(t, appTestOutput)
+	})
 }
 
 func TestRunTemplateFileWithoutDaprInit(t *testing.T) {
