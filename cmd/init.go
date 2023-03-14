@@ -14,6 +14,7 @@ limitations under the License.
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -111,16 +112,24 @@ dapr init --runtime-path <path-to-install-directory>
 				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)
 			}
+			if err = verifyCustomCertFlags(cmd); err != nil {
+				print.FailureStatusEvent(os.Stderr, err.Error())
+				os.Exit(1)
+			}
+
 			config := kubernetes.InitConfiguration{
-				Namespace:        initNamespace,
-				Version:          runtimeVersion,
-				EnableMTLS:       enableMTLS,
-				EnableHA:         enableHA,
-				Args:             values,
-				Wait:             wait,
-				Timeout:          timeout,
-				ImageRegistryURI: imageRegistryURI,
-				ImageVariant:     imageVariant,
+				Namespace:                 initNamespace,
+				Version:                   runtimeVersion,
+				EnableMTLS:                enableMTLS,
+				EnableHA:                  enableHA,
+				Args:                      values,
+				Wait:                      wait,
+				Timeout:                   timeout,
+				ImageRegistryURI:          imageRegistryURI,
+				ImageVariant:              imageVariant,
+				RootCertificateFilePath:   strings.TrimSpace(caRootCertificateFile),
+				IssuerCertificateFilePath: strings.TrimSpace(issuerPublicCertificateFile),
+				IssuerPrivateKeyFilePath:  strings.TrimSpace(issuerPrivateKeyFile),
 			}
 			err = kubernetes.Init(config)
 			if err != nil {
@@ -161,6 +170,23 @@ dapr init --runtime-path <path-to-install-directory>
 	},
 }
 
+func verifyCustomCertFlags(cmd *cobra.Command) error {
+	ca := cmd.Flags().Lookup("ca-root-certificate")
+	issuerKey := cmd.Flags().Lookup("issuer-private-key")
+	issuerCert := cmd.Flags().Lookup("issuer-public-certificate")
+
+	if ca.Changed && len(strings.TrimSpace(ca.Value.String())) == 0 {
+		return errors.New("non empty value of --ca-root-certificate must be provided")
+	}
+	if issuerKey.Changed && len(strings.TrimSpace(issuerKey.Value.String())) == 0 {
+		return errors.New("non empty value of --issuer-private-key must be provided")
+	}
+	if issuerCert.Changed && len(strings.TrimSpace(issuerCert.Value.String())) == 0 {
+		return errors.New("non empty value of --issuer-public-certificate must be provided")
+	}
+	return nil
+}
+
 func warnForPrivateRegFeat() {
 	print.WarningStatusEvent(os.Stdout, "Flag --image-registry is a preview feature and is subject to change.")
 }
@@ -195,6 +221,9 @@ func init() {
 	InitCmd.Flags().StringArrayVar(&values, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
 	InitCmd.Flags().String("image-registry", "", "Custom/private docker image repository URL")
 	InitCmd.Flags().StringVarP(&containerRuntime, "container-runtime", "", "docker", "The container runtime to use. Supported values are docker (default) and podman")
-
+	InitCmd.Flags().StringVarP(&caRootCertificateFile, "ca-root-certificate", "", "", "The root certificate file")
+	InitCmd.Flags().StringVarP(&issuerPrivateKeyFile, "issuer-private-key", "", "", "The issuer certificate private key")
+	InitCmd.Flags().StringVarP(&issuerPublicCertificateFile, "issuer-public-certificate", "", "", "The issuer certificate")
+	InitCmd.MarkFlagsRequiredTogether("ca-root-certificate", "issuer-private-key", "issuer-public-certificate")
 	RootCmd.AddCommand(InitCmd)
 }
