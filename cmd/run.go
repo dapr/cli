@@ -501,8 +501,8 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 		var appDaprdWriter io.Writer
 		// appLogWriterCloser is used when app command is present.
 		var appLogWriterCloser io.Writer
-		var w2 io.Writer
-		daprdLogWriterCloser := getLogWriter(app, app.DaprdLogWriteCloser, app.DaprdLogDestination)
+		var customAppLogWriter io.Writer
+		daprdLogWriterCloser := getLogWriter(app.DaprdLogWriteCloser, app.DaprdLogDestination)
 		if len(runConfig.Command) == 0 {
 			print.StatusEvent(os.Stdout, print.LogWarning, "No application command found for app %q present in %s", runConfig.AppID, runFilePath)
 			appDaprdWriter = app.DaprdLogWriteCloser
@@ -515,11 +515,11 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 				break
 			}
 			appDaprdWriter = io.MultiWriter(app.AppLogWriteCloser, app.DaprdLogWriteCloser)
-			appLogWriterCloser = getLogWriter(app, app.AppLogWriteCloser, app.AppLogDestination)
-			w2 = CustomWriter{w: appLogWriterCloser}
+			appLogWriterCloser = getLogWriter(app.AppLogWriteCloser, app.AppLogDestination)
+			customAppLogWriter = CustomLogWriter{w: appLogWriterCloser}
 		}
 		runState, err := startDaprdAndAppProcesses(&runConfig, app.AppDirPath, sigCh,
-			daprdLogWriterCloser, daprdLogWriterCloser, w2, w2)
+			daprdLogWriterCloser, daprdLogWriterCloser, customAppLogWriter, customAppLogWriter)
 		if err != nil {
 			print.StatusEvent(os.Stdout, print.LogFailure, "Error starting Dapr and app (%q): %s", app.AppID, err.Error())
 			print.StatusEvent(appDaprdWriter, print.LogFailure, "Error starting Dapr and app (%q): %s", app.AppID, err.Error())
@@ -570,7 +570,7 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 	return exitWithError, closeError
 }
 
-func getLogWriter(app runfileconfig.App, fileLogWriterCloser io.WriteCloser, logDestination runfileconfig.LogDestType) io.Writer {
+func getLogWriter(fileLogWriterCloser io.WriteCloser, logDestination runfileconfig.LogDestType) io.Writer {
 	var logWriter io.Writer
 	switch logDestination {
 	case runfileconfig.Console:
@@ -578,7 +578,7 @@ func getLogWriter(app runfileconfig.App, fileLogWriterCloser io.WriteCloser, log
 	case runfileconfig.File:
 		logWriter = fileLogWriterCloser
 	case runfileconfig.FileAndConsole:
-		logWriter = io.MultiWriter(fileLogWriterCloser, os.Stdout)
+		logWriter = io.MultiWriter(os.Stdout, fileLogWriterCloser)
 	}
 	return logWriter
 }
@@ -773,27 +773,14 @@ func startAppProcess(runConfig *standalone.RunConfig, runE *runExec.RunExec,
 	outScanner := bufio.NewScanner(stdOutPipe)
 	go func() {
 		for errScanner.Scan() {
-			if runE.AppCMD.ErrorWriter == os.Stderr {
-				// Add color and prefix to log and output to Stderr.
-				fmt.Fprintln(runE.AppCMD.ErrorWriter, print.Blue(fmt.Sprintf("== APP - %s == %s", runE.AppID,
-					errScanner.Text())))
-			} else {
-				// Directly output app logs to the error writer.
-				fmt.Fprintln(runE.AppCMD.ErrorWriter, print.Blue(fmt.Sprintf("== APP - %s == %s", runE.AppID,
-					errScanner.Text())))
-			}
+			fmt.Fprintln(runE.AppCMD.ErrorWriter, print.Blue(fmt.Sprintf("== APP - %s == %s", runE.AppID,
+				errScanner.Text())))
 		}
 	}()
 
 	go func() {
 		for outScanner.Scan() {
-			if runE.AppCMD.OutputWriter == os.Stdout {
-				// Add color and prefix to log and output to Stdout.
-				fmt.Fprintln(runE.AppCMD.OutputWriter, print.Blue(fmt.Sprintf("== APP - %s == %s", runE.AppID, outScanner.Text())))
-			} else {
-				// Directly output app logs to the output writer.
-				fmt.Fprintln(runE.AppCMD.OutputWriter, print.Blue(fmt.Sprintf("== APP - %s == %s", runE.AppID, outScanner.Text())))
-			}
+			fmt.Fprintln(runE.AppCMD.OutputWriter, print.Blue(fmt.Sprintf("== APP - %s == %s", runE.AppID, outScanner.Text())))
 		}
 	}()
 
@@ -852,12 +839,11 @@ func startDaprdProcess(runConfig *standalone.RunConfig, runE *runExec.RunExec,
 			runE.DaprCMD.CommandErr = daprdErr
 			print.StatusEvent(runE.DaprCMD.ErrorWriter, print.LogFailure, "The daprd process exited with error code: %s", daprdErr.Error())
 		} else {
-			print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogSuccess, "yyyyyyyy")
+			print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogSuccess, "Exited Dapr successfully")
 		}
 	}()
 
 	if runConfig.AppPort <= 0 {
-		fmt.Println("in app port <= 0")
 		// If app does not listen to port, we can check for Dapr's sidecar health before starting the app.
 		// Otherwise, it creates a deadlock.
 		sidecarUp := true
@@ -991,35 +977,35 @@ func getRunFilePath(path string) (string, error) {
 	return path, nil
 }
 
-type CustomWriter struct {
+type CustomLogWriter struct {
 	w io.Writer
 }
 
-func (e CustomWriter) Write(p []byte) (int, error) {
-	var write = func(w io.Writer, isStdIO bool) (int, error) {
-		x := p
+func (c CustomLogWriter) Write(p []byte) (int, error) {
+	write := func(w io.Writer, isStdIO bool) (int, error) {
+		b := p
 		if !isStdIO {
 			reg := regexp.MustCompile("\x1b\\[[\\d;]+m")
-			x = reg.ReplaceAll(x, []byte(""))
+			b = reg.ReplaceAll(b, []byte(""))
 		}
-		n, err := w.Write(x)
+		n, err := w.Write(b)
 		if err != nil {
 			return n, err
 		}
-		if n != len(x) {
+		if n != len(b) {
 			return n, io.ErrShortWrite
 		}
-		return len(x), nil
+		return len(b), nil
 	}
-	wIface := reflect.ValueOf(e.w).Interface()
+	wIface := reflect.ValueOf(c.w).Interface()
 	switch wType := wIface.(type) {
 	case *os.File:
 		if wType == os.Stderr || wType == os.Stdout {
-			return write(e.w, true)
+			return write(c.w, true)
 		} else {
-			return write(e.w, false)
+			return write(c.w, false)
 		}
 	default:
-		return write(e.w, false)
+		return write(c.w, false)
 	}
 }
