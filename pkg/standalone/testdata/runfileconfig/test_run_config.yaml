@@ -13,8 +13,6 @@ apps:
     appPort: 8080
     appHealthProbeTimeout: 1
     command: ["python3", "app.py"]
-    daprdLogDestination: file
-    appLogDestination:
   - appID: backend
     appDirPath: ./backend/
     appProtocol: GRPC

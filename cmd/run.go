@@ -501,11 +501,14 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 		var appDaprdWriter io.Writer
 		// appLogWriterCloser is used when app command is present.
 		var appLogWriterCloser io.Writer
+		// A custom writer used for trimming ASCII color codes from logs when writing to files.
 		var customAppLogWriter io.Writer
+
 		daprdLogWriterCloser := getLogWriter(app.DaprdLogWriteCloser, app.DaprdLogDestination)
+
 		if len(runConfig.Command) == 0 {
 			print.StatusEvent(os.Stdout, print.LogWarning, "No application command found for app %q present in %s", runConfig.AppID, runFilePath)
-			appDaprdWriter = app.DaprdLogWriteCloser
+			appDaprdWriter = getAppDaprdWriter(app, true)
 			appLogWriterCloser = app.DaprdLogWriteCloser
 		} else {
 			err = app.CreateAppLogFile()
@@ -514,14 +517,13 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 				exitWithError = true
 				break
 			}
-			appDaprdWriter = io.MultiWriter(app.AppLogWriteCloser, app.DaprdLogWriteCloser)
+			appDaprdWriter = getAppDaprdWriter(app, false)
 			appLogWriterCloser = getLogWriter(app.AppLogWriteCloser, app.AppLogDestination)
 		}
 		customAppLogWriter = CustomLogWriter{w: appLogWriterCloser}
 		runState, err := startDaprdAndAppProcesses(&runConfig, app.AppDirPath, sigCh,
 			daprdLogWriterCloser, daprdLogWriterCloser, customAppLogWriter, customAppLogWriter)
 		if err != nil {
-			print.StatusEvent(os.Stdout, print.LogFailure, "Error starting Dapr and app (%q): %s", app.AppID, err.Error())
 			print.StatusEvent(appDaprdWriter, print.LogFailure, "Error starting Dapr and app (%q): %s", app.AppID, err.Error())
 			exitWithError = true
 			break
@@ -570,6 +572,30 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 	return exitWithError, closeError
 }
 
+// getAppDaprdWriter returns the writer for writing logs common to both daprd, app and stdout.
+func getAppDaprdWriter(app runfileconfig.App, isAppCommandEmpty bool) io.Writer {
+	var appDaprdWriter io.Writer
+	if isAppCommandEmpty {
+		if app.DaprdLogDestination != runfileconfig.Console {
+			appDaprdWriter = io.MultiWriter(os.Stdout, app.DaprdLogWriteCloser)
+		} else {
+			appDaprdWriter = os.Stdout
+		}
+	} else {
+		if app.AppLogDestination != runfileconfig.Console && app.DaprdLogDestination != runfileconfig.Console {
+			appDaprdWriter = io.MultiWriter(app.AppLogWriteCloser, app.DaprdLogWriteCloser, os.Stdout)
+		} else if app.AppLogDestination != runfileconfig.Console {
+			appDaprdWriter = io.MultiWriter(app.AppLogWriteCloser, os.Stdout)
+		} else if app.DaprdLogDestination != runfileconfig.Console {
+			appDaprdWriter = io.MultiWriter(app.DaprdLogWriteCloser, os.Stdout)
+		} else {
+			appDaprdWriter = os.Stdout
+		}
+	}
+	return appDaprdWriter
+}
+
+// getLogWriter returns the log writer based on the log destination.
 func getLogWriter(fileLogWriterCloser io.WriteCloser, logDestination runfileconfig.LogDestType) io.Writer {
 	var logWriter io.Writer
 	switch logDestination {

@@ -72,7 +72,13 @@ func (a *App) GetLogsDir() string {
 // CreateAppLogFile creates the log file, sets internal file handle
 // and returns error if any.
 func (a *App) CreateAppLogFile() error {
-	f, err := a.createLogFile(appLogFileNamePrefix)
+	var err error
+	var f *os.File
+	if a.AppLogDestination == Console {
+		f = os.Stdout
+	} else {
+		f, err = a.createLogFile(appLogFileNamePrefix)
+	}
 	if err == nil {
 		a.AppLogWriteCloser = f
 		a.AppLogFileName = f.Name()
@@ -83,7 +89,13 @@ func (a *App) CreateAppLogFile() error {
 // CreateDaprdLogFile creates the log file, sets internal file handle
 // and returns error if any.
 func (a *App) CreateDaprdLogFile() error {
-	f, err := a.createLogFile(daprdLogFileNamePrefix)
+	var err error
+	var f *os.File
+	if a.DaprdLogDestination == Console {
+		f = os.Stdout
+	} else {
+		f, err = a.createLogFile(daprdLogFileNamePrefix)
+	}
 	if err == nil {
 		a.DaprdLogWriteCloser = f
 		a.DaprdLogFileName = f.Name()
