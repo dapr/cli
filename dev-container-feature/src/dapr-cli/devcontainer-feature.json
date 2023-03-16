@@ -1,0 +1,16 @@
+{
+  "name": "dapr-cli",
+  "id": "dapr-cli",
+  "version": "0.1.0",
+  "description": "Install the Dapr CLI",
+  "options": {
+    "version": {
+      "type": "string",
+      "proposals": [
+        "latest"
+      ],
+      "default": "latest",
+      "description": "Version of the Dapr CLI to install (or \"latest\")"
+    }
+  }
+}

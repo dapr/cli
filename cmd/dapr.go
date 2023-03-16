@@ -39,9 +39,11 @@ var RootCmd = &cobra.Command{
 
 ===============================
 Distributed Application Runtime`,
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(cmd *cobra.Command, _ []string) {
 		if versionFlag {
 			printVersion()
+		} else {
+			cmd.Help()
 		}
 	},
 }
