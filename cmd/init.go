@@ -52,6 +52,10 @@ var InitCmd = &cobra.Command{
 	PreRun: func(cmd *cobra.Command, args []string) {
 		viper.BindPFlag("network", cmd.Flags().Lookup("network"))
 		viper.BindPFlag("image-registry", cmd.Flags().Lookup("image-registry"))
+
+		runtimeVersion = getConfigurationValue("runtime-version", cmd)
+		dashboardVersion = getConfigurationValue("dashboard-version", cmd)
+		containerRuntime = getConfigurationValue("container-runtime", cmd)
 	},
 	Example: `
 # Initialize Dapr in self-hosted mode
@@ -193,17 +197,8 @@ func warnForPrivateRegFeat() {
 
 func init() {
 	defaultRuntimeVersion := "latest"
-	viper.BindEnv("runtime_version_override", "DAPR_RUNTIME_VERSION")
-	runtimeVersionEnv := viper.GetString("runtime_version_override")
-	if runtimeVersionEnv != "" {
-		defaultRuntimeVersion = runtimeVersionEnv
-	}
 	defaultDashboardVersion := "latest"
-	viper.BindEnv("dashboard_version_override", "DAPR_DASHBOARD_VERSION")
-	dashboardVersionEnv := viper.GetString("dashboard_version_override")
-	if dashboardVersionEnv != "" {
-		defaultDashboardVersion = dashboardVersionEnv
-	}
+	defaultContainerRuntime := string(utils.DOCKER)
 
 	InitCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Deploy Dapr to a Kubernetes cluster")
 	InitCmd.Flags().BoolVarP(&wait, "wait", "", false, "Wait for Kubernetes initialization to complete")
@@ -220,10 +215,23 @@ func init() {
 	InitCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	InitCmd.Flags().StringArrayVar(&values, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
 	InitCmd.Flags().String("image-registry", "", "Custom/private docker image repository URL")
-	InitCmd.Flags().StringVarP(&containerRuntime, "container-runtime", "", "docker", "The container runtime to use. Supported values are docker (default) and podman")
+	InitCmd.Flags().StringVarP(&containerRuntime, "container-runtime", "", defaultContainerRuntime, "The container runtime to use. Supported values are docker (default) and podman")
 	InitCmd.Flags().StringVarP(&caRootCertificateFile, "ca-root-certificate", "", "", "The root certificate file")
 	InitCmd.Flags().StringVarP(&issuerPrivateKeyFile, "issuer-private-key", "", "", "The issuer certificate private key")
 	InitCmd.Flags().StringVarP(&issuerPublicCertificateFile, "issuer-public-certificate", "", "", "The issuer certificate")
 	InitCmd.MarkFlagsRequiredTogether("ca-root-certificate", "issuer-private-key", "issuer-public-certificate")
+
 	RootCmd.AddCommand(InitCmd)
+}
+
+// getConfigurationValue returns the value for a given configuration key.
+// The value is retrieved from the following sources, in order:
+// Default value
+// Environment variable (respecting registered prefixes)
+// Command line flag
+// Value is returned as a string.
+func getConfigurationValue(n string, cmd *cobra.Command) string {
+	viper.BindEnv(n)
+	viper.BindPFlag(n, cmd.Flags().Lookup(n))
+	return viper.GetString(n)
 }
