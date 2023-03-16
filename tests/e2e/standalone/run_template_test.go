@@ -34,11 +34,12 @@ import (
 )
 
 type AppTestOutput struct {
-	appID              string
-	appLogContents     []string
-	daprdLogContent    []string
-	baseLogDirPath     string
-	appLogDoesNotExist bool
+	appID                    string
+	appLogContents           []string
+	daprdLogContent          []string
+	baseLogDirPath           string
+	appLogDoesNotExist       bool
+	daprdLogFileDoesNotExist bool
 }
 
 func TestRunWithTemplateFile(t *testing.T) {
@@ -312,7 +313,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		assertLogOutputForRunTemplateExec(t, appTestOutput)
 	})
 
-	t.Run("valid template file with app log destination fileAndConsole", func(t *testing.T) {
+	t.Run("valid template file with app/daprd log destinations", func(t *testing.T) {
 		runFilePath := "../testdata/run-template-files/app_output_to_file_and_console.yaml"
 		t.Cleanup(func() {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
@@ -328,19 +329,29 @@ func TestRunWithTemplateFile(t *testing.T) {
 		output, err := cmdRunWithContext(ctx, "", args...)
 		t.Logf(output)
 		require.NoError(t, err, "run failed")
+
+		// App logs for processor app should not be printed to console and only written to file.
+		assert.NotContains(t, output, "== APP - processor")
+
+		// Daprd logs for processor app should only be printed to console and not written to file.
+		assert.Contains(t, output, "msg=\"all outstanding components processed\" app_id=processor")
+
+		// App logs for emit-metrics app should be printed to console and written to file.
 		assert.Contains(t, output, "== APP - emit-metrics")
-		assert.Contains(t, output, "== APP - processor")
+
+		// Daprd logs for emit-metrics app should only be written to file.
+		assert.NotContains(t, output, "msg=\"all outstanding components processed\" app_id=emit-metrics")
+
 		assert.Contains(t, output, "Received signal to stop Dapr and app processes. Shutting down Dapr and app processes.")
+
 		appTestOutput := AppTestOutput{
 			appID:          "processor",
 			baseLogDirPath: "../../apps/processor/.dapr/logs",
 			appLogContents: []string{
 				"Received metrics:  {1}",
 			},
-			daprdLogContent: []string{
-				"http server is running on port 3510",
-				"You're up and running! Dapr logs will appear here.",
-			},
+			daprdLogContent:          []string{},
+			daprdLogFileDoesNotExist: true,
 		}
 		assertLogOutputForRunTemplateExec(t, appTestOutput)
 		appTestOutput = AppTestOutput{
@@ -376,7 +387,7 @@ func TestRunTemplateFileWithoutDaprInit(t *testing.T) {
 		output, err := cmdRunWithContext(ctx, "", args...)
 		t.Logf(output)
 		require.Error(t, err, "run must fail")
-		assert.Contains(t, output, " Error starting Dapr and app (\"processor\"): fork/exec")
+		assert.Contains(t, output, "Error starting Dapr and app (\"processor\"): fork/exec")
 		assert.Contains(t, output, "daprd: no such file or directory")
 	})
 }
@@ -384,11 +395,12 @@ func TestRunTemplateFileWithoutDaprInit(t *testing.T) {
 func assertLogOutputForRunTemplateExec(t *testing.T, appTestOutput AppTestOutput) {
 	// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
 	// This is true for the tests in this file.
-	daprdLogFileName, err := lookUpFileFullName(appTestOutput.baseLogDirPath, "daprd")
-	require.NoError(t, err, "failed to find daprd log file")
-	daprdLogPath := filepath.Join(appTestOutput.baseLogDirPath, daprdLogFileName)
-	readAndAssertLogFileContents(t, daprdLogPath, appTestOutput.daprdLogContent)
-
+	if !appTestOutput.daprdLogFileDoesNotExist {
+		daprdLogFileName, err := lookUpFileFullName(appTestOutput.baseLogDirPath, "daprd")
+		require.NoError(t, err, "failed to find daprd log file")
+		daprdLogPath := filepath.Join(appTestOutput.baseLogDirPath, daprdLogFileName)
+		readAndAssertLogFileContents(t, daprdLogPath, appTestOutput.daprdLogContent)
+	}
 	if appTestOutput.appLogDoesNotExist {
 		return
 	}
