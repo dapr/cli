@@ -208,3 +208,12 @@ modtidy:
 .PHONY: check-diff
 check-diff:
 	git diff --exit-code ./go.mod # check no changes
+
+################################################################################
+# Target: vuln-check                                                           #
+################################################################################
+.PHONY: vuln-check
+vuln-check:
+	@echo "Checking for vulnerabilities..."
+	go install golang.org/x/vuln/cmd/govulncheck@latest
+	govulncheck ./...
