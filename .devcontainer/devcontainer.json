@@ -12,16 +12,10 @@
 		// the localhost bind-mount /var/run/docker-host.sock.
 		// "BIND_LOCALHOST_DOCKER": "true"
 	},
-	"extensions": [
-		"davidanson.vscode-markdownlint",
-		"golang.go",
-		"ms-azuretools.vscode-dapr",
-		"ms-azuretools.vscode-docker",
-		"ms-kubernetes-tools.vscode-kubernetes-tools"
-	],
 	"features": {
 		"ghcr.io/devcontainers/features/sshd:1": {},
 		"ghcr.io/devcontainers/features/github-cli:1": {},
+		"ghcr.io/devcontainers/features/node": { "version": "lts"}
 	},
 	"mounts": [
 		// Mount docker-in-docker library volume
@@ -58,12 +52,24 @@
 		// Run the entrypoint defined in container image.
 		"--init"
 	],
-	"settings": {
-		"go.toolsManagement.checkForUpdates": "local",
-		"go.useLanguageServer": true,
-		"go.gopath": "/go",
-		"go.buildTags": "e2e,perf,conftests,unit,integration_test,certtests",
-		"git.alwaysSignOff": true
+	"postCreateCommand": "npm install -g @devcontainers/cli",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"davidanson.vscode-markdownlint",
+				"golang.go",
+				"ms-azuretools.vscode-dapr",
+				"ms-azuretools.vscode-docker",
+				"ms-kubernetes-tools.vscode-kubernetes-tools"
+			],		
+			"settings": {
+				"go.toolsManagement.checkForUpdates": "local",
+				"go.useLanguageServer": true,
+				"go.gopath": "/go",
+				"go.buildTags": "e2e,perf,conftests,unit,integration_test,certtests",
+				"git.alwaysSignOff": true
+			}
+		}
 	},
 	"workspaceFolder": "/workspaces/cli",
 	"workspaceMount": "type=bind,source=${localWorkspaceFolder},target=/workspaces/cli"
