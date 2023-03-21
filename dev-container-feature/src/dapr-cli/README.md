@@ -21,4 +21,4 @@ Install the Dapr CLI
 
 ---
 
-_Note: This file was auto-generated from the [devcontainer-feature.json](https://github.com/dapr/cli/blob/master/dev-container-feature/src/dapr-cli/devcontainer-feature.json).  Add additional notes to a `NOTES.md`._
+_Note: This file was auto-generated from the [devcontainer-feature.json](https://github.com/dapr/cli/blob/main/dev-container-feature/src/dapr-cli/devcontainer-feature.json).  Add additional notes to a `NOTES.md`._
