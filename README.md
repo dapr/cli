@@ -15,44 +15,42 @@ On default, during initialization the Dapr CLI will install the Dapr binaries as
 
 >__Note, if you are a new user, it is strongly recommended to install Docker and use the regular init command.__
 
-* Install [Docker](https://docs.docker.com/install/)
+### Choosing a container runtime
 
->__Note: On Windows, Docker must be running in Linux Containers mode__
+* [Docker](https://docs.docker.com/install/) (recommended for new users)
 
-#### If you want to use podman as a runtime, then please refer to the installation.
+    >__Note: On Windows, Docker must be running in Linux Containers mode__
 
-* Install [Podman](https://podman-desktop.io/docs/Installation)
+* [Podman](https://podman-desktop.io/docs/Installation)
 
-#### If you want to use containerd as a runtime, then please refer to the installation.
+* `Containerd`
 
-**Windows and Linux**
+    >__Windows and Linux__
 
-* Step 1: Install [Containerd](https://github.com/containerd/containerd/blob/main/docs/getting-started.md).
+  * Step 1: Install [Containerd](https://github.com/containerd/containerd/blob/main/docs/getting-started.md).
 
-*  Step 2: Install [nerdctl](https://github.com/containerd/nerdctl/blob/main/docs/installation.md).
+  * Step 2: Install [nerdctl](https://github.com/containerd/nerdctl/blob/main/docs/installation.md).
 
-__MacOS__
+   >__MacOS__
+    >> `containerd` and `nerdctl` are not directly supported on macOS. Instead, you need to choose `lima`, `colima`, or `rancher-desktop` to get this feature.
 
-> containerd and nerdctl are not supported on macOS. Instead, you can use `lima`, `colima`, or `rancher-desktop` to get containerd support on macOS. The steps below show how to install these tools using brew.
->
+  * [Lima](https://github.com/lima-vm/lima)
 
-* [Lima](https://github.com/lima-vm/lima):
-
-    ```
+    ```bash
     brew install lima
     limactl start
     ln -s $(which nerdctl.lima) /usr/local/bin/nerdctl
     ```
 
-* [Colima](https://github.com/abiosoft/colima):
+  * [Colima](https://github.com/abiosoft/colima)
 
-    ```
+    ```bash
     brew install colima
     colima start --runtime containerd
     colima nerdctl install
     ```
 
-* [Rancher-desktop](https://docs.rancherdesktop.io/getting-started/installation#installing-rancher-desktop-on-macos)
+  * [Rancher-desktop](https://docs.rancherdesktop.io/getting-started/installation#installing-rancher-desktop-on-macos)
 
 ### Installing Dapr CLI
 
