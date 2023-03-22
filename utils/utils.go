@@ -57,7 +57,7 @@ func IsValidContainerRuntime(containerRuntime string) bool {
 }
 
 // GetContainerRuntimeCmd returns a valid container runtime to be used by CLI operations.
-// If the input is a valid container runtime, it is returned client tool.
+// If the input is a valid container runtime, the client tool is returned.
 // Otherwise the default container runtime, docker, is returned.
 func GetContainerRuntimeCmd(containerRuntime string) string {
 	switch strings.TrimSpace(containerRuntime) {

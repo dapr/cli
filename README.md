@@ -13,7 +13,7 @@ The Dapr CLI allows you to setup Dapr on your local dev machine or on a Kubernet
 
 On default, during initialization the Dapr CLI will install the Dapr binaries as well as setup a developer environment to help you get started easily with Dapr. This environment uses `Docker`, `Podman` or `Containerd` containers, therefore container runtime needs to be installed. If you prefer to run Dapr without this environment and without any container dependencies, after installation of the CLI make sure to follow the instructions to initialize Dapr using [slim init](#slim-init).
 
-#### Note, if you are a new user, it is strongly recommended to install Docker and use the regular init command.
+>__Note, if you are a new user, it is strongly recommended to install Docker and use the regular init command.__
 
 * Install [Docker](https://docs.docker.com/install/)
 
