@@ -55,6 +55,10 @@ jobs:
             target_os: darwin
           - os: windows-latest
             target_os: windows
+          - os: macos-latest
+            target_os: darwin
+            target_arch: amd64
+            dapr_install_mode: complete_containerd
         exclude:
           - os: windows-latest
             dapr_install_mode: complete
@@ -108,6 +112,12 @@ jobs:
           podman machine init
           podman machine start
           echo "CONTAINER_RUNTIME=podman" >> $GITHUB_ENV
+      - name: Install containerd - MacOS
+        if: matrix.os == 'macos-latest' && matrix.dapr_install_mode == 'complete_containerd'
+        run: |
+          colima start --runtime containerd
+          colima nerdctl install
+          echo "CONTAINER_RUNTIME=containerd" >> $GITHUB_ENV
       - name: Determine latest Dapr Runtime version including Pre-releases
         if: github.base_ref == 'master'
         run: |
