@@ -169,20 +169,15 @@ jobs:
       - name: publish binaries to github
         if: startswith(github.ref, 'refs/tags/v')
         run: |
-          echo "installing github-release-cli..."
-          sudo npm install --silent --no-progress -g github-release-cli@1.3.1
           # Get the list of files
           RELEASE_ARTIFACT=(${ARTIFACT_DIR}/*)
-          # Parse repository to get owner and repo names
-          OWNER_NAME="${GITHUB_REPOSITORY%%/*}"
-          REPO_NAME="${GITHUB_REPOSITORY#*/}"
           export GITHUB_TOKEN=${{ secrets.DAPR_BOT_TOKEN }}
           echo "Uploading Dapr CLI Binaries to GitHub Release"
-          github-release upload \
-            --owner $OWNER_NAME --repo $REPO_NAME \
-            --tag "v${REL_VERSION}" \
-            --name "Dapr CLI v${REL_VERSION}" \
-            --prerelease true \
+          gh release create \
+            "v${REL_VERSION}" \
+            --title "Dapr CLI v${REL_VERSION}" \
+            --repo $GITHUB_REPOSITORY \
+            --prerelease \
             ${RELEASE_ARTIFACT[*]}
   publish-winget:
     name: Publish to winget-pkgs
