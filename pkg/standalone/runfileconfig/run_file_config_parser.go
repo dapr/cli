@@ -180,6 +180,10 @@ func (a *RunFileConfig) resolvePathToAbsAndValidate(baseDir string, paths ...*st
 		if *path == "" {
 			continue
 		}
+		*path, err = utils.ResolveHomeDir(*path)
+		if err != nil {
+			return err
+		}
 		absPath := utils.GetAbsPath(baseDir, *path)
 		if err != nil {
 			return err
