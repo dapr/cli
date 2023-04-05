@@ -24,6 +24,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -47,6 +48,9 @@ const (
 	marinerImageVariantName = "mariner"
 
 	socketFormat = "%s/dapr-%s-%s.socket"
+
+	windowsOsType = "windows"
+	homeDirPrefix = "~/"
 )
 
 // IsValidContainerRuntime checks if the input is a valid container runtime.
@@ -377,6 +381,24 @@ func GetAbsPath(baseDir, path string) string {
 	}
 	absPath := filepath.Join(baseDir, filepath.Clean(path))
 	return absPath
+}
+
+// ResolveHomeDir resolves prefix of the given path, if present, to the user's home directory and returns it.
+func ResolveHomeDir(filePath string) (string, error) {
+	if filePath == "" {
+		return "", nil
+	}
+
+	// Resolve the home directory prefix, if present. This is only supported on non-Windows platforms.
+	if runtime.GOOS != windowsOsType && strings.HasPrefix(filePath, homeDirPrefix) {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return "", fmt.Errorf("error in getting the home directory for %s: %w", filePath, err)
+		}
+		filePath = filepath.Join(homeDir, filePath[len(homeDirPrefix):])
+	}
+
+	return filePath, nil
 }
 
 func ReadFile(filePath string) ([]byte, error) {

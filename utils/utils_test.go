@@ -18,6 +18,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -261,6 +262,68 @@ func TestGetAbsPath(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			actual := GetAbsPath(baseDir, tc.input)
+			assert.Equal(t, tc.expected, actual)
+		})
+	}
+}
+
+func TestResolveHomeDir(t *testing.T) {
+	homeDir, err := os.UserHomeDir()
+	assert.NoError(t, err)
+
+	testcases := []struct {
+		name        string
+		input       string
+		expected    string
+		skipWindows bool
+	}{
+		{
+			name:        "empty path",
+			input:       "",
+			expected:    "",
+			skipWindows: false,
+		},
+		{
+			name:        "home directory prefix with ~/",
+			input:       "~/home/path",
+			expected:    filepath.Join(homeDir, "home", "path"),
+			skipWindows: true,
+		},
+		{
+			name:        "home directory prefix with ~/.",
+			input:       "~/./home/path",
+			expected:    filepath.Join(homeDir, ".", "home", "path"),
+			skipWindows: true,
+		},
+		{
+			name:        "home directory prefix with ~/..",
+			input:       "~/../home/path",
+			expected:    filepath.Join(homeDir, "..", "home", "path"),
+			skipWindows: true,
+		},
+		{
+			name:        "no home directory prefix",
+			input:       "../home/path",
+			expected:    "../home/path",
+			skipWindows: false,
+		},
+		{
+			name:        "absolute path",
+			input:       "/absolute/path",
+			expected:    "/absolute/path",
+			skipWindows: false,
+		},
+	}
+
+	for _, tc := range testcases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.skipWindows && runtime.GOOS == "windows" {
+				t.Skip("Skipping test on Windows")
+			}
+			t.Parallel()
+			actual, err := ResolveHomeDir(tc.input)
+			assert.NoError(t, err)
 			assert.Equal(t, tc.expected, actual)
 		})
 	}
