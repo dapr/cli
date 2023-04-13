@@ -385,7 +385,7 @@ func init() {
 	AnnotateCmd.Flags().IntVar(&annotateReadinessProbeThreshold, "readiness-probe-threshold", -1, "The threshold to use for the readiness probe")
 	AnnotateCmd.Flags().StringVar(&annotateDaprImage, "dapr-image", "", "The image to use for the dapr sidecar container")
 	AnnotateCmd.Flags().BoolVar(&annotateAppSSL, "app-ssl", false, "Enable SSL for the app")
-	AnnotateCmd.Flags().MarkDeprecated("app-ssl", "This flag is deprecated and will be removed in a future release, use app-protocol flag with https or grpcs instead")
+	AnnotateCmd.Flags().MarkDeprecated("app-ssl", "This flag is deprecated and will be removed in a future release. Use \"app-protocol\" flag with https or grpcs instead")
 	AnnotateCmd.Flags().IntVar(&annotateMaxRequestBodySize, "max-request-body-size", -1, "The maximum request body size to use")
 	AnnotateCmd.Flags().IntVar(&annotateReadBufferSize, "http-read-buffer-size", -1, "The maximum size of HTTP header read buffer in kilobytes")
 	AnnotateCmd.Flags().BoolVar(&annotateHTTPStreamRequestBody, "http-stream-request-body", false, "Enable streaming request body for HTTP")
