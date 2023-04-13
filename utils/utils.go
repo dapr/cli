@@ -144,14 +144,14 @@ func RunCmdAndWait(name string, args ...string) (string, error) {
 		return "", err
 	}
 
-	resp, err := io.ReadAll(stdout)
-	if err != nil {
-		return "", err
-	}
 	errB, err := io.ReadAll(stderr)
 	if err != nil {
 		//nolint
 		return "", nil
+	}
+	resp, err := io.ReadAll(stdout)
+	if err != nil {
+		return "", err
 	}
 
 	err = cmd.Wait()
