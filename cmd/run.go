@@ -434,14 +434,16 @@ func init() {
 	RunCmd.Flags().IntVarP(&profilePort, "profile-port", "", -1, "The port for the profile server to listen on")
 	RunCmd.Flags().StringVarP(&logLevel, "log-level", "", "info", "The log verbosity. Valid values are: debug, info, warn, error, fatal, or panic")
 	RunCmd.Flags().IntVarP(&maxConcurrency, "app-max-concurrency", "", -1, "The concurrency level of the application, otherwise is unlimited")
-	RunCmd.Flags().StringVarP(&protocol, "app-protocol", "P", "http", "The protocol (gRPC or HTTP) Dapr uses to talk to the application")
+	RunCmd.Flags().StringVarP(&protocol, "app-protocol", "P", "http", "The protocol (grpc, grpcs, http, https, h2c) Dapr uses to talk to the application")
 	RunCmd.Flags().StringVarP(&componentsPath, "components-path", "d", "", "The path for components directory")
 	RunCmd.Flags().StringVarP(&resourcesPath, "resources-path", "", "", "The path for resources directory")
 	// TODO: Remove below line once the flag is removed in the future releases.
 	// By marking this as deprecated, the flag will be hidden from the help menu, but will continue to work. It will show a warning message when used.
 	RunCmd.Flags().MarkDeprecated("components-path", "This flag is deprecated and will be removed in the future releases. Use \"resources-path\" flag instead")
 	RunCmd.Flags().String("placement-host-address", "localhost", "The address of the placement service. Format is either <hostname> for default port or <hostname>:<port> for custom port")
+	// TODO: Remove below flag once the flag is removed in runtime in future release.
 	RunCmd.Flags().BoolVar(&appSSL, "app-ssl", false, "Enable https when Dapr invokes the application")
+	RunCmd.Flags().MarkDeprecated("app-ssl", "This flag is deprecated and will be removed in the future releases. Use \"app-protocol\" flag with https or grpcs values instead")
 	RunCmd.Flags().IntVarP(&metricsPort, "metrics-port", "M", -1, "The port of metrics on dapr")
 	RunCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	RunCmd.Flags().IntVarP(&maxRequestBodySize, "dapr-http-max-request-size", "", -1, "Max size of request body in MB")
