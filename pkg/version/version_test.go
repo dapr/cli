@@ -213,8 +213,8 @@ func TestGetVersionsHelm(t *testing.T) {
 		ExpectedVer  string
 	}{
 		{
-			"RC releases are skipped",
-			"/rcs_are_skipped",
+			"Use RC releases if there isn't a full release yet",
+			"/fallback_to_rc",
 			`apiVersion: v1
 entries:
   dapr:
@@ -268,8 +268,8 @@ entries:
     urls:
     - https://dapr.github.io/helm-charts/dapr-1.2.3-rc.1.tgz
     version: 1.2.3-rc.1 `,
-			"no releases",
 			"",
+			"1.2.3-rc.1",
 		},
 	}
 	m := http.NewServeMux()
