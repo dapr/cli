@@ -19,8 +19,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"reflect"
-	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -499,8 +497,8 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 		}
 		// Combined multiwriter for logs.
 		var appDaprdWriter io.Writer
-		// appLogWriterCloser is used when app command is present.
-		var appLogWriterCloser io.Writer
+		// appLogWriter is used when app command is present.
+		var appLogWriter io.Writer
 		// A custom writer used for trimming ASCII color codes from logs when writing to files.
 		var customAppLogWriter io.Writer
 
@@ -509,7 +507,7 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 		if len(runConfig.Command) == 0 {
 			print.StatusEvent(os.Stdout, print.LogWarning, "No application command found for app %q present in %s", runConfig.AppID, runFilePath)
 			appDaprdWriter = getAppDaprdWriter(app, true)
-			appLogWriterCloser = app.DaprdLogWriteCloser
+			appLogWriter = app.DaprdLogWriteCloser
 		} else {
 			err = app.CreateAppLogFile()
 			if err != nil {
@@ -518,9 +516,9 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 				break
 			}
 			appDaprdWriter = getAppDaprdWriter(app, false)
-			appLogWriterCloser = getLogWriter(app.AppLogWriteCloser, app.AppLogDestination)
+			appLogWriter = getLogWriter(app.AppLogWriteCloser, app.AppLogDestination)
 		}
-		customAppLogWriter = CustomLogWriter{w: appLogWriterCloser}
+		customAppLogWriter = print.CustomLogWriter{W: appLogWriter}
 		runState, err := startDaprdAndAppProcesses(&runConfig, app.AppDirPath, sigCh,
 			daprdLogWriterCloser, daprdLogWriterCloser, customAppLogWriter, customAppLogWriter)
 		if err != nil {
@@ -1001,37 +999,4 @@ func getRunFilePath(path string) (string, error) {
 		return "", fmt.Errorf("file %q is not a YAML file", path)
 	}
 	return path, nil
-}
-
-type CustomLogWriter struct {
-	w io.Writer
-}
-
-func (c CustomLogWriter) Write(p []byte) (int, error) {
-	write := func(w io.Writer, isStdIO bool) (int, error) {
-		b := p
-		if !isStdIO {
-			reg := regexp.MustCompile("\x1b\\[[\\d;]+m")
-			b = reg.ReplaceAll(b, []byte(""))
-		}
-		n, err := w.Write(b)
-		if err != nil {
-			return n, err
-		}
-		if n != len(b) {
-			return n, io.ErrShortWrite
-		}
-		return len(b), nil
-	}
-	wIface := reflect.ValueOf(c.w).Interface()
-	switch wType := wIface.(type) {
-	case *os.File:
-		if wType == os.Stderr || wType == os.Stdout {
-			return write(c.w, true)
-		} else {
-			return write(c.w, false)
-		}
-	default:
-		return write(c.w, false)
-	}
 }
