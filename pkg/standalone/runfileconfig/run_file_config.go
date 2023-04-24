@@ -14,6 +14,7 @@ limitations under the License.
 package runfileconfig
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -22,7 +23,15 @@ import (
 	"github.com/dapr/cli/pkg/standalone"
 )
 
+type LogDestType string
+
 const (
+	Console             LogDestType = "console"
+	File                LogDestType = "file"
+	FileAndConsole      LogDestType = "fileAndConsole"
+	DefaultDaprdLogDest             = File
+	DefaultAppLogDest               = FileAndConsole
+
 	appLogFileNamePrefix   = "app"
 	daprdLogFileNamePrefix = "daprd"
 	logFileExtension       = ".log"
@@ -45,6 +54,8 @@ type App struct {
 	DaprdLogFileName     string
 	AppLogWriteCloser    io.WriteCloser
 	DaprdLogWriteCloser  io.WriteCloser
+	DaprdLogDestination  LogDestType `yaml:"daprdLogDestination"`
+	AppLogDestination    LogDestType `yaml:"appLogDestination"`
 }
 
 // Common represents the configuration options for the common section in the run file.
@@ -61,7 +72,13 @@ func (a *App) GetLogsDir() string {
 // CreateAppLogFile creates the log file, sets internal file handle
 // and returns error if any.
 func (a *App) CreateAppLogFile() error {
-	f, err := a.createLogFile(appLogFileNamePrefix)
+	var err error
+	var f *os.File
+	if a.AppLogDestination == Console {
+		f = os.Stdout
+	} else {
+		f, err = a.createLogFile(appLogFileNamePrefix)
+	}
 	if err == nil {
 		a.AppLogWriteCloser = f
 		a.AppLogFileName = f.Name()
@@ -72,7 +89,13 @@ func (a *App) CreateAppLogFile() error {
 // CreateDaprdLogFile creates the log file, sets internal file handle
 // and returns error if any.
 func (a *App) CreateDaprdLogFile() error {
-	f, err := a.createLogFile(daprdLogFileNamePrefix)
+	var err error
+	var f *os.File
+	if a.DaprdLogDestination == Console {
+		f = os.Stdout
+	} else {
+		f, err = a.createLogFile(daprdLogFileNamePrefix)
+	}
 	if err == nil {
 		a.DaprdLogWriteCloser = f
 		a.DaprdLogFileName = f.Name()
@@ -101,4 +124,16 @@ func (a *App) CloseDaprdLogFile() error {
 		return a.DaprdLogWriteCloser.Close()
 	}
 	return nil
+}
+
+func (l LogDestType) String() string {
+	return string(l)
+}
+
+func (l LogDestType) IsValid() error {
+	switch l {
+	case Console, File, FileAndConsole:
+		return nil
+	}
+	return fmt.Errorf("invalid log destination type: %s", l)
 }

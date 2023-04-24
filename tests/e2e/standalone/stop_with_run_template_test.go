@@ -110,6 +110,7 @@ func getCLIPID(t *testing.T) string {
 }
 
 func verifyCLIPIDNotExist(t *testing.T, pid string) {
+	time.Sleep(5 * time.Second)
 	output, err := cmdList("")
 	require.NoError(t, err, "failed to list apps")
 	assert.NotContains(t, output, pid)
