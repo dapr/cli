@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"reflect"
+	"regexp"
 	"runtime"
 	"sync"
 	"time"
@@ -203,4 +205,38 @@ func logJSON(w io.Writer, status, message string) {
 	}
 
 	fmt.Fprintf(w, "%s\n", string(jsonBytes))
+}
+
+type CustomLogWriter struct {
+	W io.Writer
+}
+
+func (c CustomLogWriter) Write(p []byte) (int, error) {
+	write := func(w io.Writer, isStdIO bool) (int, error) {
+		b := p
+		if !isStdIO {
+			// below regex is used to replace the color codes from the logs collected in the log file.
+			reg := regexp.MustCompile("\x1b\\[[\\d;]+m")
+			b = reg.ReplaceAll(b, []byte(""))
+		}
+		n, err := w.Write(b)
+		if err != nil {
+			return n, err
+		}
+		if n != len(b) {
+			return n, io.ErrShortWrite
+		}
+		return len(b), nil
+	}
+	wIface := reflect.ValueOf(c.W).Interface()
+	switch wType := wIface.(type) {
+	case *os.File:
+		if wType == os.Stderr || wType == os.Stdout {
+			return write(c.W, true)
+		} else {
+			return write(c.W, false)
+		}
+	default:
+		return write(c.W, false)
+	}
 }
