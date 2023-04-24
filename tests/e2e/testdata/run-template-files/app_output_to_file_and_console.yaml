@@ -5,10 +5,10 @@ apps:
     daprHTTPPort: 3510
     command: ["go","run", "app.go"]
     appLogDestination: file
+    daprdLogDestination: console
   - appID: emit-metrics
     appDirPath: ../../../apps/emit-metrics/
     daprHTTPPort: 3511
-    appLogDestination: file
     env:
       DAPR_HOST_ADD: localhost
-    command: [""]
+    command: ["go","run", "app.go"]

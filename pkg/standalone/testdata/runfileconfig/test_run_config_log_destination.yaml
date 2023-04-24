@@ -1,0 +1,25 @@
+version: 1
+common:
+apps:
+  - appDirPath: ./webapp/
+    appID: app_1
+  - appDirPath: ./webapp/
+    appID: app_2
+    daprdLogDestination: fileAndConsole
+    appLogDestination: fileAndConsole
+  - appDirPath: ./webapp/
+    appID: app_3
+    daprdLogDestination: file
+    appLogDestination: file
+  - appDirPath: ./webapp/
+    appID: app_4
+    daprdLogDestination: console
+    appLogDestination: console
+  - appDirPath: ./webapp/
+    appID: app_5
+    daprdLogDestination: console
+    appLogDestination: file
+  - appDirPath: ./webapp/
+    appID: app_6
+    daprdLogDestination: file
+    appLogDestination: console
