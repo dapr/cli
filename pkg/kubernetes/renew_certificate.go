@@ -112,7 +112,7 @@ func renewCertificate(rootCert, issuerCert, issuerKey []byte, timeout uint, imag
 		return err
 	}
 
-	daprChart, err := daprChart(daprVersion, helmConf)
+	daprChart, err := daprChart(daprVersion, "dapr", helmConf)
 	if err != nil {
 		return err
 	}
