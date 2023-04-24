@@ -38,6 +38,7 @@ func TestStandaloneRun(t *testing.T) {
 			require.NoError(t, err, "run failed")
 			assert.Contains(t, output, "Exited App successfully")
 			assert.Contains(t, output, "Exited Dapr successfully")
+			assert.NotContains(t, output, "Could not update sidecar metadata for cliPID")
 		})
 
 		t.Run(fmt.Sprintf("error exit, socket: %s", path), func(t *testing.T) {
@@ -46,6 +47,7 @@ func TestStandaloneRun(t *testing.T) {
 			require.Error(t, err, "run failed")
 			assert.Contains(t, output, "The App process exited with error code: exit status 1")
 			assert.Contains(t, output, "Exited Dapr successfully")
+			assert.NotContains(t, output, "Could not update sidecar metadata for cliPID")
 		})
 
 		t.Run("Use internal gRPC port if specified", func(t *testing.T) {
@@ -55,6 +57,7 @@ func TestStandaloneRun(t *testing.T) {
 			assert.Contains(t, output, "internal gRPC server is running on port 9999")
 			assert.Contains(t, output, "Exited App successfully")
 			assert.Contains(t, output, "Exited Dapr successfully")
+			assert.NotContains(t, output, "Could not update sidecar metadata for cliPID")
 		})
 	}
 
@@ -65,6 +68,7 @@ func TestStandaloneRun(t *testing.T) {
 		require.NoError(t, err, "run failed")
 		assert.Contains(t, output, "Exited App successfully", "App should be shutdown before it has a chance to return non-zero")
 		assert.Contains(t, output, "Exited Dapr successfully")
+		assert.NotContains(t, output, "Could not update sidecar metadata for cliPID")
 	})
 
 	t.Run("API shutdown with socket", func(t *testing.T) {
@@ -77,6 +81,7 @@ func TestStandaloneRun(t *testing.T) {
 		t.Log(output)
 		require.NoError(t, err, "run failed")
 		assert.Contains(t, output, "Exited Dapr successfully")
+		assert.NotContains(t, output, "Could not update sidecar metadata for cliPID")
 	})
 
 	t.Run(fmt.Sprintf("check enableAPILogging flag in enabled mode"), func(t *testing.T) {
