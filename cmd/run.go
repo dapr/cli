@@ -354,7 +354,7 @@ dapr run --run-file /path/to/directory
 		}
 
 		// Metadata API is only available if app has started listening to port, so wait for app to start before calling metadata API.
-		err = metadata.Put(output.DaprHTTPPort, "cliPID", strconv.Itoa(os.Getpid()), appID, unixDomainSocket)
+		err = metadata.Put(output.DaprHTTPPort, "cliPID", strconv.Itoa(os.Getpid()), output.AppID, unixDomainSocket)
 		if err != nil {
 			print.WarningStatusEvent(os.Stdout, "Could not update sidecar metadata for cliPID: %s", err.Error())
 		}
@@ -362,7 +362,7 @@ dapr run --run-file /path/to/directory
 		if output.AppCMD != nil {
 			if output.AppCMD.Process != nil {
 				print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Updating metadata for appPID: %d", output.AppCMD.Process.Pid))
-				err = metadata.Put(output.DaprHTTPPort, "appPID", strconv.Itoa(output.AppCMD.Process.Pid), appID, unixDomainSocket)
+				err = metadata.Put(output.DaprHTTPPort, "appPID", strconv.Itoa(output.AppCMD.Process.Pid), output.AppID, unixDomainSocket)
 				if err != nil {
 					print.WarningStatusEvent(os.Stdout, "Could not update sidecar metadata for appPID: %s", err.Error())
 				}
@@ -370,7 +370,7 @@ dapr run --run-file /path/to/directory
 
 			appCommand := strings.Join(args, " ")
 			print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Updating metadata for app command: %s", appCommand))
-			err = metadata.Put(output.DaprHTTPPort, "appCommand", appCommand, appID, unixDomainSocket)
+			err = metadata.Put(output.DaprHTTPPort, "appCommand", appCommand, output.AppID, unixDomainSocket)
 			if err != nil {
 				print.WarningStatusEvent(os.Stdout, "Could not update sidecar metadata for appCommand: %s", err.Error())
 			} else {
