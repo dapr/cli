@@ -49,7 +49,7 @@ var (
 	logLevel           string
 	protocol           string
 	componentsPath     string
-	resourcesPath      string
+	resourcesPaths     []string
 	appSSL             bool
 	metricsPort        int
 	maxRequestBodySize int
@@ -160,7 +160,7 @@ dapr run --run-file /path/to/directory
 			AppProtocol:        protocol,
 			PlacementHostAddr:  viper.GetString("placement-host-address"),
 			ComponentsPath:     componentsPath,
-			ResourcesPath:      resourcesPath,
+			ResourcesPaths:     resourcesPaths,
 			AppSSL:             appSSL,
 			MaxRequestBodySize: maxRequestBodySize,
 			HTTPReadBufferSize: readBufferSize,
@@ -435,8 +435,8 @@ func init() {
 	RunCmd.Flags().StringVarP(&logLevel, "log-level", "", "info", "The log verbosity. Valid values are: debug, info, warn, error, fatal, or panic")
 	RunCmd.Flags().IntVarP(&maxConcurrency, "app-max-concurrency", "", -1, "The concurrency level of the application, otherwise is unlimited")
 	RunCmd.Flags().StringVarP(&protocol, "app-protocol", "P", "http", "The protocol (grpc, grpcs, http, https, h2c) Dapr uses to talk to the application")
-	RunCmd.Flags().StringVarP(&componentsPath, "components-path", "d", "", "The path for components directory")
-	RunCmd.Flags().StringVarP(&resourcesPath, "resources-path", "", "", "The path for resources directory")
+	RunCmd.Flags().StringVarP(&componentsPath, "components-path", "d", "", "The path for components directory. Default is $HOME/.dapr/components or %USERPROFILE%\\.dapr\\components")
+	RunCmd.Flags().StringSliceVarP(&resourcesPaths, "resources-path", "", []string{}, "The path for resources directory")
 	// TODO: Remove below line once the flag is removed in the future releases.
 	// By marking this as deprecated, the flag will be hidden from the help menu, but will continue to work. It will show a warning message when used.
 	RunCmd.Flags().MarkDeprecated("components-path", "This flag is deprecated and will be removed in the future releases. Use \"resources-path\" flag instead")
