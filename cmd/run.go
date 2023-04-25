@@ -986,12 +986,7 @@ func putRunFilePathInMeta(runE *runExec.RunExec, runFilePath string) {
 
 // putRunTemplateNameInMeta puts the name of the run file in metadata so that it can be used by the CLI to stop all apps started by this run file.
 func putRunTemplateNameInMeta(runE *runExec.RunExec, runTemplateName string) {
-	runTemplateName, err := filepath.Abs(runTemplateName)
-	if err != nil {
-		print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogWarning, "Could not get absolute path for run file: %s", err.Error())
-		return
-	}
-	err = metadata.Put(runE.DaprHTTPPort, "runTemplateName", runTemplateName, runE.AppID, unixDomainSocket)
+	err := metadata.Put(runE.DaprHTTPPort, "runTemplateName", runTemplateName, runE.AppID, unixDomainSocket)
 	if err != nil {
 		print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogWarning, "Could not update sidecar metadata for run template name: %s", err.Error())
 	}
