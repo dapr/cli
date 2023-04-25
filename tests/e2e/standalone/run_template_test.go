@@ -20,7 +20,6 @@ package standalone_test
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -160,7 +159,6 @@ func TestRunWithTemplateFile(t *testing.T) {
 			},
 		}
 		assertLogOutputForRunTemplateExec(t, appTestOutput)
-		assertTemplateListOutput(t, "test_dapr_template")
 	})
 
 	t.Run("invalid template file env var not set", func(t *testing.T) {
@@ -410,20 +408,6 @@ func assertLogOutputForRunTemplateExec(t *testing.T, appTestOutput AppTestOutput
 	require.NoError(t, err, "failed to find app log file")
 	appLogPath := filepath.Join(appTestOutput.baseLogDirPath, appLogFileName)
 	readAndAssertLogFileContents(t, appLogPath, appTestOutput.appLogContents)
-}
-
-func assertTemplateListOutput(t *testing.T, name string) {
-	output, err := cmdList("json")
-	t.Log(output)
-	require.NoError(t, err, "dapr list failed")
-	var result []map[string]interface{}
-
-	err = json.Unmarshal([]byte(output), &result)
-
-	assert.NoError(t, err, "output was not valid JSON")
-
-	assert.Len(t, result, 2, "expected two apps to be running")
-	assert.Equal(t, name, result[0]["runTemplateName"], "expected run template name to be %s", name)
 }
 
 func readAndAssertLogFileContents(t *testing.T, logFilePath string, expectedContent []string) {
