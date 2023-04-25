@@ -44,6 +44,7 @@ type RunFileConfig struct {
 	Common  Common `yaml:"common"`
 	Apps    []App  `yaml:"apps"`
 	Version int    `yaml:"version"`
+	Name    string `yaml:"name,omitempty"`
 }
 
 // App represents the configuration options for the apps in the run file.
