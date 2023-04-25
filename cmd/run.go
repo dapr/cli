@@ -460,7 +460,7 @@ func init() {
 	RootCmd.AddCommand(RunCmd)
 }
 
-func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
+func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (bool, error) {
 	var exitWithError bool
 
 	// setup shutdown notify channel.
@@ -536,6 +536,9 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 
 		// Update extended metadata with run file path.
 		putRunFilePathInMeta(runState, runFilePath)
+
+		// Update extended metadata with run file path.
+		putRunTemplateNameInMeta(runState, runTemplateName)
 
 		if runState.AppCMD.Command != nil {
 			putAppCommandInMeta(runConfig, runState)
@@ -645,7 +648,7 @@ func executeRunWithAppsConfigFile(runFilePath string) {
 		print.StatusEvent(os.Stdout, print.LogFailure, "No apps to run")
 		os.Exit(1)
 	}
-	exitWithError, closeErr := executeRun(runFilePath, apps)
+	exitWithError, closeErr := executeRun(config.Name, runFilePath, apps)
 	if exitWithError {
 		if closeErr != nil {
 			print.StatusEvent(os.Stdout, print.LogFailure, "Error closing resources: %s", closeErr)
@@ -977,7 +980,20 @@ func putRunFilePathInMeta(runE *runExec.RunExec, runFilePath string) {
 	}
 	err = metadata.Put(runE.DaprHTTPPort, "runTemplatePath", runFilePath, runE.AppID, unixDomainSocket)
 	if err != nil {
-		print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogWarning, "Could not update sidecar metadata for runFile: %s", err.Error())
+		print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogWarning, "Could not update sidecar metadata for run file patbh: %s", err.Error())
+	}
+}
+
+// putRunTemplateNameInMeta puts the name of the run file in metadata so that it can be used by the CLI to stop all apps started by this run file.
+func putRunTemplateNameInMeta(runE *runExec.RunExec, runTemplateName string) {
+	runTemplateName, err := filepath.Abs(runTemplateName)
+	if err != nil {
+		print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogWarning, "Could not get absolute path for run file: %s", err.Error())
+		return
+	}
+	err = metadata.Put(runE.DaprHTTPPort, "runTemplateName", runTemplateName, runE.AppID, unixDomainSocket)
+	if err != nil {
+		print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogWarning, "Could not update sidecar metadata for run template name: %s", err.Error())
 	}
 }
 
