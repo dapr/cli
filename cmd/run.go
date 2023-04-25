@@ -980,7 +980,7 @@ func putRunFilePathInMeta(runE *runExec.RunExec, runFilePath string) {
 	}
 	err = metadata.Put(runE.DaprHTTPPort, "runTemplatePath", runFilePath, runE.AppID, unixDomainSocket)
 	if err != nil {
-		print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogWarning, "Could not update sidecar metadata for run file patbh: %s", err.Error())
+		print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogWarning, "Could not update sidecar metadata for run file path: %s", err.Error())
 	}
 }
 
