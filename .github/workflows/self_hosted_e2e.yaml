@@ -97,6 +97,7 @@ jobs:
           restore-keys: |
             ${{ matrix.target_os }}-${{ matrix.target_arch }}-go-${{ steps.setup-go.outputs.go-version }}-
       - name: Install podman - MacOS
+        timeout-minutes: 15
         if: matrix.os == 'macos-latest' && matrix.dapr_install_mode == 'complete'
         run: |
           sudo rm -rf `brew --cache`
