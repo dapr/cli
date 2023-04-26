@@ -278,19 +278,19 @@ func TestMultiResourcePathsResolution(t *testing.T) {
 		{
 			name:                           "resourcesPaths should have 2 paths",
 			expectedNoOfResources:          2,
-			expectedResourcesPathsContains: "backend/.dapr/resources",
+			expectedResourcesPathsContains: filepath.Join("backend", ".dapr", "resources"),
 			appIndex:                       0,
 		},
 		{
 			name:                           "resourcesPaths should have 1 path from common section",
 			expectedNoOfResources:          1,
-			expectedResourcesPathsContains: "app/resources",
+			expectedResourcesPathsContains: filepath.Join("app", "resources"),
 			appIndex:                       1,
 		},
 		{
 			name:                           "resourcesPaths should have 1 path from .dapr's folder",
 			expectedNoOfResources:          1,
-			expectedResourcesPathsContains: "backend/.dapr/resources",
+			expectedResourcesPathsContains: filepath.Join("backend", ".dapr", "resources"),
 			appIndex:                       2,
 		},
 	}
