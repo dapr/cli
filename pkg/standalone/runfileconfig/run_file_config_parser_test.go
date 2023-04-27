@@ -29,6 +29,7 @@ var (
 	invalidRunFilePath2             = filepath.Join("..", "testdata", "runfileconfig", "test_run_config_empty_app_dir.yaml")
 	runFileForPrecedenceRule        = filepath.Join("..", "testdata", "runfileconfig", "test_run_config_precedence_rule.yaml")
 	runFileForPrecedenceRuleDaprDir = filepath.Join("..", "testdata", "runfileconfig", "test_run_config_precedence_rule_dapr_dir.yaml")
+	runFileForLogDestination        = filepath.Join("..", "testdata", "runfileconfig", "test_run_config_log_destination.yaml")
 )
 
 func TestRunConfigFile(t *testing.T) {
@@ -223,6 +224,31 @@ func TestRunConfigFile(t *testing.T) {
 				assert.Equal(t, tc.expectedErr, actualErr != nil)
 			})
 		}
+	})
+
+	t.Run("test log destination for daprd and apps", func(t *testing.T) {
+		config := RunFileConfig{}
+		apps, err := config.GetApps(runFileForLogDestination)
+		assert.NoError(t, err)
+		assert.Equal(t, 6, len(apps))
+
+		assert.Equal(t, "file", apps[0].DaprdLogDestination.String())
+		assert.Equal(t, "fileAndConsole", apps[0].AppLogDestination.String())
+
+		assert.Equal(t, "fileAndConsole", apps[1].DaprdLogDestination.String())
+		assert.Equal(t, "fileAndConsole", apps[1].AppLogDestination.String())
+
+		assert.Equal(t, "file", apps[2].DaprdLogDestination.String())
+		assert.Equal(t, "file", apps[2].AppLogDestination.String())
+
+		assert.Equal(t, "console", apps[3].DaprdLogDestination.String())
+		assert.Equal(t, "console", apps[3].AppLogDestination.String())
+
+		assert.Equal(t, "console", apps[4].DaprdLogDestination.String())
+		assert.Equal(t, "file", apps[4].AppLogDestination.String())
+
+		assert.Equal(t, "file", apps[5].DaprdLogDestination.String())
+		assert.Equal(t, "console", apps[5].AppLogDestination.String())
 	})
 }
 

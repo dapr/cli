@@ -25,8 +25,9 @@ import (
 )
 
 var (
-	upgradeRuntimeVersion string
-	upgradeImageVariant   string
+	upgradeRuntimeVersion   string
+	upgradeImageVariant     string
+	upgradeDashboardVersion string
 )
 
 var UpgradeCmd = &cobra.Command{
@@ -58,6 +59,7 @@ dapr upgrade -k
 		}
 		err = kubernetes.Upgrade(kubernetes.UpgradeConfig{
 			RuntimeVersion:   upgradeRuntimeVersion,
+			DashboardVersion: upgradeDashboardVersion,
 			Args:             values,
 			Timeout:          timeout,
 			ImageRegistryURI: imageRegistryURI,
@@ -78,6 +80,7 @@ func init() {
 	UpgradeCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Upgrade or downgrade Dapr in a Kubernetes cluster")
 	UpgradeCmd.Flags().UintVarP(&timeout, "timeout", "", 300, "The timeout for the Kubernetes upgrade")
 	UpgradeCmd.Flags().StringVarP(&upgradeRuntimeVersion, "runtime-version", "", "", "The version of the Dapr runtime to upgrade or downgrade to, for example: 1.0.0")
+	UpgradeCmd.Flags().StringVarP(&upgradeDashboardVersion, "dashboard-version", "", "", "The version of the Dapr dashboard to upgrade or downgrade to, for example: 0.13.0")
 	UpgradeCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	UpgradeCmd.Flags().StringArrayVar(&values, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
 	UpgradeCmd.Flags().String("image-registry", "", "Custom/Private docker image repository URL")

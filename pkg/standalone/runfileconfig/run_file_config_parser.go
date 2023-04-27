@@ -91,11 +91,13 @@ func (a *RunFileConfig) GetApps(runFilePath string) ([]App, error) {
 	}
 	a.mergeCommonAndAppsSharedRunConfig()
 	a.mergeCommonAndAppsEnv()
-	// Resolve app ids if not provided in the run file.
-	err = a.setAppIDIfEmpty()
+
+	// Set and validates default fields in the run file.
+	err = a.setDefaultFields()
 	if err != nil {
 		return nil, err
 	}
+
 	return a.Apps, nil
 }
 
@@ -121,17 +123,44 @@ func (a *RunFileConfig) mergeCommonAndAppsSharedRunConfig() {
 	}
 }
 
+// setDefaultFields sets the default values for the fields that are not provided in the run file.
+func (a *RunFileConfig) setDefaultFields() error {
+	for i := range a.Apps {
+		if err := a.setAppIDIfEmpty(&a.Apps[i]); err != nil {
+			return err
+		}
+		if err := a.setAndValidateLogDestination(&a.Apps[i]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Set AppID to the directory name of appDirPath.
 // appDirPath is a mandatory field in the run file and at this point it is already validated and resolved to its absolute path.
-func (a *RunFileConfig) setAppIDIfEmpty() error {
-	for i := range a.Apps {
-		if a.Apps[i].AppID == "" {
-			basePath, err := a.getBasePathFromAbsPath(a.Apps[i].AppDirPath)
-			if err != nil {
-				return err
-			}
-			a.Apps[i].AppID = basePath
+func (a *RunFileConfig) setAppIDIfEmpty(app *App) error {
+	if app.AppID == "" {
+		basePath, err := a.getBasePathFromAbsPath(app.AppDirPath)
+		if err != nil {
+			return fmt.Errorf("error in setting the app id: %w", err)
 		}
+		app.AppID = basePath
+	}
+	return nil
+}
+
+// setAndValidateLogDestination sets the default log destination if not provided in the run file.
+// It also validates the log destination if provided.
+func (a *RunFileConfig) setAndValidateLogDestination(app *App) error {
+	if app.DaprdLogDestination == "" {
+		app.DaprdLogDestination = DefaultDaprdLogDest
+	} else if err := app.DaprdLogDestination.IsValid(); err != nil {
+		return err
+	}
+	if app.AppLogDestination == "" {
+		app.AppLogDestination = DefaultAppLogDest
+	} else if err := app.AppLogDestination.IsValid(); err != nil {
+		return err
 	}
 	return nil
 }
@@ -150,6 +179,10 @@ func (a *RunFileConfig) resolvePathToAbsAndValidate(baseDir string, paths ...*st
 	for _, path := range paths {
 		if *path == "" {
 			continue
+		}
+		*path, err = utils.ResolveHomeDir(*path)
+		if err != nil {
+			return err
 		}
 		absPath := utils.GetAbsPath(baseDir, *path)
 		if err != nil {
