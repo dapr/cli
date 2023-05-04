@@ -308,12 +308,12 @@ func HTTPEndpointsTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 			t.Log(output)
 			require.NoError(t, err, "expected no error on kubectl apply")
 			require.Equal(t, "httpendpoints.dapr.io/httpendpoint created\nhttpendpoints.dapr.io/httpendpoint created\n", output, "expected output to match")
+			httpEndpointOutputCheck(t, output)
 		}
 
 		t.Log("check applied httpendpoint exists")
-		output, err := spawn.Command("kubectl", "get", "httpendpoint")
+		_, err := spawn.Command("kubectl", "get", "httpendpoint")
 		require.NoError(t, err, "expected no error on calling to retrieve httpendpoints")
-		httpEndpointOutputCheck(t, output)
 	}
 }
 
@@ -904,7 +904,7 @@ func componentOutputCheck(t *testing.T, output string, all bool) {
 
 	lines = strings.Split(output, "\n")[2:] // remove header and warning message.
 
-	assert.Equal(t, 2, len(lines), "expected 2 componets") // default and test namespace components.
+	assert.Equal(t, 2, len(lines), "expected 2 components") // default and test namespace components.
 
 	// for fresh cluster only one component yaml has been applied.
 	testNsFields := strings.Fields(lines[0])
@@ -931,7 +931,7 @@ func httpEndpointOutputCheck(t *testing.T, output string) {
 	)
 	assert.Contains(t, output, headerName)
 	assert.Contains(t, output, headerAge)
-	// check for test httpendpoint output present
+	// check for test httpendpoint named httpendpoint output to be present in output
 	assert.Contains(t, output, "httpendpoint")
 
 }
