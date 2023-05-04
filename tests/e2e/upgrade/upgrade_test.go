@@ -86,7 +86,8 @@ var supportedUpgradePaths = []upgradePath{
 			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io"},
 		},
 		next: common.VersionDetails{
-			RuntimeVersion:      "1.11.0",
+			// TODO: This needs to be changed to v1.11.0 after the release is made
+			RuntimeVersion:      "master",
 			DashboardVersion:    "0.12.0",
 			ClusterRoles:        []string{"dapr-dashboard", "dapr-injector", "dapr-operator-admin", "dapr-placement", "dapr-sentry"},
 			ClusterRoleBindings: []string{"dapr-operator-admin", "dapr-dashboard", "dapr-injector", "dapr-placement", "dapr-sentry"},
@@ -112,7 +113,8 @@ var supportedUpgradePaths = []upgradePath{
 	},
 	{
 		previous: common.VersionDetails{
-			RuntimeVersion:      "1.11.0",
+			// TODO: This needs to be changed to v1.11.0 after the release is made
+			RuntimeVersion:      "master",
 			DashboardVersion:    "0.12.0",
 			ClusterRoles:        []string{"dapr-dashboard", "dapr-injector", "dapr-operator-admin", "dapr-placement", "dapr-sentry"},
 			ClusterRoleBindings: []string{"dapr-operator-admin", "dapr-dashboard", "dapr-injector", "dapr-placement", "dapr-sentry"},
@@ -361,7 +363,8 @@ func TestUpgradeWithHTTPEndpoint(t *testing.T) {
 
 	for _, p := range supportedUpgradePaths {
 		// only check runtime versions that support HTTPEndpoint resource
-		if p.next.RuntimeVersion != "1.11.0" {
+		// TODO: This needs to be changed to v1.11.0 after the release is made
+		if p.next.RuntimeVersion != "master" {
 			return
 		}
 		t.Run(fmt.Sprintf("v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
