@@ -1,3 +1,5 @@
+--- # ------------------------------------------------------------
+
 # ------------------------------------------------------------
 # Copyright 2021 The Dapr Authors
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -9,8 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# ------------------------------------------------------------
-
 name: E2E - Self-hosted
 
 on:
@@ -19,16 +19,16 @@ on:
       - master
       - release-*
     paths-ignore:
-      - '**.md'
+      - "**.md"
   schedule:
-    - cron: '0 */3 * * *'
-    - cron: '0 */6 * * *'
+    - cron: "0 */3 * * *"
+    - cron: "0 */6 * * *"
   pull_request:
     branches:
       - master
-      - 'release-*'
+      - "release-*"
     paths-ignore:
-      - '**.md'
+      - "**.md"
 
 jobs:
   self-hosted-e2e:
@@ -65,7 +65,7 @@ jobs:
         uses: actions/setup-go@v3
         id: setup-go
         with:
-          go-version-file: 'go.mod'
+          go-version-file: "go.mod"
       - name: Cache Go modules (Linux)
         if: matrix.target_os == 'linux'
         uses: actions/cache@v3
@@ -102,12 +102,12 @@ jobs:
         run: |
           sudo rm -rf `brew --cache`
           brew upgrade
-          brew install podman
+          brew install podman@4.4.4
           which podman-mac-helper
           podman_helper=$(which podman-mac-helper)
           sudo ${podman_helper} install
           podman machine init
-          podman machine start
+          podman machine start --loglevel=debug
           echo "CONTAINER_RUNTIME=podman" >> $GITHUB_ENV
       - name: Determine latest Dapr Runtime version including Pre-releases
         if: github.base_ref == 'master'
