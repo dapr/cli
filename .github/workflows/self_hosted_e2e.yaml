@@ -100,9 +100,9 @@ jobs:
         timeout-minutes: 15
         if: matrix.os == 'macos-latest' && matrix.dapr_install_mode == 'complete'
         run: |
-          sudo rm -rf `brew --cache`
-          brew upgrade
-          brew install podman@4.4.4
+          curl -sL -o podman.zip https://github.com/containers/podman/releases/download/v4.4.4/podman-remote-release-darwin_amd64.zip
+          unzip podman.zip
+          sudo mv podman-*/usr/bin/* /usr/local/bin
           which podman-mac-helper
           podman_helper=$(which podman-mac-helper)
           sudo ${podman_helper} install
