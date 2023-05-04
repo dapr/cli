@@ -110,6 +110,7 @@ func getTestsOnUpgrade(p upgradePath, installOpts, upgradeOpts common.TestOption
 		{Name: "clusterroles exist " + details.RuntimeVersion, Callable: common.ClusterRolesTest(details, upgradeOpts)},
 		{Name: "clusterrolebindings exist " + details.RuntimeVersion, Callable: common.ClusterRoleBindingsTest(details, upgradeOpts)},
 		{Name: "previously applied components exist " + details.RuntimeVersion, Callable: common.ComponentsTestOnInstallUpgrade(upgradeOpts)},
+		{Name: "previously applied http endpoints exist " + details.RuntimeVersion, Callable: common.HTTPEndpointsTestOnInstallUpgrade(upgradeOpts)},
 		{Name: "check mtls " + details.RuntimeVersion, Callable: common.MTLSTestOnInstallUpgrade(upgradeOpts)},
 		{Name: "status check " + details.RuntimeVersion, Callable: common.StatusTestOnInstallUpgrade(details, upgradeOpts)},
 	}...)
@@ -147,9 +148,10 @@ func TestUpgradePathNonHAModeMTLSDisabled(t *testing.T) {
 	for _, p := range supportedUpgradePaths {
 		t.Run(fmt.Sprintf("v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
 			installOpts := common.TestOptions{
-				HAEnabled:             false,
-				MTLSEnabled:           false,
-				ApplyComponentChanges: true,
+				HAEnabled:                false,
+				MTLSEnabled:              false,
+				ApplyComponentChanges:    true,
+				ApplyHTTPEndpointChanges: true,
 				CheckResourceExists: map[common.Resource]bool{
 					common.CustomResourceDefs:  true,
 					common.ClusterRoles:        true,
@@ -160,8 +162,9 @@ func TestUpgradePathNonHAModeMTLSDisabled(t *testing.T) {
 			upgradeOpts := common.TestOptions{
 				HAEnabled:   false,
 				MTLSEnabled: false,
-				// do not apply changes on upgrade, verify existing components.
-				ApplyComponentChanges: false,
+				// do not apply changes on upgrade, verify existing components and httpendpoints.
+				ApplyComponentChanges:    false,
+				ApplyHTTPEndpointChanges: false,
 				CheckResourceExists: map[common.Resource]bool{
 					common.CustomResourceDefs:  true,
 					common.ClusterRoles:        true,
@@ -190,9 +193,10 @@ func TestUpgradePathNonHAModeMTLSEnabled(t *testing.T) {
 	for _, p := range supportedUpgradePaths {
 		t.Run(fmt.Sprintf("v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
 			installOpts := common.TestOptions{
-				HAEnabled:             false,
-				MTLSEnabled:           true,
-				ApplyComponentChanges: true,
+				HAEnabled:                false,
+				MTLSEnabled:              true,
+				ApplyComponentChanges:    true,
+				ApplyHTTPEndpointChanges: true,
 				CheckResourceExists: map[common.Resource]bool{
 					common.CustomResourceDefs:  true,
 					common.ClusterRoles:        true,
@@ -203,8 +207,9 @@ func TestUpgradePathNonHAModeMTLSEnabled(t *testing.T) {
 			upgradeOpts := common.TestOptions{
 				HAEnabled:   false,
 				MTLSEnabled: true,
-				// do not apply changes on upgrade, verify existing components.
-				ApplyComponentChanges: false,
+				// do not apply changes on upgrade, verify existing components and httpendpoints.
+				ApplyComponentChanges:    false,
+				ApplyHTTPEndpointChanges: false,
 				CheckResourceExists: map[common.Resource]bool{
 					common.CustomResourceDefs:  true,
 					common.ClusterRoles:        true,
@@ -233,9 +238,10 @@ func TestUpgradePathHAModeMTLSDisabled(t *testing.T) {
 	for _, p := range supportedUpgradePaths {
 		t.Run(fmt.Sprintf("v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
 			installOpts := common.TestOptions{
-				HAEnabled:             true,
-				MTLSEnabled:           false,
-				ApplyComponentChanges: true,
+				HAEnabled:                true,
+				MTLSEnabled:              false,
+				ApplyComponentChanges:    true,
+				ApplyHTTPEndpointChanges: true,
 				CheckResourceExists: map[common.Resource]bool{
 					common.CustomResourceDefs:  true,
 					common.ClusterRoles:        true,
@@ -246,8 +252,9 @@ func TestUpgradePathHAModeMTLSDisabled(t *testing.T) {
 			upgradeOpts := common.TestOptions{
 				HAEnabled:   true,
 				MTLSEnabled: false,
-				// do not apply changes on upgrade, verify existing components.
-				ApplyComponentChanges: false,
+				// do not apply changes on upgrade, verify existing components and httpendpoints.
+				ApplyComponentChanges:    false,
+				ApplyHTTPEndpointChanges: false,
 				CheckResourceExists: map[common.Resource]bool{
 					common.CustomResourceDefs:  true,
 					common.ClusterRoles:        true,
@@ -276,9 +283,10 @@ func TestUpgradePathHAModeMTLSEnabled(t *testing.T) {
 	for _, p := range supportedUpgradePaths {
 		t.Run(fmt.Sprintf("v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
 			installOpts := common.TestOptions{
-				HAEnabled:             true,
-				MTLSEnabled:           true,
-				ApplyComponentChanges: true,
+				HAEnabled:                true,
+				MTLSEnabled:              true,
+				ApplyComponentChanges:    true,
+				ApplyHTTPEndpointChanges: true,
 				CheckResourceExists: map[common.Resource]bool{
 					common.CustomResourceDefs:  true,
 					common.ClusterRoles:        true,
@@ -289,8 +297,9 @@ func TestUpgradePathHAModeMTLSEnabled(t *testing.T) {
 			upgradeOpts := common.TestOptions{
 				HAEnabled:   true,
 				MTLSEnabled: true,
-				// do not apply changes on upgrade, verify existing components.
-				ApplyComponentChanges: false,
+				// do not apply changes on upgrade, verify existing components and httpendpoints.
+				ApplyComponentChanges:    false,
+				ApplyHTTPEndpointChanges: false,
 				CheckResourceExists: map[common.Resource]bool{
 					common.CustomResourceDefs:  true,
 					common.ClusterRoles:        true,
