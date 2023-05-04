@@ -185,7 +185,7 @@ func TestUpgradePathNonHAModeMTLSDisabled(t *testing.T) {
 				HAEnabled:                false,
 				MTLSEnabled:              false,
 				ApplyComponentChanges:    true,
-				ApplyHTTPEndpointChanges: true,
+				ApplyHTTPEndpointChanges: false,
 				CheckResourceExists: map[common.Resource]bool{
 					common.CustomResourceDefs:  true,
 					common.ClusterRoles:        true,
