@@ -44,6 +44,7 @@ type ListOutput struct {
 	MaxRequestBodySize int    `csv:"-"         json:"maxRequestBodySize" yaml:"maxRequestBodySize"` // Additional field, not displayed in table.
 	HTTPReadBufferSize int    `csv:"-"         json:"httpReadBufferSize" yaml:"httpReadBufferSize"` // Additional field, not displayed in table.
 	RunTemplatePath    string `csv:"RUN_TEMPLATE_PATH"  json:"runTemplatePath"            yaml:"runTemplatePath"`
+	RunTemplateName    string `json:"runTemplateName"            yaml:"runTemplateName"` // specifically omitted in csv output.
 }
 
 func (d *daprProcess) List() ([]ListOutput, error) {
@@ -111,6 +112,7 @@ func List() ([]ListOutput, error) {
 			appPIDString := ""
 			cliPIDString := ""
 			runTemplatePath := ""
+			runTemplateName := ""
 			socket := argumentsMap["--unix-domain-socket"]
 			appMetadata, err := metadata.Get(httpPort, appID, socket)
 			if err == nil {
@@ -118,6 +120,7 @@ func List() ([]ListOutput, error) {
 				appPIDString = appMetadata.Extended["appPID"]
 				cliPIDString = appMetadata.Extended["cliPID"]
 				runTemplatePath = appMetadata.Extended["runTemplatePath"]
+				runTemplateName = appMetadata.Extended["runTemplateName"]
 			}
 
 			appPID, err := strconv.Atoi(appPIDString)
@@ -155,6 +158,7 @@ func List() ([]ListOutput, error) {
 				MaxRequestBodySize: maxRequestBodySize,
 				HTTPReadBufferSize: httpReadBufferSize,
 				RunTemplatePath:    runTemplatePath,
+				RunTemplateName:    runTemplateName,
 			}
 
 			// filter only dashboard instance.

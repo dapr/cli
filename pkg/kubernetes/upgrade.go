@@ -20,6 +20,7 @@ import (
 	"time"
 
 	helm "helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/chart"
 	"k8s.io/helm/pkg/strvals"
 
 	"github.com/hashicorp/go-version"
@@ -48,6 +49,7 @@ var crdsFullResources = []string{
 
 type UpgradeConfig struct {
 	RuntimeVersion   string
+	DashboardVersion string
 	Args             []string
 	Timeout          uint
 	ImageRegistryURI string
@@ -68,9 +70,17 @@ func Upgrade(conf UpgradeConfig) error {
 		return err
 	}
 
-	daprChart, err := daprChart(conf.RuntimeVersion, helmConf)
+	controlPlaneChart, err := daprChart(conf.RuntimeVersion, "dapr", helmConf)
 	if err != nil {
 		return err
+	}
+
+	var dashboardChart *chart.Chart
+	if conf.DashboardVersion != "" {
+		dashboardChart, err = daprChart(conf.DashboardVersion, "dapr-dashboard", helmConf)
+		if err != nil {
+			return err
+		}
 	}
 
 	upgradeClient := helm.NewUpgrade(helmConf)
@@ -123,9 +133,16 @@ func Upgrade(conf UpgradeConfig) error {
 		return err
 	}
 
-	if _, err = upgradeClient.Run(chart, daprChart, vals); err != nil {
+	if _, err = upgradeClient.Run(chart, controlPlaneChart, vals); err != nil {
 		return err
 	}
+
+	if dashboardChart != nil {
+		if _, err = upgradeClient.Run(chart, dashboardChart, vals); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

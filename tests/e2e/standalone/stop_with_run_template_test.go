@@ -44,6 +44,8 @@ func TestStopAppsStartedWithRunTemplate(t *testing.T) {
 		go ensureAllAppsStartedWithRunTemplate(t)
 		time.Sleep(10 * time.Second)
 		cliPID := getCLIPID(t)
+		// Assert dapr list contains template name
+		assertTemplateListOutput(t, "test_dapr_template")
 		output, err := cmdStopWithRunTemplate("../testdata/run-template-files/dapr.yaml")
 		assert.NoError(t, err, "failed to stop apps started with run template")
 		assert.Contains(t, output, "Dapr and app processes stopped successfully")
@@ -110,7 +112,22 @@ func getCLIPID(t *testing.T) string {
 }
 
 func verifyCLIPIDNotExist(t *testing.T, pid string) {
+	time.Sleep(5 * time.Second)
 	output, err := cmdList("")
 	require.NoError(t, err, "failed to list apps")
 	assert.NotContains(t, output, pid)
+}
+
+func assertTemplateListOutput(t *testing.T, name string) {
+	output, err := cmdList("json")
+	t.Log(output)
+	require.NoError(t, err, "dapr list failed")
+	var result []map[string]interface{}
+
+	err = json.Unmarshal([]byte(output), &result)
+
+	assert.NoError(t, err, "output was not valid JSON")
+
+	assert.Len(t, result, 2, "expected two apps to be running")
+	assert.Equal(t, name, result[0]["runTemplateName"], "expected run template name to be %s", name)
 }

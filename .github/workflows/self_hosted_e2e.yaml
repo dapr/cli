@@ -10,7 +10,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ------------------------------------------------------------
-
 name: E2E - Self-hosted
 
 on:
@@ -19,16 +18,16 @@ on:
       - master
       - release-*
     paths-ignore:
-      - '**.md'
+      - "**.md"
   schedule:
-    - cron: '0 */3 * * *'
-    - cron: '0 */6 * * *'
+    - cron: "0 */3 * * *"
+    - cron: "0 */6 * * *"
   pull_request:
     branches:
       - master
-      - 'release-*'
+      - "release-*"
     paths-ignore:
-      - '**.md'
+      - "**.md"
 
 jobs:
   self-hosted-e2e:
@@ -43,6 +42,7 @@ jobs:
       DAPR_DASHBOARD_PINNED_VERSION: 0.12.0
       DAPR_RUNTIME_LATEST_STABLE_VERSION:
       DAPR_DASHBOARD_LATEST_STABLE_VERSION:
+      PODMAN_VERSION: 4.4.4
     strategy:
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
@@ -65,7 +65,7 @@ jobs:
         uses: actions/setup-go@v3
         id: setup-go
         with:
-          go-version-file: 'go.mod'
+          go-version-file: "go.mod"
       - name: Cache Go modules (Linux)
         if: matrix.target_os == 'linux'
         uses: actions/cache@v3
@@ -97,16 +97,19 @@ jobs:
           restore-keys: |
             ${{ matrix.target_os }}-${{ matrix.target_arch }}-go-${{ steps.setup-go.outputs.go-version }}-
       - name: Install podman - MacOS
+        timeout-minutes: 15
         if: matrix.os == 'macos-latest' && matrix.dapr_install_mode == 'complete'
         run: |
-          sudo rm -rf `brew --cache`
-          brew upgrade
-          brew install podman
-          which podman-mac-helper
-          podman_helper=$(which podman-mac-helper)
-          sudo ${podman_helper} install
+          # Install podman
+          curl -sL -o podman.pkg https://github.com/containers/podman/releases/download/v${{ env.PODMAN_VERSION }}/podman-installer-macos-amd64.pkg
+          sudo installer -pkg podman.pkg -target /
+          export PATH=/opt/podman/bin:$PATH
+          echo "/opt/podman/bin" >> $GITHUB_PATH
+
+          # Start podman machine
+          sudo podman-mac-helper install
           podman machine init
-          podman machine start
+          podman machine start --log-level debug
           echo "CONTAINER_RUNTIME=podman" >> $GITHUB_ENV
       - name: Determine latest Dapr Runtime version including Pre-releases
         if: github.base_ref == 'master'

@@ -150,6 +150,12 @@ func GetLatestReleaseHelmChart(helmChartURL string) (string, error) {
 			}
 		}
 
+		// Did not find a non-rc version, so we fallback to an RC.
+		// This is helpful to allow us to validate installation of new charts (Dashboard).
+		for _, release := range helmChartReleases.Entries.Dapr {
+			return release.Version, nil
+		}
+
 		return "", fmt.Errorf("no releases")
 	})
 }

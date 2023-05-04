@@ -36,13 +36,15 @@ import (
 )
 
 const (
-	daprReleaseName = "dapr"
-	daprHelmRepo    = "https://dapr.github.io/helm-charts"
-	latestVersion   = "latest"
+	daprReleaseName      = "dapr"
+	dashboardReleaseName = "dapr-dashboard"
+	daprHelmRepo         = "https://dapr.github.io/helm-charts"
+	latestVersion        = "latest"
 )
 
 type InitConfiguration struct {
 	Version                   string
+	DashboardVersion          string
 	Namespace                 string
 	EnableMTLS                bool
 	EnableHA                  bool
@@ -58,15 +60,38 @@ type InitConfiguration struct {
 
 // Init deploys the Dapr operator using the supplied runtime version.
 func Init(config InitConfiguration) error {
-	msg := "Deploying the Dapr control plane to your cluster..."
-
-	stopSpinning := print.Spinner(os.Stdout, msg)
-	defer stopSpinning(print.Failure)
-	if err := install(config); err != nil {
+	err := installWithConsole(daprReleaseName, config.Version, "Dapr control plane", config)
+	if err != nil {
 		return err
 	}
 
-	stopSpinning(print.Success)
+	for _, dashboardClusterRole := range []string{"dashboard-reader", "dapr-dashboard"} {
+		// Detect Dapr Dashboard using a cluster-level resource (not dependent on namespace).
+		_, err = utils.RunCmdAndWait("kubectl", "describe", "clusterrole", dashboardClusterRole)
+		if err == nil {
+			// No need to install Dashboard since it is already present.
+			// Charts for versions < 1.11 contain Dashboard already.
+			return nil
+		}
+	}
+
+	err = installWithConsole(dashboardReleaseName, config.DashboardVersion, "Dapr dashboard", config)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func installWithConsole(releaseName string, releaseVersion string, prettyName string, config InitConfiguration) error {
+	installSpinning := print.Spinner(os.Stdout, "Deploying the "+prettyName+" with "+releaseVersion+" version to your cluster...")
+	defer installSpinning(print.Failure)
+
+	err := install(releaseName, releaseVersion, config)
+	if err != nil {
+		return err
+	}
+	installSpinning(print.Success)
 
 	return nil
 }
@@ -96,16 +121,23 @@ func helmConfig(namespace string) (*helm.Configuration, error) {
 	return &ac, err
 }
 
-func getVersion(version string) (string, error) {
+func getVersion(releaseName string, version string) (string, error) {
+	actualVersion := version
 	if version == latestVersion {
 		var err error
-		version, err = cli_ver.GetDaprVersion()
+		if releaseName == daprReleaseName {
+			actualVersion, err = cli_ver.GetDaprVersion()
+		} else if releaseName == dashboardReleaseName {
+			actualVersion, err = cli_ver.GetDashboardVersion()
+		} else {
+			return "", fmt.Errorf("cannot get latest version for unknown chart: %s", releaseName)
+		}
 		if err != nil {
 			return "", fmt.Errorf("cannot get the latest release version: %w", err)
 		}
-		version = strings.TrimPrefix(version, "v")
+		actualVersion = strings.TrimPrefix(actualVersion, "v")
 	}
-	return version, nil
+	return actualVersion, nil
 }
 
 func createTempDir() (string, error) {
@@ -124,7 +156,7 @@ func locateChartFile(dirPath string) (string, error) {
 	return filepath.Join(dirPath, files[0].Name()), nil
 }
 
-func daprChart(version string, config *helm.Configuration) (*chart.Chart, error) {
+func daprChart(version string, releaseName string, config *helm.Configuration) (*chart.Chart, error) {
 	pull := helm.NewPullWithOpts(helm.WithConfig(config))
 	pull.RepoURL = utils.GetEnv("DAPR_HELM_REPO_URL", daprHelmRepo)
 	pull.Username = utils.GetEnv("DAPR_HELM_REPO_USERNAME", "")
@@ -132,7 +164,7 @@ func daprChart(version string, config *helm.Configuration) (*chart.Chart, error)
 
 	pull.Settings = &cli.EnvSettings{}
 
-	if version != latestVersion {
+	if version != latestVersion && releaseName == daprReleaseName {
 		pull.Version = chartVersion(version)
 	}
 
@@ -144,7 +176,7 @@ func daprChart(version string, config *helm.Configuration) (*chart.Chart, error)
 
 	pull.DestDir = dir
 
-	_, err = pull.Run(daprReleaseName)
+	_, err = pull.Run(releaseName)
 	if err != nil {
 		return nil, err
 	}
@@ -195,7 +227,7 @@ func chartValues(config InitConfiguration, version string) (map[string]interface
 	return chartVals, nil
 }
 
-func install(config InitConfiguration) error {
+func install(releaseName string, releaseVersion string, config InitConfiguration) error {
 	err := createNamespace(config.Namespace)
 	if err != nil {
 		return err
@@ -206,23 +238,25 @@ func install(config InitConfiguration) error {
 		return err
 	}
 
-	daprChart, err := daprChart(config.Version, helmConf)
+	daprChart, err := daprChart(releaseVersion, releaseName, helmConf)
 	if err != nil {
 		return err
 	}
 
-	version, err := getVersion(config.Version)
+	version, err := getVersion(releaseName, releaseVersion)
 	if err != nil {
 		return err
 	}
 
-	err = applyCRDs(fmt.Sprintf("v%s", version))
-	if err != nil {
-		return err
+	if releaseName == daprReleaseName {
+		err = applyCRDs(fmt.Sprintf("v%s", version))
+		if err != nil {
+			return err
+		}
 	}
 
 	installClient := helm.NewInstall(helmConf)
-	installClient.ReleaseName = daprReleaseName
+	installClient.ReleaseName = releaseName
 	installClient.Namespace = config.Namespace
 	installClient.Wait = config.Wait
 	installClient.Timeout = time.Duration(config.Timeout) * time.Second
@@ -235,6 +269,7 @@ func install(config InitConfiguration) error {
 	if _, err = installClient.Run(daprChart, values); err != nil {
 		return err
 	}
+
 	return nil
 }
 
