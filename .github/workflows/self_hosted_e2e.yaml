@@ -106,7 +106,7 @@ jobs:
           export PATH=/opt/podman/bin:$PATH
 
           # Start podman machine
-          podman-mac-helper install
+          sudo podman-mac-helper install
           podman machine init
           podman machine start
           echo "CONTAINER_RUNTIME=podman" >> $GITHUB_ENV
