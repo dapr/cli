@@ -100,11 +100,21 @@ jobs:
         timeout-minutes: 15
         if: matrix.os == 'macos-latest' && matrix.dapr_install_mode == 'complete'
         run: |
+          # Install podman
           curl -sL -o podman.pkg https://github.com/containers/podman/releases/download/v4.4.4/podman-installer-macos-amd64.pkg
           sudo installer -pkg podman.pkg -target /
+
+          # Download podman-mac-helper
+          curl -sL -o podman.zip https://github.com/containers/podman/releases/download/v4.4.4/podman-remote-release-darwin_amd64.zip
+          unzip -q podman.zip
+          sudo mv podman-*/usr/bin/podman-mac-helper /usr/local/bin
+
+          # Install podman-mac-helper
           which podman-mac-helper
           podman_helper=$(which podman-mac-helper)
           sudo ${podman_helper} install
+
+          # Start podman machine
           podman machine init
           podman machine start
           echo "CONTAINER_RUNTIME=podman" >> $GITHUB_ENV
