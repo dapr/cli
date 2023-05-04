@@ -42,6 +42,7 @@ jobs:
       DAPR_DASHBOARD_PINNED_VERSION: 0.12.0
       DAPR_RUNTIME_LATEST_STABLE_VERSION:
       DAPR_DASHBOARD_LATEST_STABLE_VERSION:
+      PODMAN_VERSION: 4.4.4
     strategy:
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
@@ -100,9 +101,10 @@ jobs:
         if: matrix.os == 'macos-latest' && matrix.dapr_install_mode == 'complete'
         run: |
           # Install podman
-          curl -sL -o podman.pkg https://github.com/containers/podman/releases/download/v4.4.4/podman-installer-macos-amd64.pkg
+          curl -sL -o podman.pkg https://github.com/containers/podman/releases/download/v${{ env.PODMAN_VERSION }}/podman-installer-macos-amd64.pkg
           sudo installer -pkg podman.pkg -target /
           export PATH=/opt/podman/bin:$PATH
+          echo "/opt/podman/bin" >> $GITHUB_PATH
 
           # Start podman machine
           sudo podman-mac-helper install
