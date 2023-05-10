@@ -58,17 +58,15 @@ func (a *RunFileConfig) validateRunConfig(runFilePath string) error {
 	}
 
 	// Resolves common's section ResourcesPaths to absolute paths and validates them.
-	if len(a.Common.ResourcesPaths) > 0 {
-		for i := range a.Common.ResourcesPaths {
-			err := a.resolvePathToAbsAndValidate(baseDir, &a.Common.ResourcesPaths[i])
-			if err != nil {
-				return err
-			}
+	for i := range a.Common.ResourcesPaths {
+		err := a.resolvePathToAbsAndValidate(baseDir, &a.Common.ResourcesPaths[i])
+		if err != nil {
+			return err
 		}
 	}
 
 	// Merge common's section ResourcesPaths and ResourcePath. ResourcesPaths will be single source of truth for resources to be loaded.
-	if len(strings.TrimSpace(a.Common.ResourcesPath)) > 0 && !utils.Contains(a.Common.ResourcesPaths, a.Common.ResourcesPath) {
+	if len(strings.TrimSpace(a.Common.ResourcesPath)) > 0 {
 		a.Common.ResourcesPaths = append(a.Common.ResourcesPaths, a.Common.ResourcesPath)
 	}
 
@@ -88,17 +86,15 @@ func (a *RunFileConfig) validateRunConfig(runFilePath string) error {
 		}
 
 		// Resolves ResourcesPaths to absolute paths and validates them.
-		if len(a.Apps[i].ResourcesPaths) > 0 {
-			for j := range a.Apps[i].ResourcesPaths {
-				err := a.resolvePathToAbsAndValidate(a.Apps[i].AppDirPath, &a.Apps[i].ResourcesPaths[j])
-				if err != nil {
-					return err
-				}
+		for j := range a.Apps[i].ResourcesPaths {
+			err := a.resolvePathToAbsAndValidate(a.Apps[i].AppDirPath, &a.Apps[i].ResourcesPaths[j])
+			if err != nil {
+				return err
 			}
 		}
 
 		// Merge app's section ResourcesPaths and ResourcePath. ResourcesPaths will be single source of truth for resources to be loaded.
-		if len(strings.TrimSpace(a.Apps[i].ResourcesPath)) > 0 && !utils.Contains(a.Apps[i].ResourcesPaths, a.Apps[i].ResourcesPath) {
+		if len(strings.TrimSpace(a.Apps[i].ResourcesPath)) > 0 {
 			a.Apps[i].ResourcesPaths = append(a.Apps[i].ResourcesPaths, a.Apps[i].ResourcesPath)
 		}
 	}
@@ -262,7 +258,7 @@ func (a *RunFileConfig) mergeCommonAndAppsEnv() {
 }
 
 // resolveResourcesFilePath resolves the resources path for the app.
-// Precedence order for resourcesPath -> apps[i].resourcesPath > apps[i].appDirPath/.dapr/resources > common.resourcesPath > dapr default resources path.
+// Precedence order for resourcesPaths -> apps[i].resourcesPaths > apps[i].appDirPath/.dapr/resources > common.resourcesPaths > dapr default resources path.
 func (a *RunFileConfig) resolveResourcesFilePath(app *App) error {
 	if len(app.ResourcesPaths) > 0 {
 		return nil
