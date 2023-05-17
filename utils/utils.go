@@ -48,6 +48,9 @@ const (
 
 	windowsOsType = "windows"
 	homeDirPrefix = "~/"
+
+	// DefaultAppChannelAddress is the default local network address that user application listen on.
+	DefaultAppChannelAddress = "127.0.0.1"
 )
 
 // IsValidContainerRuntime checks if the input is a valid container runtime.
