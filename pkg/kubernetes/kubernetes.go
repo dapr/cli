@@ -167,6 +167,17 @@ func daprChart(version string, releaseName string, config *helm.Configuration) (
 	if version != latestVersion && releaseName == daprReleaseName {
 		pull.Version = chartVersion(version)
 	}
+	if releaseName == dashboardReleaseName {
+		if version == latestVersion {
+			actVersion, err := cli_ver.GetLatestDashboardReleaseHelmChart("https://dapr.github.io/helm-charts/index.yaml")
+			if err != nil {
+				return nil, fmt.Errorf("cannot get the latest dashboard release version: %w", err)
+			}
+			pull.Version = chartVersion(actVersion)
+		} else {
+			pull.Version = chartVersion(version)
+		}
+	}
 
 	dir, err := createTempDir()
 	if err != nil {
