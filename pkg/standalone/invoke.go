@@ -26,7 +26,7 @@ import (
 )
 
 // Invoke is a command to invoke a remote or local dapr instance.
-func (s *Standalone) Invoke(appID, method string, data []byte, verb string, path string) (string, error) {
+func (s *Standalone) Invoke(appID, method string, data []byte, verb string, header http.Header, path string) (string, error) {
 	list, err := s.process.List()
 	if err != nil {
 		return "", err
@@ -39,7 +39,15 @@ func (s *Standalone) Invoke(appID, method string, data []byte, verb string, path
 			if err != nil {
 				return "", err
 			}
+
 			req.Header.Set("Content-Type", "application/json")
+			if header != nil {
+				for h, vs := range header {
+					for _, v := range vs {
+						req.Header.Add(h, v)
+					}
+				}
+			}
 
 			var httpc http.Client
 

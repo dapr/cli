@@ -15,6 +15,7 @@ package standalone
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"runtime"
 	"testing"
@@ -35,6 +36,7 @@ func TestInvoke(t *testing.T) {
 		listErr       error
 		expectedPath  string
 		postResponse  string
+		header        http.Header
 		resp          string
 	}{
 		{
@@ -42,6 +44,7 @@ func TestInvoke(t *testing.T) {
 			errorExpected: true,
 			errString:     assert.AnError.Error(),
 			listErr:       assert.AnError,
+			header:        nil,
 		},
 		{
 			name:          "appID not found",
@@ -51,6 +54,7 @@ func TestInvoke(t *testing.T) {
 			lo: ListOutput{
 				AppID: "testapp",
 			},
+			header: nil,
 		},
 		{
 			name:   "appID found successful invoke empty response",
@@ -59,6 +63,7 @@ func TestInvoke(t *testing.T) {
 			lo: ListOutput{
 				AppID: "testapp",
 			},
+			header: nil,
 		},
 		{
 			name:   "appID found successful invoke",
@@ -69,7 +74,22 @@ func TestInvoke(t *testing.T) {
 			},
 			expectedPath: "/v1.0/invoke/testapp/method/test",
 			postResponse: "test payload",
+			header:       nil,
 			resp:         "successful invoke",
+		},
+		{
+			name:   "appID found successful invoke with customized header",
+			appID:  "testapp",
+			method: "test",
+			lo: ListOutput{
+				AppID: "testapp",
+			},
+			expectedPath: "/v1.0/invoke/testapp/method/test",
+			postResponse: "test payload",
+			resp:         "successful invoke",
+			header: http.Header{
+				"Customized-Header": []string{"Value"},
+			},
 		},
 	}
 
@@ -105,7 +125,7 @@ func TestInvoke(t *testing.T) {
 					},
 				}
 
-				res, err := client.Invoke(tc.appID, tc.method, []byte(tc.resp), "GET", socket)
+				res, err := client.Invoke(tc.appID, tc.method, []byte(tc.resp), "GET", tc.header, socket)
 				if tc.errorExpected {
 					assert.Error(t, err, "expected an error")
 					assert.Equal(t, tc.errString, err.Error(), "expected error strings to match")
@@ -137,7 +157,7 @@ func TestInvoke(t *testing.T) {
 						Err: tc.listErr,
 					},
 				}
-				res, err := client.Invoke(tc.appID, tc.method, []byte(tc.resp), "POST", socket)
+				res, err := client.Invoke(tc.appID, tc.method, []byte(tc.resp), "POST", tc.header, socket)
 				if tc.errorExpected {
 					assert.Error(t, err, "expected an error")
 					assert.Equal(t, tc.errString, err.Error(), "expected error strings to match")
@@ -169,7 +189,7 @@ func TestInvoke(t *testing.T) {
 						Err: tc.listErr,
 					},
 				}
-				res, err := client.Invoke(tc.appID, tc.method, []byte(tc.resp), "DELETE", socket)
+				res, err := client.Invoke(tc.appID, tc.method, []byte(tc.resp), "DELETE", tc.header, socket)
 				if tc.errorExpected {
 					assert.Error(t, err, "expected an error")
 					assert.Equal(t, tc.errString, err.Error(), "expected error strings to match")
@@ -202,7 +222,7 @@ func TestInvoke(t *testing.T) {
 						Err: tc.listErr,
 					},
 				}
-				res, err := client.Invoke(tc.appID, tc.method, []byte(tc.resp), "PUT", socket)
+				res, err := client.Invoke(tc.appID, tc.method, []byte(tc.resp), "PUT", tc.header, socket)
 				if tc.errorExpected {
 					assert.Error(t, err, "expected an error")
 					assert.Equal(t, tc.errString, err.Error(), "expected error strings to match")

@@ -18,6 +18,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -34,6 +35,7 @@ var (
 	invokeVerb      string
 	invokeDataFile  string
 	invokeSocket    string
+	invokeHeaders   = make([]string, 0)
 )
 
 var InvokeCmd = &cobra.Command{
@@ -42,6 +44,9 @@ var InvokeCmd = &cobra.Command{
 	Example: `
 # Invoke a sample method on target app with POST Verb
 dapr invoke --app-id target --method sample --data '{"key":"value"}
+
+# Invoke a sample method on target app with customized Header
+dapr invoke --app-id target --method sample --data '{"key":"value"} --header Customized-Header=Value
 
 # Invoke a sample method on target app with GET Verb
 dapr invoke --app-id target --method sample --verb GET
@@ -78,7 +83,25 @@ dapr invoke --unix-domain-socket --app-id target --method sample --verb GET
 			}
 		}
 
-		response, err := client.Invoke(invokeAppID, invokeAppMethod, bytePayload, invokeVerb, invokeSocket)
+		header := http.Header{}
+		for _, h := range invokeHeaders {
+			p := strings.Split(strings.TrimSpace(h), "=")
+			if len(p) != 2 {
+				print.FailureStatusEvent(os.Stderr, "Should one \"=\" in HTTP header.")
+				os.Exit(1)
+			}
+
+			if p[0] == "" {
+				print.FailureStatusEvent(os.Stderr, "A header name is required.")
+				os.Exit(1)
+			} else if p[1] == "" {
+				print.FailureStatusEvent(os.Stderr, "Value for header name is required.")
+				os.Exit(1)
+			}
+			header.Add(p[0], p[1])
+		}
+
+		response, err := client.Invoke(invokeAppID, invokeAppMethod, bytePayload, invokeVerb, header, invokeSocket)
 		if err != nil {
 			err = fmt.Errorf("error invoking app %s: %w", invokeAppID, err)
 			print.FailureStatusEvent(os.Stderr, err.Error())
@@ -98,6 +121,7 @@ func init() {
 	InvokeCmd.Flags().StringVarP(&invokeData, "data", "d", "", "The JSON serialized data string (optional)")
 	InvokeCmd.Flags().StringVarP(&invokeVerb, "verb", "v", defaultHTTPVerb, "The HTTP verb to use")
 	InvokeCmd.Flags().StringVarP(&invokeDataFile, "data-file", "f", "", "A file containing the JSON serialized data (optional)")
+	InvokeCmd.Flags().StringArrayVarP(&invokeHeaders, "header", "H", []string{}, "0 or more HTTP Header")
 	InvokeCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	InvokeCmd.Flags().StringVarP(&invokeSocket, "unix-domain-socket", "u", "", "Path to a unix domain socket dir. If specified, Dapr API servers will use Unix Domain Sockets")
 	InvokeCmd.MarkFlagRequired("app-id")
