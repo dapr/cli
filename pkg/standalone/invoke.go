@@ -41,11 +41,9 @@ func (s *Standalone) Invoke(appID, method string, data []byte, verb string, head
 			}
 
 			req.Header.Set("Content-Type", "application/json")
-			if header != nil {
-				for h, vs := range header {
-					for _, v := range vs {
-						req.Header.Add(h, v)
-					}
+			for h, vs := range header {
+				for _, v := range vs {
+					req.Header.Add(h, v)
 				}
 			}
 
