@@ -11,13 +11,46 @@ The Dapr CLI allows you to setup Dapr on your local dev machine or on a Kubernet
 
 ### Prerequisites
 
-On default, during initialization the Dapr CLI will install the Dapr binaries as well as setup a developer environment to help you get started easily with Dapr. This environment uses Docker containers, therefore Docker needs to be installed. If you prefer to run Dapr without this environment and no dependency on Docker, after installation of the CLI make sure to follow the instructions to initialize Dapr using [slim init](#slim-init).
+On default, during initialization the Dapr CLI will install the Dapr binaries as well as setup a developer environment to help you get started easily with Dapr. This environment uses `Docker`, `Podman` or `Containerd` containers, therefore container runtime needs to be installed. If you prefer to run Dapr without this environment and without any container dependencies, after installation of the CLI make sure to follow the instructions to initialize Dapr using [slim init](#slim-init).
 
-Note, if you are a new user, it is strongly recommended to install Docker and use the regular init command.
+>__Note, if you are a new user, it is strongly recommended to install Docker and use the regular init command.__
 
-* Install [Docker](https://docs.docker.com/install/)
+### Choosing a container runtime
 
->__Note: On Windows, Docker must be running in Linux Containers mode__
+* [Docker](https://docs.docker.com/install/) (recommended for new users)
+
+    >__Note: On Windows, Docker must be running in Linux Containers mode__
+
+* [Podman](https://podman-desktop.io/docs/Installation)
+
+* `Containerd`
+
+    >__Windows and Linux__
+
+  * Step 1: Install [Containerd](https://github.com/containerd/containerd/blob/main/docs/getting-started.md).
+
+  * Step 2: Install [nerdctl](https://github.com/containerd/nerdctl/blob/main/docs/installation.md).
+
+   >__MacOS__
+    >> `containerd` and `nerdctl` are not directly supported on macOS. Instead, you need to choose `lima`, `colima`, or `rancher-desktop` to get this feature.
+
+  * [Lima](https://github.com/lima-vm/lima)
+
+    ```bash
+    brew install lima
+    limactl start
+    ln -s $(which nerdctl.lima) /usr/local/bin/nerdctl
+    ```
+
+  * [Colima](https://github.com/abiosoft/colima)
+
+    ```bash
+    brew install colima
+    colima start --runtime containerd
+    colima nerdctl install
+    ```
+
+  * [Rancher-desktop](https://docs.rancherdesktop.io/getting-started/installation#installing-rancher-desktop-on-macos)
 
 ### Installing Dapr CLI
 
@@ -139,7 +172,7 @@ Runtime version: v1.0.0
 
 #### Install with mariner images
 
-You can install Dapr Runtime using mariner images using the `--image-variant` flag. 
+You can install Dapr Runtime using mariner images using the `--image-variant` flag.
 
 ```bash
 # Installing Dapr with Mariner images
@@ -178,7 +211,7 @@ docker run --name "dapr_zipkin" --restart always -d -p 9411:9411 openzipkin/zipk
 docker run --name "dapr_redis" --restart always -d -p 6379:6379 redis
 ```
 
-Alternatively to the above, you can also have slim installation as well to install dapr without running any Docker containers in airgap mode.   
+Alternatively to the above, you can also have slim installation as well to install dapr without running any Docker containers in airgap mode.
 
 ```bash
 ./dapr init --slim --from-dir .
@@ -292,7 +325,7 @@ Output should look like as follows:
 All available [Helm Chart values](https://github.com/dapr/dapr/tree/master/charts/dapr#configuration) can be set by using the `--set` flag:
 
 ```bash
-dapr init -k --set global.tag=1.0.0 --set dapr_operator.logLevel=error  
+dapr init -k --set global.tag=1.0.0 --set dapr_operator.logLevel=error
 ```
 
 #### Installing to a custom namespace
@@ -356,7 +389,7 @@ The example above shows how to upgrade from your current version to version `1.0
 All available [Helm Chart values](https://github.com/dapr/dapr/tree/master/charts/dapr#configuration) can be set by using the `--set` flag:
 
 ```bash
-dapr upgrade -k --runtime-version=1.0.0 --set global.tag=my-tag --set dapr_operator.logLevel=error  
+dapr upgrade -k --runtime-version=1.0.0 --set global.tag=my-tag --set dapr_operator.logLevel=error
 ```
 
 *Note: do not use the `dapr upgrade` command if you're upgrading from 0.x versions of Dapr*

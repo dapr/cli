@@ -188,47 +188,87 @@ func TestStandaloneInit(t *testing.T) {
 // this test is automatically skipped.
 func verifyContainers(t *testing.T, daprRuntimeVersion string) {
 	t.Run("verifyContainers", func(t *testing.T) {
-		if isSlimMode() {
+		switch {
+		case isSlimMode():
 			t.Log("Skipping container verification because of slim installation")
-			return
+		case containerRuntime() == "containerd":
+			verifyContainerdRuntime(t, daprRuntimeVersion)
+		default:
+			verifyDockerRuntime(t, daprRuntimeVersion)
 		}
-
-		cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv)
-		require.NoError(t, err)
-
-		containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{})
-		require.NoError(t, err)
-
-		daprContainers := map[string]string{
-			"dapr_placement": daprRuntimeVersion,
-			"dapr_zipkin":    "",
-			"dapr_redis":     "",
-		}
-
-		for _, container := range containers {
-			t.Logf("Found container: %v %s %s\n", container.Names, container.Image, container.State)
-			if container.State != "running" {
-				continue
-			}
-			name := strings.TrimPrefix(container.Names[0], "/")
-			if expectedVersion, ok := daprContainers[name]; ok {
-				if expectedVersion != "" {
-					versionIndex := strings.LastIndex(container.Image, ":")
-					if versionIndex == -1 {
-						continue
-					}
-					version := container.Image[versionIndex+1:]
-					if version != expectedVersion {
-						continue
-					}
-				}
-
-				delete(daprContainers, name)
-			}
-		}
-
-		assert.Empty(t, daprContainers, "Missing containers: %v", daprContainers)
 	})
+}
+
+func verifyContainerdRuntime(t *testing.T, daprRuntimeVersion string) {
+	ret, err := spawn.Command("nerdctl", "ps", "--filter", "name=dapr", "--format", "{{.Names}} {{.Image}}")
+	require.NoError(t, err)
+
+	daprContainers := map[string]string{
+		"dapr_placement": daprRuntimeVersion,
+		"dapr_zipkin":    "",
+		"dapr_redis":     "",
+	}
+
+	// convert to map
+	containers := map[string]string{}
+	for _, item := range strings.Split(ret, "\n") {
+		if split := strings.Split(item, " "); len(split) > 1 {
+			containers[split[0]] = split[1]
+		}
+	}
+
+	for name, image := range containers {
+		t.Logf("Found container: %v %s\n", name, image)
+		if expectedVersion, ok := daprContainers[name]; ok {
+			if expectedVersion != "" {
+				versionIndex := strings.LastIndex(image, ":")
+				if versionIndex == -1 || image[versionIndex+1:] != expectedVersion {
+					continue
+				}
+			}
+			delete(daprContainers, name)
+		}
+	}
+
+	assert.Empty(t, daprContainers, "Missing containers: %v", daprContainers)
+}
+
+func verifyDockerRuntime(t *testing.T, daprRuntimeVersion string) {
+	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv)
+	require.NoError(t, err)
+
+	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{})
+	require.NoError(t, err)
+
+	daprContainers := map[string]string{
+		"dapr_placement": daprRuntimeVersion,
+		"dapr_zipkin":    "",
+		"dapr_redis":     "",
+	}
+
+	for _, container := range containers {
+		t.Logf("Found container: %v %s %s\n", container.Names, container.Image, container.State)
+		if container.State != "running" {
+			continue
+		}
+		name := strings.TrimPrefix(container.Names[0], "/")
+		if expectedVersion, ok := daprContainers[name]; ok {
+			if expectedVersion != "" {
+				versionIndex := strings.LastIndex(container.Image, ":")
+				if versionIndex == -1 {
+					continue
+				}
+				version := container.Image[versionIndex+1:]
+				if version != expectedVersion {
+					continue
+				}
+			}
+
+			delete(daprContainers, name)
+		}
+	}
+
+	assert.Empty(t, daprContainers, "Missing containers: %v", daprContainers)
 }
 
 // verifyBinaries ensures that the correct binaries are present in the correct path.

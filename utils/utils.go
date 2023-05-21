@@ -39,8 +39,11 @@ import (
 type ContainerRuntime string
 
 const (
-	DOCKER ContainerRuntime = "docker"
-	PODMAN ContainerRuntime = "podman"
+	DOCKER     ContainerRuntime = "docker"
+	PODMAN     ContainerRuntime = "podman"
+	CONTAINERD ContainerRuntime = "containerd"
+
+	NERDCTL = "nerdctl"
 
 	marinerImageVariantName = "mariner"
 
@@ -51,21 +54,26 @@ const (
 )
 
 // IsValidContainerRuntime checks if the input is a valid container runtime.
-// Valid container runtimes are docker and podman.
+// Valid container runtimes are docker and podman and containerd.
 func IsValidContainerRuntime(containerRuntime string) bool {
 	containerRuntime = strings.TrimSpace(containerRuntime)
-	return containerRuntime == string(DOCKER) || containerRuntime == string(PODMAN)
+	return containerRuntime == string(DOCKER) || containerRuntime == string(PODMAN) || containerRuntime == string(CONTAINERD)
 }
 
 // GetContainerRuntimeCmd returns a valid container runtime to be used by CLI operations.
-// If the input is a valid container runtime, it is returned as is.
+// If the input is a valid container runtime, the client tool is returned.
 // Otherwise the default container runtime, docker, is returned.
 func GetContainerRuntimeCmd(containerRuntime string) string {
-	if IsValidContainerRuntime(containerRuntime) {
-		return strings.TrimSpace(containerRuntime)
+	switch strings.TrimSpace(containerRuntime) {
+	case string(CONTAINERD):
+		// containerd runtime use nerdctl tool.
+		return NERDCTL
+	case string(PODMAN):
+		return string(PODMAN)
+	default:
+		// Default to docker.
+		return string(DOCKER)
 	}
-	// Default to docker.
-	return string(DOCKER)
 }
 
 // Contains returns true if vs contains x.
@@ -136,14 +144,14 @@ func RunCmdAndWait(name string, args ...string) (string, error) {
 		return "", err
 	}
 
-	resp, err := io.ReadAll(stdout)
-	if err != nil {
-		return "", err
-	}
 	errB, err := io.ReadAll(stderr)
 	if err != nil {
 		//nolint
 		return "", nil
+	}
+	resp, err := io.ReadAll(stdout)
+	if err != nil {
+		return "", err
 	}
 
 	err = cmd.Wait()
@@ -190,6 +198,27 @@ func IsPodmanInstalled() bool {
 		return false
 	}
 	return true
+}
+
+// IsContainerdInstalled checks whether nerdctl and containerd is installed/running.
+func IsContainerdInstalled() bool {
+	if _, err := RunCmdAndWait("nerdctl", "info"); err != nil {
+		print.FailureStatusEvent(os.Stderr, err.Error())
+		return false
+	}
+	return true
+}
+
+func ContainerRuntimeAvailable(containerRuntime string) bool {
+	containerRuntime = strings.TrimSpace(containerRuntime)
+	switch ContainerRuntime(containerRuntime) {
+	case PODMAN:
+		return IsPodmanInstalled()
+	case CONTAINERD:
+		return IsContainerdInstalled()
+	default:
+		return IsDockerInstalled()
+	}
 }
 
 // IsDaprListeningOnPort checks if Dapr is litening to a given port.

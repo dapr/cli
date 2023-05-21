@@ -49,7 +49,7 @@ var (
 var InitCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Install Dapr on supported hosting platforms. Supported platforms: Kubernetes and self-hosted",
-	PreRun: func(cmd *cobra.Command, args []string) {
+	PreRun: func(cmd *cobra.Command, _ []string) {
 		viper.BindPFlag("network", cmd.Flags().Lookup("network"))
 		viper.BindPFlag("image-registry", cmd.Flags().Lookup("image-registry"))
 
@@ -92,7 +92,7 @@ dapr init --runtime-path <path-to-install-directory>
 
 # See more at: https://docs.dapr.io/getting-started/
 `,
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(cmd *cobra.Command, _ []string) {
 		print.PendingStatusEvent(os.Stdout, "Making the jump to hyperspace...")
 		imageRegistryFlag := strings.TrimSpace(viper.GetString("image-registry"))
 
@@ -162,7 +162,7 @@ dapr init --runtime-path <path-to-install-directory>
 			}
 
 			if !utils.IsValidContainerRuntime(containerRuntime) {
-				print.FailureStatusEvent(os.Stdout, "Invalid container runtime. Supported values are docker and podman.")
+				print.FailureStatusEvent(os.Stdout, "Invalid container runtime. Supported values are docker, podman and containerd.")
 				os.Exit(1)
 			}
 			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode, imageRegistryURI, fromDir, containerRuntime, imageVariant, daprRuntimePath)
@@ -216,7 +216,7 @@ func init() {
 	InitCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	InitCmd.Flags().StringArrayVar(&values, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
 	InitCmd.Flags().String("image-registry", "", "Custom/private docker image repository URL")
-	InitCmd.Flags().StringVarP(&containerRuntime, "container-runtime", "", defaultContainerRuntime, "The container runtime to use. Supported values are docker (default) and podman")
+	InitCmd.Flags().StringVarP(&containerRuntime, "container-runtime", "", defaultContainerRuntime, "The container runtime to use. Supported values are docker (default), podman and containerd")
 	InitCmd.Flags().StringVarP(&caRootCertificateFile, "ca-root-certificate", "", "", "The root certificate file")
 	InitCmd.Flags().StringVarP(&issuerPrivateKeyFile, "issuer-private-key", "", "", "The issuer certificate private key")
 	InitCmd.Flags().StringVarP(&issuerPublicCertificateFile, "issuer-public-certificate", "", "", "The issuer certificate")

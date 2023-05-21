@@ -47,7 +47,7 @@ jobs:
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
         target_arch: [amd64]
-        dapr_install_mode: [slim, complete]
+        dapr_install_mode: [slim, complete, complete_containerd]
         include:
           - os: ubuntu-latest
             target_os: linux
@@ -58,6 +58,8 @@ jobs:
         exclude:
           - os: windows-latest
             dapr_install_mode: complete
+          - os: windows-latest
+            dapr_install_mode: complete_containerd
     steps:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v3
@@ -111,6 +113,43 @@ jobs:
           podman machine init
           podman machine start --log-level debug
           echo "CONTAINER_RUNTIME=podman" >> $GITHUB_ENV
+      - name: Install containerd - MacOS
+        if: matrix.os == 'macos-latest' && matrix.dapr_install_mode == 'complete_containerd'
+        run: |
+          colima start --runtime containerd
+          colima nerdctl install
+          echo "CONTAINER_RUNTIME=containerd" >> $GITHUB_ENV
+      - name: Install containerd - Linux
+        if: matrix.os == 'ubuntu-latest' && matrix.dapr_install_mode == 'complete_containerd'
+        run: |
+          # remove moby-runc, version not match
+          sudo apt remove moby-runc
+          # install containerd and rootlesskit, testing requires rootless mode
+          sudo apt install -y containerd rootlesskit
+          wget -q https://github.com/containerd/nerdctl/releases/download/v1.3.0/nerdctl-1.3.0-linux-amd64.tar.gz -O nerdctl-linux-amd64.tar.gz
+          # install nerdctl
+          tar xvf ./nerdctl-linux-amd64.tar.gz -C /usr/local/bin/
+          containerd-rootless-setuptool.sh install
+          # update cni to new version
+          wget -q https://github.com/containernetworking/plugins/releases/download/v1.2.0/cni-plugins-linux-amd64-v1.2.0.tgz -O cni-plugins-linux-amd64.tgz
+          sudo tar xvf ./cni-plugins-linux-amd64.tgz -C /usr/lib/cni/
+          echo "CONTAINER_RUNTIME=containerd" >> $GITHUB_ENV
+      - name: Install contianerd - Windows
+        if: matrix.os == 'windows-latest' && matrix.dapr_install_mode == 'complete_containerd'
+        run: |
+          # install nerdctl
+          $NVersion="1.3.0"
+          curl.exe -L https://github.com/containerd/nerdctl/releases/download/v$NVersion/nerdctl-$NVersion-windows-amd64.tar.gz -o nerdctl-windows-amd64.tar.gz
+          tar.exe xvf .\nerdctl-windows-amd64.tar.gz -C "$(go env GOPATH)\bin"
+          # Download and extract desired containerd Windows binaries
+          $Version="1.7.0"
+          curl.exe -L https://github.com/containerd/containerd/releases/download/v$Version/containerd-$Version-windows-amd64.tar.gz -o containerd-windows-amd64.tar.gz
+          tar.exe xvf .\containerd-windows-amd64.tar.gz && cd .\bin\
+          .\containerd.exe config default | Out-File config.toml -Encoding ascii
+          # Register and start service
+          .\containerd.exe --register-service
+          Start-Service containerd
+          echo "CONTAINER_RUNTIME=containerd" >> $GITHUB_ENV
       - name: Determine latest Dapr Runtime version including Pre-releases
         if: github.base_ref == 'master'
         run: |

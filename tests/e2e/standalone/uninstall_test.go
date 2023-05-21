@@ -23,6 +23,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/dapr/cli/tests/e2e/spawn"
 	"github.com/docker/docker/api/types"
 	dockerClient "github.com/docker/docker/client"
 	"github.com/stretchr/testify/assert"
@@ -57,11 +58,17 @@ func TestStandaloneUninstall(t *testing.T) {
 
 // verifyNoContainers verifies that no Dapr containers are running.
 func verifyNoContainers(t *testing.T) {
-	if isSlimMode() {
+	switch {
+	case isSlimMode():
 		t.Log("Skipping verifyNoContainers test in slim mode")
-		return
+	case containerRuntime() == "containerd":
+		verifyNoContainerdRuntime(t)
+	default:
+		verifyNoDockerRuntime(t)
 	}
+}
 
+func verifyNoDockerRuntime(t *testing.T) {
 	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv)
 	require.NoError(t, err)
 
@@ -84,4 +91,20 @@ func verifyNoContainers(t *testing.T) {
 
 	// If any Dapr containers are still running after uninstall, this assertion will fail.
 	assert.Equal(t, 3, len(daprContainers), "Found Dapr containers still running")
+}
+
+func verifyNoContainerdRuntime(t *testing.T) {
+	ret, err := spawn.Command("nerdctl", "ps", "--filter", "name=dapr", "--format", "{{.Names}}")
+	require.NoError(t, err)
+
+	daprContainers := []string{
+		"dapr_placement",
+		"dapr_zipkin",
+		"dapr_redis",
+	}
+
+	containers := strings.Split(ret, "\n")
+	for _, container := range containers {
+		assert.NotContains(t, daprContainers, container, "Found Dapr containers still running")
+	}
 }

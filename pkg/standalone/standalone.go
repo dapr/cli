@@ -161,9 +161,8 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 	fromDir = strings.TrimSpace(fromDir)
 	setAirGapInit(fromDir)
 	if !slimMode {
-		// If --slim installation is not requested, check if docker is installed.
-		conatinerRuntimeAvailable := utils.IsDockerInstalled() || utils.IsPodmanInstalled()
-		if !conatinerRuntimeAvailable {
+		// If --slim installation is not requested, check if the container runtime is installed.
+		if !utils.ContainerRuntimeAvailable(containerRuntime) {
 			return fmt.Errorf("could not connect to %s. %s may not be installed or running", containerRuntime, containerRuntime)
 		}
 
@@ -363,10 +362,8 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 		)
 
 		if info.dockerNetwork != "" {
-			args = append(
-				args,
-				"--network", info.dockerNetwork,
-				"--network-alias", DaprZipkinContainerName)
+			networks := withContainerNetwork(info.containerRuntime, info.dockerNetwork, DaprZipkinContainerName)
+			args = append(args, networks...)
 		} else {
 			args = append(
 				args,
@@ -430,10 +427,8 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 		)
 
 		if info.dockerNetwork != "" {
-			args = append(
-				args,
-				"--network", info.dockerNetwork,
-				"--network-alias", DaprRedisContainerName)
+			networks := withContainerNetwork(info.containerRuntime, info.dockerNetwork, DaprRedisContainerName)
+			args = append(args, networks...)
 		} else {
 			args = append(
 				args,
@@ -510,9 +505,8 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 	}
 
 	if info.dockerNetwork != "" {
-		args = append(args,
-			"--network", info.dockerNetwork,
-			"--network-alias", DaprPlacementContainerName)
+		networks := withContainerNetwork(info.containerRuntime, info.dockerNetwork, DaprPlacementContainerName)
+		args = append(args, networks...)
 	} else {
 		osPort := 50005
 		if runtime.GOOS == daprWindowsOS {
@@ -1009,6 +1003,19 @@ func createDefaultConfiguration(zipkinHost, filePath string) error {
 	err = checkAndOverWriteFile(filePath, b)
 
 	return err
+}
+
+// withContainerNetwork connect a container to a network.
+// Network alias is now only parsed by docker,
+// `podman` is only compatible with docker commands
+// and does not really implement this feature.
+// `containerd` does not support network alias.
+func withContainerNetwork(containerCmd, network, containerName string) []string {
+	networks := []string{"--network", network}
+	if utils.GetContainerRuntimeCmd(containerCmd) == string(utils.DOCKER) {
+		networks = append(networks, "--network-alias", containerName)
+	}
+	return networks
 }
 
 func checkAndOverWriteFile(filePath string, b []byte) error {
