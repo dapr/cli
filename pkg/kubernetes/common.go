@@ -57,7 +57,9 @@ func GetDaprHelmChartName(helmConf *helm.Configuration) (string, error) {
 	}
 	var chart string
 	for _, r := range releases {
-		if r.Chart != nil && strings.Contains(r.Chart.Name(), "dapr") {
+		if r.Chart != nil &&
+			strings.Contains(r.Chart.Name(), daprReleaseName) &&
+			!strings.Contains(r.Chart.Name(), dashboardReleaseName) {
 			chart = r.Name
 			break
 		}
