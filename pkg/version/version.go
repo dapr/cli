@@ -162,31 +162,3 @@ func GetLatestReleaseHelmChart(helmChartURL string) (string, error) {
 		return "", fmt.Errorf("no releases")
 	})
 }
-
-// GetLatestDashboardReleaseHelmChart return the latest release version of dashboard from helm chart static index.yaml.
-func GetLatestDashboardReleaseHelmChart(helmChartURL string) (string, error) {
-	return GetVersionFromURL(helmChartURL, func(body []byte) (string, error) {
-		var helmChartReleases helmChartItems
-		err := yaml.Unmarshal(body, &helmChartReleases)
-		if err != nil {
-			return "", err
-		}
-		if len(helmChartReleases.Entries.DaprDashboard) == 0 {
-			return "", fmt.Errorf("no releases")
-		}
-
-		for _, release := range helmChartReleases.Entries.DaprDashboard {
-			if !strings.Contains(release.Version, "-rc") {
-				return release.Version, nil
-			}
-		}
-
-		// Did not find a non-rc version, so we fallback to an RC.
-		// This is helpful to allow us to validate installation of new charts.
-		for _, release := range helmChartReleases.Entries.DaprDashboard {
-			return release.Version, nil
-		}
-
-		return "", fmt.Errorf("no releases")
-	})
-}
