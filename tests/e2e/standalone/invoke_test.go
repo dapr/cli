@@ -26,6 +26,7 @@ import (
 	daprHttp "github.com/dapr/go-sdk/service/http"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/metadata"
 )
 
 func TestStandaloneInvoke(t *testing.T) {
@@ -37,6 +38,14 @@ func TestStandaloneInvoke(t *testing.T) {
 			Data:        e.Data,
 			ContentType: e.ContentType,
 			DataTypeURL: e.DataTypeURL,
+		}
+
+		md, ok := metadata.FromIncomingContext(ctx)
+		if ok {
+			values := md.Get("Some-Header")
+			if len(values) > 0 {
+				val.Data = []byte(values[0])
+			}
 		}
 		return val, nil
 	})
@@ -99,6 +108,13 @@ func TestStandaloneInvoke(t *testing.T) {
 				t.Log(output)
 				assert.Error(t, err, "method test2 should not exist")
 				assert.Contains(t, output, "error invoking app invoke_e2e: 404 Not Found")
+			})
+
+			t.Run(fmt.Sprintf("invoke mehod %s with http headers", path), func(t *testing.T) {
+				output, err := cmdInvoke("invoke_e2e", "test", path, "--header", "Some-Header=aValue")
+				t.Log(output)
+				assert.NoError(t, err, "")
+				assert.Contains(t, output, "aValue")
 			})
 
 			output, err := cmdStopWithAppID("invoke_e2e")
