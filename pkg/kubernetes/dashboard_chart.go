@@ -17,8 +17,8 @@ import "github.com/Masterminds/semver/v3"
 
 const daprHelmChartWithDashboard = "<= 1.10.x"
 
-// isDashboardIncluded returns true if dashboard is included in Helm chart version for Dapr.
-func isDashboardIncluded(runtimeVersion string) (bool, error) {
+// IsDashboardIncluded returns true if dashboard is included in Helm chart version for Dapr.
+func IsDashboardIncluded(runtimeVersion string) (bool, error) {
 	c, err := semver.NewConstraint(daprHelmChartWithDashboard)
 	if err != nil {
 		return false, err

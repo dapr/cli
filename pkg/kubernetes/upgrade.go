@@ -65,7 +65,7 @@ func Upgrade(conf UpgradeConfig) error {
 	daprVersion := GetDaprVersion(status)
 	print.InfoStatusEvent(os.Stdout, "Dapr control plane version %s detected in namespace %s", daprVersion, status[0].Namespace)
 
-	hasDashboardInDaprChart, err := isDashboardIncluded(daprVersion)
+	hasDashboardInDaprChart, err := IsDashboardIncluded(daprVersion)
 	if err != nil {
 		return err
 	}
@@ -80,7 +80,7 @@ func Upgrade(conf UpgradeConfig) error {
 		return err
 	}
 
-	willHaveDashboardInDaprChart, err := isDashboardIncluded(conf.RuntimeVersion)
+	willHaveDashboardInDaprChart, err := IsDashboardIncluded(conf.RuntimeVersion)
 	if err != nil {
 		return err
 	}

@@ -63,7 +63,7 @@ func TestDashboardChart(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run("Validating version "+tc.runtimeVersion, func(t *testing.T) {
-			hasDashboard, err := isDashboardIncluded(tc.runtimeVersion)
+			hasDashboard, err := IsDashboardIncluded(tc.runtimeVersion)
 			if tc.expectError {
 				assert.Error(t, err, "expected an error")
 			} else {
