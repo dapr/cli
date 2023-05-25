@@ -41,7 +41,7 @@ func ensureCleanEnv(t *testing.T, useDaprLatestVersion bool) {
 	currentVersionDetails = common.VersionDetails{
 		RuntimeVersion:       currentRuntimeVersion,
 		DashboardVersion:     currentDashboardVersion,
-		CustomResourceDefs:   []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io"},
+		CustomResourceDefs:   []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io", "httpendpoints.dapr.io"},
 		ImageVariant:         "",
 		UseDaprLatestVersion: useDaprLatestVersion,
 	}

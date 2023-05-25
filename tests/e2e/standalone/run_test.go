@@ -173,7 +173,7 @@ func TestStandaloneRun(t *testing.T) {
 		output, err := cmdRun("", args...)
 		t.Log(output)
 		require.NoError(t, err, "run failed")
-		assert.Contains(t, output, "component loaded. name: test-statestore, type: state.in-memory/v1")
+		assert.Contains(t, output, "Component loaded: test-statestore (state.in-memory/v1)")
 		assert.Contains(t, output, "Exited App successfully")
 		assert.Contains(t, output, "Exited Dapr successfully")
 	})

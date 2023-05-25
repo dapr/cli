@@ -49,6 +49,9 @@ type helmChartItems struct {
 		Dapr []struct {
 			Version string `yaml:"appVersion"`
 		}
+		DaprDashboard []struct {
+			Version string `yaml:"appVersion"`
+		} `yaml:"dapr-dashboard"`
 	}
 }
 

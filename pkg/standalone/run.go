@@ -29,7 +29,6 @@ import (
 
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/dapr/pkg/components"
-	modes "github.com/dapr/dapr/pkg/config/modes"
 )
 
 const (
@@ -93,7 +92,7 @@ func (config *RunConfig) validateResourcesPath() error {
 	if err != nil {
 		return fmt.Errorf("error validating resources path %q : %w", dirPath, err)
 	}
-	componentsLoader := components.NewStandaloneComponents(modes.StandaloneConfig{ComponentsPath: dirPath})
+	componentsLoader := components.NewLocalComponents(dirPath)
 	_, err = componentsLoader.LoadComponents()
 	if err != nil {
 		return fmt.Errorf("error validating components in resources path %q : %w", dirPath, err)
