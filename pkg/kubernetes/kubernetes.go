@@ -164,7 +164,7 @@ func daprChart(version string, releaseName string, config *helm.Configuration) (
 
 	pull.Settings = &cli.EnvSettings{}
 
-	if version != latestVersion && releaseName == daprReleaseName {
+	if version != latestVersion && (releaseName == daprReleaseName || releaseName == dashboardReleaseName) {
 		pull.Version = chartVersion(version)
 	}
 
@@ -276,9 +276,9 @@ func install(releaseName string, releaseVersion string, config InitConfiguration
 func debugLogf(format string, v ...interface{}) {
 }
 
-func confirmExist(cfg *helm.Configuration) (bool, error) {
+func confirmExist(cfg *helm.Configuration, releaseName string) (bool, error) {
 	client := helm.NewGet(cfg)
-	release, err := client.Run(daprReleaseName)
+	release, err := client.Run(releaseName)
 
 	if release == nil {
 		return false, nil
