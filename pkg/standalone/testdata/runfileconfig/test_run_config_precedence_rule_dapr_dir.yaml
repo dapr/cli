@@ -7,4 +7,4 @@ apps:
 # tests resourcesPath and config_file resolved from dapr's custom installation directory.
   - appID: app_custom_dapr_dir
     appDirPath: ./app_precedence_rule/
-    daprPath: ../custom_dapr_dir
+    runtimePath: ../custom_dapr_dir
