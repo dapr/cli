@@ -59,8 +59,8 @@ type SharedRunConfig struct {
 	LogLevel           string            `arg:"log-level" yaml:"logLevel"`
 	MaxConcurrency     int               `arg:"app-max-concurrency" yaml:"appMaxConcurrency" default:"-1"`
 	PlacementHostAddr  string            `arg:"placement-host-address" yaml:"placementHostAddress"`
-	ComponentsPath     string            `arg:"components-path"`
-	ResourcesPath      string            `yaml:"resourcesPath"` // Deprecated: use ResourcesPaths instead.
+	ComponentsPath     string            `arg:"components-path"` // Deprecated in run template file: use ResourcesPaths instead.
+	ResourcesPath      string            `yaml:"resourcesPath"`  // Deprecated in run template file: use ResourcesPaths instead.
 	ResourcesPaths     []string          `arg:"resources-path" yaml:"resourcesPaths"`
 	AppSSL             bool              `arg:"app-ssl" yaml:"appSSL"`
 	MaxRequestBodySize int               `arg:"dapr-http-max-request-size" yaml:"daprHTTPMaxRequestSize" default:"-1"`
@@ -84,7 +84,7 @@ func (meta *DaprMeta) newAppID() string {
 	}
 }
 
-func (config *RunConfig) validateResourcesPath() error {
+func (config *RunConfig) validateResourcesPaths() error {
 	dirPath := config.ResourcesPaths
 	if len(dirPath) == 0 {
 		dirPath = []string{config.ComponentsPath}
@@ -144,7 +144,7 @@ func (config *RunConfig) Validate() error {
 		config.AppID = meta.newAppID()
 	}
 
-	err = config.validateResourcesPath()
+	err = config.validateResourcesPaths()
 	if err != nil {
 		return err
 	}
