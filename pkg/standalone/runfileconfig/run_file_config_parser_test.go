@@ -282,8 +282,8 @@ func TestMultiResourcePathsResolution(t *testing.T) {
 			appIndex:                       0,
 		},
 		{
-			name:                           "resourcesPaths should have 1 path from common section",
-			expectedNoOfResources:          1,
+			name:                           "resourcesPaths should have 2 path from common section",
+			expectedNoOfResources:          2,
 			expectedResourcesPathsContains: filepath.Join("app", "resources"),
 			appIndex:                       1,
 		},
