@@ -70,7 +70,7 @@ var supportedUpgradePaths = []upgradePath{
 			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io"},
 		},
 		next: common.VersionDetails{
-			RuntimeVersion:      "1.11.0-rc.1",
+			RuntimeVersion:      "1.11.0-rc.4",
 			DashboardVersion:    "0.13.0",
 			ClusterRoles:        []string{"dapr-dashboard", "dapr-injector", "dapr-operator-admin", "dapr-placement", "dapr-sentry"},
 			ClusterRoleBindings: []string{"dapr-operator-admin", "dapr-dashboard", "dapr-injector", "dapr-placement", "dapr-sentry"},
@@ -80,17 +80,17 @@ var supportedUpgradePaths = []upgradePath{
 	// test downgrade.
 	{
 		previous: common.VersionDetails{
-			RuntimeVersion:      "1.11.0-rc.1",
+			RuntimeVersion:      "1.11.0-rc.4",
 			DashboardVersion:    "0.13.0",
 			ClusterRoles:        []string{"dapr-dashboard", "dapr-injector", "dapr-operator-admin", "dapr-placement", "dapr-sentry"},
 			ClusterRoleBindings: []string{"dapr-operator-admin", "dapr-dashboard", "dapr-injector", "dapr-placement", "dapr-sentry"},
 			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io", "httpendpoints.dapr.io"},
 		},
 		next: common.VersionDetails{
-			RuntimeVersion:      "1.9.5",
-			DashboardVersion:    "0.11.0",
-			ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
-			ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+			RuntimeVersion:      "1.10.7",
+			DashboardVersion:    "0.12.0",
+			ClusterRoles:        []string{"dapr-dashboard", "dapr-injector", "dapr-operator-admin", "dapr-placement", "dapr-sentry"},
+			ClusterRoleBindings: []string{"dapr-operator-admin", "dapr-dashboard", "dapr-injector", "dapr-placement", "dapr-sentry"},
 			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io"},
 		},
 	},
