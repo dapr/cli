@@ -29,6 +29,7 @@ import (
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/tests/e2e/spawn"
 
 	k8s "k8s.io/client-go/kubernetes"
@@ -104,6 +105,13 @@ func UpgradeTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 			"upgrade", "-k",
 			"--runtime-version", details.RuntimeVersion,
 			"--log-as-json",
+		}
+
+		hasDashboardInDaprChart, err := kubernetes.IsDashboardIncluded(details.RuntimeVersion)
+		require.NoError(t, err, "failed to check if dashboard is included in dapr chart")
+
+		if !hasDashboardInDaprChart {
+			args = append(args, "--dashboard-version", details.DashboardVersion)
 		}
 
 		if details.ImageVariant != "" {
