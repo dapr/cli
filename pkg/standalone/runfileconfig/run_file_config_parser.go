@@ -56,6 +56,20 @@ func (a *RunFileConfig) validateRunConfig(runFilePath string) error {
 	if err != nil {
 		return err
 	}
+
+	// Resolves common's section ResourcesPaths to absolute paths and validates them.
+	for i := range a.Common.ResourcesPaths {
+		err := a.resolvePathToAbsAndValidate(baseDir, &a.Common.ResourcesPaths[i])
+		if err != nil {
+			return err
+		}
+	}
+
+	// Merge common's section ResourcesPaths and ResourcePath. ResourcesPaths will be single source of truth for resources to be loaded.
+	if len(strings.TrimSpace(a.Common.ResourcesPath)) > 0 {
+		a.Common.ResourcesPaths = append(a.Common.ResourcesPaths, a.Common.ResourcesPath)
+	}
+
 	for i := 0; i < len(a.Apps); i++ {
 		if a.Apps[i].AppDirPath == "" {
 			return errors.New("required field 'appDirPath' not found in the provided app config file")
@@ -69,6 +83,19 @@ func (a *RunFileConfig) validateRunConfig(runFilePath string) error {
 		err = a.resolvePathToAbsAndValidate(a.Apps[i].AppDirPath, &a.Apps[i].ConfigFile, &a.Apps[i].ResourcesPath, &a.Apps[i].DaprdInstallPath)
 		if err != nil {
 			return err
+		}
+
+		// Resolves ResourcesPaths to absolute paths and validates them.
+		for j := range a.Apps[i].ResourcesPaths {
+			err := a.resolvePathToAbsAndValidate(a.Apps[i].AppDirPath, &a.Apps[i].ResourcesPaths[j])
+			if err != nil {
+				return err
+			}
+		}
+
+		// Merge app's section ResourcesPaths and ResourcePath. ResourcesPaths will be single source of truth for resources to be loaded.
+		if len(strings.TrimSpace(a.Apps[i].ResourcesPath)) > 0 {
+			a.Apps[i].ResourcesPaths = append(a.Apps[i].ResourcesPaths, a.Apps[i].ResourcesPath)
 		}
 	}
 	return nil
@@ -231,22 +258,22 @@ func (a *RunFileConfig) mergeCommonAndAppsEnv() {
 }
 
 // resolveResourcesFilePath resolves the resources path for the app.
-// Precedence order for resourcesPath -> apps[i].resourcesPath > apps[i].appDirPath/.dapr/resources > common.resourcesPath > dapr default resources path.
+// Precedence order for resourcesPaths -> apps[i].resourcesPaths > apps[i].appDirPath/.dapr/resources > common.resourcesPaths > dapr default resources path.
 func (a *RunFileConfig) resolveResourcesFilePath(app *App) error {
-	if app.ResourcesPath != "" {
+	if len(app.ResourcesPaths) > 0 {
 		return nil
 	}
 	localResourcesDir := filepath.Join(app.AppDirPath, standalone.DefaultDaprDirName, standalone.DefaultResourcesDirName)
 	if err := utils.ValidateFilePath(localResourcesDir); err == nil {
-		app.ResourcesPath = localResourcesDir
-	} else if len(strings.TrimSpace(a.Common.ResourcesPath)) > 0 {
-		app.ResourcesPath = a.Common.ResourcesPath
+		app.ResourcesPaths = []string{localResourcesDir}
+	} else if len(a.Common.ResourcesPaths) > 0 {
+		app.ResourcesPaths = append(app.ResourcesPaths, a.Common.ResourcesPaths...)
 	} else {
 		daprDirPath, err := standalone.GetDaprRuntimePath(app.DaprdInstallPath)
 		if err != nil {
 			return fmt.Errorf("error getting dapr install path: %w", err)
 		}
-		app.ResourcesPath = standalone.GetDaprComponentsPath(daprDirPath)
+		app.ResourcesPaths = []string{standalone.GetDaprComponentsPath(daprDirPath)}
 	}
 	return nil
 }
