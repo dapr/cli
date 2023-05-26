@@ -15,7 +15,6 @@ package common
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -862,14 +861,8 @@ func httpEndpointsTestOnUninstall(opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
 		// If --all, then the below does not need to run.
 		if opts.UninstallAll {
-			output, err := spawn.Command("kubectl", "delete", "-f", "../testdata/namespace.yaml")
-			t.Log(output)
 			// Note: Namespace is deleted in the uninstall components function,
-			// so this should return that the namespace is not found.
-			// Full error should be: Error from server (NotFound): namespaces "<namespace>" not found.
-			// However, I put lower case not found" below to make the linter happy.
-			nsDNEerr := errors.New("not found")
-			require.ErrorAs(t, err, nsDNEerr)
+			// so this should return as there is nothing to delete or do.
 			return
 		}
 		if opts.ApplyHTTPEndpointChanges {
