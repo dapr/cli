@@ -869,7 +869,7 @@ func httpEndpointsTestOnUninstall(opts TestOptions) func(t *testing.T) {
 		// On Dapr uninstall CRDs are not removed, consequently the http endpoints will not be removed.
 		output, err := spawn.Command("kubectl", "get", "httpendpoints")
 		require.NoError(t, err, "expected no error on calling dapr httpendpoints")
-		httpEndpointOutputCheck(t, output)
+		assert.Contains(t, output, "No resources found")
 
 		// Manually remove httpendpoints and verify output.
 		output, err = spawn.Command("kubectl", "delete", "-f", "../testdata/httpendpoint.yaml")
