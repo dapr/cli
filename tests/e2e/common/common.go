@@ -195,7 +195,7 @@ func GetTestsOnUninstall(details VersionDetails, opts TestOptions) []TestCase {
 		{"clusterroles not exist " + details.RuntimeVersion, ClusterRolesTest(details, opts)},
 		{"clusterrolebindings not exist " + details.RuntimeVersion, ClusterRoleBindingsTest(details, opts)},
 		{"check components exist on uninstall " + details.RuntimeVersion, componentsTestOnUninstall(opts.UninstallAll)},
-		{"check httpendpoints exist on uninstall " + details.RuntimeVersion, httpEndpointsTestOnUninstall(opts.UninstallAll)},
+		{"check httpendpoints exist on uninstall " + details.RuntimeVersion, httpEndpointsTestOnUninstall(opts)},
 		{"check mtls error " + details.RuntimeVersion, uninstallMTLSTest()},
 		{"check status error " + details.RuntimeVersion, statusTestOnUninstall()},
 	}
@@ -305,7 +305,7 @@ func ComponentsTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 
 func HTTPEndpointsTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
-		// if dapr is installed.
+		// if dapr is installed with httpendpoints
 		if opts.ApplyHTTPEndpointChanges {
 			// apply any changes to the httpendpoint.
 			t.Log("apply httpendpoint changes")
@@ -857,34 +857,35 @@ func componentsTestOnUninstall(all bool) func(t *testing.T) {
 	}
 }
 
-func httpEndpointsTestOnUninstall(all bool) func(t *testing.T) {
+func httpEndpointsTestOnUninstall(opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
-		// On Dapr uninstall CRDs are not removed, consequently the http endpoints will not be removed.
-		output, err := spawn.Command("kubectl", "get", "httpendpoints")
-		require.NoError(t, err, "expected no error on calling dapr httpendpoints")
-		httpEndpointOutputCheck(t, output)
 
 		// If --all, then the below does not need to run.
-		if all {
-			output, err = spawn.Command("kubectl", "delete", "-f", "../testdata/namespace.yaml")
+		if opts.UninstallAll {
+			output, err := spawn.Command("kubectl", "delete", "-f", "../testdata/namespace.yaml")
 			require.NoError(t, err, "expected no error on kubectl delete")
 			t.Log(output)
 			return
+		} else if opts.ApplyHTTPEndpointChanges {
+			// On Dapr uninstall CRDs are not removed, consequently the http endpoints will not be removed.
+			output, err := spawn.Command("kubectl", "get", "httpendpoints")
+			require.NoError(t, err, "expected no error on calling dapr httpendpoints")
+			httpEndpointOutputCheck(t, output)
+
+			// Manually remove httpendpoints and verify output.
+			output, err = spawn.Command("kubectl", "delete", "-f", "../testdata/httpendpoint.yaml")
+			require.NoError(t, err, "expected no error on kubectl apply")
+			require.Equal(t, "httpendpoints.dapr.io \"httpendpint\" deleted\nhttpendpoints.dapr.io \"httpendpoint\" deleted\n", output, "expected output to match")
+			output, err = spawn.Command("kubectl", "delete", "-f", "../testdata/namespace.yaml")
+			require.NoError(t, err, "expected no error on kubectl delete")
+			t.Log(output)
+			output, err = spawn.Command("kubectl", "get", "httpendpoints")
+			require.NoError(t, err, "expected no error on calling dapr httpendpoints")
+			lines := strings.Split(output, "\n")
+
+			// An extra empty line is there in output.
+			require.Equal(t, 2, len(lines), "expected kubernetes response message to remain")
 		}
-
-		// Manually remove httpendpoints and verify output.
-		output, err = spawn.Command("kubectl", "delete", "-f", "../testdata/httpendpoint.yaml")
-		require.NoError(t, err, "expected no error on kubectl apply")
-		require.Equal(t, "httpendpoints.dapr.io \"httpendpint\" deleted\nhttpendpoints.dapr.io \"httpendpoint\" deleted\n", output, "expected output to match")
-		output, err = spawn.Command("kubectl", "delete", "-f", "../testdata/namespace.yaml")
-		require.NoError(t, err, "expected no error on kubectl delete")
-		t.Log(output)
-		output, err = spawn.Command("kubectl", "get", "httpendpoints")
-		require.NoError(t, err, "expected no error on calling dapr httpendpoints")
-		lines := strings.Split(output, "\n")
-
-		// An extra empty line is there in output.
-		require.Equal(t, 2, len(lines), "expected kubernetes response message to remain")
 	}
 }
 
