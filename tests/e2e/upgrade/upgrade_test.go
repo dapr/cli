@@ -345,7 +345,7 @@ func TestUpgradeWithHTTPEndpoint(t *testing.T) {
 
 	for _, p := range supportedUpgradePaths {
 		// only check runtime versions that support HTTPEndpoint resource.
-		if p.next.RuntimeVersion != "master" {
+		if p.next.RuntimeVersion != "v1.11.0-rc.4" {
 			return
 		}
 		t.Run(fmt.Sprintf("v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
