@@ -1,0 +1,19 @@
+version: 1
+common:
+# resourcesPath and resourcesPaths should be combined into resourcesPaths and should contain 1 path to load resources from.
+  resourcesPath: ./app/resources
+  resourcesPaths:
+    - ./app/resources
+  configFilePath: ./app/config.yaml
+apps:
+# resourcesPaths should contain 2 paths to load resources from.
+  - appDirPath: ./webapp/
+    resourcesPath: ./resources
+    resourcesPaths:
+      - ../backend/.dapr/resources
+# resourcesPaths should be resolved from common's section and should contain 1 path to load resources from.
+  - appDirPath: ./webapp/
+    appID: webapp_1
+# resourcesPaths resolved from app/.dapr folder and should contain 1 path to load resources from.
+  - appID: backend
+    appDirPath: ./backend/

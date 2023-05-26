@@ -65,6 +65,11 @@ func Upgrade(conf UpgradeConfig) error {
 	daprVersion := GetDaprVersion(status)
 	print.InfoStatusEvent(os.Stdout, "Dapr control plane version %s detected in namespace %s", daprVersion, status[0].Namespace)
 
+	hasDashboardInDaprChart, err := IsDashboardIncluded(daprVersion)
+	if err != nil {
+		return err
+	}
+
 	helmConf, err := helmConfig(status[0].Namespace)
 	if err != nil {
 		return err
@@ -75,9 +80,36 @@ func Upgrade(conf UpgradeConfig) error {
 		return err
 	}
 
+	willHaveDashboardInDaprChart, err := IsDashboardIncluded(conf.RuntimeVersion)
+	if err != nil {
+		return err
+	}
+
+	// Before we do anything, checks if installing dashboard is allowed.
+	if willHaveDashboardInDaprChart && conf.DashboardVersion != "" {
+		// We cannot install Dashboard separately if Dapr's chart has it already.
+		return fmt.Errorf("cannot install Dashboard because Dapr version %s already contains it - installation aborted", conf.RuntimeVersion)
+	}
+
+	dashboardExists, err := confirmExist(helmConf, dashboardReleaseName)
+	if err != nil {
+		return err
+	}
+
+	if !hasDashboardInDaprChart && willHaveDashboardInDaprChart && dashboardExists {
+		print.InfoStatusEvent(os.Stdout, "Dashboard being uninstalled prior to Dapr control plane upgrade...")
+		uninstallClient := helm.NewUninstall(helmConf)
+		uninstallClient.Timeout = time.Duration(conf.Timeout) * time.Second
+
+		_, err = uninstallClient.Run(dashboardReleaseName)
+		if err != nil {
+			return err
+		}
+	}
+
 	var dashboardChart *chart.Chart
 	if conf.DashboardVersion != "" {
-		dashboardChart, err = daprChart(conf.DashboardVersion, "dapr-dashboard", helmConf)
+		dashboardChart, err = daprChart(conf.DashboardVersion, dashboardReleaseName, helmConf)
 		if err != nil {
 			return err
 		}
@@ -138,8 +170,21 @@ func Upgrade(conf UpgradeConfig) error {
 	}
 
 	if dashboardChart != nil {
-		if _, err = upgradeClient.Run(chart, dashboardChart, vals); err != nil {
-			return err
+		if dashboardExists {
+			if _, err = upgradeClient.Run(dashboardReleaseName, dashboardChart, vals); err != nil {
+				return err
+			}
+		} else {
+			// We need to install Dashboard since it does not exist yet.
+			err = install(dashboardReleaseName, conf.DashboardVersion, InitConfiguration{
+				DashboardVersion: conf.DashboardVersion,
+				Namespace:        upgradeClient.Namespace,
+				Wait:             upgradeClient.Wait,
+				Timeout:          conf.Timeout,
+			})
+			if err != nil {
+				return err
+			}
 		}
 	}
 

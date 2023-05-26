@@ -30,7 +30,7 @@ func Uninstall(namespace string, uninstallAll bool, timeout uint) error {
 		return err
 	}
 
-	exists, err := confirmExist(config)
+	exists, err := confirmExist(config, daprReleaseName)
 	if err != nil {
 		return err
 	}

@@ -29,7 +29,6 @@ import (
 
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/dapr/pkg/components"
-	modes "github.com/dapr/dapr/pkg/config/modes"
 )
 
 const (
@@ -60,8 +59,9 @@ type SharedRunConfig struct {
 	LogLevel           string            `arg:"log-level" yaml:"logLevel"`
 	MaxConcurrency     int               `arg:"app-max-concurrency" yaml:"appMaxConcurrency" default:"-1"`
 	PlacementHostAddr  string            `arg:"placement-host-address" yaml:"placementHostAddress"`
-	ComponentsPath     string            `arg:"components-path"`
-	ResourcesPath      string            `arg:"resources-path" yaml:"resourcesPath"`
+	ComponentsPath     string            `arg:"components-path"` // Deprecated in run template file: use ResourcesPaths instead.
+	ResourcesPath      string            `yaml:"resourcesPath"`  // Deprecated in run template file: use ResourcesPaths instead.
+	ResourcesPaths     []string          `arg:"resources-path" yaml:"resourcesPaths"`
 	AppSSL             bool              `arg:"app-ssl" yaml:"appSSL"`
 	MaxRequestBodySize int               `arg:"dapr-http-max-request-size" yaml:"daprHTTPMaxRequestSize" default:"-1"`
 	HTTPReadBufferSize int               `arg:"dapr-http-read-buffer-size" yaml:"daprHTTPReadBufferSize" default:"-1"`
@@ -84,17 +84,18 @@ func (meta *DaprMeta) newAppID() string {
 	}
 }
 
-func (config *RunConfig) validateResourcesPath() error {
-	dirPath := config.ResourcesPath
-	if dirPath == "" {
-		dirPath = config.ComponentsPath
+func (config *RunConfig) validateResourcesPaths() error {
+	dirPath := config.ResourcesPaths
+	if len(dirPath) == 0 {
+		dirPath = []string{config.ComponentsPath}
 	}
-	_, err := os.Stat(dirPath)
-	if err != nil {
-		return fmt.Errorf("error validating resources path %q : %w", dirPath, err)
+	for _, path := range dirPath {
+		if _, err := os.Stat(path); err != nil {
+			return fmt.Errorf("error validating resources path %q : %w", dirPath, err)
+		}
 	}
-	componentsLoader := components.NewStandaloneComponents(modes.StandaloneConfig{ComponentsPath: dirPath})
-	_, err = componentsLoader.LoadComponents()
+	componentsLoader := components.NewLocalComponents(dirPath...)
+	_, err := componentsLoader.LoadComponents()
 	if err != nil {
 		return fmt.Errorf("error validating components in resources path %q : %w", dirPath, err)
 	}
@@ -143,12 +144,12 @@ func (config *RunConfig) Validate() error {
 		config.AppID = meta.newAppID()
 	}
 
-	err = config.validateResourcesPath()
+	err = config.validateResourcesPaths()
 	if err != nil {
 		return err
 	}
 
-	if config.ResourcesPath != "" {
+	if len(config.ResourcesPaths) > 0 {
 		config.ComponentsPath = ""
 	}
 
@@ -287,10 +288,16 @@ func getArgsFromSchema(schema reflect.Value, args []string) []string {
 
 		ifneq, hasIfneq := typeField.Tag.Lookup("ifneq")
 
-		switch valueField.(type) {
+		switch vType := valueField.(type) {
 		case bool:
 			if valueField == true {
 				args = append(args, key)
+			}
+		case []string:
+			if len(vType) > 0 {
+				for _, val := range vType {
+					args = append(args, key, val)
+				}
 			}
 		default:
 			value := fmt.Sprintf("%v", reflect.ValueOf(valueField))
