@@ -305,7 +305,7 @@ func ComponentsTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 
 func HTTPEndpointsTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
-		// if dapr is installed with httpendpoints
+		// if dapr is installed with httpendpoints.
 		if opts.ApplyHTTPEndpointChanges {
 			// apply any changes to the httpendpoint.
 			t.Log("apply httpendpoint changes")
@@ -859,7 +859,6 @@ func componentsTestOnUninstall(all bool) func(t *testing.T) {
 
 func httpEndpointsTestOnUninstall(opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
-
 		// If --all, then the below does not need to run.
 		if opts.UninstallAll {
 			output, err := spawn.Command("kubectl", "delete", "-f", "../testdata/namespace.yaml")
