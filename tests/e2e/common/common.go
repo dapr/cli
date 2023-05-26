@@ -317,11 +317,11 @@ func HTTPEndpointsTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 			require.NoError(t, err, "expected no error on kubectl apply")
 			require.Equal(t, "httpendpoints.dapr.io/httpendpoint created\nhttpendpoints.dapr.io/httpendpoint created\n", output, "expected output to match")
 			httpEndpointOutputCheck(t, output)
-		}
 
-		t.Log("check applied httpendpoint exists")
-		_, err := spawn.Command("kubectl", "get", "httpendpoint")
-		require.NoError(t, err, "expected no error on calling to retrieve httpendpoints")
+			t.Log("check applied httpendpoint exists")
+			_, err = spawn.Command("kubectl", "get", "httpendpoint")
+			require.NoError(t, err, "expected no error on calling to retrieve httpendpoints")
+		}
 	}
 }
 
