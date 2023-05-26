@@ -939,9 +939,8 @@ func httpEndpointOutputCheck(t *testing.T, output string) {
 	)
 	assert.Contains(t, output, headerName)
 	assert.Contains(t, output, headerAge)
-	// check for test httpendpoint named httpendpoint output to be present in output
+	// check for test httpendpoint named httpendpoint output to be present in output.
 	assert.Contains(t, output, "httpendpoint")
-
 }
 
 func validatePodsOnInstallUpgrade(t *testing.T, details VersionDetails) {

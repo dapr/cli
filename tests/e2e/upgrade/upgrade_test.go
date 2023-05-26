@@ -96,7 +96,6 @@ var supportedUpgradePaths = []upgradePath{
 	},
 	{
 		previous: common.VersionDetails{
-			// TODO: This needs to be changed to v1.11.0 after the release is made
 			RuntimeVersion:      "master",
 			DashboardVersion:    "0.12.0",
 			ClusterRoles:        []string{"dapr-dashboard", "dapr-injector", "dapr-operator-admin", "dapr-placement", "dapr-sentry"},
@@ -345,8 +344,7 @@ func TestUpgradeWithHTTPEndpoint(t *testing.T) {
 	}
 
 	for _, p := range supportedUpgradePaths {
-		// only check runtime versions that support HTTPEndpoint resource
-		// TODO: This needs to be changed to v1.11.0 after the release is made
+		// only check runtime versions that support HTTPEndpoint resource.
 		if p.next.RuntimeVersion != "master" {
 			return
 		}
