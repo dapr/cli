@@ -15,6 +15,7 @@ package common
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -862,8 +863,10 @@ func httpEndpointsTestOnUninstall(opts TestOptions) func(t *testing.T) {
 		// If --all, then the below does not need to run.
 		if opts.UninstallAll {
 			output, err := spawn.Command("kubectl", "delete", "-f", "../testdata/namespace.yaml")
-			require.NoError(t, err, "expected no error on kubectl delete")
 			t.Log(output)
+			// Note: Namespace is deleted in the uninstall components function, so this should return that the namespace is not found.
+			nsDNEerr := errors.New("Error from server (NotFound)")
+			require.ErrorAs(t, err, nsDNEerr)
 			return
 		}
 		if opts.ApplyHTTPEndpointChanges {
