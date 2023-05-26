@@ -579,17 +579,17 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 func getAppDaprdWriter(app runfileconfig.App, isAppCommandEmpty bool) io.Writer {
 	var appDaprdWriter io.Writer
 	if isAppCommandEmpty {
-		if app.DaprdLogDestination != runfileconfig.Console {
+		if app.DaprdLogDestination != standalone.Console {
 			appDaprdWriter = io.MultiWriter(os.Stdout, app.DaprdLogWriteCloser)
 		} else {
 			appDaprdWriter = os.Stdout
 		}
 	} else {
-		if app.AppLogDestination != runfileconfig.Console && app.DaprdLogDestination != runfileconfig.Console {
+		if app.AppLogDestination != standalone.Console && app.DaprdLogDestination != standalone.Console {
 			appDaprdWriter = io.MultiWriter(app.AppLogWriteCloser, app.DaprdLogWriteCloser, os.Stdout)
-		} else if app.AppLogDestination != runfileconfig.Console {
+		} else if app.AppLogDestination != standalone.Console {
 			appDaprdWriter = io.MultiWriter(app.AppLogWriteCloser, os.Stdout)
-		} else if app.DaprdLogDestination != runfileconfig.Console {
+		} else if app.DaprdLogDestination != standalone.Console {
 			appDaprdWriter = io.MultiWriter(app.DaprdLogWriteCloser, os.Stdout)
 		} else {
 			appDaprdWriter = os.Stdout
@@ -599,14 +599,14 @@ func getAppDaprdWriter(app runfileconfig.App, isAppCommandEmpty bool) io.Writer 
 }
 
 // getLogWriter returns the log writer based on the log destination.
-func getLogWriter(fileLogWriterCloser io.WriteCloser, logDestination runfileconfig.LogDestType) io.Writer {
+func getLogWriter(fileLogWriterCloser io.WriteCloser, logDestination standalone.LogDestType) io.Writer {
 	var logWriter io.Writer
 	switch logDestination {
-	case runfileconfig.Console:
+	case standalone.Console:
 		logWriter = os.Stdout
-	case runfileconfig.File:
+	case standalone.File:
 		logWriter = fileLogWriterCloser
-	case runfileconfig.FileAndConsole:
+	case standalone.FileAndConsole:
 		logWriter = io.MultiWriter(os.Stdout, fileLogWriterCloser)
 	}
 	return logWriter
