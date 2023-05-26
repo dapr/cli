@@ -865,26 +865,25 @@ func httpEndpointsTestOnUninstall(opts TestOptions) func(t *testing.T) {
 			require.NoError(t, err, "expected no error on kubectl delete")
 			t.Log(output)
 			return
-		} else if opts.ApplyHTTPEndpointChanges {
-			// On Dapr uninstall CRDs are not removed, consequently the http endpoints will not be removed.
-			output, err := spawn.Command("kubectl", "get", "httpendpoints")
-			require.NoError(t, err, "expected no error on calling dapr httpendpoints")
-			httpEndpointOutputCheck(t, output)
-
-			// Manually remove httpendpoints and verify output.
-			output, err = spawn.Command("kubectl", "delete", "-f", "../testdata/httpendpoint.yaml")
-			require.NoError(t, err, "expected no error on kubectl apply")
-			require.Equal(t, "httpendpoints.dapr.io \"httpendpint\" deleted\nhttpendpoints.dapr.io \"httpendpoint\" deleted\n", output, "expected output to match")
-			output, err = spawn.Command("kubectl", "delete", "-f", "../testdata/namespace.yaml")
-			require.NoError(t, err, "expected no error on kubectl delete")
-			t.Log(output)
-			output, err = spawn.Command("kubectl", "get", "httpendpoints")
-			require.NoError(t, err, "expected no error on calling dapr httpendpoints")
-			lines := strings.Split(output, "\n")
-
-			// An extra empty line is there in output.
-			require.Equal(t, 2, len(lines), "expected kubernetes response message to remain")
 		}
+		// On Dapr uninstall CRDs are not removed, consequently the http endpoints will not be removed.
+		output, err := spawn.Command("kubectl", "get", "httpendpoints")
+		require.NoError(t, err, "expected no error on calling dapr httpendpoints")
+		httpEndpointOutputCheck(t, output)
+
+		// Manually remove httpendpoints and verify output.
+		output, err = spawn.Command("kubectl", "delete", "-f", "../testdata/httpendpoint.yaml")
+		require.NoError(t, err, "expected no error on kubectl apply")
+		require.Equal(t, "httpendpoints.dapr.io \"httpendpint\" deleted\nhttpendpoints.dapr.io \"httpendpoint\" deleted\n", output, "expected output to match")
+		output, err = spawn.Command("kubectl", "delete", "-f", "../testdata/namespace.yaml")
+		require.NoError(t, err, "expected no error on kubectl delete")
+		t.Log(output)
+		output, err = spawn.Command("kubectl", "get", "httpendpoints")
+		require.NoError(t, err, "expected no error on calling dapr httpendpoints")
+		lines := strings.Split(output, "\n")
+
+		// An extra empty line is there in output.
+		require.Equal(t, 2, len(lines), "expected kubernetes response message to remain")
 	}
 }
 
