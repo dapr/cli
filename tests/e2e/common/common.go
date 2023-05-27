@@ -426,6 +426,11 @@ func ClusterRolesTest(details VersionDetails, opts TestOptions) func(t *testing.
 		}
 
 		for name, found := range foundMap {
+			// Note: dapr dashboard was removed from v1.11 helm chart.
+			// Do not check for dashboard related resources for v1.11 on.
+			if name == "dapr-dashboard" && details.RuntimeVersion == "v1.11.0-rc.4" {
+				wanted = false
+			}
 			assert.Equal(t, wanted, found, "cluster role %s, found = %t, wanted = %t", name, found, wanted)
 		}
 	}
