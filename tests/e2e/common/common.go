@@ -45,6 +45,8 @@ const (
 	CustomResourceDefs Resource = iota
 	ClusterRoles
 	ClusterRoleBindings
+	// Note: Go does not like the period in 1.11 for consts
+	Dapr111Version = "v1.11.0-rc.4"
 
 	numHAPods    = 13
 	numNonHAPods = 5
@@ -428,7 +430,7 @@ func ClusterRolesTest(details VersionDetails, opts TestOptions) func(t *testing.
 		for name, found := range foundMap {
 			// Note: dapr dashboard was removed from v1.11 helm chart.
 			// Do not check for dashboard related resources for v1.11 on.
-			if name == "dapr-dashboard" && details.RuntimeVersion == "v1.11.0-rc.4" {
+			if name == "dapr-dashboard" && details.RuntimeVersion == Dapr111Version {
 				wanted = false
 			}
 			assert.Equal(t, wanted, found, "cluster role %s, found = %t, wanted = %t", name, found, wanted)
