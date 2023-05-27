@@ -334,13 +334,13 @@ func TestRunWithTemplateFile(t *testing.T) {
 		assert.NotContains(t, output, "== APP - processor")
 
 		// Daprd logs for processor app should only be printed to console and not written to file.
-		assert.Contains(t, output, "msg=\"all outstanding components processed\" app_id=processor")
+		assert.Contains(t, output, "msg=\"All outstanding components processed\" app_id=processor")
 
 		// App logs for emit-metrics app should be printed to console and written to file.
 		assert.Contains(t, output, "== APP - emit-metrics")
 
 		// Daprd logs for emit-metrics app should only be written to file.
-		assert.NotContains(t, output, "msg=\"all outstanding components processed\" app_id=emit-metrics")
+		assert.NotContains(t, output, "msg=\"All outstanding components processed\" app_id=emit-metrics")
 
 		assert.Contains(t, output, "Received signal to stop Dapr and app processes. Shutting down Dapr and app processes.")
 

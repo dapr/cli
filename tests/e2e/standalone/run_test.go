@@ -173,7 +173,23 @@ func TestStandaloneRun(t *testing.T) {
 		output, err := cmdRun("", args...)
 		t.Log(output)
 		require.NoError(t, err, "run failed")
-		assert.Contains(t, output, "component loaded. name: test-statestore, type: state.in-memory/v1")
+		assert.Contains(t, output, "Component loaded: test-statestore (state.in-memory/v1)")
+		assert.Contains(t, output, "Exited App successfully")
+		assert.Contains(t, output, "Exited Dapr successfully")
+	})
+
+	t.Run("check run with multiple resources-path", func(t *testing.T) {
+		args := []string{
+			"--app-id", "testapp",
+			"--resources-path", "../testdata/resources",
+			"--resources-path", "../testdata/additional_resources",
+			"--", "bash", "-c", "echo 'test'",
+		}
+		output, err := cmdRun("", args...)
+		t.Log(output)
+		require.NoError(t, err, "run failed")
+		assert.Contains(t, output, "Component loaded: test-statestore (state.in-memory/v1)")
+		assert.Contains(t, output, "Component loaded: test-statestore-additional-resource (state.in-memory/v1)")
 		assert.Contains(t, output, "Exited App successfully")
 		assert.Contains(t, output, "Exited Dapr successfully")
 	})
