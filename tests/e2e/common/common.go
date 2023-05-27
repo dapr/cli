@@ -46,7 +46,7 @@ const (
 	ClusterRoles
 	ClusterRoleBindings
 	// Note: Go does not like the period in 1.11 for consts
-	Dapr111Version = "v1.11.0-rc.4"
+	Dapr111Version = "v1.11.0"
 
 	numHAPods    = 13
 	numNonHAPods = 5
