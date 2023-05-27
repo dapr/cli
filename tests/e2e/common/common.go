@@ -827,7 +827,7 @@ func componentsTestOnUninstall(all bool) func(t *testing.T) {
 	return func(t *testing.T) {
 		daprPath := GetDaprPath()
 		// On Dapr uninstall CRDs are not removed, consequently the components will not be removed.
-		// TODO Related to https://github.com/dapr/cli/issues/656.
+		// TODO: Related to https://github.com/dapr/cli/issues/656.
 		// For now the components remain.
 		output, err := spawn.Command(daprPath, "components", "-k")
 		require.NoError(t, err, "expected no error on calling dapr components")
