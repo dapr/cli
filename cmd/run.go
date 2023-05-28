@@ -1010,7 +1010,7 @@ func putAppLogFilePathInMeta(runE *runExec.RunExec, appLogFilePath string) {
 func putDaprLogFilePathInMeta(runE *runExec.RunExec, daprLogFilePath string) {
 	err := metadata.Put(runE.DaprHTTPPort, "daprdLogPath", daprLogFilePath, runE.AppID, unixDomainSocket)
 	if err != nil {
-		print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogWarning, "Could not update sidecar metadata for run file path: %s", err.Error())
+		print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogWarning, "Could not update sidecar metadata for dapr log file path: %s", err.Error())
 	}
 }
 
