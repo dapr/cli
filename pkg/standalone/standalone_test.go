@@ -321,8 +321,8 @@ func TestInitLogActualContainerRuntimeName(t *testing.T) {
 		{"podman", "Init should log podman as container runtime"},
 		{"docker", "Init should log docker as container runtime"},
 	}
-	conatinerRuntimeAvailable := utils.IsDockerInstalled() || utils.IsPodmanInstalled()
-	if conatinerRuntimeAvailable {
+	containerRuntimeAvailable := utils.IsDockerInstalled() || utils.IsPodmanInstalled()
+	if containerRuntimeAvailable {
 		t.Skip("Skipping test as container runtime is available")
 	}
 	for _, test := range tests {

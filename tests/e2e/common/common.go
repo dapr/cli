@@ -61,12 +61,13 @@ type VersionDetails struct {
 }
 
 type TestOptions struct {
-	HAEnabled             bool
-	MTLSEnabled           bool
-	ApplyComponentChanges bool
-	CheckResourceExists   map[Resource]bool
-	UninstallAll          bool
-	InitWithCustomCert    bool
+	HAEnabled                bool
+	MTLSEnabled              bool
+	ApplyComponentChanges    bool
+	ApplyHTTPEndpointChanges bool
+	CheckResourceExists      map[Resource]bool
+	UninstallAll             bool
+	InitWithCustomCert       bool
 }
 
 type TestCase struct {
@@ -180,6 +181,7 @@ func GetTestsOnInstall(details VersionDetails, opts TestOptions) []TestCase {
 		{"clusterroles exist " + details.RuntimeVersion, ClusterRolesTest(details, opts)},
 		{"clusterrolebindings exist " + details.RuntimeVersion, ClusterRoleBindingsTest(details, opts)},
 		{"apply and check components exist " + details.RuntimeVersion, ComponentsTestOnInstallUpgrade(opts)},
+		{"apply and check httpendpoints exist " + details.RuntimeVersion, HTTPEndpointsTestOnInstallUpgrade(opts)},
 		{"check mtls " + details.RuntimeVersion, MTLSTestOnInstallUpgrade(opts)},
 		{"status check " + details.RuntimeVersion, StatusTestOnInstallUpgrade(details, opts)},
 	}
@@ -193,6 +195,7 @@ func GetTestsOnUninstall(details VersionDetails, opts TestOptions) []TestCase {
 		{"clusterroles not exist " + details.RuntimeVersion, ClusterRolesTest(details, opts)},
 		{"clusterrolebindings not exist " + details.RuntimeVersion, ClusterRoleBindingsTest(details, opts)},
 		{"check components exist on uninstall " + details.RuntimeVersion, componentsTestOnUninstall(opts.UninstallAll)},
+		{"check httpendpoints exist on uninstall " + details.RuntimeVersion, httpEndpointsTestOnUninstall(opts)},
 		{"check mtls error " + details.RuntimeVersion, uninstallMTLSTest()},
 		{"check status error " + details.RuntimeVersion, statusTestOnUninstall()},
 	}
@@ -297,6 +300,28 @@ func ComponentsTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 		output, err := spawn.Command(daprPath, "components", "-k")
 		require.NoError(t, err, "expected no error on calling dapr components")
 		componentOutputCheck(t, output, false)
+	}
+}
+
+func HTTPEndpointsTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
+	return func(t *testing.T) {
+		// if dapr is installed with httpendpoints.
+		if opts.ApplyHTTPEndpointChanges {
+			// apply any changes to the httpendpoint.
+			t.Log("apply httpendpoint changes")
+			output, err := spawn.Command("kubectl", "apply", "-f", "../testdata/namespace.yaml")
+			t.Log(output)
+			require.NoError(t, err, "expected no error on kubectl apply")
+			output, err = spawn.Command("kubectl", "apply", "-f", "../testdata/httpendpoint.yaml")
+			t.Log(output)
+			require.NoError(t, err, "expected no error on kubectl apply")
+			require.Equal(t, "httpendpoints.dapr.io/httpendpoint created\nhttpendpoints.dapr.io/httpendpoint created\n", output, "expected output to match")
+			httpEndpointOutputCheck(t, output)
+
+			t.Log("check applied httpendpoint exists")
+			_, err = spawn.Command("kubectl", "get", "httpendpoint")
+			require.NoError(t, err, "expected no error on calling to retrieve httpendpoints")
+		}
 	}
 }
 
@@ -802,7 +827,7 @@ func componentsTestOnUninstall(all bool) func(t *testing.T) {
 	return func(t *testing.T) {
 		daprPath := GetDaprPath()
 		// On Dapr uninstall CRDs are not removed, consequently the components will not be removed.
-		// TODO Related to https://github.com/dapr/cli/issues/656.
+		// TODO: Related to https://github.com/dapr/cli/issues/656.
 		// For now the components remain.
 		output, err := spawn.Command(daprPath, "components", "-k")
 		require.NoError(t, err, "expected no error on calling dapr components")
@@ -832,6 +857,37 @@ func componentsTestOnUninstall(all bool) func(t *testing.T) {
 	}
 }
 
+func httpEndpointsTestOnUninstall(opts TestOptions) func(t *testing.T) {
+	return func(t *testing.T) {
+		// If --all, then the below does not need to run.
+		if opts.UninstallAll {
+			// Note: Namespace is deleted in the uninstall components function,
+			// so this should return as there is nothing to delete or do.
+			return
+		}
+		if opts.ApplyHTTPEndpointChanges {
+			// On Dapr uninstall CRDs are not removed, consequently the http endpoints will not be removed.
+			output, err := spawn.Command("kubectl", "get", "httpendpoints")
+			require.NoError(t, err, "expected no error on calling dapr httpendpoints")
+			assert.Contains(t, output, "No resources found")
+
+			// Manually remove httpendpoints and verify output.
+			output, err = spawn.Command("kubectl", "delete", "-f", "../testdata/httpendpoint.yaml")
+			require.NoError(t, err, "expected no error on kubectl delete")
+			require.Equal(t, "httpendpoints.dapr.io \"httpendpint\" deleted\nhttpendpoints.dapr.io \"httpendpoint\" deleted\n", output, "expected output to match")
+			output, err = spawn.Command("kubectl", "delete", "-f", "../testdata/namespace.yaml")
+			require.NoError(t, err, "expected no error on kubectl delete")
+			t.Log(output)
+			output, err = spawn.Command("kubectl", "get", "httpendpoints")
+			require.NoError(t, err, "expected no error on calling dapr httpendpoints")
+			lines := strings.Split(output, "\n")
+
+			// An extra empty line is there in output.
+			require.Equal(t, 2, len(lines), "expected kubernetes response message to remain")
+		}
+	}
+}
+
 func statusTestOnUninstall() func(t *testing.T) {
 	return func(t *testing.T) {
 		daprPath := GetDaprPath()
@@ -856,7 +912,7 @@ func componentOutputCheck(t *testing.T, output string, all bool) {
 
 	lines = strings.Split(output, "\n")[2:] // remove header and warning message.
 
-	assert.Equal(t, 2, len(lines), "expected 2 componets") // default and test namespace components.
+	assert.Equal(t, 2, len(lines), "expected 2 components") // default and test namespace components.
 
 	// for fresh cluster only one component yaml has been applied.
 	testNsFields := strings.Fields(lines[0])
@@ -874,6 +930,17 @@ func namespaceComponentOutputCheck(t *testing.T, fields []string, namespace stri
 	assert.Equal(t, "state.redis", fields[2], "expected type to match")
 	assert.Equal(t, "v1", fields[3], "expected version to match")
 	assert.Equal(t, "app1", fields[4], "expected scopes to match")
+}
+
+func httpEndpointOutputCheck(t *testing.T, output string) {
+	const (
+		headerName = "NAME"
+		headerAge  = "AGE"
+	)
+	assert.Contains(t, output, headerName)
+	assert.Contains(t, output, headerAge)
+	// check for test httpendpoint named httpendpoint output to be present in output.
+	assert.Contains(t, output, "httpendpoint")
 }
 
 func validatePodsOnInstallUpgrade(t *testing.T, details VersionDetails) {
