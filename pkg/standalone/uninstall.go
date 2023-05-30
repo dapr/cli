@@ -92,9 +92,9 @@ func Uninstall(uninstallAll bool, dockerNetwork string, containerRuntime string,
 
 	containerRuntime = strings.TrimSpace(containerRuntime)
 	runtimeCmd := utils.GetContainerRuntimeCmd(containerRuntime)
-	conatinerRuntimeAvailable := false
-	conatinerRuntimeAvailable = utils.IsDockerInstalled() || utils.IsPodmanInstalled()
-	if conatinerRuntimeAvailable {
+	containerRuntimeAvailable := false
+	containerRuntimeAvailable = utils.IsDockerInstalled() || utils.IsPodmanInstalled()
+	if containerRuntimeAvailable {
 		containerErrs = removeContainers(uninstallPlacementContainer, uninstallAll, dockerNetwork, runtimeCmd)
 	}
 
