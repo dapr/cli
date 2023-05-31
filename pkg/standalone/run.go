@@ -31,7 +31,15 @@ import (
 	"github.com/dapr/dapr/pkg/components"
 )
 
+type LogDestType string
+
 const (
+	Console             LogDestType = "console"
+	File                LogDestType = "file"
+	FileAndConsole      LogDestType = "fileAndConsole"
+	DefaultDaprdLogDest             = File
+	DefaultAppLogDest               = FileAndConsole
+
 	sentryDefaultAddress = "localhost:50001"
 	defaultStructTagKey  = "default"
 )
@@ -52,27 +60,29 @@ type RunConfig struct {
 
 // SharedRunConfig represents the application configuration parameters, which can be shared across many apps.
 type SharedRunConfig struct {
-	ConfigFile         string            `arg:"config" yaml:"configFilePath"`
-	AppProtocol        string            `arg:"app-protocol" yaml:"appProtocol" default:"http"`
-	APIListenAddresses string            `arg:"dapr-listen-addresses" yaml:"apiListenAddresses"`
-	EnableProfiling    bool              `arg:"enable-profiling" yaml:"enableProfiling"`
-	LogLevel           string            `arg:"log-level" yaml:"logLevel"`
-	MaxConcurrency     int               `arg:"app-max-concurrency" yaml:"appMaxConcurrency" default:"-1"`
-	PlacementHostAddr  string            `arg:"placement-host-address" yaml:"placementHostAddress"`
-	ComponentsPath     string            `arg:"components-path"` // Deprecated in run template file: use ResourcesPaths instead.
-	ResourcesPath      string            `yaml:"resourcesPath"`  // Deprecated in run template file: use ResourcesPaths instead.
-	ResourcesPaths     []string          `arg:"resources-path" yaml:"resourcesPaths"`
-	AppSSL             bool              `arg:"app-ssl" yaml:"appSSL"`
-	MaxRequestBodySize int               `arg:"dapr-http-max-request-size" yaml:"daprHTTPMaxRequestSize" default:"-1"`
-	HTTPReadBufferSize int               `arg:"dapr-http-read-buffer-size" yaml:"daprHTTPReadBufferSize" default:"-1"`
-	EnableAppHealth    bool              `arg:"enable-app-health-check" yaml:"enableAppHealthCheck"`
-	AppHealthPath      string            `arg:"app-health-check-path" yaml:"appHealthCheckPath"`
-	AppHealthInterval  int               `arg:"app-health-probe-interval" ifneq:"0" yaml:"appHealthProbeInterval"`
-	AppHealthTimeout   int               `arg:"app-health-probe-timeout" ifneq:"0" yaml:"appHealthProbeTimeout"`
-	AppHealthThreshold int               `arg:"app-health-threshold" ifneq:"0" yaml:"appHealthThreshold"`
-	EnableAPILogging   bool              `arg:"enable-api-logging" yaml:"enableApiLogging"`
-	DaprdInstallPath   string            `yaml:"runtimePath"`
-	Env                map[string]string `yaml:"env"`
+	ConfigFile          string            `arg:"config" yaml:"configFilePath"`
+	AppProtocol         string            `arg:"app-protocol" yaml:"appProtocol" default:"http"`
+	APIListenAddresses  string            `arg:"dapr-listen-addresses" yaml:"apiListenAddresses"`
+	EnableProfiling     bool              `arg:"enable-profiling" yaml:"enableProfiling"`
+	LogLevel            string            `arg:"log-level" yaml:"logLevel"`
+	MaxConcurrency      int               `arg:"app-max-concurrency" yaml:"appMaxConcurrency" default:"-1"`
+	PlacementHostAddr   string            `arg:"placement-host-address" yaml:"placementHostAddress"`
+	ComponentsPath      string            `arg:"components-path"` // Deprecated in run template file: use ResourcesPaths instead.
+	ResourcesPath       string            `yaml:"resourcesPath"`  // Deprecated in run template file: use ResourcesPaths instead.
+	ResourcesPaths      []string          `arg:"resources-path" yaml:"resourcesPaths"`
+	AppSSL              bool              `arg:"app-ssl" yaml:"appSSL"`
+	MaxRequestBodySize  int               `arg:"dapr-http-max-request-size" yaml:"daprHTTPMaxRequestSize" default:"-1"`
+	HTTPReadBufferSize  int               `arg:"dapr-http-read-buffer-size" yaml:"daprHTTPReadBufferSize" default:"-1"`
+	EnableAppHealth     bool              `arg:"enable-app-health-check" yaml:"enableAppHealthCheck"`
+	AppHealthPath       string            `arg:"app-health-check-path" yaml:"appHealthCheckPath"`
+	AppHealthInterval   int               `arg:"app-health-probe-interval" ifneq:"0" yaml:"appHealthProbeInterval"`
+	AppHealthTimeout    int               `arg:"app-health-probe-timeout" ifneq:"0" yaml:"appHealthProbeTimeout"`
+	AppHealthThreshold  int               `arg:"app-health-threshold" ifneq:"0" yaml:"appHealthThreshold"`
+	EnableAPILogging    bool              `arg:"enable-api-logging" yaml:"enableApiLogging"`
+	DaprdInstallPath    string            `yaml:"runtimePath"`
+	Env                 map[string]string `yaml:"env"`
+	DaprdLogDestination LogDestType       `yaml:"daprdLogDestination"`
+	AppLogDestination   LogDestType       `yaml:"appLogDestination"`
 }
 
 func (meta *DaprMeta) newAppID() string {
@@ -411,4 +421,16 @@ func GetAppCommand(config *RunConfig) *exec.Cmd {
 	cmd.Env = append(cmd.Env, config.getEnv()...)
 
 	return cmd
+}
+
+func (l LogDestType) String() string {
+	return string(l)
+}
+
+func (l LogDestType) IsValid() error {
+	switch l {
+	case Console, File, FileAndConsole:
+		return nil
+	}
+	return fmt.Errorf("invalid log destination type: %s", l)
 }
