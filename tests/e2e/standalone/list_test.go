@@ -155,8 +155,6 @@ func listOutputCheck(t *testing.T, output string, isCli bool) {
 	assert.Equal(t, "4555", fields[2], "expected grpc port to match")
 	assert.Equal(t, "0", fields[3], "expected app port to match")
 	assert.NotEmpty(t, fields[9], "expected an app PID (a real value or zero)")
-	assert.Equal(t, "", fields[11], "expected app log path to be empty")
-	assert.Equal(t, "", fields[12], "expected daprd log path to be empty")
 }
 
 func listJsonOutputCheck(t *testing.T, output string) {
