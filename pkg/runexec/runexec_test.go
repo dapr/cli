@@ -301,8 +301,8 @@ func TestRun(t *testing.T) {
 		basicConfig.SetDefaultFromSchema()
 
 		assert.Equal(t, -1, basicConfig.AppPort)
-		assert.True(t, basicConfig.HTTPPort == -1)
-		assert.True(t, basicConfig.GRPCPort == -1)
+		assert.True(t, basicConfig.HTTPPort == 3500)
+		assert.True(t, basicConfig.GRPCPort == 50001)
 		assert.True(t, basicConfig.MetricsPort == -1)
 		assert.True(t, basicConfig.ProfilePort == -1)
 		assert.True(t, basicConfig.EnableProfiling)
