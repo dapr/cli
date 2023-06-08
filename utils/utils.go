@@ -185,7 +185,7 @@ func IsContainerRuntimeInstalled(containerRuntime string) bool {
 	return false
 }
 
-// isDockerInstalled checks whether docker is installed
+// isDockerInstalled checks whether docker is installed.
 func isDockerInstalled() bool {
 	//nolint:staticcheck
 	cli, err := client.NewClientWithOpts(client.FromEnv)
