@@ -173,10 +173,21 @@ func CreateDirectory(dir string) error {
 	return os.Mkdir(dir, 0o777)
 }
 
-// IsDockerInstalled checks whether docker is installed/running.
-func IsDockerInstalled() bool {
-	//nolint:staticcheck
-	cli, err := client.NewEnvClient()
+// IsContainerRuntimeInstalled checks whether the given container runtime is installed.
+// If the container runtime is unsupported, false is returned.
+func IsContainerRuntimeInstalled(containerRuntime string) bool {
+	if containerRuntime == string(PODMAN) {
+		return isPodmanInstalled()
+	} else if containerRuntime == string(DOCKER) {
+		return isDockerInstalled()
+	}
+	// This should never happen.
+	return false
+}
+
+// isDockerInstalled checks whether docker is installed.
+func isDockerInstalled() bool {
+	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return false
 	}
@@ -184,7 +195,8 @@ func IsDockerInstalled() bool {
 	return err == nil
 }
 
-func IsPodmanInstalled() bool {
+// isPodmanInstalled checks whether podman is installed.
+func isPodmanInstalled() bool {
 	cmd := exec.Command("podman", "version")
 	if err := cmd.Run(); err != nil {
 		return false
