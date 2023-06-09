@@ -338,8 +338,8 @@ github.com/d2g/dhcp4server v0.0.0-20181031114812-7d4a0a7f59a5/go.mod h1:Eo87+Kg/
 github.com/d2g/hardwareaddr v0.0.0-20190221164911-e7d9fbe030e4/go.mod h1:bMl4RjIciD2oAxI7DmWRx6gbeqrkoLqv3MV0vzNad+I=
 github.com/dapr/components-contrib v1.11.0-rc.11 h1:PFUTCCfZ+99BIorCNR+mB/CEGnGFNMbI0OhQQ9pbq3E=
 github.com/dapr/components-contrib v1.11.0-rc.11/go.mod h1:prx2ATX6wFnR6Cp1xXGW3J9s5Gyz9AtOrG0xBf7QnHI=
-github.com/dapr/dapr v1.11.0-rc.9 h1:yKQ+nOpNaktJkSkirqgZbYslvtRnGGQWjXXpEmTwYX8=
-github.com/dapr/dapr v1.11.0-rc.9/go.mod h1:++3iGjeJcpraxZxdZi1EblplcCXgu/Ycz0Q/u+MYvxw=
+github.com/dapr/dapr v1.11.0 h1:sKDHKyehNm7xY2z6oXoUIcj2lXqKnlkAYPkvroldrwU=
+github.com/dapr/dapr v1.11.0/go.mod h1:++3iGjeJcpraxZxdZi1EblplcCXgu/Ycz0Q/u+MYvxw=
 github.com/dapr/go-sdk v1.6.0 h1:jg5A2khSCHF8bGZsig5RWN/gD0jjitszc2V6Uq2pPdY=
 github.com/dapr/go-sdk v1.6.0/go.mod h1:KLQBltoD9K0w5hKTihdcyg9Epob9gypwL5dYcQzPro4=
 github.com/dapr/kit v0.11.2 h1:4tJre4OWyOfBFDZeDvEIC+7nYgTRgqpCvo4/bfB2sN8=
