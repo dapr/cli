@@ -186,15 +186,16 @@ func TestRun(t *testing.T) {
 		APIListenAddresses: "127.0.0.1",
 	}
 	basicConfig := &standalone.RunConfig{
-		AppID:            "MyID",
-		AppPort:          3000,
-		HTTPPort:         8000,
-		GRPCPort:         50001,
-		Command:          []string{"MyCommand", "--my-arg"},
-		ProfilePort:      9090,
-		MetricsPort:      9001,
-		InternalGRPCPort: 5050,
-		SharedRunConfig:  *sharedRunConfig,
+		AppID:             "MyID",
+		AppPort:           3000,
+		HTTPPort:          8000,
+		GRPCPort:          50001,
+		Command:           []string{"MyCommand", "--my-arg"},
+		ProfilePort:       9090,
+		MetricsPort:       9001,
+		InternalGRPCPort:  5050,
+		AppChannelAddress: "localhost",
+		SharedRunConfig:   *sharedRunConfig,
 	}
 
 	t.Run("run happy http", func(t *testing.T) {
@@ -204,6 +205,7 @@ func TestRun(t *testing.T) {
 		assertCommonArgs(t, basicConfig, output)
 		assert.Equal(t, "MyCommand", output.AppCMD.Args[0])
 		assert.Equal(t, "--my-arg", output.AppCMD.Args[1])
+		assertArgumentEqual(t, "app-channel-address", "localhost", output.DaprCMD.Args)
 		assertAppEnv(t, basicConfig, output)
 	})
 
