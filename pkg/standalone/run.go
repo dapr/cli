@@ -50,8 +50,8 @@ type RunConfig struct {
 	AppID             string   `env:"APP_ID" arg:"app-id" yaml:"appID"`
 	AppChannelAddress string   `env:"APP_CHANNEL_ADDRESS" arg:"app-channel-address" ifneq:"127.0.0.1" yaml:"appChannelAddress"`
 	AppPort           int      `env:"APP_PORT" arg:"app-port" yaml:"appPort" default:"-1"`
-	HTTPPort          int      `env:"DAPR_HTTP_PORT" arg:"dapr-http-port" yaml:"daprHTTPPort" default:"-1"`
-	GRPCPort          int      `env:"DAPR_GRPC_PORT" arg:"dapr-grpc-port" yaml:"daprGRPCPort" default:"-1"`
+	HTTPPort          int      `env:"DAPR_HTTP_PORT" arg:"dapr-http-port" yaml:"daprHTTPPort" default:"3500"`
+	GRPCPort          int      `env:"DAPR_GRPC_PORT" arg:"dapr-grpc-port" yaml:"daprGRPCPort" default:"50001"`
 	ProfilePort       int      `arg:"profile-port" yaml:"profilePort" default:"-1"`
 	Command           []string `yaml:"command"`
 	MetricsPort       int      `env:"DAPR_METRICS_PORT" arg:"metrics-port" yaml:"metricsPort" default:"-1"`
