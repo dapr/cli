@@ -63,6 +63,7 @@ var (
 	enableAPILogging   bool
 	apiListenAddresses string
 	runFilePath        string
+	appChannelAddress  string
 )
 
 const (
@@ -91,6 +92,10 @@ dapr run --app-id myapp
 
 # Run a gRPC application written in Go (listening on port 3000)
 dapr run --app-id myapp --app-port 3000 --app-protocol grpc -- go run main.go
+
+# Run a gRPC application written in Go (listening on port 3000) with a different app channel address
+dapr run --app-id myapp --app-port 3000 --app-channel-address localhost --app-protocol grpc -- go run main.go
+
 
 # Run sidecar only specifying dapr runtime installation directory
 dapr run --app-id myapp --runtime-path /usr/local/dapr
@@ -174,16 +179,17 @@ dapr run --run-file /path/to/directory
 			DaprdInstallPath:   daprRuntimePath,
 		}
 		output, err := runExec.NewOutput(&standalone.RunConfig{
-			AppID:            appID,
-			AppPort:          appPort,
-			HTTPPort:         port,
-			GRPCPort:         grpcPort,
-			ProfilePort:      profilePort,
-			Command:          args,
-			MetricsPort:      metricsPort,
-			UnixDomainSocket: unixDomainSocket,
-			InternalGRPCPort: internalGRPCPort,
-			SharedRunConfig:  *sharedRunConfig,
+			AppID:             appID,
+			AppChannelAddress: appChannelAddress,
+			AppPort:           appPort,
+			HTTPPort:          port,
+			GRPCPort:          grpcPort,
+			ProfilePort:       profilePort,
+			Command:           args,
+			MetricsPort:       metricsPort,
+			UnixDomainSocket:  unixDomainSocket,
+			InternalGRPCPort:  internalGRPCPort,
+			SharedRunConfig:   *sharedRunConfig,
 		})
 		if err != nil {
 			print.FailureStatusEvent(os.Stderr, err.Error())
@@ -457,6 +463,7 @@ func init() {
 	RunCmd.Flags().BoolVar(&enableAPILogging, "enable-api-logging", false, "Log API calls at INFO verbosity. Valid values are: true or false")
 	RunCmd.Flags().StringVar(&apiListenAddresses, "dapr-listen-addresses", "", "Comma separated list of IP addresses that sidecar will listen to")
 	RunCmd.Flags().StringVarP(&runFilePath, "run-file", "f", "", "Path to the run template file for the list of apps to run")
+	RunCmd.Flags().StringVarP(&appChannelAddress, "app-channel-address", "", utils.DefaultAppChannelAddress, "The network address the application listens on")
 	RootCmd.AddCommand(RunCmd)
 }
 
@@ -579,17 +586,17 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 func getAppDaprdWriter(app runfileconfig.App, isAppCommandEmpty bool) io.Writer {
 	var appDaprdWriter io.Writer
 	if isAppCommandEmpty {
-		if app.DaprdLogDestination != runfileconfig.Console {
+		if app.DaprdLogDestination != standalone.Console {
 			appDaprdWriter = io.MultiWriter(os.Stdout, app.DaprdLogWriteCloser)
 		} else {
 			appDaprdWriter = os.Stdout
 		}
 	} else {
-		if app.AppLogDestination != runfileconfig.Console && app.DaprdLogDestination != runfileconfig.Console {
+		if app.AppLogDestination != standalone.Console && app.DaprdLogDestination != standalone.Console {
 			appDaprdWriter = io.MultiWriter(app.AppLogWriteCloser, app.DaprdLogWriteCloser, os.Stdout)
-		} else if app.AppLogDestination != runfileconfig.Console {
+		} else if app.AppLogDestination != standalone.Console {
 			appDaprdWriter = io.MultiWriter(app.AppLogWriteCloser, os.Stdout)
-		} else if app.DaprdLogDestination != runfileconfig.Console {
+		} else if app.DaprdLogDestination != standalone.Console {
 			appDaprdWriter = io.MultiWriter(app.DaprdLogWriteCloser, os.Stdout)
 		} else {
 			appDaprdWriter = os.Stdout
@@ -599,14 +606,14 @@ func getAppDaprdWriter(app runfileconfig.App, isAppCommandEmpty bool) io.Writer 
 }
 
 // getLogWriter returns the log writer based on the log destination.
-func getLogWriter(fileLogWriterCloser io.WriteCloser, logDestination runfileconfig.LogDestType) io.Writer {
+func getLogWriter(fileLogWriterCloser io.WriteCloser, logDestination standalone.LogDestType) io.Writer {
 	var logWriter io.Writer
 	switch logDestination {
-	case runfileconfig.Console:
+	case standalone.Console:
 		logWriter = os.Stdout
-	case runfileconfig.File:
+	case standalone.File:
 		logWriter = fileLogWriterCloser
-	case runfileconfig.FileAndConsole:
+	case standalone.FileAndConsole:
 		logWriter = io.MultiWriter(os.Stdout, fileLogWriterCloser)
 	}
 	return logWriter
