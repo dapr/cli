@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 	"testing"
 
 	"github.com/dapr/go-sdk/service/common"
@@ -28,9 +29,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestStandaloneInvoke(t *testing.T) {
-	ensureDaprInstallation(t)
-	s := daprHttp.NewService(":9987")
+func StartTestService(t *testing.T, port int) common.Service {
+	s := daprHttp.NewService(":" + strconv.Itoa(port))
 
 	err := s.AddServiceInvocationHandler("/test", func(ctx context.Context, e *common.InvocationEvent) (*common.Content, error) {
 		val := &common.Content{
@@ -43,7 +43,6 @@ func TestStandaloneInvoke(t *testing.T) {
 
 	assert.NoError(t, err, "unable to AddTopicEventHandler")
 
-	defer s.Stop()
 	go func() {
 		err = s.Start()
 
@@ -52,8 +51,16 @@ func TestStandaloneInvoke(t *testing.T) {
 			err = nil
 		}
 
-		assert.NoError(t, err, "unable to listen on :9987")
+		assert.NoError(t, err, "unable to listen on :%d", port)
 	}()
+	return s
+}
+
+func TestStandaloneInvoke(t *testing.T) {
+	port := 9987
+	ensureDaprInstallation(t)
+	s := StartTestService(t, port)
+	defer s.Stop()
 
 	for _, path := range getSocketCases() {
 		executeAgainstRunningDapr(t, func() {
@@ -105,6 +112,29 @@ func TestStandaloneInvoke(t *testing.T) {
 			t.Log(output)
 			require.NoError(t, err, "dapr stop failed")
 			assert.Contains(t, output, "app stopped successfully: invoke_e2e")
-		}, "run", "--app-id", "invoke_e2e", "--app-port", "9987", "--unix-domain-socket", path)
+		}, "run", "--app-id", "invoke_e2e", "--app-port", strconv.Itoa(port), "--unix-domain-socket", path)
 	}
+}
+
+func TestStandaloneInvokeWithAppChannel(t *testing.T) {
+	port := 9988
+	ensureDaprInstallation(t)
+	s := StartTestService(t, port)
+	defer s.Stop()
+
+	executeAgainstRunningDapr(t, func() {
+		t.Run(fmt.Sprintf("data from file with app channel address set to localhost"), func(t *testing.T) {
+			// empty unix domain socket path
+			output, err := cmdInvoke("invoke_e2e_app_channel", "test", "", "--data-file", "../testdata/message.json")
+			t.Log(output)
+			assert.NoError(t, err, "unable to invoke with  --data-file")
+			assert.Contains(t, output, "App invoked successfully")
+			assert.Contains(t, output, "{\"dapr\": \"is_great\"}")
+		})
+
+		output, err := cmdStopWithAppID("invoke_e2e_app_channel")
+		t.Log(output)
+		require.NoError(t, err, "dapr stop failed")
+		assert.Contains(t, output, "app stopped successfully: invoke_e2e_app_channel")
+	}, "run", "--app-id", "invoke_e2e_app_channel", "--app-port", strconv.Itoa(port), "--app-channel-address", "localhost")
 }
