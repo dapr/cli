@@ -321,12 +321,13 @@ func TestInitLogActualContainerRuntimeName(t *testing.T) {
 		{"podman", "Init should log podman as container runtime"},
 		{"docker", "Init should log docker as container runtime"},
 	}
-	containerRuntimeAvailable := utils.IsDockerInstalled() || utils.IsPodmanInstalled()
-	if containerRuntimeAvailable {
-		t.Skip("Skipping test as container runtime is available")
-	}
 	for _, test := range tests {
 		t.Run(test.testName, func(t *testing.T) {
+			containerRuntimeAvailable := utils.IsContainerRuntimeInstalled(test.containerRuntime)
+			if containerRuntimeAvailable {
+				t.Skip("Skipping test as container runtime is available")
+			}
+
 			err := Init(latestVersion, latestVersion, "", false, "", "", test.containerRuntime, "", "")
 			assert.NotNil(t, err)
 			assert.Contains(t, err.Error(), test.containerRuntime)

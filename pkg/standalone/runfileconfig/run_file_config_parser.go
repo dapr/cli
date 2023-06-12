@@ -180,12 +180,12 @@ func (a *RunFileConfig) setAppIDIfEmpty(app *App) error {
 // It also validates the log destination if provided.
 func (a *RunFileConfig) setAndValidateLogDestination(app *App) error {
 	if app.DaprdLogDestination == "" {
-		app.DaprdLogDestination = DefaultDaprdLogDest
+		app.DaprdLogDestination = standalone.DefaultDaprdLogDest
 	} else if err := app.DaprdLogDestination.IsValid(); err != nil {
 		return err
 	}
 	if app.AppLogDestination == "" {
-		app.AppLogDestination = DefaultAppLogDest
+		app.AppLogDestination = standalone.DefaultAppLogDest
 	} else if err := app.AppLogDestination.IsValid(); err != nil {
 		return err
 	}
