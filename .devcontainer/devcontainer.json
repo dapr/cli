@@ -66,8 +66,11 @@
 				"go.toolsManagement.checkForUpdates": "local",
 				"go.useLanguageServer": true,
 				"go.gopath": "/go",
-				"go.buildTags": "e2e,perf,conftests,unit,integration_test,certtests",
-				"git.alwaysSignOff": true
+				"go.buildTags": "e2e,perf,conftests,unit,integration_test,certtests,allcomponents",
+				"git.alwaysSignOff": true,
+				"terminal.integrated.env.linux": {
+                    "GOLANG_PROTOBUF_REGISTRATION_CONFLICT": "ignore"
+                }
 			}
 		}
 	},
