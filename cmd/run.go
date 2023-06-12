@@ -548,12 +548,12 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 		putRunTemplateNameInMeta(runState, runTemplateName)
 
 		// Update extended metadata with app log file path.
-		if app.AppLogDestination != runfileconfig.Console {
+		if app.AppLogDestination != standalone.Console {
 			putAppLogFilePathInMeta(runState, app.AppLogFileName)
 		}
 
 		// Update extended metadata with daprd log file path.
-		if app.DaprdLogDestination != runfileconfig.Console {
+		if app.DaprdLogDestination != standalone.Console {
 			putDaprLogFilePathInMeta(runState, app.DaprdLogFileName)
 		}
 
