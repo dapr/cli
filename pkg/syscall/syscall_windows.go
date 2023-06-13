@@ -43,6 +43,6 @@ func SetupShutdownNotify(sigCh chan os.Signal) {
 
 // CreateProcessGroupID creates a process group ID for the current process.
 func CreateProcessGroupID() {
-	// No-op on Windows
-	print.WarningStatusEvent(os.Stdout, "Creating process group id is not implemented on Windows")
+	// Process group ID is not required on windows, since all the child processes can be killed by killing the parent process.
+	//no-op
 }

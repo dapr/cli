@@ -14,7 +14,6 @@ limitations under the License.
 package standalone
 
 import (
-	"errors"
 	"fmt"
 	"syscall"
 
@@ -25,20 +24,33 @@ import (
 func Stop(appID string, cliPIDToNoOfApps map[int]int, apps []ListOutput) error {
 	for _, a := range apps {
 		if a.AppID == appID {
-			eventName, _ := syscall.UTF16FromString(fmt.Sprintf("dapr_cli_%v", a.CliPID))
-			eventHandle, err := windows.OpenEvent(windows.EVENT_MODIFY_STATE, false, &eventName[0])
-			if err != nil {
-				return err
-			}
-
-			err = windows.SetEvent(eventHandle)
-			return err
+			return handleEvent(a.CliPID)
 		}
 	}
 	return fmt.Errorf("couldn't find app id %s", appID)
 }
 
 // StopAppsWithRunFile terminates the daprd and application processes with the given run file.
-func StopAppsWithRunFile(runFilePath string) error {
-	return errors.New("stopping apps with run template file is not supported on windows")
+func StopAppsWithRunFile(runTemplatePath string) error {
+	apps, err := List()
+	if err != nil {
+		return err
+	}
+	for _, a := range apps {
+		if a.RunTemplatePath == runTemplatePath {
+			return handleEvent(a.CliPID)
+		}
+	}
+	return fmt.Errorf("couldn't find apps with run file %q", runTemplatePath)
+}
+
+func handleEvent(cliPID int) error {
+	eventName, _ := syscall.UTF16FromString(fmt.Sprintf("dapr_cli_%v", cliPID))
+	eventHandle, err := windows.OpenEvent(windows.EVENT_MODIFY_STATE, false, &eventName[0])
+	if err != nil {
+		return err
+	}
+
+	err = windows.SetEvent(eventHandle)
+	return err
 }

@@ -17,7 +17,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 
 	"github.com/spf13/cobra"
 
@@ -43,10 +42,6 @@ dapr stop --run-file /path/to/directory
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error
 		if len(runFilePath) > 0 {
-			if runtime.GOOS == string(windowsOsType) {
-				print.FailureStatusEvent(os.Stderr, "Stop command with run file is not supported on Windows")
-				os.Exit(1)
-			}
 			runFilePath, err = getRunFilePath(runFilePath)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, "Failed to get run file path: %v", err)
