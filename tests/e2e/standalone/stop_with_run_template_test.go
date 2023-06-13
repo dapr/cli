@@ -31,9 +31,6 @@ import (
 )
 
 func TestStopAppsStartedWithRunTemplate(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Skipping test on windows")
-	}
 	ensureDaprInstallation(t)
 	t.Cleanup(func() {
 		// remove dapr installation after all tests in this function.
