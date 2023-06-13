@@ -24,7 +24,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -370,9 +369,6 @@ func TestRunWithTemplateFile(t *testing.T) {
 }
 
 func TestRunTemplateFileWithoutDaprInit(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Skipping test on Windows")
-	}
 	// remove any dapr installation before this test.
 	must(t, cmdUninstall, "failed to uninstall Dapr")
 	t.Run("valid template file without dapr init", func(t *testing.T) {
