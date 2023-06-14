@@ -50,11 +50,11 @@ jobs:
     name: E2E tests for K8s (KinD)
     runs-on: ubuntu-latest
     env:
-      DAPR_RUNTIME_PINNED_VERSION: 1.11.0-rc.4
+      DAPR_RUNTIME_PINNED_VERSION: 1.11.0
       DAPR_DASHBOARD_PINNED_VERSION: 0.13.0
       DAPR_RUNTIME_LATEST_STABLE_VERSION:
       DAPR_DASHBOARD_LATEST_STABLE_VERSION:
-      DAPR_TGZ: dapr-1.11.0-rc.4.tgz
+      DAPR_TGZ: dapr-1.11.0.tgz
     strategy:
       fail-fast: false # Keep running if one leg fails.
       matrix:

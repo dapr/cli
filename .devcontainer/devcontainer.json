@@ -15,7 +15,9 @@
 	"features": {
 		"ghcr.io/devcontainers/features/sshd:1": {},
 		"ghcr.io/devcontainers/features/github-cli:1": {},
-		"ghcr.io/devcontainers/features/node": { "version": "lts"}
+		"ghcr.io/devcontainers/features/node": {
+			"version": "lts"
+		}
 	},
 	"mounts": [
 		// Mount docker-in-docker library volume
@@ -61,13 +63,16 @@
 				"ms-azuretools.vscode-dapr",
 				"ms-azuretools.vscode-docker",
 				"ms-kubernetes-tools.vscode-kubernetes-tools"
-			],		
+			],
 			"settings": {
 				"go.toolsManagement.checkForUpdates": "local",
 				"go.useLanguageServer": true,
 				"go.gopath": "/go",
-				"go.buildTags": "e2e,perf,conftests,unit,integration_test,certtests",
-				"git.alwaysSignOff": true
+				"go.buildTags": "e2e,perf,conftests,unit,integration_test,certtests,allcomponents",
+				"git.alwaysSignOff": true,
+				"terminal.integrated.env.linux": {
+					"GOLANG_PROTOBUF_REGISTRATION_CONFLICT": "ignore"
+				}
 			}
 		}
 	},
