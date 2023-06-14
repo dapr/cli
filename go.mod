@@ -8,7 +8,7 @@ require (
 	github.com/Pallinder/sillyname-go v0.0.0-20130730142914-97aeae9e6ba1
 	github.com/briandowns/spinner v1.19.0
 	github.com/dapr/dapr v1.11.0
-	github.com/dapr/go-sdk v1.6.0
+	github.com/dapr/go-sdk v1.8.0
 	github.com/docker/docker v20.10.21+incompatible
 	github.com/fatih/color v1.15.0
 	github.com/gocarina/gocsv v0.0.0-20220927221512-ad3251f9fa25
@@ -38,6 +38,7 @@ require (
 require (
 	github.com/Masterminds/semver/v3 v3.2.0
 	github.com/evanphx/json-patch v5.6.0+incompatible
+	google.golang.org/grpc v1.55.0
 )
 
 require (
@@ -88,6 +89,7 @@ require (
 	github.com/fasthttp/router v1.4.18 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32 // indirect
+	github.com/go-chi/chi/v5 v5.0.8 // indirect
 	github.com/go-errors/errors v1.4.2 // indirect
 	github.com/go-gorp/gorp/v3 v3.0.2 // indirect
 	github.com/go-kit/log v0.2.1 // indirect
@@ -220,7 +222,6 @@ require (
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 // indirect
-	google.golang.org/grpc v1.54.0 // indirect
 	google.golang.org/protobuf v1.30.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
