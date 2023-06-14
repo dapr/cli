@@ -130,4 +130,6 @@ func assertTemplateListOutput(t *testing.T, name string) {
 
 	assert.Len(t, result, 2, "expected two apps to be running")
 	assert.Equal(t, name, result[0]["runTemplateName"], "expected run template name to be %s", name)
+	assert.NotEmpty(t, result[0]["appLogPath"], "expected appLogPath to be non-empty")
+	assert.NotEmpty(t, result[0]["daprdLogPath"], "expected daprdLogPath to be non-empty")
 }
