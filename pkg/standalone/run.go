@@ -349,6 +349,8 @@ func (config *RunConfig) setDefaultFromSchemaRecursive(schema reflect.Value) {
 
 func (config *RunConfig) getEnv() []string {
 	env := []string{}
+
+	// Handle values from config that have an "env" tag.
 	schema := reflect.ValueOf(*config)
 	for i := 0; i < schema.NumField(); i++ {
 		valueField := schema.Field(i).Interface()
@@ -365,10 +367,46 @@ func (config *RunConfig) getEnv() []string {
 		value := fmt.Sprintf("%v", reflect.ValueOf(valueField))
 		env = append(env, fmt.Sprintf("%s=%v", key, value))
 	}
+
+	// Handle APP_PROTOCOL separately since that requires some additional processing.
+	appProtocol := config.getAppProtocol()
+	if appProtocol != "" {
+		env = append(env, "APP_PROTOCOL="+appProtocol)
+	}
+
+	// Add user-defined env vars.
 	for k, v := range config.Env {
 		env = append(env, fmt.Sprintf("%s=%v", k, v))
 	}
+
 	return env
+}
+
+func (config *RunConfig) getAppProtocol() string {
+	appProtocol := strings.ToLower(config.AppProtocol)
+
+	switch appProtocol {
+	case string("grpcs"), string("https"), string("h2c"):
+		return appProtocol
+	case string("http"):
+		// For backwards compatibility, when protocol is HTTP and --app-ssl is set, use "https".
+		if config.AppSSL {
+			return "https"
+		} else {
+			return "http"
+		}
+	case string("grpc"):
+		// For backwards compatibility, when protocol is GRPC and --app-ssl is set, use "grpcs".
+		if config.AppSSL {
+			return string("grpcs")
+		} else {
+			return string("grpc")
+		}
+	case "":
+		return string("http")
+	default:
+		return ""
+	}
 }
 
 func GetDaprCommand(config *RunConfig) (*exec.Cmd, error) {
