@@ -547,6 +547,16 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 		// Update extended metadata with run file path.
 		putRunTemplateNameInMeta(runState, runTemplateName)
 
+		// Update extended metadata with app log file path.
+		if app.AppLogDestination != standalone.Console {
+			putAppLogFilePathInMeta(runState, app.AppLogFileName)
+		}
+
+		// Update extended metadata with daprd log file path.
+		if app.DaprdLogDestination != standalone.Console {
+			putDaprLogFilePathInMeta(runState, app.DaprdLogFileName)
+		}
+
 		if runState.AppCMD.Command != nil {
 			putAppCommandInMeta(runConfig, runState)
 
@@ -996,6 +1006,22 @@ func putRunTemplateNameInMeta(runE *runExec.RunExec, runTemplateName string) {
 	err := metadata.Put(runE.DaprHTTPPort, "runTemplateName", runTemplateName, runE.AppID, unixDomainSocket)
 	if err != nil {
 		print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogWarning, "Could not update sidecar metadata for run template name: %s", err.Error())
+	}
+}
+
+// putAppLogFilePathInMeta puts the absolute path of app log file in metadata so that it can be used by the CLI to stop the app.
+func putAppLogFilePathInMeta(runE *runExec.RunExec, appLogFilePath string) {
+	err := metadata.Put(runE.DaprHTTPPort, "appLogPath", appLogFilePath, runE.AppID, unixDomainSocket)
+	if err != nil {
+		print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogWarning, "Could not update sidecar metadata for app log file path: %s", err.Error())
+	}
+}
+
+// putDaprLogFilePathInMeta puts the absolute path of Dapr log file in metadata so that it can be used by the CLI to stop the app.
+func putDaprLogFilePathInMeta(runE *runExec.RunExec, daprLogFilePath string) {
+	err := metadata.Put(runE.DaprHTTPPort, "daprdLogPath", daprLogFilePath, runE.AppID, unixDomainSocket)
+	if err != nil {
+		print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogWarning, "Could not update sidecar metadata for dapr log file path: %s", err.Error())
 	}
 }
 
