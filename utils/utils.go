@@ -404,7 +404,7 @@ func FindFileInDir(dirPath, fileName string) (string, error) {
 	return filePath, nil
 }
 
-// FixCommandWithApostrophe corrects the passed command which might have apostrophes in it
+// FixCommandWithApostrophe corrects the passed command which might have apostrophes in it.
 func FixCommandWithApostrophe(destDir *string) {
 	bytes := []byte(*destDir)
 	var result []byte
