@@ -905,7 +905,7 @@ func moveFileToPath(filepath string, installLocation string) (string, error) {
 		p := os.Getenv("PATH")
 
 		if !strings.Contains(strings.ToLower(p), strings.ToLower(destDir)) {
-			utils.SanitizeDir(&destDir)
+			destDir = utils.SanitizeDir(destDir)
 			pathCmd := "[System.Environment]::SetEnvironmentVariable('Path',[System.Environment]::GetEnvironmentVariable('Path','user') + '" + fmt.Sprintf(";%s", destDir) + "', 'user')"
 			_, err := utils.RunCmdAndWait("powershell", pathCmd)
 			if err != nil {
