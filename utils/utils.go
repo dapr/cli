@@ -404,17 +404,7 @@ func FindFileInDir(dirPath, fileName string) (string, error) {
 	return filePath, nil
 }
 
-// FixCommandWithApostrophe corrects the passed command which might have apostrophes in it.
-func FixCommandWithApostrophe(destDir *string) {
-	bytes := []byte(*destDir)
-	var result []byte
-
-	for i := 0; i < len(bytes); i++ {
-		result = append(result, bytes[i])
-		if bytes[i] == '\'' {
-			result = append(result, '\'')
-		}
-	}
-
-	*destDir = string(result)
+// SanitizeDir corrects any syntactical errors in the passed directory.
+func SanitizeDir(destDir *string) {
+	*destDir = strings.Replace(*destDir, "'", "''", -1)
 }
