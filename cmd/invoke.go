@@ -46,7 +46,7 @@ var InvokeCmd = &cobra.Command{
 dapr invoke --app-id target --method sample --data '{"key":"value"}
 
 # Invoke a sample method on target app with customized Header
-dapr invoke --app-id target --method sample --data '{"key":"value"} --header Customized-Header=Value
+dapr invoke --app-id target --method sample --data '{"key":"value"} --header Header1=Value1 --header Header2=Value2
 
 # Invoke a sample method on target app with GET Verb
 dapr invoke --app-id target --method sample --verb GET
@@ -121,7 +121,7 @@ func init() {
 	InvokeCmd.Flags().StringVarP(&invokeData, "data", "d", "", "The JSON serialized data string (optional)")
 	InvokeCmd.Flags().StringVarP(&invokeVerb, "verb", "v", defaultHTTPVerb, "The HTTP verb to use")
 	InvokeCmd.Flags().StringVarP(&invokeDataFile, "data-file", "f", "", "A file containing the JSON serialized data (optional)")
-	InvokeCmd.Flags().StringArrayVarP(&invokeHeaders, "header", "H", []string{}, "0 or more HTTP Header")
+	InvokeCmd.Flags().StringArrayVarP(&invokeHeaders, "header", "H", []string{}, "HTTP headers to be used on invoke")
 	InvokeCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	InvokeCmd.Flags().StringVarP(&invokeSocket, "unix-domain-socket", "u", "", "Path to a unix domain socket dir. If specified, Dapr API servers will use Unix Domain Sockets")
 	InvokeCmd.MarkFlagRequired("app-id")

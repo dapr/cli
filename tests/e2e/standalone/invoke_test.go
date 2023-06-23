@@ -42,10 +42,14 @@ func StartTestService(t *testing.T, port int) common.Service {
 
 		md, ok := metadata.FromIncomingContext(ctx)
 		if ok {
-			values := md.Get("Some-Header")
-			if len(values) > 0 {
-				val.Data = []byte(values[0])
+			data := []byte{}
+			for _, header := range []string{"Header1", "Header2"} {
+				values := md.Get(header)
+				if len(values) > 0 {
+					data = append(data, []byte(values[0])...)
+				}
 			}
+			val.Data = data
 		}
 		return val, nil
 	})
@@ -118,10 +122,11 @@ func TestStandaloneInvoke(t *testing.T) {
 			})
 
 			t.Run(fmt.Sprintf("invoke mehod %s with http headers", path), func(t *testing.T) {
-				output, err := cmdInvoke("invoke_e2e", "test", path, "--header", "Some-Header=aValue")
+				output, err := cmdInvoke("invoke_e2e", "test", path, "--header", "Header1=aValue1", "--header", "Header2=aValue2")
 				t.Log(output)
 				assert.NoError(t, err, "")
-				assert.Contains(t, output, "aValue")
+				assert.Contains(t, output, "aValue1")
+				assert.Contains(t, output, "aValue2")
 			})
 
 			output, err := cmdStopWithAppID("invoke_e2e")
