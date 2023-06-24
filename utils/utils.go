@@ -404,7 +404,7 @@ func FindFileInDir(dirPath, fileName string) (string, error) {
 	return filePath, nil
 }
 
-// SanitizeDir corrects any syntactical errors in the passed directory.
+// SanitizeDir sanitizes the input string to make it a valid directory.
 func SanitizeDir(destDir string) string {
 	return strings.ReplaceAll(destDir, "'", "''")
 }
