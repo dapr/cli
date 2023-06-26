@@ -403,3 +403,8 @@ func FindFileInDir(dirPath, fileName string) (string, error) {
 	}
 	return filePath, nil
 }
+
+// SanitizeDir sanitizes the input string to make it a valid directory.
+func SanitizeDir(destDir string) string {
+	return strings.ReplaceAll(destDir, "'", "''")
+}
