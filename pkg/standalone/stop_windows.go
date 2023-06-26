@@ -15,8 +15,11 @@ package standalone
 
 import (
 	"fmt"
+	"os/exec"
 	"syscall"
 
+	ps "github.com/mitchellh/go-ps"
+	process "github.com/shirou/gopsutil/process"
 	"golang.org/x/sys/windows"
 )
 
@@ -38,10 +41,37 @@ func StopAppsWithRunFile(runTemplatePath string) error {
 	}
 	for _, a := range apps {
 		if a.RunTemplatePath == runTemplatePath {
-			return handleEvent(a.CliPID)
+			return killProcessAndChildren(a.CliPID)
 		}
 	}
 	return fmt.Errorf("couldn't find apps with run file %q", runTemplatePath)
+}
+
+func killProcessAndChildren(cliPID int) error {
+	processes, err := ps.Processes()
+	if err != nil {
+		return err
+	}
+
+	for _, p := range processes {
+		if p.Pid() == cliPID {
+			proc, err := process.NewProcess(int32(p.Pid()))
+			if err != nil {
+				return err
+			}
+			processName, err := proc.Name()
+			if err != nil {
+				return err
+			}
+			killCMD := exec.Command("taskkill", "/im", processName, "/T", "/F")
+			err = killCMD.Run()
+			if err != nil {
+				return err
+			}
+			return nil
+		}
+	}
+	return fmt.Errorf("process not found")
 }
 
 func handleEvent(cliPID int) error {
