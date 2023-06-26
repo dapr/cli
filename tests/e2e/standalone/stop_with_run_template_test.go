@@ -1,4 +1,5 @@
-//go:build e2e || template
+//go:build !windows && (e2e || template)
+// +build !windows
 // +build e2e template
 
 /*
