@@ -41,13 +41,13 @@ func StopAppsWithRunFile(runTemplatePath string) error {
 	}
 	for _, a := range apps {
 		if a.RunTemplatePath == runTemplatePath {
-			return killProcessAndChildren(a.CliPID)
+			return killDaprRunProcessTree(a.CliPID)
 		}
 	}
 	return fmt.Errorf("couldn't find apps with run file %q", runTemplatePath)
 }
 
-func killProcessAndChildren(cliPID int) error {
+func killDaprRunProcessTree(cliPID int) error {
 	processes, err := ps.Processes()
 	if err != nil {
 		return err
