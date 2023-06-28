@@ -523,13 +523,10 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		}
 
 		args = append(args,
-			"-p", fmt.Sprintf("%v:50005", osPort))
-
-		args = append(args,
-			"-p", fmt.Sprintf("%v:8080", healthPort))
-
-		args = append(args,
-			"-p", fmt.Sprintf("%v:9090", metricPort))
+			"-p", fmt.Sprintf("%v:50005", osPort),
+			"-p", fmt.Sprintf("%v:8080", healthPort),
+			"-p", fmt.Sprintf("%v:9090", metricPort),
+		)
 	}
 
 	args = append(args, image)
