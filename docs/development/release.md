@@ -11,7 +11,7 @@ Only the repository maintainers and release team are allowed to execute the belo
 
 Pre-release build will be built from `release-<major>.<minor>` branch and versioned by git version tag suffix e.g. `-rc.0`, `-rc.1`, etc. This build is not released to users who use the latest stable version.
 **Pre-release process**
-1. Create a PR to update the `Dapr runtime` and `Dapr dashboard` pre-release versions in workflow and tests files wherever applicable, and merge the PR to master branch. For exmaple, please take a look at this PR - https://github.com/dapr/cli/pull/1019. Please note that this PR is just for reference and only refelcts the absolute minimum number of file changes. These versions update could lead to some other changes also.
+1. Create a PR to update the `Dapr runtime` and `Dapr dashboard` pre-release versions in workflow and tests files wherever applicable, and merge the PR to master branch. For example, please take a look at this PR - https://github.com/dapr/cli/pull/1019. Please note that this PR is just for reference and only reflects the absolute minimum number of file changes. These versions update could lead to some other changes also.
 
 2. Create branch `release-<major>.<minor>` from master and push the branch. e.g. `release-1.11`. You can use the github web UI to create the branch or use the following command.
 
