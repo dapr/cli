@@ -937,8 +937,9 @@ func killAppProcess(runE *runExec.RunExec) error {
 	if runE.AppCMD.Command == nil {
 		return nil
 	}
-	err := runE.AppCMD.Command.Process.Kill()
+	_, err := runE.AppCMD.Command.Process.Wait()
 	if err != nil {
+		fmt.Println("line no 943")
 		print.StatusEvent(runE.DaprCMD.ErrorWriter, print.LogFailure, "Error exiting App: %s", err)
 		return err
 	}

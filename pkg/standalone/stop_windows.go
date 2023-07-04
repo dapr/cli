@@ -15,7 +15,6 @@ package standalone
 
 import (
 	"fmt"
-	"os/exec"
 	"syscall"
 
 	ps "github.com/mitchellh/go-ps"
@@ -59,16 +58,39 @@ func killDaprRunProcessTree(cliPID int) error {
 			if err != nil {
 				return err
 			}
-			processName, err := proc.Name()
+			child, err := proc.Children()
 			if err != nil {
-				return err
+				return fmt.Errorf("error getting children of process %d: %s", proc.Pid, err)
 			}
-			killCMD := exec.Command("taskkill", "/im", processName, "/T", "/F")
-			err = killCMD.Run()
-			if err != nil {
-				return err
+			for _, c := range child {
+				grand, err := c.Children()
+				if err != nil {
+					return fmt.Errorf("error getting grand children of process %d: %s", c.Pid, err)
+				}
+				var gc int = 0
+				for _, g := range grand {
+					gc = 1
+					err := g.Terminate()
+					for {
+						if ok, _ := g.IsRunning(); !ok {
+							fmt.Println("grand child process terminated")
+							break
+						}
+					}
+					if err != nil {
+						return fmt.Errorf("error killing grand process %d: %s", g.Pid, err)
+					}
+				}
+				if gc == 1 {
+					for {
+						if ok, _ := c.IsRunning(); !ok {
+							fmt.Println("grand child process has terminated the parent process")
+							break
+						}
+					}
+				}
 			}
-			return nil
+			return handleEvent(cliPID)
 		}
 	}
 	return fmt.Errorf("process not found")
