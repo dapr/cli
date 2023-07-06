@@ -15,10 +15,12 @@ package standalone
 
 import (
 	"fmt"
+	"strconv"
 	"syscall"
+	"time"
 
-	ps "github.com/mitchellh/go-ps"
-	process "github.com/shirou/gopsutil/process"
+	"github.com/dapr/cli/utils"
+	"github.com/kolesnikovae/go-winjob"
 	"golang.org/x/sys/windows"
 )
 
@@ -40,60 +42,23 @@ func StopAppsWithRunFile(runTemplatePath string) error {
 	}
 	for _, a := range apps {
 		if a.RunTemplatePath == runTemplatePath {
-			return killDaprRunProcessTree(a.CliPID)
+			return disposeJobHandle(a.CliPID)
 		}
 	}
 	return fmt.Errorf("couldn't find apps with run file %q", runTemplatePath)
 }
 
-func killDaprRunProcessTree(cliPID int) error {
-	processes, err := ps.Processes()
+func disposeJobHandle(cliPID int) error {
+	jbobj, err := winjob.Open(strconv.Itoa(cliPID) + "-" + utils.WindowsDaprdAppProcJobName)
 	if err != nil {
-		return err
+		return fmt.Errorf("error opening job object: %s", err)
 	}
-
-	for _, p := range processes {
-		if p.Pid() == cliPID {
-			proc, err := process.NewProcess(int32(p.Pid()))
-			if err != nil {
-				return err
-			}
-			child, err := proc.Children()
-			if err != nil {
-				return fmt.Errorf("error getting children of process %d: %s", proc.Pid, err)
-			}
-			for _, c := range child {
-				grand, err := c.Children()
-				if err != nil {
-					return fmt.Errorf("error getting grand children of process %d: %s", c.Pid, err)
-				}
-				var gc int = 0
-				for _, g := range grand {
-					gc = 1
-					err := g.Terminate()
-					for {
-						if ok, _ := g.IsRunning(); !ok {
-							fmt.Println("grand child process terminated")
-							break
-						}
-					}
-					if err != nil {
-						return fmt.Errorf("error killing grand process %d: %s", g.Pid, err)
-					}
-				}
-				if gc == 1 {
-					for {
-						if ok, _ := c.IsRunning(); !ok {
-							fmt.Println("grand child process has terminated the parent process")
-							break
-						}
-					}
-				}
-			}
-			return handleEvent(cliPID)
-		}
+	err = jbobj.TerminateWithExitCode(0)
+	if err != nil {
+		return fmt.Errorf("error terminating job object: %s", err)
 	}
-	return fmt.Errorf("process not found")
+	time.Sleep(5 * time.Second)
+	return handleEvent(cliPID)
 }
 
 func handleEvent(cliPID int) error {

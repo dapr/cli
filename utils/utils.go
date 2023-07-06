@@ -51,6 +51,11 @@ const (
 
 	// DefaultAppChannelAddress is the default local network address that user application listen on.
 	DefaultAppChannelAddress = "127.0.0.1"
+
+	// WindowsDaprdAppProcJobName is the name of the Windows job object that is used to manage the Dapr processes on windows.
+	WindowsDaprdAppProcJobName = "daprd-app-process-job"
+	// WindowsCLIProcessJobName is the name of the Windows job object that is used to manage the Dapr CLI processes on windows.
+	WindowsCLIProcessJobName = "dapr-cli-process-job"
 )
 
 // IsValidContainerRuntime checks if the input is a valid container runtime.

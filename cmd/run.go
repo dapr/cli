@@ -548,6 +548,8 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 
 			if runState.AppCMD.Command.Process != nil {
 				putAppProcessIDInMeta(runState)
+				// Attach a job object to the app process.
+				daprsyscall.AttachJobObjectToProcess(strconv.Itoa(os.Getpid())+"-"+utils.WindowsDaprdAppProcJobName, runState.AppCMD.Command.Process)
 			}
 		}
 
@@ -939,7 +941,6 @@ func killAppProcess(runE *runExec.RunExec) error {
 	}
 	_, err := runE.AppCMD.Command.Process.Wait()
 	if err != nil {
-		fmt.Println("line no 943")
 		print.StatusEvent(runE.DaprCMD.ErrorWriter, print.LogFailure, "Error exiting App: %s", err)
 		return err
 	}
