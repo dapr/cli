@@ -85,5 +85,4 @@ func AttachJobObjectToProcess(jobName string, proc *os.Process) {
 	if err != nil {
 		print.WarningStatusEvent(os.Stdout, "failed to assign process to job object: %s", err.Error())
 	}
-	return
 }

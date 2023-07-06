@@ -51,11 +51,11 @@ func StopAppsWithRunFile(runTemplatePath string) error {
 func disposeJobHandle(cliPID int) error {
 	jbobj, err := winjob.Open(strconv.Itoa(cliPID) + "-" + utils.WindowsDaprdAppProcJobName)
 	if err != nil {
-		return fmt.Errorf("error opening job object: %s", err)
+		return fmt.Errorf("error opening job object: %w", err)
 	}
 	err = jbobj.TerminateWithExitCode(0)
 	if err != nil {
-		return fmt.Errorf("error terminating job object: %s", err)
+		return fmt.Errorf("error terminating job object: %w", err)
 	}
 	time.Sleep(5 * time.Second)
 	return handleEvent(cliPID)
