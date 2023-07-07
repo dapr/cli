@@ -939,7 +939,7 @@ func killAppProcess(runE *runExec.RunExec) error {
 	if runE.AppCMD.Command == nil {
 		return nil
 	}
-	_, err := runE.AppCMD.Command.Process.Wait()
+	err := runE.AppCMD.Command.Process.Kill()
 	if err != nil {
 		print.StatusEvent(runE.DaprCMD.ErrorWriter, print.LogFailure, "Error exiting App: %s", err)
 		return err
