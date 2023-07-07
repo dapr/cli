@@ -512,3 +512,51 @@ func cleanupTempDir(t *testing.T, fileName string) {
 	err := os.RemoveAll(fileName)
 	assert.NoError(t, err)
 }
+
+func TestSanitizeDir(t *testing.T) {
+	testcases := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "directory with single quote in three places",
+			input:    "C:\\Use'rs\\sta'rk\\Docum'ents",
+			expected: "C:\\Use''rs\\sta''rk\\Docum''ents",
+		},
+		{
+			name:     "directory with single quote in two places",
+			input:    "C:\\Use'rs\\sta'rk",
+			expected: "C:\\Use''rs\\sta''rk",
+		},
+		{
+			name:     "directory with single quote in username",
+			input:    "C:\\Users\\Debash'ish",
+			expected: "C:\\Users\\Debash''ish",
+		},
+		{
+			name:     "directory with no single quote",
+			input:    "C:\\Users\\Shubham",
+			expected: "C:\\Users\\Shubham",
+		},
+		{
+			name:     "directory with single quote in one place",
+			input:    "C:\\Use'rs\\Shubham",
+			expected: "C:\\Use''rs\\Shubham",
+		},
+		{
+			name:     "directory with single quote in many places in username",
+			input:    "C:\\Users\\Shu'bh'am",
+			expected: "C:\\Users\\Shu''bh''am",
+		},
+	}
+
+	for _, tc := range testcases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			actual := SanitizeDir(tc.input)
+			assert.Equal(t, tc.expected, actual)
+		})
+	}
+}
