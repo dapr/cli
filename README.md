@@ -742,7 +742,9 @@ See the [Reference Guide](https://docs.dapr.io/reference/cli/) for more informat
 ## Contributing to Dapr CLI
 
 See the [Development Guide](https://github.com/dapr/cli/blob/master/docs/development/development.md) to get started with building and developing.
+## Release process for Dapr CLI
 
+See the [Release Guide](https://github.com/dapr/cli/blob/master/docs/development/release.md) for complete release process for Dapr CLI.
 ## Code of Conduct
 
 Please refer to our [Dapr Community Code of Conduct](https://github.com/dapr/community/blob/master/CODE-OF-CONDUCT.md)
