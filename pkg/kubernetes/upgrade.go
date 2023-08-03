@@ -57,6 +57,7 @@ type UpgradeConfig struct {
 }
 
 func Upgrade(conf UpgradeConfig) error {
+	helmRepo := utils.GetEnv("DAPR_HELM_REPO_URL", daprHelmRepo)
 	status, err := GetDaprResourcesStatus()
 	if err != nil {
 		return err
@@ -75,7 +76,7 @@ func Upgrade(conf UpgradeConfig) error {
 		return err
 	}
 
-	controlPlaneChart, err := daprChart(conf.RuntimeVersion, "dapr", helmConf)
+	controlPlaneChart, err := getHelmChart(conf.RuntimeVersion, "dapr", helmRepo, helmConf)
 	if err != nil {
 		return err
 	}
@@ -109,7 +110,7 @@ func Upgrade(conf UpgradeConfig) error {
 
 	var dashboardChart *chart.Chart
 	if conf.DashboardVersion != "" {
-		dashboardChart, err = daprChart(conf.DashboardVersion, dashboardReleaseName, helmConf)
+		dashboardChart, err = getHelmChart(conf.DashboardVersion, dashboardReleaseName, helmRepo, helmConf)
 		if err != nil {
 			return err
 		}
@@ -176,7 +177,7 @@ func Upgrade(conf UpgradeConfig) error {
 			}
 		} else {
 			// We need to install Dashboard since it does not exist yet.
-			err = install(dashboardReleaseName, conf.DashboardVersion, InitConfiguration{
+			err = install(dashboardReleaseName, conf.DashboardVersion, helmRepo, InitConfiguration{
 				DashboardVersion: conf.DashboardVersion,
 				Namespace:        upgradeClient.Namespace,
 				Wait:             upgradeClient.Wait,

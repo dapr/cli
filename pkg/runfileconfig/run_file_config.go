@@ -27,6 +27,7 @@ const (
 	daprdLogFileNamePrefix = "daprd"
 	logFileExtension       = ".log"
 	logsDir                = "logs"
+	deployDir              = "deploy"
 )
 
 // RunFileConfig represents the complete configuration options for the run file.
@@ -38,14 +39,21 @@ type RunFileConfig struct {
 	Name    string `yaml:"name,omitempty"`
 }
 
+// ContainerConfiguration represents the application container configuration parameters.
+type ContainerConfiguration struct {
+	ContainerImage string `yaml:"containerImage"`
+	CreateService  bool   `yaml:"createService"`
+}
+
 // App represents the configuration options for the apps in the run file.
 type App struct {
-	standalone.RunConfig `yaml:",inline"`
-	AppDirPath           string `yaml:"appDirPath"`
-	AppLogFileName       string
-	DaprdLogFileName     string
-	AppLogWriteCloser    io.WriteCloser
-	DaprdLogWriteCloser  io.WriteCloser
+	standalone.RunConfig   `yaml:",inline"`
+	ContainerConfiguration `yaml:",inline"`
+	AppDirPath             string `yaml:"appDirPath"`
+	AppLogFileName         string
+	DaprdLogFileName       string
+	AppLogWriteCloser      io.WriteCloser
+	DaprdLogWriteCloser    io.WriteCloser
 }
 
 // Common represents the configuration options for the common section in the run file.
@@ -55,6 +63,12 @@ type Common struct {
 
 func (a *App) GetLogsDir() string {
 	logsPath := filepath.Join(a.AppDirPath, standalone.DefaultDaprDirName, logsDir)
+	os.MkdirAll(logsPath, 0o755)
+	return logsPath
+}
+
+func (a *App) GetDeployDir() string {
+	logsPath := filepath.Join(a.AppDirPath, standalone.DefaultDaprDirName, deployDir)
 	os.MkdirAll(logsPath, 0o755)
 	return logsPath
 }
@@ -104,14 +118,32 @@ func (a *App) createLogFile(logType string) (*os.File, error) {
 
 func (a *App) CloseAppLogFile() error {
 	if a.AppLogWriteCloser != nil {
-		return a.AppLogWriteCloser.Close()
+		err := a.AppLogWriteCloser.Close()
+		a.AppLogWriteCloser = nil
+		return err
 	}
 	return nil
 }
 
 func (a *App) CloseDaprdLogFile() error {
 	if a.DaprdLogWriteCloser != nil {
-		return a.DaprdLogWriteCloser.Close()
+		err := a.DaprdLogWriteCloser.Close()
+		a.DaprdLogWriteCloser = nil
+		return err
 	}
 	return nil
+}
+
+// GetLogWriter returns the log writer based on the log destination.
+func GetLogWriter(fileLogWriterCloser io.WriteCloser, logDestination standalone.LogDestType) io.Writer {
+	var logWriter io.Writer
+	switch logDestination {
+	case standalone.Console:
+		logWriter = os.Stdout
+	case standalone.File:
+		logWriter = fileLogWriterCloser
+	case standalone.FileAndConsole:
+		logWriter = io.MultiWriter(os.Stdout, fileLogWriterCloser)
+	}
+	return logWriter
 }

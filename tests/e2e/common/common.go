@@ -48,6 +48,10 @@ const (
 
 	numHAPods    = 13
 	numNonHAPods = 5
+
+	thirdPartyDevNamespace = "default"
+	devRedisReleaseName    = "dapr-dev-redis"
+	devZipkinReleaseName   = "dapr-dev-zipkin"
 )
 
 type VersionDetails struct {
@@ -61,6 +65,7 @@ type VersionDetails struct {
 }
 
 type TestOptions struct {
+	DevEnabled               bool
 	HAEnabled                bool
 	MTLSEnabled              bool
 	ApplyComponentChanges    bool
@@ -189,7 +194,7 @@ func GetTestsOnInstall(details VersionDetails, opts TestOptions) []TestCase {
 
 func GetTestsOnUninstall(details VersionDetails, opts TestOptions) []TestCase {
 	return []TestCase{
-		{"uninstall " + details.RuntimeVersion, uninstallTest(opts.UninstallAll)}, // waits for pod deletion.
+		{"uninstall " + details.RuntimeVersion, uninstallTest(opts.UninstallAll, opts.DevEnabled)}, // waits for pod deletion.
 		{"cluster not exist", kubernetesTestOnUninstall()},
 		{"crds exist on uninstall " + details.RuntimeVersion, CRDTest(details, opts)},
 		{"clusterroles not exist " + details.RuntimeVersion, ClusterRolesTest(details, opts)},
@@ -747,6 +752,10 @@ func installTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 			"-n", DaprTestNamespace,
 			"--log-as-json",
 		}
+		if opts.DevEnabled {
+			t.Log("install dev mode")
+			args = append(args, "--dev")
+		}
 		if !details.UseDaprLatestVersion {
 			// TODO: Pass dashboard-version also when charts are released.
 			args = append(args, "--runtime-version", details.RuntimeVersion)
@@ -776,10 +785,13 @@ func installTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 		require.NoError(t, err, "init failed")
 
 		validatePodsOnInstallUpgrade(t, details)
+		if opts.DevEnabled {
+			validateThirdpartyPodsOnInit(t)
+		}
 	}
 }
 
-func uninstallTest(all bool) func(t *testing.T) {
+func uninstallTest(all bool, devEnabled bool) func(t *testing.T) {
 	return func(t *testing.T) {
 		output, err := EnsureUninstall(all)
 		t.Log(output)
@@ -792,11 +804,23 @@ func uninstallTest(all bool) func(t *testing.T) {
 		go waitPodDeletion(t, done, podsDeleted)
 		select {
 		case <-podsDeleted:
-			t.Log("pods were deleted as expected on uninstall")
-			return
+			t.Log("dapr pods were deleted as expected on uninstall")
 		case <-time.After(2 * time.Minute):
 			done <- struct{}{}
-			t.Error("timeout verifying pods were deleted as expectedx")
+			t.Error("timeout verifying pods were deleted as expected")
+			return
+		}
+		if devEnabled {
+			t.Log("waiting for dapr dev pods to be deleted")
+			go waitPodDeletionDev(t, done, podsDeleted)
+			select {
+			case <-podsDeleted:
+				t.Log("dapr dev pods were deleted as expected on uninstall dev")
+				return
+			case <-time.After(2 * time.Minute):
+				done <- struct{}{}
+				t.Error("timeout verifying pods were deleted as expected")
+			}
 		}
 	}
 }
@@ -943,6 +967,41 @@ func httpEndpointOutputCheck(t *testing.T, output string) {
 	assert.Contains(t, output, "httpendpoint")
 }
 
+func validateThirdpartyPodsOnInit(t *testing.T) {
+	ctx := context.Background()
+	ctxt, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	k8sClient, err := getClient()
+	require.NoError(t, err)
+	list, err := k8sClient.CoreV1().Pods(thirdPartyDevNamespace).List(ctxt, v1.ListOptions{
+		Limit: 100,
+	})
+	require.NoError(t, err)
+	notFound := map[string]struct{}{
+		devRedisReleaseName:  {},
+		devZipkinReleaseName: {},
+	}
+	prefixes := map[string]string{
+		devRedisReleaseName:  "dapr-dev-redis-master-",
+		devZipkinReleaseName: "dapr-dev-zipkin-",
+	}
+	for _, pod := range list.Items {
+		t.Log(pod.ObjectMeta.Name)
+		for component, prefix := range prefixes {
+			if pod.Status.Phase != core_v1.PodRunning {
+				continue
+			}
+			if !pod.Status.ContainerStatuses[0].Ready {
+				continue
+			}
+			if strings.HasPrefix(pod.ObjectMeta.Name, prefix) {
+				delete(notFound, component)
+			}
+		}
+	}
+	assert.Empty(t, notFound)
+}
+
 func validatePodsOnInstallUpgrade(t *testing.T, details VersionDetails) {
 	ctx := context.Background()
 	ctxt, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -1008,6 +1067,52 @@ func validatePodsOnInstallUpgrade(t *testing.T, details VersionDetails) {
 		}
 	}
 	assert.Empty(t, notFound)
+}
+
+func waitPodDeletionDev(t *testing.T, done, podsDeleted chan struct{}) {
+	for {
+		select {
+		case <-done: // if timeout was reached.
+			return
+		default:
+			break
+		}
+		ctx := context.Background()
+		ctxt, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+		k8sClient, err := getClient()
+		require.NoError(t, err, "error getting k8s client for pods check")
+		list, err := k8sClient.CoreV1().Pods(thirdPartyDevNamespace).List(ctxt, v1.ListOptions{
+			Limit: 100,
+		})
+		require.NoError(t, err)
+		found := map[string]struct{}{
+			devRedisReleaseName:  {},
+			devZipkinReleaseName: {},
+		}
+		prefixes := map[string]string{
+			devRedisReleaseName:  "dapr-dev-redis-master-",
+			devZipkinReleaseName: "dapr-dev-zipkin-",
+		}
+		for _, pod := range list.Items {
+			t.Log(pod.ObjectMeta.Name)
+			for component, prefix := range prefixes {
+				if pod.Status.Phase != core_v1.PodRunning {
+					continue
+				}
+				if !pod.Status.ContainerStatuses[0].Ready {
+					continue
+				}
+				if strings.HasPrefix(pod.ObjectMeta.Name, prefix) {
+					delete(found, component)
+				}
+			}
+		}
+		if len(found) == 2 {
+			podsDeleted <- struct{}{}
+		}
+		time.Sleep(15 * time.Second)
+	}
 }
 
 func waitPodDeletion(t *testing.T, done, podsDeleted chan struct{}) {

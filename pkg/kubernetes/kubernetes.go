@@ -36,10 +36,18 @@ import (
 )
 
 const (
-	daprReleaseName      = "dapr"
-	dashboardReleaseName = "dapr-dashboard"
-	daprHelmRepo         = "https://dapr.github.io/helm-charts"
-	latestVersion        = "latest"
+	daprReleaseName        = "dapr"
+	dashboardReleaseName   = "dapr-dashboard"
+	thirdPartyDevNamespace = "default"
+	zipkinChartName        = "zipkin"
+	redisChartName         = "redis"
+	zipkinReleaseName      = "dapr-dev-zipkin"
+	redisReleaseName       = "dapr-dev-redis"
+	redisVersion           = "6.2"
+	bitnamiHelmRepo        = "https://charts.bitnami.com/bitnami"
+	daprHelmRepo           = "https://dapr.github.io/helm-charts"
+	zipkinHelmRepo         = "https://openzipkin.github.io/zipkin"
+	latestVersion          = "latest"
 )
 
 type InitConfiguration struct {
@@ -48,6 +56,7 @@ type InitConfiguration struct {
 	Namespace                 string
 	EnableMTLS                bool
 	EnableHA                  bool
+	EnableDev                 bool
 	Args                      []string
 	Wait                      bool
 	Timeout                   uint
@@ -60,7 +69,8 @@ type InitConfiguration struct {
 
 // Init deploys the Dapr operator using the supplied runtime version.
 func Init(config InitConfiguration) error {
-	err := installWithConsole(daprReleaseName, config.Version, "Dapr control plane", config)
+	helmRepoDapr := utils.GetEnv("DAPR_HELM_REPO_URL", daprHelmRepo)
+	err := installWithConsole(daprReleaseName, config.Version, helmRepoDapr, "Dapr control plane", config)
 	if err != nil {
 		return err
 	}
@@ -75,19 +85,53 @@ func Init(config InitConfiguration) error {
 		}
 	}
 
-	err = installWithConsole(dashboardReleaseName, config.DashboardVersion, "Dapr dashboard", config)
+	err = installWithConsole(dashboardReleaseName, config.DashboardVersion, helmRepoDapr, "Dapr dashboard", config)
 	if err != nil {
 		return err
 	}
 
+	if config.EnableDev {
+		redisChartVals := []string{
+			"image.tag=" + redisVersion,
+		}
+
+		err = installThirdPartyWithConsole(redisReleaseName, redisChartName, latestVersion, bitnamiHelmRepo, "Dapr Redis", redisChartVals, config)
+		if err != nil {
+			return err
+		}
+
+		err = installThirdPartyWithConsole(zipkinReleaseName, zipkinChartName, latestVersion, zipkinHelmRepo, "Dapr Zipkin", []string{}, config)
+		if err != nil {
+			return err
+		}
+
+		err = initDevConfigs()
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
-func installWithConsole(releaseName string, releaseVersion string, prettyName string, config InitConfiguration) error {
+func installThirdPartyWithConsole(releaseName, chartName, releaseVersion, helmRepo string, prettyName string, chartValues []string, config InitConfiguration) error {
 	installSpinning := print.Spinner(os.Stdout, "Deploying the "+prettyName+" with "+releaseVersion+" version to your cluster...")
 	defer installSpinning(print.Failure)
 
-	err := install(releaseName, releaseVersion, config)
+	// releaseVersion of chart will always be latest version.
+	err := installThirdParty(releaseName, chartName, latestVersion, helmRepo, chartValues, config)
+	if err != nil {
+		return err
+	}
+	installSpinning(print.Success)
+
+	return nil
+}
+
+func installWithConsole(releaseName, releaseVersion, helmRepo string, prettyName string, config InitConfiguration) error {
+	installSpinning := print.Spinner(os.Stdout, "Deploying the "+prettyName+" with "+releaseVersion+" version to your cluster...")
+	defer installSpinning(print.Failure)
+
+	err := install(releaseName, releaseVersion, helmRepo, config)
 	if err != nil {
 		return err
 	}
@@ -156,9 +200,9 @@ func locateChartFile(dirPath string) (string, error) {
 	return filepath.Join(dirPath, files[0].Name()), nil
 }
 
-func daprChart(version string, releaseName string, config *helm.Configuration) (*chart.Chart, error) {
+func getHelmChart(version, releaseName, helmRepo string, config *helm.Configuration) (*chart.Chart, error) {
 	pull := helm.NewPullWithOpts(helm.WithConfig(config))
-	pull.RepoURL = utils.GetEnv("DAPR_HELM_REPO_URL", daprHelmRepo)
+	pull.RepoURL = helmRepo
 	pull.Username = utils.GetEnv("DAPR_HELM_REPO_USERNAME", "")
 	pull.Password = utils.GetEnv("DAPR_HELM_REPO_PASSWORD", "")
 
@@ -188,7 +232,7 @@ func daprChart(version string, releaseName string, config *helm.Configuration) (
 	return loader.Load(chartPath)
 }
 
-func chartValues(config InitConfiguration, version string) (map[string]interface{}, error) {
+func daprChartValues(config InitConfiguration, version string) (map[string]interface{}, error) {
 	chartVals := map[string]interface{}{}
 	err := utils.ValidateImageVariant(config.ImageVariant)
 	if err != nil {
@@ -227,7 +271,7 @@ func chartValues(config InitConfiguration, version string) (map[string]interface
 	return chartVals, nil
 }
 
-func install(releaseName string, releaseVersion string, config InitConfiguration) error {
+func install(releaseName, releaseVersion, helmRepo string, config InitConfiguration) error {
 	err := createNamespace(config.Namespace)
 	if err != nil {
 		return err
@@ -238,7 +282,7 @@ func install(releaseName string, releaseVersion string, config InitConfiguration
 		return err
 	}
 
-	daprChart, err := daprChart(releaseVersion, releaseName, helmConf)
+	daprChart, err := getHelmChart(releaseVersion, releaseName, helmRepo, helmConf)
 	if err != nil {
 		return err
 	}
@@ -261,12 +305,44 @@ func install(releaseName string, releaseVersion string, config InitConfiguration
 	installClient.Wait = config.Wait
 	installClient.Timeout = time.Duration(config.Timeout) * time.Second
 
-	values, err := chartValues(config, version)
+	values, err := daprChartValues(config, version)
 	if err != nil {
 		return err
 	}
 
 	if _, err = installClient.Run(daprChart, values); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func installThirdParty(releaseName, chartName, releaseVersion, helmRepo string, chartVals []string, config InitConfiguration) error {
+	helmConf, err := helmConfig(thirdPartyDevNamespace)
+	if err != nil {
+		return err
+	}
+
+	helmChart, err := getHelmChart(releaseVersion, chartName, helmRepo, helmConf)
+	if err != nil {
+		return err
+	}
+
+	installClient := helm.NewInstall(helmConf)
+	installClient.ReleaseName = releaseName
+	installClient.Namespace = thirdPartyDevNamespace
+	installClient.Wait = config.Wait
+	installClient.Timeout = time.Duration(config.Timeout) * time.Second
+
+	values := map[string]interface{}{}
+
+	for _, val := range chartVals {
+		if err = strvals.ParseInto(val, values); err != nil {
+			return err
+		}
+	}
+
+	if _, err = installClient.Run(helmChart, values); err != nil {
 		return err
 	}
 
@@ -289,4 +365,79 @@ func confirmExist(cfg *helm.Configuration, releaseName string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func checkAndOverWriteFile(filePath string, b []byte) error {
+	_, err := os.Stat(filePath)
+	if os.IsNotExist(err) {
+		// #nosec G306
+		if err = os.WriteFile(filePath, b, 0o644); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func initDevConfigs() error {
+	redisStatestore := `
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: daprdevstatestore
+spec:
+  type: state.redis
+  version: v1
+  metadata:
+  # These settings will work out of the box if you use helm install
+  # bitnami/redis.  If you have your own setup, replace
+  # redis-master:6379 with your own Redis master address, and the
+  # Redis password with your own Secret's name. For more information,
+  # see https://docs.dapr.io/operations/components/component-secrets .
+  - name: redisHost
+    value: dapr-dev-redis-master:6379
+  - name: redisPassword
+    secretKeyRef:
+      name: dapr-dev-redis
+      key: redis-password
+auth:
+  secretStore: kubernetes
+`
+
+	zipkinConfig := `
+apiVersion: dapr.io/v1alpha1
+kind: Configuration
+metadata:
+  name: daprdevzipkinconfig
+spec:
+  tracing:
+    samplingRate: "1"
+    zipkin:
+      endpointAddress: "http://dapr-dev-zipkin.default.svc.cluster.local:9411/api/v2/spans"
+`
+	tempDirPath, err := createTempDir()
+	defer os.RemoveAll(tempDirPath)
+	if err != nil {
+		return err
+	}
+	redisPath := filepath.Join(tempDirPath, "redis-statestore.yaml")
+	err = checkAndOverWriteFile(redisPath, []byte(redisStatestore))
+	if err != nil {
+		return err
+	}
+	_, err = utils.RunCmdAndWait("kubectl", "apply", "-f", redisPath)
+	if err != nil {
+		return err
+	}
+
+	zipkinPath := filepath.Join(tempDirPath, "zipkin-config.yaml")
+	err = checkAndOverWriteFile(zipkinPath, []byte(zipkinConfig))
+	if err != nil {
+		return err
+	}
+	_, err = utils.RunCmdAndWait("kubectl", "apply", "-f", zipkinPath)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

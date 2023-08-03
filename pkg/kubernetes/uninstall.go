@@ -24,7 +24,7 @@ import (
 )
 
 // Uninstall removes Dapr from a Kubernetes cluster.
-func Uninstall(namespace string, uninstallAll bool, timeout uint) error {
+func Uninstall(namespace string, uninstallAll bool, uninstallDev bool, timeout uint) error {
 	config, err := helmConfig(namespace)
 	if err != nil {
 		return err
@@ -48,6 +48,11 @@ func Uninstall(namespace string, uninstallAll bool, timeout uint) error {
 	// Deleting Dashboard here is for versions >= 1.11.
 	uninstallClient.Run(dashboardReleaseName)
 
+	if uninstallDev {
+		// uninstall dapr-dev-zipkin and dapr-dev-redis as best effort.
+		uninstallThirdParty()
+	}
+
 	_, err = uninstallClient.Run(daprReleaseName)
 
 	if err != nil {
@@ -64,4 +69,15 @@ func Uninstall(namespace string, uninstallAll bool, timeout uint) error {
 	}
 
 	return nil
+}
+
+func uninstallThirdParty() {
+	print.InfoStatusEvent(os.Stdout, "Removing dapr-dev-redis and dapr-dev-zipkin from the cluster...")
+	// Uninstall dapr-dev-redis and dapr-dev-zipkin from k8s as best effort.
+	config, _ := helmConfig(thirdPartyDevNamespace)
+
+	uninstallClient := helm.NewUninstall(config)
+
+	uninstallClient.Run(redisReleaseName)
+	uninstallClient.Run(zipkinReleaseName)
 }
