@@ -49,7 +49,7 @@ func StopAppsWithRunFile(runTemplatePath string) error {
 }
 
 func disposeJobHandle(cliPID int) error {
-	jbobj, err := winjob.Open(strconv.Itoa(cliPID) + "-" + utils.WindowsDaprdAppProcJobName)
+	jbobj, err := winjob.Open(strconv.Itoa(cliPID) + "-" + utils.WindowsDaprAppProcJobName)
 	if err != nil {
 		return fmt.Errorf("error opening job object: %w", err)
 	}
