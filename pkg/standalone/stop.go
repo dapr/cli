@@ -33,13 +33,10 @@ func Stop(appID string, cliPIDToNoOfApps map[int]int, apps []ListOutput) error {
 			if a.CliPID == 0 || cliPIDToNoOfApps[a.CliPID] > 1 {
 				pid = fmt.Sprintf("%v", a.DaprdPID)
 				cliPIDToNoOfApps[a.CliPID]--
-			} else {
-				pid = fmt.Sprintf("%v", a.CliPID)
+				_, err := utils.RunCmdAndWait("kill", pid)
+				return err
 			}
-
-			_, err := utils.RunCmdAndWait("kill", pid)
-
-			return err
+			return killAll(a.CliPID)
 		}
 	}
 	return fmt.Errorf("couldn't find app id %s", appID)
@@ -53,17 +50,21 @@ func StopAppsWithRunFile(runTemplatePath string) error {
 	}
 	for _, a := range apps {
 		if a.RunTemplatePath == runTemplatePath {
-			// Get the process group id of the CLI process.
-			pgid, err := syscall.Getpgid(a.CliPID)
-			if err != nil {
-				// Fall back to cliPID if pgid is not available.
-				_, err = utils.RunCmdAndWait("kill", fmt.Sprintf("%v", a.CliPID))
-				return err
-			}
-			// Kill the whole process group.
-			err = syscall.Kill(-pgid, syscall.SIGINT)
-			return err
+			return killAll(a.CliPID)
 		}
 	}
 	return fmt.Errorf("couldn't find apps with run file %q", runTemplatePath)
+}
+
+func killAll(cliPID int) error {
+	// Get the process group id of the CLI process.
+	pgid, err := syscall.Getpgid(cliPID)
+	if err != nil {
+		// Fall back to cliPID if pgid is not available.
+		_, err = utils.RunCmdAndWait("kill", fmt.Sprintf("%v", cliPID))
+		return err
+	}
+	// Kill the whole process group.
+	err = syscall.Kill(-pgid, syscall.SIGINT)
+	return err
 }

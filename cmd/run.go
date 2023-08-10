@@ -199,7 +199,7 @@ dapr run --run-file /path/to/directory
 
 		sigCh := make(chan os.Signal, 1)
 		daprsyscall.SetupShutdownNotify(sigCh)
-
+		daprsyscall.CreateProcessGroupID()
 		daprRunning := make(chan bool, 1)
 		appRunning := make(chan bool, 1)
 
@@ -331,7 +331,6 @@ dapr run --run-file /path/to/directory
 				appRunning <- false
 				return
 			}
-
 			go func() {
 				appErr := output.AppCMD.Wait()
 
