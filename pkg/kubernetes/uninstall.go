@@ -30,7 +30,7 @@ func Uninstall(namespace string, uninstallAll bool, timeout uint) error {
 		return err
 	}
 
-	exists, err := confirmExist(config)
+	exists, err := confirmExist(config, daprReleaseName)
 	if err != nil {
 		return err
 	}
@@ -42,6 +42,12 @@ func Uninstall(namespace string, uninstallAll bool, timeout uint) error {
 
 	uninstallClient := helm.NewUninstall(config)
 	uninstallClient.Timeout = time.Duration(timeout) * time.Second
+
+	// Uninstall Dashboard as a best effort.
+	// Chart versions < 1.11 for Dapr will delete dashboard as part of the main chart.
+	// Deleting Dashboard here is for versions >= 1.11.
+	uninstallClient.Run(dashboardReleaseName)
+
 	_, err = uninstallClient.Run(daprReleaseName)
 
 	if err != nil {

@@ -18,12 +18,8 @@ package standalone_test
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"runtime"
 	"testing"
-
-	"github.com/dapr/cli/tests/e2e/common"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -31,7 +27,10 @@ import (
 
 func TestStandaloneRun(t *testing.T) {
 	ensureDaprInstallation(t)
-
+	t.Cleanup(func() {
+		// remove dapr installation after all tests in this function.
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+	})
 	for _, path := range getSocketCases() {
 		t.Run(fmt.Sprintf("normal exit, socket: %s", path), func(t *testing.T) {
 			output, err := cmdRun(path, "--", "bash", "-c", "echo test")
@@ -39,6 +38,7 @@ func TestStandaloneRun(t *testing.T) {
 			require.NoError(t, err, "run failed")
 			assert.Contains(t, output, "Exited App successfully")
 			assert.Contains(t, output, "Exited Dapr successfully")
+			assert.NotContains(t, output, "Could not update sidecar metadata for cliPID")
 		})
 
 		t.Run(fmt.Sprintf("error exit, socket: %s", path), func(t *testing.T) {
@@ -47,6 +47,7 @@ func TestStandaloneRun(t *testing.T) {
 			require.Error(t, err, "run failed")
 			assert.Contains(t, output, "The App process exited with error code: exit status 1")
 			assert.Contains(t, output, "Exited Dapr successfully")
+			assert.NotContains(t, output, "Could not update sidecar metadata for cliPID")
 		})
 
 		t.Run("Use internal gRPC port if specified", func(t *testing.T) {
@@ -56,6 +57,7 @@ func TestStandaloneRun(t *testing.T) {
 			assert.Contains(t, output, "internal gRPC server is running on port 9999")
 			assert.Contains(t, output, "Exited App successfully")
 			assert.Contains(t, output, "Exited Dapr successfully")
+			assert.NotContains(t, output, "Could not update sidecar metadata for cliPID")
 		})
 	}
 
@@ -66,6 +68,7 @@ func TestStandaloneRun(t *testing.T) {
 		require.NoError(t, err, "run failed")
 		assert.Contains(t, output, "Exited App successfully", "App should be shutdown before it has a chance to return non-zero")
 		assert.Contains(t, output, "Exited Dapr successfully")
+		assert.NotContains(t, output, "Could not update sidecar metadata for cliPID")
 	})
 
 	t.Run("API shutdown with socket", func(t *testing.T) {
@@ -78,6 +81,7 @@ func TestStandaloneRun(t *testing.T) {
 		t.Log(output)
 		require.NoError(t, err, "run failed")
 		assert.Contains(t, output, "Exited Dapr successfully")
+		assert.NotContains(t, output, "Could not update sidecar metadata for cliPID")
 	})
 
 	t.Run(fmt.Sprintf("check enableAPILogging flag in enabled mode"), func(t *testing.T) {
@@ -91,7 +95,10 @@ func TestStandaloneRun(t *testing.T) {
 		output, err := cmdRun("", args...)
 		t.Log(output)
 		require.NoError(t, err, "run failed")
-		assert.Contains(t, output, "level=info msg=\"HTTP API Called: PUT /v1.0/metadata/appCommand")
+		assert.Contains(t, output, "level=info msg=\"HTTP API Called\" app_id=enableApiLogging_info")
+		assert.Contains(t, output, "method=\"PUT /v1.0/metadata/appCommand\"")
+		assert.Contains(t, output, "method=\"PUT /v1.0/metadata/cliPID\"")
+		assert.Contains(t, output, "method=\"PUT /v1.0/metadata/appPID\"")
 		assert.Contains(t, output, "Exited App successfully")
 		assert.Contains(t, output, "Exited Dapr successfully")
 	})
@@ -107,7 +114,28 @@ func TestStandaloneRun(t *testing.T) {
 		require.NoError(t, err, "run failed")
 		assert.Contains(t, output, "Exited App successfully")
 		assert.Contains(t, output, "Exited Dapr successfully")
-		assert.NotContains(t, output, "level=info msg=\"HTTP API Called: PUT /v1.0/metadata/appCommand\"")
+		assert.NotContains(t, output, "level=info msg=\"HTTP API Called\" app_id=enableApiLogging_info")
+		assert.NotContains(t, output, "method=\"PUT /v1.0/metadata/appCommand\"")
+		assert.NotContains(t, output, "method=\"PUT /v1.0/metadata/cliPID\"")
+		assert.NotContains(t, output, "method=\"PUT /v1.0/metadata/appPID\"")
+	})
+
+	t.Run(fmt.Sprintf("check enableAPILogging with obfuscation through dapr config file"), func(t *testing.T) {
+		args := []string{
+			"--app-id", "enableApiLogging_info",
+			"--config", "../testdata/config.yaml",
+			"--", "bash", "-c", "echo 'test'",
+		}
+
+		output, err := cmdRun("", args...)
+		t.Log(output)
+		require.NoError(t, err, "run failed")
+		assert.Contains(t, output, "Exited App successfully")
+		assert.Contains(t, output, "Exited Dapr successfully")
+		assert.Contains(t, output, "level=info msg=\"HTTP API Called\" app_id=enableApiLogging_info")
+		assert.Contains(t, output, "method=\"PUT /v1.0/metadata/{key}\"")
+		assert.Contains(t, output, "method=\"PUT /v1.0/metadata/{key}\"")
+		assert.Contains(t, output, "method=\"PUT /v1.0/metadata/{key}\"")
 	})
 
 	t.Run(fmt.Sprintf("check run with log JSON enabled"), func(t *testing.T) {
@@ -145,7 +173,23 @@ func TestStandaloneRun(t *testing.T) {
 		output, err := cmdRun("", args...)
 		t.Log(output)
 		require.NoError(t, err, "run failed")
-		assert.Contains(t, output, "component loaded. name: test-statestore, type: state.in-memory/v1")
+		assert.Contains(t, output, "Component loaded: test-statestore (state.in-memory/v1)")
+		assert.Contains(t, output, "Exited App successfully")
+		assert.Contains(t, output, "Exited Dapr successfully")
+	})
+
+	t.Run("check run with multiple resources-path", func(t *testing.T) {
+		args := []string{
+			"--app-id", "testapp",
+			"--resources-path", "../testdata/resources",
+			"--resources-path", "../testdata/additional_resources",
+			"--", "bash", "-c", "echo 'test'",
+		}
+		output, err := cmdRun("", args...)
+		t.Log(output)
+		require.NoError(t, err, "run failed")
+		assert.Contains(t, output, "Component loaded: test-statestore (state.in-memory/v1)")
+		assert.Contains(t, output, "Component loaded: test-statestore-additional-resource (state.in-memory/v1)")
 		assert.Contains(t, output, "Exited App successfully")
 		assert.Contains(t, output, "Exited Dapr successfully")
 	})
@@ -156,129 +200,5 @@ func TestStandaloneRun(t *testing.T) {
 		require.Contains(t, output, "Error: unknown flag: --flag\nUsage:", "expected usage to be printed")
 		require.Contains(t, output, "-a, --app-id string", "expected usage to be printed")
 		require.Contains(t, output, "The id for your application, used for service discovery", "expected usage to be printed")
-	})
-}
-
-func TestStandaloneRunNonDefaultDaprPath(t *testing.T) {
-	// Uninstall Dapr at the end of the test since it's being installed in a non-default location.
-	t.Cleanup(func() {
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
-
-	t.Run("run with flag", func(t *testing.T) {
-		// Ensure a clean environment
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-
-		daprPath, err := os.MkdirTemp("", "dapr-e2e-run-with-flag-*")
-		assert.NoError(t, err)
-		defer os.RemoveAll(daprPath) // clean up
-
-		daprRuntimeVersion, _ := common.GetVersionsFromEnv(t, false)
-		output, err := cmdInit("--runtime-version", daprRuntimeVersion, "--dapr-path", daprPath)
-		t.Log(output)
-		require.NoError(t, err, "init failed")
-		assert.Contains(t, output, "Success! Dapr is up and running.")
-
-		args := []string{
-			"--dapr-path", daprPath,
-			"--app-id", "run_with_dapr_path_flag",
-			"--", "bash", "-c", "echo 'test'",
-		}
-
-		output, err = cmdRun("", args...)
-		t.Log(output)
-		require.NoError(t, err, "run failed")
-		assert.Contains(t, output, "Exited App successfully")
-		assert.Contains(t, output, "Exited Dapr successfully")
-
-		homeDir, err := os.UserHomeDir()
-		require.NoError(t, err, "failed to get user home directory")
-
-		defaultDaprPath := filepath.Join(homeDir, ".dapr")
-		assert.NoFileExists(t, defaultDaprPath)
-	})
-
-	t.Run("run with env var", func(t *testing.T) {
-		// Ensure a clean environment
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-
-		daprPath, err := os.MkdirTemp("", "dapr-e2e-run-with-env-*")
-		assert.NoError(t, err)
-		defer os.RemoveAll(daprPath) // clean up
-
-		t.Setenv("DAPR_PATH", daprPath)
-
-		daprRuntimeVersion, _ := common.GetVersionsFromEnv(t, false)
-
-		output, err := cmdInit("--runtime-version", daprRuntimeVersion)
-		t.Log(output)
-		require.NoError(t, err, "init failed")
-		assert.Contains(t, output, "Success! Dapr is up and running.")
-
-		args := []string{
-			"--app-id", "run_with_dapr_path_flag",
-			"--", "bash", "-c", "echo 'test'",
-		}
-
-		output, err = cmdRun("", args...)
-		t.Log(output)
-		require.NoError(t, err, "run failed")
-		assert.Contains(t, output, "Exited App successfully")
-		assert.Contains(t, output, "Exited Dapr successfully")
-
-		homeDir, err := os.UserHomeDir()
-		require.NoError(t, err, "failed to get user home directory")
-
-		defaultDaprPath := filepath.Join(homeDir, ".dapr")
-		assert.NoFileExists(t, defaultDaprPath)
-	})
-
-	t.Run("run with both flag and env var", func(t *testing.T) {
-		// Ensure a clean environment
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-
-		daprPathForEnv, err := os.MkdirTemp("", "dapr-e2e-run-with-envflag-1-*")
-		assert.NoError(t, err)
-		defer os.RemoveAll(daprPathForEnv) // clean up
-
-		daprPathForFlag, err := os.MkdirTemp("", "dapr-e2e-run-with-envflag-2-*")
-		assert.NoError(t, err)
-		defer os.RemoveAll(daprPathForFlag) // clean up
-
-		t.Setenv("DAPR_PATH", daprPathForEnv)
-
-		daprRuntimeVersion, _ := common.GetVersionsFromEnv(t, false)
-
-		output, err := cmdInit("--runtime-version", daprRuntimeVersion, "--dapr-path", daprPathForFlag)
-		t.Log(output)
-		require.NoError(t, err, "init failed")
-		assert.Contains(t, output, "Success! Dapr is up and running.")
-
-		args := []string{
-			"--dapr-path", daprPathForFlag,
-			"--app-id", "run_with_dapr_path_flag",
-			"--", "bash", "-c", "echo 'test'",
-		}
-
-		flagDaprdBinPath := filepath.Join(daprPathForFlag, "bin", "daprd")
-		if runtime.GOOS == "windows" {
-			flagDaprdBinPath += ".exe"
-		}
-		assert.FileExists(t, flagDaprdBinPath)
-
-		output, err = cmdRun("", args...)
-		t.Log(output)
-		require.NoError(t, err, "run failed")
-		assert.Contains(t, output, "Exited App successfully")
-		assert.Contains(t, output, "Exited Dapr successfully")
-
-		homeDir, err := os.UserHomeDir()
-		require.NoError(t, err, "failed to get user home directory")
-
-		defaultDaprPath := filepath.Join(homeDir, ".dapr")
-		assert.NoFileExists(t, defaultDaprPath)
-
-		envDaprBinPath := filepath.Join(daprPathForEnv, "bin")
-		assert.NoFileExists(t, envDaprBinPath)
 	})
 }

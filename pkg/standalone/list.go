@@ -21,10 +21,11 @@ import (
 	ps "github.com/mitchellh/go-ps"
 	process "github.com/shirou/gopsutil/process"
 
+	"github.com/dapr/dapr/pkg/runtime"
+
 	"github.com/dapr/cli/pkg/age"
 	"github.com/dapr/cli/pkg/metadata"
 	"github.com/dapr/cli/utils"
-	"github.com/dapr/dapr/pkg/runtime"
 )
 
 // ListOutput represents the application ID, application port and creation time.
@@ -39,9 +40,13 @@ type ListOutput struct {
 	Created            string `csv:"CREATED"   json:"created"            yaml:"created"`
 	DaprdPID           int    `csv:"DAPRD PID" json:"daprdPid"           yaml:"daprdPid"`
 	CliPID             int    `csv:"CLI PID"   json:"cliPid"             yaml:"cliPid"`
+	AppPID             int    `csv:"APP PID"   json:"appPid"             yaml:"appPid"`
 	MaxRequestBodySize int    `csv:"-"         json:"maxRequestBodySize" yaml:"maxRequestBodySize"` // Additional field, not displayed in table.
 	HTTPReadBufferSize int    `csv:"-"         json:"httpReadBufferSize" yaml:"httpReadBufferSize"` // Additional field, not displayed in table.
 	RunTemplatePath    string `csv:"RUN_TEMPLATE_PATH"  json:"runTemplatePath"            yaml:"runTemplatePath"`
+	AppLogPath         string `csv:"APP_LOG_PATH"  json:"appLogPath"            yaml:"appLogPath"`
+	DaprDLogPath       string `csv:"DAPRD_LOG_PATH"  json:"daprdLogPath"            yaml:"daprdLogPath"`
+	RunTemplateName    string `json:"runTemplateName"            yaml:"runTemplateName"` // specifically omitted in csv output.
 }
 
 func (d *daprProcess) List() ([]ListOutput, error) {
@@ -76,9 +81,16 @@ func List() ([]ListOutput, error) {
 				continue
 			}
 
+			// Parse command line arguments, example format for cmdLine `daprd --flag1 value1 --enable-flag2 --flag3 value3`.
 			argumentsMap := make(map[string]string)
-			for i := 1; i < len(cmdLineItems)-1; i += 2 {
-				argumentsMap[cmdLineItems[i]] = cmdLineItems[i+1]
+			for i := 1; i < len(cmdLineItems)-1; {
+				if !strings.HasPrefix(cmdLineItems[i+1], "--") {
+					argumentsMap[cmdLineItems[i]] = cmdLineItems[i+1]
+					i += 2
+				} else {
+					argumentsMap[cmdLineItems[i]] = ""
+					i++
+				}
 			}
 
 			httpPort := getIntArg(argumentsMap, "--dapr-http-port", runtime.DefaultDaprHTTPPort)
@@ -99,14 +111,27 @@ func List() ([]ListOutput, error) {
 
 			appID := argumentsMap["--app-id"]
 			appCmd := ""
+			appPIDString := ""
 			cliPIDString := ""
 			runTemplatePath := ""
+			appLogPath := ""
+			daprdLogPath := ""
+			runTemplateName := ""
 			socket := argumentsMap["--unix-domain-socket"]
 			appMetadata, err := metadata.Get(httpPort, appID, socket)
 			if err == nil {
 				appCmd = appMetadata.Extended["appCommand"]
+				appPIDString = appMetadata.Extended["appPID"]
 				cliPIDString = appMetadata.Extended["cliPID"]
 				runTemplatePath = appMetadata.Extended["runTemplatePath"]
+				runTemplateName = appMetadata.Extended["runTemplateName"]
+				appLogPath = appMetadata.Extended["appLogPath"]
+				daprdLogPath = appMetadata.Extended["daprdLogPath"]
+			}
+
+			appPID, err := strconv.Atoi(appPIDString)
+			if err != nil {
+				appPID = 0
 			}
 
 			// Parse functions return an error on bad input.
@@ -130,6 +155,7 @@ func List() ([]ListOutput, error) {
 				DaprdPID:           daprPID,
 				CliPID:             cliPID,
 				AppID:              appID,
+				AppPID:             appPID,
 				HTTPPort:           httpPort,
 				GRPCPort:           grpcPort,
 				AppPort:            appPort,
@@ -138,6 +164,9 @@ func List() ([]ListOutput, error) {
 				MaxRequestBodySize: maxRequestBodySize,
 				HTTPReadBufferSize: httpReadBufferSize,
 				RunTemplatePath:    runTemplatePath,
+				RunTemplateName:    runTemplateName,
+				AppLogPath:         appLogPath,
+				DaprDLogPath:       daprdLogPath,
 			}
 
 			// filter only dashboard instance.

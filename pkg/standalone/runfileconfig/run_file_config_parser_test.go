@@ -16,6 +16,7 @@ package runfileconfig
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/dapr/cli/pkg/standalone"
@@ -29,9 +30,12 @@ var (
 	invalidRunFilePath2             = filepath.Join("..", "testdata", "runfileconfig", "test_run_config_empty_app_dir.yaml")
 	runFileForPrecedenceRule        = filepath.Join("..", "testdata", "runfileconfig", "test_run_config_precedence_rule.yaml")
 	runFileForPrecedenceRuleDaprDir = filepath.Join("..", "testdata", "runfileconfig", "test_run_config_precedence_rule_dapr_dir.yaml")
+	runFileForLogDestination        = filepath.Join("..", "testdata", "runfileconfig", "test_run_config_log_destination.yaml")
+	runFileForMultiResourcePaths    = filepath.Join("..", "testdata", "runfileconfig", "test_run_config_multiple_resources_paths.yaml")
 )
 
 func TestRunConfigFile(t *testing.T) {
+	t.Parallel()
 	t.Run("test parse valid run template", func(t *testing.T) {
 		appsRunConfig := RunFileConfig{}
 		err := appsRunConfig.parseAppsConfig(validRunFilePath)
@@ -69,17 +73,17 @@ func TestRunConfigFile(t *testing.T) {
 		assert.Equal(t, "/tmp/test-socket", apps[1].UnixDomainSocket)
 
 		// test resourcesPath and configPath after precedence order logic.
-		assert.Equal(t, filepath.Join(apps[0].AppDirPath, "resources"), apps[0].ResourcesPath)
-		assert.Equal(t, filepath.Join(apps[1].AppDirPath, ".dapr", "resources"), apps[1].ResourcesPath)
+		assert.Equal(t, filepath.Join(apps[0].AppDirPath, "resources"), apps[0].ResourcesPaths[0])
+		assert.Equal(t, filepath.Join(apps[1].AppDirPath, ".dapr", "resources"), apps[1].ResourcesPaths[0])
 
 		assert.Equal(t, filepath.Join(apps[0].AppDirPath, "config.yaml"), apps[0].ConfigFile)
 		assert.Equal(t, filepath.Join(apps[1].AppDirPath, ".dapr", "config.yaml"), apps[1].ConfigFile)
 
 		// temporarily set apps[0].ResourcesPath to empty string to test it is getting picked from common section.
-		apps[0].ResourcesPath = ""
+		apps[0].ResourcesPaths = []string{}
 		config.resolveResourcesAndConfigFilePaths()
-		assert.Equal(t, config.Common.ResourcesPath, apps[0].ResourcesPath)
-		assert.Equal(t, filepath.Join(apps[1].AppDirPath, ".dapr", "resources"), apps[1].ResourcesPath)
+		assert.Equal(t, config.Common.ResourcesPaths[0], apps[0].ResourcesPaths[0])
+		assert.Equal(t, filepath.Join(apps[1].AppDirPath, ".dapr", "resources"), apps[1].ResourcesPaths[0])
 
 		// test merged envs from common and app sections.
 		assert.Equal(t, 2, len(apps[0].Env))
@@ -102,45 +106,39 @@ func TestRunConfigFile(t *testing.T) {
 		err = config.validateRunConfig(runFileForPrecedenceRule)
 		assert.NoError(t, err)
 
+		// test precedence logic for resourcesPath and configPath.
+		err = config.resolveResourcesAndConfigFilePaths()
+		assert.NoError(t, err)
+
 		testcases := []struct {
 			name                   string
-			disableCommonSection   bool
 			expectedResourcesPath  string
 			expectedConfigFilePath string
 			appIndex               int
 		}{
 			{
-				name:                   "resourcesPath and configPath are set in app section",
-				disableCommonSection:   false,
+				name:                   "resourcesPaths and configPath are set in app section",
 				expectedResourcesPath:  filepath.Join(config.Apps[0].AppDirPath, "resources"),
 				expectedConfigFilePath: filepath.Join(config.Apps[0].AppDirPath, "config.yaml"),
 				appIndex:               0,
 			},
 			{
-				name:                   "resourcesPath and configPath present in .dapr directory under appDirPath",
-				disableCommonSection:   false,
+				name:                   "resourcesPaths and configPath present in .dapr directory under appDirPath",
 				expectedResourcesPath:  filepath.Join(config.Apps[1].AppDirPath, ".dapr", "resources"),
 				expectedConfigFilePath: filepath.Join(config.Apps[1].AppDirPath, ".dapr", "config.yaml"),
 				appIndex:               1,
 			},
 			{
-				name:                   "resourcesPath and configPath are resolved from common's section",
-				disableCommonSection:   false,
-				expectedResourcesPath:  config.Common.ResourcesPath, // from common section.
-				expectedConfigFilePath: config.Common.ConfigFile,    // from common section.
+				name:                   "resourcesPaths and configPath are resolved from common's section",
+				expectedResourcesPath:  config.Common.ResourcesPaths[0], // from common section.
+				expectedConfigFilePath: config.Common.ConfigFile,        // from common section.
 				appIndex:               2,
 			},
 		}
 
 		for _, tc := range testcases {
 			t.Run(tc.name, func(t *testing.T) {
-				if tc.disableCommonSection {
-					config.Common.ResourcesPath = ""
-					config.Common.ConfigFile = ""
-				}
-				// test precedence logic for resourcesPath and configPath.
-				config.resolveResourcesAndConfigFilePaths()
-				assert.Equal(t, tc.expectedResourcesPath, config.Apps[tc.appIndex].ResourcesPath)
+				assert.Equal(t, tc.expectedResourcesPath, config.Apps[tc.appIndex].ResourcesPaths[0])
 				assert.Equal(t, tc.expectedConfigFilePath, config.Apps[tc.appIndex].ConfigFile)
 			})
 		}
@@ -161,6 +159,11 @@ func TestRunConfigFile(t *testing.T) {
 		app2Data := getResourcesAndConfigFilePaths(t, config.Apps[1].DaprdInstallPath)
 		app2ResourcesPath := app2Data[0]
 		app2ConfigFilePath := app2Data[1]
+
+		// test precedence logic for resourcesPath and configPath.
+		err = config.resolveResourcesAndConfigFilePaths()
+		assert.NoError(t, err)
+
 		testcases := []struct {
 			name                   string
 			expectedResourcesPath  string
@@ -168,13 +171,13 @@ func TestRunConfigFile(t *testing.T) {
 			appIndex               int
 		}{
 			{
-				name:                   "resourcesPath and configPath are resolved from dapr's default installation path.",
+				name:                   "resourcesPaths and configPath are resolved from dapr's default installation path.",
 				expectedResourcesPath:  app1ResourcesPath,
 				expectedConfigFilePath: app1ConfigFilePath,
 				appIndex:               0,
 			},
 			{
-				name:                   "resourcesPath and configPath are resolved from dapr's custom installation path.",
+				name:                   "resourcesPaths and configPath are resolved from dapr's custom installation path.",
 				expectedResourcesPath:  app2ResourcesPath,
 				expectedConfigFilePath: app2ConfigFilePath,
 				appIndex:               1,
@@ -183,9 +186,7 @@ func TestRunConfigFile(t *testing.T) {
 
 		for _, tc := range testcases {
 			t.Run(tc.name, func(t *testing.T) {
-				// test precedence logic for resourcesPath and configPath.
-				config.resolveResourcesAndConfigFilePaths()
-				assert.Equal(t, tc.expectedResourcesPath, config.Apps[tc.appIndex].ResourcesPath)
+				assert.Equal(t, tc.expectedResourcesPath, config.Apps[tc.appIndex].ResourcesPaths[0])
 				assert.Equal(t, tc.expectedConfigFilePath, config.Apps[tc.appIndex].ConfigFile)
 			})
 		}
@@ -223,6 +224,89 @@ func TestRunConfigFile(t *testing.T) {
 			})
 		}
 	})
+
+	t.Run("test log destination for daprd and apps", func(t *testing.T) {
+		config := RunFileConfig{}
+		apps, err := config.GetApps(runFileForLogDestination)
+		assert.NoError(t, err)
+		assert.Equal(t, 6, len(apps))
+
+		assert.Equal(t, "file", apps[0].DaprdLogDestination.String())
+		assert.Equal(t, "fileAndConsole", apps[0].AppLogDestination.String())
+
+		assert.Equal(t, "fileAndConsole", apps[1].DaprdLogDestination.String())
+		assert.Equal(t, "fileAndConsole", apps[1].AppLogDestination.String())
+
+		assert.Equal(t, "file", apps[2].DaprdLogDestination.String())
+		assert.Equal(t, "file", apps[2].AppLogDestination.String())
+
+		assert.Equal(t, "console", apps[3].DaprdLogDestination.String())
+		assert.Equal(t, "console", apps[3].AppLogDestination.String())
+
+		assert.Equal(t, "console", apps[4].DaprdLogDestination.String())
+		assert.Equal(t, "file", apps[4].AppLogDestination.String())
+
+		assert.Equal(t, "file", apps[5].DaprdLogDestination.String())
+		assert.Equal(t, "console", apps[5].AppLogDestination.String())
+	})
+}
+
+func TestMultiResourcePathsResolution(t *testing.T) {
+	config := RunFileConfig{}
+
+	err := config.parseAppsConfig(runFileForMultiResourcePaths)
+	assert.NoError(t, err)
+	err = config.validateRunConfig(runFileForMultiResourcePaths)
+	assert.NoError(t, err)
+
+	// test precedence logic for multiple resources paths.
+	err = config.resolveResourcesAndConfigFilePaths()
+	assert.NoError(t, err)
+
+	testcases := []struct {
+		name                           string
+		expectedNoOfResources          int
+		expectedResourcesPathsContains string
+		appIndex                       int
+	}{
+		{
+			name:                           "resourcesPaths should have 2 paths",
+			expectedNoOfResources:          2,
+			expectedResourcesPathsContains: filepath.Join(config.Apps[0].AppDirPath, "resources"),
+			appIndex:                       0,
+		},
+		{
+			name:                           "resourcesPaths should have 2 paths",
+			expectedNoOfResources:          2,
+			expectedResourcesPathsContains: filepath.Join("backend", ".dapr", "resources"),
+			appIndex:                       0,
+		},
+		{
+			name:                           "resourcesPaths should have 2 path from common section",
+			expectedNoOfResources:          2,
+			expectedResourcesPathsContains: filepath.Join("app", "resources"),
+			appIndex:                       1,
+		},
+		{
+			name:                           "resourcesPaths should have 1 path from .dapr's folder",
+			expectedNoOfResources:          1,
+			expectedResourcesPathsContains: filepath.Join("backend", ".dapr", "resources"),
+			appIndex:                       2,
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.expectedNoOfResources, len(config.Apps[tc.appIndex].ResourcesPaths))
+			var rsrcFound bool
+			for _, resourcePath := range config.Apps[tc.appIndex].ResourcesPaths {
+				if rsrcFound = strings.Contains(resourcePath, tc.expectedResourcesPathsContains); rsrcFound {
+					break
+				}
+			}
+			assert.True(t, rsrcFound)
+		})
+	}
 }
 
 func TestGetBasePathFromAbsPath(t *testing.T) {
@@ -266,7 +350,7 @@ func TestGetBasePathFromAbsPath(t *testing.T) {
 func getResourcesAndConfigFilePaths(t *testing.T, daprInstallPath string) []string {
 	t.Helper()
 	result := make([]string, 2)
-	daprDirPath, err := standalone.GetDaprPath(daprInstallPath)
+	daprDirPath, err := standalone.GetDaprRuntimePath(daprInstallPath)
 	assert.NoError(t, err)
 	result[0] = standalone.GetDaprComponentsPath(daprDirPath)
 	result[1] = standalone.GetDaprConfigPath(daprDirPath)

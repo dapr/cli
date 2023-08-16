@@ -29,50 +29,61 @@ import (
 
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/dapr/pkg/components"
-	modes "github.com/dapr/dapr/pkg/config/modes"
 )
 
+type LogDestType string
+
 const (
+	Console             LogDestType = "console"
+	File                LogDestType = "file"
+	FileAndConsole      LogDestType = "fileAndConsole"
+	DefaultDaprdLogDest             = File
+	DefaultAppLogDest               = FileAndConsole
+
 	sentryDefaultAddress = "localhost:50001"
 	defaultStructTagKey  = "default"
 )
 
 // RunConfig represents the application configuration parameters.
 type RunConfig struct {
-	SharedRunConfig  `yaml:",inline"`
-	AppID            string   `env:"APP_ID" arg:"app-id" yaml:"appID"`
-	AppPort          int      `env:"APP_PORT" arg:"app-port" yaml:"appPort" default:"-1"`
-	HTTPPort         int      `env:"DAPR_HTTP_PORT" arg:"dapr-http-port" yaml:"daprHTTPPort" default:"-1"`
-	GRPCPort         int      `env:"DAPR_GRPC_PORT" arg:"dapr-grpc-port" yaml:"daprGRPCPort" default:"-1"`
-	ProfilePort      int      `arg:"profile-port" yaml:"profilePort" default:"-1"`
-	Command          []string `yaml:"command"`
-	MetricsPort      int      `env:"DAPR_METRICS_PORT" arg:"metrics-port" yaml:"metricsPort" default:"-1"`
-	UnixDomainSocket string   `arg:"unix-domain-socket" yaml:"unixDomainSocket"`
-	InternalGRPCPort int      `arg:"dapr-internal-grpc-port" yaml:"daprInternalGRPCPort" default:"-1"`
+	SharedRunConfig   `yaml:",inline"`
+	AppID             string   `env:"APP_ID" arg:"app-id" yaml:"appID"`
+	AppChannelAddress string   `env:"APP_CHANNEL_ADDRESS" arg:"app-channel-address" ifneq:"127.0.0.1" yaml:"appChannelAddress"`
+	AppPort           int      `env:"APP_PORT" arg:"app-port" yaml:"appPort" default:"-1"`
+	HTTPPort          int      `env:"DAPR_HTTP_PORT" arg:"dapr-http-port" yaml:"daprHTTPPort" default:"-1"`
+	GRPCPort          int      `env:"DAPR_GRPC_PORT" arg:"dapr-grpc-port" yaml:"daprGRPCPort" default:"-1"`
+	ProfilePort       int      `arg:"profile-port" yaml:"profilePort" default:"-1"`
+	Command           []string `yaml:"command"`
+	MetricsPort       int      `env:"DAPR_METRICS_PORT" arg:"metrics-port" yaml:"metricsPort" default:"-1"`
+	UnixDomainSocket  string   `arg:"unix-domain-socket" yaml:"unixDomainSocket"`
+	InternalGRPCPort  int      `arg:"dapr-internal-grpc-port" yaml:"daprInternalGRPCPort" default:"-1"`
 }
 
 // SharedRunConfig represents the application configuration parameters, which can be shared across many apps.
 type SharedRunConfig struct {
-	ConfigFile         string            `arg:"config" yaml:"configFilePath"`
-	AppProtocol        string            `arg:"app-protocol" yaml:"appProtocol" default:"http"`
-	APIListenAddresses string            `arg:"dapr-listen-addresses" yaml:"apiListenAddresses"`
-	EnableProfiling    bool              `arg:"enable-profiling" yaml:"enableProfiling"`
-	LogLevel           string            `arg:"log-level" yaml:"logLevel"`
-	MaxConcurrency     int               `arg:"app-max-concurrency" yaml:"appMaxConcurrency" default:"-1"`
-	PlacementHostAddr  string            `arg:"placement-host-address" yaml:"placementHostAddress"`
-	ComponentsPath     string            `arg:"components-path"`
-	ResourcesPath      string            `arg:"resources-path" yaml:"resourcesPath"`
-	AppSSL             bool              `arg:"app-ssl" yaml:"appSSL"`
-	MaxRequestBodySize int               `arg:"dapr-http-max-request-size" yaml:"daprHTTPMaxRequestSize" default:"-1"`
-	HTTPReadBufferSize int               `arg:"dapr-http-read-buffer-size" yaml:"daprHTTPReadBufferSize" default:"-1"`
-	EnableAppHealth    bool              `arg:"enable-app-health-check" yaml:"enableAppHealthCheck"`
-	AppHealthPath      string            `arg:"app-health-check-path" yaml:"appHealthCheckPath"`
-	AppHealthInterval  int               `arg:"app-health-probe-interval" ifneq:"0" yaml:"appHealthProbeInterval"`
-	AppHealthTimeout   int               `arg:"app-health-probe-timeout" ifneq:"0" yaml:"appHealthProbeTimeout"`
-	AppHealthThreshold int               `arg:"app-health-threshold" ifneq:"0" yaml:"appHealthThreshold"`
-	EnableAPILogging   bool              `arg:"enable-api-logging" yaml:"enableApiLogging"`
-	DaprdInstallPath   string            `yaml:"daprPath"`
-	Env                map[string]string `yaml:"env"`
+	ConfigFile          string            `arg:"config" yaml:"configFilePath"`
+	AppProtocol         string            `arg:"app-protocol" yaml:"appProtocol" default:"http"`
+	APIListenAddresses  string            `arg:"dapr-listen-addresses" yaml:"apiListenAddresses"`
+	EnableProfiling     bool              `arg:"enable-profiling" yaml:"enableProfiling"`
+	LogLevel            string            `arg:"log-level" yaml:"logLevel"`
+	MaxConcurrency      int               `arg:"app-max-concurrency" yaml:"appMaxConcurrency" default:"-1"`
+	PlacementHostAddr   string            `arg:"placement-host-address" yaml:"placementHostAddress"`
+	ComponentsPath      string            `arg:"components-path"` // Deprecated in run template file: use ResourcesPaths instead.
+	ResourcesPath       string            `yaml:"resourcesPath"`  // Deprecated in run template file: use ResourcesPaths instead.
+	ResourcesPaths      []string          `arg:"resources-path" yaml:"resourcesPaths"`
+	AppSSL              bool              `arg:"app-ssl" yaml:"appSSL"`
+	MaxRequestBodySize  int               `arg:"dapr-http-max-request-size" yaml:"daprHTTPMaxRequestSize" default:"-1"`
+	HTTPReadBufferSize  int               `arg:"dapr-http-read-buffer-size" yaml:"daprHTTPReadBufferSize" default:"-1"`
+	EnableAppHealth     bool              `arg:"enable-app-health-check" yaml:"enableAppHealthCheck"`
+	AppHealthPath       string            `arg:"app-health-check-path" yaml:"appHealthCheckPath"`
+	AppHealthInterval   int               `arg:"app-health-probe-interval" ifneq:"0" yaml:"appHealthProbeInterval"`
+	AppHealthTimeout    int               `arg:"app-health-probe-timeout" ifneq:"0" yaml:"appHealthProbeTimeout"`
+	AppHealthThreshold  int               `arg:"app-health-threshold" ifneq:"0" yaml:"appHealthThreshold"`
+	EnableAPILogging    bool              `arg:"enable-api-logging" yaml:"enableApiLogging"`
+	DaprdInstallPath    string            `yaml:"runtimePath"`
+	Env                 map[string]string `yaml:"env"`
+	DaprdLogDestination LogDestType       `yaml:"daprdLogDestination"`
+	AppLogDestination   LogDestType       `yaml:"appLogDestination"`
 }
 
 func (meta *DaprMeta) newAppID() string {
@@ -84,17 +95,18 @@ func (meta *DaprMeta) newAppID() string {
 	}
 }
 
-func (config *RunConfig) validateResourcesPath() error {
-	dirPath := config.ResourcesPath
-	if dirPath == "" {
-		dirPath = config.ComponentsPath
+func (config *RunConfig) validateResourcesPaths() error {
+	dirPath := config.ResourcesPaths
+	if len(dirPath) == 0 {
+		dirPath = []string{config.ComponentsPath}
 	}
-	_, err := os.Stat(dirPath)
-	if err != nil {
-		return fmt.Errorf("error validating resources path %q : %w", dirPath, err)
+	for _, path := range dirPath {
+		if _, err := os.Stat(path); err != nil {
+			return fmt.Errorf("error validating resources path %q : %w", dirPath, err)
+		}
 	}
-	componentsLoader := components.NewStandaloneComponents(modes.StandaloneConfig{ComponentsPath: dirPath})
-	_, err = componentsLoader.LoadComponents()
+	componentsLoader := components.NewLocalComponents(dirPath...)
+	_, err := componentsLoader.LoadComponents()
 	if err != nil {
 		return fmt.Errorf("error validating components in resources path %q : %w", dirPath, err)
 	}
@@ -143,12 +155,12 @@ func (config *RunConfig) Validate() error {
 		config.AppID = meta.newAppID()
 	}
 
-	err = config.validateResourcesPath()
+	err = config.validateResourcesPaths()
 	if err != nil {
 		return err
 	}
 
-	if config.ResourcesPath != "" {
+	if len(config.ResourcesPaths) > 0 {
 		config.ComponentsPath = ""
 	}
 
@@ -287,10 +299,16 @@ func getArgsFromSchema(schema reflect.Value, args []string) []string {
 
 		ifneq, hasIfneq := typeField.Tag.Lookup("ifneq")
 
-		switch valueField.(type) {
+		switch vType := valueField.(type) {
 		case bool:
 			if valueField == true {
 				args = append(args, key)
+			}
+		case []string:
+			if len(vType) > 0 {
+				for _, val := range vType {
+					args = append(args, key, val)
+				}
 			}
 		default:
 			value := fmt.Sprintf("%v", reflect.ValueOf(valueField))
@@ -331,6 +349,8 @@ func (config *RunConfig) setDefaultFromSchemaRecursive(schema reflect.Value) {
 
 func (config *RunConfig) getEnv() []string {
 	env := []string{}
+
+	// Handle values from config that have an "env" tag.
 	schema := reflect.ValueOf(*config)
 	for i := 0; i < schema.NumField(); i++ {
 		valueField := schema.Field(i).Interface()
@@ -347,10 +367,46 @@ func (config *RunConfig) getEnv() []string {
 		value := fmt.Sprintf("%v", reflect.ValueOf(valueField))
 		env = append(env, fmt.Sprintf("%s=%v", key, value))
 	}
+
+	// Handle APP_PROTOCOL separately since that requires some additional processing.
+	appProtocol := config.getAppProtocol()
+	if appProtocol != "" {
+		env = append(env, "APP_PROTOCOL="+appProtocol)
+	}
+
+	// Add user-defined env vars.
 	for k, v := range config.Env {
 		env = append(env, fmt.Sprintf("%s=%v", k, v))
 	}
+
 	return env
+}
+
+func (config *RunConfig) getAppProtocol() string {
+	appProtocol := strings.ToLower(config.AppProtocol)
+
+	switch appProtocol {
+	case string("grpcs"), string("https"), string("h2c"):
+		return appProtocol
+	case string("http"):
+		// For backwards compatibility, when protocol is HTTP and --app-ssl is set, use "https".
+		if config.AppSSL {
+			return "https"
+		} else {
+			return "http"
+		}
+	case string("grpc"):
+		// For backwards compatibility, when protocol is GRPC and --app-ssl is set, use "grpcs".
+		if config.AppSSL {
+			return string("grpcs")
+		} else {
+			return string("grpc")
+		}
+	case "":
+		return string("http")
+	default:
+		return ""
+	}
 }
 
 func GetDaprCommand(config *RunConfig) (*exec.Cmd, error) {
@@ -404,4 +460,16 @@ func GetAppCommand(config *RunConfig) *exec.Cmd {
 	cmd.Env = append(cmd.Env, config.getEnv()...)
 
 	return cmd
+}
+
+func (l LogDestType) String() string {
+	return string(l)
+}
+
+func (l LogDestType) IsValid() error {
+	switch l {
+	case Console, File, FileAndConsole:
+		return nil
+	}
+	return fmt.Errorf("invalid log destination type: %s", l)
 }

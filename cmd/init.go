@@ -14,6 +14,7 @@ limitations under the License.
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -51,13 +52,17 @@ var InitCmd = &cobra.Command{
 	PreRun: func(cmd *cobra.Command, args []string) {
 		viper.BindPFlag("network", cmd.Flags().Lookup("network"))
 		viper.BindPFlag("image-registry", cmd.Flags().Lookup("image-registry"))
+
+		runtimeVersion = getConfigurationValue("runtime-version", cmd)
+		dashboardVersion = getConfigurationValue("dashboard-version", cmd)
+		containerRuntime = getConfigurationValue("container-runtime", cmd)
 	},
 	Example: `
 # Initialize Dapr in self-hosted mode
 dapr init
 
 # Initialize Dapr in self-hosted mode with a provided docker image registry. Image looked up as <registry-url>/<image>.
-# Check docs or README for more information on the format of the image path that is required. 
+# Check docs or README for more information on the format of the image path that is required.
 dapr init --image-registry <registry-url>
 
 # Initialize Dapr in Kubernetes
@@ -81,8 +86,9 @@ dapr init --from-dir <path-to-directory>
 # Initialize dapr with a particular image variant. Allowed values: "mariner"
 dapr init --image-variant <variant>
 
-# Initialize Dapr to non-default install directory (default is $HOME/.dapr)
-dapr init --dapr-path <path-to-install-directory>
+# Initialize Dapr inside a ".dapr" directory present in a non-default location
+# Folder .dapr will be created in folder pointed to by <path-to-install-directory>
+dapr init --runtime-path <path-to-install-directory>
 
 # See more at: https://docs.dapr.io/getting-started/
 `,
@@ -95,8 +101,8 @@ dapr init --dapr-path <path-to-install-directory>
 			imageRegistryURI := ""
 			var err error
 
-			if len(strings.TrimSpace(daprPath)) != 0 {
-				print.FailureStatusEvent(os.Stderr, "--dapr-path is only valid for self-hosted mode")
+			if len(strings.TrimSpace(daprRuntimePath)) != 0 {
+				print.FailureStatusEvent(os.Stderr, "--runtime-path is only valid for self-hosted mode")
 				os.Exit(1)
 			}
 
@@ -110,16 +116,25 @@ dapr init --dapr-path <path-to-install-directory>
 				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)
 			}
+			if err = verifyCustomCertFlags(cmd); err != nil {
+				print.FailureStatusEvent(os.Stderr, err.Error())
+				os.Exit(1)
+			}
+
 			config := kubernetes.InitConfiguration{
-				Namespace:        initNamespace,
-				Version:          runtimeVersion,
-				EnableMTLS:       enableMTLS,
-				EnableHA:         enableHA,
-				Args:             values,
-				Wait:             wait,
-				Timeout:          timeout,
-				ImageRegistryURI: imageRegistryURI,
-				ImageVariant:     imageVariant,
+				Namespace:                 initNamespace,
+				Version:                   runtimeVersion,
+				DashboardVersion:          dashboardVersion,
+				EnableMTLS:                enableMTLS,
+				EnableHA:                  enableHA,
+				Args:                      values,
+				Wait:                      wait,
+				Timeout:                   timeout,
+				ImageRegistryURI:          imageRegistryURI,
+				ImageVariant:              imageVariant,
+				RootCertificateFilePath:   strings.TrimSpace(caRootCertificateFile),
+				IssuerCertificateFilePath: strings.TrimSpace(issuerPublicCertificateFile),
+				IssuerPrivateKeyFilePath:  strings.TrimSpace(issuerPrivateKeyFile),
 			}
 			err = kubernetes.Init(config)
 			if err != nil {
@@ -150,7 +165,7 @@ dapr init --dapr-path <path-to-install-directory>
 				print.FailureStatusEvent(os.Stdout, "Invalid container runtime. Supported values are docker and podman.")
 				os.Exit(1)
 			}
-			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode, imageRegistryURI, fromDir, containerRuntime, imageVariant, daprPath)
+			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode, imageRegistryURI, fromDir, containerRuntime, imageVariant, daprRuntimePath)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)
@@ -160,30 +175,38 @@ dapr init --dapr-path <path-to-install-directory>
 	},
 }
 
+func verifyCustomCertFlags(cmd *cobra.Command) error {
+	ca := cmd.Flags().Lookup("ca-root-certificate")
+	issuerKey := cmd.Flags().Lookup("issuer-private-key")
+	issuerCert := cmd.Flags().Lookup("issuer-public-certificate")
+
+	if ca.Changed && len(strings.TrimSpace(ca.Value.String())) == 0 {
+		return errors.New("non empty value of --ca-root-certificate must be provided")
+	}
+	if issuerKey.Changed && len(strings.TrimSpace(issuerKey.Value.String())) == 0 {
+		return errors.New("non empty value of --issuer-private-key must be provided")
+	}
+	if issuerCert.Changed && len(strings.TrimSpace(issuerCert.Value.String())) == 0 {
+		return errors.New("non empty value of --issuer-public-certificate must be provided")
+	}
+	return nil
+}
+
 func warnForPrivateRegFeat() {
 	print.WarningStatusEvent(os.Stdout, "Flag --image-registry is a preview feature and is subject to change.")
 }
 
 func init() {
 	defaultRuntimeVersion := "latest"
-	viper.BindEnv("runtime_version_override", "DAPR_RUNTIME_VERSION")
-	runtimeVersionEnv := viper.GetString("runtime_version_override")
-	if runtimeVersionEnv != "" {
-		defaultRuntimeVersion = runtimeVersionEnv
-	}
 	defaultDashboardVersion := "latest"
-	viper.BindEnv("dashboard_version_override", "DAPR_DASHBOARD_VERSION")
-	dashboardVersionEnv := viper.GetString("dashboard_version_override")
-	if dashboardVersionEnv != "" {
-		defaultDashboardVersion = dashboardVersionEnv
-	}
+	defaultContainerRuntime := string(utils.DOCKER)
 
 	InitCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Deploy Dapr to a Kubernetes cluster")
 	InitCmd.Flags().BoolVarP(&wait, "wait", "", false, "Wait for Kubernetes initialization to complete")
 	InitCmd.Flags().UintVarP(&timeout, "timeout", "", 300, "The wait timeout for the Kubernetes installation")
 	InitCmd.Flags().BoolVarP(&slimMode, "slim", "s", false, "Exclude placement service, Redis and Zipkin containers from self-hosted installation")
 	InitCmd.Flags().StringVarP(&runtimeVersion, "runtime-version", "", defaultRuntimeVersion, "The version of the Dapr runtime to install, for example: 1.0.0")
-	InitCmd.Flags().StringVarP(&dashboardVersion, "dashboard-version", "", defaultDashboardVersion, "The version of the Dapr dashboard to install, for example: 1.0.0")
+	InitCmd.Flags().StringVarP(&dashboardVersion, "dashboard-version", "", defaultDashboardVersion, "The version of the Dapr dashboard to install, for example: 0.13.0")
 	InitCmd.Flags().StringVarP(&initNamespace, "namespace", "n", "dapr-system", "The Kubernetes namespace to install Dapr in")
 	InitCmd.Flags().BoolVarP(&enableMTLS, "enable-mtls", "", true, "Enable mTLS in your cluster")
 	InitCmd.Flags().BoolVarP(&enableHA, "enable-ha", "", false, "Enable high availability (HA) mode")
@@ -193,7 +216,23 @@ func init() {
 	InitCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	InitCmd.Flags().StringArrayVar(&values, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
 	InitCmd.Flags().String("image-registry", "", "Custom/private docker image repository URL")
-	InitCmd.Flags().StringVarP(&containerRuntime, "container-runtime", "", "docker", "The container runtime to use. Supported values are docker (default) and podman")
+	InitCmd.Flags().StringVarP(&containerRuntime, "container-runtime", "", defaultContainerRuntime, "The container runtime to use. Supported values are docker (default) and podman")
+	InitCmd.Flags().StringVarP(&caRootCertificateFile, "ca-root-certificate", "", "", "The root certificate file")
+	InitCmd.Flags().StringVarP(&issuerPrivateKeyFile, "issuer-private-key", "", "", "The issuer certificate private key")
+	InitCmd.Flags().StringVarP(&issuerPublicCertificateFile, "issuer-public-certificate", "", "", "The issuer certificate")
+	InitCmd.MarkFlagsRequiredTogether("ca-root-certificate", "issuer-private-key", "issuer-public-certificate")
 
 	RootCmd.AddCommand(InitCmd)
+}
+
+// getConfigurationValue returns the value for a given configuration key.
+// The value is retrieved from the following sources, in order:
+// Default value
+// Environment variable (respecting registered prefixes)
+// Command line flag
+// Value is returned as a string.
+func getConfigurationValue(n string, cmd *cobra.Command) string {
+	viper.BindEnv(n)
+	viper.BindPFlag(n, cmd.Flags().Lookup(n))
+	return viper.GetString(n)
 }

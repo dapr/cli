@@ -50,12 +50,11 @@ jobs:
     name: E2E tests for K8s (KinD)
     runs-on: ubuntu-latest
     env:
-      GOVER: 1.19.3
-      DAPR_RUNTIME_PINNED_VERSION: 1.9.4
-      DAPR_DASHBOARD_PINNED_VERSION: 0.11.0
-      DAPR_RUNTIME_LATEST_VERSION:
-      DAPR_DASHBOARD_LATEST_VERSION:
-      DAPR_TGZ: dapr-1.9.4.tgz
+      DAPR_RUNTIME_PINNED_VERSION: 1.11.0
+      DAPR_DASHBOARD_PINNED_VERSION: 0.13.0
+      DAPR_RUNTIME_LATEST_STABLE_VERSION:
+      DAPR_DASHBOARD_LATEST_STABLE_VERSION:
+      DAPR_TGZ: dapr-1.11.0.tgz
     strategy:
       fail-fast: false # Keep running if one leg fails.
       matrix:
@@ -80,14 +79,24 @@ jobs:
           kind-version: v0.16.0
           kind-image-sha: sha256:9be91e9e9cdf116809841fc77ebdb8845443c4c72fe5218f3ae9eb57fdb4bace
     steps:
-    - name: Set up Go ${{ env.GOVER }}
-      uses: actions/setup-go@v2
-      with:
-        go-version: ${{ env.GOVER }}
     - name: Check out code onto GOPATH
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         path: ./src/github.com/dapr/cli
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      id: setup-go
+      with:
+        go-version-file: './src/github.com/dapr/cli/go.mod'
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ matrix.k8s-version }}-${{ matrix.kind-version }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ matrix.k8s-version }}-${{ matrix.kind-version }}-go-${{ steps.setup-go.outputs.go-version }}-
 
     - name: Configure KinD
       # Generate a KinD configuration file that uses:
@@ -115,7 +124,7 @@ jobs:
         # Log the generated kind.yaml for easy reference.
         cat kind.yaml
     - name: Create KinD Cluster
-      uses: helm/kind-action@v1.0.0
+      uses: helm/kind-action@v1.3.0
       with:
         config: kind.yaml
         cluster_name: kind
@@ -131,37 +140,39 @@ jobs:
     - name: Free up some diskspace
       run: |
         docker image prune -a -f
-    - name: Determine latest stable Dapr Runtime version
+    - name: Determine latest Dapr Runtime version including Pre-releases
+      if: github.base_ref == 'master'
       run: |
-        export RUNTIME_VERSION=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/dapr/dapr/releases/latest | grep tag_name | awk -F':' '{print $2}' | tr -d '", ' | sed '/-/! s/$/_/' | sort -V | sed 's/_$//' | tr -d 'v' | tail -1)
+        export RUNTIME_VERSION=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/dapr/dapr/releases | grep tag_name | awk -F':' '{print $2}' | tr -d '", ' | sed '/-/! s/$/_/' | sort -V | sed 's/_$//' | tr -d 'v' | tail -1)
         if [[ -z "$RUNTIME_VERSION" ]]; then
-          echo "Could not fetch the latest Dapr Runtime version. Using default version $DAPR_RUNTIME_PINNED_VERSION"
-          echo "DAPR_RUNTIME_LATEST_VERSION=$DAPR_RUNTIME_PINNED_VERSION" >> $GITHUB_ENV
+          echo "Could not fetch the latest Dapr Runtime version. Using pinned version $DAPR_RUNTIME_PINNED_VERSION"
         else
           echo "Found $RUNTIME_VERSION"
-          echo "DAPR_RUNTIME_LATEST_VERSION=$RUNTIME_VERSION" >> $GITHUB_ENV
-          base_ref=${{ github.base_ref }}
-          echo "Branch $base_ref"
-          if [[ $base_ref = 'master' ]]; then
-            echo "DAPR_RUNTIME_PINNED_VERSION=$RUNTIME_VERSION" >> $GITHUB_ENV
-          fi
+          echo "DAPR_RUNTIME_PINNED_VERSION=$RUNTIME_VERSION" >> $GITHUB_ENV
         fi
+      shell: bash
+    - name: Determine latest Dapr Dashboard version including Pre-releases
+      if: github.base_ref == 'master'
+      run: |
+        export DASHBOARD_VERSION=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/dapr/dashboard/releases | grep tag_name | awk -F':' '{print $2}' | tr -d '", ' | sed '/-/! s/$/_/' | sort -V | sed 's/_$//' | tr -d 'v' | tail -1)
+        if [[ -z "$DASHBOARD_VERSION" ]]; then
+          echo "Could not fetch the latest Dapr Dashboard version. Using pinned version $DAPR_DASHBOARD_PINNED_VERSION"
+        else
+          echo "Found $DASHBOARD_VERSION"
+          echo "DAPR_DASHBOARD_PINNED_VERSION=$DASHBOARD_VERSION" >> $GITHUB_ENV
+        fi
+      shell: bash
+    - name: Determine latest stable Dapr Runtime version
+      run: |
+        export LATEST_STABLE_RUNTIME_VERSION=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/dapr/dapr/releases/latest | grep tag_name | awk -F':' '{print $2}' | tr -d '", ' | sed '/-/! s/$/_/' | sort -V | sed 's/_$//' | tr -d 'v' | tail -1)
+        echo "Found $LATEST_STABLE_RUNTIME_VERSION"
+        echo "DAPR_RUNTIME_LATEST_STABLE_VERSION=$LATEST_STABLE_RUNTIME_VERSION" >> $GITHUB_ENV
       shell: bash
     - name: Determine latest stable Dapr Dashboard version
       run: |
-        export DASHBOARD_VERSION=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/dapr/dashboard/releases/latest | grep tag_name | awk -F':' '{print $2}' | tr -d '", ' | sed '/-/! s/$/_/' | sort -V | sed 's/_$//' | tr -d 'v' | tail -1)
-        if [[ -z "$DASHBOARD_VERSION" ]]; then
-          echo "Could not fetch the latest Dapr Dashboard version. Using default version $DAPR_DASHBOARD_PINNED_VERSION"
-          echo "DAPR_DASHBOARD_LATEST_VERSION=$DAPR_DASHBOARD_PINNED_VERSION" >> $GITHUB_ENV
-        else
-          echo "Found $DASHBOARD_VERSION"
-          echo "DAPR_DASHBOARD_LATEST_VERSION=$DASHBOARD_VERSION" >> $GITHUB_ENV
-          base_ref=${{ github.base_ref }}
-          echo "Branch $base_ref"
-          if [[ $base_ref = 'master' ]]; then
-            echo "DAPR_DASHBOARD_PINNED_VERSION=$DASHBOARD_VERSION" >> $GITHUB_ENV
-          fi
-        fi
+        export LATEST_STABLE_DASHBOARD_VERSION=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/dapr/dashboard/releases/latest | grep tag_name | awk -F':' '{print $2}' | tr -d '", ' | sed '/-/! s/$/_/' | sort -V | sed 's/_$//' | tr -d 'v' | tail -1)
+        echo "Found $LATEST_STABLE_DASHBOARD_VERSION"
+        echo "DAPR_DASHBOARD_LATEST_STABLE_VERSION=$LATEST_STABLE_DASHBOARD_VERSION" >> $GITHUB_ENV
       shell: bash
     - name: Run tests with GHCR
       # runs every 6hrs

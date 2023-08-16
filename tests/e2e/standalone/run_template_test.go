@@ -34,11 +34,12 @@ import (
 )
 
 type AppTestOutput struct {
-	appID              string
-	appLogContents     []string
-	daprdLogContent    []string
-	baseLogDirPath     string
-	appLogDoesNotExist bool
+	appID                    string
+	appLogContents           []string
+	daprdLogContent          []string
+	baseLogDirPath           string
+	appLogDoesNotExist       bool
+	daprdLogFileDoesNotExist bool
 }
 
 func TestRunWithTemplateFile(t *testing.T) {
@@ -70,13 +71,13 @@ func TestRunWithTemplateFile(t *testing.T) {
 		require.NoError(t, err, "run failed")
 		// Deterministic output for template file, so we can assert line by line
 		lines := strings.Split(output, "\n")
-		assert.GreaterOrEqual(t, len(lines), 4, "expected at least 4 lines in output of starting two apps")
-		assert.Contains(t, lines[1], "Started Dapr with app id \"processor\". HTTP Port: 3510.")
-		assert.Contains(t, lines[2], "Writing log files to directory")
-		assert.Contains(t, lines[2], "tests/apps/processor/.dapr/logs")
-		assert.Contains(t, lines[4], "Started Dapr with app id \"emit-metrics\". HTTP Port: 3511.")
-		assert.Contains(t, lines[5], "Writing log files to directory")
-		assert.Contains(t, lines[5], "tests/apps/emit-metrics/.dapr/logs")
+		assert.GreaterOrEqual(t, len(lines), 5, "expected at least 5 lines in output of starting two apps")
+		assert.Contains(t, lines[2], "Started Dapr with app id \"processor\". HTTP Port: 3510.")
+		assert.Contains(t, lines[3], "Writing log files to directory")
+		assert.Contains(t, lines[3], "tests/apps/processor/.dapr/logs")
+		assert.Contains(t, lines[5], "Started Dapr with app id \"emit-metrics\". HTTP Port: 3511.")
+		assert.Contains(t, lines[6], "Writing log files to directory")
+		assert.Contains(t, lines[6], "tests/apps/emit-metrics/.dapr/logs")
 		assert.Contains(t, output, "Received signal to stop Dapr and app processes. Shutting down Dapr and app processes.")
 		appTestOutput := AppTestOutput{
 			appID:          "processor",
@@ -120,21 +121,22 @@ func TestRunWithTemplateFile(t *testing.T) {
 		require.NoError(t, err, "run failed")
 		// Deterministic output for template file, so we can assert line by line
 		lines := strings.Split(output, "\n")
-		assert.GreaterOrEqual(t, len(lines), 6, "expected at least 6 lines in output of starting two apps")
-		assert.Contains(t, lines[0], "Validating config and starting app \"processor\"")
-		assert.Contains(t, lines[1], "Started Dapr with app id \"processor\". HTTP Port: 3510.")
-		assert.Contains(t, lines[2], "Writing log files to directory")
-		assert.Contains(t, lines[2], "tests/apps/processor/.dapr/logs")
-		assert.Contains(t, lines[3], "Validating config and starting app \"emit-metrics\"")
-		assert.Contains(t, lines[4], "Started Dapr with app id \"emit-metrics\". HTTP Port: 3511.")
-		assert.Contains(t, lines[5], "Writing log files to directory")
-		assert.Contains(t, lines[5], "tests/apps/emit-metrics/.dapr/logs")
+		assert.GreaterOrEqual(t, len(lines), 7, "expected at least 7 lines in output of starting two apps")
+		assert.Contains(t, lines[0], "This is a preview feature and subject to change in future releases.")
+		assert.Contains(t, lines[1], "Validating config and starting app \"processor\"")
+		assert.Contains(t, lines[2], "Started Dapr with app id \"processor\". HTTP Port: 3510.")
+		assert.Contains(t, lines[3], "Writing log files to directory")
+		assert.Contains(t, lines[3], "tests/apps/processor/.dapr/logs")
+		assert.Contains(t, lines[4], "Validating config and starting app \"emit-metrics\"")
+		assert.Contains(t, lines[5], "Started Dapr with app id \"emit-metrics\". HTTP Port: 3511.")
+		assert.Contains(t, lines[6], "Writing log files to directory")
+		assert.Contains(t, lines[6], "tests/apps/emit-metrics/.dapr/logs")
 		assert.Contains(t, output, "Received signal to stop Dapr and app processes. Shutting down Dapr and app processes.")
 		appTestOutput := AppTestOutput{
 			appID:          "processor",
 			baseLogDirPath: "../../apps/processor/.dapr/logs",
 			appLogContents: []string{
-				"Received metrics:  {3}",
+				"Received metrics:  {1}",
 			},
 			daprdLogContent: []string{
 				"http server is running on port 3510",
@@ -148,7 +150,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 			appLogContents: []string{
 				"DAPR_HTTP_PORT set to 3511",
 				"DAPR_HOST_ADD set to localhost",
-				"Metrics with ID 3 sent",
+				"Metrics with ID 1 sent",
 			},
 			daprdLogContent: []string{
 				"termination signal received: shutting down",
@@ -177,13 +179,13 @@ func TestRunWithTemplateFile(t *testing.T) {
 		require.NoError(t, err, "run failed")
 		// Deterministic output for template file, so we can assert line by line
 		lines := strings.Split(output, "\n")
-		assert.GreaterOrEqual(t, len(lines), 6, "expected at least 6 lines in output of starting two apps")
-		assert.Contains(t, lines[1], "Started Dapr with app id \"processor\". HTTP Port: 3510.")
-		assert.Contains(t, lines[2], "Writing log files to directory")
-		assert.Contains(t, lines[2], "tests/apps/processor/.dapr/logs")
-		assert.Contains(t, lines[4], "Started Dapr with app id \"emit-metrics\". HTTP Port: 3511.")
-		assert.Contains(t, lines[5], "Writing log files to directory")
-		assert.Contains(t, lines[5], "tests/apps/emit-metrics/.dapr/logs")
+		assert.GreaterOrEqual(t, len(lines), 7, "expected at least 7 lines in output of starting two apps")
+		assert.Contains(t, lines[2], "Started Dapr with app id \"processor\". HTTP Port: 3510.")
+		assert.Contains(t, lines[3], "Writing log files to directory")
+		assert.Contains(t, lines[3], "tests/apps/processor/.dapr/logs")
+		assert.Contains(t, lines[5], "Started Dapr with app id \"emit-metrics\". HTTP Port: 3511.")
+		assert.Contains(t, lines[6], "Writing log files to directory")
+		assert.Contains(t, lines[6], "tests/apps/emit-metrics/.dapr/logs")
 		assert.Contains(t, output, "Received signal to stop Dapr and app processes. Shutting down Dapr and app processes.")
 		appTestOutput := AppTestOutput{
 			appID:          "processor",
@@ -228,14 +230,14 @@ func TestRunWithTemplateFile(t *testing.T) {
 		require.NoError(t, err, "run failed")
 		// Deterministic output for template file, so we can assert line by line
 		lines := strings.Split(output, "\n")
-		assert.GreaterOrEqual(t, len(lines), 7, "expected at least 7 lines in output of starting two apps with one app not having a command")
-		assert.Contains(t, lines[1], "Started Dapr with app id \"processor\". HTTP Port: 3510.")
-		assert.Contains(t, lines[2], "Writing log files to directory")
-		assert.Contains(t, lines[2], "tests/apps/processor/.dapr/logs")
-		assert.Contains(t, lines[4], "No application command found for app \"emit-metrics\" present in")
-		assert.Contains(t, lines[5], "Started Dapr with app id \"emit-metrics\". HTTP Port: 3511.")
-		assert.Contains(t, lines[6], "Writing log files to directory")
-		assert.Contains(t, lines[6], "tests/apps/emit-metrics/.dapr/logs")
+		assert.GreaterOrEqual(t, len(lines), 8, "expected at least 8 lines in output of starting two apps with one app not having a command")
+		assert.Contains(t, lines[2], "Started Dapr with app id \"processor\". HTTP Port: 3510.")
+		assert.Contains(t, lines[3], "Writing log files to directory")
+		assert.Contains(t, lines[3], "tests/apps/processor/.dapr/logs")
+		assert.Contains(t, lines[5], "No application command found for app \"emit-metrics\" present in")
+		assert.Contains(t, lines[6], "Started Dapr with app id \"emit-metrics\". HTTP Port: 3511.")
+		assert.Contains(t, lines[7], "Writing log files to directory")
+		assert.Contains(t, lines[7], "tests/apps/emit-metrics/.dapr/logs")
 		assert.Contains(t, output, "Received signal to stop Dapr and app processes. Shutting down Dapr and app processes.")
 		appTestOutput := AppTestOutput{
 			appID:          "processor",
@@ -280,11 +282,11 @@ func TestRunWithTemplateFile(t *testing.T) {
 		require.Error(t, err, "run must fail")
 		// Deterministic output for template file, so we can assert line by line
 		lines := strings.Split(output, "\n")
-		assert.GreaterOrEqual(t, len(lines), 5, "expected at least 5 lines in output of starting two apps with last app having an empty command")
-		assert.Contains(t, lines[1], "Started Dapr with app id \"processor\". HTTP Port: 3510.")
-		assert.Contains(t, lines[2], "Writing log files to directory")
-		assert.Contains(t, lines[2], "tests/apps/processor/.dapr/logs")
-		assert.Contains(t, lines[4], "Error starting Dapr and app (\"emit-metrics\"): exec: no command")
+		assert.GreaterOrEqual(t, len(lines), 6, "expected at least 6 lines in output of starting two apps with last app having an empty command")
+		assert.Contains(t, lines[2], "Started Dapr with app id \"processor\". HTTP Port: 3510.")
+		assert.Contains(t, lines[3], "Writing log files to directory")
+		assert.Contains(t, lines[3], "tests/apps/processor/.dapr/logs")
+		assert.Contains(t, lines[5], "Error starting Dapr and app (\"emit-metrics\"): exec: no command")
 		appTestOutput := AppTestOutput{
 			appID:          "processor",
 			baseLogDirPath: "../../apps/processor/.dapr/logs",
@@ -310,6 +312,64 @@ func TestRunWithTemplateFile(t *testing.T) {
 		}
 		assertLogOutputForRunTemplateExec(t, appTestOutput)
 	})
+
+	t.Run("valid template file with app/daprd log destinations", func(t *testing.T) {
+		runFilePath := "../testdata/run-template-files/app_output_to_file_and_console.yaml"
+		t.Cleanup(func() {
+			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
+			os.RemoveAll("../../apps/emit-metrics/.dapr/logs")
+			os.RemoveAll("../../apps/processor/.dapr/logs")
+			stopAllApps(t, runFilePath)
+		})
+		args := []string{
+			"-f", runFilePath,
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		output, err := cmdRunWithContext(ctx, "", args...)
+		t.Logf(output)
+		require.NoError(t, err, "run failed")
+
+		// App logs for processor app should not be printed to console and only written to file.
+		assert.NotContains(t, output, "== APP - processor")
+
+		// Daprd logs for processor app should only be printed to console and not written to file.
+		assert.Contains(t, output, "msg=\"All outstanding components processed\" app_id=processor")
+
+		// App logs for emit-metrics app should be printed to console and written to file.
+		assert.Contains(t, output, "== APP - emit-metrics")
+
+		// Daprd logs for emit-metrics app should only be written to file.
+		assert.NotContains(t, output, "msg=\"All outstanding components processed\" app_id=emit-metrics")
+
+		assert.Contains(t, output, "Received signal to stop Dapr and app processes. Shutting down Dapr and app processes.")
+
+		appTestOutput := AppTestOutput{
+			appID:          "processor",
+			baseLogDirPath: "../../apps/processor/.dapr/logs",
+			appLogContents: []string{
+				"Received metrics:  {1}",
+			},
+			daprdLogContent:          []string{},
+			daprdLogFileDoesNotExist: true,
+		}
+		assertLogOutputForRunTemplateExec(t, appTestOutput)
+		appTestOutput = AppTestOutput{
+			appID:          "emit-metrics",
+			baseLogDirPath: "../../apps/emit-metrics/.dapr/logs",
+			appLogContents: []string{
+				"DAPR_HTTP_PORT set to 3511",
+				"DAPR_HOST_ADD set to localhost",
+				"Metrics with ID 1 sent",
+			},
+			daprdLogContent: []string{
+				"termination signal received: shutting down",
+				"Exited Dapr successfully",
+				"Exited App successfully",
+			},
+		}
+		assertLogOutputForRunTemplateExec(t, appTestOutput)
+	})
 }
 
 func TestRunTemplateFileWithoutDaprInit(t *testing.T) {
@@ -327,7 +387,7 @@ func TestRunTemplateFileWithoutDaprInit(t *testing.T) {
 		output, err := cmdRunWithContext(ctx, "", args...)
 		t.Logf(output)
 		require.Error(t, err, "run must fail")
-		assert.Contains(t, output, " Error starting Dapr and app (\"processor\"): fork/exec")
+		assert.Contains(t, output, "Error starting Dapr and app (\"processor\"): fork/exec")
 		assert.Contains(t, output, "daprd: no such file or directory")
 	})
 }
@@ -335,11 +395,12 @@ func TestRunTemplateFileWithoutDaprInit(t *testing.T) {
 func assertLogOutputForRunTemplateExec(t *testing.T, appTestOutput AppTestOutput) {
 	// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
 	// This is true for the tests in this file.
-	daprdLogFileName, err := lookUpFileFullName(appTestOutput.baseLogDirPath, "daprd")
-	require.NoError(t, err, "failed to find daprd log file")
-	daprdLogPath := filepath.Join(appTestOutput.baseLogDirPath, daprdLogFileName)
-	readAndAssertLogFileContents(t, daprdLogPath, appTestOutput.daprdLogContent)
-
+	if !appTestOutput.daprdLogFileDoesNotExist {
+		daprdLogFileName, err := lookUpFileFullName(appTestOutput.baseLogDirPath, "daprd")
+		require.NoError(t, err, "failed to find daprd log file")
+		daprdLogPath := filepath.Join(appTestOutput.baseLogDirPath, daprdLogFileName)
+		readAndAssertLogFileContents(t, daprdLogPath, appTestOutput.daprdLogContent)
+	}
 	if appTestOutput.appLogDoesNotExist {
 		return
 	}
@@ -377,4 +438,5 @@ func lookUpFileFullName(dirPath, partialFilename string) (string, error) {
 func stopAllApps(t *testing.T, runfile string) {
 	_, err := cmdStopWithRunTemplate(runfile)
 	require.NoError(t, err, "failed to stop apps")
+	time.Sleep(5 * time.Second)
 }

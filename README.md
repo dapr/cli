@@ -212,6 +212,20 @@ $ dapr init --container-runtime podman
 
 > Note: The default container runtime is Docker.
 
+#### In a dev container or GitHub Codespace
+
+To install the Dapr CLI in a dev container or GitHub Codespace, add the following to your `devcontainer.json` file:
+
+```jsonc
+"features": {
+    "ghcr.io/dapr/cli/dapr-cli:0": {}
+}
+```
+
+Restart your dev container or GitHub Codespace and run `dapr init` to initialize Dapr.
+
+For more details, see the docs for dev containers with [Visual Studio Code](https://code.visualstudio.com/docs/devcontainers/containers#_dev-container-features) and [GitHub Codespaces](https://docs.github.com/en/codespaces/setting-up-your-project-for-codespaces/configuring-dev-containers/adding-features-to-a-devcontainer-file).
+
 ### Uninstall Dapr in a standalone mode
 
 Uninstalling will remove daprd binary and the placement container (if installed with Docker or the placement binary if not).
@@ -736,7 +750,9 @@ See the [Reference Guide](https://docs.dapr.io/reference/cli/) for more informat
 ## Contributing to Dapr CLI
 
 See the [Development Guide](https://github.com/dapr/cli/blob/master/docs/development/development.md) to get started with building and developing.
+## Release process for Dapr CLI
 
+See the [Release Guide](https://github.com/dapr/cli/blob/master/docs/development/release.md) for complete release process for Dapr CLI.
 ## Code of Conduct
 
 Please refer to our [Dapr Community Code of Conduct](https://github.com/dapr/community/blob/master/CODE-OF-CONDUCT.md)

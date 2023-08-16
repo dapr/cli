@@ -29,6 +29,7 @@ import (
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/tests/e2e/spawn"
 
 	k8s "k8s.io/client-go/kubernetes"
@@ -60,11 +61,13 @@ type VersionDetails struct {
 }
 
 type TestOptions struct {
-	HAEnabled             bool
-	MTLSEnabled           bool
-	ApplyComponentChanges bool
-	CheckResourceExists   map[Resource]bool
-	UninstallAll          bool
+	HAEnabled                bool
+	MTLSEnabled              bool
+	ApplyComponentChanges    bool
+	ApplyHTTPEndpointChanges bool
+	CheckResourceExists      map[Resource]bool
+	UninstallAll             bool
+	InitWithCustomCert       bool
 }
 
 type TestCase struct {
@@ -80,8 +83,8 @@ func GetVersionsFromEnv(t *testing.T, latest bool) (string, string) {
 	runtimeEnvVar := "DAPR_RUNTIME_PINNED_VERSION"
 	dashboardEnvVar := "DAPR_DASHBOARD_PINNED_VERSION"
 	if latest {
-		runtimeEnvVar = "DAPR_RUNTIME_LATEST_VERSION"
-		dashboardEnvVar = "DAPR_DASHBOARD_LATEST_VERSION"
+		runtimeEnvVar = "DAPR_RUNTIME_LATEST_STABLE_VERSION"
+		dashboardEnvVar = "DAPR_DASHBOARD_LATEST_STABLE_VERSION"
 	}
 	if runtimeVersion, ok := os.LookupEnv(runtimeEnvVar); ok {
 		daprRuntimeVersion = runtimeVersion
@@ -103,6 +106,13 @@ func UpgradeTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 			"upgrade", "-k",
 			"--runtime-version", details.RuntimeVersion,
 			"--log-as-json",
+		}
+
+		hasDashboardInDaprChart, err := kubernetes.IsDashboardIncluded(details.RuntimeVersion)
+		require.NoError(t, err, "failed to check if dashboard is included in dapr chart")
+
+		if !hasDashboardInDaprChart {
+			args = append(args, "--dashboard-version", details.DashboardVersion)
 		}
 
 		if details.ImageVariant != "" {
@@ -171,6 +181,7 @@ func GetTestsOnInstall(details VersionDetails, opts TestOptions) []TestCase {
 		{"clusterroles exist " + details.RuntimeVersion, ClusterRolesTest(details, opts)},
 		{"clusterrolebindings exist " + details.RuntimeVersion, ClusterRoleBindingsTest(details, opts)},
 		{"apply and check components exist " + details.RuntimeVersion, ComponentsTestOnInstallUpgrade(opts)},
+		{"apply and check httpendpoints exist " + details.RuntimeVersion, HTTPEndpointsTestOnInstallUpgrade(opts)},
 		{"check mtls " + details.RuntimeVersion, MTLSTestOnInstallUpgrade(opts)},
 		{"status check " + details.RuntimeVersion, StatusTestOnInstallUpgrade(details, opts)},
 	}
@@ -184,6 +195,7 @@ func GetTestsOnUninstall(details VersionDetails, opts TestOptions) []TestCase {
 		{"clusterroles not exist " + details.RuntimeVersion, ClusterRolesTest(details, opts)},
 		{"clusterrolebindings not exist " + details.RuntimeVersion, ClusterRoleBindingsTest(details, opts)},
 		{"check components exist on uninstall " + details.RuntimeVersion, componentsTestOnUninstall(opts.UninstallAll)},
+		{"check httpendpoints exist on uninstall " + details.RuntimeVersion, httpEndpointsTestOnUninstall(opts)},
 		{"check mtls error " + details.RuntimeVersion, uninstallMTLSTest()},
 		{"check status error " + details.RuntimeVersion, statusTestOnUninstall()},
 	}
@@ -237,6 +249,9 @@ func MTLSTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 		require.NoError(t, err, "expected no error on querying for mtls expiry")
 		assert.Contains(t, output, "Root certificate expires in", "expected output to contain string")
 		assert.Contains(t, output, "Expiry date:", "expected output to contain string")
+		if opts.InitWithCustomCert {
+			t.Log("check mtls expiry with custom cert: ", output)
+		}
 
 		// export
 		// check that the dir does not exist now.
@@ -288,6 +303,28 @@ func ComponentsTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 	}
 }
 
+func HTTPEndpointsTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
+	return func(t *testing.T) {
+		// if dapr is installed with httpendpoints.
+		if opts.ApplyHTTPEndpointChanges {
+			// apply any changes to the httpendpoint.
+			t.Log("apply httpendpoint changes")
+			output, err := spawn.Command("kubectl", "apply", "-f", "../testdata/namespace.yaml")
+			t.Log(output)
+			require.NoError(t, err, "expected no error on kubectl apply")
+			output, err = spawn.Command("kubectl", "apply", "-f", "../testdata/httpendpoint.yaml")
+			t.Log(output)
+			require.NoError(t, err, "expected no error on kubectl apply")
+			require.Equal(t, "httpendpoints.dapr.io/httpendpoint created\nhttpendpoints.dapr.io/httpendpoint created\n", output, "expected output to match")
+			httpEndpointOutputCheck(t, output)
+
+			t.Log("check applied httpendpoint exists")
+			_, err = spawn.Command("kubectl", "get", "httpendpoint")
+			require.NoError(t, err, "expected no error on calling to retrieve httpendpoints")
+		}
+	}
+}
+
 func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
 		daprPath := GetDaprPath()
@@ -329,7 +366,10 @@ func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t
 					require.Equal(t, "True", cols[2], "healthly field must be true")
 					require.Equal(t, "Running", cols[3], "pods must be Running")
 					require.Equal(t, toVerify[1], cols[4], "replicas must be equal")
-					require.Equal(t, toVerify[0], cols[5], "versions must match")
+					// TODO: Skip the dashboard version check for now until the helm chart is updated.
+					if cols[0] != "dapr-dashboard" {
+						require.Equal(t, toVerify[0], cols[5], "versions must match")
+					}
 					delete(notFound, cols[0])
 				}
 			}
@@ -708,6 +748,7 @@ func installTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 			"--log-as-json",
 		}
 		if !details.UseDaprLatestVersion {
+			// TODO: Pass dashboard-version also when charts are released.
 			args = append(args, "--runtime-version", details.RuntimeVersion)
 		}
 		if opts.HAEnabled {
@@ -721,6 +762,14 @@ func installTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 		}
 		if details.ImageVariant != "" {
 			args = append(args, "--image-variant", details.ImageVariant)
+		}
+		if opts.InitWithCustomCert {
+			certParam := []string{
+				"--ca-root-certificate", "../testdata/customcerts/root.pem",
+				"--issuer-private-key", "../testdata/customcerts/issuer.key",
+				"--issuer-public-certificate", "../testdata/customcerts/issuer.pem",
+			}
+			args = append(args, certParam...)
 		}
 		output, err := spawn.Command(daprPath, args...)
 		t.Log(output)
@@ -778,7 +827,7 @@ func componentsTestOnUninstall(all bool) func(t *testing.T) {
 	return func(t *testing.T) {
 		daprPath := GetDaprPath()
 		// On Dapr uninstall CRDs are not removed, consequently the components will not be removed.
-		// TODO Related to https://github.com/dapr/cli/issues/656.
+		// TODO: Related to https://github.com/dapr/cli/issues/656.
 		// For now the components remain.
 		output, err := spawn.Command(daprPath, "components", "-k")
 		require.NoError(t, err, "expected no error on calling dapr components")
@@ -808,6 +857,37 @@ func componentsTestOnUninstall(all bool) func(t *testing.T) {
 	}
 }
 
+func httpEndpointsTestOnUninstall(opts TestOptions) func(t *testing.T) {
+	return func(t *testing.T) {
+		// If --all, then the below does not need to run.
+		if opts.UninstallAll {
+			// Note: Namespace is deleted in the uninstall components function,
+			// so this should return as there is nothing to delete or do.
+			return
+		}
+		if opts.ApplyHTTPEndpointChanges {
+			// On Dapr uninstall CRDs are not removed, consequently the http endpoints will not be removed.
+			output, err := spawn.Command("kubectl", "get", "httpendpoints")
+			require.NoError(t, err, "expected no error on calling dapr httpendpoints")
+			assert.Contains(t, output, "No resources found")
+
+			// Manually remove httpendpoints and verify output.
+			output, err = spawn.Command("kubectl", "delete", "-f", "../testdata/httpendpoint.yaml")
+			require.NoError(t, err, "expected no error on kubectl delete")
+			require.Equal(t, "httpendpoints.dapr.io \"httpendpint\" deleted\nhttpendpoints.dapr.io \"httpendpoint\" deleted\n", output, "expected output to match")
+			output, err = spawn.Command("kubectl", "delete", "-f", "../testdata/namespace.yaml")
+			require.NoError(t, err, "expected no error on kubectl delete")
+			t.Log(output)
+			output, err = spawn.Command("kubectl", "get", "httpendpoints")
+			require.NoError(t, err, "expected no error on calling dapr httpendpoints")
+			lines := strings.Split(output, "\n")
+
+			// An extra empty line is there in output.
+			require.Equal(t, 2, len(lines), "expected kubernetes response message to remain")
+		}
+	}
+}
+
 func statusTestOnUninstall() func(t *testing.T) {
 	return func(t *testing.T) {
 		daprPath := GetDaprPath()
@@ -832,7 +912,7 @@ func componentOutputCheck(t *testing.T, output string, all bool) {
 
 	lines = strings.Split(output, "\n")[2:] // remove header and warning message.
 
-	assert.Equal(t, 2, len(lines), "expected 2 componets") // default and test namespace components.
+	assert.Equal(t, 2, len(lines), "expected 2 components") // default and test namespace components.
 
 	// for fresh cluster only one component yaml has been applied.
 	testNsFields := strings.Fields(lines[0])
@@ -852,6 +932,17 @@ func namespaceComponentOutputCheck(t *testing.T, fields []string, namespace stri
 	assert.Equal(t, "app1", fields[4], "expected scopes to match")
 }
 
+func httpEndpointOutputCheck(t *testing.T, output string) {
+	const (
+		headerName = "NAME"
+		headerAge  = "AGE"
+	)
+	assert.Contains(t, output, headerName)
+	assert.Contains(t, output, headerAge)
+	// check for test httpendpoint named httpendpoint output to be present in output.
+	assert.Contains(t, output, "httpendpoint")
+}
+
 func validatePodsOnInstallUpgrade(t *testing.T, details VersionDetails) {
 	ctx := context.Background()
 	ctxt, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -864,9 +955,9 @@ func validatePodsOnInstallUpgrade(t *testing.T, details VersionDetails) {
 	require.NoError(t, err)
 
 	notFound := map[string]string{
-		"sentry":    details.RuntimeVersion,
-		"sidecar":   details.RuntimeVersion,
-		"dashboard": details.DashboardVersion,
+		"sentry":  details.RuntimeVersion,
+		"sidecar": details.RuntimeVersion,
+		// "dashboard": details.DashboardVersion, TODO: enable when helm charts are updated.
 		"placement": details.RuntimeVersion,
 		"operator":  details.RuntimeVersion,
 	}
@@ -879,9 +970,9 @@ func validatePodsOnInstallUpgrade(t *testing.T, details VersionDetails) {
 	}
 
 	prefixes := map[string]string{
-		"sentry":    "dapr-sentry-",
-		"sidecar":   "dapr-sidecar-injector-",
-		"dashboard": "dapr-dashboard-",
+		"sentry":  "dapr-sentry-",
+		"sidecar": "dapr-sidecar-injector-",
+		// "dashboard": "dapr-dashboard-", TODO: enable when helm charts are updated.
 		"placement": "dapr-placement-server-",
 		"operator":  "dapr-operator-",
 	}

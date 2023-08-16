@@ -49,7 +49,7 @@ var (
 	logLevel           string
 	protocol           string
 	componentsPath     string
-	resourcesPath      string
+	resourcesPaths     []string
 	appSSL             bool
 	metricsPort        int
 	maxRequestBodySize int
@@ -63,6 +63,7 @@ var (
 	enableAPILogging   bool
 	apiListenAddresses string
 	runFilePath        string
+	appChannelAddress  string
 )
 
 const (
@@ -92,8 +93,12 @@ dapr run --app-id myapp
 # Run a gRPC application written in Go (listening on port 3000)
 dapr run --app-id myapp --app-port 3000 --app-protocol grpc -- go run main.go
 
+# Run a gRPC application written in Go (listening on port 3000) with a different app channel address
+dapr run --app-id myapp --app-port 3000 --app-channel-address localhost --app-protocol grpc -- go run main.go
+
+
 # Run sidecar only specifying dapr runtime installation directory
-dapr run --app-id myapp --dapr-path /usr/local/dapr
+dapr run --app-id myapp --runtime-path /usr/local/dapr
 
 # Run multiple apps by providing path of a run config file
 dapr run --run-file dapr.yaml
@@ -123,7 +128,7 @@ dapr run --run-file /path/to/directory
 			fmt.Println(print.WhiteBold("WARNING: no application command found."))
 		}
 
-		daprDirPath, err := standalone.GetDaprPath(daprPath)
+		daprDirPath, err := standalone.GetDaprRuntimePath(daprRuntimePath)
 		if err != nil {
 			print.FailureStatusEvent(os.Stderr, "Failed to get Dapr install directory: %v", err)
 			os.Exit(1)
@@ -160,7 +165,7 @@ dapr run --run-file /path/to/directory
 			AppProtocol:        protocol,
 			PlacementHostAddr:  viper.GetString("placement-host-address"),
 			ComponentsPath:     componentsPath,
-			ResourcesPath:      resourcesPath,
+			ResourcesPaths:     resourcesPaths,
 			AppSSL:             appSSL,
 			MaxRequestBodySize: maxRequestBodySize,
 			HTTPReadBufferSize: readBufferSize,
@@ -171,19 +176,20 @@ dapr run --run-file /path/to/directory
 			AppHealthThreshold: appHealthThreshold,
 			EnableAPILogging:   enableAPILogging,
 			APIListenAddresses: apiListenAddresses,
-			DaprdInstallPath:   daprPath,
+			DaprdInstallPath:   daprRuntimePath,
 		}
 		output, err := runExec.NewOutput(&standalone.RunConfig{
-			AppID:            appID,
-			AppPort:          appPort,
-			HTTPPort:         port,
-			GRPCPort:         grpcPort,
-			ProfilePort:      profilePort,
-			Command:          args,
-			MetricsPort:      metricsPort,
-			UnixDomainSocket: unixDomainSocket,
-			InternalGRPCPort: internalGRPCPort,
-			SharedRunConfig:  *sharedRunConfig,
+			AppID:             appID,
+			AppChannelAddress: appChannelAddress,
+			AppPort:           appPort,
+			HTTPPort:          port,
+			GRPCPort:          grpcPort,
+			ProfilePort:       profilePort,
+			Command:           args,
+			MetricsPort:       metricsPort,
+			UnixDomainSocket:  unixDomainSocket,
+			InternalGRPCPort:  internalGRPCPort,
+			SharedRunConfig:   *sharedRunConfig,
 		})
 		if err != nil {
 			print.FailureStatusEvent(os.Stderr, err.Error())
@@ -354,15 +360,23 @@ dapr run --run-file /path/to/directory
 		}
 
 		// Metadata API is only available if app has started listening to port, so wait for app to start before calling metadata API.
-		err = metadata.Put(output.DaprHTTPPort, "cliPID", strconv.Itoa(os.Getpid()), appID, unixDomainSocket)
+		err = metadata.Put(output.DaprHTTPPort, "cliPID", strconv.Itoa(os.Getpid()), output.AppID, unixDomainSocket)
 		if err != nil {
 			print.WarningStatusEvent(os.Stdout, "Could not update sidecar metadata for cliPID: %s", err.Error())
 		}
 
 		if output.AppCMD != nil {
+			if output.AppCMD.Process != nil {
+				print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Updating metadata for appPID: %d", output.AppCMD.Process.Pid))
+				err = metadata.Put(output.DaprHTTPPort, "appPID", strconv.Itoa(output.AppCMD.Process.Pid), output.AppID, unixDomainSocket)
+				if err != nil {
+					print.WarningStatusEvent(os.Stdout, "Could not update sidecar metadata for appPID: %s", err.Error())
+				}
+			}
+
 			appCommand := strings.Join(args, " ")
 			print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Updating metadata for app command: %s", appCommand))
-			err = metadata.Put(output.DaprHTTPPort, "appCommand", appCommand, appID, unixDomainSocket)
+			err = metadata.Put(output.DaprHTTPPort, "appCommand", appCommand, output.AppID, unixDomainSocket)
 			if err != nil {
 				print.WarningStatusEvent(os.Stdout, "Could not update sidecar metadata for appCommand: %s", err.Error())
 			} else {
@@ -426,14 +440,16 @@ func init() {
 	RunCmd.Flags().IntVarP(&profilePort, "profile-port", "", -1, "The port for the profile server to listen on")
 	RunCmd.Flags().StringVarP(&logLevel, "log-level", "", "info", "The log verbosity. Valid values are: debug, info, warn, error, fatal, or panic")
 	RunCmd.Flags().IntVarP(&maxConcurrency, "app-max-concurrency", "", -1, "The concurrency level of the application, otherwise is unlimited")
-	RunCmd.Flags().StringVarP(&protocol, "app-protocol", "P", "http", "The protocol (gRPC or HTTP) Dapr uses to talk to the application")
-	RunCmd.Flags().StringVarP(&componentsPath, "components-path", "d", "", "The path for components directory")
-	RunCmd.Flags().StringVarP(&resourcesPath, "resources-path", "", "", "The path for resources directory")
+	RunCmd.Flags().StringVarP(&protocol, "app-protocol", "P", "http", "The protocol (grpc, grpcs, http, https, h2c) Dapr uses to talk to the application")
+	RunCmd.Flags().StringVarP(&componentsPath, "components-path", "d", "", "The path for components directory. Default is $HOME/.dapr/components or %USERPROFILE%\\.dapr\\components")
+	RunCmd.Flags().StringSliceVarP(&resourcesPaths, "resources-path", "", []string{}, "The path for resources directory")
 	// TODO: Remove below line once the flag is removed in the future releases.
 	// By marking this as deprecated, the flag will be hidden from the help menu, but will continue to work. It will show a warning message when used.
 	RunCmd.Flags().MarkDeprecated("components-path", "This flag is deprecated and will be removed in the future releases. Use \"resources-path\" flag instead")
 	RunCmd.Flags().String("placement-host-address", "localhost", "The address of the placement service. Format is either <hostname> for default port or <hostname>:<port> for custom port")
+	// TODO: Remove below flag once the flag is removed in runtime in future release.
 	RunCmd.Flags().BoolVar(&appSSL, "app-ssl", false, "Enable https when Dapr invokes the application")
+	RunCmd.Flags().MarkDeprecated("app-ssl", "This flag is deprecated and will be removed in the future releases. Use \"app-protocol\" flag with https or grpcs values instead")
 	RunCmd.Flags().IntVarP(&metricsPort, "metrics-port", "M", -1, "The port of metrics on dapr")
 	RunCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	RunCmd.Flags().IntVarP(&maxRequestBodySize, "dapr-http-max-request-size", "", -1, "Max size of request body in MB")
@@ -447,10 +463,11 @@ func init() {
 	RunCmd.Flags().BoolVar(&enableAPILogging, "enable-api-logging", false, "Log API calls at INFO verbosity. Valid values are: true or false")
 	RunCmd.Flags().StringVar(&apiListenAddresses, "dapr-listen-addresses", "", "Comma separated list of IP addresses that sidecar will listen to")
 	RunCmd.Flags().StringVarP(&runFilePath, "run-file", "f", "", "Path to the run template file for the list of apps to run")
+	RunCmd.Flags().StringVarP(&appChannelAddress, "app-channel-address", "", utils.DefaultAppChannelAddress, "The network address the application listens on")
 	RootCmd.AddCommand(RunCmd)
 }
 
-func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
+func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (bool, error) {
 	var exitWithError bool
 
 	// setup shutdown notify channel.
@@ -463,6 +480,8 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 	// All the subprocess and their grandchildren inherit this PGID.
 	// This is done to provide a better grouping, which can be used to control all the proceses started by "dapr run -f".
 	daprsyscall.CreateProcessGroupID()
+
+	print.WarningStatusEvent(os.Stdout, "This is a preview feature and subject to change in future releases.")
 
 	for _, app := range apps {
 		print.StatusEvent(os.Stdout, print.LogInfo, "Validating config and starting app %q", app.RunConfig.AppID)
@@ -487,13 +506,17 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 		}
 		// Combined multiwriter for logs.
 		var appDaprdWriter io.Writer
-		// appLogWriterCloser is used when app command is present.
-		var appLogWriterCloser io.WriteCloser
-		daprdLogWriterCloser := app.DaprdLogWriteCloser
+		// appLogWriter is used when app command is present.
+		var appLogWriter io.Writer
+		// A custom writer used for trimming ASCII color codes from logs when writing to files.
+		var customAppLogWriter io.Writer
+
+		daprdLogWriterCloser := getLogWriter(app.DaprdLogWriteCloser, app.DaprdLogDestination)
+
 		if len(runConfig.Command) == 0 {
 			print.StatusEvent(os.Stdout, print.LogWarning, "No application command found for app %q present in %s", runConfig.AppID, runFilePath)
-			appDaprdWriter = app.DaprdLogWriteCloser
-			appLogWriterCloser = app.DaprdLogWriteCloser
+			appDaprdWriter = getAppDaprdWriter(app, true)
+			appLogWriter = app.DaprdLogWriteCloser
 		} else {
 			err = app.CreateAppLogFile()
 			if err != nil {
@@ -501,14 +524,13 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 				exitWithError = true
 				break
 			}
-			appDaprdWriter = io.MultiWriter(app.AppLogWriteCloser, app.DaprdLogWriteCloser)
-			appLogWriterCloser = app.AppLogWriteCloser
+			appDaprdWriter = getAppDaprdWriter(app, false)
+			appLogWriter = getLogWriter(app.AppLogWriteCloser, app.AppLogDestination)
 		}
-
+		customAppLogWriter = print.CustomLogWriter{W: appLogWriter}
 		runState, err := startDaprdAndAppProcesses(&runConfig, app.AppDirPath, sigCh,
-			daprdLogWriterCloser, daprdLogWriterCloser, appLogWriterCloser, appLogWriterCloser)
+			daprdLogWriterCloser, daprdLogWriterCloser, customAppLogWriter, customAppLogWriter)
 		if err != nil {
-			print.StatusEvent(os.Stdout, print.LogFailure, "Error starting Dapr and app (%q): %s", app.AppID, err.Error())
 			print.StatusEvent(appDaprdWriter, print.LogFailure, "Error starting Dapr and app (%q): %s", app.AppID, err.Error())
 			exitWithError = true
 			break
@@ -522,9 +544,27 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 		// Update extended metadata with run file path.
 		putRunFilePathInMeta(runState, runFilePath)
 
+		// Update extended metadata with run file path.
+		putRunTemplateNameInMeta(runState, runTemplateName)
+
+		// Update extended metadata with app log file path.
+		if app.AppLogDestination != standalone.Console {
+			putAppLogFilePathInMeta(runState, app.AppLogFileName)
+		}
+
+		// Update extended metadata with daprd log file path.
+		if app.DaprdLogDestination != standalone.Console {
+			putDaprLogFilePathInMeta(runState, app.DaprdLogFileName)
+		}
+
 		if runState.AppCMD.Command != nil {
 			putAppCommandInMeta(runConfig, runState)
+
+			if runState.AppCMD.Command.Process != nil {
+				putAppProcessIDInMeta(runState)
+			}
 		}
+
 		print.StatusEvent(runState.DaprCMD.OutputWriter, print.LogSuccess, "You're up and running! Dapr logs will appear here.\n")
 		logInformationalStatusToStdout(app)
 	}
@@ -550,6 +590,43 @@ func executeRun(runFilePath string, apps []runfileconfig.App) (bool, error) {
 	}
 
 	return exitWithError, closeError
+}
+
+// getAppDaprdWriter returns the writer for writing logs common to both daprd, app and stdout.
+func getAppDaprdWriter(app runfileconfig.App, isAppCommandEmpty bool) io.Writer {
+	var appDaprdWriter io.Writer
+	if isAppCommandEmpty {
+		if app.DaprdLogDestination != standalone.Console {
+			appDaprdWriter = io.MultiWriter(os.Stdout, app.DaprdLogWriteCloser)
+		} else {
+			appDaprdWriter = os.Stdout
+		}
+	} else {
+		if app.AppLogDestination != standalone.Console && app.DaprdLogDestination != standalone.Console {
+			appDaprdWriter = io.MultiWriter(app.AppLogWriteCloser, app.DaprdLogWriteCloser, os.Stdout)
+		} else if app.AppLogDestination != standalone.Console {
+			appDaprdWriter = io.MultiWriter(app.AppLogWriteCloser, os.Stdout)
+		} else if app.DaprdLogDestination != standalone.Console {
+			appDaprdWriter = io.MultiWriter(app.DaprdLogWriteCloser, os.Stdout)
+		} else {
+			appDaprdWriter = os.Stdout
+		}
+	}
+	return appDaprdWriter
+}
+
+// getLogWriter returns the log writer based on the log destination.
+func getLogWriter(fileLogWriterCloser io.WriteCloser, logDestination standalone.LogDestType) io.Writer {
+	var logWriter io.Writer
+	switch logDestination {
+	case standalone.Console:
+		logWriter = os.Stdout
+	case standalone.File:
+		logWriter = fileLogWriterCloser
+	case standalone.FileAndConsole:
+		logWriter = io.MultiWriter(os.Stdout, fileLogWriterCloser)
+	}
+	return logWriter
 }
 
 func logInformationalStatusToStdout(app runfileconfig.App) {
@@ -588,7 +665,7 @@ func executeRunWithAppsConfigFile(runFilePath string) {
 		print.StatusEvent(os.Stdout, print.LogFailure, "No apps to run")
 		os.Exit(1)
 	}
-	exitWithError, closeErr := executeRun(runFilePath, apps)
+	exitWithError, closeErr := executeRun(config.Name, runFilePath, apps)
 	if exitWithError {
 		if closeErr != nil {
 			print.StatusEvent(os.Stdout, print.LogFailure, "Error closing resources: %s", closeErr)
@@ -742,25 +819,14 @@ func startAppProcess(runConfig *standalone.RunConfig, runE *runExec.RunExec,
 	outScanner := bufio.NewScanner(stdOutPipe)
 	go func() {
 		for errScanner.Scan() {
-			if runE.AppCMD.ErrorWriter == os.Stderr {
-				// Add color and prefix to log and output to Stderr.
-				fmt.Fprintln(runE.AppCMD.ErrorWriter, print.Blue(fmt.Sprintf("== APP == %s", errScanner.Text())))
-			} else {
-				// Directly output app logs to the error writer.
-				fmt.Fprintln(runE.AppCMD.ErrorWriter, errScanner.Text())
-			}
+			fmt.Fprintln(runE.AppCMD.ErrorWriter, print.Blue(fmt.Sprintf("== APP - %s == %s", runE.AppID,
+				errScanner.Text())))
 		}
 	}()
 
 	go func() {
 		for outScanner.Scan() {
-			if runE.AppCMD.OutputWriter == os.Stdout {
-				// Add color and prefix to log and output to Stdout.
-				fmt.Fprintln(runE.AppCMD.OutputWriter, print.Blue(fmt.Sprintf("== APP == %s", outScanner.Text())))
-			} else {
-				// Directly output app logs to the output writer.
-				fmt.Fprintln(runE.AppCMD.OutputWriter, outScanner.Text())
-			}
+			fmt.Fprintln(runE.AppCMD.OutputWriter, print.Blue(fmt.Sprintf("== APP - %s == %s", runE.AppID, outScanner.Text())))
 		}
 	}()
 
@@ -813,10 +879,8 @@ func startDaprdProcess(runConfig *standalone.RunConfig, runE *runExec.RunExec,
 		daprRunning <- false
 		return
 	}
-
 	go func() {
 		daprdErr := runE.DaprCMD.Command.Wait()
-
 		if daprdErr != nil {
 			runE.DaprCMD.CommandErr = daprdErr
 			print.StatusEvent(runE.DaprCMD.ErrorWriter, print.LogFailure, "The daprd process exited with error code: %s", daprdErr.Error())
@@ -905,6 +969,14 @@ func putCLIProcessIDInMeta(runE *runExec.RunExec, pid int) {
 	}
 }
 
+func putAppProcessIDInMeta(runE *runExec.RunExec) {
+	print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogInfo, "Updating metadata for appPID: %d", runE.AppCMD.Command.Process.Pid)
+	err := metadata.Put(runE.DaprHTTPPort, "appPID", strconv.Itoa(runE.AppCMD.Command.Process.Pid), runE.AppID, unixDomainSocket)
+	if err != nil {
+		print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogWarning, "Could not update sidecar metadata for appPID: %s", err.Error())
+	}
+}
+
 // putAppCommandInMeta puts the app command in metadata so that it can be used by the CLI to stop the app.
 func putAppCommandInMeta(runConfig standalone.RunConfig, runE *runExec.RunExec) {
 	appCommand := strings.Join(runConfig.Command, " ")
@@ -914,7 +986,6 @@ func putAppCommandInMeta(runConfig standalone.RunConfig, runE *runExec.RunExec) 
 		print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogWarning, "Could not update sidecar metadata for appCommand: %s", err.Error())
 		return
 	}
-	print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogSuccess, "You're up and running! Dapr logs will appear here.\n")
 }
 
 // putRunFilePathInMeta puts the absolute path of run file in metadata so that it can be used by the CLI to stop all apps started by this run file.
@@ -926,7 +997,31 @@ func putRunFilePathInMeta(runE *runExec.RunExec, runFilePath string) {
 	}
 	err = metadata.Put(runE.DaprHTTPPort, "runTemplatePath", runFilePath, runE.AppID, unixDomainSocket)
 	if err != nil {
-		print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogWarning, "Could not update sidecar metadata for runFile: %s", err.Error())
+		print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogWarning, "Could not update sidecar metadata for run file path: %s", err.Error())
+	}
+}
+
+// putRunTemplateNameInMeta puts the name of the run file in metadata so that it can be used by the CLI to stop all apps started by this run file.
+func putRunTemplateNameInMeta(runE *runExec.RunExec, runTemplateName string) {
+	err := metadata.Put(runE.DaprHTTPPort, "runTemplateName", runTemplateName, runE.AppID, unixDomainSocket)
+	if err != nil {
+		print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogWarning, "Could not update sidecar metadata for run template name: %s", err.Error())
+	}
+}
+
+// putAppLogFilePathInMeta puts the absolute path of app log file in metadata so that it can be used by the CLI to stop the app.
+func putAppLogFilePathInMeta(runE *runExec.RunExec, appLogFilePath string) {
+	err := metadata.Put(runE.DaprHTTPPort, "appLogPath", appLogFilePath, runE.AppID, unixDomainSocket)
+	if err != nil {
+		print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogWarning, "Could not update sidecar metadata for app log file path: %s", err.Error())
+	}
+}
+
+// putDaprLogFilePathInMeta puts the absolute path of Dapr log file in metadata so that it can be used by the CLI to stop the app.
+func putDaprLogFilePathInMeta(runE *runExec.RunExec, daprLogFilePath string) {
+	err := metadata.Put(runE.DaprHTTPPort, "daprdLogPath", daprLogFilePath, runE.AppID, unixDomainSocket)
+	if err != nil {
+		print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogWarning, "Could not update sidecar metadata for dapr log file path: %s", err.Error())
 	}
 }
 

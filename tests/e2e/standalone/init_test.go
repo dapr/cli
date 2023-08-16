@@ -36,6 +36,11 @@ import (
 func TestStandaloneInit(t *testing.T) {
 	daprRuntimeVersion, daprDashboardVersion := common.GetVersionsFromEnv(t, false)
 
+	t.Cleanup(func() {
+		// remove dapr installation after all tests in this function.
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+	})
+
 	t.Run("init with invalid private registry", func(t *testing.T) {
 		if isSlimMode() {
 			t.Skip("Skipping init with private registry test because of slim installation")
@@ -45,6 +50,7 @@ func TestStandaloneInit(t *testing.T) {
 		must(t, cmdUninstall, "failed to uninstall Dapr")
 		args := []string{
 			"--runtime-version", daprRuntimeVersion,
+			"--dashboard-version", daprDashboardVersion,
 			"--image-registry", "smplregistry.io/owner",
 		}
 		output, err := cmdInit(args...)
@@ -61,6 +67,7 @@ func TestStandaloneInit(t *testing.T) {
 		must(t, cmdUninstall, "failed to uninstall Dapr")
 		args := []string{
 			"--runtime-version", daprRuntimeVersion,
+			"--dashboard-version", daprDashboardVersion,
 			"--image-registry", "localhost:5000",
 			"--from-dir", "./local-dir",
 		}
@@ -74,6 +81,7 @@ func TestStandaloneInit(t *testing.T) {
 		must(t, cmdUninstall, "failed to uninstall Dapr")
 		args := []string{
 			"--runtime-version", daprRuntimeVersion,
+			"--dashboard-version", daprDashboardVersion,
 			"--container-runtime", "invalid",
 		}
 		output, err := cmdInit(args...)
@@ -87,6 +95,7 @@ func TestStandaloneInit(t *testing.T) {
 
 		args := []string{
 			"--runtime-version", daprRuntimeVersion,
+			"--dashboard-version", daprDashboardVersion,
 		}
 		output, err := cmdInit(args...)
 		t.Log(output)
@@ -110,6 +119,7 @@ func TestStandaloneInit(t *testing.T) {
 
 		args := []string{
 			"--runtime-version", daprRuntimeVersion,
+			"--dashboard-version", daprDashboardVersion,
 			"--image-variant", "mariner",
 		}
 		output, err := cmdInit(args...)
@@ -126,67 +136,6 @@ func TestStandaloneInit(t *testing.T) {
 		verifyContainers(t, daprRuntimeVersion+"-mariner")
 		verifyBinaries(t, daprPath, daprRuntimeVersion, daprDashboardVersion)
 		verifyConfigs(t, daprPath)
-	})
-
-	t.Run("init with --dapr-path flag", func(t *testing.T) {
-		// Ensure a clean environment
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-
-		daprPath, err := os.MkdirTemp("", "dapr-e2e-init-with-flag-*")
-		assert.NoError(t, err)
-		defer os.RemoveAll(daprPath) // clean up
-
-		output, err := cmdInit("--runtime-version", daprRuntimeVersion, "--dapr-path", daprPath)
-		t.Log(output)
-		require.NoError(t, err, "init failed")
-		assert.Contains(t, output, "Success! Dapr is up and running.")
-
-		verifyContainers(t, daprRuntimeVersion)
-		verifyBinaries(t, daprPath, daprRuntimeVersion, daprDashboardVersion)
-		verifyConfigs(t, daprPath)
-	})
-
-	t.Run("init with DAPR_PATH env var", func(t *testing.T) {
-		// Ensure a clean environment
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-
-		daprPath, err := os.MkdirTemp("", "dapr-e2e-init-with-env-var-*")
-		assert.NoError(t, err)
-		defer os.RemoveAll(daprPath) // clean up
-
-		t.Setenv("DAPR_PATH", daprPath)
-
-		output, err := cmdInit("--runtime-version", daprRuntimeVersion)
-		t.Log(output)
-		require.NoError(t, err, "init failed")
-		assert.Contains(t, output, "Success! Dapr is up and running.")
-
-		verifyContainers(t, daprRuntimeVersion)
-		verifyBinaries(t, daprPath, daprRuntimeVersion, daprDashboardVersion)
-		verifyConfigs(t, daprPath)
-	})
-
-	t.Run("init with --dapr-path flag and DAPR_PATH env var", func(t *testing.T) {
-		// Ensure a clean environment
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-
-		daprPath1, err := os.MkdirTemp("", "dapr-e2e-init-with-flag-and-env-1-*")
-		assert.NoError(t, err)
-		defer os.RemoveAll(daprPath1) // clean up
-		daprPath2, err := os.MkdirTemp("", "dapr-e2e-init-with-flag-and-env-2-*")
-		assert.NoError(t, err)
-		defer os.RemoveAll(daprPath2) // clean up
-
-		t.Setenv("DAPR_PATH", daprPath1)
-
-		output, err := cmdInit("--runtime-version", daprRuntimeVersion, "--dapr-path", daprPath2)
-		t.Log(output)
-		require.NoError(t, err, "init failed")
-		assert.Contains(t, output, "Success! Dapr is up and running.")
-
-		verifyContainers(t, daprRuntimeVersion)
-		verifyBinaries(t, daprPath2, daprRuntimeVersion, daprDashboardVersion)
-		verifyConfigs(t, daprPath2)
 	})
 
 	t.Run("init without runtime-version flag", func(t *testing.T) {
@@ -206,6 +155,29 @@ func TestStandaloneInit(t *testing.T) {
 
 		latestDaprRuntimeVersion, latestDaprDashboardVersion := common.GetVersionsFromEnv(t, true)
 		verifyContainers(t, latestDaprRuntimeVersion)
+		verifyBinaries(t, daprPath, latestDaprRuntimeVersion, latestDaprDashboardVersion)
+		verifyConfigs(t, daprPath)
+	})
+
+	t.Run("init without runtime-version flag with mariner images", func(t *testing.T) {
+		// Ensure a clean environment
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+		args := []string{
+			"--image-variant", "mariner",
+		}
+		output, err := cmdInit(args...)
+		t.Log(output)
+		require.NoError(t, err, "init failed")
+		assert.Contains(t, output, "Success! Dapr is up and running.")
+
+		homeDir, err := os.UserHomeDir()
+		require.NoError(t, err, "failed to get user home directory")
+
+		daprPath := filepath.Join(homeDir, ".dapr")
+		require.DirExists(t, daprPath, "Directory %s does not exist", daprPath)
+
+		latestDaprRuntimeVersion, latestDaprDashboardVersion := common.GetVersionsFromEnv(t, true)
+		verifyContainers(t, latestDaprRuntimeVersion+"-mariner")
 		verifyBinaries(t, daprPath, latestDaprRuntimeVersion, latestDaprDashboardVersion)
 		verifyConfigs(t, daprPath)
 	})

@@ -18,6 +18,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -75,7 +76,9 @@ func TestContainerRuntimeUtils(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			actualValid := IsValidContainerRuntime(tc.input)
 			if actualValid != tc.valid {
 				t.Errorf("expected %v, got %v", tc.valid, actualValid)
@@ -117,7 +120,9 @@ func TestContains(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			actualValid := Contains(tc.input, tc.expected)
 			if actualValid != tc.valid {
 				t.Errorf("expected %v, got %v", tc.valid, actualValid)
@@ -160,7 +165,9 @@ func TestGetVersionAndImageVariant(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			version, imageVariant := GetVersionAndImageVariant(tc.input)
 			assert.Equal(t, tc.expectedVersion, version)
 			assert.Equal(t, tc.expectedImageVariant, imageVariant)
@@ -195,7 +202,9 @@ func TestValidateFilePaths(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			actual := ValidateFilePath(tc.input)
 			assert.Equal(t, tc.expectedErr, actual != nil)
 		})
@@ -235,8 +244,72 @@ func TestGetAbsPath(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			actual := GetAbsPath(baseDir, tc.input)
+			assert.Equal(t, tc.expected, actual)
+		})
+	}
+}
+
+func TestResolveHomeDir(t *testing.T) {
+	homeDir, err := os.UserHomeDir()
+	assert.NoError(t, err)
+
+	testcases := []struct {
+		name        string
+		input       string
+		expected    string
+		skipWindows bool
+	}{
+		{
+			name:        "empty path",
+			input:       "",
+			expected:    "",
+			skipWindows: false,
+		},
+		{
+			name:        "home directory prefix with ~/",
+			input:       "~/home/path",
+			expected:    filepath.Join(homeDir, "home", "path"),
+			skipWindows: true,
+		},
+		{
+			name:        "home directory prefix with ~/.",
+			input:       "~/./home/path",
+			expected:    filepath.Join(homeDir, ".", "home", "path"),
+			skipWindows: true,
+		},
+		{
+			name:        "home directory prefix with ~/..",
+			input:       "~/../home/path",
+			expected:    filepath.Join(homeDir, "..", "home", "path"),
+			skipWindows: true,
+		},
+		{
+			name:        "no home directory prefix",
+			input:       "../home/path",
+			expected:    "../home/path",
+			skipWindows: false,
+		},
+		{
+			name:        "absolute path",
+			input:       "/absolute/path",
+			expected:    "/absolute/path",
+			skipWindows: false,
+		},
+	}
+
+	for _, tc := range testcases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.skipWindows && runtime.GOOS == "windows" {
+				t.Skip("Skipping test on Windows")
+			}
+			t.Parallel()
+			actual, err := ResolveHomeDir(tc.input)
+			assert.NoError(t, err)
 			assert.Equal(t, tc.expected, actual)
 		})
 	}
@@ -262,7 +335,9 @@ func TestReadFile(t *testing.T) {
 		},
 	}
 	for _, tc := range testcases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			_, actual := ReadFile(tc.input)
 			assert.Equal(t, tc.expectedErr, actual != nil)
 		})
@@ -323,7 +398,9 @@ func TestFindFileInDir(t *testing.T) {
 		},
 	}
 	for _, tc := range testcases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			filePath, err := FindFileInDir(tc.input, "dapr.yaml")
 			assert.Equal(t, tc.expectedErr, err != nil)
 			assert.Equal(t, tc.expectedFilePath, filePath)
@@ -403,7 +480,9 @@ func TestPrintDetail(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			var buf bytes.Buffer
 			err := PrintDetail(&buf, tc.format, tc.list)
 			if tc.shouldError {
@@ -432,4 +511,52 @@ func createTempFile(t *testing.T, tempDirName, fileName string) string {
 func cleanupTempDir(t *testing.T, fileName string) {
 	err := os.RemoveAll(fileName)
 	assert.NoError(t, err)
+}
+
+func TestSanitizeDir(t *testing.T) {
+	testcases := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "directory with single quote in three places",
+			input:    "C:\\Use'rs\\sta'rk\\Docum'ents",
+			expected: "C:\\Use''rs\\sta''rk\\Docum''ents",
+		},
+		{
+			name:     "directory with single quote in two places",
+			input:    "C:\\Use'rs\\sta'rk",
+			expected: "C:\\Use''rs\\sta''rk",
+		},
+		{
+			name:     "directory with single quote in username",
+			input:    "C:\\Users\\Debash'ish",
+			expected: "C:\\Users\\Debash''ish",
+		},
+		{
+			name:     "directory with no single quote",
+			input:    "C:\\Users\\Shubham",
+			expected: "C:\\Users\\Shubham",
+		},
+		{
+			name:     "directory with single quote in one place",
+			input:    "C:\\Use'rs\\Shubham",
+			expected: "C:\\Use''rs\\Shubham",
+		},
+		{
+			name:     "directory with single quote in many places in username",
+			input:    "C:\\Users\\Shu'bh'am",
+			expected: "C:\\Users\\Shu''bh''am",
+		},
+	}
+
+	for _, tc := range testcases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			actual := SanitizeDir(tc.input)
+			assert.Equal(t, tc.expected, actual)
+		})
+	}
 }

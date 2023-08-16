@@ -1,0 +1,12 @@
+apiVersion: dapr.io/v1alpha1
+kind: HTTPEndpoint
+metadata:
+  name: "httpendpoint"  
+  namespace: default
+spec:
+  baseUrl: "https://test.com"
+  headers:
+  - name: "Accept-Language"
+    value: "en-US"
+scopes:
+  - app1
