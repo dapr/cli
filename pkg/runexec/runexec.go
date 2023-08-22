@@ -19,8 +19,8 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/dapr/cli/pkg/runfileconfig"
 	"github.com/dapr/cli/pkg/standalone"
+	"github.com/dapr/cli/pkg/standalone/runfileconfig"
 )
 
 type CmdProcess struct {

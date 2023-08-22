@@ -36,7 +36,7 @@ import (
 	k8sYaml "sigs.k8s.io/yaml"
 
 	"github.com/dapr/cli/pkg/print"
-	"github.com/dapr/cli/pkg/runfileconfig"
+	"github.com/dapr/cli/pkg/standalone/runfileconfig"
 	daprsyscall "github.com/dapr/cli/pkg/syscall"
 	"github.com/dapr/cli/utils"
 )
