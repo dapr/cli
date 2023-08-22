@@ -39,7 +39,6 @@ import (
 	"github.com/dapr/cli/pkg/runfileconfig"
 	daprsyscall "github.com/dapr/cli/pkg/syscall"
 	"github.com/dapr/cli/utils"
-	"github.com/dapr/kit/ptr"
 )
 
 const (
@@ -256,6 +255,7 @@ func createServiceConfig(app runfileconfig.App) serviceConfig {
 }
 
 func createDeploymentConfig(app runfileconfig.App) deploymentConfig {
+	replicas := int32(1)
 	dep := deploymentConfig{
 		Kind:       deploymentKind,
 		APIVersion: deploymentAPIVersion,
@@ -265,7 +265,7 @@ func createDeploymentConfig(app runfileconfig.App) deploymentConfig {
 	}
 
 	dep.Spec = appV1.DeploymentSpec{
-		Replicas: ptr.Of[int32](1),
+		Replicas: &replicas,
 		Selector: &metav1.LabelSelector{
 			MatchLabels: map[string]string{
 				appLabelKey: app.AppID,
