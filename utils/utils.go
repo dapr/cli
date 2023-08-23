@@ -413,8 +413,13 @@ func SanitizeDir(destDir string) string {
 	return strings.ReplaceAll(destDir, "'", "''")
 }
 
-// Attach Job object to App Process
+// Attach Job object to App Process.
 func AttachJobObjectToProcess(pid string, proc *os.Process) {
 	// Attach a job object to the app process.
-	daprsyscall.AttachJobObjectToProcess(pid+"-"+windowsDaprAppProcJobName, proc)
+	daprsyscall.AttachJobObjectToProcess(GetJobObjectNameFromPID(pid), proc)
+}
+
+// GetJobObjectNameFromPID returns the name of the Windows job object that is used to manage the Daprized app's processes on windows.
+func GetJobObjectNameFromPID(pid string) string {
+	return pid + "-" + windowsDaprAppProcJobName
 }
