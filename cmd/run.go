@@ -558,8 +558,8 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 
 			if runState.AppCMD.Command.Process != nil {
 				putAppProcessIDInMeta(runState)
-				// Attach a job object to the app process.
-				daprsyscall.AttachJobObjectToProcess(strconv.Itoa(os.Getpid())+"-"+utils.WindowsDaprAppProcJobName, runState.AppCMD.Command.Process)
+				// Attach a windows job object to the app process.
+				utils.AttachJobObjectToProcess(strconv.Itoa(os.Getpid()), runState.AppCMD.Command.Process)
 			}
 		}
 

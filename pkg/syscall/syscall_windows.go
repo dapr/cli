@@ -71,6 +71,9 @@ func AttachJobObjectToProcess(jobName string, proc *os.Process) {
 		print.WarningStatusEvent(os.Stdout, "failed to create job object: %s", err.Error())
 		return
 	}
+	// Below lines control the relation between Job object and processes attached to it.
+	// By passing JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE flag, it will make sure that when
+	// job object is closed all the processed must also be exited.
 	info := windows.JOBOBJECT_EXTENDED_LIMIT_INFORMATION{
 		BasicLimitInformation: windows.JOBOBJECT_BASIC_LIMIT_INFORMATION{
 			LimitFlags: windows.JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,

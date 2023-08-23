@@ -28,7 +28,7 @@ import (
 func Stop(appID string, cliPIDToNoOfApps map[int]int, apps []ListOutput) error {
 	for _, a := range apps {
 		if a.AppID == appID {
-			return handleEvent(a.CliPID)
+			return setStopEvent(a.CliPID)
 		}
 	}
 	return fmt.Errorf("couldn't find app id %s", appID)
@@ -58,10 +58,10 @@ func disposeJobHandle(cliPID int) error {
 		return fmt.Errorf("error terminating job object: %w", err)
 	}
 	time.Sleep(5 * time.Second)
-	return handleEvent(cliPID)
+	return setStopEvent(cliPID)
 }
 
-func handleEvent(cliPID int) error {
+func setStopEvent(cliPID int) error {
 	eventName, _ := syscall.UTF16FromString(fmt.Sprintf("dapr_cli_%v", cliPID))
 	eventHandle, err := windows.OpenEvent(windows.EVENT_MODIFY_STATE, false, &eventName[0])
 	if err != nil {
