@@ -114,10 +114,6 @@ dapr run --run-file /path/to/directory
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(runFilePath) > 0 {
-			if runtime.GOOS == string(windowsOsType) {
-				print.FailureStatusEvent(os.Stderr, "The run command with run file is not supported on Windows")
-				os.Exit(1)
-			}
 			runConfigFilePath, err := getRunFilePath(runFilePath)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, "Failed to get run file path: %v", err)
@@ -565,6 +561,8 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 
 			if runState.AppCMD.Command.Process != nil {
 				putAppProcessIDInMeta(runState)
+				// Attach a windows job object to the app process.
+				utils.AttachJobObjectToProcess(strconv.Itoa(os.Getpid()), runState.AppCMD.Command.Process)
 			}
 		}
 

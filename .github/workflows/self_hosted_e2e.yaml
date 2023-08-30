@@ -45,6 +45,8 @@ jobs:
       GOLANG_PROTOBUF_REGISTRATION_CONFLICT: warn
       PODMAN_VERSION: 4.4.4
     strategy:
+      # TODO: Remove this when our E2E tests are stable for podman on MacOS.
+      fail-fast: false # Keep running if one leg fails.
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
         target_arch: [amd64]
