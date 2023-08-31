@@ -140,7 +140,7 @@ func TestKubernetesDev(t *testing.T) {
 		DevEnabled:   true,
 		UninstallAll: true,
 		CheckResourceExists: map[common.Resource]bool{
-			common.CustomResourceDefs:  true,
+			common.CustomResourceDefs:  false,
 			common.ClusterRoles:        false,
 			common.ClusterRoleBindings: false,
 		},
