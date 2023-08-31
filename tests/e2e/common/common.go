@@ -298,7 +298,13 @@ func ComponentsTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 			output, err = spawn.Command("kubectl", "apply", "-f", "../testdata/statestore.yaml")
 			t.Log(output)
 			require.NoError(t, err, "expected no error on kubectl apply")
-			require.Equal(t, "component.dapr.io/statestore created\ncomponent.dapr.io/statestore created\n", output, "expceted output to match")
+			// if Dev install, statestore in default namespace will already be created as part of dev install once, so the above command output will be
+			// changed to statestore configured for the default namespace statestore.
+			if opts.DevEnabled {
+				require.Equal(t, "component.dapr.io/statestore configured\ncomponent.dapr.io/statestore created\n", output, "expceted output to match")
+			} else {
+				require.Equal(t, "component.dapr.io/statestore created\ncomponent.dapr.io/statestore created\n", output, "expceted output to match")
+			}
 		}
 
 		t.Log("check applied component exists")
