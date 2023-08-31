@@ -199,7 +199,7 @@ func GetTestsOnUninstall(details VersionDetails, opts TestOptions) []TestCase {
 		{"crds exist on uninstall " + details.RuntimeVersion, CRDTest(details, opts)},
 		{"clusterroles not exist " + details.RuntimeVersion, ClusterRolesTest(details, opts)},
 		{"clusterrolebindings not exist " + details.RuntimeVersion, ClusterRoleBindingsTest(details, opts)},
-		{"check components exist on uninstall " + details.RuntimeVersion, componentsTestOnUninstall(opts.UninstallAll)},
+		{"check components exist on uninstall " + details.RuntimeVersion, componentsTestOnUninstall(opts)},
 		{"check httpendpoints exist on uninstall " + details.RuntimeVersion, httpEndpointsTestOnUninstall(opts)},
 		{"check mtls error " + details.RuntimeVersion, uninstallMTLSTest()},
 		{"check status error " + details.RuntimeVersion, statusTestOnUninstall()},
@@ -310,7 +310,7 @@ func ComponentsTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 		t.Log("check applied component exists")
 		output, err := spawn.Command(daprPath, "components", "-k")
 		require.NoError(t, err, "expected no error on calling dapr components")
-		componentOutputCheck(t, output, false)
+		componentOutputCheck(t, opts, output)
 	}
 }
 
@@ -853,7 +853,7 @@ func uninstallMTLSTest() func(t *testing.T) {
 	}
 }
 
-func componentsTestOnUninstall(all bool) func(t *testing.T) {
+func componentsTestOnUninstall(opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
 		daprPath := GetDaprPath()
 		// On Dapr uninstall CRDs are not removed, consequently the components will not be removed.
@@ -861,10 +861,10 @@ func componentsTestOnUninstall(all bool) func(t *testing.T) {
 		// For now the components remain.
 		output, err := spawn.Command(daprPath, "components", "-k")
 		require.NoError(t, err, "expected no error on calling dapr components")
-		componentOutputCheck(t, output, all)
+		componentOutputCheck(t, opts, output)
 
 		// If --all, then the below does not need to run.
-		if all {
+		if opts.UninstallAll {
 			output, err = spawn.Command("kubectl", "delete", "-f", "../testdata/namespace.yaml")
 			require.NoError(t, err, "expected no error on kubectl delete")
 			t.Log(output)
@@ -928,29 +928,37 @@ func statusTestOnUninstall() func(t *testing.T) {
 	}
 }
 
-func componentOutputCheck(t *testing.T, output string, all bool) {
+func componentOutputCheck(t *testing.T, opts TestOptions, output string) {
 	output = strings.TrimSpace(output) // remove empty string.
 	lines := strings.Split(output, "\n")
 	for i, line := range lines {
 		t.Logf("num:%d line:%+v", i, line)
 	}
 
-	if all {
+	if opts.UninstallAll {
 		assert.Equal(t, 2, len(lines), "expected at 0 components and 2 output lines")
 		return
 	}
 
 	lines = strings.Split(output, "\n")[2:] // remove header and warning message.
 
-	assert.Equal(t, 2, len(lines), "expected 2 components") // default and test namespace components.
+	if opts.DevEnabled {
+		// default, test statestore.
+		// default pubsub.
+		// 3 components
+		assert.Equal(t, 3, len(lines), "expected 3 components")
+	} else {
+		assert.Equal(t, 2, len(lines), "expected 2 components") // default and test namespace components.
 
-	// for fresh cluster only one component yaml has been applied.
-	testNsFields := strings.Fields(lines[0])
-	defaultNsFields := strings.Fields(lines[1])
+		// for fresh cluster only one component yaml has been applied.
+		testNsFields := strings.Fields(lines[0])
+		defaultNsFields := strings.Fields(lines[1])
 
-	// Fields splits on space, so Created time field might be split again.
-	namespaceComponentOutputCheck(t, testNsFields, "test")
-	namespaceComponentOutputCheck(t, defaultNsFields, "default")
+		// Fields splits on space, so Created time field might be split again.
+		// Scopes are only applied in for this scenario in tests.
+		namespaceComponentOutputCheck(t, testNsFields, "test")
+		namespaceComponentOutputCheck(t, defaultNsFields, "default")
+	}
 }
 
 func namespaceComponentOutputCheck(t *testing.T, fields []string, namespace string) {
