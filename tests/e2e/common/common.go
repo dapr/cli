@@ -945,7 +945,7 @@ func componentOutputCheck(t *testing.T, opts TestOptions, output string) {
 	if opts.DevEnabled {
 		// default, test statestore.
 		// default pubsub.
-		// 3 components
+		// 3 components.
 		assert.Equal(t, 3, len(lines), "expected 3 components")
 	} else {
 		assert.Equal(t, 2, len(lines), "expected 2 components") // default and test namespace components.

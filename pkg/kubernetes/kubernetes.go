@@ -37,19 +37,20 @@ import (
 )
 
 const (
-	daprReleaseName        = "dapr"
-	dashboardReleaseName   = "dapr-dashboard"
-	thirdPartyDevNamespace = "default"
-	zipkinChartName        = "zipkin"
-	redisChartName         = "redis"
-	zipkinReleaseName      = "dapr-dev-zipkin"
-	redisReleaseName       = "dapr-dev-redis"
-	redisVersion           = "6.2"
-	bitnamiHelmRepo        = "https://charts.bitnami.com/bitnami"
-	daprHelmRepo           = "https://dapr.github.io/helm-charts"
-	zipkinHelmRepo         = "https://openzipkin.github.io/zipkin"
-	latestVersion          = "latest"
+	daprReleaseName      = "dapr"
+	dashboardReleaseName = "dapr-dashboard"
+	latestVersion        = "latest"
 
+	// dev mode constants.
+	thirdPartyDevNamespace   = "default"
+	zipkinChartName          = "zipkin"
+	redisChartName           = "redis"
+	zipkinReleaseName        = "dapr-dev-zipkin"
+	redisReleaseName         = "dapr-dev-redis"
+	redisVersion             = "6.2"
+	bitnamiHelmRepo          = "https://charts.bitnami.com/bitnami"
+	daprHelmRepo             = "https://dapr.github.io/helm-charts"
+	zipkinHelmRepo           = "https://openzipkin.github.io/zipkin"
 	stateStoreComponentName  = "statestore"
 	pubsubComponentName      = "pubsub"
 	zipkingConfigurationName = "appconfig"

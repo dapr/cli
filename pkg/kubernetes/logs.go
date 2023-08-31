@@ -34,9 +34,12 @@ const (
 	daprdContainerName    = "daprd"
 	appIDContainerArgName = "--app-id"
 
+	// number of retries when trying to list pods for getting logs.
 	maxListingRetry = 10
-	listingDelay    = 200 * time.Microsecond
-	streamingDelay  = 100 * time.Millisecond
+	// delay between retries of pod listing.
+	listingDelay = 200 * time.Microsecond
+	// delay before retrying for getting logs.
+	streamingDelay = 100 * time.Millisecond
 )
 
 // Logs fetches Dapr sidecar logs from Kubernetes.

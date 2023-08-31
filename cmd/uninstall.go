@@ -49,6 +49,15 @@ dapr uninstall --all
 # Uninstall from Kubernetes
 dapr uninstall -k
 
+# Uninstall from Kubernetes and remove CRDs
+dapr uninstall -k --all
+
+# Uninstall from Kubernetes remove dev deployments of Redis, Zipkin
+dapr uninstall -k --dev
+
+# Uninstall from Kubernetes remove dev deployments of Redis, Zipkin and CRDs
+dapr uninstall -k --dev --all
+
 # Uninstall Dapr from non-default install directory
 # This will remove the .dapr directory present in the path <path-to-install-directory>
 dapr uninstall --runtime-path <path-to-install-directory>

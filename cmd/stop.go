@@ -42,6 +42,12 @@ dapr stop --run-file dapr.yaml
 
 # Stop multiple apps by providing a directory path containing the run config file(dapr.yaml)
 dapr stop --run-file /path/to/directory
+
+# Stop and delete Kubernetes deployment of multiple apps by providing a run config file
+dapr stop --run-file dapr.yaml -k
+
+# Stop and delete Kubernetes deployment of multiple apps by providing a directory path containing the run config file(dapr.yaml)
+dapr stop --run-file /path/to/directory -k
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error

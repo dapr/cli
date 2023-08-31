@@ -107,6 +107,12 @@ dapr run --run-file dapr.yaml
 
 # Run multiple apps by providing a directory path containing the run config file(dapr.yaml)
 dapr run --run-file /path/to/directory
+
+# Run multiple apps in Kubernetes by proficing path of a run config file
+dapr run --run-file dapr.yaml -k
+
+# Run multiple apps in Kubernetes by providing a directory path containing the run config file(dapr.yaml)
+dapr run --run-file /path/to/directory -k
   `,
 	Args: cobra.MinimumNArgs(0),
 	PreRun: func(cmd *cobra.Command, args []string) {
