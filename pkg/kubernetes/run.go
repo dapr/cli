@@ -36,7 +36,7 @@ import (
 	k8sYaml "sigs.k8s.io/yaml"
 
 	"github.com/dapr/cli/pkg/print"
-	"github.com/dapr/cli/pkg/standalone/runfileconfig"
+	"github.com/dapr/cli/pkg/runfileconfig"
 	daprsyscall "github.com/dapr/cli/pkg/syscall"
 	"github.com/dapr/cli/utils"
 )
@@ -184,7 +184,7 @@ func Run(runFilePath string, config runfileconfig.RunFileConfig) (bool, error) {
 		daprdLogWriter := runfileconfig.GetLogWriter(app.DaprdLogWriteCloser, app.DaprdLogDestination)
 		// appDaprdWriter := runExec.GetAppDaprdWriter(app, false).
 		appLogWriter := runfileconfig.GetLogWriter(app.AppLogWriteCloser, app.AppLogDestination)
-
+		customAppLogWriter := print.CustomLogWriter{W: appLogWriter}
 		ctx, cancel := context.WithTimeout(context.Background(), podCreationDeletionTimeout)
 		err = waitPodRunning(ctx, client, namespace, app.AppID)
 		cancel()
@@ -196,7 +196,7 @@ func Run(runFilePath string, config runfileconfig.RunFileConfig) (bool, error) {
 		} else {
 			logContext, cancel := context.WithCancel(context.Background())
 			rState.logCancel = cancel
-			err = setupLogs(logContext, app.AppID, daprdLogWriter, appLogWriter, podsInterface)
+			err = setupLogs(logContext, app.AppID, daprdLogWriter, customAppLogWriter, podsInterface)
 			if err != nil {
 				print.StatusEvent(os.Stderr, print.LogWarning, "Error setting up logs for app %q present in %q . See logs directly from Kubernetes command line.: %s ", app.AppID, runFilePath, err.Error())
 			}

@@ -31,8 +31,8 @@ import (
 	"github.com/dapr/cli/pkg/metadata"
 	"github.com/dapr/cli/pkg/print"
 	runExec "github.com/dapr/cli/pkg/runexec"
+	"github.com/dapr/cli/pkg/runfileconfig"
 	"github.com/dapr/cli/pkg/standalone"
-	"github.com/dapr/cli/pkg/standalone/runfileconfig"
 	daprsyscall "github.com/dapr/cli/pkg/syscall"
 	"github.com/dapr/cli/utils"
 )

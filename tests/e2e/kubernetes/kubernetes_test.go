@@ -137,7 +137,8 @@ func TestKubernetesDev(t *testing.T) {
 	})...)
 
 	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
-		DevEnabled: true,
+		DevEnabled:   true,
+		UninstallAll: true,
 		CheckResourceExists: map[common.Resource]bool{
 			common.CustomResourceDefs:  true,
 			common.ClusterRoles:        false,

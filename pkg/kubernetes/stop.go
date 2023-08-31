@@ -21,7 +21,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/dapr/cli/pkg/standalone/runfileconfig"
+	"github.com/dapr/cli/pkg/runfileconfig"
 )
 
 func Stop(runFilePath string, config runfileconfig.RunFileConfig) error {

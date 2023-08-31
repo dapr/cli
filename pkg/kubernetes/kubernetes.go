@@ -33,6 +33,7 @@ import (
 	"github.com/dapr/cli/pkg/print"
 	cli_ver "github.com/dapr/cli/pkg/version"
 	"github.com/dapr/cli/utils"
+	"github.com/dapr/dapr/pkg/client/clientset/versioned"
 )
 
 const (
@@ -48,6 +49,10 @@ const (
 	daprHelmRepo           = "https://dapr.github.io/helm-charts"
 	zipkinHelmRepo         = "https://openzipkin.github.io/zipkin"
 	latestVersion          = "latest"
+
+	stateStoreComponentName  = "statestore"
+	pubsubComponentName      = "pubsub"
+	zipkingConfigurationName = "appconfig"
 )
 
 type InitConfiguration struct {
@@ -378,14 +383,54 @@ func checkAndOverWriteFile(filePath string, b []byte) error {
 	return nil
 }
 
+func isComponentPresent(client versioned.Interface, namespace string, componentName string) (bool, error) {
+	c, err := getComponent(client, namespace, componentName)
+	if err != nil {
+		return false, err
+	}
+	return c.Name == componentName, err
+}
+
+func isConfigurationPresent(client versioned.Interface, namespace string, configurationName string) (bool, error) {
+	c, err := getDaprConfiguration(client, namespace, configurationName)
+	if err != nil {
+		return false, err
+	}
+	return c.Name == configurationName, nil
+}
+
 func initDevConfigs() error {
 	redisStatestore := `
 apiVersion: dapr.io/v1alpha1
 kind: Component
 metadata:
-  name: daprdevstatestore
+  name: statestore
 spec:
   type: state.redis
+  version: v1
+  metadata:
+  # These settings will work out of the box if you use helm install
+  # bitnami/redis.  If you have your own setup, replace
+  # redis-master:6379 with your own Redis master address, and the
+  # Redis password with your own Secret's name. For more information,
+  # see https://docs.dapr.io/operations/components/component-secrets .
+  - name: redisHost
+    value: dapr-dev-redis-master:6379
+  - name: redisPassword
+    secretKeyRef:
+      name: dapr-dev-redis
+      key: redis-password
+auth:
+  secretStore: kubernetes
+`
+
+	redisPubsub := `
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: pubsub
+spec:
+  type: pubsub.redis
   version: v1
   metadata:
   # These settings will work out of the box if you use helm install
@@ -407,7 +452,7 @@ auth:
 apiVersion: dapr.io/v1alpha1
 kind: Configuration
 metadata:
-  name: daprdevzipkinconfig
+  name: appconfig
 spec:
   tracing:
     samplingRate: "1"
@@ -419,21 +464,66 @@ spec:
 	if err != nil {
 		return err
 	}
+	client, err := DaprClient()
+	if err != nil {
+		return err
+	}
+	present, err := isComponentPresent(client, thirdPartyDevNamespace, stateStoreComponentName)
+	if present || err != nil {
+		if err != nil {
+			print.WarningStatusEvent(os.Stderr, "Error listing components, skipping default dev component creation.")
+		} else {
+			print.WarningStatusEvent(os.Stderr, "Component with name %q already present in namespace %q. Skipping component creation.", stateStoreComponentName, thirdPartyDevNamespace)
+		}
+		return err
+	}
+
 	redisPath := filepath.Join(tempDirPath, "redis-statestore.yaml")
 	err = checkAndOverWriteFile(redisPath, []byte(redisStatestore))
 	if err != nil {
 		return err
 	}
+	print.InfoStatusEvent(os.Stdout, "Applying %q component to Kubernetes %q namespace.", stateStoreComponentName, thirdPartyDevNamespace)
 	_, err = utils.RunCmdAndWait("kubectl", "apply", "-f", redisPath)
 	if err != nil {
 		return err
 	}
 
+	present, err = isComponentPresent(client, thirdPartyDevNamespace, pubsubComponentName)
+	if present || err != nil {
+		if err != nil {
+			print.WarningStatusEvent(os.Stderr, "Error listing components, skipping default dev component creation.")
+		} else {
+			print.WarningStatusEvent(os.Stderr, "Component with name %q already present in namespace %q. Skipping component creation.", pubsubComponentName, thirdPartyDevNamespace)
+		}
+		return err
+	}
+	redisPath = filepath.Join(tempDirPath, "redis-pubsub.yaml")
+	err = checkAndOverWriteFile(redisPath, []byte(redisPubsub))
+	if err != nil {
+		return err
+	}
+	print.InfoStatusEvent(os.Stdout, "Applying %q component to Kubernetes %q namespace.", pubsubComponentName, thirdPartyDevNamespace)
+	_, err = utils.RunCmdAndWait("kubectl", "apply", "-f", redisPath)
+	if err != nil {
+		return err
+	}
+
+	present, err = isConfigurationPresent(client, thirdPartyDevNamespace, zipkingConfigurationName)
+	if present || err != nil {
+		if err != nil {
+			print.WarningStatusEvent(os.Stderr, "Error listing configurations, skipping default dev configuration creation.")
+		} else {
+			print.WarningStatusEvent(os.Stderr, "Configuration with name %q already present in namespace %q. Skipping configuration creation.", zipkingConfigurationName, thirdPartyDevNamespace)
+		}
+		return err
+	}
 	zipkinPath := filepath.Join(tempDirPath, "zipkin-config.yaml")
 	err = checkAndOverWriteFile(zipkinPath, []byte(zipkinConfig))
 	if err != nil {
 		return err
 	}
+	print.InfoStatusEvent(os.Stdout, "Applying %q zipkin configuration to Kubernetes %q namespace.", zipkingConfigurationName, thirdPartyDevNamespace)
 	_, err = utils.RunCmdAndWait("kubectl", "apply", "-f", zipkinPath)
 	if err != nil {
 		return err
