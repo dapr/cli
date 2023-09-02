@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"github.com/dapr/cli/pkg/print"
+	daprsyscall "github.com/dapr/cli/pkg/syscall"
 
 	"github.com/docker/docker/client"
 	"github.com/gocarina/gocsv"
@@ -51,6 +52,9 @@ const (
 
 	// DefaultAppChannelAddress is the default local network address that user application listen on.
 	DefaultAppChannelAddress = "127.0.0.1"
+
+	// windowsDaprAppProcJobName is the name of the Windows job object that is used to manage the Daprized app's processes on windows.
+	windowsDaprAppProcJobName = "dapr-app-process-job"
 )
 
 // IsValidContainerRuntime checks if the input is a valid container runtime.
@@ -407,4 +411,15 @@ func FindFileInDir(dirPath, fileName string) (string, error) {
 // SanitizeDir sanitizes the input string to make it a valid directory.
 func SanitizeDir(destDir string) string {
 	return strings.ReplaceAll(destDir, "'", "''")
+}
+
+// Attach Job object to App Process.
+func AttachJobObjectToProcess(pid string, proc *os.Process) {
+	// Attach a job object to the app process.
+	daprsyscall.AttachJobObjectToProcess(GetJobObjectNameFromPID(pid), proc)
+}
+
+// GetJobObjectNameFromPID returns the name of the Windows job object that is used to manage the Daprized app's processes on windows.
+func GetJobObjectNameFromPID(pid string) string {
+	return pid + "-" + windowsDaprAppProcJobName
 }

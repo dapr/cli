@@ -1,4 +1,5 @@
-//go:build e2e || template
+//go:build !windows && (e2e || template)
+// +build !windows
 // +build e2e template
 
 /*
@@ -22,7 +23,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"runtime"
 	"testing"
 	"time"
 
@@ -31,9 +31,6 @@ import (
 )
 
 func TestStopAppsStartedWithRunTemplate(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Skipping test on windows")
-	}
 	ensureDaprInstallation(t)
 	t.Cleanup(func() {
 		// remove dapr installation after all tests in this function.

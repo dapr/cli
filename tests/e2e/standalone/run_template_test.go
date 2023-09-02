@@ -1,4 +1,5 @@
-//go:build e2e || template
+//go:build !windows && (e2e || template)
+// +build !windows
 // +build e2e template
 
 /*
@@ -24,7 +25,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -43,9 +43,6 @@ type AppTestOutput struct {
 }
 
 func TestRunWithTemplateFile(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Skipping test on Windows")
-	}
 	ensureDaprInstallation(t)
 	t.Cleanup(func() {
 		// remove dapr installation after all tests in this function.
@@ -373,9 +370,6 @@ func TestRunWithTemplateFile(t *testing.T) {
 }
 
 func TestRunTemplateFileWithoutDaprInit(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Skipping test on Windows")
-	}
 	// remove any dapr installation before this test.
 	must(t, cmdUninstall, "failed to uninstall Dapr")
 	t.Run("valid template file without dapr init", func(t *testing.T) {
