@@ -106,6 +106,7 @@ func Run(runFilePath string, config runfileconfig.RunFileConfig) (bool, error) {
 	daprsyscall.SetupShutdownNotify(sigCh)
 
 	runStates := []runState{}
+	print.InfoStatusEvent(os.Stdout, "This is a preview feature and subject to change in future releases.")
 
 	for _, app := range config.Apps {
 		print.StatusEvent(os.Stdout, print.LogInfo, "Validating config and starting app %q", app.RunConfig.AppID)
@@ -360,7 +361,11 @@ func writeYamlFile(app runfileconfig.App, svc serviceConfig, dep deploymentConfi
 }
 
 func deployYamlToK8s(yamlToDeployPath string) error {
-	_, err := utils.RunCmdAndWait("kubectl", "apply", "-f", yamlToDeployPath)
+	_, err := os.Stat(yamlToDeployPath)
+	if os.IsNotExist(err) {
+		return fmt.Errorf("error given file %q does not exist", yamlToDeployPath)
+	}
+	_, err = utils.RunCmdAndWait("kubectl", "apply", "-f", yamlToDeployPath)
 	if err != nil {
 		return fmt.Errorf("error deploying the yaml %s to Kubernetes: %w", yamlToDeployPath, err)
 	}
@@ -369,9 +374,13 @@ func deployYamlToK8s(yamlToDeployPath string) error {
 
 func deleteYamlK8s(yamlToDeletePath string) error {
 	print.InfoStatusEvent(os.Stdout, "Deleting %q from Kubernetes", yamlToDeletePath)
-	_, err := utils.RunCmdAndWait("kubectl", "delete", "-f", yamlToDeletePath)
+	_, err := os.Stat(yamlToDeletePath)
+	if os.IsNotExist(err) {
+		return fmt.Errorf("error given file %q does not exist", yamlToDeletePath)
+	}
+	_, err = utils.RunCmdAndWait("kubectl", "delete", "-f", yamlToDeletePath)
 	if err != nil {
-		return fmt.Errorf("error deploying the yaml %s to Kubernetes: %w", yamlToDeletePath, err)
+		return fmt.Errorf("error deleting the yaml %s from Kubernetes: %w", yamlToDeletePath, err)
 	}
 	return nil
 }
@@ -401,7 +410,10 @@ func gracefullyShutdownK8sDeployment(runStates []runState, client k8s.Interface,
 		}
 
 		// shutdown logs.
-		r.logCancel()
+		if r.logCancel != nil { // checking nil, in scenarios where deployments are not run correctly.
+			r.logCancel()
+		}
+
 		errs = append(errs, r.app.CloseAppLogFile(), r.app.CloseDaprdLogFile())
 	}
 	return errors.Join(errs...)
@@ -413,14 +425,14 @@ func monitorK8sPods(ctx context.Context, client k8s.Interface, namespace string,
 	wg := sync.WaitGroup{}
 
 	for _, r := range runStates {
+		wg.Add(1)
 		go func(appID string, wg *sync.WaitGroup) {
-			err := waitPodDeleted(ctx, client, namespace, r.app.AppID)
+			err := waitPodDeleted(ctx, client, namespace, appID)
 			if err != nil && strings.Contains(err.Error(), podWatchErrTemplate) {
 				print.WarningStatusEvent(os.Stderr, "Error monitoring Kubernetes pod(s) for app %q.", appID)
 			}
 			wg.Done()
 		}(r.app.AppID, &wg)
-		wg.Add(1)
 	}
 	wg.Wait()
 	// Send signal to gracefully close log writers and shut down process.

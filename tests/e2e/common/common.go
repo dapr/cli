@@ -144,7 +144,7 @@ func UpgradeTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 	}
 }
 
-func EnsureUninstall(all bool) (string, error) {
+func EnsureUninstall(all bool, devEnabled bool) (string, error) {
 	daprPath := GetDaprPath()
 
 	var _command [10]string
@@ -152,6 +152,9 @@ func EnsureUninstall(all bool) (string, error) {
 
 	if all {
 		command = append(command, "--all")
+	}
+	if devEnabled {
+		command = append(command, "--dev")
 	}
 
 	command = append(command,
@@ -178,6 +181,14 @@ func DeleteCRD(crds []string) func(*testing.T) {
 }
 
 // Get Test Cases.
+
+func GetInstallOnlyTest(details VersionDetails, opts TestOptions) TestCase {
+	return TestCase{"install " + details.RuntimeVersion, installTest(details, opts)}
+}
+
+func GetUninstallOnlyTest(details VersionDetails, opts TestOptions) TestCase {
+	return TestCase{"uninstall " + details.RuntimeVersion, uninstallTest(opts.UninstallAll, opts.DevEnabled)} // waits for pod deletion.
+}
 
 func GetTestsOnInstall(details VersionDetails, opts TestOptions) []TestCase {
 	return []TestCase{
@@ -799,7 +810,7 @@ func installTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 
 func uninstallTest(all bool, devEnabled bool) func(t *testing.T) {
 	return func(t *testing.T) {
-		output, err := EnsureUninstall(all)
+		output, err := EnsureUninstall(all, devEnabled)
 		t.Log(output)
 		require.NoError(t, err, "uninstall failed")
 		// wait for pods to be deleted completely.
@@ -833,7 +844,7 @@ func uninstallTest(all bool, devEnabled bool) func(t *testing.T) {
 
 func kubernetesTestOnUninstall() func(t *testing.T) {
 	return func(t *testing.T) {
-		_, err := EnsureUninstall(true)
+		_, err := EnsureUninstall(true, true)
 		require.NoError(t, err, "uninstall failed")
 		daprPath := GetDaprPath()
 		output, err := spawn.Command(daprPath, "uninstall", "-k")
