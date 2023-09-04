@@ -138,7 +138,7 @@ func getTestsOnUpgrade(p upgradePath, installOpts, upgradeOpts common.TestOption
 
 func TestUpgradePathNonHAModeMTLSDisabled(t *testing.T) {
 	// Ensure a clean environment.
-	common.EnsureUninstall(false) // does not wait for pod deletion.
+	common.EnsureUninstall(false, false) // does not wait for pod deletion.
 	for _, p := range supportedUpgradePaths {
 		t.Run(fmt.Sprintf("setup v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
 			t.Run("delete CRDs "+p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs))
@@ -183,7 +183,7 @@ func TestUpgradePathNonHAModeMTLSDisabled(t *testing.T) {
 
 func TestUpgradePathNonHAModeMTLSEnabled(t *testing.T) {
 	// Ensure a clean environment.
-	common.EnsureUninstall(false) // does not wait for pod deletion.
+	common.EnsureUninstall(false, false) // does not wait for pod deletion.
 	for _, p := range supportedUpgradePaths {
 		t.Run(fmt.Sprintf("setup v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
 			t.Run("delete CRDs "+p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs))
@@ -228,7 +228,7 @@ func TestUpgradePathNonHAModeMTLSEnabled(t *testing.T) {
 
 func TestUpgradePathHAModeMTLSDisabled(t *testing.T) {
 	// Ensure a clean environment.
-	common.EnsureUninstall(false) // does not wait for pod deletion.
+	common.EnsureUninstall(false, false) // does not wait for pod deletion.
 	for _, p := range supportedUpgradePaths {
 		t.Run(fmt.Sprintf("setup v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
 			t.Run("delete CRDs "+p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs))
@@ -273,7 +273,7 @@ func TestUpgradePathHAModeMTLSDisabled(t *testing.T) {
 
 func TestUpgradePathHAModeMTLSEnabled(t *testing.T) {
 	// Ensure a clean environment.
-	common.EnsureUninstall(false) // does not wait for pod deletion.
+	common.EnsureUninstall(false, false) // does not wait for pod deletion.
 	for _, p := range supportedUpgradePaths {
 		t.Run(fmt.Sprintf("setup v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
 			t.Run("delete CRDs "+p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs))
@@ -320,7 +320,7 @@ func TestUpgradePathHAModeMTLSEnabled(t *testing.T) {
 // This test verifies install/upgrade functionality with this additional resource.
 func TestUpgradeWithHTTPEndpoint(t *testing.T) {
 	// Ensure a clean environment.
-	common.EnsureUninstall(false) // does not wait for pod deletion.
+	common.EnsureUninstall(false, false) // does not wait for pod deletion.
 	for _, p := range supportedUpgradePaths {
 		t.Run(fmt.Sprintf("setup v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
 			t.Run("delete CRDs "+p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs))

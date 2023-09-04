@@ -119,7 +119,7 @@ func cmdRun(unixDomainSocket string, args ...string) (string, error) {
 	return spawn.Command(common.GetDaprPath(), runArgs...)
 }
 
-// cmdRun runs a Dapr instance and returns the command output and error.
+// cmdRunWithContext runs a Dapr instance with context and returns the command output and error.
 func cmdRunWithContext(ctx context.Context, unixDomainSocket string, args ...string) (string, error) {
 	runArgs := []string{"run"}
 

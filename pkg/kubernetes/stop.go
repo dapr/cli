@@ -17,10 +17,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 
 	corev1 "k8s.io/api/core/v1"
 
+	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/pkg/runfileconfig"
 )
 
@@ -32,20 +34,34 @@ func Stop(runFilePath string, config runfileconfig.RunFileConfig) error {
 		return fmt.Errorf("error getting k8s client for monitoring pod deletion: %w", cErr)
 	}
 
+	var err error
 	namespace := corev1.NamespaceDefault
 	for _, app := range config.Apps {
+		appError := false
 		deployDir := app.GetDeployDir()
 		serviceFilePath := filepath.Join(deployDir, serviceFileName)
 		deploymentFilePath := filepath.Join(deployDir, deploymentFileName)
 		if app.CreateService {
-			errs = append(errs, deleteYamlK8s(serviceFilePath))
+			err = deleteYamlK8s(serviceFilePath)
+			if err != nil {
+				appError = true
+			}
+			errs = append(errs, err)
 		}
-		errs = append(errs, deleteYamlK8s(deploymentFilePath))
-		ctx, cancel := context.WithTimeout(context.Background(), podCreationDeletionTimeout)
+		err = deleteYamlK8s(deploymentFilePath)
+		if err != nil {
+			appError = true
+		}
+		errs = append(errs, err)
+		if !appError {
+			ctx, cancel := context.WithTimeout(context.Background(), podCreationDeletionTimeout)
 
-		// Ignoring errors here as it will anyway be printed in the other dapr cli process.
-		waitPodDeleted(ctx, client, namespace, app.AppID)
-		cancel()
+			// Ignoring errors here as it will anyway be printed in the other dapr cli process.
+			waitPodDeleted(ctx, client, namespace, app.AppID)
+			cancel()
+		} else {
+			print.WarningStatusEvent(os.Stderr, "Error stopping deployment for app %q in file %q", app.AppID, runFilePath)
+		}
 	}
 	return errors.Join(errs...)
 }

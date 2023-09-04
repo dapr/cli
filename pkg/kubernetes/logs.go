@@ -185,7 +185,6 @@ func streamContainerLogsToDisk(ctx context.Context, appID string, appLogWriter, 
 func getPods(ctx context.Context, appID string, podClient v1.PodInterface) (*corev1.PodList, error) {
 	listCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	labelSelector := fmt.Sprintf("%s=%s", daprAppIDKey, appID)
-	fmt.Println("Select", labelSelector)
 	podList, err := podClient.List(listCtx, metav1.ListOptions{
 		LabelSelector: labelSelector,
 	})

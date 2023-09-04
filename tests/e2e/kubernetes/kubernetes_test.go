@@ -17,44 +17,10 @@ limitations under the License.
 package kubernetes_test
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/dapr/cli/tests/e2e/common"
 )
-
-var (
-	currentRuntimeVersion     string
-	currentDashboardVersion   string
-	currentVersionDetails     common.VersionDetails
-	clusterRoles1_9_X         = []string{"dapr-operator-admin", "dashboard-reader"}
-	clusterRoleBindings1_9_X  = []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"}
-	clusterRoles1_10_X        = []string{"dapr-dashboard", "dapr-injector", "dapr-operator-admin", "dapr-placement", "dapr-sentry"}
-	clusterRoleBindings1_10_X = []string{"dapr-operator-admin", "dapr-dashboard", "dapr-injector", "dapr-placement", "dapr-sentry"}
-)
-
-// ensureCleanEnv function needs to be called in every Test function.
-// sets necessary variable values and uninstalls any previously installed `dapr`.
-func ensureCleanEnv(t *testing.T, useDaprLatestVersion bool) {
-	currentRuntimeVersion, currentDashboardVersion = common.GetVersionsFromEnv(t, useDaprLatestVersion)
-
-	currentVersionDetails = common.VersionDetails{
-		RuntimeVersion:       currentRuntimeVersion,
-		DashboardVersion:     currentDashboardVersion,
-		CustomResourceDefs:   []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io", "httpendpoints.dapr.io"},
-		ImageVariant:         "",
-		UseDaprLatestVersion: useDaprLatestVersion,
-	}
-	if strings.HasPrefix(currentRuntimeVersion, "1.9.") {
-		currentVersionDetails.ClusterRoles = clusterRoles1_9_X
-		currentVersionDetails.ClusterRoleBindings = clusterRoleBindings1_9_X
-	} else {
-		currentVersionDetails.ClusterRoles = clusterRoles1_10_X
-		currentVersionDetails.ClusterRoleBindings = clusterRoleBindings1_10_X
-	}
-	// Ensure a clean environment
-	common.EnsureUninstall(true) // does not wait for pod deletion
-}
 
 func TestKubernetesNonHAModeMTLSDisabled(t *testing.T) {
 	// ensure clean env for test
@@ -393,7 +359,7 @@ func TestKubernetesUninstall(t *testing.T) {
 }
 
 func TestRenewCertWithIncorrectFlags(t *testing.T) {
-	common.EnsureUninstall(true)
+	common.EnsureUninstall(true, true)
 
 	tests := []common.TestCase{}
 	installOpts := common.TestOptions{
