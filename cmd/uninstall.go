@@ -30,6 +30,7 @@ import (
 var (
 	uninstallNamespace        string
 	uninstallKubernetes       bool
+	uninstallDev              bool
 	uninstallAll              bool
 	uninstallContainerRuntime string
 )
@@ -47,6 +48,15 @@ dapr uninstall --all
 
 # Uninstall from Kubernetes
 dapr uninstall -k
+
+# Uninstall from Kubernetes and remove CRDs
+dapr uninstall -k --all
+
+# Uninstall from Kubernetes remove dev deployments of Redis, Zipkin
+dapr uninstall -k --dev
+
+# Uninstall from Kubernetes remove dev deployments of Redis, Zipkin and CRDs
+dapr uninstall -k --dev --all
 
 # Uninstall Dapr from non-default install directory
 # This will remove the .dapr directory present in the path <path-to-install-directory>
@@ -66,7 +76,7 @@ dapr uninstall --runtime-path <path-to-install-directory>
 			}
 
 			print.InfoStatusEvent(os.Stdout, "Removing Dapr from your cluster...")
-			err = kubernetes.Uninstall(uninstallNamespace, uninstallAll, timeout)
+			err = kubernetes.Uninstall(uninstallNamespace, uninstallAll, uninstallDev, timeout)
 		} else {
 			if !utils.IsValidContainerRuntime(uninstallContainerRuntime) {
 				print.FailureStatusEvent(os.Stdout, "Invalid container runtime. Supported values are docker and podman.")
@@ -87,6 +97,7 @@ dapr uninstall --runtime-path <path-to-install-directory>
 
 func init() {
 	UninstallCmd.Flags().BoolVarP(&uninstallKubernetes, "kubernetes", "k", false, "Uninstall Dapr from a Kubernetes cluster")
+	UninstallCmd.Flags().BoolVarP(&uninstallDev, "dev", "", false, "Uninstall Dapr Redis and Zipking installations from Kubernetes cluster")
 	UninstallCmd.Flags().UintVarP(&timeout, "timeout", "", 300, "The timeout for the Kubernetes uninstall")
 	UninstallCmd.Flags().BoolVar(&uninstallAll, "all", false, "Remove .dapr directory, Redis, Placement and Zipkin containers on local machine, and CRDs on a Kubernetes cluster")
 	UninstallCmd.Flags().String("network", "", "The Docker network from which to remove the Dapr runtime")

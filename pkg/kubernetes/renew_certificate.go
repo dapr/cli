@@ -112,7 +112,8 @@ func renewCertificate(rootCert, issuerCert, issuerKey []byte, timeout uint, imag
 		return err
 	}
 
-	daprChart, err := daprChart(daprVersion, "dapr", helmConf)
+	helmRepo := utils.GetEnv("DAPR_HELM_REPO_URL", daprHelmRepo)
+	daprChart, err := getHelmChart(daprVersion, "dapr", helmRepo, helmConf)
 	if err != nil {
 		return err
 	}

@@ -48,6 +48,10 @@ const (
 
 	numHAPods    = 13
 	numNonHAPods = 5
+
+	thirdPartyDevNamespace = "default"
+	devRedisReleaseName    = "dapr-dev-redis"
+	devZipkinReleaseName   = "dapr-dev-zipkin"
 )
 
 type VersionDetails struct {
@@ -61,6 +65,7 @@ type VersionDetails struct {
 }
 
 type TestOptions struct {
+	DevEnabled               bool
 	HAEnabled                bool
 	MTLSEnabled              bool
 	ApplyComponentChanges    bool
@@ -189,12 +194,12 @@ func GetTestsOnInstall(details VersionDetails, opts TestOptions) []TestCase {
 
 func GetTestsOnUninstall(details VersionDetails, opts TestOptions) []TestCase {
 	return []TestCase{
-		{"uninstall " + details.RuntimeVersion, uninstallTest(opts.UninstallAll)}, // waits for pod deletion.
+		{"uninstall " + details.RuntimeVersion, uninstallTest(opts.UninstallAll, opts.DevEnabled)}, // waits for pod deletion.
 		{"cluster not exist", kubernetesTestOnUninstall()},
 		{"crds exist on uninstall " + details.RuntimeVersion, CRDTest(details, opts)},
 		{"clusterroles not exist " + details.RuntimeVersion, ClusterRolesTest(details, opts)},
 		{"clusterrolebindings not exist " + details.RuntimeVersion, ClusterRoleBindingsTest(details, opts)},
-		{"check components exist on uninstall " + details.RuntimeVersion, componentsTestOnUninstall(opts.UninstallAll)},
+		{"check components exist on uninstall " + details.RuntimeVersion, componentsTestOnUninstall(opts)},
 		{"check httpendpoints exist on uninstall " + details.RuntimeVersion, httpEndpointsTestOnUninstall(opts)},
 		{"check mtls error " + details.RuntimeVersion, uninstallMTLSTest()},
 		{"check status error " + details.RuntimeVersion, statusTestOnUninstall()},
@@ -293,13 +298,19 @@ func ComponentsTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 			output, err = spawn.Command("kubectl", "apply", "-f", "../testdata/statestore.yaml")
 			t.Log(output)
 			require.NoError(t, err, "expected no error on kubectl apply")
-			require.Equal(t, "component.dapr.io/statestore created\ncomponent.dapr.io/statestore created\n", output, "expceted output to match")
+			// if Dev install, statestore in default namespace will already be created as part of dev install once, so the above command output will be
+			// changed to statestore configured for the default namespace statestore.
+			if opts.DevEnabled {
+				require.Equal(t, "component.dapr.io/statestore configured\ncomponent.dapr.io/statestore created\n", output, "expceted output to match")
+			} else {
+				require.Equal(t, "component.dapr.io/statestore created\ncomponent.dapr.io/statestore created\n", output, "expceted output to match")
+			}
 		}
 
 		t.Log("check applied component exists")
 		output, err := spawn.Command(daprPath, "components", "-k")
 		require.NoError(t, err, "expected no error on calling dapr components")
-		componentOutputCheck(t, output, false)
+		componentOutputCheck(t, opts, output)
 	}
 }
 
@@ -747,6 +758,10 @@ func installTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 			"-n", DaprTestNamespace,
 			"--log-as-json",
 		}
+		if opts.DevEnabled {
+			t.Log("install dev mode")
+			args = append(args, "--dev")
+		}
 		if !details.UseDaprLatestVersion {
 			// TODO: Pass dashboard-version also when charts are released.
 			args = append(args, "--runtime-version", details.RuntimeVersion)
@@ -776,10 +791,13 @@ func installTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 		require.NoError(t, err, "init failed")
 
 		validatePodsOnInstallUpgrade(t, details)
+		if opts.DevEnabled {
+			validateThirdpartyPodsOnInit(t)
+		}
 	}
 }
 
-func uninstallTest(all bool) func(t *testing.T) {
+func uninstallTest(all bool, devEnabled bool) func(t *testing.T) {
 	return func(t *testing.T) {
 		output, err := EnsureUninstall(all)
 		t.Log(output)
@@ -792,11 +810,23 @@ func uninstallTest(all bool) func(t *testing.T) {
 		go waitPodDeletion(t, done, podsDeleted)
 		select {
 		case <-podsDeleted:
-			t.Log("pods were deleted as expected on uninstall")
-			return
+			t.Log("dapr pods were deleted as expected on uninstall")
 		case <-time.After(2 * time.Minute):
 			done <- struct{}{}
-			t.Error("timeout verifying pods were deleted as expectedx")
+			t.Error("timeout verifying pods were deleted as expected")
+			return
+		}
+		if devEnabled {
+			t.Log("waiting for dapr dev pods to be deleted")
+			go waitPodDeletionDev(t, done, podsDeleted)
+			select {
+			case <-podsDeleted:
+				t.Log("dapr dev pods were deleted as expected on uninstall dev")
+				return
+			case <-time.After(2 * time.Minute):
+				done <- struct{}{}
+				t.Error("timeout verifying pods were deleted as expected")
+			}
 		}
 	}
 }
@@ -823,7 +853,7 @@ func uninstallMTLSTest() func(t *testing.T) {
 	}
 }
 
-func componentsTestOnUninstall(all bool) func(t *testing.T) {
+func componentsTestOnUninstall(opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
 		daprPath := GetDaprPath()
 		// On Dapr uninstall CRDs are not removed, consequently the components will not be removed.
@@ -831,10 +861,10 @@ func componentsTestOnUninstall(all bool) func(t *testing.T) {
 		// For now the components remain.
 		output, err := spawn.Command(daprPath, "components", "-k")
 		require.NoError(t, err, "expected no error on calling dapr components")
-		componentOutputCheck(t, output, all)
+		componentOutputCheck(t, opts, output)
 
 		// If --all, then the below does not need to run.
-		if all {
+		if opts.UninstallAll {
 			output, err = spawn.Command("kubectl", "delete", "-f", "../testdata/namespace.yaml")
 			require.NoError(t, err, "expected no error on kubectl delete")
 			t.Log(output)
@@ -898,29 +928,37 @@ func statusTestOnUninstall() func(t *testing.T) {
 	}
 }
 
-func componentOutputCheck(t *testing.T, output string, all bool) {
+func componentOutputCheck(t *testing.T, opts TestOptions, output string) {
 	output = strings.TrimSpace(output) // remove empty string.
 	lines := strings.Split(output, "\n")
 	for i, line := range lines {
 		t.Logf("num:%d line:%+v", i, line)
 	}
 
-	if all {
+	if opts.UninstallAll {
 		assert.Equal(t, 2, len(lines), "expected at 0 components and 2 output lines")
 		return
 	}
 
 	lines = strings.Split(output, "\n")[2:] // remove header and warning message.
 
-	assert.Equal(t, 2, len(lines), "expected 2 components") // default and test namespace components.
+	if opts.DevEnabled {
+		// default, test statestore.
+		// default pubsub.
+		// 3 components.
+		assert.Equal(t, 3, len(lines), "expected 3 components")
+	} else {
+		assert.Equal(t, 2, len(lines), "expected 2 components") // default and test namespace components.
 
-	// for fresh cluster only one component yaml has been applied.
-	testNsFields := strings.Fields(lines[0])
-	defaultNsFields := strings.Fields(lines[1])
+		// for fresh cluster only one component yaml has been applied.
+		testNsFields := strings.Fields(lines[0])
+		defaultNsFields := strings.Fields(lines[1])
 
-	// Fields splits on space, so Created time field might be split again.
-	namespaceComponentOutputCheck(t, testNsFields, "test")
-	namespaceComponentOutputCheck(t, defaultNsFields, "default")
+		// Fields splits on space, so Created time field might be split again.
+		// Scopes are only applied in for this scenario in tests.
+		namespaceComponentOutputCheck(t, testNsFields, "test")
+		namespaceComponentOutputCheck(t, defaultNsFields, "default")
+	}
 }
 
 func namespaceComponentOutputCheck(t *testing.T, fields []string, namespace string) {
@@ -941,6 +979,41 @@ func httpEndpointOutputCheck(t *testing.T, output string) {
 	assert.Contains(t, output, headerAge)
 	// check for test httpendpoint named httpendpoint output to be present in output.
 	assert.Contains(t, output, "httpendpoint")
+}
+
+func validateThirdpartyPodsOnInit(t *testing.T) {
+	ctx := context.Background()
+	ctxt, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	k8sClient, err := getClient()
+	require.NoError(t, err)
+	list, err := k8sClient.CoreV1().Pods(thirdPartyDevNamespace).List(ctxt, v1.ListOptions{
+		Limit: 100,
+	})
+	require.NoError(t, err)
+	notFound := map[string]struct{}{
+		devRedisReleaseName:  {},
+		devZipkinReleaseName: {},
+	}
+	prefixes := map[string]string{
+		devRedisReleaseName:  "dapr-dev-redis-master-",
+		devZipkinReleaseName: "dapr-dev-zipkin-",
+	}
+	for _, pod := range list.Items {
+		t.Log(pod.ObjectMeta.Name)
+		for component, prefix := range prefixes {
+			if pod.Status.Phase != core_v1.PodRunning {
+				continue
+			}
+			if !pod.Status.ContainerStatuses[0].Ready {
+				continue
+			}
+			if strings.HasPrefix(pod.ObjectMeta.Name, prefix) {
+				delete(notFound, component)
+			}
+		}
+	}
+	assert.Empty(t, notFound)
 }
 
 func validatePodsOnInstallUpgrade(t *testing.T, details VersionDetails) {
@@ -1008,6 +1081,52 @@ func validatePodsOnInstallUpgrade(t *testing.T, details VersionDetails) {
 		}
 	}
 	assert.Empty(t, notFound)
+}
+
+func waitPodDeletionDev(t *testing.T, done, podsDeleted chan struct{}) {
+	for {
+		select {
+		case <-done: // if timeout was reached.
+			return
+		default:
+			break
+		}
+		ctx := context.Background()
+		ctxt, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+		k8sClient, err := getClient()
+		require.NoError(t, err, "error getting k8s client for pods check")
+		list, err := k8sClient.CoreV1().Pods(thirdPartyDevNamespace).List(ctxt, v1.ListOptions{
+			Limit: 100,
+		})
+		require.NoError(t, err)
+		found := map[string]struct{}{
+			devRedisReleaseName:  {},
+			devZipkinReleaseName: {},
+		}
+		prefixes := map[string]string{
+			devRedisReleaseName:  "dapr-dev-redis-master-",
+			devZipkinReleaseName: "dapr-dev-zipkin-",
+		}
+		for _, pod := range list.Items {
+			t.Log(pod.ObjectMeta.Name)
+			for component, prefix := range prefixes {
+				if pod.Status.Phase != core_v1.PodRunning {
+					continue
+				}
+				if !pod.Status.ContainerStatuses[0].Ready {
+					continue
+				}
+				if strings.HasPrefix(pod.ObjectMeta.Name, prefix) {
+					delete(found, component)
+				}
+			}
+		}
+		if len(found) == 2 {
+			podsDeleted <- struct{}{}
+		}
+		time.Sleep(15 * time.Second)
+	}
 }
 
 func waitPodDeletion(t *testing.T, done, podsDeleted chan struct{}) {

@@ -24,6 +24,8 @@ cli
 
 # CLI's auto-generated components directory
 **/components
+# Auto generated deploy dir inside .dapr directory
+**/.dapr/deploy
 # Auto generated logs dir inside .dapr directory
 **/.dapr/logs
 
