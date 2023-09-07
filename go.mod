@@ -71,7 +71,7 @@ require (
 	github.com/cloudevents/sdk-go/v2 v2.13.0 // indirect
 	github.com/containerd/containerd v1.6.18 // indirect
 	github.com/containerd/continuity v0.3.0 // indirect
-	github.com/cyphar/filepath-securejoin v0.2.3 // indirect
+	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/dapr/components-contrib v1.11.0-rc.11 // indirect
 	github.com/dapr/kit v0.11.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
