@@ -16,3 +16,5 @@ RUN wget \
   && tar -xf dapr-cli.tgz \
   && rm dapr-cli.tgz \
   && mv dapr /bin/dapr
+
+CMD "dapr"
