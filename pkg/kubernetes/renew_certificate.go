@@ -15,6 +15,8 @@ package kubernetes
 
 import (
 	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
@@ -27,8 +29,7 @@ import (
 
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/utils"
-	"github.com/dapr/dapr/pkg/sentry/ca"
-	"github.com/dapr/dapr/pkg/sentry/certs"
+	"github.com/dapr/dapr/pkg/sentry/server/ca"
 )
 
 type RenewCertificateParams struct {
@@ -180,7 +181,7 @@ func GenerateNewCertificates(validUntil time.Duration, privateKeyFile string) ([
 		}
 	} else {
 		var err error
-		rootKey, err = certs.GenerateECPrivateKey()
+		rootKey, err = ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -189,13 +190,18 @@ func GenerateNewCertificates(validUntil time.Duration, privateKeyFile string) ([
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	allowedClockSkew, err := time.ParseDuration(systemConfig.Spec.MTLSSpec.AllowedClockSkew)
+	var allowedClockSkew time.Duration
+	if systemConfig.Spec.MTLSSpec.AllowedClockSkew != nil {
+		allowedClockSkew, err = time.ParseDuration(*systemConfig.Spec.MTLSSpec.AllowedClockSkew)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+	}
+
+	bundle, err := ca.GenerateBundle(rootKey, "cluster.local", allowedClockSkew, &validUntil)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	_, rootCertPem, issuerCertPem, issuerKeyPem, err := ca.GetNewSelfSignedCertificates(rootKey, validUntil, allowedClockSkew)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	return rootCertPem, issuerCertPem, issuerKeyPem, nil
+
+	return bundle.TrustAnchors, bundle.IssChainPEM, bundle.IssKeyPEM, nil
 }
