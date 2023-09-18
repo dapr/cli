@@ -80,7 +80,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 			appID:          "processor",
 			baseLogDirPath: "../../apps/processor/.dapr/logs",
 			daprdLogContent: []string{
-				"http server is running on port 3510",
+				"HTTP server is running on port 3510",
 				"You're up and running! Dapr logs will appear here.",
 			},
 		}
@@ -136,7 +136,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 				"Received metrics:  {1}",
 			},
 			daprdLogContent: []string{
-				"http server is running on port 3510",
+				"HTTP server is running on port 3510",
 				"You're up and running! Dapr logs will appear here.",
 			},
 		}
@@ -188,7 +188,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 			appID:          "processor",
 			baseLogDirPath: "../../apps/processor/.dapr/logs",
 			daprdLogContent: []string{
-				"http server is running on port 3510",
+				"HTTP server is running on port 3510",
 				"You're up and running! Dapr logs will appear here.",
 			},
 		}
@@ -244,7 +244,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 				"termination signal received: shutting down",
 			},
 			daprdLogContent: []string{
-				"http server is running on port 3510",
+				"HTTP server is running on port 3510",
 				"You're up and running! Dapr logs will appear here.",
 			},
 		}
@@ -292,7 +292,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 				"termination signal received: shutting down",
 			},
 			daprdLogContent: []string{
-				"http server is running on port 3510",
+				"HTTP server is running on port 3510",
 				"You're up and running! Dapr logs will appear here.",
 			},
 		}
