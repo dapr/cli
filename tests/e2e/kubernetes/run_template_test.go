@@ -105,7 +105,8 @@ func testRunFile(opts common.TestOptions) func(t *testing.T) {
 		contents := []string{
 			"dapr initialized. Status: Running.",
 			"app_id=nodeapp",
-			"Shutting down all remaining components",
+			"Shutting down component statestore (state.redis/v1)",
+			"Shutting down component pubsub (pubsub.redis/v1)",
 		}
 		assertLogFileContains(t, filepath.Join(nodeAppLogsDir, daprdLogFile), contents)
 
@@ -126,7 +127,8 @@ func testRunFile(opts common.TestOptions) func(t *testing.T) {
 		contents = []string{
 			"dapr initialized. Status: Running.",
 			"app_id=pythonapp",
-			"Shutting down all remaining components",
+			"Shutting down component statestore (state.redis/v1)",
+			"Shutting down component pubsub (pubsub.redis/v1)",
 		}
 		assertLogFileContains(t, filepath.Join(pythonAppLogsDir, daprdLogFile), contents)
 
@@ -134,7 +136,7 @@ func testRunFile(opts common.TestOptions) func(t *testing.T) {
 		require.NoError(t, err, "expected no error in finding the app log file for python app")
 		contents = []string{
 			// logs during shutdown sequence.
-			"== APP - pythonapp == HTTP 500 => {\"errorCode\":\"ERR_DIRECT_INVOKE\",\"message\":\"fail to invoke, id: nodeapp",
+			"== APP - pythonapp == HTTP 500 => {\"errorCode\":\"ERR_DIRECT_INVOKE\",\"message\":\"failed to invoke, id: nodeapp",
 		}
 		assertLogFileContains(t, filepath.Join(pythonAppLogsDir, appLogFile), contents)
 	}

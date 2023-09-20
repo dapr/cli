@@ -117,11 +117,15 @@ func writeConfigurations(writer io.Writer, getConfigFunc func() (*v1alpha1.Confi
 func printConfigurationList(writer io.Writer, list []v1alpha1.Configuration) error {
 	co := []configurationsOutput{}
 	for _, c := range list {
+		var metricsEnabled bool
+		if c.Spec.MetricSpec != nil {
+			metricsEnabled = *c.Spec.MetricSpec.Enabled
+		}
 		co = append(co, configurationsOutput{
 			TracingEnabled: tracingEnabled(c.Spec.TracingSpec),
 			Name:           c.GetName(),
 			Namespace:      c.GetNamespace(),
-			MetricsEnabled: c.Spec.MetricSpec.Enabled,
+			MetricsEnabled: metricsEnabled,
 			Created:        c.CreationTimestamp.Format("2006-01-02 15:04.05"),
 			Age:            age.GetAge(c.CreationTimestamp.Time),
 		})
@@ -134,7 +138,10 @@ func printConfigurationList(writer io.Writer, list []v1alpha1.Configuration) err
 	return utils.MarshalAndWriteTable(writer, co)
 }
 
-func tracingEnabled(spec v1alpha1.TracingSpec) bool {
+func tracingEnabled(spec *v1alpha1.TracingSpec) bool {
+	if spec == nil {
+		return false
+	}
 	sr, err := strconv.ParseFloat(spec.SamplingRate, 32)
 	if err != nil {
 		return false
