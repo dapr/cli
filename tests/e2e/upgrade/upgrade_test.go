@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/Masterminds/semver/v3"
+
 	"github.com/dapr/cli/tests/e2e/common"
 )
 
