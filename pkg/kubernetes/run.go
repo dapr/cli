@@ -39,21 +39,25 @@ import (
 	"github.com/dapr/cli/pkg/runfileconfig"
 	daprsyscall "github.com/dapr/cli/pkg/syscall"
 	"github.com/dapr/cli/utils"
+	"github.com/dapr/dapr/pkg/client/clientset/versioned"
 )
 
 const (
-	serviceKind             = "Service"
-	deploymentKind          = "Deployment"
-	serviceAPIVersion       = "v1"
-	deploymentAPIVersion    = "apps/v1"
-	loadBalanceType         = "LoadBalancer"
-	daprEnableAnnotationKey = "dapr.io/enabled"
-	serviceFileName         = "service.yaml"
-	deploymentFileName      = "deployment.yaml"
-	appLabelKey             = "app"
-	nameKey                 = "name"
-	labelsKey               = "labels"
-	tcpProtocol             = "TCP"
+	serviceKind               = "Service"
+	deploymentKind            = "Deployment"
+	serviceAPIVersion         = "v1"
+	deploymentAPIVersion      = "apps/v1"
+	loadBalanceType           = "LoadBalancer"
+	daprEnableAnnotationKey   = "dapr.io/enabled"
+	daprConfigAnnotationKey   = "dapr.io/config"
+	daprConfigAnnotationValue = "appconfig"
+	serviceFileName           = "service.yaml"
+	deploymentFileName        = "deployment.yaml"
+	appLabelKey               = "app"
+	nameKey                   = "name"
+	namespaceKey              = "namespace"
+	labelsKey                 = "labels"
+	tcpProtocol               = "TCP"
 
 	podCreationDeletionTimeout = 1 * time.Minute
 )
@@ -87,11 +91,18 @@ func Run(runFilePath string, config runfileconfig.RunFileConfig) (bool, error) {
 	// Validations and default setting will only be done after this point.
 	var exitWithError bool
 
-	// get k8s client PodsInterface.
+	// get k8s client for PodsInterface.
 	client, cErr := Client()
 	if cErr != nil {
 		// exit with error.
 		return true, fmt.Errorf("error getting k8s client: %w", cErr)
+	}
+
+	// get dapr k8s client.
+	daprClient, cErr := DaprClient()
+	if cErr != nil {
+		// exit with error.
+		return true, fmt.Errorf("error getting dapr k8s client: %w", cErr)
 	}
 
 	namespace := corev1.NamespaceDefault
@@ -128,7 +139,7 @@ func Run(runFilePath string, config runfileconfig.RunFileConfig) (bool, error) {
 		}
 
 		// create default deployment config.
-		dep := createDeploymentConfig(app)
+		dep := createDeploymentConfig(daprClient, app)
 		if err != nil {
 			print.FailureStatusEvent(os.Stderr, "Error creating deployment file for app %q present in %s: %s", app.RunConfig.AppID, runFilePath, err.Error())
 			exitWithError = true
@@ -255,13 +266,14 @@ func createServiceConfig(app runfileconfig.App) serviceConfig {
 	}
 }
 
-func createDeploymentConfig(app runfileconfig.App) deploymentConfig {
+func createDeploymentConfig(client versioned.Interface, app runfileconfig.App) deploymentConfig {
 	replicas := int32(1)
 	dep := deploymentConfig{
 		Kind:       deploymentKind,
 		APIVersion: deploymentAPIVersion,
 		Metadata: map[string]any{
-			nameKey: app.AppID,
+			nameKey:      app.AppID,
+			namespaceKey: corev1.NamespaceDefault,
 		},
 	}
 
@@ -293,6 +305,13 @@ func createDeploymentConfig(app runfileconfig.App) deploymentConfig {
 	}
 	// Set dapr.io/enable annotation.
 	dep.Spec.Template.ObjectMeta.Annotations[daprEnableAnnotationKey] = "true"
+
+	if ok, _ := isConfigurationPresent(client, corev1.NamespaceDefault, daprConfigAnnotationValue); ok {
+		// Set dapr.io/config annotation only if present.
+		dep.Spec.Template.ObjectMeta.Annotations[daprConfigAnnotationKey] = daprConfigAnnotationValue
+	} else {
+		print.WarningStatusEvent(os.Stderr, "Dapr configuration %q not found in namespace %q. Skipping annotation %q", daprConfigAnnotationValue, corev1.NamespaceDefault, daprConfigAnnotationKey)
+	}
 
 	// set containerPort only if app port is present.
 	if app.AppPort != 0 {
