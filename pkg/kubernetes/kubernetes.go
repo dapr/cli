@@ -449,6 +449,7 @@ auth:
   secretStore: kubernetes
 `
 
+	// This config needs to be named as appconfig, as it is used in later steps in `dapr run -f . -k`. See `pkg/kubernetes/run.go`.
 	zipkinConfig := `
 apiVersion: dapr.io/v1alpha1
 kind: Configuration
