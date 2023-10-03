@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"github.com/dapr/cli/pkg/print"
+	daprsyscall "github.com/dapr/cli/pkg/syscall"
 
 	"github.com/docker/docker/client"
 	"github.com/gocarina/gocsv"
@@ -48,6 +49,12 @@ const (
 
 	windowsOsType = "windows"
 	homeDirPrefix = "~/"
+
+	// DefaultAppChannelAddress is the default local network address that user application listen on.
+	DefaultAppChannelAddress = "127.0.0.1"
+
+	// windowsDaprAppProcJobName is the name of the Windows job object that is used to manage the Daprized app's processes on windows.
+	windowsDaprAppProcJobName = "dapr-app-process-job"
 )
 
 // IsValidContainerRuntime checks if the input is a valid container runtime.
@@ -173,10 +180,21 @@ func CreateDirectory(dir string) error {
 	return os.Mkdir(dir, 0o777)
 }
 
-// IsDockerInstalled checks whether docker is installed/running.
-func IsDockerInstalled() bool {
-	//nolint:staticcheck
-	cli, err := client.NewEnvClient()
+// IsContainerRuntimeInstalled checks whether the given container runtime is installed.
+// If the container runtime is unsupported, false is returned.
+func IsContainerRuntimeInstalled(containerRuntime string) bool {
+	if containerRuntime == string(PODMAN) {
+		return isPodmanInstalled()
+	} else if containerRuntime == string(DOCKER) {
+		return isDockerInstalled()
+	}
+	// This should never happen.
+	return false
+}
+
+// isDockerInstalled checks whether docker is installed.
+func isDockerInstalled() bool {
+	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return false
 	}
@@ -184,7 +202,8 @@ func IsDockerInstalled() bool {
 	return err == nil
 }
 
-func IsPodmanInstalled() bool {
+// isPodmanInstalled checks whether podman is installed.
+func isPodmanInstalled() bool {
 	cmd := exec.Command("podman", "version")
 	if err := cmd.Run(); err != nil {
 		return false
@@ -387,4 +406,20 @@ func FindFileInDir(dirPath, fileName string) (string, error) {
 		return "", fmt.Errorf("error in validating the file path %q: %w", filePath, err)
 	}
 	return filePath, nil
+}
+
+// SanitizeDir sanitizes the input string to make it a valid directory.
+func SanitizeDir(destDir string) string {
+	return strings.ReplaceAll(destDir, "'", "''")
+}
+
+// Attach Job object to App Process.
+func AttachJobObjectToProcess(pid string, proc *os.Process) {
+	// Attach a job object to the app process.
+	daprsyscall.AttachJobObjectToProcess(GetJobObjectNameFromPID(pid), proc)
+}
+
+// GetJobObjectNameFromPID returns the name of the Windows job object that is used to manage the Daprized app's processes on windows.
+func GetJobObjectNameFromPID(pid string) string {
+	return pid + "-" + windowsDaprAppProcJobName
 }

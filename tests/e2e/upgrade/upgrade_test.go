@@ -15,6 +15,7 @@ package upgrade
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/dapr/cli/tests/e2e/common"
@@ -70,7 +71,7 @@ var supportedUpgradePaths = []upgradePath{
 			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io"},
 		},
 		next: common.VersionDetails{
-			RuntimeVersion:      "1.11.0-rc.4",
+			RuntimeVersion:      "1.11.0",
 			DashboardVersion:    "0.13.0",
 			ClusterRoles:        []string{"dapr-dashboard", "dapr-injector", "dapr-operator-admin", "dapr-placement", "dapr-sentry"},
 			ClusterRoleBindings: []string{"dapr-operator-admin", "dapr-dashboard", "dapr-injector", "dapr-placement", "dapr-sentry"},
@@ -80,7 +81,7 @@ var supportedUpgradePaths = []upgradePath{
 	// test downgrade.
 	{
 		previous: common.VersionDetails{
-			RuntimeVersion:      "1.11.0-rc.4",
+			RuntimeVersion:      "1.11.0",
 			DashboardVersion:    "0.13.0",
 			ClusterRoles:        []string{"dapr-dashboard", "dapr-injector", "dapr-operator-admin", "dapr-placement", "dapr-sentry"},
 			ClusterRoleBindings: []string{"dapr-operator-admin", "dapr-dashboard", "dapr-injector", "dapr-placement", "dapr-sentry"},
@@ -110,6 +111,7 @@ func getTestsOnUpgrade(p upgradePath, installOpts, upgradeOpts common.TestOption
 		{Name: "clusterroles exist " + details.RuntimeVersion, Callable: common.ClusterRolesTest(details, upgradeOpts)},
 		{Name: "clusterrolebindings exist " + details.RuntimeVersion, Callable: common.ClusterRoleBindingsTest(details, upgradeOpts)},
 		{Name: "previously applied components exist " + details.RuntimeVersion, Callable: common.ComponentsTestOnInstallUpgrade(upgradeOpts)},
+		{Name: "previously applied http endpoints exist " + details.RuntimeVersion, Callable: common.HTTPEndpointsTestOnInstallUpgrade(upgradeOpts)},
 		{Name: "check mtls " + details.RuntimeVersion, Callable: common.MTLSTestOnInstallUpgrade(upgradeOpts)},
 		{Name: "status check " + details.RuntimeVersion, Callable: common.StatusTestOnInstallUpgrade(details, upgradeOpts)},
 	}...)
@@ -136,7 +138,7 @@ func getTestsOnUpgrade(p upgradePath, installOpts, upgradeOpts common.TestOption
 
 func TestUpgradePathNonHAModeMTLSDisabled(t *testing.T) {
 	// Ensure a clean environment.
-	common.EnsureUninstall(false) // does not wait for pod deletion.
+	common.EnsureUninstall(false, false) // does not wait for pod deletion.
 	for _, p := range supportedUpgradePaths {
 		t.Run(fmt.Sprintf("setup v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
 			t.Run("delete CRDs "+p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs))
@@ -147,9 +149,10 @@ func TestUpgradePathNonHAModeMTLSDisabled(t *testing.T) {
 	for _, p := range supportedUpgradePaths {
 		t.Run(fmt.Sprintf("v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
 			installOpts := common.TestOptions{
-				HAEnabled:             false,
-				MTLSEnabled:           false,
-				ApplyComponentChanges: true,
+				HAEnabled:                false,
+				MTLSEnabled:              false,
+				ApplyComponentChanges:    true,
+				ApplyHTTPEndpointChanges: false,
 				CheckResourceExists: map[common.Resource]bool{
 					common.CustomResourceDefs:  true,
 					common.ClusterRoles:        true,
@@ -160,8 +163,9 @@ func TestUpgradePathNonHAModeMTLSDisabled(t *testing.T) {
 			upgradeOpts := common.TestOptions{
 				HAEnabled:   false,
 				MTLSEnabled: false,
-				// do not apply changes on upgrade, verify existing components.
-				ApplyComponentChanges: false,
+				// do not apply changes on upgrade, verify existing components and httpendpoints.
+				ApplyComponentChanges:    false,
+				ApplyHTTPEndpointChanges: false,
 				CheckResourceExists: map[common.Resource]bool{
 					common.CustomResourceDefs:  true,
 					common.ClusterRoles:        true,
@@ -179,7 +183,7 @@ func TestUpgradePathNonHAModeMTLSDisabled(t *testing.T) {
 
 func TestUpgradePathNonHAModeMTLSEnabled(t *testing.T) {
 	// Ensure a clean environment.
-	common.EnsureUninstall(false) // does not wait for pod deletion.
+	common.EnsureUninstall(false, false) // does not wait for pod deletion.
 	for _, p := range supportedUpgradePaths {
 		t.Run(fmt.Sprintf("setup v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
 			t.Run("delete CRDs "+p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs))
@@ -190,9 +194,10 @@ func TestUpgradePathNonHAModeMTLSEnabled(t *testing.T) {
 	for _, p := range supportedUpgradePaths {
 		t.Run(fmt.Sprintf("v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
 			installOpts := common.TestOptions{
-				HAEnabled:             false,
-				MTLSEnabled:           true,
-				ApplyComponentChanges: true,
+				HAEnabled:                false,
+				MTLSEnabled:              true,
+				ApplyComponentChanges:    true,
+				ApplyHTTPEndpointChanges: false,
 				CheckResourceExists: map[common.Resource]bool{
 					common.CustomResourceDefs:  true,
 					common.ClusterRoles:        true,
@@ -203,8 +208,9 @@ func TestUpgradePathNonHAModeMTLSEnabled(t *testing.T) {
 			upgradeOpts := common.TestOptions{
 				HAEnabled:   false,
 				MTLSEnabled: true,
-				// do not apply changes on upgrade, verify existing components.
-				ApplyComponentChanges: false,
+				// do not apply changes on upgrade, verify existing components and httpendpoints.
+				ApplyComponentChanges:    false,
+				ApplyHTTPEndpointChanges: false,
 				CheckResourceExists: map[common.Resource]bool{
 					common.CustomResourceDefs:  true,
 					common.ClusterRoles:        true,
@@ -222,7 +228,7 @@ func TestUpgradePathNonHAModeMTLSEnabled(t *testing.T) {
 
 func TestUpgradePathHAModeMTLSDisabled(t *testing.T) {
 	// Ensure a clean environment.
-	common.EnsureUninstall(false) // does not wait for pod deletion.
+	common.EnsureUninstall(false, false) // does not wait for pod deletion.
 	for _, p := range supportedUpgradePaths {
 		t.Run(fmt.Sprintf("setup v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
 			t.Run("delete CRDs "+p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs))
@@ -233,9 +239,10 @@ func TestUpgradePathHAModeMTLSDisabled(t *testing.T) {
 	for _, p := range supportedUpgradePaths {
 		t.Run(fmt.Sprintf("v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
 			installOpts := common.TestOptions{
-				HAEnabled:             true,
-				MTLSEnabled:           false,
-				ApplyComponentChanges: true,
+				HAEnabled:                true,
+				MTLSEnabled:              false,
+				ApplyComponentChanges:    true,
+				ApplyHTTPEndpointChanges: false,
 				CheckResourceExists: map[common.Resource]bool{
 					common.CustomResourceDefs:  true,
 					common.ClusterRoles:        true,
@@ -246,8 +253,9 @@ func TestUpgradePathHAModeMTLSDisabled(t *testing.T) {
 			upgradeOpts := common.TestOptions{
 				HAEnabled:   true,
 				MTLSEnabled: false,
-				// do not apply changes on upgrade, verify existing components.
-				ApplyComponentChanges: false,
+				// do not apply changes on upgrade, verify existing components and httpendpoints.
+				ApplyComponentChanges:    false,
+				ApplyHTTPEndpointChanges: false,
 				CheckResourceExists: map[common.Resource]bool{
 					common.CustomResourceDefs:  true,
 					common.ClusterRoles:        true,
@@ -265,7 +273,7 @@ func TestUpgradePathHAModeMTLSDisabled(t *testing.T) {
 
 func TestUpgradePathHAModeMTLSEnabled(t *testing.T) {
 	// Ensure a clean environment.
-	common.EnsureUninstall(false) // does not wait for pod deletion.
+	common.EnsureUninstall(false, false) // does not wait for pod deletion.
 	for _, p := range supportedUpgradePaths {
 		t.Run(fmt.Sprintf("setup v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
 			t.Run("delete CRDs "+p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs))
@@ -276,9 +284,10 @@ func TestUpgradePathHAModeMTLSEnabled(t *testing.T) {
 	for _, p := range supportedUpgradePaths {
 		t.Run(fmt.Sprintf("v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
 			installOpts := common.TestOptions{
-				HAEnabled:             true,
-				MTLSEnabled:           true,
-				ApplyComponentChanges: true,
+				HAEnabled:                true,
+				MTLSEnabled:              true,
+				ApplyComponentChanges:    true,
+				ApplyHTTPEndpointChanges: false,
 				CheckResourceExists: map[common.Resource]bool{
 					common.CustomResourceDefs:  true,
 					common.ClusterRoles:        true,
@@ -289,8 +298,60 @@ func TestUpgradePathHAModeMTLSEnabled(t *testing.T) {
 			upgradeOpts := common.TestOptions{
 				HAEnabled:   true,
 				MTLSEnabled: true,
-				// do not apply changes on upgrade, verify existing components.
-				ApplyComponentChanges: false,
+				// do not apply changes on upgrade, verify existing components and httpendpoints.
+				ApplyComponentChanges:    false,
+				ApplyHTTPEndpointChanges: false,
+				CheckResourceExists: map[common.Resource]bool{
+					common.CustomResourceDefs:  true,
+					common.ClusterRoles:        true,
+					common.ClusterRoleBindings: true,
+				},
+			}
+			tests := getTestsOnUpgrade(p, installOpts, upgradeOpts)
+
+			for _, tc := range tests {
+				t.Run(tc.Name, tc.Callable)
+			}
+		})
+	}
+}
+
+// HTTPEndpoint Dapr resource is a new type as of v1.11.
+// This test verifies install/upgrade functionality with this additional resource.
+func TestUpgradeWithHTTPEndpoint(t *testing.T) {
+	// Ensure a clean environment.
+	common.EnsureUninstall(false, false) // does not wait for pod deletion.
+	for _, p := range supportedUpgradePaths {
+		t.Run(fmt.Sprintf("setup v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
+			t.Run("delete CRDs "+p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs))
+			t.Run("delete CRDs "+p.next.RuntimeVersion, common.DeleteCRD(p.next.CustomResourceDefs))
+		})
+	}
+
+	for _, p := range supportedUpgradePaths {
+		// only check runtime versions that support HTTPEndpoint resource.
+		if !strings.Contains(p.next.RuntimeVersion, "1.11") {
+			return
+		}
+		t.Run(fmt.Sprintf("v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
+			installOpts := common.TestOptions{
+				HAEnabled:                true,
+				MTLSEnabled:              true,
+				ApplyComponentChanges:    false,
+				ApplyHTTPEndpointChanges: true,
+				CheckResourceExists: map[common.Resource]bool{
+					common.CustomResourceDefs:  true,
+					common.ClusterRoles:        true,
+					common.ClusterRoleBindings: true,
+				},
+			}
+
+			upgradeOpts := common.TestOptions{
+				HAEnabled:   true,
+				MTLSEnabled: true,
+				// do not apply changes on upgrade, verify existing components and httpendpoints.
+				ApplyComponentChanges:    false,
+				ApplyHTTPEndpointChanges: true,
 				CheckResourceExists: map[common.Resource]bool{
 					common.CustomResourceDefs:  true,
 					common.ClusterRoles:        true,

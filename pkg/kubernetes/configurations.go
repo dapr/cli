@@ -26,6 +26,7 @@ import (
 	"github.com/dapr/cli/pkg/age"
 	"github.com/dapr/cli/utils"
 	v1alpha1 "github.com/dapr/dapr/pkg/apis/configuration/v1alpha1"
+	"github.com/dapr/dapr/pkg/client/clientset/versioned"
 )
 
 type configurationsOutput struct {
@@ -64,6 +65,18 @@ func PrintConfigurations(name, namespace, outputFormat string) error {
 
 		return list, err
 	}, name, outputFormat)
+}
+
+func getDaprConfiguration(client versioned.Interface, namespace string, configurationName string) (*v1alpha1.Configuration, error) {
+	c, err := client.ConfigurationV1alpha1().Configurations(namespace).Get(configurationName, meta_v1.GetOptions{})
+	// This means that the Dapr Configurations CRD is not installed and
+	// therefore no configuration items exist.
+	if apierrors.IsNotFound(err) {
+		return &v1alpha1.Configuration{}, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return c, err
 }
 
 func writeConfigurations(writer io.Writer, getConfigFunc func() (*v1alpha1.ConfigurationList, error), name, outputFormat string) error {

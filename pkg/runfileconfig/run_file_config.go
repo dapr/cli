@@ -14,7 +14,6 @@ limitations under the License.
 package runfileconfig
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -23,19 +22,12 @@ import (
 	"github.com/dapr/cli/pkg/standalone"
 )
 
-type LogDestType string
-
 const (
-	Console             LogDestType = "console"
-	File                LogDestType = "file"
-	FileAndConsole      LogDestType = "fileAndConsole"
-	DefaultDaprdLogDest             = File
-	DefaultAppLogDest               = FileAndConsole
-
 	appLogFileNamePrefix   = "app"
 	daprdLogFileNamePrefix = "daprd"
 	logFileExtension       = ".log"
 	logsDir                = "logs"
+	deployDir              = "deploy"
 )
 
 // RunFileConfig represents the complete configuration options for the run file.
@@ -47,16 +39,21 @@ type RunFileConfig struct {
 	Name    string `yaml:"name,omitempty"`
 }
 
+// ContainerConfiguration represents the application container configuration parameters.
+type ContainerConfiguration struct {
+	ContainerImage string `yaml:"containerImage"`
+	CreateService  bool   `yaml:"createService"`
+}
+
 // App represents the configuration options for the apps in the run file.
 type App struct {
-	standalone.RunConfig `yaml:",inline"`
-	AppDirPath           string `yaml:"appDirPath"`
-	AppLogFileName       string
-	DaprdLogFileName     string
-	AppLogWriteCloser    io.WriteCloser
-	DaprdLogWriteCloser  io.WriteCloser
-	DaprdLogDestination  LogDestType `yaml:"daprdLogDestination"`
-	AppLogDestination    LogDestType `yaml:"appLogDestination"`
+	standalone.RunConfig   `yaml:",inline"`
+	ContainerConfiguration `yaml:",inline"`
+	AppDirPath             string `yaml:"appDirPath"`
+	AppLogFileName         string
+	DaprdLogFileName       string
+	AppLogWriteCloser      io.WriteCloser
+	DaprdLogWriteCloser    io.WriteCloser
 }
 
 // Common represents the configuration options for the common section in the run file.
@@ -70,12 +67,18 @@ func (a *App) GetLogsDir() string {
 	return logsPath
 }
 
+func (a *App) GetDeployDir() string {
+	logsPath := filepath.Join(a.AppDirPath, standalone.DefaultDaprDirName, deployDir)
+	os.MkdirAll(logsPath, 0o755)
+	return logsPath
+}
+
 // CreateAppLogFile creates the log file, sets internal file handle
 // and returns error if any.
 func (a *App) CreateAppLogFile() error {
 	var err error
 	var f *os.File
-	if a.AppLogDestination == Console {
+	if a.AppLogDestination == standalone.Console {
 		f = os.Stdout
 	} else {
 		f, err = a.createLogFile(appLogFileNamePrefix)
@@ -92,7 +95,7 @@ func (a *App) CreateAppLogFile() error {
 func (a *App) CreateDaprdLogFile() error {
 	var err error
 	var f *os.File
-	if a.DaprdLogDestination == Console {
+	if a.DaprdLogDestination == standalone.Console {
 		f = os.Stdout
 	} else {
 		f, err = a.createLogFile(daprdLogFileNamePrefix)
@@ -115,26 +118,32 @@ func (a *App) createLogFile(logType string) (*os.File, error) {
 
 func (a *App) CloseAppLogFile() error {
 	if a.AppLogWriteCloser != nil {
-		return a.AppLogWriteCloser.Close()
+		err := a.AppLogWriteCloser.Close()
+		a.AppLogWriteCloser = nil
+		return err
 	}
 	return nil
 }
 
 func (a *App) CloseDaprdLogFile() error {
 	if a.DaprdLogWriteCloser != nil {
-		return a.DaprdLogWriteCloser.Close()
+		err := a.DaprdLogWriteCloser.Close()
+		a.DaprdLogWriteCloser = nil
+		return err
 	}
 	return nil
 }
 
-func (l LogDestType) String() string {
-	return string(l)
-}
-
-func (l LogDestType) IsValid() error {
-	switch l {
-	case Console, File, FileAndConsole:
-		return nil
+// GetLogWriter returns the log writer based on the log destination.
+func GetLogWriter(fileLogWriterCloser io.WriteCloser, logDestination standalone.LogDestType) io.Writer {
+	var logWriter io.Writer
+	switch logDestination {
+	case standalone.Console:
+		logWriter = os.Stdout
+	case standalone.File:
+		logWriter = fileLogWriterCloser
+	case standalone.FileAndConsole:
+		logWriter = io.MultiWriter(os.Stdout, fileLogWriterCloser)
 	}
-	return fmt.Errorf("invalid log destination type: %s", l)
+	return logWriter
 }

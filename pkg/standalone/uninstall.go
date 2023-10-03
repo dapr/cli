@@ -92,10 +92,12 @@ func Uninstall(uninstallAll bool, dockerNetwork string, containerRuntime string,
 
 	containerRuntime = strings.TrimSpace(containerRuntime)
 	runtimeCmd := utils.GetContainerRuntimeCmd(containerRuntime)
-	conatinerRuntimeAvailable := false
-	conatinerRuntimeAvailable = utils.IsDockerInstalled() || utils.IsPodmanInstalled()
-	if conatinerRuntimeAvailable {
+	containerRuntimeAvailable := false
+	containerRuntimeAvailable = utils.IsContainerRuntimeInstalled(containerRuntime)
+	if containerRuntimeAvailable {
 		containerErrs = removeContainers(uninstallPlacementContainer, uninstallAll, dockerNetwork, runtimeCmd)
+	} else if uninstallPlacementContainer || uninstallAll {
+		print.WarningStatusEvent(os.Stdout, "WARNING: could not delete supporting containers as container runtime is not installed or running")
 	}
 
 	if uninstallAll {

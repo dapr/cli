@@ -16,8 +16,10 @@ package runexec
 import (
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 
+	"github.com/dapr/cli/pkg/runfileconfig"
 	"github.com/dapr/cli/pkg/standalone"
 )
 
@@ -128,4 +130,27 @@ func NewOutput(config *standalone.RunConfig) (*RunOutput, error) {
 		DaprHTTPPort: config.HTTPPort,
 		DaprGRPCPort: config.GRPCPort,
 	}, nil
+}
+
+// GetAppDaprdWriter returns the writer for writing logs common to both daprd, app and stdout.
+func GetAppDaprdWriter(app runfileconfig.App, isAppCommandEmpty bool) io.Writer {
+	var appDaprdWriter io.Writer
+	if isAppCommandEmpty {
+		if app.DaprdLogDestination != standalone.Console {
+			appDaprdWriter = io.MultiWriter(os.Stdout, app.DaprdLogWriteCloser)
+		} else {
+			appDaprdWriter = os.Stdout
+		}
+	} else {
+		if app.AppLogDestination != standalone.Console && app.DaprdLogDestination != standalone.Console {
+			appDaprdWriter = io.MultiWriter(app.AppLogWriteCloser, app.DaprdLogWriteCloser, os.Stdout)
+		} else if app.AppLogDestination != standalone.Console {
+			appDaprdWriter = io.MultiWriter(app.AppLogWriteCloser, os.Stdout)
+		} else if app.DaprdLogDestination != standalone.Console {
+			appDaprdWriter = io.MultiWriter(app.DaprdLogWriteCloser, os.Stdout)
+		} else {
+			appDaprdWriter = os.Stdout
+		}
+	}
+	return appDaprdWriter
 }

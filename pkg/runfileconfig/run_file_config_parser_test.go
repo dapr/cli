@@ -25,13 +25,13 @@ import (
 )
 
 var (
-	validRunFilePath                = filepath.Join("..", "testdata", "runfileconfig", "test_run_config.yaml")
-	invalidRunFilePath1             = filepath.Join("..", "testdata", "runfileconfig", "test_run_config_invalid_path.yaml")
-	invalidRunFilePath2             = filepath.Join("..", "testdata", "runfileconfig", "test_run_config_empty_app_dir.yaml")
-	runFileForPrecedenceRule        = filepath.Join("..", "testdata", "runfileconfig", "test_run_config_precedence_rule.yaml")
-	runFileForPrecedenceRuleDaprDir = filepath.Join("..", "testdata", "runfileconfig", "test_run_config_precedence_rule_dapr_dir.yaml")
-	runFileForLogDestination        = filepath.Join("..", "testdata", "runfileconfig", "test_run_config_log_destination.yaml")
-	runFileForMultiResourcePaths    = filepath.Join("..", "testdata", "runfileconfig", "test_run_config_multiple_resources_paths.yaml")
+	validRunFilePath                = filepath.Join(".", "testdata", "test_run_config.yaml")
+	invalidRunFilePath1             = filepath.Join(".", "testdata", "test_run_config_invalid_path.yaml")
+	invalidRunFilePath2             = filepath.Join(".", "testdata", "test_run_config_empty_app_dir.yaml")
+	runFileForPrecedenceRule        = filepath.Join(".", "testdata", "test_run_config_precedence_rule.yaml")
+	runFileForPrecedenceRuleDaprDir = filepath.Join(".", "testdata", "test_run_config_precedence_rule_dapr_dir.yaml")
+	runFileForLogDestination        = filepath.Join(".", "testdata", "test_run_config_log_destination.yaml")
+	runFileForMultiResourcePaths    = filepath.Join(".", "testdata", "test_run_config_multiple_resources_paths.yaml")
 )
 
 func TestRunConfigFile(t *testing.T) {

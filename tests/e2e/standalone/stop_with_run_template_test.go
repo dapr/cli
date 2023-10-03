@@ -1,4 +1,5 @@
-//go:build e2e || template
+//go:build !windows && (e2e || template)
+// +build !windows
 // +build e2e template
 
 /*
@@ -22,7 +23,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"runtime"
 	"testing"
 	"time"
 
@@ -31,9 +31,6 @@ import (
 )
 
 func TestStopAppsStartedWithRunTemplate(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Skipping test on windows")
-	}
 	ensureDaprInstallation(t)
 	t.Cleanup(func() {
 		// remove dapr installation after all tests in this function.
@@ -130,4 +127,6 @@ func assertTemplateListOutput(t *testing.T, name string) {
 
 	assert.Len(t, result, 2, "expected two apps to be running")
 	assert.Equal(t, name, result[0]["runTemplateName"], "expected run template name to be %s", name)
+	assert.NotEmpty(t, result[0]["appLogPath"], "expected appLogPath to be non-empty")
+	assert.NotEmpty(t, result[0]["daprdLogPath"], "expected daprdLogPath to be non-empty")
 }

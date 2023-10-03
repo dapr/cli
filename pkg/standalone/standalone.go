@@ -78,6 +78,9 @@ const (
 	DaprZipkinContainerName = "dapr_zipkin"
 
 	errInstallTemplate = "please run `dapr uninstall` first before running `dapr init`"
+
+	healthPort = 58080
+	metricPort = 59090
 )
 
 var (
@@ -162,8 +165,8 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 	setAirGapInit(fromDir)
 	if !slimMode {
 		// If --slim installation is not requested, check if docker is installed.
-		conatinerRuntimeAvailable := utils.IsDockerInstalled() || utils.IsPodmanInstalled()
-		if !conatinerRuntimeAvailable {
+		containerRuntimeAvailable := utils.IsContainerRuntimeInstalled(containerRuntime)
+		if !containerRuntimeAvailable {
 			return fmt.Errorf("could not connect to %s. %s may not be installed or running", containerRuntime, containerRuntime)
 		}
 
@@ -520,7 +523,10 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		}
 
 		args = append(args,
-			"-p", fmt.Sprintf("%v:50005", osPort))
+			"-p", fmt.Sprintf("%v:50005", osPort),
+			"-p", fmt.Sprintf("%v:8080", healthPort),
+			"-p", fmt.Sprintf("%v:9090", metricPort),
+		)
 	}
 
 	args = append(args, image)
@@ -905,6 +911,7 @@ func moveFileToPath(filepath string, installLocation string) (string, error) {
 		p := os.Getenv("PATH")
 
 		if !strings.Contains(strings.ToLower(p), strings.ToLower(destDir)) {
+			destDir = utils.SanitizeDir(destDir)
 			pathCmd := "[System.Environment]::SetEnvironmentVariable('Path',[System.Environment]::GetEnvironmentVariable('Path','user') + '" + fmt.Sprintf(";%s", destDir) + "', 'user')"
 			_, err := utils.RunCmdAndWait("powershell", pathCmd)
 			if err != nil {
