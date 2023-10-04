@@ -18,6 +18,7 @@ import (
 	"sync"
 
 	k8s "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
 	scheme "github.com/dapr/dapr/pkg/client/clientset/versioned"
@@ -30,10 +31,6 @@ import (
 
 	//  oidc auth
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
-
-	//  openstack auth
-	_ "k8s.io/client-go/plugin/pkg/client/auth/openstack"
-	"k8s.io/client-go/rest"
 )
 
 var (
