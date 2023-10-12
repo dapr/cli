@@ -337,8 +337,8 @@ github.com/d2g/dhcp4server v0.0.0-20181031114812-7d4a0a7f59a5/go.mod h1:Eo87+Kg/
 github.com/d2g/hardwareaddr v0.0.0-20190221164911-e7d9fbe030e4/go.mod h1:bMl4RjIciD2oAxI7DmWRx6gbeqrkoLqv3MV0vzNad+I=
 github.com/dapr/components-contrib v1.12.0-rc.4 h1:8EH7sRjgb4uNpvEkOkUNNb1VGuecJ9Ux3QOwSq0Szwo=
 github.com/dapr/components-contrib v1.12.0-rc.4/go.mod h1:2jRaZ7FEm+u12lsmfnCFASlTMu5nUn0gtsirAtueBe4=
-github.com/dapr/dapr v1.12.0-rc.6 h1:5OcpwIiuvEiOSFElS06IMgIJdQj1a1hfFFtV2VwQ9xc=
-github.com/dapr/dapr v1.12.0-rc.6/go.mod h1:LjmQepPe5+A898VHMUsmX0r0D0OTj6ijtqCIZqMvo7o=
+github.com/dapr/dapr v1.12.0 h1:JrnzIYupSHLVK95YWlMZv+h/rfg5rGl53ml9EG4Vrqg=
+github.com/dapr/dapr v1.12.0/go.mod h1:LjmQepPe5+A898VHMUsmX0r0D0OTj6ijtqCIZqMvo7o=
 github.com/dapr/go-sdk v1.9.0-rc-1 h1:14GjWVv32ke/E86Srh0TT28K+4kxl3KU233hdUDBgck=
 github.com/dapr/go-sdk v1.9.0-rc-1/go.mod h1:bK9bNEsC6hY3RMKh69r0nBjLqb6njeWTEGVMOgP9g20=
 github.com/dapr/kit v0.12.1 h1:XT0CJQQaKRYSzIzZo15O1PAHGUrMGoAavdFRcNVZ+UE=
