@@ -14,6 +14,7 @@ limitations under the License.
 package cmd
 
 import (
+	"context"
 	"os"
 	"strings"
 
@@ -57,7 +58,7 @@ dapr upgrade -k
 			print.FailureStatusEvent(os.Stderr, err.Error())
 			os.Exit(1)
 		}
-		err = kubernetes.Upgrade(kubernetes.UpgradeConfig{
+		err = kubernetes.Upgrade(context.Background(), kubernetes.UpgradeConfig{
 			RuntimeVersion:   upgradeRuntimeVersion,
 			DashboardVersion: upgradeDashboardVersion,
 			Args:             values,
