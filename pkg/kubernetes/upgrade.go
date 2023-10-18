@@ -60,7 +60,7 @@ type UpgradeConfig struct {
 	ImageVariant     string
 }
 
-func Upgrade(ctx context.Context, conf UpgradeConfig) error {
+func Upgrade(conf UpgradeConfig) error {
 	helmRepo := utils.GetEnv("DAPR_HELM_REPO_URL", daprHelmRepo)
 	status, err := GetDaprResourcesStatus()
 	if err != nil {
@@ -179,12 +179,12 @@ func Upgrade(ctx context.Context, conf UpgradeConfig) error {
 	if is12to11Downgrade(conf.RuntimeVersion, daprVersion) {
 		print.InfoStatusEvent(os.Stdout, "Downgrade from 1.12 to 1.11 detected, temporarily deleting injector mutating webhook...")
 
-		mutatingWebhookConf, err = client.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(ctx, "dapr-sidecar-injector", metav1.GetOptions{})
+		mutatingWebhookConf, err = client.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), "dapr-sidecar-injector", metav1.GetOptions{})
 		if err != nil && !apierrors.IsNotFound(err) {
 			return err
 		}
 
-		err = client.AdmissionregistrationV1().MutatingWebhookConfigurations().Delete(ctx, "dapr-sidecar-injector", metav1.DeleteOptions{})
+		err = client.AdmissionregistrationV1().MutatingWebhookConfigurations().Delete(context.TODO(), "dapr-sidecar-injector", metav1.DeleteOptions{})
 		if err != nil && !apierrors.IsNotFound(err) {
 			return err
 		}
@@ -196,7 +196,7 @@ func Upgrade(ctx context.Context, conf UpgradeConfig) error {
 				Name:      mutatingWebhookConf.Name,
 				Namespace: mutatingWebhookConf.Namespace,
 			}
-			_, merr := client.AdmissionregistrationV1().MutatingWebhookConfigurations().Create(ctx, mutatingWebhookConf, metav1.CreateOptions{})
+			_, merr := client.AdmissionregistrationV1().MutatingWebhookConfigurations().Create(context.TODO(), mutatingWebhookConf, metav1.CreateOptions{})
 			return errors.Join(err, merr)
 		}
 		return err
