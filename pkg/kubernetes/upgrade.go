@@ -192,6 +192,10 @@ func Upgrade(ctx context.Context, conf UpgradeConfig) error {
 
 	if _, err = upgradeClient.Run(chart, controlPlaneChart, vals); err != nil {
 		if mutatingWebhookConf != nil {
+			mutatingWebhookConf.ObjectMeta = metav1.ObjectMeta{
+				Name:      mutatingWebhookConf.Name,
+				Namespace: mutatingWebhookConf.Namespace,
+			}
 			_, merr := client.AdmissionregistrationV1().MutatingWebhookConfigurations().Create(ctx, mutatingWebhookConf, metav1.CreateOptions{})
 			return errors.Join(err, merr)
 		}
