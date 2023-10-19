@@ -115,6 +115,7 @@ func getTestsOnUpgrade(p upgradePath, installOpts, upgradeOpts common.TestOption
 		{Name: "previously applied http endpoints exist " + details.RuntimeVersion, Callable: common.HTTPEndpointsTestOnInstallUpgrade(upgradeOpts)},
 		{Name: "check mtls " + details.RuntimeVersion, Callable: common.MTLSTestOnInstallUpgrade(upgradeOpts)},
 		{Name: "status check " + details.RuntimeVersion, Callable: common.StatusTestOnInstallUpgrade(details, upgradeOpts)},
+		{Name: "injector check " + details.RuntimeVersion, Callable: common.SidecarInjects()},
 	}...)
 
 	// uninstall.
