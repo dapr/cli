@@ -30,7 +30,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	k8s "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -738,7 +737,7 @@ func SidecarInjects() func(t *testing.T) {
 			)
 		})
 
-		err = wait.PollImmediateUntilWithContext(ctx, time.Second, func(ctx context.Context) (bool, error) {
+		perr := wait.PollImmediateUntilWithContext(ctx, time.Second, func(ctx context.Context) (bool, error) {
 			deploy, err = client.AppsV1().Deployments(DaprTestNamespace).Get(ctx, deploy.Name, metav1.GetOptions{})
 			if err != nil {
 				return false, err
@@ -753,20 +752,20 @@ func SidecarInjects() func(t *testing.T) {
 				return false, err
 			}
 
-			var replica *appsv1.ReplicaSet
+			var replica string
 			for _, r := range replicas.Items {
 				for _, owner := range r.OwnerReferences {
 					if owner.Kind == "Deployment" && owner.Name == deploy.Name {
-						replica = &r
+						replica = r.Name
 						break
 					}
 				}
-				if replica != nil {
+				if len(replica) > 0 {
 					break
 				}
 			}
 
-			if replica == nil {
+			if len(replica) == 0 {
 				return false, nil
 			}
 
@@ -777,7 +776,7 @@ func SidecarInjects() func(t *testing.T) {
 
 			for _, pod := range pods.Items {
 				for _, owner := range pod.OwnerReferences {
-					if owner.Kind == "ReplicaSet" && owner.Name == replica.Name {
+					if owner.Kind == "ReplicaSet" && owner.Name == replica {
 						if len(pod.Spec.Containers) != 2 || pod.Spec.Containers[1].Name != "daprd" {
 							return false, errors.New("expected injected daprd container")
 						}
@@ -787,7 +786,7 @@ func SidecarInjects() func(t *testing.T) {
 
 			return false, errors.New("failed to find injected daprd container")
 		})
-		require.NoError(t, err)
+		require.NoError(t, perr)
 	}
 }
 
@@ -1094,7 +1093,7 @@ func validateThirdpartyPodsOnInit(t *testing.T) {
 	defer cancel()
 	k8sClient, err := getClient()
 	require.NoError(t, err)
-	list, err := k8sClient.CoreV1().Pods(thirdPartyDevNamespace).List(ctxt, v1.ListOptions{
+	list, err := k8sClient.CoreV1().Pods(thirdPartyDevNamespace).List(ctxt, metav1.ListOptions{
 		Limit: 100,
 	})
 	require.NoError(t, err)
@@ -1129,7 +1128,7 @@ func validatePodsOnInstallUpgrade(t *testing.T, details VersionDetails) {
 	defer cancel()
 	k8sClient, err := getClient()
 	require.NoError(t, err)
-	list, err := k8sClient.CoreV1().Pods(DaprTestNamespace).List(ctxt, v1.ListOptions{
+	list, err := k8sClient.CoreV1().Pods(DaprTestNamespace).List(ctxt, metav1.ListOptions{
 		Limit: 100,
 	})
 	require.NoError(t, err)
@@ -1203,7 +1202,7 @@ func waitPodDeletionDev(t *testing.T, done, podsDeleted chan struct{}) {
 		defer cancel()
 		k8sClient, err := getClient()
 		require.NoError(t, err, "error getting k8s client for pods check")
-		list, err := k8sClient.CoreV1().Pods(thirdPartyDevNamespace).List(ctxt, v1.ListOptions{
+		list, err := k8sClient.CoreV1().Pods(thirdPartyDevNamespace).List(ctxt, metav1.ListOptions{
 			Limit: 100,
 		})
 		require.NoError(t, err)
@@ -1249,7 +1248,7 @@ func waitPodDeletion(t *testing.T, done, podsDeleted chan struct{}) {
 		defer cancel()
 		k8sClient, err := getClient()
 		require.NoError(t, err, "error getting k8s client for pods check")
-		list, err := k8sClient.CoreV1().Pods(DaprTestNamespace).List(ctxt, v1.ListOptions{
+		list, err := k8sClient.CoreV1().Pods(DaprTestNamespace).List(ctxt, metav1.ListOptions{
 			Limit: 100,
 		})
 		require.NoError(t, err, "error getting pods list from k8s")
@@ -1273,7 +1272,7 @@ func waitAllPodsRunning(t *testing.T, namespace string, haEnabled bool, done, po
 		defer cancel()
 		k8sClient, err := getClient()
 		require.NoError(t, err, "error getting k8s client for pods check")
-		list, err := k8sClient.CoreV1().Pods(namespace).List(ctxt, v1.ListOptions{
+		list, err := k8sClient.CoreV1().Pods(namespace).List(ctxt, metav1.ListOptions{
 			Limit: 100,
 		})
 		require.NoError(t, err, "error getting pods list from k8s")
