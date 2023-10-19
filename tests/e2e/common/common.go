@@ -420,7 +420,7 @@ func ClusterRoleBindingsTest(details VersionDetails, opts TestOptions) func(t *t
 			list, err := k8sClient.
 				RbacV1().
 				ClusterRoleBindings().
-				List(ctx, v1.ListOptions{
+				List(ctx, metav1.ListOptions{
 					Limit:    100,
 					Continue: listContinue,
 				})
@@ -457,7 +457,7 @@ func ClusterRolesTest(details VersionDetails, opts TestOptions) func(t *testing.
 
 		var listContinue string
 		for {
-			list, err := k8sClient.RbacV1().ClusterRoles().List(ctx, v1.ListOptions{
+			list, err := k8sClient.RbacV1().ClusterRoles().List(ctx, metav1.ListOptions{
 				Limit:    100,
 				Continue: listContinue,
 			})
@@ -500,7 +500,7 @@ func CRDTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 			list, err := apiextensionsClientSet.
 				ApiextensionsV1().
 				CustomResourceDefinitions().
-				List(ctx, v1.ListOptions{
+				List(ctx, metav1.ListOptions{
 					Limit:    100,
 					Continue: listContinue,
 				})
@@ -739,7 +739,7 @@ func SidecarInjects() func(t *testing.T) {
 		})
 
 		err = wait.PollImmediateUntilWithContext(ctx, time.Second, func(ctx context.Context) (bool, error) {
-			deploy, err := client.AppsV1().Deployments(DaprTestNamespace).Get(ctx, deploy.Name, metav1.GetOptions{})
+			deploy, err = client.AppsV1().Deployments(DaprTestNamespace).Get(ctx, deploy.Name, metav1.GetOptions{})
 			if err != nil {
 				return false, err
 			}
@@ -787,6 +787,7 @@ func SidecarInjects() func(t *testing.T) {
 
 			return false, errors.New("failed to find injected daprd container")
 		})
+		require.NoError(t, err)
 	}
 }
 
