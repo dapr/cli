@@ -714,8 +714,11 @@ func SidecarInjects() func(t *testing.T) {
 				Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": "sleep"}},
 				Template: corev1.PodTemplateSpec{
 					ObjectMeta: metav1.ObjectMeta{
-						Labels:      map[string]string{"app": "sleep"},
-						Annotations: map[string]string{"dapr.io/enabled": "true"},
+						Labels: map[string]string{"app": "sleep"},
+						Annotations: map[string]string{
+							"dapr.io/enabled": "true",
+							"dapr.io/app-id":  "sleep",
+						},
 					},
 					Spec: corev1.PodSpec{
 						Containers: []corev1.Container{
@@ -732,6 +735,8 @@ func SidecarInjects() func(t *testing.T) {
 		require.NoError(t, err)
 
 		t.Cleanup(func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
 			assert.NoError(t,
 				client.AppsV1().Deployments(DaprTestNamespace).Delete(ctx, deploy.Name, metav1.DeleteOptions{}),
 			)
@@ -780,6 +785,7 @@ func SidecarInjects() func(t *testing.T) {
 						if len(pod.Spec.Containers) != 2 || pod.Spec.Containers[1].Name != "daprd" {
 							return false, errors.New("expected injected daprd container")
 						}
+						return true, nil
 					}
 				}
 			}
