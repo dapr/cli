@@ -735,10 +735,10 @@ func SidecarInjects() func(t *testing.T) {
 		require.NoError(t, err)
 
 		t.Cleanup(func() {
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			cctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 			assert.NoError(t,
-				client.AppsV1().Deployments(DaprTestNamespace).Delete(ctx, deploy.Name, metav1.DeleteOptions{}),
+				client.AppsV1().Deployments(DaprTestNamespace).Delete(cctx, deploy.Name, metav1.DeleteOptions{}),
 			)
 		})
 
