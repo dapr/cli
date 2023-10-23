@@ -15,6 +15,7 @@ package common
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -25,17 +26,17 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	core_v1 "k8s.io/api/core/v1"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
+	k8s "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/tests/e2e/spawn"
-
-	k8s "k8s.io/client-go/kubernetes"
-
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 type Resource int
@@ -200,6 +201,7 @@ func GetTestsOnInstall(details VersionDetails, opts TestOptions) []TestCase {
 		{"apply and check httpendpoints exist " + details.RuntimeVersion, HTTPEndpointsTestOnInstallUpgrade(opts)},
 		{"check mtls " + details.RuntimeVersion, MTLSTestOnInstallUpgrade(opts)},
 		{"status check " + details.RuntimeVersion, StatusTestOnInstallUpgrade(details, opts)},
+		{"injector injects sidecar " + details.RuntimeVersion, SidecarInjects()},
 	}
 }
 
@@ -417,7 +419,7 @@ func ClusterRoleBindingsTest(details VersionDetails, opts TestOptions) func(t *t
 			list, err := k8sClient.
 				RbacV1().
 				ClusterRoleBindings().
-				List(ctx, v1.ListOptions{
+				List(ctx, metav1.ListOptions{
 					Limit:    100,
 					Continue: listContinue,
 				})
@@ -454,7 +456,7 @@ func ClusterRolesTest(details VersionDetails, opts TestOptions) func(t *testing.
 
 		var listContinue string
 		for {
-			list, err := k8sClient.RbacV1().ClusterRoles().List(ctx, v1.ListOptions{
+			list, err := k8sClient.RbacV1().ClusterRoles().List(ctx, metav1.ListOptions{
 				Limit:    100,
 				Continue: listContinue,
 			})
@@ -497,7 +499,7 @@ func CRDTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 			list, err := apiextensionsClientSet.
 				ApiextensionsV1().
 				CustomResourceDefinitions().
-				List(ctx, v1.ListOptions{
+				List(ctx, metav1.ListOptions{
 					Limit:    100,
 					Continue: listContinue,
 				})
@@ -692,6 +694,105 @@ func CheckMTLSStatus(details VersionDetails, opts TestOptions, shouldWarningExis
 			assert.NotContains(t, output, "Expiry date:", "expected output to contain string")
 			assert.NotContains(t, output, "Please see docs.dapr.io for certificate renewal instructions to avoid service interruptions")
 		}
+	}
+}
+
+func SidecarInjects() func(t *testing.T) {
+	return func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 360*time.Second)
+		t.Cleanup(cancel)
+
+		client, err := getClient()
+		require.NoError(t, err)
+
+		deploy, err := client.AppsV1().Deployments(DaprTestNamespace).Create(ctx, &appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "test-sidecar-injected-",
+				Namespace:    DaprTestNamespace,
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": "sleep"}},
+				Template: corev1.PodTemplateSpec{
+					ObjectMeta: metav1.ObjectMeta{
+						Labels: map[string]string{"app": "sleep"},
+						Annotations: map[string]string{
+							"dapr.io/enabled": "true",
+							"dapr.io/app-id":  "sleep",
+						},
+					},
+					Spec: corev1.PodSpec{
+						Containers: []corev1.Container{
+							{
+								Name:  "sleep",
+								Image: "alpine:3.11",
+								Args:  []string{"sleep", "infinity"},
+							},
+						},
+					},
+				},
+			},
+		}, metav1.CreateOptions{})
+		require.NoError(t, err)
+
+		t.Cleanup(func() {
+			cctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			assert.NoError(t,
+				client.AppsV1().Deployments(DaprTestNamespace).Delete(cctx, deploy.Name, metav1.DeleteOptions{}),
+			)
+		})
+
+		perr := wait.PollImmediateUntilWithContext(ctx, time.Second, func(ctx context.Context) (bool, error) {
+			deploy, err = client.AppsV1().Deployments(DaprTestNamespace).Get(ctx, deploy.Name, metav1.GetOptions{})
+			if err != nil {
+				return false, err
+			}
+
+			if deploy.Status.ReadyReplicas != 1 {
+				return false, nil
+			}
+
+			replicas, err := client.AppsV1().ReplicaSets(DaprTestNamespace).List(ctx, metav1.ListOptions{})
+			if err != nil {
+				return false, err
+			}
+
+			var replica string
+			for _, r := range replicas.Items {
+				for _, owner := range r.OwnerReferences {
+					if owner.Kind == "Deployment" && owner.Name == deploy.Name {
+						replica = r.Name
+						break
+					}
+				}
+				if len(replica) > 0 {
+					break
+				}
+			}
+
+			if len(replica) == 0 {
+				return false, nil
+			}
+
+			pods, err := client.CoreV1().Pods(DaprTestNamespace).List(ctx, metav1.ListOptions{})
+			if err != nil {
+				return false, err
+			}
+
+			for _, pod := range pods.Items {
+				for _, owner := range pod.OwnerReferences {
+					if owner.Kind == "ReplicaSet" && owner.Name == replica {
+						if len(pod.Spec.Containers) != 2 || pod.Spec.Containers[1].Name != "daprd" {
+							return false, errors.New("expected injected daprd container")
+						}
+						return true, nil
+					}
+				}
+			}
+
+			return false, errors.New("failed to find injected daprd container")
+		})
+		require.NoError(t, perr)
 	}
 }
 
@@ -998,7 +1099,7 @@ func validateThirdpartyPodsOnInit(t *testing.T) {
 	defer cancel()
 	k8sClient, err := getClient()
 	require.NoError(t, err)
-	list, err := k8sClient.CoreV1().Pods(thirdPartyDevNamespace).List(ctxt, v1.ListOptions{
+	list, err := k8sClient.CoreV1().Pods(thirdPartyDevNamespace).List(ctxt, metav1.ListOptions{
 		Limit: 100,
 	})
 	require.NoError(t, err)
@@ -1013,7 +1114,7 @@ func validateThirdpartyPodsOnInit(t *testing.T) {
 	for _, pod := range list.Items {
 		t.Log(pod.ObjectMeta.Name)
 		for component, prefix := range prefixes {
-			if pod.Status.Phase != core_v1.PodRunning {
+			if pod.Status.Phase != corev1.PodRunning {
 				continue
 			}
 			if !pod.Status.ContainerStatuses[0].Ready {
@@ -1033,7 +1134,7 @@ func validatePodsOnInstallUpgrade(t *testing.T, details VersionDetails) {
 	defer cancel()
 	k8sClient, err := getClient()
 	require.NoError(t, err)
-	list, err := k8sClient.CoreV1().Pods(DaprTestNamespace).List(ctxt, v1.ListOptions{
+	list, err := k8sClient.CoreV1().Pods(DaprTestNamespace).List(ctxt, metav1.ListOptions{
 		Limit: 100,
 	})
 	require.NoError(t, err)
@@ -1065,7 +1166,7 @@ func validatePodsOnInstallUpgrade(t *testing.T, details VersionDetails) {
 	for _, pod := range list.Items {
 		t.Log(pod.ObjectMeta.Name)
 		for component, prefix := range prefixes {
-			if pod.Status.Phase != core_v1.PodRunning {
+			if pod.Status.Phase != corev1.PodRunning {
 				continue
 			}
 			if !pod.Status.ContainerStatuses[0].Ready {
@@ -1107,7 +1208,7 @@ func waitPodDeletionDev(t *testing.T, done, podsDeleted chan struct{}) {
 		defer cancel()
 		k8sClient, err := getClient()
 		require.NoError(t, err, "error getting k8s client for pods check")
-		list, err := k8sClient.CoreV1().Pods(thirdPartyDevNamespace).List(ctxt, v1.ListOptions{
+		list, err := k8sClient.CoreV1().Pods(thirdPartyDevNamespace).List(ctxt, metav1.ListOptions{
 			Limit: 100,
 		})
 		require.NoError(t, err)
@@ -1122,7 +1223,7 @@ func waitPodDeletionDev(t *testing.T, done, podsDeleted chan struct{}) {
 		for _, pod := range list.Items {
 			t.Log(pod.ObjectMeta.Name)
 			for component, prefix := range prefixes {
-				if pod.Status.Phase != core_v1.PodRunning {
+				if pod.Status.Phase != corev1.PodRunning {
 					continue
 				}
 				if !pod.Status.ContainerStatuses[0].Ready {
@@ -1136,7 +1237,7 @@ func waitPodDeletionDev(t *testing.T, done, podsDeleted chan struct{}) {
 		if len(found) == 2 {
 			podsDeleted <- struct{}{}
 		}
-		time.Sleep(15 * time.Second)
+		time.Sleep(1 * time.Second)
 	}
 }
 
@@ -1153,14 +1254,14 @@ func waitPodDeletion(t *testing.T, done, podsDeleted chan struct{}) {
 		defer cancel()
 		k8sClient, err := getClient()
 		require.NoError(t, err, "error getting k8s client for pods check")
-		list, err := k8sClient.CoreV1().Pods(DaprTestNamespace).List(ctxt, v1.ListOptions{
+		list, err := k8sClient.CoreV1().Pods(DaprTestNamespace).List(ctxt, metav1.ListOptions{
 			Limit: 100,
 		})
 		require.NoError(t, err, "error getting pods list from k8s")
 		if len(list.Items) == 0 {
 			podsDeleted <- struct{}{}
 		}
-		time.Sleep(15 * time.Second)
+		time.Sleep(1 * time.Second)
 	}
 }
 
@@ -1177,14 +1278,14 @@ func waitAllPodsRunning(t *testing.T, namespace string, haEnabled bool, done, po
 		defer cancel()
 		k8sClient, err := getClient()
 		require.NoError(t, err, "error getting k8s client for pods check")
-		list, err := k8sClient.CoreV1().Pods(namespace).List(ctxt, v1.ListOptions{
+		list, err := k8sClient.CoreV1().Pods(namespace).List(ctxt, metav1.ListOptions{
 			Limit: 100,
 		})
 		require.NoError(t, err, "error getting pods list from k8s")
 		countOfReadyPods := 0
 		for _, item := range list.Items {
 			// Check pods running, and containers ready.
-			if item.Status.Phase == core_v1.PodRunning && len(item.Status.ContainerStatuses) != 0 {
+			if item.Status.Phase == corev1.PodRunning && len(item.Status.ContainerStatuses) != 0 {
 				size := len(item.Status.ContainerStatuses)
 				for _, status := range item.Status.ContainerStatuses {
 					if status.Ready {
@@ -1200,7 +1301,7 @@ func waitAllPodsRunning(t *testing.T, namespace string, haEnabled bool, done, po
 			podsRunning <- struct{}{}
 		}
 
-		time.Sleep(15 * time.Second)
+		time.Sleep(1 * time.Second)
 	}
 }
 

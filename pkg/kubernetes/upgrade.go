@@ -14,16 +14,20 @@ limitations under the License.
 package kubernetes
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
 	"time"
 
+	"github.com/hashicorp/go-version"
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/helm/pkg/strvals"
-
-	"github.com/hashicorp/go-version"
 
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/utils"
@@ -166,7 +170,35 @@ func Upgrade(conf UpgradeConfig) error {
 		return err
 	}
 
+	client, err := Client()
+	if err != nil {
+		return err
+	}
+
+	var mutatingWebhookConf *admissionregistrationv1.MutatingWebhookConfiguration
+	if is12to11Downgrade(conf.RuntimeVersion, daprVersion) {
+		print.InfoStatusEvent(os.Stdout, "Downgrade from 1.12 to 1.11 detected, temporarily deleting injector mutating webhook...")
+
+		mutatingWebhookConf, err = client.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), "dapr-sidecar-injector", metav1.GetOptions{})
+		if err != nil && !apierrors.IsNotFound(err) {
+			return err
+		}
+
+		err = client.AdmissionregistrationV1().MutatingWebhookConfigurations().Delete(context.TODO(), "dapr-sidecar-injector", metav1.DeleteOptions{})
+		if err != nil && !apierrors.IsNotFound(err) {
+			return err
+		}
+	}
+
 	if _, err = upgradeClient.Run(chart, controlPlaneChart, vals); err != nil {
+		if mutatingWebhookConf != nil {
+			mutatingWebhookConf.ObjectMeta = metav1.ObjectMeta{
+				Name:      mutatingWebhookConf.Name,
+				Namespace: mutatingWebhookConf.Namespace,
+			}
+			_, merr := client.AdmissionregistrationV1().MutatingWebhookConfigurations().Create(context.TODO(), mutatingWebhookConf, metav1.CreateOptions{})
+			return errors.Join(err, merr)
+		}
 		return err
 	}
 
@@ -263,4 +295,21 @@ func isDowngrade(targetVersion, existingVersion string) bool {
 		os.Exit(1)
 	}
 	return target.LessThan(existing)
+}
+
+func is12to11Downgrade(targetVersion, existingVersion string) bool {
+	target, _ := version.NewVersion(targetVersion)
+	existing, _ := version.NewVersion(existingVersion)
+	if target == nil || existing == nil {
+		return false
+	}
+
+	tset := target.Segments()
+	eset := existing.Segments()
+
+	if len(eset) < 2 || len(tset) < 2 {
+		return false
+	}
+
+	return eset[0] == 1 && eset[1] == 12 && tset[0] == 1 && tset[1] == 11
 }
