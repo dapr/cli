@@ -26,8 +26,9 @@ import (
 )
 
 var (
-	stopAppID string
-	stopK8s   bool
+	stopAppID   string
+	stopK8s     bool
+	waitTimeout uint16
 )
 
 var StopCmd = &cobra.Command{
@@ -58,7 +59,8 @@ dapr stop --run-file /path/to/directory -k
 				os.Exit(1)
 			}
 			if !stopK8s {
-				err = executeStopWithRunFile(runFilePath)
+				//check state after timeout and kill here
+				err = executeStopWithRunFile(runFilePath, waitTimeout)
 				if err != nil {
 					print.FailureStatusEvent(os.Stderr, "Failed to stop Dapr and app processes: %s", err)
 				} else {
@@ -85,7 +87,7 @@ dapr stop --run-file /path/to/directory -k
 		}
 		cliPIDToNoOfApps := standalone.GetCLIPIDCountMap(apps)
 		for _, appID := range args {
-			err = standalone.Stop(appID, cliPIDToNoOfApps, apps)
+			err = standalone.Stop(appID, cliPIDToNoOfApps, apps, waitTimeout)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, "failed to stop app id %s: %s", appID, err)
 			} else {
@@ -98,15 +100,16 @@ dapr stop --run-file /path/to/directory -k
 func init() {
 	StopCmd.Flags().StringVarP(&stopAppID, "app-id", "a", "", "The application id to be stopped")
 	StopCmd.Flags().StringVarP(&runFilePath, "run-file", "f", "", "Path to the run template file for the list of apps to stop")
+	StopCmd.Flags().Uint16VarP(&waitTimeout, "wait", "w", 15, "Number of seconds to wait before forcefully killing the process")
 	StopCmd.Flags().BoolVarP(&stopK8s, "kubernetes", "k", false, "Stop deployments in Kunernetes based on multi-app run file")
 	StopCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	RootCmd.AddCommand(StopCmd)
 }
 
-func executeStopWithRunFile(runFilePath string) error {
+func executeStopWithRunFile(runFilePath string, waitTimeout uint16) error {
 	absFilePath, err := filepath.Abs(runFilePath)
 	if err != nil {
 		return fmt.Errorf("failed to get absolute file path for %s: %w", runFilePath, err)
 	}
-	return standalone.StopAppsWithRunFile(absFilePath)
+	return standalone.StopAppsWithRunFile(absFilePath, waitTimeout)
 }

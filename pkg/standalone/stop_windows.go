@@ -25,7 +25,7 @@ import (
 )
 
 // Stop terminates the application process.
-func Stop(appID string, cliPIDToNoOfApps map[int]int, apps []ListOutput) error {
+func Stop(appID string, cliPIDToNoOfApps map[int]int, apps []ListOutput, waitTimeout uint16) error {
 	for _, a := range apps {
 		if a.AppID == appID {
 			return setStopEvent(a.CliPID)
@@ -35,7 +35,7 @@ func Stop(appID string, cliPIDToNoOfApps map[int]int, apps []ListOutput) error {
 }
 
 // StopAppsWithRunFile terminates the daprd and application processes with the given run file.
-func StopAppsWithRunFile(runTemplatePath string) error {
+func StopAppsWithRunFile(runTemplatePath string, waitTimeout uint16) error {
 	apps, err := List()
 	if err != nil {
 		return err

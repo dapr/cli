@@ -18,27 +18,38 @@ package standalone
 
 import (
 	"fmt"
+	"os"
 	"syscall"
+	"time"
 
 	"github.com/dapr/cli/utils"
 )
 
 // Stop terminates the application process.
-func Stop(appID string, cliPIDToNoOfApps map[int]int, apps []ListOutput) error {
+func Stop(appID string, cliPIDToNoOfApps map[int]int, apps []ListOutput, waitTimeout uint16) error {
 	for _, a := range apps {
 		if a.AppID == appID {
-			var pid string
+			var pid int
+			var err error
 			// Kill the Daprd process if Daprd was started without CLI, otherwise
 			// kill the CLI process which also kills the associated Daprd process.
 			if a.CliPID == 0 || cliPIDToNoOfApps[a.CliPID] > 1 {
-				pid = fmt.Sprintf("%v", a.DaprdPID)
+				pid = a.DaprdPID
 				cliPIDToNoOfApps[a.CliPID]--
 			} else {
-				pid = fmt.Sprintf("%v", a.CliPID)
+				pid = a.CliPID
 			}
 
-			_, err := utils.RunCmdAndWait("kill", pid)
+			_, err = utils.RunCmdAndWait("kill", fmt.Sprintf("%v", pid))
 
+			if err == nil {
+				//wait for specified number of seconds and check for process state
+				//If still running - force kill
+				time.Sleep(time.Duration(waitTimeout) * time.Second)
+				if processExists(pid) {
+					_, err = utils.RunCmdAndWait("kill", "-9", fmt.Sprintf("%v", pid))
+				}
+			}
 			return err
 		}
 	}
@@ -46,7 +57,7 @@ func Stop(appID string, cliPIDToNoOfApps map[int]int, apps []ListOutput) error {
 }
 
 // StopAppsWithRunFile terminates the daprd and application processes with the given run file.
-func StopAppsWithRunFile(runTemplatePath string) error {
+func StopAppsWithRunFile(runTemplatePath string, waitTimeout uint16) error {
 	apps, err := List()
 	if err != nil {
 		return err
@@ -58,12 +69,36 @@ func StopAppsWithRunFile(runTemplatePath string) error {
 			if err != nil {
 				// Fall back to cliPID if pgid is not available.
 				_, err = utils.RunCmdAndWait("kill", fmt.Sprintf("%v", a.CliPID))
+				if err != nil {
+					return err
+				}
+
+				time.Sleep(time.Duration(waitTimeout) * time.Second)
+				if processExists(a.CliPID) {
+					_, err = utils.RunCmdAndWait("kill", "-9", fmt.Sprintf("%v", a.CliPID))
+				}
 				return err
 			}
 			// Kill the whole process group.
 			err = syscall.Kill(-pgid, syscall.SIGINT)
+			if err != nil {
+				return err
+			}
+			time.Sleep(time.Duration(waitTimeout) * time.Second)
+			if processExists(pgid) {
+				err = syscall.Kill(-pgid, syscall.SIGKILL)
+			}
 			return err
 		}
 	}
 	return fmt.Errorf("couldn't find apps with run file %q", runTemplatePath)
+}
+
+func processExists(pid int) bool {
+	proc, _ := os.FindProcess(pid)
+	err := proc.Signal(syscall.Signal(0))
+	if err != nil {
+		return false
+	}
+	return true
 }
