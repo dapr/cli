@@ -59,7 +59,6 @@ dapr stop --run-file /path/to/directory -k
 				os.Exit(1)
 			}
 			if !stopK8s {
-				//check state after timeout and kill here
 				err = executeStopWithRunFile(runFilePath, waitTimeout)
 				if err != nil {
 					print.FailureStatusEvent(os.Stderr, "Failed to stop Dapr and app processes: %s", err)
