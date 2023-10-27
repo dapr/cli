@@ -72,7 +72,6 @@ func StopAppsWithRunFile(runTemplatePath string, waitTimeout uint16) error {
 				if err != nil {
 					return err
 				}
-
 				time.Sleep(time.Duration(waitTimeout) * time.Second)
 				if processExists(a.CliPID) {
 					_, err = utils.RunCmdAndWait("kill", "-9", fmt.Sprintf("%v", a.CliPID))
