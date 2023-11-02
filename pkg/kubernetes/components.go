@@ -25,6 +25,7 @@ import (
 	"github.com/dapr/cli/pkg/age"
 	"github.com/dapr/cli/utils"
 	v1alpha1 "github.com/dapr/dapr/pkg/apis/components/v1alpha1"
+	"github.com/dapr/dapr/pkg/client/clientset/versioned"
 )
 
 // ComponentsOutput represent a Dapr component.
@@ -46,19 +47,35 @@ func PrintComponents(name, namespace, outputFormat string) error {
 			return nil, err
 		}
 
-		list, err := client.ComponentsV1alpha1().Components(namespace).List(meta_v1.ListOptions{})
-		// This means that the Dapr Components CRD is not installed and
-		// therefore no component items exist.
-		if apierrors.IsNotFound(err) {
-			list = &v1alpha1.ComponentList{
-				Items: []v1alpha1.Component{},
-			}
-		} else if err != nil {
-			return nil, err
-		}
-
-		return list, nil
+		return listComponents(client, namespace)
 	}, name, outputFormat)
+}
+
+func listComponents(client versioned.Interface, namespace string) (*v1alpha1.ComponentList, error) {
+	list, err := client.ComponentsV1alpha1().Components(namespace).List(meta_v1.ListOptions{})
+	// This means that the Dapr Components CRD is not installed and
+	// therefore no component items exist.
+	if apierrors.IsNotFound(err) {
+		list = &v1alpha1.ComponentList{
+			Items: []v1alpha1.Component{},
+		}
+	} else if err != nil {
+		return nil, err
+	}
+
+	return list, nil
+}
+
+func getComponent(client versioned.Interface, namespace string, componentName string) (*v1alpha1.Component, error) {
+	c, err := client.ComponentsV1alpha1().Components(namespace).Get(componentName, meta_v1.GetOptions{})
+	// This means that the Dapr Components CRD is not installed and
+	// therefore no component items exist.
+	if apierrors.IsNotFound(err) {
+		return &v1alpha1.Component{}, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return c, err
 }
 
 func writeComponents(writer io.Writer, getConfigFunc func() (*v1alpha1.ComponentList, error), name, outputFormat string) error {

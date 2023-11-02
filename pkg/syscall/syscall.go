@@ -40,3 +40,9 @@ func CreateProcessGroupID() {
 		print.WarningStatusEvent(os.Stdout, "Failed to create process group id: %s", err.Error())
 	}
 }
+
+// AttachJobObjectToProcess attaches the process to a job object.
+func AttachJobObjectToProcess(jobName string, proc *os.Process) {
+	// This is a no-op on Linux/Mac.
+	// Instead, we use process group ID to kill all the processes.
+}

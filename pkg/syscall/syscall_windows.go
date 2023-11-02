@@ -1,3 +1,6 @@
+//go:build windows
+// +build windows
+
 /*
 Copyright 2021 The Dapr Authors
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,11 +21,16 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"unsafe"
 
 	"golang.org/x/sys/windows"
 
 	"github.com/dapr/cli/pkg/print"
+	"github.com/kolesnikovae/go-winjob"
+	"github.com/kolesnikovae/go-winjob/jobapi"
 )
+
+var jbObj *winjob.JobObject
 
 func SetupShutdownNotify(sigCh chan os.Signal) {
 	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
@@ -43,6 +51,41 @@ func SetupShutdownNotify(sigCh chan os.Signal) {
 
 // CreateProcessGroupID creates a process group ID for the current process.
 func CreateProcessGroupID() {
-	// No-op on Windows
-	print.WarningStatusEvent(os.Stdout, "Creating process group id is not implemented on Windows")
+	// This is a no-op on windows.
+	// Process group ID is not used for killing all the processes on windows.
+	// Instead, we use combination of named event and job object to kill all the processes.
+}
+
+// AttachJobObjectToProcess attaches the process to a job object.
+// It creates the job object if it doesn't exist.
+func AttachJobObjectToProcess(jobName string, proc *os.Process) {
+	if jbObj != nil {
+		err := jbObj.Assign(proc)
+		if err != nil {
+			print.WarningStatusEvent(os.Stdout, "failed to assign process to job object: %s", err.Error())
+		}
+		return
+	}
+	jbObj, err := winjob.Create(jobName)
+	if err != nil {
+		print.WarningStatusEvent(os.Stdout, "failed to create job object: %s", err.Error())
+		return
+	}
+	// Below lines control the relation between Job object and processes attached to it.
+	// By passing JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE flag, it will make sure that when
+	// job object is closed all the processed must also be exited.
+	info := windows.JOBOBJECT_EXTENDED_LIMIT_INFORMATION{
+		BasicLimitInformation: windows.JOBOBJECT_BASIC_LIMIT_INFORMATION{
+			LimitFlags: windows.JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
+		},
+	}
+	err = jobapi.SetInformationJobObject(jbObj.Handle, jobapi.JobObjectExtendedLimitInformation, unsafe.Pointer(&info), uint32(unsafe.Sizeof(info)))
+	if err != nil {
+		print.WarningStatusEvent(os.Stdout, "failed to set job object info: %s", err.Error())
+		return
+	}
+	err = jbObj.Assign(proc)
+	if err != nil {
+		print.WarningStatusEvent(os.Stdout, "failed to assign process to job object: %s", err.Error())
+	}
 }

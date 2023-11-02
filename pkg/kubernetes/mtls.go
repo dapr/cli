@@ -42,7 +42,7 @@ func IsMTLSEnabled() (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return c.Spec.MTLSSpec.Enabled, nil
+	return *c.Spec.MTLSSpec.Enabled, nil
 }
 
 func getSystemConfig() (*v1alpha1.Configuration, error) {

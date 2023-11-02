@@ -15,8 +15,9 @@ package upgrade
 
 import (
 	"fmt"
-	"strings"
 	"testing"
+
+	"github.com/Masterminds/semver/v3"
 
 	"github.com/dapr/cli/tests/e2e/common"
 )
@@ -64,15 +65,15 @@ var supportedUpgradePaths = []upgradePath{
 	},
 	{
 		previous: common.VersionDetails{
-			RuntimeVersion:      "1.10.7",
-			DashboardVersion:    "0.12.0",
+			RuntimeVersion:      "1.11.0",
+			DashboardVersion:    "0.14.0",
 			ClusterRoles:        []string{"dapr-dashboard", "dapr-injector", "dapr-operator-admin", "dapr-placement", "dapr-sentry"},
 			ClusterRoleBindings: []string{"dapr-operator-admin", "dapr-dashboard", "dapr-injector", "dapr-placement", "dapr-sentry"},
-			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io"},
+			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io", "httpendpoints.dapr.io"},
 		},
 		next: common.VersionDetails{
-			RuntimeVersion:      "1.11.0",
-			DashboardVersion:    "0.13.0",
+			RuntimeVersion:      "1.12.0",
+			DashboardVersion:    "0.14.0",
 			ClusterRoles:        []string{"dapr-dashboard", "dapr-injector", "dapr-operator-admin", "dapr-placement", "dapr-sentry"},
 			ClusterRoleBindings: []string{"dapr-operator-admin", "dapr-dashboard", "dapr-injector", "dapr-placement", "dapr-sentry"},
 			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io", "httpendpoints.dapr.io"},
@@ -81,18 +82,18 @@ var supportedUpgradePaths = []upgradePath{
 	// test downgrade.
 	{
 		previous: common.VersionDetails{
-			RuntimeVersion:      "1.11.0",
-			DashboardVersion:    "0.13.0",
+			RuntimeVersion:      "1.12.0",
+			DashboardVersion:    "0.14.0",
 			ClusterRoles:        []string{"dapr-dashboard", "dapr-injector", "dapr-operator-admin", "dapr-placement", "dapr-sentry"},
 			ClusterRoleBindings: []string{"dapr-operator-admin", "dapr-dashboard", "dapr-injector", "dapr-placement", "dapr-sentry"},
 			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io", "httpendpoints.dapr.io"},
 		},
 		next: common.VersionDetails{
-			RuntimeVersion:      "1.10.7",
-			DashboardVersion:    "0.12.0",
+			RuntimeVersion:      "1.11.0",
+			DashboardVersion:    "0.14.0",
 			ClusterRoles:        []string{"dapr-dashboard", "dapr-injector", "dapr-operator-admin", "dapr-placement", "dapr-sentry"},
 			ClusterRoleBindings: []string{"dapr-operator-admin", "dapr-dashboard", "dapr-injector", "dapr-placement", "dapr-sentry"},
-			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io"},
+			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io", "httpendpoints.dapr.io"},
 		},
 	},
 }
@@ -138,7 +139,7 @@ func getTestsOnUpgrade(p upgradePath, installOpts, upgradeOpts common.TestOption
 
 func TestUpgradePathNonHAModeMTLSDisabled(t *testing.T) {
 	// Ensure a clean environment.
-	common.EnsureUninstall(false) // does not wait for pod deletion.
+	common.EnsureUninstall(false, false) // does not wait for pod deletion.
 	for _, p := range supportedUpgradePaths {
 		t.Run(fmt.Sprintf("setup v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
 			t.Run("delete CRDs "+p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs))
@@ -183,7 +184,7 @@ func TestUpgradePathNonHAModeMTLSDisabled(t *testing.T) {
 
 func TestUpgradePathNonHAModeMTLSEnabled(t *testing.T) {
 	// Ensure a clean environment.
-	common.EnsureUninstall(false) // does not wait for pod deletion.
+	common.EnsureUninstall(false, false) // does not wait for pod deletion.
 	for _, p := range supportedUpgradePaths {
 		t.Run(fmt.Sprintf("setup v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
 			t.Run("delete CRDs "+p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs))
@@ -228,7 +229,7 @@ func TestUpgradePathNonHAModeMTLSEnabled(t *testing.T) {
 
 func TestUpgradePathHAModeMTLSDisabled(t *testing.T) {
 	// Ensure a clean environment.
-	common.EnsureUninstall(false) // does not wait for pod deletion.
+	common.EnsureUninstall(false, false) // does not wait for pod deletion.
 	for _, p := range supportedUpgradePaths {
 		t.Run(fmt.Sprintf("setup v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
 			t.Run("delete CRDs "+p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs))
@@ -273,7 +274,7 @@ func TestUpgradePathHAModeMTLSDisabled(t *testing.T) {
 
 func TestUpgradePathHAModeMTLSEnabled(t *testing.T) {
 	// Ensure a clean environment.
-	common.EnsureUninstall(false) // does not wait for pod deletion.
+	common.EnsureUninstall(false, false) // does not wait for pod deletion.
 	for _, p := range supportedUpgradePaths {
 		t.Run(fmt.Sprintf("setup v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
 			t.Run("delete CRDs "+p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs))
@@ -320,7 +321,7 @@ func TestUpgradePathHAModeMTLSEnabled(t *testing.T) {
 // This test verifies install/upgrade functionality with this additional resource.
 func TestUpgradeWithHTTPEndpoint(t *testing.T) {
 	// Ensure a clean environment.
-	common.EnsureUninstall(false) // does not wait for pod deletion.
+	common.EnsureUninstall(false, false) // does not wait for pod deletion.
 	for _, p := range supportedUpgradePaths {
 		t.Run(fmt.Sprintf("setup v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
 			t.Run("delete CRDs "+p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs))
@@ -329,8 +330,13 @@ func TestUpgradeWithHTTPEndpoint(t *testing.T) {
 	}
 
 	for _, p := range supportedUpgradePaths {
+		ver, err := semver.NewVersion(p.previous.RuntimeVersion)
+		if err != nil {
+			t.Fatal(err)
+		}
+
 		// only check runtime versions that support HTTPEndpoint resource.
-		if !strings.Contains(p.next.RuntimeVersion, "1.11") {
+		if ver.Major() != 1 || ver.Minor() < 11 {
 			return
 		}
 		t.Run(fmt.Sprintf("v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {

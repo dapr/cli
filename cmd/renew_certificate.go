@@ -14,9 +14,11 @@ limitations under the License.
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -168,22 +170,43 @@ func logErrorAndExit(err error) {
 }
 
 func restartControlPlaneService() error {
-	controlPlaneServices := []string{"deploy/dapr-sentry", "deploy/dapr-operator", "statefulsets/dapr-placement-server"}
+	controlPlaneServices := []string{
+		"deploy/dapr-sentry",
+		"deploy/dapr-sidecar-injector",
+		"deploy/dapr-operator",
+		"statefulsets/dapr-placement-server",
+	}
 	namespace, err := kubernetes.GetDaprNamespace()
 	if err != nil {
 		print.FailureStatusEvent(os.Stdout, "Failed to fetch Dapr namespace")
 	}
-	for _, name := range controlPlaneServices {
-		print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Restarting %s..", name))
-		_, err := utils.RunCmdAndWait("kubectl", "rollout", "restart", name, "-n", namespace)
-		if err != nil {
-			return fmt.Errorf("error in restarting deployment %s. Error is %w", name, err)
-		}
-		_, err = utils.RunCmdAndWait("kubectl", "rollout", "status", name, "-n", namespace)
-		if err != nil {
-			return fmt.Errorf("error in checking status for deployment %s. Error is %w", name, err)
-		}
+
+	errs := make([]error, len(controlPlaneServices))
+	var wg sync.WaitGroup
+	wg.Add(len(controlPlaneServices))
+	for i, name := range controlPlaneServices {
+		go func(i int, name string) {
+			defer wg.Done()
+			print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Restarting %s..", name))
+			_, err := utils.RunCmdAndWait("kubectl", "rollout", "restart", "-n", namespace, name)
+			if err != nil {
+				errs[i] = fmt.Errorf("error in restarting deployment %s. Error is %w", name, err)
+				return
+			}
+			_, err = utils.RunCmdAndWait("kubectl", "rollout", "status", "-n", namespace, name)
+			if err != nil {
+				errs[i] = fmt.Errorf("error in checking status for deployment %s. Error is %w", name, err)
+				return
+			}
+		}(i, name)
 	}
+
+	wg.Wait()
+
+	if err := errors.Join(errs...); err != nil {
+		return err
+	}
+
 	print.SuccessStatusEvent(os.Stdout, "All control plane services have restarted successfully!")
 	return nil
 }

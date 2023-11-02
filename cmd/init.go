@@ -33,6 +33,7 @@ var (
 	wait              bool
 	timeout           uint
 	slimMode          bool
+	devMode           bool
 	runtimeVersion    string
 	dashboardVersion  string
 	allNamespaces     bool
@@ -67,6 +68,9 @@ dapr init --image-registry <registry-url>
 
 # Initialize Dapr in Kubernetes
 dapr init -k
+
+# Initialize Dapr in Kubernetes in dev mode
+dapr init -k --dev
 
 # Initialize Dapr in Kubernetes and wait for the installation to complete (default timeout is 300s/5m)
 dapr init -k --wait --timeout 600
@@ -127,6 +131,7 @@ dapr init --runtime-path <path-to-install-directory>
 				DashboardVersion:          dashboardVersion,
 				EnableMTLS:                enableMTLS,
 				EnableHA:                  enableHA,
+				EnableDev:                 devMode,
 				Args:                      values,
 				Wait:                      wait,
 				Timeout:                   timeout,
@@ -202,6 +207,7 @@ func init() {
 	defaultContainerRuntime := string(utils.DOCKER)
 
 	InitCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Deploy Dapr to a Kubernetes cluster")
+	InitCmd.Flags().BoolVarP(&devMode, "dev", "", false, "Use Dev mode. Deploy Redis, Zipkin also in the Kubernetes cluster")
 	InitCmd.Flags().BoolVarP(&wait, "wait", "", false, "Wait for Kubernetes initialization to complete")
 	InitCmd.Flags().UintVarP(&timeout, "timeout", "", 300, "The wait timeout for the Kubernetes installation")
 	InitCmd.Flags().BoolVarP(&slimMode, "slim", "s", false, "Exclude placement service, Redis and Zipkin containers from self-hosted installation")
