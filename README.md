@@ -371,6 +371,15 @@ export DAPR_HELM_REPO_PASSWORD="passwd_xxx"
 
 Setting the above parameters will allow `dapr init -k` to install Dapr images from the configured Helm repository.
 
+A local Helm repo is also supported:
+
+export DAPR_HELM_REPO_URL="/home/user/dapr/helm-charts"
+
+To directly use HEAD helm charts, create two local symlinks under `DAPR_HELM_REPO_URL` that point to the `charts` folder of each repo:
+    * `dapr-dashboard-latest` -> `https://github.com/dapr/dashboard/tree/master/chart/dapr-dashboard`
+    * `dapr-latest` -> `https://github.com/dapr/dapr/tree/master/charts/dapr`
+
+
 ### Launch Dapr and your app
 
 The Dapr CLI lets you debug easily by launching both Dapr and your app.

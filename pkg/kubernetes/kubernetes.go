@@ -190,12 +190,15 @@ func getVersion(releaseName string, version string) (string, error) {
 	return actualVersion, nil
 }
 
-func createTempDir() (string, error) {
+func createTempDir() (string, func(), error) {
 	dir, err := os.MkdirTemp("", "dapr")
 	if err != nil {
-		return "", fmt.Errorf("error creating temp dir: %w", err)
+		return "", func() {}, fmt.Errorf("error creating temp dir: %w", err)
 	}
-	return dir, nil
+	cleanup := func() {
+		os.RemoveAll(dir)
+	}
+	return dir, cleanup, nil
 }
 
 func locateChartFile(dirPath string) (string, error) {
@@ -206,7 +209,12 @@ func locateChartFile(dirPath string) (string, error) {
 	return filepath.Join(dirPath, files[0].Name()), nil
 }
 
-func getHelmChart(version, releaseName, helmRepo string, config *helm.Configuration) (*chart.Chart, error) {
+func pullHelmChart(version, releaseName, helmRepo string, config *helm.Configuration) (string, func(), error) {
+	// is helmRepo already a directory path? (ie. /home/user/dapr/helm-charts)
+	if localPath, err := utils.DiscoverHelmPath(helmRepo, releaseName, version); err == nil {
+		return localPath, func() {}, nil
+	}
+
 	pull := helm.NewPullWithOpts(helm.WithConfig(config))
 	pull.RepoURL = helmRepo
 	pull.Username = utils.GetEnv("DAPR_HELM_REPO_USERNAME", "")
@@ -218,24 +226,39 @@ func getHelmChart(version, releaseName, helmRepo string, config *helm.Configurat
 		pull.Version = chartVersion(version)
 	}
 
-	dir, err := createTempDir()
+	dir, cleanup, err := createTempDir()
 	if err != nil {
-		return nil, err
+		return "", nil, fmt.Errorf("unable to create temp dir: %w", err)
 	}
-	defer os.RemoveAll(dir)
 
 	pull.DestDir = dir
 
 	_, err = pull.Run(releaseName)
 	if err != nil {
-		return nil, err
+		return "", cleanup, fmt.Errorf("unable to pull chart from repo: %w", err)
 	}
 
 	chartPath, err := locateChartFile(dir)
 	if err != nil {
-		return nil, err
+		return "", cleanup, fmt.Errorf("unable to locate chart: %w", err)
 	}
-	return loader.Load(chartPath)
+
+	return chartPath, cleanup, nil
+}
+
+func getHelmChart(version, releaseName, helmRepo string, config *helm.Configuration) (*chart.Chart, error) {
+	chartPath, cleanup, err := pullHelmChart(version, releaseName, helmRepo, config)
+	defer cleanup()
+	if err != nil {
+		return nil, fmt.Errorf("unable to pull helm chart: %w", err)
+	}
+
+	chart, err := loader.Load(chartPath)
+	if err != nil {
+		return nil, fmt.Errorf("unable to load chart from path: %w", err)
+	}
+
+	return chart, nil
 }
 
 func daprChartValues(config InitConfiguration, version string) (map[string]interface{}, error) {
@@ -461,8 +484,8 @@ spec:
     zipkin:
       endpointAddress: "http://dapr-dev-zipkin.default.svc.cluster.local:9411/api/v2/spans"
 `
-	tempDirPath, err := createTempDir()
-	defer os.RemoveAll(tempDirPath)
+	tempDirPath, cleanup, err := createTempDir()
+	defer cleanup()
 	if err != nil {
 		return err
 	}

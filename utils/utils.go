@@ -433,3 +433,19 @@ func AttachJobObjectToProcess(pid string, proc *os.Process) {
 func GetJobObjectNameFromPID(pid string) string {
 	return pid + "-" + windowsDaprAppProcJobName
 }
+
+func DiscoverHelmPath(helmPath, release, version string) (string, error) {
+	// first try for a local directory path
+	dirPath := filepath.Join(helmPath, fmt.Sprintf("%s-%s", release, version))
+	if ValidatePath(dirPath) == nil {
+		return dirPath, nil
+	}
+
+	// not a dir, try a .tgz file instead
+	filePath := filepath.Join(helmPath, fmt.Sprintf("%s-%s.tgz", release, version))
+	if ValidatePath(filePath) == nil {
+		return filePath, nil
+	}
+
+	return "", fmt.Errorf("unable to find a helm path in either %s or %s", dirPath, filePath)
+}
