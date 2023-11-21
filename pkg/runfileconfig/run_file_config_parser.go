@@ -216,7 +216,7 @@ func (a *RunFileConfig) resolvePathToAbsAndValidate(baseDir string, paths ...*st
 			return err
 		}
 		*path = absPath
-		if err = utils.ValidateFilePath(*path); err != nil {
+		if err = utils.ValidatePath(*path); err != nil {
 			return err
 		}
 	}
@@ -264,7 +264,7 @@ func (a *RunFileConfig) resolveResourcesFilePath(app *App) error {
 		return nil
 	}
 	localResourcesDir := filepath.Join(app.AppDirPath, standalone.DefaultDaprDirName, standalone.DefaultResourcesDirName)
-	if err := utils.ValidateFilePath(localResourcesDir); err == nil {
+	if err := utils.ValidatePath(localResourcesDir); err == nil {
 		app.ResourcesPaths = []string{localResourcesDir}
 	} else if len(a.Common.ResourcesPaths) > 0 {
 		app.ResourcesPaths = append(app.ResourcesPaths, a.Common.ResourcesPaths...)
@@ -285,7 +285,7 @@ func (a *RunFileConfig) resolveConfigFilePath(app *App) error {
 		return nil
 	}
 	localConfigFile := filepath.Join(app.AppDirPath, standalone.DefaultDaprDirName, standalone.DefaultConfigFileName)
-	if err := utils.ValidateFilePath(localConfigFile); err == nil {
+	if err := utils.ValidatePath(localConfigFile); err == nil {
 		app.ConfigFile = localConfigFile
 	} else if len(strings.TrimSpace(a.Common.ConfigFile)) > 0 {
 		app.ConfigFile = a.Common.ConfigFile
