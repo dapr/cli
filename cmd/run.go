@@ -108,6 +108,9 @@ dapr run --run-file dapr.yaml
 # Run multiple apps by providing a directory path containing the run config file(dapr.yaml)
 dapr run --run-file /path/to/directory
 
+# Run multiple apps by providing config via stdin
+cat dapr.template.yaml | envsubst | dapr run --run-file -
+
 # Run multiple apps in Kubernetes by proficing path of a run config file
 dapr run --run-file dapr.yaml -k
 
@@ -1008,6 +1011,9 @@ func putDaprLogFilePathInMeta(runE *runExec.RunExec, daprLogFilePath string) {
 // If the provided path is a path to a YAML file then return the same.
 // Else it returns the path of "dapr.yaml" in the provided directory.
 func getRunFilePath(path string) (string, error) {
+	if path == "-" {
+		return path, nil // will be read from stdin later.
+	}
 	fileInfo, err := os.Stat(path)
 	if err != nil {
 		return "", fmt.Errorf("error getting file info for %s: %w", path, err)
