@@ -210,7 +210,7 @@ func locateChartFile(dirPath string) (string, error) {
 }
 
 func pullHelmChart(version, releaseName, helmRepo string, config *helm.Configuration) (string, func(), error) {
-	// is helmRepo already a directory path? (ie. /home/user/dapr/helm-charts)
+	// is helmRepo already a directory path or a .tgz file? (ie. /home/user/dapr/helm-charts).
 	if localPath, err := utils.DiscoverHelmPath(helmRepo, releaseName, version); err == nil {
 		return localPath, func() {}, nil
 	}

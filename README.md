@@ -371,7 +371,7 @@ export DAPR_HELM_REPO_PASSWORD="passwd_xxx"
 
 Setting the above parameters will allow `dapr init -k` to install Dapr images from the configured Helm repository.
 
-A local Helm repo is also supported:
+A local Helm repo is also supported, this can either be a directory path or an existing .tgz file.
 
 export DAPR_HELM_REPO_URL="/home/user/dapr/helm-charts"
 

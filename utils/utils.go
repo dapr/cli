@@ -435,13 +435,13 @@ func GetJobObjectNameFromPID(pid string) string {
 }
 
 func DiscoverHelmPath(helmPath, release, version string) (string, error) {
-	// first try for a local directory path
+	// first try for a local directory path.
 	dirPath := filepath.Join(helmPath, fmt.Sprintf("%s-%s", release, version))
 	if ValidatePath(dirPath) == nil {
 		return dirPath, nil
 	}
 
-	// not a dir, try a .tgz file instead
+	// not a dir, try a .tgz file instead.
 	filePath := filepath.Join(helmPath, fmt.Sprintf("%s-%s.tgz", release, version))
 	if ValidatePath(filePath) == nil {
 		return filePath, nil
