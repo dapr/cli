@@ -392,6 +392,13 @@ func ResolveHomeDir(filePath string) (string, error) {
 }
 
 func ReadFile(filePath string) ([]byte, error) {
+	if filePath == "-" {
+		bytes, err := io.ReadAll(os.Stdin)
+		if err != nil {
+			return nil, fmt.Errorf("error in reading the provided app config from stdin: %w", err)
+		}
+		return bytes, nil
+	}
 	bytes, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("error in reading the provided app config file: %w", err)
