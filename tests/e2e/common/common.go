@@ -774,8 +774,10 @@ func installTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 			args = append(args, "--dev")
 		}
 		if !details.UseDaprLatestVersion {
-			// TODO: Pass dashboard-version also when charts are released.
-			args = append(args, "--runtime-version", details.RuntimeVersion)
+			args = append(args, []string{
+				"--runtime-version", details.RuntimeVersion,
+				"--dashboard-version", details.DashboardVersion,
+			}...)
 		}
 		if opts.HAEnabled {
 			args = append(args, "--enable-ha")
