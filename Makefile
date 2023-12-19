@@ -207,7 +207,7 @@ e2e-build-run-sh: build test-e2e-sh
 ################################################################################
 .PHONY: modtidy
 modtidy:
-	go mod tidy -compat=1.20
+	go mod tidy -compat=1.21
 
 ################################################################################
 # Target: check-diff                                                           #
