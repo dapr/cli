@@ -132,14 +132,14 @@ jobs:
         if: matrix.target_arch == 'amd64' && matrix.target_os == 'linux'
         run: |
           [ ! -z "${{ env.REL_VERSION }}" ] && echo "${{ env.REL_VERSION }}" > "${{ env.ARCHIVE_OUTDIR }}/release_version.txt"
-      - name: upload artifacts
-        uses: actions/upload-artifact@master
+      - name: upload artifacts  ## Following migration guide in https://github.com/actions/upload-artifact/blob/main/docs/MIGRATION.md
+        uses: actions/upload-artifact@v4
         with:
-          name: cli_drop
+          name: cli_drop-{{ matrix.target_os }}_${{ matrix.target_arch }}
           path: ${{ env.ARCHIVE_OUTDIR }}
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@master
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.target_os }}_${{ matrix.target_arch }}_test_unit.json
           path: ${{ env.TEST_OUTPUT_FILE }}
@@ -152,9 +152,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: download artifacts
-        uses: actions/download-artifact@master
+        uses: actions/download-artifact@v4
         with:
-          name: cli_drop
+          pattern: cli_drop-*
+          merge-multiple: true
           path: ${{ env.ARTIFACT_DIR }}
       - name: Set Release Version
         run: |
