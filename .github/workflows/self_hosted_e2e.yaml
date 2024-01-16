@@ -181,5 +181,5 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.target_os }}_${{ matrix.target_arch }}_{{matrix.dapr_install_mode}}_e2e_standalone.json
+          name: ${{ matrix.target_os }}_${{ matrix.target_arch }}_${{ matrix.dapr_install_mode }}_e2e_standalone.json
           path: ${{ env.TEST_OUTPUT_FILE }}
