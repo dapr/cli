@@ -135,7 +135,7 @@ jobs:
       - name: upload artifacts  ## Following migration guide in https://github.com/actions/upload-artifact/blob/main/docs/MIGRATION.md
         uses: actions/upload-artifact@v4
         with:
-          name: cli_drop-{{ matrix.target_os }}_${{ matrix.target_arch }}
+          name: cli_drop-${{ matrix.target_os }}_${{ matrix.target_arch }}
           path: ${{ env.ARCHIVE_OUTDIR }}
       - name: Upload test results
         if: always()
