@@ -31,10 +31,10 @@ func Stop(appID string, cliPIDToNoOfApps map[int]int, apps []ListOutput) error {
 			// Kill the Daprd process if Daprd was started without CLI, otherwise
 			// kill the CLI process which also kills the associated Daprd process.
 			if a.CliPID == 0 || cliPIDToNoOfApps[a.CliPID] > 1 {
-				pid = fmt.Sprintf("%v", a.DaprdPID)
+				pid = fmt.Sprintf("%v", a.DaprdPID) //nolint: perfsprint
 				cliPIDToNoOfApps[a.CliPID]--
 			} else {
-				pid = fmt.Sprintf("%v", a.CliPID)
+				pid = fmt.Sprintf("%v", a.CliPID) //nolint: perfsprint
 			}
 
 			_, err := utils.RunCmdAndWait("kill", pid)
@@ -57,7 +57,7 @@ func StopAppsWithRunFile(runTemplatePath string) error {
 			pgid, err := syscall.Getpgid(a.CliPID)
 			if err != nil {
 				// Fall back to cliPID if pgid is not available.
-				_, err = utils.RunCmdAndWait("kill", fmt.Sprintf("%v", a.CliPID))
+				_, err = utils.RunCmdAndWait("kill", fmt.Sprintf("%v", a.CliPID)) //nolint:perfsprint
 				return err
 			}
 			// Kill the whole process group.
