@@ -64,7 +64,7 @@ func (s *Standalone) Invoke(appID, method string, data []byte, verb string, path
 }
 
 func makeEndpoint(lo ListOutput, method string) string {
-	return fmt.Sprintf("http://127.0.0.1:%s/v%s/invoke/%s/method/%s", fmt.Sprintf("%v", lo.HTTPPort), api.RuntimeAPIVersion, lo.AppID, method)
+	return fmt.Sprintf("http://127.0.0.1:%s/v%s/invoke/%s/method/%s", fmt.Sprintf("%v", lo.HTTPPort), api.RuntimeAPIVersion, lo.AppID, method) //nolint: perfsprint
 }
 
 func handleResponse(response *http.Response) (string, error) {

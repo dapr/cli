@@ -22,6 +22,8 @@ import (
 	"github.com/dapr/cli/tests/e2e/common"
 )
 
+const deleteCRDs = "delete CRDs "
+
 type upgradePath struct {
 	previous common.VersionDetails
 	next     common.VersionDetails
@@ -129,8 +131,8 @@ func getTestsOnUpgrade(p upgradePath, installOpts, upgradeOpts common.TestOption
 
 	// delete CRDs if exist.
 	tests = append(tests,
-		common.TestCase{Name: "delete CRDs " + p.previous.RuntimeVersion, Callable: common.DeleteCRD(p.previous.CustomResourceDefs)},
-		common.TestCase{Name: "delete CRDs " + p.next.RuntimeVersion, Callable: common.DeleteCRD(p.next.CustomResourceDefs)})
+		common.TestCase{Name: deleteCRDs + p.previous.RuntimeVersion, Callable: common.DeleteCRD(p.previous.CustomResourceDefs)},
+		common.TestCase{Name: deleteCRDs + p.next.RuntimeVersion, Callable: common.DeleteCRD(p.next.CustomResourceDefs)})
 
 	return tests
 }
@@ -142,8 +144,8 @@ func TestUpgradePathNonHAModeMTLSDisabled(t *testing.T) {
 	common.EnsureUninstall(false, false) // does not wait for pod deletion.
 	for _, p := range supportedUpgradePaths {
 		t.Run(fmt.Sprintf("setup v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
-			t.Run("delete CRDs "+p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs))
-			t.Run("delete CRDs "+p.next.RuntimeVersion, common.DeleteCRD(p.next.CustomResourceDefs))
+			t.Run(deleteCRDs+p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs))
+			t.Run(deleteCRDs+p.next.RuntimeVersion, common.DeleteCRD(p.next.CustomResourceDefs))
 		})
 	}
 
@@ -187,8 +189,8 @@ func TestUpgradePathNonHAModeMTLSEnabled(t *testing.T) {
 	common.EnsureUninstall(false, false) // does not wait for pod deletion.
 	for _, p := range supportedUpgradePaths {
 		t.Run(fmt.Sprintf("setup v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
-			t.Run("delete CRDs "+p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs))
-			t.Run("delete CRDs "+p.next.RuntimeVersion, common.DeleteCRD(p.next.CustomResourceDefs))
+			t.Run(deleteCRDs+p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs))
+			t.Run(deleteCRDs+p.next.RuntimeVersion, common.DeleteCRD(p.next.CustomResourceDefs))
 		})
 	}
 
@@ -232,8 +234,8 @@ func TestUpgradePathHAModeMTLSDisabled(t *testing.T) {
 	common.EnsureUninstall(false, false) // does not wait for pod deletion.
 	for _, p := range supportedUpgradePaths {
 		t.Run(fmt.Sprintf("setup v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
-			t.Run("delete CRDs "+p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs))
-			t.Run("delete CRDs "+p.next.RuntimeVersion, common.DeleteCRD(p.next.CustomResourceDefs))
+			t.Run(deleteCRDs+p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs))
+			t.Run(deleteCRDs+p.next.RuntimeVersion, common.DeleteCRD(p.next.CustomResourceDefs))
 		})
 	}
 
@@ -277,8 +279,8 @@ func TestUpgradePathHAModeMTLSEnabled(t *testing.T) {
 	common.EnsureUninstall(false, false) // does not wait for pod deletion.
 	for _, p := range supportedUpgradePaths {
 		t.Run(fmt.Sprintf("setup v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
-			t.Run("delete CRDs "+p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs))
-			t.Run("delete CRDs "+p.next.RuntimeVersion, common.DeleteCRD(p.next.CustomResourceDefs))
+			t.Run(deleteCRDs+p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs))
+			t.Run(deleteCRDs+p.next.RuntimeVersion, common.DeleteCRD(p.next.CustomResourceDefs))
 		})
 	}
 
@@ -324,8 +326,8 @@ func TestUpgradeWithHTTPEndpoint(t *testing.T) {
 	common.EnsureUninstall(false, false) // does not wait for pod deletion.
 	for _, p := range supportedUpgradePaths {
 		t.Run(fmt.Sprintf("setup v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion), func(t *testing.T) {
-			t.Run("delete CRDs "+p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs))
-			t.Run("delete CRDs "+p.next.RuntimeVersion, common.DeleteCRD(p.next.CustomResourceDefs))
+			t.Run(deleteCRDs+p.previous.RuntimeVersion, common.DeleteCRD(p.previous.CustomResourceDefs))
+			t.Run(deleteCRDs+p.next.RuntimeVersion, common.DeleteCRD(p.next.CustomResourceDefs))
 		})
 	}
 
