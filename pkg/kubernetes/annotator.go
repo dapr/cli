@@ -82,7 +82,7 @@ const (
 )
 
 type Annotator interface {
-	Annotate(io.Reader, io.Writer) error
+	Annotate(io.Reader, io.Writer) error //nolint: inamedparam
 }
 
 type K8sAnnotator struct {

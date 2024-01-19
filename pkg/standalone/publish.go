@@ -62,7 +62,7 @@ func (s *Standalone) Publish(publishAppID, pubsubName, topic string, payload []b
 			},
 		}
 	} else {
-		url = fmt.Sprintf("http://localhost:%s/v%s/publish/%s/%s%s", fmt.Sprintf("%v", instance.HTTPPort), api.RuntimeAPIVersion, pubsubName, topic, queryParams)
+		url = fmt.Sprintf("http://localhost:%s/v%s/publish/%s/%s%s", fmt.Sprintf("%v", instance.HTTPPort), api.RuntimeAPIVersion, pubsubName, topic, queryParams) //nolint: perfsprint
 	}
 
 	contentType := "application/json"
