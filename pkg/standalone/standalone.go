@@ -724,7 +724,7 @@ func makeDefaultComponentsDir(installDir string) error {
 		}
 	}
 
-	os.Chmod(componentsDir, 0o777)
+	os.Chmod(componentsDir, 0o755)
 	return nil
 }
 
@@ -1030,12 +1030,12 @@ func checkAndOverWriteFile(filePath string, b []byte) error {
 }
 
 func prepareDaprInstallDir(daprBinDir string) error {
-	err := os.MkdirAll(daprBinDir, 0o777)
+	err := os.MkdirAll(daprBinDir, 0o755)
 	if err != nil {
 		return err
 	}
 
-	err = os.Chmod(daprBinDir, 0o777)
+	err = os.Chmod(daprBinDir, 0o755)
 	if err != nil {
 		return err
 	}
