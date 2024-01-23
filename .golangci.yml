@@ -118,13 +118,11 @@ linters-settings:
     # minimal occurrences count to trigger, 3 by default
     min-occurrences: 5
   depguard:
-    list-type: blacklist
-    include-go-root: false
-    packages:
-      - github.com/Sirupsen/logrus
-    packages-with-error-messages:
-      # specify an error message to output when a blacklisted package is used
-      github.com/Sirupsen/logrus: "must use github.com/sirupsen/logrus"
+    rules:
+      main:
+        deny:
+          - pkg: "github.com/Sirupsen/logrus"
+            desc: "must use github.com/sirupsen/logrus"
   misspell:
     # Correct spellings using locale preferences for US or UK.
     # Default is to use a neutral variety of English.
@@ -216,7 +214,6 @@ linters-settings:
     # Allow multiline assignments to be cuddled. Default is true.
     allow-multiline-assign: true
     # Allow case blocks to end with a whitespace.
-    allow-case-traling-whitespace: true
     # Allow declarations (var) to be cuddled.
     allow-cuddle-declarations: false
 
@@ -263,3 +260,9 @@ linters:
     - ireturn
     - golint
     - nosnakecase
+    - tagalign
+    - varcheck
+    - deadcode
+    - structcheck
+    - ifshort
+    - testifylint
