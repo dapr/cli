@@ -7,7 +7,7 @@ require (
 	github.com/Pallinder/sillyname-go v0.0.0-20130730142914-97aeae9e6ba1
 	github.com/briandowns/spinner v1.19.0
 	github.com/dapr/dapr v1.13.0-rc.1
-	github.com/dapr/go-sdk v1.9.0-rc-1
+	github.com/dapr/go-sdk v1.9.1
 	github.com/docker/docker v24.0.7+incompatible
 	github.com/fatih/color v1.15.0
 	github.com/gocarina/gocsv v0.0.0-20220927221512-ad3251f9fa25

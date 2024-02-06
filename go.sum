@@ -152,8 +152,8 @@ github.com/dapr/components-contrib v1.13.0-rc.1 h1:wPCfzlrpUli9rOKMcnFbiqEel651X
 github.com/dapr/components-contrib v1.13.0-rc.1/go.mod h1:64vTYxuZ8oNmcri6cRmdciJPA+T2DiVOSimCGJJIpFc=
 github.com/dapr/dapr v1.13.0-rc.1 h1:FngzU5yvpFQacOeRbtYoeN6IO4D7lGUNqe8MZ20McGE=
 github.com/dapr/dapr v1.13.0-rc.1/go.mod h1:Ag9JmAKMFeOpyhTfyTyHbVmqI0EZzWNd8fK9TNJnYMA=
-github.com/dapr/go-sdk v1.9.0-rc-1 h1:14GjWVv32ke/E86Srh0TT28K+4kxl3KU233hdUDBgck=
-github.com/dapr/go-sdk v1.9.0-rc-1/go.mod h1:bK9bNEsC6hY3RMKh69r0nBjLqb6njeWTEGVMOgP9g20=
+github.com/dapr/go-sdk v1.9.1 h1:f5gV8HtGz6iBJSsh6eI+/Ews4sGC3W9gX0/oD9ANVqM=
+github.com/dapr/go-sdk v1.9.1/go.mod h1:bK9bNEsC6hY3RMKh69r0nBjLqb6njeWTEGVMOgP9g20=
 github.com/dapr/kit v0.13.0 h1:4S+5QqDCreva+MBONtIgxeg6B2b1W89bB8F5lqKgTa0=
 github.com/dapr/kit v0.13.0/go.mod h1:VyHrelNXPbtS/VcQX0Y/uzW0lfEVuveJ+1E5bDys8mo=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
