@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -26,8 +27,10 @@ import (
 )
 
 var (
-	stopAppID string
-	stopK8s   bool
+	stopAppID   string
+	stopK8s     bool
+	stopWait    bool
+	stopTimeout int
 )
 
 var StopCmd = &cobra.Command{
@@ -48,9 +51,16 @@ dapr stop --run-file dapr.yaml -k
 
 # Stop and delete Kubernetes deployment of multiple apps by providing a directory path containing the run config file(dapr.yaml)
 dapr stop --run-file /path/to/directory -k
+
+# Stop and wait for Dapr application to exit
+dapr stop --app-id <ID> --wait --timeout 20
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error
+		var timeout time.Duration
+		if stopWait {
+			timeout = time.Duration(int(time.Second) * stopTimeout)
+		}
 		if len(runFilePath) > 0 {
 			runFilePath, err = getRunFilePath(runFilePath)
 			if err != nil {
@@ -58,7 +68,7 @@ dapr stop --run-file /path/to/directory -k
 				os.Exit(1)
 			}
 			if !stopK8s {
-				err = executeStopWithRunFile(runFilePath)
+				err = executeStopWithRunFile(runFilePath, timeout)
 				if err != nil {
 					print.FailureStatusEvent(os.Stderr, "Failed to stop Dapr and app processes: %s", err)
 				} else {
@@ -85,7 +95,7 @@ dapr stop --run-file /path/to/directory -k
 		}
 		cliPIDToNoOfApps := standalone.GetCLIPIDCountMap(apps)
 		for _, appID := range args {
-			err = standalone.Stop(appID, cliPIDToNoOfApps, apps)
+			err = standalone.Stop(appID, cliPIDToNoOfApps, apps, timeout)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, "failed to stop app id %s: %s", appID, err)
 			} else {
@@ -99,14 +109,16 @@ func init() {
 	StopCmd.Flags().StringVarP(&stopAppID, "app-id", "a", "", "The application id to be stopped")
 	StopCmd.Flags().StringVarP(&runFilePath, "run-file", "f", "", "Path to the run template file for the list of apps to stop")
 	StopCmd.Flags().BoolVarP(&stopK8s, "kubernetes", "k", false, "Stop deployments in Kunernetes based on multi-app run file")
+	StopCmd.Flags().BoolVarP(&stopWait, "wait", "w", false, "Wait for apps to stop")
+	StopCmd.Flags().IntVarP(&stopTimeout, "timeout", "t", 15, "Wait timeout in seconds")
 	StopCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	RootCmd.AddCommand(StopCmd)
 }
 
-func executeStopWithRunFile(runFilePath string) error {
+func executeStopWithRunFile(runFilePath string, timeout time.Duration) error {
 	absFilePath, err := filepath.Abs(runFilePath)
 	if err != nil {
 		return fmt.Errorf("failed to get absolute file path for %s: %w", runFilePath, err)
 	}
-	return standalone.StopAppsWithRunFile(absFilePath)
+	return standalone.StopAppsWithRunFile(absFilePath, timeout)
 }
