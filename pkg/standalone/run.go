@@ -113,7 +113,7 @@ func (config *RunConfig) validateResourcesPaths() error {
 		}
 	}
 	componentsLoader := components.NewLocalComponents(dirPath...)
-	_, err := componentsLoader.LoadComponents()
+	_, err := componentsLoader.Load()
 	if err != nil {
 		return fmt.Errorf("error validating components in resources path %q : %w", dirPath, err)
 	}
