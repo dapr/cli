@@ -56,6 +56,11 @@ func TestDashboardChart(t *testing.T) {
 			expectError:     false,
 		},
 		{
+			runtimeVersion:  "1.13.0",
+			expectDashboard: false,
+			expectError:     false,
+		},
+		{
 			runtimeVersion:  "Bad Version",
 			expectDashboard: false,
 			expectError:     true,
