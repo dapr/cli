@@ -103,6 +103,7 @@ func TestStandalonePublish(t *testing.T) {
 					Topic:           "sample",
 					Data:            map[string]interface{}{"dapr": "is_great"},
 					RawData:         []byte(`{"dapr":"is_great"}`),
+					Metadata:        make(map[string]string),
 				}, event)
 			})
 

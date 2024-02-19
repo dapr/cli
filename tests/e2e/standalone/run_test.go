@@ -115,9 +115,9 @@ func TestStandaloneRun(t *testing.T) {
 		assert.Contains(t, output, "Exited App successfully")
 		assert.Contains(t, output, "Exited Dapr successfully")
 		assert.NotContains(t, output, "level=info msg=\"HTTP API Called\" app_id=enableApiLogging_info")
-		assert.NotContains(t, output, "method=\"PUT /v1.0/metadata/appCommand\"")
-		assert.NotContains(t, output, "method=\"PUT /v1.0/metadata/cliPID\"")
-		assert.NotContains(t, output, "method=\"PUT /v1.0/metadata/appPID\"")
+		assert.NotContains(t, output, "method=PutMetadata")
+		assert.NotContains(t, output, "Updating metadata for appCommand: ")
+		assert.NotContains(t, output, "Updating metadata for cliPID: ")
 	})
 
 	t.Run(fmt.Sprintf("check enableAPILogging with obfuscation through dapr config file"), func(t *testing.T) {
@@ -133,9 +133,8 @@ func TestStandaloneRun(t *testing.T) {
 		assert.Contains(t, output, "Exited App successfully")
 		assert.Contains(t, output, "Exited Dapr successfully")
 		assert.Contains(t, output, "level=info msg=\"HTTP API Called\" app_id=enableApiLogging_info")
-		assert.Contains(t, output, "method=\"PUT /v1.0/metadata/{key}\"")
-		assert.Contains(t, output, "method=\"PUT /v1.0/metadata/{key}\"")
-		assert.Contains(t, output, "method=\"PUT /v1.0/metadata/{key}\"")
+		assert.Contains(t, output, "method=PutMetadata")
+		assert.Contains(t, output, "Updating metadata for appPID: ")
 	})
 
 	t.Run(fmt.Sprintf("check run with log JSON enabled"), func(t *testing.T) {

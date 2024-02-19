@@ -130,7 +130,7 @@ func TestConfigurations(t *testing.T) {
 			name:           "Yaml one config",
 			configName:     "",
 			outputFormat:   "yaml",
-			expectedOutput: "- name: appConfig\n  namespace: default\n  spec:\n    apphttppipelinespec: null\n    httppipelinespec: null\n    tracingspec: null\n    metricspec: null\n    metricsspec: null\n    mtlsspec: null\n    secrets: null\n    accesscontrolspec: null\n    nameresolutionspec: null\n    features: []\n    apispec: null\n    componentsspec: null\n    loggingspec: null\n    wasmspec: null\n",
+			expectedOutput: "- name: appConfig\n  namespace: default\n  spec:\n    apphttppipelinespec: null\n    httppipelinespec: null\n    tracingspec: null\n    metricspec: null\n    metricsspec: null\n    mtlsspec: null\n    secrets: null\n    accesscontrolspec: null\n    nameresolutionspec: null\n    features: []\n    apispec: null\n    componentsspec: null\n    loggingspec: null\n    wasmspec: null\n    workflowspec: null\n",
 			errString:      "",
 			errorExpected:  false,
 			k8sConfig: []v1alpha1.Configuration{
@@ -148,7 +148,7 @@ func TestConfigurations(t *testing.T) {
 			name:           "Yaml two configs",
 			configName:     "",
 			outputFormat:   "yaml",
-			expectedOutput: "- name: appConfig1\n  namespace: default\n  spec:\n    apphttppipelinespec: null\n    httppipelinespec: null\n    tracingspec: null\n    metricspec: null\n    metricsspec: null\n    mtlsspec: null\n    secrets: null\n    accesscontrolspec: null\n    nameresolutionspec: null\n    features: []\n    apispec: null\n    componentsspec: null\n    loggingspec: null\n    wasmspec: null\n- name: appConfig2\n  namespace: default\n  spec:\n    apphttppipelinespec: null\n    httppipelinespec: null\n    tracingspec: null\n    metricspec: null\n    metricsspec: null\n    mtlsspec: null\n    secrets: null\n    accesscontrolspec: null\n    nameresolutionspec: null\n    features: []\n    apispec: null\n    componentsspec: null\n    loggingspec: null\n    wasmspec: null\n",
+			expectedOutput: "- name: appConfig1\n  namespace: default\n  spec:\n    apphttppipelinespec: null\n    httppipelinespec: null\n    tracingspec: null\n    metricspec: null\n    metricsspec: null\n    mtlsspec: null\n    secrets: null\n    accesscontrolspec: null\n    nameresolutionspec: null\n    features: []\n    apispec: null\n    componentsspec: null\n    loggingspec: null\n    wasmspec: null\n    workflowspec: null\n- name: appConfig2\n  namespace: default\n  spec:\n    apphttppipelinespec: null\n    httppipelinespec: null\n    tracingspec: null\n    metricspec: null\n    metricsspec: null\n    mtlsspec: null\n    secrets: null\n    accesscontrolspec: null\n    nameresolutionspec: null\n    features: []\n    apispec: null\n    componentsspec: null\n    loggingspec: null\n    wasmspec: null\n    workflowspec: null\n",
 			errString:      "",
 			errorExpected:  false,
 			k8sConfig: []v1alpha1.Configuration{
