@@ -17,9 +17,17 @@ limitations under the License.
 package kubernetes_test
 
 import (
+	"archive/tar"
+	"compress/gzip"
+	"io"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/dapr/cli/tests/e2e/common"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestKubernetesNonHAModeMTLSDisabled(t *testing.T) {
@@ -499,4 +507,127 @@ func TestK8sInstallwithoutRuntimeVersionwithMarinerImagesFlag(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.Name, tc.Callable)
 	}
+}
+
+func TestKubernetesLocalFileHelmRepoInstall(t *testing.T) {
+	// ensure clean env for test
+	ensureCleanEnv(t, false)
+
+	// create a temp dir to store the helm repo
+	helmRepoPath, err := os.MkdirTemp("", "dapr-e2e-kube-with-env-*")
+	assert.NoError(t, err)
+	// defer os.RemoveAll(helmRepoPath) // clean up
+
+	// copy all .tar.gz files from testdata dir and uncompress them
+	copyAndUncompressTarGzFiles(t, helmRepoPath)
+
+	// point the env var to the dir containing both dapr and dapr-dashboard helm charts
+	t.Setenv("DAPR_HELM_REPO_URL", helmRepoPath)
+
+	// setup tests
+	tests := []common.TestCase{}
+	tests = append(tests, common.GetTestsOnInstall(currentVersionDetails, common.TestOptions{
+		HAEnabled:             false,
+		MTLSEnabled:           false,
+		ApplyComponentChanges: true,
+		CheckResourceExists: map[common.Resource]bool{
+			common.CustomResourceDefs:  true,
+			common.ClusterRoles:        true,
+			common.ClusterRoleBindings: true,
+		},
+	})...)
+
+	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
+		CheckResourceExists: map[common.Resource]bool{
+			common.CustomResourceDefs:  true,
+			common.ClusterRoles:        false,
+			common.ClusterRoleBindings: false,
+		},
+	})...)
+
+	// execute tests
+	for _, tc := range tests {
+		t.Run(tc.Name, tc.Callable)
+	}
+}
+
+func copyAndUncompressTarGzFiles(t *testing.T, destination string) {
+	// find all .tar.gz files in testdata dir
+	files, err := filepath.Glob(filepath.Join("testdata", "*.tgz"))
+	require.NoError(t, err)
+
+	for _, file := range files {
+		// untar the dapr/dashboard helm .tar.gz, get back the root dir of the untarred files
+		// it's either 'dapr' or 'dapr-dashboard'
+		rootDir, err := untarDaprHelmGzFile(file, destination)
+		require.NoError(t, err)
+
+		// rename the root dir to the base name of the .tar.gz file
+		// (eg. /var/folders/4s/w0gdrc957k11vbkgyhjrk12w0000gn/T/dapr-e2e-kube-with-env-404115459/dapr-1.12.0)
+		base := filepath.Base(strings.TrimSuffix(file, filepath.Ext(file)))
+		err = os.Rename(filepath.Join(destination, rootDir), filepath.Join(destination, base))
+		require.NoError(t, err)
+	}
+}
+
+func untarDaprHelmGzFile(file string, destination string) (string, error) {
+	// open the tar.gz file
+	f, err := os.Open(file)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	// create a gzip reader
+	gr, err := gzip.NewReader(f)
+	if err != nil {
+		return "", err
+	}
+	defer gr.Close()
+
+	// create a tar reader
+	tr := tar.NewReader(gr)
+
+	rootDir := ""
+	// iterate through all the files in the tarball
+	for {
+		hdr, err := tr.Next()
+		if err == io.EOF {
+			break // end of tarball
+		}
+		if err != nil {
+			return "", err
+		}
+
+		// build the full destination path
+		filename := filepath.Join(destination, hdr.Name)
+
+		// ensure the destination directory exists
+		dir := filepath.Dir(filename)
+		if _, err := os.Stat(dir); os.IsNotExist(err) {
+			if err := os.MkdirAll(dir, 0700); err != nil {
+				return "", err
+			}
+		}
+
+		// the root dir for all files is the same
+		rootDir = strings.FieldsFunc(hdr.Name,
+			func(c rune) bool {
+				return os.PathSeparator == c
+			})[0]
+
+		// create the destination file
+		dstFile, err := os.Create(filename)
+		if err != nil {
+			return "", err
+		}
+		defer dstFile.Close()
+
+		// copy the file contents
+		if _, err := io.Copy(dstFile, tr); err != nil {
+			return "", err
+		}
+	}
+
+	return rootDir, nil
 }

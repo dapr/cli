@@ -351,13 +351,16 @@ func GetVersionAndImageVariant(imageTag string) (string, string) {
 	return imageTag, ""
 }
 
-// Returns true if the given file path is valid.
-func ValidateFilePath(filePath string) error {
-	if filePath != "" {
-		if _, err := os.Stat(filePath); err != nil {
-			return fmt.Errorf("error in getting the file info for %s: %w", filePath, err)
-		}
+// Returns no error if the given file/directory path is valid.
+func ValidatePath(path string) error {
+	if path == "" {
+		return nil
 	}
+
+	if _, err := os.Stat(path); err != nil {
+		return fmt.Errorf("error in getting the file info for %s: %w", path, err)
+	}
+
 	return nil
 }
 
@@ -409,7 +412,7 @@ func ReadFile(filePath string) ([]byte, error) {
 // FindFileInDir finds and returns the path of the given file name in the given directory.
 func FindFileInDir(dirPath, fileName string) (string, error) {
 	filePath := filepath.Join(dirPath, fileName)
-	if err := ValidateFilePath(filePath); err != nil {
+	if err := ValidatePath(filePath); err != nil {
 		return "", fmt.Errorf("error in validating the file path %q: %w", filePath, err)
 	}
 	return filePath, nil
@@ -429,4 +432,20 @@ func AttachJobObjectToProcess(pid string, proc *os.Process) {
 // GetJobObjectNameFromPID returns the name of the Windows job object that is used to manage the Daprized app's processes on windows.
 func GetJobObjectNameFromPID(pid string) string {
 	return pid + "-" + windowsDaprAppProcJobName
+}
+
+func DiscoverHelmPath(helmPath, release, version string) (string, error) {
+	// first try for a local directory path.
+	dirPath := filepath.Join(helmPath, fmt.Sprintf("%s-%s", release, version))
+	if ValidatePath(dirPath) == nil {
+		return dirPath, nil
+	}
+
+	// not a dir, try a .tgz file instead.
+	filePath := filepath.Join(helmPath, fmt.Sprintf("%s-%s.tgz", release, version))
+	if ValidatePath(filePath) == nil {
+		return filePath, nil
+	}
+
+	return "", fmt.Errorf("unable to find a helm path in either %s or %s", dirPath, filePath)
 }

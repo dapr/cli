@@ -175,10 +175,12 @@ func TestGetVersionAndImageVariant(t *testing.T) {
 	}
 }
 
-func TestValidateFilePaths(t *testing.T) {
+func TestValidatePaths(t *testing.T) {
 	dirName := createTempDir(t, "test_validate_paths")
-	defer cleanupTempDir(t, dirName)
 	validFile := createTempFile(t, dirName, "valid_test_file.yaml")
+	t.Cleanup(func() {
+		cleanupTempDir(t, dirName)
+	})
 	testcases := []struct {
 		name        string
 		input       string
@@ -195,6 +197,11 @@ func TestValidateFilePaths(t *testing.T) {
 			expectedErr: false,
 		},
 		{
+			name:        "valid directory path",
+			input:       dirName,
+			expectedErr: false,
+		},
+		{
 			name:        "invalid file path",
 			input:       "invalid_file_path",
 			expectedErr: true,
@@ -205,7 +212,7 @@ func TestValidateFilePaths(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			actual := ValidateFilePath(tc.input)
+			actual := ValidatePath(tc.input)
 			assert.Equal(t, tc.expectedErr, actual != nil)
 		})
 	}
