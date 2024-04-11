@@ -1,0 +1,65 @@
+name: release_chocolatey
+
+on:
+  workflow_call:
+    inputs:
+      daprcli_version:
+        type: string
+        description: "The Dapr CLI version to package (example: 1.13.0 or 1.13.0-rc1)"
+        required: true
+  workflow_dispatch:
+    inputs:
+      daprcli_version:
+        description: "The Dapr CLI version to package (example: 1.13.0 or 1.13.0-rc1)"
+        required: true
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    env:
+      DAPR_CLI_VERSION: ${{ github.event.inputs.daprcli_version }}
+    defaults:
+      run:
+        working-directory: .github/scripts/chocolatey/
+    steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v4
+
+        # Get checksum file
+      - name: Get checksum file
+        shell: pwsh
+        run: Invoke-WebRequest https://github.com/dapr/cli/releases/download/v1.13.0/dapr.msi.sha256 -OutFile dapr.msi.sha256
+
+        # Parse SHA256 from file
+      - name: Parse SHA256 from file and write to $SHA256SUM
+        shell: pwsh
+        run: |
+          $Env:SHA256SUM = (Get-Content dapr.msi.sha256 | foreach{$_.replace(" *dapr.msi", "")} | Set-Content -Path dapr.msi.sha256
+          echo "SHA256SUM=$env:SHA256SUM" >> $env:GITHUB_ENV
+
+        # Update script url
+      - name: Update install script url
+        shell: pwsh
+        run: Get-Content tools/chocolateyInstall.ps1 | foreach{$_.replace("dapr_cli_url", "https://github.com/dapr/cli/releases/download/v$env:DAPR_CLI_VERSION/dapr.msi")} | Set-Content -Path tools/chocolateyInstall.ps1
+
+        # Update script hash
+      - name: Update install script hash
+        shell: pwsh
+        run: Get-Content tools/chocolateyInstall.ps1 | foreach{$_.replace("dapr_cli_checksum", "$env:SHA256SUM")} | Set-Content -Path tools/chocolateyInstall.ps1
+
+        # Update manifest version
+      - name: Update manifest version
+        shell: pwsh
+        run: Get-Content dapr.nuspec | foreach{$_.replace("dapr_cli_version", "$env:DAPR_CLI_VERSION")} | Set-Content -Path dapr.nuspec
+
+        # Use chocolatey to compile the repository into a nupkg
+      - name: Compile package
+        shell: pwsh
+        run: choco pack
+
+        # Publish package to the respository 'choco push'
+      - name: Publish package to the community respository
+        shell: pwsh
+        env:
+          CHOCOLATEY_TOKEN: ${{ secrets.CHOCOLATEY_TOKEN }}
+        run: choco push -k $env:CHOCOLATEY_TOKEN

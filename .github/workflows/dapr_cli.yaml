@@ -150,6 +150,8 @@ jobs:
     env:
       ARTIFACT_DIR: ./release
     runs-on: ubuntu-latest
+    outputs:
+      relver: ${{ steps.relver.outputs.relver }}
     steps:
       - name: download artifacts
         uses: actions/download-artifact@v4
@@ -180,6 +182,9 @@ jobs:
             --repo $GITHUB_REPOSITORY \
             --prerelease \
             ${RELEASE_ARTIFACT[*]}
+      - name: Output the release version to be reusable in this workflow
+        id: relver
+        run: echo "relver=$REL_VER" >> "$GITHUB_OUTPUT"
   publish-winget:
     name: Publish to winget-pkgs
     needs: publish
@@ -201,3 +206,10 @@ jobs:
             $PackageIdentifier="Dapr.CLI"
           }
           .\wingetcreate.exe update "$PackageIdentifier" --submit --urls "$url|x64" --version "${{ env.REL_VERSION }}" --token "${{ secrets.DAPR_BOT_TOKEN }}"
+  publish-chocolatey:
+    name: Publish to chocolatey
+    needs: publish
+    if: startswith(github.ref, 'refs/tags/v')
+    uses: dapr/cli/.github/workflows/release_chocolatey.yml@master
+    with:
+      daprcli_version: ${{ needs.publish.outputs.relver }}
