@@ -153,7 +153,14 @@ test: test-deps
 ################################################################################
 .PHONY: test-e2e-k8s
 test-e2e-k8s: test-deps
-	gotestsum --jsonfile $(TEST_OUTPUT_FILE) --format standard-verbose -- -timeout 20m -count=1 -tags=e2e ./tests/e2e/kubernetes/...
+	gotestsum --jsonfile $(TEST_OUTPUT_FILE) --format standard-verbose -- -timeout 25m -count=1 -tags=e2e ./tests/e2e/kubernetes/...
+
+################################################################################
+# E2E Tests for K8s Template exec											       #
+################################################################################
+.PHONY: test-e2e-k8s-template
+test-e2e-k8s-template: test-deps
+	gotestsum --jsonfile $(TEST_OUTPUT_FILE) --format standard-verbose -- -timeout 25m -count=1 -tags=templatek8s ./tests/e2e/kubernetes/...
 
 ################################################################################
 # Build, E2E Tests for Kubernetes											   #
@@ -200,7 +207,7 @@ e2e-build-run-sh: build test-e2e-sh
 ################################################################################
 .PHONY: modtidy
 modtidy:
-	go mod tidy -compat=1.20
+	go mod tidy -compat=1.21
 
 ################################################################################
 # Target: check-diff                                                           #

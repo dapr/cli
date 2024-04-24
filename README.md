@@ -351,6 +351,8 @@ dapr upgrade -k --runtime-version=1.0.0
 
 The example above shows how to upgrade from your current version to version `1.0.0`.
 
+*Note: `dapr upgrade` will retry up to 5 times upon failure*
+
 #### Supplying Helm values
 
 All available [Helm Chart values](https://github.com/dapr/dapr/tree/master/charts/dapr#configuration) can be set by using the `--set` flag:

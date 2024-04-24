@@ -14,17 +14,32 @@ limitations under the License.
 package kubernetes
 
 import (
+	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
+	"strings"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
+
+	"github.com/dapr/cli/pkg/print"
 )
 
 const (
 	daprdContainerName    = "daprd"
 	appIDContainerArgName = "--app-id"
+
+	// number of retries when trying to list pods for getting logs.
+	maxListingRetry = 10
+	// delay between retries of pod listing.
+	listingDelay = 200 * time.Microsecond
+	// delay before retrying for getting logs.
+	streamingDelay = 100 * time.Millisecond
 )
 
 // Logs fetches Dapr sidecar logs from Kubernetes.
@@ -83,4 +98,99 @@ func Logs(appID, podName, namespace string) error {
 	}
 
 	return nil
+}
+
+// streamContainerLogsToDisk streams all containers logs for the given selector to a given disk directory.
+func streamContainerLogsToDisk(ctx context.Context, appID string, appLogWriter, daprdLogWriter io.Writer, podClient v1.PodInterface) error {
+	var err error
+	var podList *corev1.PodList
+	counter := 0
+	for {
+		podList, err = getPods(ctx, appID, podClient)
+		if err != nil {
+			return fmt.Errorf("error listing the pod with label %s=%s: %w", daprAppIDKey, appID, err)
+		}
+		if len(podList.Items) != 0 {
+			break
+		}
+		counter++
+		if counter == maxListingRetry {
+			return fmt.Errorf("error getting logs: error listing the pod with label %s=%s after %d retires", daprAppIDKey, appID, maxListingRetry)
+		}
+		// Retry after a delay.
+		time.Sleep(listingDelay)
+	}
+
+	for _, pod := range podList.Items {
+		print.InfoStatusEvent(os.Stdout, "Streaming logs for containers in pod %q", pod.GetName())
+		for _, container := range pod.Spec.Containers {
+			fileWriter := daprdLogWriter
+			if container.Name != daprdContainerName {
+				fileWriter = appLogWriter
+			}
+
+			// create a go routine for each container to stream logs into file/console.
+			go func(pod, containerName, appID string, fileWriter io.Writer) {
+			loop:
+				for {
+					req := podClient.GetLogs(pod, &corev1.PodLogOptions{
+						Container: containerName,
+						Follow:    true,
+					})
+					stream, err := req.Stream(ctx)
+					if err != nil {
+						switch {
+						case strings.Contains(err.Error(), "Pending"):
+							// Retry after a delay.
+							time.Sleep(streamingDelay)
+							continue loop
+						case strings.Contains(err.Error(), "ContainerCreating"):
+							// Retry after a delay.
+							time.Sleep(streamingDelay)
+							continue loop
+						case errors.Is(err, context.Canceled):
+							return
+						default:
+							return
+						}
+					}
+					defer stream.Close()
+
+					if containerName != daprdContainerName {
+						streamScanner := bufio.NewScanner(stream)
+						for streamScanner.Scan() {
+							fmt.Fprintln(fileWriter, print.Blue(fmt.Sprintf("== APP - %s == %s", appID, streamScanner.Text())))
+						}
+					} else {
+						_, err = io.Copy(fileWriter, stream)
+						if err != nil {
+							switch {
+							case errors.Is(err, context.Canceled):
+								return
+							default:
+								return
+							}
+						}
+					}
+
+					return
+				}
+			}(pod.GetName(), container.Name, appID, fileWriter)
+		}
+	}
+
+	return nil
+}
+
+func getPods(ctx context.Context, appID string, podClient v1.PodInterface) (*corev1.PodList, error) {
+	listCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	labelSelector := fmt.Sprintf("%s=%s", daprAppIDKey, appID)
+	podList, err := podClient.List(listCtx, metav1.ListOptions{
+		LabelSelector: labelSelector,
+	})
+	cancel()
+	if err != nil {
+		return nil, err
+	}
+	return podList, nil
 }

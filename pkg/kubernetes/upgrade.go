@@ -21,6 +21,7 @@ import (
 
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
+	"helm.sh/helm/v3/pkg/release"
 	"k8s.io/helm/pkg/strvals"
 
 	"github.com/hashicorp/go-version"
@@ -56,7 +57,18 @@ type UpgradeConfig struct {
 	ImageVariant     string
 }
 
+// UpgradeOptions represents options for the upgrade function.
+type UpgradeOptions struct {
+	WithRetry     bool
+	MaxRetries    int
+	RetryInterval time.Duration
+}
+
+// UpgradeOption is a functional option type for configuring upgrade.
+type UpgradeOption func(*UpgradeOptions)
+
 func Upgrade(conf UpgradeConfig) error {
+	helmRepo := utils.GetEnv("DAPR_HELM_REPO_URL", daprHelmRepo)
 	status, err := GetDaprResourcesStatus()
 	if err != nil {
 		return err
@@ -70,14 +82,14 @@ func Upgrade(conf UpgradeConfig) error {
 		return err
 	}
 
-	helmConf, err := helmConfig(status[0].Namespace)
+	upgradeClient, helmConf, err := newUpgradeClient(status[0].Namespace, conf)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to create helm client: %w", err)
 	}
 
-	controlPlaneChart, err := daprChart(conf.RuntimeVersion, "dapr", helmConf)
+	controlPlaneChart, err := getHelmChart(conf.RuntimeVersion, "dapr", helmRepo, helmConf)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to get helm chart: %w", err)
 	}
 
 	willHaveDashboardInDaprChart, err := IsDashboardIncluded(conf.RuntimeVersion)
@@ -109,18 +121,11 @@ func Upgrade(conf UpgradeConfig) error {
 
 	var dashboardChart *chart.Chart
 	if conf.DashboardVersion != "" {
-		dashboardChart, err = daprChart(conf.DashboardVersion, dashboardReleaseName, helmConf)
+		dashboardChart, err = getHelmChart(conf.DashboardVersion, dashboardReleaseName, helmRepo, helmConf)
 		if err != nil {
 			return err
 		}
 	}
-
-	upgradeClient := helm.NewUpgrade(helmConf)
-	upgradeClient.ResetValues = true
-	upgradeClient.Namespace = status[0].Namespace
-	upgradeClient.CleanupOnFail = true
-	upgradeClient.Wait = true
-	upgradeClient.Timeout = time.Duration(conf.Timeout) * time.Second
 
 	print.InfoStatusEvent(os.Stdout, "Starting upgrade...")
 
@@ -154,7 +159,7 @@ func Upgrade(conf UpgradeConfig) error {
 	if !isDowngrade(conf.RuntimeVersion, daprVersion) {
 		err = applyCRDs(fmt.Sprintf("v%s", conf.RuntimeVersion))
 		if err != nil {
-			return err
+			return fmt.Errorf("unable to apply CRDs: %w", err)
 		}
 	} else {
 		print.InfoStatusEvent(os.Stdout, "Downgrade detected, skipping CRDs.")
@@ -165,8 +170,13 @@ func Upgrade(conf UpgradeConfig) error {
 		return err
 	}
 
-	if _, err = upgradeClient.Run(chart, controlPlaneChart, vals); err != nil {
-		return err
+	// Deal with known race condition when applying both CRD and CR close together. The Helm upgrade fails
+	// when a CR is applied tries to be applied before the CRD is fully registered. On each retry we need a
+	// fresh client since the kube client locally caches the last OpenAPI schema it received from the server.
+	// See https://github.com/kubernetes/kubectl/issues/1179
+	_, err = helmUpgrade(upgradeClient, chart, controlPlaneChart, vals, WithRetry(5, 100*time.Millisecond))
+	if err != nil {
+		return fmt.Errorf("failure while running upgrade: %w", err)
 	}
 
 	if dashboardChart != nil {
@@ -176,7 +186,7 @@ func Upgrade(conf UpgradeConfig) error {
 			}
 		} else {
 			// We need to install Dashboard since it does not exist yet.
-			err = install(dashboardReleaseName, conf.DashboardVersion, InitConfiguration{
+			err = install(dashboardReleaseName, conf.DashboardVersion, helmRepo, InitConfiguration{
 				DashboardVersion: conf.DashboardVersion,
 				Namespace:        upgradeClient.Namespace,
 				Wait:             upgradeClient.Wait,
@@ -189,6 +199,55 @@ func Upgrade(conf UpgradeConfig) error {
 	}
 
 	return nil
+}
+
+// WithRetry enables retry with the specified max retries and retry interval.
+func WithRetry(maxRetries int, retryInterval time.Duration) UpgradeOption {
+	return func(o *UpgradeOptions) {
+		o.WithRetry = true
+		o.MaxRetries = maxRetries
+		o.RetryInterval = retryInterval
+	}
+}
+
+func helmUpgrade(client *helm.Upgrade, name string, chart *chart.Chart, vals map[string]interface{}, options ...UpgradeOption) (*release.Release, error) {
+	upgradeOptions := &UpgradeOptions{
+		WithRetry:     false,
+		MaxRetries:    0,
+		RetryInterval: 0,
+	}
+
+	// Apply functional options.
+	for _, option := range options {
+		option(upgradeOptions)
+	}
+
+	var release *release.Release
+	for attempt := 1; ; attempt++ {
+		_, err := client.Run(name, chart, vals)
+		if err == nil {
+			// operation succeeded, no need to retry.
+			break
+		}
+
+		if !upgradeOptions.WithRetry || attempt >= upgradeOptions.MaxRetries {
+			// If not retrying or reached max retries, return the error.
+			return nil, fmt.Errorf("max retries reached, unable to run command: %w", err)
+		}
+
+		print.PendingStatusEvent(os.Stdout, "Retrying after %s...", upgradeOptions.RetryInterval)
+		time.Sleep(upgradeOptions.RetryInterval)
+
+		// create a totally new helm client, this ensures that we fetch a fresh openapi schema from the server on each attempt.
+		client, _, err = newUpgradeClient(client.Namespace, UpgradeConfig{
+			Timeout: uint(client.Timeout),
+		})
+		if err != nil {
+			return nil, fmt.Errorf("unable to create helm client: %w", err)
+		}
+	}
+
+	return release, nil
 }
 
 func highAvailabilityEnabled(status []StatusOutput) bool {
@@ -262,4 +321,20 @@ func isDowngrade(targetVersion, existingVersion string) bool {
 		os.Exit(1)
 	}
 	return target.LessThan(existing)
+}
+
+func newUpgradeClient(namespace string, cfg UpgradeConfig) (*helm.Upgrade, *helm.Configuration, error) {
+	helmCfg, err := helmConfig(namespace)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	client := helm.NewUpgrade(helmCfg)
+	client.ResetValues = true
+	client.Namespace = namespace
+	client.CleanupOnFail = true
+	client.Wait = true
+	client.Timeout = time.Duration(cfg.Timeout) * time.Second
+
+	return client, helmCfg, nil
 }

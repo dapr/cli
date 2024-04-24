@@ -27,11 +27,12 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/pkg/metadata"
 	"github.com/dapr/cli/pkg/print"
 	runExec "github.com/dapr/cli/pkg/runexec"
+	"github.com/dapr/cli/pkg/runfileconfig"
 	"github.com/dapr/cli/pkg/standalone"
-	"github.com/dapr/cli/pkg/standalone/runfileconfig"
 	daprsyscall "github.com/dapr/cli/pkg/syscall"
 	"github.com/dapr/cli/utils"
 )
@@ -64,6 +65,7 @@ var (
 	apiListenAddresses string
 	runFilePath        string
 	appChannelAddress  string
+	enableRunK8s       bool
 )
 
 const (
@@ -105,6 +107,15 @@ dapr run --run-file dapr.yaml
 
 # Run multiple apps by providing a directory path containing the run config file(dapr.yaml)
 dapr run --run-file /path/to/directory
+
+# Run multiple apps by providing config via stdin
+cat dapr.template.yaml | envsubst | dapr run --run-file -
+
+# Run multiple apps in Kubernetes by proficing path of a run config file
+dapr run --run-file dapr.yaml -k
+
+# Run multiple apps in Kubernetes by providing a directory path containing the run config file(dapr.yaml)
+dapr run --run-file /path/to/directory -k
   `,
 	Args: cobra.MinimumNArgs(0),
 	PreRun: func(cmd *cobra.Command, args []string) {
@@ -117,7 +128,7 @@ dapr run --run-file /path/to/directory
 				print.FailureStatusEvent(os.Stderr, "Failed to get run file path: %v", err)
 				os.Exit(1)
 			}
-			executeRunWithAppsConfigFile(runConfigFilePath)
+			executeRunWithAppsConfigFile(runConfigFilePath, enableRunK8s)
 			return
 		}
 		if len(args) == 0 {
@@ -457,6 +468,7 @@ func init() {
 	RunCmd.Flags().IntVar(&appHealthTimeout, "app-health-probe-timeout", 0, "Timeout for app health probes in milliseconds")
 	RunCmd.Flags().IntVar(&appHealthThreshold, "app-health-threshold", 0, "Number of consecutive failures for the app to be considered unhealthy")
 	RunCmd.Flags().BoolVar(&enableAPILogging, "enable-api-logging", false, "Log API calls at INFO verbosity. Valid values are: true or false")
+	RunCmd.Flags().BoolVarP(&enableRunK8s, "kubernetes", "k", false, "Run the multi-app run template against Kubernetes environment.")
 	RunCmd.Flags().StringVar(&apiListenAddresses, "dapr-listen-addresses", "", "Comma separated list of IP addresses that sidecar will listen to")
 	RunCmd.Flags().StringVarP(&runFilePath, "run-file", "f", "", "Path to the run template file for the list of apps to run")
 	RunCmd.Flags().StringVarP(&appChannelAddress, "app-channel-address", "", utils.DefaultAppChannelAddress, "The network address the application listens on")
@@ -476,8 +488,6 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 	// All the subprocess and their grandchildren inherit this PGID.
 	// This is done to provide a better grouping, which can be used to control all the proceses started by "dapr run -f".
 	daprsyscall.CreateProcessGroupID()
-
-	print.WarningStatusEvent(os.Stdout, "This is a preview feature and subject to change in future releases.")
 
 	for _, app := range apps {
 		print.StatusEvent(os.Stdout, print.LogInfo, "Validating config and starting app %q", app.RunConfig.AppID)
@@ -507,11 +517,11 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 		// A custom writer used for trimming ASCII color codes from logs when writing to files.
 		var customAppLogWriter io.Writer
 
-		daprdLogWriterCloser := getLogWriter(app.DaprdLogWriteCloser, app.DaprdLogDestination)
+		daprdLogWriterCloser := runfileconfig.GetLogWriter(app.DaprdLogWriteCloser, app.DaprdLogDestination)
 
 		if len(runConfig.Command) == 0 {
 			print.StatusEvent(os.Stdout, print.LogWarning, "No application command found for app %q present in %s", runConfig.AppID, runFilePath)
-			appDaprdWriter = getAppDaprdWriter(app, true)
+			appDaprdWriter = runExec.GetAppDaprdWriter(app, true)
 			appLogWriter = app.DaprdLogWriteCloser
 		} else {
 			err = app.CreateAppLogFile()
@@ -520,8 +530,8 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 				exitWithError = true
 				break
 			}
-			appDaprdWriter = getAppDaprdWriter(app, false)
-			appLogWriter = getLogWriter(app.AppLogWriteCloser, app.AppLogDestination)
+			appDaprdWriter = runExec.GetAppDaprdWriter(app, false)
+			appLogWriter = runfileconfig.GetLogWriter(app.AppLogWriteCloser, app.AppLogDestination)
 		}
 		customAppLogWriter = print.CustomLogWriter{W: appLogWriter}
 		runState, err := startDaprdAndAppProcesses(&runConfig, app.AppDirPath, sigCh,
@@ -590,43 +600,6 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 	return exitWithError, closeError
 }
 
-// getAppDaprdWriter returns the writer for writing logs common to both daprd, app and stdout.
-func getAppDaprdWriter(app runfileconfig.App, isAppCommandEmpty bool) io.Writer {
-	var appDaprdWriter io.Writer
-	if isAppCommandEmpty {
-		if app.DaprdLogDestination != standalone.Console {
-			appDaprdWriter = io.MultiWriter(os.Stdout, app.DaprdLogWriteCloser)
-		} else {
-			appDaprdWriter = os.Stdout
-		}
-	} else {
-		if app.AppLogDestination != standalone.Console && app.DaprdLogDestination != standalone.Console {
-			appDaprdWriter = io.MultiWriter(app.AppLogWriteCloser, app.DaprdLogWriteCloser, os.Stdout)
-		} else if app.AppLogDestination != standalone.Console {
-			appDaprdWriter = io.MultiWriter(app.AppLogWriteCloser, os.Stdout)
-		} else if app.DaprdLogDestination != standalone.Console {
-			appDaprdWriter = io.MultiWriter(app.DaprdLogWriteCloser, os.Stdout)
-		} else {
-			appDaprdWriter = os.Stdout
-		}
-	}
-	return appDaprdWriter
-}
-
-// getLogWriter returns the log writer based on the log destination.
-func getLogWriter(fileLogWriterCloser io.WriteCloser, logDestination standalone.LogDestType) io.Writer {
-	var logWriter io.Writer
-	switch logDestination {
-	case standalone.Console:
-		logWriter = os.Stdout
-	case standalone.File:
-		logWriter = fileLogWriterCloser
-	case standalone.FileAndConsole:
-		logWriter = io.MultiWriter(os.Stdout, fileLogWriterCloser)
-	}
-	return logWriter
-}
-
 func logInformationalStatusToStdout(app runfileconfig.App) {
 	print.InfoStatusEvent(os.Stdout, "Started Dapr with app id %q. HTTP Port: %d. gRPC Port: %d",
 		app.AppID, app.RunConfig.HTTPPort, app.RunConfig.GRPCPort)
@@ -652,9 +625,8 @@ func gracefullyShutdownAppsAndCloseResources(runState []*runExec.RunExec, apps [
 	return err
 }
 
-func executeRunWithAppsConfigFile(runFilePath string) {
-	config := runfileconfig.RunFileConfig{}
-	apps, err := config.GetApps(runFilePath)
+func executeRunWithAppsConfigFile(runFilePath string, k8sEnabled bool) {
+	config, apps, err := getRunConfigFromRunFile(runFilePath)
 	if err != nil {
 		print.StatusEvent(os.Stdout, print.LogFailure, "Error getting apps from config file: %s", err)
 		os.Exit(1)
@@ -663,13 +635,25 @@ func executeRunWithAppsConfigFile(runFilePath string) {
 		print.StatusEvent(os.Stdout, print.LogFailure, "No apps to run")
 		os.Exit(1)
 	}
-	exitWithError, closeErr := executeRun(config.Name, runFilePath, apps)
+	var exitWithError bool
+	var closeErr error
+	if !k8sEnabled {
+		exitWithError, closeErr = executeRun(config.Name, runFilePath, apps)
+	} else {
+		exitWithError, closeErr = kubernetes.Run(runFilePath, config)
+	}
 	if exitWithError {
 		if closeErr != nil {
 			print.StatusEvent(os.Stdout, print.LogFailure, "Error closing resources: %s", closeErr)
 		}
 		os.Exit(1)
 	}
+}
+
+func getRunConfigFromRunFile(runFilePath string) (runfileconfig.RunFileConfig, []runfileconfig.App, error) {
+	config := runfileconfig.RunFileConfig{}
+	apps, err := config.GetApps(runFilePath)
+	return config, apps, err
 }
 
 // startDaprdAndAppProcesses is a function to start the App process and the associated Daprd process.
@@ -1027,6 +1011,9 @@ func putDaprLogFilePathInMeta(runE *runExec.RunExec, daprLogFilePath string) {
 // If the provided path is a path to a YAML file then return the same.
 // Else it returns the path of "dapr.yaml" in the provided directory.
 func getRunFilePath(path string) (string, error) {
+	if path == "-" {
+		return path, nil // will be read from stdin later.
+	}
 	fileInfo, err := os.Stat(path)
 	if err != nil {
 		return "", fmt.Errorf("error getting file info for %s: %w", path, err)

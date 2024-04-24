@@ -2,11 +2,11 @@ package kubernetes
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"os"
 	"path"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -292,6 +292,7 @@ func TestAnnotate(t *testing.T) {
 			var out bytes.Buffer
 			in := []io.Reader{inputFile}
 			for i, annotation := range tt.annotations {
+				annotation := annotation
 				annotator := NewK8sAnnotator(K8sAnnotatorConfig{
 					TargetResource:  &annotation.targetResource,
 					TargetNamespace: &annotation.targetNamespace,
@@ -423,7 +424,7 @@ func TestGetDaprAnnotations(t *testing.T) {
 
 		assert.Equal(t, "true", annotations[daprEnabledKey])
 		assert.Equal(t, appID, annotations[daprAppIDKey])
-		assert.Equal(t, fmt.Sprintf("%d", appPort), annotations[daprAppPortKey])
+		assert.Equal(t, strconv.Itoa(appPort), annotations[daprAppPortKey])
 		assert.Equal(t, config, annotations[daprConfigKey])
 		assert.Equal(t, appProtocol, annotations[daprAppProtocolKey])
 		assert.Equal(t, "true", annotations[daprEnableProfilingKey])
@@ -431,31 +432,31 @@ func TestGetDaprAnnotations(t *testing.T) {
 		assert.Equal(t, apiTokenSecret, annotations[daprAPITokenSecretKey])
 		assert.Equal(t, appTokenSecret, annotations[daprAppTokenSecretKey])
 		assert.Equal(t, "true", annotations[daprLogAsJSONKey])
-		assert.Equal(t, fmt.Sprintf("%d", appMaxConcurrency), annotations[daprAppMaxConcurrencyKey])
+		assert.Equal(t, strconv.Itoa(appMaxConcurrency), annotations[daprAppMaxConcurrencyKey])
 		assert.Equal(t, "true", annotations[daprEnableMetricsKey])
-		assert.Equal(t, fmt.Sprintf("%d", metricsPort), annotations[daprMetricsPortKey])
+		assert.Equal(t, strconv.Itoa(metricsPort), annotations[daprMetricsPortKey])
 		assert.Equal(t, "true", annotations[daprEnableDebugKey])
-		assert.Equal(t, fmt.Sprintf("%d", debugPort), annotations[daprDebugPortKey])
+		assert.Equal(t, strconv.Itoa(debugPort), annotations[daprDebugPortKey])
 		assert.Equal(t, env, annotations[daprEnvKey])
 		assert.Equal(t, cpuLimit, annotations[daprCPULimitKey])
 		assert.Equal(t, memoryLimit, annotations[daprMemoryLimitKey])
 		assert.Equal(t, cpuRequest, annotations[daprCPURequestKey])
 		assert.Equal(t, memoryRequest, annotations[daprMemoryRequestKey])
 		assert.Equal(t, listenAddresses, annotations[daprListenAddressesKey])
-		assert.Equal(t, fmt.Sprintf("%d", livenessProbeDelay), annotations[daprLivenessProbeDelayKey])
-		assert.Equal(t, fmt.Sprintf("%d", livenessProbeTimeout), annotations[daprLivenessProbeTimeoutKey])
-		assert.Equal(t, fmt.Sprintf("%d", livenessProbePeriod), annotations[daprLivenessProbePeriodKey])
-		assert.Equal(t, fmt.Sprintf("%d", livenessProbeThreshold), annotations[daprLivenessProbeThresholdKey])
-		assert.Equal(t, fmt.Sprintf("%d", readinessProbeDelay), annotations[daprReadinessProbeDelayKey])
-		assert.Equal(t, fmt.Sprintf("%d", readinessProbeTimeout), annotations[daprReadinessProbeTimeoutKey])
-		assert.Equal(t, fmt.Sprintf("%d", readinessProbePeriod), annotations[daprReadinessProbePeriodKey])
-		assert.Equal(t, fmt.Sprintf("%d", readinessProbeThreshold), annotations[daprReadinessProbeThresholdKey])
+		assert.Equal(t, strconv.Itoa(livenessProbeDelay), annotations[daprLivenessProbeDelayKey])
+		assert.Equal(t, strconv.Itoa(livenessProbeTimeout), annotations[daprLivenessProbeTimeoutKey])
+		assert.Equal(t, strconv.Itoa(livenessProbePeriod), annotations[daprLivenessProbePeriodKey])
+		assert.Equal(t, strconv.Itoa(livenessProbeThreshold), annotations[daprLivenessProbeThresholdKey])
+		assert.Equal(t, strconv.Itoa(readinessProbeDelay), annotations[daprReadinessProbeDelayKey])
+		assert.Equal(t, strconv.Itoa(readinessProbeTimeout), annotations[daprReadinessProbeTimeoutKey])
+		assert.Equal(t, strconv.Itoa(readinessProbePeriod), annotations[daprReadinessProbePeriodKey])
+		assert.Equal(t, strconv.Itoa(readinessProbeThreshold), annotations[daprReadinessProbeThresholdKey])
 		assert.Equal(t, daprImage, annotations[daprImageKey])
 		assert.Equal(t, "true", annotations[daprAppSSLKey])
-		assert.Equal(t, fmt.Sprintf("%d", maxRequestBodySize), annotations[daprMaxRequestBodySizeKey])
-		assert.Equal(t, fmt.Sprintf("%d", readBufferSize), annotations[daprReadBufferSizeKey])
+		assert.Equal(t, strconv.Itoa(maxRequestBodySize), annotations[daprMaxRequestBodySizeKey])
+		assert.Equal(t, strconv.Itoa(readBufferSize), annotations[daprReadBufferSizeKey])
 		assert.Equal(t, "true", annotations[daprHTTPStreamRequestBodyKey])
-		assert.Equal(t, fmt.Sprintf("%d", gracefulShutdownSeconds), annotations[daprGracefulShutdownSecondsKey])
+		assert.Equal(t, strconv.Itoa(gracefulShutdownSeconds), annotations[daprGracefulShutdownSecondsKey])
 		assert.Equal(t, "true", annotations[daprEnableAPILoggingKey])
 		assert.Equal(t, unixDomainSocketPath, annotations[daprUnixDomainSocketPathKey])
 		assert.Equal(t, volumeMountsReadOnly, annotations[daprVolumeMountsReadOnlyKey])

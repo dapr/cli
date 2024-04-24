@@ -20,6 +20,7 @@ import (
 
 	"github.com/dapr/cli/utils"
 	v1alpha1 "github.com/dapr/dapr/pkg/apis/configuration/v1alpha1"
+	"github.com/dapr/kit/ptr"
 )
 
 func GetDefaultConfiguration() v1alpha1.Configuration {
@@ -28,10 +29,10 @@ func GetDefaultConfiguration() v1alpha1.Configuration {
 			Name: "daprsystem",
 		},
 		Spec: v1alpha1.ConfigurationSpec{
-			MTLSSpec: v1alpha1.MTLSSpec{
-				Enabled:          true,
-				WorkloadCertTTL:  "24h",
-				AllowedClockSkew: "15m",
+			MTLSSpec: &v1alpha1.MTLSSpec{
+				Enabled:          ptr.Of(true),
+				WorkloadCertTTL:  ptr.Of("24h"),
+				AllowedClockSkew: ptr.Of("15m"),
 			},
 		},
 	}

@@ -38,10 +38,11 @@ jobs:
       GOARCH: ${{ matrix.target_arch }}
       GOPROXY: https://proxy.golang.org
       ARCHIVE_OUTDIR: dist/archives
-      DAPR_RUNTIME_PINNED_VERSION: "1.11.0"
-      DAPR_DASHBOARD_PINNED_VERSION: 0.13.0
-      DAPR_RUNTIME_LATEST_STABLE_VERSION:
-      DAPR_DASHBOARD_LATEST_STABLE_VERSION:
+      DAPR_RUNTIME_PINNED_VERSION: "1.13.0-rc.2"
+      DAPR_DASHBOARD_PINNED_VERSION: 0.14.0
+      DAPR_RUNTIME_LATEST_STABLE_VERSION: ""
+      DAPR_DASHBOARD_LATEST_STABLE_VERSION: ""
+      GOLANG_PROTOBUF_REGISTRATION_CONFLICT: warn
       PODMAN_VERSION: 4.4.4
     strategy:
       # TODO: Remove this when our E2E tests are stable for podman on MacOS.
@@ -178,7 +179,7 @@ jobs:
         shell: bash
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@master
+        uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.target_os }}_${{ matrix.target_arch }}_e2e_standalone.json
+          name: ${{ matrix.target_os }}_${{ matrix.target_arch }}_${{ matrix.dapr_install_mode }}_e2e_standalone.json
           path: ${{ env.TEST_OUTPUT_FILE }}

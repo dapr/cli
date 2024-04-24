@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	jsonpatch "github.com/evanphx/json-patch"
+	jsonpatch "github.com/evanphx/json-patch/v5"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	batchv1beta1 "k8s.io/api/batch/v1beta1"
@@ -82,7 +82,7 @@ const (
 )
 
 type Annotator interface {
-	Annotate(io.Reader, io.Writer) error
+	Annotate(io.Reader, io.Writer) error //nolint: inamedparam
 }
 
 type K8sAnnotator struct {
@@ -341,12 +341,8 @@ func (p *K8sAnnotator) annotateYAML(input []byte, config AnnotateOptions) ([]byt
 	}
 
 	// Create a patch operation for the annotations.
-	patchOps := []patcher.PatchOperation{}
-	patchOps = append(patchOps, patcher.PatchOperation{
-		Op:    "add",
-		Path:  path,
-		Value: annotations,
-	})
+	var patchOps []jsonpatch.Operation
+	patchOps = append(patchOps, patcher.NewPatchOperation("add", path, annotations))
 	patchBytes, err := json.Marshal(patchOps)
 	if err != nil {
 		return nil, false, err
