@@ -25,6 +25,8 @@ type Client interface {
 	Invoke(appID, method string, data []byte, verb string, socket string) (string, error)
 	// Publish is used to publish event to a topic in a pubsub for an app ID.
 	Publish(publishAppID, pubsubName, topic string, payload []byte, socket string, metadata map[string]interface{}) error
+	// Schedule is used to schedule a job to dapr, to then be stored in the Scheduler control plane service.
+	Schedule(appID, name, schedule, dueTime, ttl, socket string, repeats int, data []byte) error
 }
 
 type Standalone struct {

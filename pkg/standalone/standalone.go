@@ -43,6 +43,7 @@ const (
 	daprRuntimeFilePrefix      = "daprd"
 	dashboardFilePrefix        = "dashboard"
 	placementServiceFilePrefix = "placement"
+	schedulerServiceFilePrefix = "scheduler"
 
 	daprWindowsOS = "windows"
 
@@ -72,6 +73,8 @@ const (
 
 	// DaprPlacementContainerName is the container name of placement service.
 	DaprPlacementContainerName = "dapr_placement"
+	// DaprSchedulerContainerName is the container name of scheduler service.
+	DaprSchedulerContainerName = "dapr_scheduler"
 	// DaprRedisContainerName is the container name of redis.
 	DaprRedisContainerName = "dapr_redis"
 	// DaprZipkinContainerName is the container name of zipkin.
@@ -81,6 +84,9 @@ const (
 
 	healthPort = 58080
 	metricPort = 59090
+
+	schedulerHealthPort = 58181
+	schedulerMetricPort = 59191
 )
 
 var (
@@ -240,8 +246,10 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		createComponentsAndConfiguration,
 		installDaprRuntime,
 		installPlacement,
+		installScheduler,
 		installDashboard,
 		runPlacementService,
+		runSchedulerService,
 		runRedis,
 		runZipkin,
 	}
@@ -302,12 +310,13 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 	if slimMode {
 		// Print info on placement binary only on slim install.
 		print.InfoStatusEvent(os.Stdout, "%s binary has been installed to %s.", placementServiceFilePrefix, daprBinDir)
+		print.InfoStatusEvent(os.Stdout, "%s binary has been installed to %s.", schedulerServiceFilePrefix, daprBinDir)
 	} else {
 		runtimeCmd := utils.GetContainerRuntimeCmd(info.containerRuntime)
-		dockerContainerNames := []string{DaprPlacementContainerName, DaprRedisContainerName, DaprZipkinContainerName}
+		dockerContainerNames := []string{DaprPlacementContainerName, DaprSchedulerContainerName, DaprRedisContainerName, DaprZipkinContainerName}
 		// Skip redis and zipkin in local installation mode.
 		if isAirGapInit {
-			dockerContainerNames = []string{DaprPlacementContainerName}
+			dockerContainerNames = []string{DaprPlacementContainerName, DaprSchedulerContainerName}
 		}
 		for _, container := range dockerContainerNames {
 			containerName := utils.CreateContainerName(container, dockerNetwork)
@@ -545,6 +554,93 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 	errorChan <- nil
 }
 
+func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
+	defer wg.Done()
+
+	if info.slimMode {
+		return
+	}
+
+	runtimeCmd := utils.GetContainerRuntimeCmd(info.containerRuntime)
+	schedulerContainerName := utils.CreateContainerName(DaprSchedulerContainerName, info.dockerNetwork)
+
+	exists, err := confirmContainerIsRunningOrExists(schedulerContainerName, false, runtimeCmd)
+
+	if err != nil {
+		errorChan <- err
+		return
+	} else if exists {
+		errorChan <- fmt.Errorf("%s container exists or is running. %s", schedulerContainerName, errInstallTemplate)
+		return
+	}
+	var image string
+
+	imgInfo := daprImageInfo{
+		ghcrImageName:      daprGhcrImageName,
+		dockerHubImageName: daprDockerImageName,
+		imageRegistryURL:   info.imageRegistryURL,
+		imageRegistryName:  defaultImageRegistryName,
+	}
+
+	if isAirGapInit {
+		// if --from-dir flag is given load the image details from the installer-bundle.
+		dir := path_filepath.Join(info.fromDir, *info.bundleDet.ImageSubDir)
+		image = info.bundleDet.getSchedulerImageName()
+		err = loadContainer(dir, info.bundleDet.getSchedulerImageFileName(), info.containerRuntime)
+		if err != nil {
+			errorChan <- err
+			return
+		}
+	} else {
+		// otherwise load the image from the specified repository.
+		image, err = getSchedulerImageName(imgInfo, info)
+		if err != nil {
+			errorChan <- err
+			return
+		}
+	}
+
+	args := []string{
+		"run",
+		"--name", schedulerContainerName,
+		"--restart", "always",
+		"-d",
+		"--entrypoint", "./scheduler",
+	}
+
+	if info.dockerNetwork != "" {
+		args = append(args,
+			"--network", info.dockerNetwork,
+			"--network-alias", DaprSchedulerContainerName)
+	} else {
+		osPort := 50006
+		if runtime.GOOS == daprWindowsOS {
+			osPort = 6060 //TODO confirm this
+		}
+
+		args = append(args,
+			"-p", fmt.Sprintf("%v:50006", osPort),
+			"-p", fmt.Sprintf("%v:8081", schedulerHealthPort), //TODO confirm this
+			"-p", fmt.Sprintf("%v:9091", schedulerMetricPort), //TODO confirm this
+		)
+	}
+
+	args = append(args, image)
+
+	_, err = utils.RunCmdAndWait(runtimeCmd, args...)
+
+	if err != nil {
+		runError := isContainerRunError(err)
+		if !runError {
+			errorChan <- parseContainerRuntimeError("scheduler service", err)
+		} else {
+			errorChan <- fmt.Errorf("%s %s failed with: %w", runtimeCmd, args, err)
+		}
+		return
+	}
+	errorChan <- nil
+}
+
 func moveDashboardFiles(extractedFilePath string, dir string) (string, error) {
 	// Move /release/os/web directory to /web.
 	oldPath := path_filepath.Join(path_filepath.Dir(extractedFilePath), "web")
@@ -609,7 +705,20 @@ func installPlacement(wg *sync.WaitGroup, errorChan chan<- error, info initInfo)
 	}
 }
 
-// installBinary installs the daprd, placement or dashboard binaries and associated files inside the default dapr bin directory.
+func installScheduler(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
+	defer wg.Done()
+
+	if !info.slimMode {
+		return
+	}
+
+	err := installBinary(info.runtimeVersion, schedulerServiceFilePrefix, cli_ver.DaprGitHubRepo, info)
+	if err != nil {
+		errorChan <- err
+	}
+}
+
+// installBinary installs the daprd, placement, scheduler, or dashboard binaries and associated files inside the default dapr bin directory.
 func installBinary(version, binaryFilePrefix, githubRepo string, info initInfo) error {
 	var (
 		err      error
@@ -1215,7 +1324,42 @@ func getPlacementImageName(imageInfo daprImageInfo, info initInfo) (string, erro
 	return image, nil
 }
 
+// getSchedulerImageName returns the resolved scheduler image name for online `dapr init`.
+// It can either be resolved to the image-registry if given, otherwise GitHub container registry if
+// selected or fallback to Docker Hub.
+func getSchedulerImageName(imageInfo daprImageInfo, info initInfo) (string, error) {
+	image, err := resolveImageURI(imageInfo)
+	if err != nil {
+		return "", err
+	}
+
+	image, err = getSchedulerImageWithTag(image, info.runtimeVersion, info.imageVariant)
+	if err != nil {
+		return "", err
+	}
+
+	// if default registry is GHCR and the image is not available in or cannot be pulled from GHCR
+	// fallback to using dockerhub.
+	if useGHCR(imageInfo, info.fromDir) && !tryPullImage(image, info.containerRuntime) {
+		print.InfoStatusEvent(os.Stdout, "Scheduler image not found in Github container registry, pulling it from Docker Hub")
+		image, err = getSchedulerImageWithTag(daprDockerImageName, info.runtimeVersion, info.imageVariant)
+		if err != nil {
+			return "", err
+		}
+	}
+	return image, nil
+}
+
 func getPlacementImageWithTag(name, version, imageVariant string) (string, error) {
+	err := utils.ValidateImageVariant(imageVariant)
+	if err != nil {
+		return "", err
+	}
+	version = utils.GetVariantVersion(version, imageVariant)
+	return fmt.Sprintf("%s:%s", name, version), nil
+}
+
+func getSchedulerImageWithTag(name, version, imageVariant string) (string, error) {
 	err := utils.ValidateImageVariant(imageVariant)
 	if err != nil {
 		return "", err

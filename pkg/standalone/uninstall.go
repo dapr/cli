@@ -24,11 +24,15 @@ import (
 	"github.com/dapr/cli/utils"
 )
 
-func removeContainers(uninstallPlacementContainer, uninstallAll bool, dockerNetwork, runtimeCmd string) []error {
+func removeContainers(uninstallPlacementContainer, uninstallSchedulerContainer, uninstallAll bool, dockerNetwork, runtimeCmd string) []error {
 	var containerErrs []error
 
 	if uninstallPlacementContainer {
 		containerErrs = removeDockerContainer(containerErrs, DaprPlacementContainerName, dockerNetwork, runtimeCmd)
+	}
+
+	if uninstallSchedulerContainer {
+		containerErrs = removeDockerContainer(containerErrs, DaprSchedulerContainerName, dockerNetwork, runtimeCmd)
 	}
 
 	if uninstallAll {
@@ -84,6 +88,11 @@ func Uninstall(uninstallAll bool, dockerNetwork string, containerRuntime string,
 	placementFilePath := binaryFilePathWithDir(daprBinDir, placementServiceFilePrefix)
 	_, placementErr := os.Stat(placementFilePath) // check if the placement binary exists.
 	uninstallPlacementContainer := errors.Is(placementErr, fs.ErrNotExist)
+
+	schedulerFilePath := binaryFilePathWithDir(daprBinDir, schedulerServiceFilePrefix)
+	_, schedulerErr := os.Stat(schedulerFilePath) // check if the scheduler binary exists.
+	uninstallSchedulerContainer := errors.Is(schedulerErr, fs.ErrNotExist)
+
 	// Remove .dapr/bin.
 	err = removeDir(daprBinDir)
 	if err != nil {
@@ -95,8 +104,8 @@ func Uninstall(uninstallAll bool, dockerNetwork string, containerRuntime string,
 	containerRuntimeAvailable := false
 	containerRuntimeAvailable = utils.IsContainerRuntimeInstalled(containerRuntime)
 	if containerRuntimeAvailable {
-		containerErrs = removeContainers(uninstallPlacementContainer, uninstallAll, dockerNetwork, runtimeCmd)
-	} else if uninstallPlacementContainer || uninstallAll {
+		containerErrs = removeContainers(uninstallPlacementContainer, uninstallSchedulerContainer, uninstallAll, dockerNetwork, runtimeCmd)
+	} else if uninstallSchedulerContainer || uninstallPlacementContainer || uninstallAll {
 		print.WarningStatusEvent(os.Stdout, "WARNING: could not delete supporting containers as container runtime is not installed or running")
 	}
 

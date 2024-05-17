@@ -177,3 +177,16 @@ func cmdVersion(output string, args ...string) (string, error) {
 
 	return spawn.Command(common.GetDaprPath(), verArgs...)
 }
+
+// cmdJobSchedule schedules a job, and returns the command output and error.
+func cmdJobSchedule(appId, name, schedule, unixDomainSocket string, args ...string) (string, error) {
+	jobScheduleArgs := []string{"job", "schedule", "--log-as-json", "--app-id", appId, "--name", name, "--schedule", schedule}
+
+	if unixDomainSocket != "" {
+		jobScheduleArgs = append(jobScheduleArgs, "--unix-domain-socket", unixDomainSocket)
+	}
+
+	jobScheduleArgs = append(jobScheduleArgs, args...)
+
+	return spawn.Command(common.GetDaprPath(), jobScheduleArgs...)
+}

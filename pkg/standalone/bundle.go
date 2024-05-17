@@ -62,3 +62,11 @@ func (b *bundleDetails) getPlacementImageName() string {
 func (b *bundleDetails) getPlacementImageFileName() string {
 	return *b.DaprImageFileName
 }
+
+func (b *bundleDetails) getSchedulerImageName() string {
+	return *b.DaprImageName
+}
+
+func (b *bundleDetails) getSchedulerImageFileName() string {
+	return *b.DaprImageFileName
+}
