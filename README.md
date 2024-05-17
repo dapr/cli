@@ -1,9 +1,25 @@
 # Dapr CLI
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/dapr/cli)](https://goreportcard.com/report/github.com/dapr/cli)
-[![Build Status](https://github.com/dapr/cli/workflows/dapr_cli/badge.svg)](https://github.com/dapr/cli/actions?workflow=dapr_cli)
-[![codecov](https://codecov.io/gh/dapr/cli/branch/master/graph/badge.svg)](https://codecov.io/gh/dapr/cli)
-[![FOSSA Status](https://app.fossa.com/api/projects/custom%2B162%2Fgithub.com%2Fdapr%2Fcli.svg?type=shield)](https://app.fossa.com/projects/custom%2B162%2Fgithub.com%2Fdapr%2Fcli?ref=badge_shield)
+[![Go Report Card][go-report-badge]][go-report-url] [![Build Status][actions-badge]][actions-url] [![Code Coverage][codecov-badge]][codecov-url] [![License: Apache 2.0][apache-badge]][apache-url] [![FOSSA Status][fossa-badge]][fossa-url] [![Good First Issues][gfi-badge]][gfi-url] [![discord][discord-badge]][discord-url] [![YouTube][youtube-badge]][youtube-link] [![X/Twitter][x-badge]][x-link]
+
+[go-report-badge]: https://goreportcard.com/badge/github.com/dapr/cli?style=flat
+[go-report-url]: https://goreportcard.com/report/github.com/dapr/cli
+[apache-badge]: https://img.shields.io/github/license/dapr/cli?style=flat&label=License&logo=github
+[apache-url]: https://github.com/dapr/cli/blob/master/LICENSE
+[actions-badge]: https://github.com/dapr/cli/workflows/dapr_cli/badge.svg?style=flat&logo=github
+[actions-url]: https://github.com/dapr/cli/actions?workflow=dapr_cli
+[codecov-badge]: https://codecov.io/gh/dapr/cli/branch/master/graph/badge.svg?style=flat
+[codecov-url]: https://codecov.io/gh/dapr/cli
+[fossa-badge]: https://app.fossa.com/api/projects/custom%2B162%2Fgithub.com%2Fdapr%2Fcli.svg?type=shield
+[fossa-url]: https://app.fossa.com/projects/custom%2B162%2Fgithub.com%2Fdapr%2Fcli?ref=badge_shield
+[gfi-badge]:https://img.shields.io/github/issues-search/dapr/cli?query=type%3Aissue%20is%3Aopen%20label%3A%22good%20first%20issue%22&label=Good%20first%20issues&style=flat&logo=github
+[gfi-url]:https://github.com/dapr/cli/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22
+[discord-badge]: https://img.shields.io/discord/778680217417809931?label=Discord&style=flat&logo=discord
+[discord-url]: http://bit.ly/dapr-discord
+[youtube-badge]:https://img.shields.io/youtube/channel/views/UCtpSQ9BLB_3EXdWAUQYwnRA?style=flat&label=YouTube%20views&logo=youtube
+[youtube-link]:https://youtube.com/@daprdev
+[x-badge]:https://img.shields.io/twitter/follow/daprdev?logo=x&style=flat
+[x-link]:https://twitter.com/daprdev
 
 The Dapr CLI allows you to setup Dapr on your local dev machine or on a Kubernetes cluster, provides debugging support, launches and manages Dapr instances.
 
