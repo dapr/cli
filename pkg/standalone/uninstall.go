@@ -98,6 +98,9 @@ func Uninstall(uninstallAll bool, dockerNetwork string, containerRuntime string,
 	if err != nil {
 		print.WarningStatusEvent(os.Stdout, "WARNING: could not delete dapr bin dir: %s", daprBinDir)
 	}
+	// We don't delete .dapr/scheduler by choice since it holds state.
+	// To delete .dapr/scheduler, user is expected to use the `--all` flag as it deletes the .dapr folder.
+	// The same happens for .dapr/components folder.
 
 	containerRuntime = strings.TrimSpace(containerRuntime)
 	runtimeCmd := utils.GetContainerRuntimeCmd(containerRuntime)

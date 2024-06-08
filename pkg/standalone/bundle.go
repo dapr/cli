@@ -55,18 +55,10 @@ func isStringNilOrEmpty(val *string) bool {
 	return val == nil || strings.TrimSpace(*val) == ""
 }
 
-func (b *bundleDetails) getPlacementImageName() string {
+func (b *bundleDetails) getDaprImageName() string {
 	return *b.DaprImageName
 }
 
-func (b *bundleDetails) getPlacementImageFileName() string {
-	return *b.DaprImageFileName
-}
-
-func (b *bundleDetails) getSchedulerImageName() string {
-	return *b.DaprImageName
-}
-
-func (b *bundleDetails) getSchedulerImageFileName() string {
+func (b *bundleDetails) getDaprImageFileName() string {
 	return *b.DaprImageFileName
 }
