@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>dapr</id>
+    <version>dapr_cli_version</version>
+    <packageSourceUrl>https://github.com/dapr/cli/tree/master/.github/scripts/chocolatey</packageSourceUrl>
+    <owners>mikeee, dapr</owners>
+    <title>Dapr CLI (Install)</title>
+    <authors>The Dapr Authors</authors>
+    <projectUrl>https://dapr.io/</projectUrl>
+    <iconUrl>https://cdn.jsdelivr.net/gh/dapr/website/static/images/dapr.svg</iconUrl>
+    <copyright>Copyright 2024 The Dapr Authors</copyright>
+    <licenseUrl>https://github.com/dapr/cli/blob/master/LICENSE</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <projectSourceUrl>https://github.com/dapr/cli</projectSourceUrl>
+    <docsUrl>https://docs.dapr.io/reference/cli/cli-overview/</docsUrl>
+    <bugTrackerUrl>https://github.com/dapr/cli/issues</bugTrackerUrl>
+    <tags>dapr distributed application runtime cli kubernetes</tags>
+    <summary>The Dapr CLI is the main tool for running Dapr-related tasks</summary>
+    <description>
+        The Dapr CLI allows you to setup Dapr on your local dev machine or on a Kubernetes cluster, provides debugging support, and launches and manages Dapr instances.
+
+        Dapr is a set of integrated APIs with built-in best practices and patterns to build distributed applications. Dapr increases your developer productivity by 20-40% with out-of-the-box features such as workflow, pub/sub, state management, secret stores, external configuration, bindings, actors, distributed lock, and cryptography. You benefit from the built-in security, reliability, and observability capabilities, so you don't need to write boilerplate code to achieve production-ready applications.
+        </description>
+    <releaseNotes>https://github.com/dapr/cli/releases</releaseNotes>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools"/>
+  </files>
+</package>

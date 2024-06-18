@@ -20,7 +20,7 @@ jobs:
       DAPR_CLI_VERSION: ${{ github.event.inputs.daprcli_version }}
     defaults:
       run:
-        working-directory: .github/scripts/chocolatey/
+        working-directory: .github/choco/
     steps:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v4
