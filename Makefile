@@ -192,15 +192,15 @@ test-e2e-sh-template: test-deps
 ################################################################################
 # E2E Tests for Self-Hosted												       #
 ################################################################################
-.PHONY: test-deps test-e2e-sh
+.PHONY: test-e2e-sh
 test-e2e-sh: test-deps
 	gotestsum --jsonfile $(TEST_OUTPUT_FILE) --format standard-verbose -- -timeout $(E2E_SH_TEST_TIMEOUT) -count=1 -tags=e2e ./tests/e2e/standalone/...
 
 ################################################################################
 # Build, E2E Tests for Self-Hosted											   #
 ################################################################################
-.PHONY: test-deps e2e-build-run-sh
-e2e-build-run-sh: build test-e2e-sh
+.PHONY: e2e-build-run-sh
+e2e-build-run-sh: test-deps build
 
 ################################################################################
 # Target: modtidy                                                               #
