@@ -48,13 +48,14 @@ jobs:
       # TODO: Remove this when our E2E tests are stable for podman on MacOS.
       fail-fast: false # Keep running if one leg fails.
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        # See https://github.com/actions/runner-images
+        os: [macos-latest-large, ubuntu-latest, windows-latest]
         target_arch: [amd64]
         dapr_install_mode: [slim, complete]
         include:
           - os: ubuntu-latest
             target_os: linux
-          - os: macOS-latest
+          - os: macos-latest-large
             target_os: darwin
           - os: windows-latest
             target_os: windows
@@ -62,6 +63,14 @@ jobs:
           - os: windows-latest
             dapr_install_mode: complete
     steps:
+      - name: Prepare Go's bin location - MacOS
+        if: matrix.os == 'macos-latest-large'
+        run: |
+          export PATH=$HOME/bin:$PATH
+          echo "$HOME/bin" >> $GITHUB_PATH
+
+          echo "GOBIN=$HOME/bin" >> $GITHUB_ENV
+          mkdir -p $HOME/bin
       - name: Check out code into the Go module directory
         uses: actions/checkout@v3
       - name: Set up Go
@@ -101,7 +110,7 @@ jobs:
             ${{ matrix.target_os }}-${{ matrix.target_arch }}-go-${{ steps.setup-go.outputs.go-version }}-
       - name: Install podman - MacOS
         timeout-minutes: 15
-        if: matrix.os == 'macos-latest' && matrix.dapr_install_mode == 'complete'
+        if: matrix.os == 'macos-latest-large' && matrix.dapr_install_mode == 'complete'
         run: |
           # Install podman
           curl -sL -o podman.pkg https://github.com/containers/podman/releases/download/v${{ env.PODMAN_VERSION }}/podman-installer-macos-amd64.pkg
@@ -149,7 +158,7 @@ jobs:
           echo "DAPR_DASHBOARD_LATEST_STABLE_VERSION=$LATEST_STABLE_DASHBOARD_VERSION" >> $GITHUB_ENV
         shell: bash
       - name: Set the test timeout - MacOS
-        if: matrix.os == 'macos-latest'
+        if: matrix.os == 'macos-latest-large'
         run: echo "E2E_SH_TEST_TIMEOUT=30m" >> $GITHUB_ENV
       - name: Run E2E tests with GHCR
         # runs every 6hrs
