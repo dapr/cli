@@ -70,7 +70,8 @@ type SharedRunConfig struct {
 	MaxConcurrency     int    `arg:"app-max-concurrency" annotation:"dapr.io/app-max-concurrerncy" yaml:"appMaxConcurrency" default:"-1"`
 	// Speicifcally omitted from annotations similar to config file path above.
 	PlacementHostAddr string `arg:"placement-host-address" yaml:"placementHostAddress"`
-	SchedulerHostAddr string `arg:"scheduler-host-address" yaml:"schedulerHostAddress"`
+	// Must use env for scheduler host address because using arg would cause a sidecar crash in older daprd versions.
+	SchedulerHostAddr string `env:"DAPR_SCHEDULER_HOST_ADDRESS" yaml:"schedulerHostAddress"`
 	// Speicifcally omitted from annotations similar to config file path above.
 	ComponentsPath string `arg:"components-path"` // Deprecated in run template file: use ResourcesPaths instead.
 	// Speicifcally omitted from annotations similar to config file path above.
