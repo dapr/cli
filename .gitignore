@@ -6,6 +6,9 @@
 *.dylib
 cli
 
+# Handy directory to keep local scripts and help files.
+.local/
+
 # Mac's metadata folder
 .DS_Store
 

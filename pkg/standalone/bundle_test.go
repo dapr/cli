@@ -44,8 +44,8 @@ func TestParseDetails(t *testing.T) {
 	assert.Equal(t, "0.10.0", *bd.DashboardVersion, "expected versions to match")
 	assert.Equal(t, "dist", *bd.BinarySubDir, "expected value to match")
 	assert.Equal(t, "docker", *bd.ImageSubDir, "expected value to match")
-	assert.Equal(t, "daprio/dapr:1.7.2", bd.getPlacementImageName(), "expected value to match")
-	assert.Equal(t, "daprio-dapr-1.7.2.tar.gz", bd.getPlacementImageFileName(), "expected value to match")
+	assert.Equal(t, "daprio/dapr:1.7.2", bd.getDaprImageName(), "expected value to match")
+	assert.Equal(t, "daprio-dapr-1.7.2.tar.gz", bd.getDaprImageFileName(), "expected value to match")
 }
 
 func TestParseDetailsMissingDetails(t *testing.T) {
