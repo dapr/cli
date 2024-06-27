@@ -90,7 +90,7 @@ const (
 	schedulerMetricPort = 59091
 	schedulerEtcdPort   = 52379
 
-	daprVersionsWithScheduler = ">= 1.13.x"
+	daprVersionsWithScheduler = ">= 1.14.x"
 )
 
 var (
