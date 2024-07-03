@@ -59,6 +59,7 @@ ifeq ($(LOCAL_OS),Linux)
 else ifeq ($(LOCAL_OS),Darwin)
    TARGET_OS_LOCAL = darwin
    GOLANGCI_LINT:=golangci-lint
+   PATH := $(PATH):$(HOME)/go/bin/darwin_$(GOARCH)
    export ARCHIVE_EXT = .tar.gz
 else
    TARGET_OS_LOCAL ?= windows

@@ -210,7 +210,7 @@ func init() {
 	InitCmd.Flags().BoolVarP(&devMode, "dev", "", false, "Use Dev mode. Deploy Redis, Zipkin also in the Kubernetes cluster")
 	InitCmd.Flags().BoolVarP(&wait, "wait", "", false, "Wait for Kubernetes initialization to complete")
 	InitCmd.Flags().UintVarP(&timeout, "timeout", "", 300, "The wait timeout for the Kubernetes installation")
-	InitCmd.Flags().BoolVarP(&slimMode, "slim", "s", false, "Exclude placement service, Redis and Zipkin containers from self-hosted installation")
+	InitCmd.Flags().BoolVarP(&slimMode, "slim", "s", false, "Exclude placement service, scheduler service, Redis and Zipkin containers from self-hosted installation")
 	InitCmd.Flags().StringVarP(&runtimeVersion, "runtime-version", "", defaultRuntimeVersion, "The version of the Dapr runtime to install, for example: 1.0.0")
 	InitCmd.Flags().StringVarP(&dashboardVersion, "dashboard-version", "", defaultDashboardVersion, "The version of the Dapr dashboard to install, for example: 0.13.0")
 	InitCmd.Flags().StringVarP(&initNamespace, "namespace", "n", "dapr-system", "The Kubernetes namespace to install Dapr in")
