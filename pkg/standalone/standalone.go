@@ -176,7 +176,11 @@ func isSchedulerIncluded(runtimeVersion string) (bool, error) {
 		return false, err
 	}
 
-	return c.Check(v), nil
+	vNoPrerelease, err := v.SetPrerelease("")
+	if err != nil {
+		return false, err
+	}
+	return c.Check(&vNoPrerelease), nil
 }
 
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
