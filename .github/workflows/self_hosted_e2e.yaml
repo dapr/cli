@@ -43,7 +43,6 @@ jobs:
       DAPR_RUNTIME_LATEST_STABLE_VERSION: ""
       DAPR_DASHBOARD_LATEST_STABLE_VERSION: ""
       GOLANG_PROTOBUF_REGISTRATION_CONFLICT: warn
-      PODMAN_VERSION: 5.1.1
     strategy:
       # TODO: Remove this when our E2E tests are stable for podman on MacOS.
       fail-fast: false # Keep running if one leg fails.
@@ -109,20 +108,23 @@ jobs:
           restore-keys: |
             ${{ matrix.target_os }}-${{ matrix.target_arch }}-go-${{ steps.setup-go.outputs.go-version }}-
       - name: Install podman - MacOS
+        timeout-minutes: 5
+        if: matrix.os == 'macos-latest-large' && matrix.dapr_install_mode == 'complete'
+        run: |
+          brew install podman                                                                               
+
+          # Configure and start podman vm
+          podman machine stop || echo "No podman vm to stop"
+          podman machine rm || echo "No podman vm to remove"
+          podman machine init -v $HOME:$HOME -v /Users -v /Volumes -v /usr/local/lib/node_modules
+          podman machine set --rootful
+
+          echo "CONTAINER_RUNTIME=podman" >> $GITHUB_ENV
+      - name: Start podman machine - MacOS
         timeout-minutes: 15
         if: matrix.os == 'macos-latest-large' && matrix.dapr_install_mode == 'complete'
         run: |
-          # Install podman
-          curl -sL -o podman.pkg https://github.com/containers/podman/releases/download/v${{ env.PODMAN_VERSION }}/podman-installer-macos-amd64.pkg
-          sudo installer -pkg podman.pkg -target /
-          export PATH=/opt/podman/bin:$PATH
-          echo "/opt/podman/bin" >> $GITHUB_PATH
-
-          # Start podman machine
-          sudo podman-mac-helper install
-          podman machine init
-          podman machine start --log-level debug
-          echo "CONTAINER_RUNTIME=podman" >> $GITHUB_ENV
+          podman machine start
       - name: Determine latest Dapr Runtime version including Pre-releases
         if: github.base_ref == 'master'
         run: |
