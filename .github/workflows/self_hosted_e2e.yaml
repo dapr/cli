@@ -43,7 +43,6 @@ jobs:
       DAPR_RUNTIME_LATEST_STABLE_VERSION: ""
       DAPR_DASHBOARD_LATEST_STABLE_VERSION: ""
       GOLANG_PROTOBUF_REGISTRATION_CONFLICT: warn
-      PODMAN_VERSION: 4.4.4
     strategy:
       # TODO: Remove this when our E2E tests are stable for podman on MacOS.
       fail-fast: false # Keep running if one leg fails.
@@ -113,13 +112,9 @@ jobs:
         if: matrix.os == 'macos-latest-large' && matrix.dapr_install_mode == 'complete'
         run: |
           # Install podman
-          curl -sL -o podman.pkg https://github.com/containers/podman/releases/download/v${{ env.PODMAN_VERSION }}/podman-installer-macos-amd64.pkg
-          sudo installer -pkg podman.pkg -target /
-          export PATH=/opt/podman/bin:$PATH
-          echo "/opt/podman/bin" >> $GITHUB_PATH
+          brew install podman
 
           # Start podman machine
-          sudo podman-mac-helper install
           podman machine init
           podman machine start --log-level debug
           echo "CONTAINER_RUNTIME=podman" >> $GITHUB_ENV
