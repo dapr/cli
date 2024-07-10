@@ -14,6 +14,7 @@ limitations under the License.
 package standalone
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
@@ -22,6 +23,8 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+
+	dockerClient "github.com/docker/docker/client"
 
 	"github.com/Pallinder/sillyname-go"
 	"github.com/phayes/freeport"
@@ -70,8 +73,6 @@ type SharedRunConfig struct {
 	MaxConcurrency     int    `arg:"app-max-concurrency" annotation:"dapr.io/app-max-concurrerncy" yaml:"appMaxConcurrency" default:"-1"`
 	// Speicifcally omitted from annotations similar to config file path above.
 	PlacementHostAddr string `arg:"placement-host-address" yaml:"placementHostAddress"`
-	// Must use env for scheduler host address because using arg would cause a sidecar crash in older daprd versions.
-	SchedulerHostAddr string `env:"DAPR_SCHEDULER_HOST_ADDRESS" yaml:"schedulerHostAddress"`
 	// Speicifcally omitted from annotations similar to config file path above.
 	ComponentsPath string `arg:"components-path"` // Deprecated in run template file: use ResourcesPaths instead.
 	// Speicifcally omitted from annotations similar to config file path above.
@@ -89,10 +90,11 @@ type SharedRunConfig struct {
 	AppHealthThreshold int    `arg:"app-health-threshold" annotation:"dapr.io/app-health-threshold" ifneq:"0" yaml:"appHealthThreshold"`
 	EnableAPILogging   bool   `arg:"enable-api-logging" annotation:"dapr.io/enable-api-logging" yaml:"enableApiLogging"`
 	// Specifically omitted from annotations see https://github.com/dapr/cli/issues/1324 .
-	DaprdInstallPath    string            `yaml:"runtimePath"`
-	Env                 map[string]string `yaml:"env"`
-	DaprdLogDestination LogDestType       `yaml:"daprdLogDestination"`
-	AppLogDestination   LogDestType       `yaml:"appLogDestination"`
+	DaprdInstallPath     string            `yaml:"runtimePath"`
+	Env                  map[string]string `yaml:"env"`
+	DaprdLogDestination  LogDestType       `yaml:"daprdLogDestination"`
+	AppLogDestination    LogDestType       `yaml:"appLogDestination"`
+	SchedulerHostAddress string            `arg:"scheduler-host-address" yaml:"schedulerHostAddress"`
 }
 
 func (meta *DaprMeta) newAppID() string {
@@ -139,18 +141,27 @@ func (config *RunConfig) validatePlacementHostAddr() error {
 }
 
 func (config *RunConfig) validateSchedulerHostAddr() error {
-	schedulerHostAddr := config.SchedulerHostAddr
-	if len(schedulerHostAddr) == 0 {
-		schedulerHostAddr = "localhost"
+	// If the scheduler isn't running - don't add the flag to the runtime cmd.
+	docker, err := dockerClient.NewClientWithOpts()
+	if err != nil {
+		return err
 	}
-	if indx := strings.Index(schedulerHostAddr, ":"); indx == -1 {
-		if runtime.GOOS == daprWindowsOS {
-			schedulerHostAddr = fmt.Sprintf("%s:6060", schedulerHostAddr)
-		} else {
-			schedulerHostAddr = fmt.Sprintf("%s:50006", schedulerHostAddr)
+	_, err = docker.ContainerInspect(context.Background(), "dapr_scheduler")
+	if err == nil {
+		schedulerHostAddr := config.SchedulerHostAddress
+		if len(schedulerHostAddr) == 0 {
+			schedulerHostAddr = "localhost"
 		}
+		if indx := strings.Index(schedulerHostAddr, ":"); indx == -1 {
+			if runtime.GOOS == daprWindowsOS {
+				schedulerHostAddr = fmt.Sprintf("%s:6060", schedulerHostAddr)
+			} else {
+				schedulerHostAddr = fmt.Sprintf("%s:50006", schedulerHostAddr)
+			}
+		}
+		config.SchedulerHostAddress = schedulerHostAddr
+		return nil
 	}
-	config.SchedulerHostAddr = schedulerHostAddr
 	return nil
 }
 
@@ -237,7 +248,6 @@ func (config *RunConfig) Validate() error {
 	}
 
 	err = config.validateSchedulerHostAddr()
-
 	if err != nil {
 		return err
 	}

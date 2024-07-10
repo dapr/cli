@@ -415,7 +415,6 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 		args = append(args, imageName)
 	}
 	_, err = utils.RunCmdAndWait(runtimeCmd, args...)
-
 	if err != nil {
 		runError := isContainerRunError(err)
 		if !runError {
@@ -481,7 +480,6 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 		args = append(args, imageName)
 	}
 	_, err = utils.RunCmdAndWait(runtimeCmd, args...)
-
 	if err != nil {
 		runError := isContainerRunError(err)
 		if !runError {
@@ -568,7 +566,6 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 	args = append(args, image)
 
 	_, err = utils.RunCmdAndWait(runtimeCmd, args...)
-
 	if err != nil {
 		runError := isContainerRunError(err)
 		if !runError {
@@ -668,7 +665,6 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 	args = append(args, image)
 
 	_, err = utils.RunCmdAndWait(runtimeCmd, args...)
-
 	if err != nil {
 		runError := isContainerRunError(err)
 		if !runError {

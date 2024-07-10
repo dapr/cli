@@ -221,7 +221,6 @@ func readInputsFromFS(path string) ([]io.Reader, error) {
 		inputs = append(inputs, file)
 		return nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
