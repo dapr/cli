@@ -52,7 +52,6 @@ func RenewCertificate(conf RenewCertificateParams) error {
 			conf.RootCertificateFilePath,
 			conf.IssuerCertificateFilePath,
 			conf.IssuerPrivateKeyFilePath)
-
 		if err != nil {
 			return err
 		}
@@ -60,7 +59,6 @@ func RenewCertificate(conf RenewCertificateParams) error {
 		rootCertBytes, issuerCertBytes, issuerKeyBytes, err = GenerateNewCertificates(
 			conf.ValidUntil,
 			conf.RootPrivateKeyFilePath)
-
 		if err != nil {
 			return err
 		}

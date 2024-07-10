@@ -1210,7 +1210,6 @@ func exportCurrentCertificate(daprPath string) error {
 		os.RemoveAll("./certs")
 	}
 	_, err = spawn.Command(daprPath, "mtls", "export", "-o", "./certs")
-
 	if err != nil {
 		return fmt.Errorf("error in exporting certificate %w", err)
 	}

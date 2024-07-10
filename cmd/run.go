@@ -24,6 +24,8 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/mod/semver"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -226,6 +228,15 @@ dapr run --run-file /path/to/directory -k
 					output.AppID,
 					output.DaprHTTPPort,
 					output.DaprGRPCPort)
+			}
+
+			if semver.Compare(fmt.Sprintf("v%v", daprVer.RuntimeVersion), "v1.14.0-rc.1") == -1 {
+				print.InfoStatusEvent(os.Stdout, "The scheduler is only compatible with dapr runtime 1.14 onwards.")
+				for i, arg := range output.DaprCMD.Args {
+					if strings.HasPrefix(arg, "--scheduler-host-address") {
+						output.DaprCMD.Args[i] = ""
+					}
+				}
 			}
 			print.InfoStatusEvent(os.Stdout, startInfo)
 

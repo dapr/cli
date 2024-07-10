@@ -236,7 +236,6 @@ func (config *RunConfig) Validate() error {
 	}
 
 	err = config.validateSchedulerHostAddr()
-
 	if err != nil {
 		return err
 	}
