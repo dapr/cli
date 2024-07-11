@@ -262,6 +262,11 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		return er
 	}
 
+	err = makeDefaultSchedulerDir(installDir)
+	if err != nil {
+		return err
+	}
+
 	var wg sync.WaitGroup
 	errorChan := make(chan error)
 	initSteps := []func(*sync.WaitGroup, chan<- error, initInfo){
@@ -880,6 +885,17 @@ func makeDefaultComponentsDir(installDir string) error {
 
 	os.Chmod(componentsDir, 0o755)
 	return nil
+}
+
+func makeDefaultSchedulerDir(installDir string) error {
+	dataDir := getSchedulerDataPath(installDir, 0)
+
+	err := os.MkdirAll(dataDir, 0o755)
+	if err != nil {
+		return fmt.Errorf("error creating default scheduler folder: %w", err)
+	}
+
+	return os.Chmod(dataDir, 0o777)
 }
 
 func makeExecutable(filepath string) error {
