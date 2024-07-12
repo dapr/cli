@@ -143,6 +143,7 @@ type initInfo struct {
 	imageRegistryURL string
 	containerRuntime string
 	imageVariant     string
+	schedulerVolume  *string
 }
 
 type daprImageInfo struct {
@@ -184,7 +185,7 @@ func isSchedulerIncluded(runtimeVersion string) (bool, error) {
 }
 
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
-func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool, imageRegistryURL string, fromDir string, containerRuntime string, imageVariant string, daprInstallPath string) error {
+func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool, imageRegistryURL string, fromDir string, containerRuntime string, imageVariant string, daprInstallPath string, schedulerVolume *string) error {
 	var err error
 	var bundleDet bundleDetails
 	containerRuntime = strings.TrimSpace(containerRuntime)
@@ -305,6 +306,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		imageRegistryURL: imageRegistryURL,
 		containerRuntime: containerRuntime,
 		imageVariant:     imageVariant,
+		schedulerVolume:  schedulerVolume,
 	}
 	for _, step := range initSteps {
 		// Run init on the configurations and containers.
@@ -633,15 +635,15 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		}
 	}
 
-	// instanceID is 0 because we run one instance only for now.
-	schedulerDataDir := getSchedulerDataPath(info.installDir, 0)
 	args := []string{
 		"run",
 		"--name", schedulerContainerName,
 		"--restart", "always",
 		"-d",
 		"--entrypoint", "./scheduler",
-		"--volume", fmt.Sprintf("%v:/data-default-dapr-scheduler-server-0", schedulerDataDir),
+	}
+	if info.schedulerVolume != nil {
+		args = append(args, "--volume", *info.schedulerVolume+":/data-default-dapr-scheduler-server-0")
 	}
 
 	if info.dockerNetwork != "" {
