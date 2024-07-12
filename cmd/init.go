@@ -45,6 +45,7 @@ var (
 	fromDir           string
 	containerRuntime  string
 	imageVariant      string
+	schedulerVolume   string
 )
 
 var InitCmd = &cobra.Command{
@@ -170,7 +171,11 @@ dapr init --runtime-path <path-to-install-directory>
 				print.FailureStatusEvent(os.Stdout, "Invalid container runtime. Supported values are docker and podman.")
 				os.Exit(1)
 			}
-			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode, imageRegistryURI, fromDir, containerRuntime, imageVariant, daprRuntimePath)
+			var schedVol *string
+			if cmd.Flags().Changed("scheduler-volume") {
+				schedVol = &schedulerVolume
+			}
+			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode, imageRegistryURI, fromDir, containerRuntime, imageVariant, daprRuntimePath, schedVol)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)
@@ -219,6 +224,7 @@ func init() {
 	InitCmd.Flags().String("network", "", "The Docker network on which to deploy the Dapr runtime")
 	InitCmd.Flags().StringVarP(&fromDir, "from-dir", "", "", "Use Dapr artifacts from local directory for self-hosted installation")
 	InitCmd.Flags().StringVarP(&imageVariant, "image-variant", "", "", "The image variant to use for the Dapr runtime, for example: mariner")
+	InitCmd.Flags().StringVarP(&schedulerVolume, "scheduler-volume", "", "", "Self-hosted only. Optionally specify a volume for the scheduler service data directory. By default, scheduler data is not persisted and not resilient to restarts without this flag.")
 	InitCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	InitCmd.Flags().StringArrayVar(&values, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
 	InitCmd.Flags().String("image-registry", "", "Custom/private docker image repository URL")
