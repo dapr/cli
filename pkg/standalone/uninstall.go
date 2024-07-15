@@ -63,6 +63,20 @@ func removeDockerContainer(containerErrs []error, containerName, network, runtim
 	return containerErrs
 }
 
+func removeSchedulerVolume(containerErrs []error, runtimeCmd string) []error {
+	print.InfoStatusEvent(os.Stdout, "Removing volume if it exists: dapr_scheduler")
+	_, err := utils.RunCmdAndWait(
+		runtimeCmd, "volume", "rm",
+		"--force",
+		"dapr_scheduler")
+	if err != nil {
+		containerErrs = append(
+			containerErrs,
+			fmt.Errorf("could not remove dapr_scheduler volume: %w", err))
+	}
+	return containerErrs
+}
+
 func removeDir(dirPath string) error {
 	_, err := os.Stat(dirPath)
 	if os.IsNotExist(err) {
@@ -117,6 +131,8 @@ func Uninstall(uninstallAll bool, dockerNetwork string, containerRuntime string,
 		if err != nil {
 			print.WarningStatusEvent(os.Stdout, "WARNING: could not delete dapr dir %s: %s", installDir, err)
 		}
+
+		removeSchedulerVolume(containerErrs, runtimeCmd)
 	}
 
 	err = errors.New("uninstall failed")
