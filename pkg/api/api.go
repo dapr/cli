@@ -22,6 +22,7 @@ var (
 type Metadata struct {
 	ID                string                      `json:"id"`
 	ActiveActorsCount []MetadataActiveActorsCount `json:"actors"`
+	Subscriptions     []Subscription              `json:"subscriptions"`
 	Extended          map[string]string           `json:"extended"`
 }
 
@@ -29,4 +30,15 @@ type Metadata struct {
 type MetadataActiveActorsCount struct {
 	Type  string `json:"type"`
 	Count int    `json:"count"`
+}
+
+type Subscription struct {
+	PubSubName      string `json:"pubsubname"`
+	Topic           string `json:"topic"`
+	Rules           []Rule `json:"rules"`
+	DeadLetterTopic string `json:"deadLetterTopic"`
+}
+
+type Rule struct {
+	Path string `json:"path"`
 }
