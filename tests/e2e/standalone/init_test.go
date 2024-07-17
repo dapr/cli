@@ -18,9 +18,11 @@ package standalone_test
 
 import (
 	"context"
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -157,6 +159,47 @@ func TestStandaloneInit(t *testing.T) {
 		verifyContainers(t, latestDaprRuntimeVersion)
 		verifyBinaries(t, daprPath, latestDaprRuntimeVersion, latestDaprDashboardVersion)
 		verifyConfigs(t, daprPath)
+
+		placementPort := 50005
+		if runtime.GOOS == "windows" {
+			placementPort = 6050
+		}
+
+		verifyTCPLocalhost(t, placementPort)
+	})
+
+	t.Run("init version with scheduler", func(t *testing.T) {
+		// Ensure a clean environment
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+
+		args := []string{
+			"--runtime-version", "1.14.0-rc.2",
+		}
+		output, err := cmdInit(args...)
+		t.Log(output)
+		require.NoError(t, err, "init failed")
+		assert.Contains(t, output, "Success! Dapr is up and running.")
+
+		homeDir, err := os.UserHomeDir()
+		require.NoError(t, err, "failed to get user home directory")
+
+		daprPath := filepath.Join(homeDir, ".dapr")
+		require.DirExists(t, daprPath, "Directory %s does not exist", daprPath)
+
+		latestDaprRuntimeVersion, latestDaprDashboardVersion := common.GetVersionsFromEnv(t, true)
+		verifyContainers(t, latestDaprRuntimeVersion)
+		verifyBinaries(t, daprPath, latestDaprRuntimeVersion, latestDaprDashboardVersion)
+		verifyConfigs(t, daprPath)
+
+		placementPort := 50005
+		schedulerPort := 50006
+		if runtime.GOOS == "windows" {
+			placementPort = 6050
+			schedulerPort = 6060
+		}
+
+		verifyTCPLocalhost(t, placementPort)
+		verifyTCPLocalhost(t, schedulerPort)
 	})
 
 	t.Run("init without runtime-version flag with mariner images", func(t *testing.T) {
@@ -199,6 +242,7 @@ func verifyContainers(t *testing.T, daprRuntimeVersion string) {
 		containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{})
 		require.NoError(t, err)
 
+		// TODO(artursouza): verify dapr_scheduler if daprRuntimeVersion supports it.
 		daprContainers := map[string]string{
 			"dapr_placement": daprRuntimeVersion,
 			"dapr_zipkin":    "",
@@ -352,4 +396,15 @@ func verifyConfigs(t *testing.T, daprPath string) {
 			assert.Equal(t, expected, actual)
 		})
 	}
+}
+
+// verifyTCPLocalhost verifies a given localhost TCP port is being listened to.
+func verifyTCPLocalhost(t *testing.T, port int) {
+	// Check that the server is up and can accept connections.
+	endpoint := "127.0.0.1:" + strconv.Itoa(port)
+	conn, err := net.Dial("tcp", endpoint)
+	if err != nil {
+		t.Error("could not connect to "+endpoint, err)
+	}
+	defer conn.Close()
 }
