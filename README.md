@@ -93,7 +93,7 @@ Output should look like so:
 ℹ️  dapr_redis container is running.
 ℹ️  dapr_zipkin container is running.
 ℹ️  Use `docker ps` to check running containers.
-✅  Success! Dapr is up and running. To get started, go here: https://aka.ms/dapr-getting-started
+✅  Success! Dapr is up and running. To get started, go here: https://docs.dapr.io/getting-started
 ```
 
 > Note: To see that Dapr has been installed successfully, from a command prompt run the `docker ps` command and check that the `daprio/dapr:latest`,  `dapr_redis` and `dapr_zipkin` container images are all running.
@@ -120,7 +120,7 @@ Output should look like so:
 ℹ️  daprd binary has been installed to $HOME/.dapr/bin.
 ℹ️  placement binary has been installed.
 ℹ️  scheduler binary has been installed.
-✅  Success! Dapr is up and running. To get started, go here: https://aka.ms/dapr-getting-started
+✅  Success! Dapr is up and running. To get started, go here: https://docs.dapr.io/getting-started
 ```
 
 >Note: When initializing Dapr with the `--slim` flag only the Dapr runtime, placement, and scheduler service binaries are installed. An empty default components folder is created with no default configuration files. During `dapr run` user should use `--resources-path` (`--components-path` is deprecated and will be removed in future releases) to point to a components directory with custom configurations files or alternatively place these files in the default directory. For Linux/MacOS, the default components directory path is `$HOME/.dapr/components` and for Windows it is `%USERPROFILE%\.dapr\components`.
@@ -289,7 +289,7 @@ Output should look like as follows:
 ℹ️  Note: To install Dapr using Helm, see here:  https://docs.dapr.io/getting-started/install-dapr/#install-with-helm-advanced
 
 ✅  Deploying the Dapr control plane to your cluster...
-✅  Success! Dapr has been installed to namespace dapr-system. To verify, run "dapr status -k" in your terminal. To get started, go here: https://aka.ms/dapr-getting-started
+✅  Success! Dapr has been installed to namespace dapr-system. To verify, run "dapr status -k" in your terminal. To get started, go here: https://docs.dapr.io/getting-started
 ```
 
 #### Supplying Helm values
