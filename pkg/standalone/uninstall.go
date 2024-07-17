@@ -132,7 +132,7 @@ func Uninstall(uninstallAll bool, dockerNetwork string, containerRuntime string,
 			print.WarningStatusEvent(os.Stdout, "WARNING: could not delete dapr dir %s: %s", installDir, err)
 		}
 
-		removeSchedulerVolume(containerErrs, runtimeCmd)
+		containerErrs = removeSchedulerVolume(containerErrs, runtimeCmd)
 	}
 
 	err = errors.New("uninstall failed")
