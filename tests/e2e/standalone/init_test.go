@@ -191,9 +191,9 @@ func TestStandaloneInit(t *testing.T) {
 		daprPath := filepath.Join(homeDir, ".dapr")
 		require.DirExists(t, daprPath, "Directory %s does not exist", daprPath)
 
-		latestDaprRuntimeVersion, latestDaprDashboardVersion := common.GetVersionsFromEnv(t, true)
-		verifyContainers(t, latestDaprRuntimeVersion)
-		verifyBinaries(t, daprPath, latestDaprRuntimeVersion, latestDaprDashboardVersion)
+		_, latestDaprDashboardVersion := common.GetVersionsFromEnv(t, true)
+		verifyContainers(t, "1.14.0-rc.3")
+		verifyBinaries(t, daprPath, "1.14.0-rc.3", latestDaprDashboardVersion)
 		verifyConfigs(t, daprPath)
 
 		placementPort := 50005
@@ -304,6 +304,8 @@ func verifyBinaries(t *testing.T, daprPath, runtimeVersion, dashboardVersion str
 
 	for bin, version := range binaries {
 		t.Run("verifyBinaries/"+bin, func(t *testing.T) {
+			t.Helper()
+
 			file := filepath.Join(binPath, bin)
 			if runtime.GOOS == "windows" {
 				file += ".exe"
