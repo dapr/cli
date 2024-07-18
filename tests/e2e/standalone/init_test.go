@@ -175,7 +175,7 @@ func TestStandaloneInit(t *testing.T) {
 		must(t, cmdUninstall, "failed to uninstall Dapr")
 
 		args := []string{
-			"--runtime-version", "1.14.0-rc.2",
+			"--runtime-version", "1.14.0-rc.3",
 		}
 		output, err := cmdInit(args...)
 		t.Log(output)
