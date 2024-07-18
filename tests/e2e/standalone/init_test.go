@@ -232,6 +232,8 @@ func TestStandaloneInit(t *testing.T) {
 // Note, in case of slim installation, the containers are not installed and
 // this test is automatically skipped.
 func verifyContainers(t *testing.T, daprRuntimeVersion string) {
+	t.Helper()
+
 	t.Run("verifyContainers", func(t *testing.T) {
 		if isSlimMode() {
 			t.Skip("Skipping container verification because of slim installation")
@@ -283,6 +285,8 @@ func verifyContainers(t *testing.T, daprRuntimeVersion string) {
 
 // verifyBinaries ensures that the correct binaries are present in the correct path.
 func verifyBinaries(t *testing.T, daprPath, runtimeVersion, dashboardVersion string) {
+	t.Helper()
+
 	binPath := filepath.Join(daprPath, "bin")
 	require.DirExists(t, binPath, "Directory %s does not exist", binPath)
 
@@ -315,6 +319,8 @@ func verifyBinaries(t *testing.T, daprPath, runtimeVersion, dashboardVersion str
 // verifyConfigs ensures that the Dapr configuration and component YAMLs
 // are present in the correct path and have the correct values.
 func verifyConfigs(t *testing.T, daprPath string) {
+	t.Helper()
+
 	configSpec := map[interface{}]interface{}{}
 	// tracing is not enabled in slim mode by default.
 	if !isSlimMode() {
@@ -406,6 +412,8 @@ func verifyConfigs(t *testing.T, daprPath string) {
 
 // verifyTCPLocalhost verifies a given localhost TCP port is being listened to.
 func verifyTCPLocalhost(t *testing.T, port int) {
+	t.Helper()
+
 	// Check that the server is up and can accept connections.
 	endpoint := "127.0.0.1:" + strconv.Itoa(port)
 	assert.EventuallyWithT(t, func(c *assert.CollectT) {
