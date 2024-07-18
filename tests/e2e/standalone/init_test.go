@@ -411,7 +411,7 @@ func verifyTCPLocalhost(t *testing.T, port int) {
 	assert.EventuallyWithT(t, func(c *assert.CollectT) {
 		conn, err := net.Dial("tcp", endpoint)
 		//nolint:testifylint
-		if assert.NoError(t, err) {
+		if assert.NoError(c, err) {
 			conn.Close()
 		}
 	}, time.Second*10, time.Millisecond*10)
