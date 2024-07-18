@@ -178,6 +178,7 @@ func TestStandaloneInit(t *testing.T) {
 
 		args := []string{
 			"--runtime-version", "1.14.0-rc.3",
+			"--dev",
 		}
 		output, err := cmdInit(args...)
 		t.Log(output)
