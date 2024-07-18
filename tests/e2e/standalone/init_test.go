@@ -26,6 +26,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Masterminds/semver"
 	"github.com/dapr/cli/tests/e2e/common"
 	"github.com/dapr/cli/tests/e2e/spawn"
 	"github.com/docker/docker/api/types"
@@ -232,8 +233,7 @@ func TestStandaloneInit(t *testing.T) {
 func verifyContainers(t *testing.T, daprRuntimeVersion string) {
 	t.Run("verifyContainers", func(t *testing.T) {
 		if isSlimMode() {
-			t.Log("Skipping container verification because of slim installation")
-			return
+			t.Skip("Skipping container verification because of slim installation")
 		}
 
 		cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv)
@@ -242,11 +242,16 @@ func verifyContainers(t *testing.T, daprRuntimeVersion string) {
 		containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{})
 		require.NoError(t, err)
 
-		// TODO(artursouza): verify dapr_scheduler if daprRuntimeVersion supports it.
 		daprContainers := map[string]string{
 			"dapr_placement": daprRuntimeVersion,
 			"dapr_zipkin":    "",
 			"dapr_redis":     "",
+		}
+
+		v, err := semver.NewVersion(daprRuntimeVersion)
+		require.NoError(t, err)
+		if v.Major() >= 1 && v.Minor() >= 14 {
+			daprContainers["dapr_scheduler"] = daprRuntimeVersion
 		}
 
 		for _, container := range containers {
@@ -403,8 +408,6 @@ func verifyTCPLocalhost(t *testing.T, port int) {
 	// Check that the server is up and can accept connections.
 	endpoint := "127.0.0.1:" + strconv.Itoa(port)
 	conn, err := net.Dial("tcp", endpoint)
-	if err != nil {
-		t.Error("could not connect to "+endpoint, err)
-	}
+	require.NoError(t, err)
 	defer conn.Close()
 }
