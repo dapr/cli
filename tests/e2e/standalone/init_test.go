@@ -435,6 +435,6 @@ func verifyTCPLocalhost(t *testing.T, name string, port int) {
 		require.NoError(t, err)
 		b, err := io.ReadAll(logs)
 		require.NoError(t, err)
-		fmt.Printf(">>%s\n", logs)
+		fmt.Printf(">>%s\n", b)
 	}
 }
