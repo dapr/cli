@@ -643,7 +643,7 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		"--entrypoint", "./scheduler",
 	}
 	if info.schedulerVolume != nil {
-		args = append(args, "--volume", *info.schedulerVolume+":/data-default-dapr-scheduler-server-0")
+		args = append(args, "--volume", *info.schedulerVolume+":/var/run/dapr/scheduler")
 	}
 
 	if info.dockerNetwork != "" {
@@ -664,7 +664,7 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		)
 	}
 
-	args = append(args, image)
+	args = append(args, image, "--etcd-data-dir=/var/run/dapr/scheduler")
 
 	_, err = utils.RunCmdAndWait(runtimeCmd, args...)
 	if err != nil {
