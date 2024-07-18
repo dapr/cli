@@ -419,6 +419,10 @@ func verifyConfigs(t *testing.T, daprPath string) {
 func verifyTCPLocalhost(t *testing.T, name string, port int) {
 	t.Helper()
 
+	if isSlimMode() {
+		t.Skip("Skipping container verification because of slim installation")
+	}
+
 	// Check that the server is up and can accept connections.
 	endpoint := "127.0.0.1:" + strconv.Itoa(port)
 	if !assert.EventuallyWithT(t, func(c *assert.CollectT) {
