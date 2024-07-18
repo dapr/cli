@@ -18,6 +18,8 @@ package standalone_test
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"net"
 	"os"
 	"path/filepath"
@@ -415,12 +417,24 @@ func verifyTCPLocalhost(t *testing.T, name string, port int) {
 	t.Helper()
 
 	// Check that the server is up and can accept connections.
-	endpoint := name + ":" + strconv.Itoa(port)
-	assert.EventuallyWithT(t, func(c *assert.CollectT) {
+	endpoint := "127.0.0.1:" + strconv.Itoa(port)
+	if !assert.EventuallyWithT(t, func(c *assert.CollectT) {
 		conn, err := net.Dial("tcp", endpoint)
 		//nolint:testifylint
 		if assert.NoError(c, err) {
 			conn.Close()
 		}
-	}, time.Second*10, time.Millisecond*10)
+	}, time.Second*10, time.Millisecond*10) {
+		cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv)
+		require.NoError(t, err)
+
+		logs, err := cli.ContainerLogs(ctx, types.ContainerLogsOptions{
+			ShowStdout: true,
+			ShowStderr: true,
+		})
+		require.NoError(t, err)
+		b, err := io.ReadAll(logs)
+		require.NoError(t, err)
+		fmt.Printf(">>%s\n", logs)
+	}
 }
