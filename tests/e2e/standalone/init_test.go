@@ -18,8 +18,6 @@ package standalone_test
 
 import (
 	"context"
-	"fmt"
-	"io"
 	"net"
 	"os"
 	"path/filepath"
@@ -169,7 +167,7 @@ func TestStandaloneInit(t *testing.T) {
 			placementPort = 6050
 		}
 
-		verifyTCPLocalhost(t, "dapr_placement", placementPort)
+		verifyTCPLocalhost(t,  placementPort)
 	})
 
 	t.Run("init version with scheduler", func(t *testing.T) {
@@ -203,8 +201,8 @@ func TestStandaloneInit(t *testing.T) {
 			schedulerPort = 6060
 		}
 
-		verifyTCPLocalhost(t, "dapr_placement", placementPort)
-		verifyTCPLocalhost(t, "dapr_scheduler", schedulerPort)
+		verifyTCPLocalhost(t,  placementPort)
+		verifyTCPLocalhost(t,  schedulerPort)
 	})
 
 	t.Run("init without runtime-version flag with mariner images", func(t *testing.T) {
@@ -416,7 +414,7 @@ func verifyConfigs(t *testing.T, daprPath string) {
 }
 
 // verifyTCPLocalhost verifies a given localhost TCP port is being listened to.
-func verifyTCPLocalhost(t *testing.T, name string, port int) {
+func verifyTCPLocalhost(t *testing.T, port int) {
 	t.Helper()
 
 	if isSlimMode() {
@@ -425,23 +423,11 @@ func verifyTCPLocalhost(t *testing.T, name string, port int) {
 
 	// Check that the server is up and can accept connections.
 	endpoint := "127.0.0.1:" + strconv.Itoa(port)
-	if !assert.EventuallyWithT(t, func(c *assert.CollectT) {
+	assert.EventuallyWithT(t, func(c *assert.CollectT) {
 		conn, err := net.Dial("tcp", endpoint)
 		//nolint:testifylint
 		if assert.NoError(c, err) {
 			conn.Close()
 		}
-	}, time.Second*10, time.Millisecond*10) {
-		cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv)
-		require.NoError(t, err)
-
-		logs, err := cli.ContainerLogs(context.Background(), name, types.ContainerLogsOptions{
-			ShowStdout: true,
-			ShowStderr: true,
-		})
-		require.NoError(t, err)
-		b, err := io.ReadAll(logs)
-		require.NoError(t, err)
-		fmt.Printf(">>%s\n", b)
-	}
+	}, time.Second*10, time.Millisecond*10)
 }
