@@ -428,7 +428,7 @@ func verifyTCPLocalhost(t *testing.T, name string, port int) {
 		cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv)
 		require.NoError(t, err)
 
-		logs, err := cli.ContainerLogs(ctx, types.ContainerLogsOptions{
+		logs, err := cli.ContainerLogs(context.Background(), name, types.ContainerLogsOptions{
 			ShowStdout: true,
 			ShowStderr: true,
 		})
