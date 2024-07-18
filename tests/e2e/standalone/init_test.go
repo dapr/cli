@@ -25,6 +25,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Masterminds/semver"
 	"github.com/dapr/cli/tests/e2e/common"
@@ -407,7 +408,11 @@ func verifyConfigs(t *testing.T, daprPath string) {
 func verifyTCPLocalhost(t *testing.T, port int) {
 	// Check that the server is up and can accept connections.
 	endpoint := "127.0.0.1:" + strconv.Itoa(port)
-	conn, err := net.Dial("tcp", endpoint)
-	require.NoError(t, err)
-	defer conn.Close()
+	assert.EventuallyWithT(t, func(c *assert.CollectT) {
+		conn, err := net.Dial("tcp", endpoint)
+		//nolint:testifylint
+		if assert.NoError(t, err) {
+			conn.Close()
+		}
+	}, time.Second*10, time.Millisecond*10)
 }
