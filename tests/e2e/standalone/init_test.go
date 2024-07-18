@@ -167,7 +167,7 @@ func TestStandaloneInit(t *testing.T) {
 			placementPort = 6050
 		}
 
-		verifyTCPLocalhost(t, placementPort)
+		verifyTCPLocalhost(t, "dapr_placement", placementPort)
 	})
 
 	t.Run("init version with scheduler", func(t *testing.T) {
@@ -200,8 +200,8 @@ func TestStandaloneInit(t *testing.T) {
 			schedulerPort = 6060
 		}
 
-		verifyTCPLocalhost(t, placementPort)
-		verifyTCPLocalhost(t, schedulerPort)
+		verifyTCPLocalhost(t, "dapr_placement", placementPort)
+		verifyTCPLocalhost(t, "dapr_scheduler", schedulerPort)
 	})
 
 	t.Run("init without runtime-version flag with mariner images", func(t *testing.T) {
@@ -411,11 +411,11 @@ func verifyConfigs(t *testing.T, daprPath string) {
 }
 
 // verifyTCPLocalhost verifies a given localhost TCP port is being listened to.
-func verifyTCPLocalhost(t *testing.T, port int) {
+func verifyTCPLocalhost(t *testing.T, name string, port int) {
 	t.Helper()
 
 	// Check that the server is up and can accept connections.
-	endpoint := "127.0.0.1:" + strconv.Itoa(port)
+	endpoint := name + ":" + strconv.Itoa(port)
 	assert.EventuallyWithT(t, func(c *assert.CollectT) {
 		conn, err := net.Dial("tcp", endpoint)
 		//nolint:testifylint
