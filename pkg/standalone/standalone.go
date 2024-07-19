@@ -643,7 +643,7 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		"--entrypoint", "./scheduler",
 	}
 	if info.schedulerVolume != nil {
-		args = append(args, "--volume", *info.schedulerVolume+":/var/lib/dapr/scheduler")
+		args = append(args, "--volume", *info.schedulerVolume+":/var/lib/dapr/scheduler:z")
 	}
 
 	if info.dockerNetwork != "" {
