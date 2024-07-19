@@ -651,7 +651,7 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		// We are lucky in that the Dapr containers have a world writeable directory at
 		// /var/lock and can therefore mount the Docker volume here.
 		// TODO: update the Dapr scheduler dockerfile to create a scheduler user id writeable
-		// directory at /var/lib/dapr/scheduler, then update the path here
+		// directory at /var/lib/dapr/scheduler, then update the path here.
 		args = append(args, "--volume", *info.schedulerVolume+":/var/lock")
 	}
 
