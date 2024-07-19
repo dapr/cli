@@ -646,7 +646,12 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 	if info.schedulerVolume != nil {
 		if *info.schedulerVolume == "" {
 			schedulerDataDir := path_filepath.Join(info.installDir, "data/scheduler")
-			if err = os.MkdirAll(schedulerDataDir, 0o777); err != nil {
+			if err = os.MkdirAll(schedulerDataDir, 0o755); err != nil {
+				errorChan <- err
+				return
+			}
+			// if dir exists, change the permissions
+			if err = os.Chmod(schedulerDataDir, 0o777); err != nil {
 				errorChan <- err
 				return
 			}
