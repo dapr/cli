@@ -642,8 +642,18 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		"-d",
 		"--entrypoint", "./scheduler",
 	}
+
 	if info.schedulerVolume != nil {
-		args = append(args, "--volume", *info.schedulerVolume+":/var/lib/dapr/scheduler")
+		if *info.schedulerVolume == "" {
+			schedulerDataDir := path_filepath.Join(info.installDir, "data/scheduler")
+			if err = os.MkdirAll(schedulerDataDir, 0o777); err != nil {
+				errorChan <- err
+				return
+			}
+			args = append(args, "--volume", schedulerDataDir+":/var/lib/dapr/scheduler")
+		} else {
+			args = append(args, "--volume", *info.schedulerVolume+":/var/lib/dapr/scheduler")
+		}
 	}
 
 	if info.dockerNetwork != "" {

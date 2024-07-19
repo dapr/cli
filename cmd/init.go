@@ -220,7 +220,7 @@ func init() {
 	InitCmd.Flags().String("network", "", "The Docker network on which to deploy the Dapr runtime")
 	InitCmd.Flags().StringVarP(&fromDir, "from-dir", "", "", "Use Dapr artifacts from local directory for self-hosted installation")
 	InitCmd.Flags().StringVarP(&imageVariant, "image-variant", "", "", "The image variant to use for the Dapr runtime, for example: mariner")
-	InitCmd.Flags().StringVarP(&schedulerVolume, "scheduler-volume", "", "dapr_scheduler", "Self-hosted only. Specify a volume for the scheduler service data directory.")
+	InitCmd.Flags().StringVarP(&schedulerVolume, "scheduler-volume", "", "", "Self-hosted only. Specify a volume for the scheduler service data directory.")
 	InitCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	InitCmd.Flags().StringArrayVar(&values, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
 	InitCmd.Flags().String("image-registry", "", "Custom/private docker image repository URL")
