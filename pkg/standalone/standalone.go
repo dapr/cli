@@ -650,7 +650,7 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 				errorChan <- err
 				return
 			}
-			// if dir exists, change the permissions
+			// if dir exists, change the permissions.
 			if err = os.Chmod(schedulerDataDir, 0o777); err != nil {
 				errorChan <- err
 				return
