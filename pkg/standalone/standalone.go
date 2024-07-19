@@ -643,7 +643,16 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		"--entrypoint", "./scheduler",
 	}
 	if info.schedulerVolume != nil {
-		args = append(args, "--volume", *info.schedulerVolume+":/var/lib/dapr/scheduler")
+		// Don't touch this file location unless things start breaking.
+		// In Docker, when Docker creates a volume and mounts that volume. Docker
+		// assumes the file permissions of that directory if it exists in the container.
+		// If that directory didn't exist in the container previously, then Docker sets
+		// the permissions owned by root and not writeable.
+		// We are lucky in that the Dapr containers have a world writeable directory at
+		// /var/lock and can therefore mount the Docker volume here.
+		// TODO: update the Dapr scheduler dockerfile to create a scheduler user id writeable
+		// directory at /var/lib/dapr/scheduler, then update the path here.
+		args = append(args, "--volume", *info.schedulerVolume+":/var/lock")
 	}
 
 	if info.dockerNetwork != "" {
@@ -664,7 +673,7 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		)
 	}
 
-	args = append(args, image, "--etcd-data-dir=/var/lib/dapr/scheduler")
+	args = append(args, image, "--etcd-data-dir=/var/lock/dapr/scheduler")
 
 	_, err = utils.RunCmdAndWait(runtimeCmd, args...)
 	if err != nil {
