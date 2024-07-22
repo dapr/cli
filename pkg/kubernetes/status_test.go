@@ -233,6 +233,9 @@ func TestControlPlaneServices(t *testing.T) {
 		{"dapr-sidecar-injector-74648c9dcb-5bsmn", "dapr-sidecar-injector", daprImageTag},
 		{"dapr-sidecar-injector-74648c9dcb-6bsmn", "dapr-sidecar-injector", daprImageTag},
 		{"dapr-sidecar-injector-74648c9dcb-7bsmn", "dapr-sidecar-injector", daprImageTag},
+		{"dapr-scheduler-server-0", "dapr-scheduler-server", daprImageTag},
+		{"dapr-scheduler-server-1", "dapr-scheduler-server", daprImageTag},
+		{"dapr-scheduler-server-2", "dapr-scheduler-server", daprImageTag},
 	}
 
 	expectedReplicas := map[string]int{}
