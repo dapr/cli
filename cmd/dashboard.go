@@ -18,6 +18,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"strconv"
 
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
@@ -180,7 +181,7 @@ dapr dashboard -k -p 0
 			}()
 
 			// url for dashboard after port forwarding.
-			webURL := fmt.Sprintf("http://%s", net.JoinHostPort(dashboardHost, fmt.Sprint(portForward.LocalPort))) //nolint: perfsprint
+			webURL := fmt.Sprintf("http://%s", net.JoinHostPort(dashboardHost, strconv.Itoa(portForward.LocalPort)))
 
 			print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Dapr dashboard found in namespace:\t%s", foundNamespace))
 			print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Dapr dashboard available at:\t%s\n", webURL))
