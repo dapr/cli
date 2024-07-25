@@ -48,7 +48,7 @@ const (
 	redisChartName           = "redis"
 	zipkinReleaseName        = "dapr-dev-zipkin"
 	redisReleaseName         = "dapr-dev-redis"
-	redisVersion             = "6.2"
+	redisVersion             = "6.2.11"
 	bitnamiHelmRepo          = "https://charts.bitnami.com/bitnami"
 	daprHelmRepo             = "https://dapr.github.io/helm-charts"
 	zipkinHelmRepo           = "https://openzipkin.github.io/zipkin"
