@@ -201,7 +201,7 @@ test-e2e-sh: test-deps
 # Build, E2E Tests for Self-Hosted											   #
 ################################################################################
 .PHONY: e2e-build-run-sh
-e2e-build-run-sh: build test-e2e-sh
+e2e-build-run-sh: test-deps build
 
 ################################################################################
 # Target: modtidy                                                               #
