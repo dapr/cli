@@ -175,7 +175,7 @@ func TestStandaloneInit(t *testing.T) {
 		must(t, cmdUninstall, "failed to uninstall Dapr")
 
 		args := []string{
-			"--runtime-version", "1.14.0-rc.3",
+			"--runtime-version", "1.14.1",
 			"--dev",
 		}
 		output, err := cmdInit(args...)
@@ -190,8 +190,8 @@ func TestStandaloneInit(t *testing.T) {
 		require.DirExists(t, daprPath, "Directory %s does not exist", daprPath)
 
 		_, latestDaprDashboardVersion := common.GetVersionsFromEnv(t, true)
-		verifyContainers(t, "1.14.0-rc.3")
-		verifyBinaries(t, daprPath, "1.14.0-rc.3", latestDaprDashboardVersion)
+		verifyContainers(t, "1.14.1"),
+		verifyBinaries(t, daprPath, "1.14.1", latestDaprDashboardVersion)
 		verifyConfigs(t, daprPath)
 
 		placementPort := 50005
