@@ -14,7 +14,6 @@ limitations under the License.
 package standalone
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"os"
@@ -23,8 +22,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-
-	dockerClient "github.com/docker/docker/client"
 
 	"github.com/Pallinder/sillyname-go"
 	"github.com/phayes/freeport"
@@ -141,27 +138,21 @@ func (config *RunConfig) validatePlacementHostAddr() error {
 }
 
 func (config *RunConfig) validateSchedulerHostAddr() error {
-	// If the scheduler isn't running - don't add the flag to the runtime cmd.
-	docker, err := dockerClient.NewClientWithOpts()
-	if err != nil {
-		return err
-	}
-	_, err = docker.ContainerInspect(context.Background(), "dapr_scheduler")
-	if err == nil {
-		schedulerHostAddr := config.SchedulerHostAddress
-		if len(schedulerHostAddr) == 0 {
-			schedulerHostAddr = "localhost"
-		}
-		if indx := strings.Index(schedulerHostAddr, ":"); indx == -1 {
-			if runtime.GOOS == daprWindowsOS {
-				schedulerHostAddr = fmt.Sprintf("%s:6060", schedulerHostAddr)
-			} else {
-				schedulerHostAddr = fmt.Sprintf("%s:50006", schedulerHostAddr)
-			}
-		}
-		config.SchedulerHostAddress = schedulerHostAddr
+	schedulerHostAddr := config.SchedulerHostAddress
+	if len(schedulerHostAddr) == 0 {
 		return nil
 	}
+
+	if indx := strings.Index(schedulerHostAddr, ":"); indx == -1 {
+		if runtime.GOOS == daprWindowsOS {
+			schedulerHostAddr = fmt.Sprintf("%s:6060", schedulerHostAddr)
+		} else {
+			schedulerHostAddr = fmt.Sprintf("%s:50006", schedulerHostAddr)
+		}
+	}
+
+	config.SchedulerHostAddress = schedulerHostAddr
+
 	return nil
 }
 
