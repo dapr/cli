@@ -167,7 +167,7 @@ func TestStandaloneInit(t *testing.T) {
 			placementPort = 6050
 		}
 
-		verifyTCPLocalhost(t,  placementPort)
+		verifyTCPLocalhost(t, placementPort)
 	})
 
 	t.Run("init version with scheduler", func(t *testing.T) {
@@ -190,7 +190,7 @@ func TestStandaloneInit(t *testing.T) {
 		require.DirExists(t, daprPath, "Directory %s does not exist", daprPath)
 
 		_, latestDaprDashboardVersion := common.GetVersionsFromEnv(t, true)
-		verifyContainers(t, "1.14.1"),
+		verifyContainers(t, "1.14.1")
 		verifyBinaries(t, daprPath, "1.14.1", latestDaprDashboardVersion)
 		verifyConfigs(t, daprPath)
 
@@ -201,8 +201,8 @@ func TestStandaloneInit(t *testing.T) {
 			schedulerPort = 6060
 		}
 
-		verifyTCPLocalhost(t,  placementPort)
-		verifyTCPLocalhost(t,  schedulerPort)
+		verifyTCPLocalhost(t, placementPort)
+		verifyTCPLocalhost(t, schedulerPort)
 	})
 
 	t.Run("init without runtime-version flag with mariner images", func(t *testing.T) {
