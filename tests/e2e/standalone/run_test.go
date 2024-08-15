@@ -54,7 +54,7 @@ func TestStandaloneRun(t *testing.T) {
 			output, err := cmdRun(path, "--dapr-internal-grpc-port", "9999", "--", "bash", "-c", "echo test")
 			t.Log(output)
 			require.NoError(t, err, "run failed")
-			assert.Contains(t, output, "Internal gRPC server is running on port 9999")
+			assert.Contains(t, output, "Internal gRPC server is running on port :9999")
 			assert.Contains(t, output, "Exited App successfully")
 			assert.Contains(t, output, "Exited Dapr successfully")
 			assert.NotContains(t, output, "Could not update sidecar metadata for cliPID")
