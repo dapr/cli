@@ -18,6 +18,9 @@ package standalone_test
 
 import (
 	"bufio"
+	"context"
+	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -25,6 +28,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/docker/docker/api/types"
+	dockerClient "github.com/docker/docker/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -137,6 +142,15 @@ func ensureDaprInstallation(t *testing.T) {
 			"--dashboard-version", daprDashboardVersion,
 		}
 		output, err := cmdInit(args...)
+		if err != nil {
+			cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv)
+			require.NoError(t, err)
+			reader, err := cli.ContainerLogs(context.Background(), "dapr_scheduler", types.ContainerLogsOptions{ShowStdout: true, ShowStderr: true})
+			require.NoError(t, err)
+			b, err := io.ReadAll(reader)
+			require.NoError(t, err)
+			fmt.Printf(">>%s\n", b)
+		}
 		require.NoError(t, err, "failed to install dapr:%v", output)
 	} else if err != nil {
 		// Some other error occurred.
