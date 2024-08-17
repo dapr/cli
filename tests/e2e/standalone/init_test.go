@@ -18,6 +18,7 @@ package standalone_test
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"os"
 	"path/filepath"
@@ -213,6 +214,17 @@ func TestStandaloneInit(t *testing.T) {
 		}
 		output, err := cmdInit(args...)
 		t.Log(output)
+
+		cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv)
+		require.NoError(t, err)
+
+		b, err := cli.ContainerLogs(context.Background(), "dapr_scheduler", types.ContainerLogsOptions{
+			ShowStdout: true,
+			ShowStderr: true,
+		})
+		require.NoError(t, err)
+		fmt.Printf(">>%s\n", b)
+
 		require.NoError(t, err, "init failed")
 		assert.Contains(t, output, "Success! Dapr is up and running.")
 
