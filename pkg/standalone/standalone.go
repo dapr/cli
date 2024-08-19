@@ -643,7 +643,7 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		"--entrypoint", "./scheduler",
 	}
 	schedVolPath := filepath.Join("/var", "lock")
-	if info.imageVariant == "mariner" && runtime.GOOS == daprWindowsOS {
+	if info.imageVariant == "mariner" {
 		schedVolPath = filepath.Join("/run", "lock")
 	}
 	if info.schedulerVolume != nil {
