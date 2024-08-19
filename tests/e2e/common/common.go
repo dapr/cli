@@ -271,10 +271,7 @@ func MTLSTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 
 		// export
 		// check that the dir does not exist now.
-		_, err = os.Stat("./certs")
-		if assert.Error(t, err) {
-			assert.True(t, os.IsNotExist(err), err.Error())
-		}
+		assert.NoDirExists(t, "./certs")
 
 		output, err = spawn.Command(daprPath, "mtls", "export", "-o", "./certs")
 		require.NoError(t, err, "expected no error on mtls export")

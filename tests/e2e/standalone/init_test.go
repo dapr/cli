@@ -18,6 +18,8 @@ package standalone_test
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"net"
 	"os"
 	"path/filepath"
@@ -167,7 +169,7 @@ func TestStandaloneInit(t *testing.T) {
 			placementPort = 6050
 		}
 
-		verifyTCPLocalhost(t,  placementPort)
+		verifyTCPLocalhost(t, placementPort)
 	})
 
 	t.Run("init version with scheduler", func(t *testing.T) {
@@ -175,7 +177,7 @@ func TestStandaloneInit(t *testing.T) {
 		must(t, cmdUninstall, "failed to uninstall Dapr")
 
 		args := []string{
-			"--runtime-version", "1.14.0-rc.3",
+			"--runtime-version", "1.14.1",
 			"--dev",
 		}
 		output, err := cmdInit(args...)
@@ -190,8 +192,8 @@ func TestStandaloneInit(t *testing.T) {
 		require.DirExists(t, daprPath, "Directory %s does not exist", daprPath)
 
 		_, latestDaprDashboardVersion := common.GetVersionsFromEnv(t, true)
-		verifyContainers(t, "1.14.0-rc.3")
-		verifyBinaries(t, daprPath, "1.14.0-rc.3", latestDaprDashboardVersion)
+		verifyContainers(t, "1.14.1")
+		verifyBinaries(t, daprPath, "1.14.1", latestDaprDashboardVersion)
 		verifyConfigs(t, daprPath)
 
 		placementPort := 50005
@@ -201,8 +203,8 @@ func TestStandaloneInit(t *testing.T) {
 			schedulerPort = 6060
 		}
 
-		verifyTCPLocalhost(t,  placementPort)
-		verifyTCPLocalhost(t,  schedulerPort)
+		verifyTCPLocalhost(t, placementPort)
+		verifyTCPLocalhost(t, schedulerPort)
 	})
 
 	t.Run("init without runtime-version flag with mariner images", func(t *testing.T) {
@@ -213,6 +215,19 @@ func TestStandaloneInit(t *testing.T) {
 		}
 		output, err := cmdInit(args...)
 		t.Log(output)
+
+		cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv)
+		require.NoError(t, err)
+
+		b, err := cli.ContainerLogs(context.Background(), "dapr_scheduler", types.ContainerLogsOptions{
+			ShowStdout: true,
+			ShowStderr: true,
+		})
+		require.NoError(t, err)
+		logs, err := io.ReadAll(b)
+		require.NoError(t, err)
+		fmt.Printf(">>%s\n", logs)
+
 		require.NoError(t, err, "init failed")
 		assert.Contains(t, output, "Success! Dapr is up and running.")
 
@@ -252,7 +267,7 @@ func verifyContainers(t *testing.T, daprRuntimeVersion string) {
 			"dapr_redis":     "",
 		}
 
-		v, err := semver.NewVersion(daprRuntimeVersion)
+		v, err := semver.NewVersion(strings.TrimSuffix(daprRuntimeVersion, "-mariner"))
 		require.NoError(t, err)
 		if v.Major() >= 1 && v.Minor() >= 14 {
 			daprContainers["dapr_scheduler"] = daprRuntimeVersion
@@ -272,6 +287,7 @@ func verifyContainers(t *testing.T, daprRuntimeVersion string) {
 					}
 					version := container.Image[versionIndex+1:]
 					if version != expectedVersion {
+						fmt.Printf(">>%s >>%s >>%s\n", name, version, expectedVersion)
 						continue
 					}
 				}
