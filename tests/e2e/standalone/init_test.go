@@ -267,7 +267,7 @@ func verifyContainers(t *testing.T, daprRuntimeVersion string) {
 			"dapr_redis":     "",
 		}
 
-		v, err := semver.NewVersion(daprRuntimeVersion)
+		v, err := semver.NewVersion(strings.TrimSuffix(daprRuntimeVersion, "-mariner"))
 		require.NoError(t, err)
 		if v.Major() >= 1 && v.Minor() >= 14 {
 			daprContainers["dapr_scheduler"] = daprRuntimeVersion
