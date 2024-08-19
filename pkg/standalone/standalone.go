@@ -26,7 +26,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	path_filepath "path/filepath"
 	"runtime"
 	"strings"
 	"sync"
@@ -704,14 +703,14 @@ func moveDashboardFiles(extractedFilePath string, dir string) (string, error) {
 	}
 
 	// Move binary from /release/<os>/web/dashboard(.exe) to /dashboard(.exe).
-	err = os.Rename(extractedFilePath, filepath.Join(dir, path_filepath.Base(extractedFilePath)))
+	err = os.Rename(extractedFilePath, filepath.Join(dir, filepath.Base(extractedFilePath)))
 	if err != nil {
 		err = fmt.Errorf("error moving %s binary to path: %w", filepath.Base(extractedFilePath), err)
 		return "", err
 	}
 
 	// Change the extracted binary file path to reflect the move above.
-	extractedFilePath = filepath.Join(dir, path_filepath.Base(extractedFilePath))
+	extractedFilePath = filepath.Join(dir, filepath.Base(extractedFilePath))
 
 	// Remove the now-empty 'release' directory.
 	err = os.RemoveAll(filepath.Join(dir, "release"))
