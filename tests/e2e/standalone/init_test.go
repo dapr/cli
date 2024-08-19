@@ -19,6 +19,7 @@ package standalone_test
 import (
 	"context"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"path/filepath"
@@ -223,7 +224,9 @@ func TestStandaloneInit(t *testing.T) {
 			ShowStderr: true,
 		})
 		require.NoError(t, err)
-		fmt.Printf(">>%s\n", b)
+		logs, err := io.ReadAll(b)
+		require.NoError(t, err)
+		fmt.Printf(">>%s\n", logs)
 
 		require.NoError(t, err, "init failed")
 		assert.Contains(t, output, "Success! Dapr is up and running.")
