@@ -287,6 +287,7 @@ func verifyContainers(t *testing.T, daprRuntimeVersion string) {
 					}
 					version := container.Image[versionIndex+1:]
 					if version != expectedVersion {
+						fmt.Printf(">>%s >>%s >>%s\n", name, version, expectedVersion)
 						continue
 					}
 				}
