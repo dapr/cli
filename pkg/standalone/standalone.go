@@ -230,7 +230,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 	// If --from-dir flag is given try parsing the details from the expected details file in the specified directory.
 	if isAirGapInit {
 		bundleDet = bundleDetails{}
-		detailsFilePath := path_filepath.Join(fromDir, bundleDetailsFileName)
+		detailsFilePath := filepath.Join(fromDir, bundleDetailsFileName)
 		err = bundleDet.readAndParseDetails(detailsFilePath)
 		if err != nil {
 			return fmt.Errorf("error parsing details file from bundle location: %w", err)
@@ -525,7 +525,7 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 
 	if isAirGapInit {
 		// if --from-dir flag is given load the image details from the installer-bundle.
-		dir := path_filepath.Join(info.fromDir, *info.bundleDet.ImageSubDir)
+		dir := filepath.Join(info.fromDir, *info.bundleDet.ImageSubDir)
 		image = info.bundleDet.getDaprImageName()
 		err = loadContainer(dir, info.bundleDet.getDaprImageFileName(), info.containerRuntime)
 		if err != nil {
@@ -620,7 +620,7 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 
 	if isAirGapInit {
 		// if --from-dir flag is given load the image details from the installer-bundle.
-		dir := path_filepath.Join(info.fromDir, *info.bundleDet.ImageSubDir)
+		dir := filepath.Join(info.fromDir, *info.bundleDet.ImageSubDir)
 		image = info.bundleDet.getDaprImageName()
 		err = loadContainer(dir, info.bundleDet.getDaprImageFileName(), info.containerRuntime)
 		if err != nil {
@@ -695,8 +695,8 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 
 func moveDashboardFiles(extractedFilePath string, dir string) (string, error) {
 	// Move /release/os/web directory to /web.
-	oldPath := path_filepath.Join(path_filepath.Dir(extractedFilePath), "web")
-	newPath := path_filepath.Join(dir, "web")
+	oldPath := filepath.Join(filepath.Dir(extractedFilePath), "web")
+	newPath := filepath.Join(dir, "web")
 	err := os.Rename(oldPath, newPath)
 	if err != nil {
 		err = fmt.Errorf("failed to move dashboard files: %w", err)
@@ -704,17 +704,17 @@ func moveDashboardFiles(extractedFilePath string, dir string) (string, error) {
 	}
 
 	// Move binary from /release/<os>/web/dashboard(.exe) to /dashboard(.exe).
-	err = os.Rename(extractedFilePath, path_filepath.Join(dir, path_filepath.Base(extractedFilePath)))
+	err = os.Rename(extractedFilePath, filepath.Join(dir, path_filepath.Base(extractedFilePath)))
 	if err != nil {
-		err = fmt.Errorf("error moving %s binary to path: %w", path_filepath.Base(extractedFilePath), err)
+		err = fmt.Errorf("error moving %s binary to path: %w", filepath.Base(extractedFilePath), err)
 		return "", err
 	}
 
 	// Change the extracted binary file path to reflect the move above.
-	extractedFilePath = path_filepath.Join(dir, path_filepath.Base(extractedFilePath))
+	extractedFilePath = filepath.Join(dir, path_filepath.Base(extractedFilePath))
 
 	// Remove the now-empty 'release' directory.
-	err = os.RemoveAll(path_filepath.Join(dir, "release"))
+	err = os.RemoveAll(filepath.Join(dir, "release"))
 	if err != nil {
 		err = fmt.Errorf("error moving dashboard files: %w", err)
 		return "", err
@@ -782,28 +782,28 @@ func installScheduler(wg *sync.WaitGroup, errorChan chan<- error, info initInfo)
 // installBinary installs the daprd, placement, scheduler, or dashboard binaries and associated files inside the default dapr bin directory.
 func installBinary(version, binaryFilePrefix, githubRepo string, info initInfo) error {
 	var (
-		err      error
-		filepath string
+		err  error
+		path string
 	)
 
 	dir := getDaprBinPath(info.installDir)
 	if isAirGapInit {
-		filepath = path_filepath.Join(info.fromDir, *info.bundleDet.BinarySubDir, binaryName(binaryFilePrefix))
+		path = filepath.Join(info.fromDir, *info.bundleDet.BinarySubDir, binaryName(binaryFilePrefix))
 	} else {
-		filepath, err = downloadBinary(dir, version, binaryFilePrefix, githubRepo)
+		path, err = downloadBinary(dir, version, binaryFilePrefix, githubRepo)
 		if err != nil {
 			return fmt.Errorf("error downloading %s binary: %w", binaryFilePrefix, err)
 		}
 	}
 
-	extractedFilePath, err := extractFile(filepath, dir, binaryFilePrefix)
+	extractedFilePath, err := extractFile(path, dir, binaryFilePrefix)
 	if err != nil {
 		return err
 	}
 
 	// remove downloaded archive from the default dapr bin path.
 	if !isAirGapInit {
-		err = os.Remove(filepath)
+		err = os.Remove(path)
 		if err != nil {
 			return fmt.Errorf("failed to remove archive: %w", err)
 		}
@@ -911,8 +911,8 @@ func makeExecutable(filepath string) error {
 
 // https://github.com/snyk/zip-slip-vulnerability, fixes gosec G305
 func sanitizeExtractPath(destination string, filePath string) (string, error) {
-	destpath := path_filepath.Join(destination, filePath)
-	if !strings.HasPrefix(destpath, path_filepath.Clean(destination)+string(os.PathSeparator)) {
+	destpath := filepath.Join(destination, filePath)
+	if !strings.HasPrefix(destpath, filepath.Clean(destination)+string(os.PathSeparator)) {
 		return "", fmt.Errorf("%s: illegal file path", filePath)
 	}
 	return destpath, nil
@@ -961,7 +961,7 @@ func unzip(r *zip.Reader, targetDir string, binaryFilePrefix string) (string, er
 			continue
 		}
 
-		if err = os.MkdirAll(path_filepath.Dir(fpath), os.ModePerm); err != nil {
+		if err = os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != nil {
 			return "", err
 		}
 
@@ -1052,14 +1052,14 @@ func untar(reader io.Reader, targetDir string, binaryFilePrefix string) (string,
 	return foundBinary, nil
 }
 
-func moveFileToPath(filepath string, installLocation string) (string, error) {
-	fileName := path_filepath.Base(filepath)
+func moveFileToPath(path string, installLocation string) (string, error) {
+	fileName := filepath.Base(path)
 	destFilePath := ""
 
 	destDir := installLocation
-	destFilePath = path.Join(destDir, fileName)
+	destFilePath = filepath.Join(destDir, fileName)
 
-	input, err := os.ReadFile(filepath)
+	input, err := os.ReadFile(path)
 	if err != nil {
 		return "", err
 	}
@@ -1131,7 +1131,7 @@ func createRedisStateStore(redisHost string, componentsPath string) error {
 		return err
 	}
 
-	filePath := path_filepath.Join(componentsPath, stateStoreYamlFileName)
+	filePath := filepath.Join(componentsPath, stateStoreYamlFileName)
 	err = checkAndOverWriteFile(filePath, b)
 
 	return err
@@ -1162,7 +1162,7 @@ func createRedisPubSub(redisHost string, componentsPath string) error {
 		return err
 	}
 
-	filePath := path_filepath.Join(componentsPath, pubSubYamlFileName)
+	filePath := filepath.Join(componentsPath, pubSubYamlFileName)
 	err = checkAndOverWriteFile(filePath, b)
 
 	return err
