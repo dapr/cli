@@ -34,7 +34,7 @@ var supportedUpgradePaths = []upgradePath{
 		// test upgrade on mariner images.
 		previous: common.VersionDetails{
 			RuntimeVersion:      "1.13.0",
-			DashboardVersion:    "0.10.0",
+			DashboardVersion:    "0.14.0",
 			ImageVariant:        "mariner",
 			ClusterRoles:        []string{"dapr-dashboard", "dapr-injector", "dapr-operator-admin", "dapr-placement", "dapr-sentry"},
 			ClusterRoleBindings: []string{"dapr-operator-admin", "dapr-dashboard", "dapr-injector", "dapr-placement", "dapr-sentry"},
@@ -42,7 +42,7 @@ var supportedUpgradePaths = []upgradePath{
 		},
 		next: common.VersionDetails{
 			RuntimeVersion:      "1.14.1",
-			DashboardVersion:    "0.10.0",
+			DashboardVersion:    "0.14.0",
 			ImageVariant:        "mariner",
 			ClusterRoles:        []string{"dapr-dashboard", "dapr-injector", "dapr-operator-admin", "dapr-placement", "dapr-sentry"},
 			ClusterRoleBindings: []string{"dapr-operator-admin", "dapr-dashboard", "dapr-injector", "dapr-placement", "dapr-sentry"},
