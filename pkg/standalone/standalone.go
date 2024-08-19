@@ -25,6 +25,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	path_filepath "path/filepath"
 	"runtime"
 	"strings"
@@ -642,9 +643,9 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		"-d",
 		"--entrypoint", "./scheduler",
 	}
-	schedVolPath := "/var/lock"
-	if info.imageVariant == "mariner" {
-		schedVolPath = "/run/lock"
+	schedVolPath := filepath.Join("var", "lock")
+	if info.imageVariant == "mariner" && runtime.GOOS == daprWindowsOS {
+		schedVolPath = filepath.Join("run", "lock")
 	}
 	if info.schedulerVolume != nil {
 		// Don't touch this file location unless things start breaking.
