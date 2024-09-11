@@ -120,7 +120,6 @@ jobs:
 
           # Start podman machine
           sudo podman-mac-helper install
-          podman info
           podman machine init
           podman machine start --log-level debug
           echo "CONTAINER_RUNTIME=podman" >> $GITHUB_ENV
