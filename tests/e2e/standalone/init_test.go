@@ -167,15 +167,17 @@ func TestStandaloneInit(t *testing.T) {
 			placementPort = 6050
 		}
 
-		verifyTCPLocalhost(t,  placementPort)
+		verifyTCPLocalhost(t, placementPort)
 	})
 
 	t.Run("init version with scheduler", func(t *testing.T) {
 		// Ensure a clean environment
 		must(t, cmdUninstall, "failed to uninstall Dapr")
 
+		latestDaprRuntimeVersion, latestDaprDashboardVersion := common.GetVersionsFromEnv(t, true)
+
 		args := []string{
-			"--runtime-version", "1.14.0-rc.3",
+			"--runtime-version", latestDaprRuntimeVersion,
 			"--dev",
 		}
 		output, err := cmdInit(args...)
@@ -189,9 +191,8 @@ func TestStandaloneInit(t *testing.T) {
 		daprPath := filepath.Join(homeDir, ".dapr")
 		require.DirExists(t, daprPath, "Directory %s does not exist", daprPath)
 
-		_, latestDaprDashboardVersion := common.GetVersionsFromEnv(t, true)
-		verifyContainers(t, "1.14.0-rc.3")
-		verifyBinaries(t, daprPath, "1.14.0-rc.3", latestDaprDashboardVersion)
+		verifyContainers(t, latestDaprRuntimeVersion)
+		verifyBinaries(t, daprPath, latestDaprRuntimeVersion, latestDaprDashboardVersion)
 		verifyConfigs(t, daprPath)
 
 		placementPort := 50005
@@ -201,8 +202,8 @@ func TestStandaloneInit(t *testing.T) {
 			schedulerPort = 6060
 		}
 
-		verifyTCPLocalhost(t,  placementPort)
-		verifyTCPLocalhost(t,  schedulerPort)
+		verifyTCPLocalhost(t, placementPort)
+		verifyTCPLocalhost(t, schedulerPort)
 	})
 
 	t.Run("init without runtime-version flag with mariner images", func(t *testing.T) {

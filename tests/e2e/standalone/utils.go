@@ -157,3 +157,35 @@ func containerRuntime() string {
 	}
 	return ""
 }
+
+func getRunningProcesses() []string {
+	cmd := exec.Command("ps", "-o", "pid,command")
+	output, err := cmd.Output()
+	if err != nil {
+		return nil
+	}
+
+	processes := strings.Split(string(output), "\n")
+
+	// clean the process output whitespace
+	for i, process := range processes {
+		processes[i] = strings.TrimSpace(process)
+	}
+	return processes
+}
+
+func stopProcess(args ...string) error {
+	processCommand := strings.Join(args, " ")
+	processes := getRunningProcesses()
+	for _, process := range processes {
+		if strings.Contains(process, processCommand) {
+			processSplit := strings.SplitN(process, " ", 2)
+			cmd := exec.Command("kill", "-9", processSplit[0])
+			err := cmd.Run()
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}

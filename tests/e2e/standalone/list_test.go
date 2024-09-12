@@ -137,6 +137,13 @@ func TestStandaloneList(t *testing.T) {
 		t.Log(output)
 		require.NoError(t, err, "expected no error status on list")
 		require.Equal(t, "No Dapr instances found.\n", output)
+
+		// This test is skipped on Windows, but just in case, try to terminate dashboard process only on non-Windows OSs
+		// stopProcess uses kill command, won't work on windows
+		if runtime.GOOS != "windows" {
+			err = stopProcess("dashboard", "--port", "5555")
+			require.NoError(t, err, "failed to stop dashboard process")
+		}
 	})
 }
 

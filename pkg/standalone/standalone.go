@@ -673,7 +673,11 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		)
 	}
 
-	args = append(args, image, "--etcd-data-dir=/var/lock/dapr/scheduler")
+	if strings.EqualFold(info.imageVariant, "mariner") {
+		args = append(args, image, "--etcd-data-dir=/var/tmp/dapr/scheduler")
+	} else {
+		args = append(args, image, "--etcd-data-dir=/var/lock/dapr/scheduler")
+	}
 
 	_, err = utils.RunCmdAndWait(runtimeCmd, args...)
 	if err != nil {

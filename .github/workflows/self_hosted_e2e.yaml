@@ -43,7 +43,7 @@ jobs:
       DAPR_RUNTIME_LATEST_STABLE_VERSION: ""
       DAPR_DASHBOARD_LATEST_STABLE_VERSION: ""
       GOLANG_PROTOBUF_REGISTRATION_CONFLICT: warn
-      PODMAN_VERSION: 4.4.4
+      PODMAN_VERSION: 4.9.3
     strategy:
       # TODO: Remove this when our E2E tests are stable for podman on MacOS.
       fail-fast: false # Keep running if one leg fails.
