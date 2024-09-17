@@ -1,5 +1,4 @@
 //go:build e2e || template
-// +build e2e template
 
 /*
 Copyright 2022 The Dapr Authors
@@ -188,4 +187,9 @@ func stopProcess(args ...string) error {
 		}
 	}
 	return nil
+}
+
+func cleanUpLogs() {
+	os.RemoveAll("../../apps/emit-metrics/.dapr/logs")
+	os.RemoveAll("../../apps/processor/.dapr/logs")
 }

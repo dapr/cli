@@ -1,6 +1,4 @@
 //go:build windows && (e2e || template)
-// +build windows
-// +build e2e template
 
 /*
 Copyright 2023 The Dapr Authors

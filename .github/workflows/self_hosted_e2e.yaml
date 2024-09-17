@@ -122,6 +122,7 @@ jobs:
           sudo podman-mac-helper install
           podman machine init
           podman machine start --log-level debug
+          podman machine ssh sudo sysctl -w kernel.keys.maxkeys=20000
           echo "CONTAINER_RUNTIME=podman" >> $GITHUB_ENV
       - name: Determine latest Dapr Runtime version including Pre-releases
         if: github.base_ref == 'master'

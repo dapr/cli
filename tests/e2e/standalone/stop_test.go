@@ -1,5 +1,4 @@
 //go:build e2e && !template
-// +build e2e,!template
 
 /*
 Copyright 2022 The Dapr Authors
@@ -18,6 +17,7 @@ package standalone_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -25,6 +25,14 @@ import (
 
 func TestStandaloneStop(t *testing.T) {
 	ensureDaprInstallation(t)
+
+	time.Sleep(5 * time.Second)
+
+	t.Cleanup(func() {
+		// remove dapr installation after all tests in this function.
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+	})
+
 	executeAgainstRunningDapr(t, func() {
 		t.Run("stop", func(t *testing.T) {
 			output, err := cmdStopWithAppID("dapr_e2e_stop")
