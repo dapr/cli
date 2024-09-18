@@ -69,7 +69,7 @@ func (s *Standalone) Publish(publishAppID, pubsubName, topic string, payload []b
 
 	// Detect publishing with CloudEvents envelope.
 	var cloudEvent map[string]interface{}
-	if json.Unmarshal(payload, &cloudEvent); err == nil {
+	if err := json.Unmarshal(payload, &cloudEvent); err == nil {
 		_, hasID := cloudEvent["id"]
 		_, hasSource := cloudEvent["source"]
 		_, hasSpecVersion := cloudEvent["specversion"]
@@ -78,6 +78,8 @@ func (s *Standalone) Publish(publishAppID, pubsubName, topic string, payload []b
 		if hasID && hasSource && hasSpecVersion && hasType && hasData {
 			contentType = "application/cloudevents+json"
 		}
+	} else {
+		return err
 	}
 
 	r, err := httpc.Post(url, contentType, bytes.NewBuffer(payload))
