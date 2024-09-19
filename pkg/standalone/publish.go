@@ -78,8 +78,6 @@ func (s *Standalone) Publish(publishAppID, pubsubName, topic string, payload []b
 		if hasID && hasSource && hasSpecVersion && hasType && hasData {
 			contentType = "application/cloudevents+json"
 		}
-	} else {
-		return err
 	}
 
 	r, err := httpc.Post(url, contentType, bytes.NewBuffer(payload))
