@@ -1,6 +1,4 @@
 //go:build !windows && (e2e || template)
-// +build !windows
-// +build e2e template
 
 /*
 Copyright 2023 The Dapr Authors
@@ -22,7 +20,6 @@ package standalone_test
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"testing"
 	"time"
 
@@ -31,6 +28,9 @@ import (
 )
 
 func TestStopAppsStartedWithRunTemplate(t *testing.T) {
+	// clean up logs before starting the tests
+	cleanUpLogs()
+
 	ensureDaprInstallation(t)
 	t.Cleanup(func() {
 		// remove dapr installation after all tests in this function.
@@ -38,6 +38,9 @@ func TestStopAppsStartedWithRunTemplate(t *testing.T) {
 	})
 
 	t.Run("stop apps by passing run template file", func(t *testing.T) {
+		t.Cleanup(func() {
+			cleanUpLogs()
+		})
 		go ensureAllAppsStartedWithRunTemplate(t)
 		time.Sleep(10 * time.Second)
 		cliPID := getCLIPID(t)
@@ -50,6 +53,9 @@ func TestStopAppsStartedWithRunTemplate(t *testing.T) {
 	})
 
 	t.Run("stop apps by passing a directory containing dapr.yaml", func(t *testing.T) {
+		t.Cleanup(func() {
+			cleanUpLogs()
+		})
 		go ensureAllAppsStartedWithRunTemplate(t)
 		time.Sleep(10 * time.Second)
 		cliPID := getCLIPID(t)
@@ -60,6 +66,9 @@ func TestStopAppsStartedWithRunTemplate(t *testing.T) {
 	})
 
 	t.Run("stop apps by passing an invalid directory", func(t *testing.T) {
+		t.Cleanup(func() {
+			cleanUpLogs()
+		})
 		go ensureAllAppsStartedWithRunTemplate(t)
 		time.Sleep(10 * time.Second)
 		output, err := cmdStopWithRunTemplate("../testdata/invalid-dir")
@@ -72,6 +81,9 @@ func TestStopAppsStartedWithRunTemplate(t *testing.T) {
 	})
 
 	t.Run("stop apps started with run template", func(t *testing.T) {
+		t.Cleanup(func() {
+			cleanUpLogs()
+		})
 		go ensureAllAppsStartedWithRunTemplate(t)
 		time.Sleep(10 * time.Second)
 		cliPID := getCLIPID(t)
@@ -95,8 +107,7 @@ func ensureAllAppsStartedWithRunTemplate(t *testing.T) {
 func tearDownTestSetup(t *testing.T) {
 	// remove dapr installation after all tests in this function.
 	must(t, cmdUninstall, "failed to uninstall Dapr")
-	os.RemoveAll("../../apps/emit-metrics/.dapr/logs")
-	os.RemoveAll("../../apps/processor/.dapr/logs")
+	cleanUpLogs()
 }
 
 func getCLIPID(t *testing.T) string {
