@@ -652,7 +652,11 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		// /var/lock and can therefore mount the Docker volume here.
 		// TODO: update the Dapr scheduler dockerfile to create a scheduler user id writeable
 		// directory at /var/lib/dapr/scheduler, then update the path here.
-		args = append(args, "--volume", *info.schedulerVolume+":/var/lock")
+		if strings.EqualFold(info.imageVariant, "mariner") {
+			args = append(args, "--volume", *info.schedulerVolume+":/var/tmp")
+		} else {
+			args = append(args, "--volume", *info.schedulerVolume+":/var/lock")
+		}
 	}
 
 	if info.dockerNetwork != "" {
@@ -673,7 +677,11 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		)
 	}
 
-	args = append(args, image, "--etcd-data-dir=/var/lock/dapr/scheduler")
+	if strings.EqualFold(info.imageVariant, "mariner") {
+		args = append(args, image, "--etcd-data-dir=/var/tmp/dapr/scheduler")
+	} else {
+		args = append(args, image, "--etcd-data-dir=/var/lock/dapr/scheduler")
+	}
 
 	_, err = utils.RunCmdAndWait(runtimeCmd, args...)
 	if err != nil {
