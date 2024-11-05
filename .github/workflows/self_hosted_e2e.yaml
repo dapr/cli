@@ -120,7 +120,7 @@ jobs:
 
           # Start podman machine
           sudo podman-mac-helper install
-          podman machine init
+          podman machine init -v $HOME:$HOME
           podman machine start --log-level debug
           podman machine ssh sudo sysctl -w kernel.keys.maxkeys=20000
           echo "CONTAINER_RUNTIME=podman" >> $GITHUB_ENV
