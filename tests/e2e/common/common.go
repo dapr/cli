@@ -47,7 +47,7 @@ const (
 	ClusterRoleBindings
 
 	numHAPods    = 13
-	numNonHAPods = 5
+	numNonHAPods = 6
 
 	thirdPartyDevNamespace = "default"
 	devRedisReleaseName    = "dapr-dev-redis"
