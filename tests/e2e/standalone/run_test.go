@@ -16,6 +16,7 @@ limitations under the License.
 package standalone_test
 
 import (
+	"context"
 	"fmt"
 	"runtime"
 	"testing"
@@ -26,9 +27,23 @@ import (
 
 func TestStandaloneRun(t *testing.T) {
 	ensureDaprInstallation(t)
+
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	defer cancelFunc()
+
+	if isSlimMode() {
+		output, err := cmdProcess(ctx, "placement", t.Log, "--metrics-port", "9091", "--healthz-port", "8081")
+		require.NoError(t, err)
+		t.Log(output)
+		output, err = cmdProcess(ctx, "scheduler", t.Log, "--metrics-port", "9092", "--healthz-port", "8082")
+		require.NoError(t, err)
+		t.Log(output)
+	}
 	t.Cleanup(func() {
 		// remove dapr installation after all tests in this function.
 		must(t, cmdUninstall, "failed to uninstall Dapr")
+		// Call cancelFunc to stop the processes
+		cancelFunc()
 	})
 	for _, path := range getSocketCases() {
 		t.Run(fmt.Sprintf("normal exit, socket: %s", path), func(t *testing.T) {
