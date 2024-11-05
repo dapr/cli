@@ -46,7 +46,7 @@ const (
 	ClusterRoles
 	ClusterRoleBindings
 
-	numHAPods    = 13
+	numHAPods    = 16
 	numNonHAPods = 6
 
 	thirdPartyDevNamespace = "default"
