@@ -35,7 +35,10 @@ require (
 	sigs.k8s.io/yaml v1.4.0
 )
 
-require github.com/Masterminds/semver/v3 v3.2.0
+require (
+	github.com/Masterminds/semver/v3 v3.2.0
+	golang.org/x/mod v0.14.0
+)
 
 require (
 	github.com/alphadose/haxmap v1.3.1 // indirect
@@ -61,7 +64,6 @@ require (
 	go.mongodb.org/mongo-driver v1.12.1 // indirect
 	go.opentelemetry.io/otel/metric v1.23.1 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/tools v0.17.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240116215550-a9fa1716bcac // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240205150955-31a09d347014 // indirect

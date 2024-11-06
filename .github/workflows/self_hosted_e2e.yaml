@@ -38,12 +38,12 @@ jobs:
       GOARCH: ${{ matrix.target_arch }}
       GOPROXY: https://proxy.golang.org
       ARCHIVE_OUTDIR: dist/archives
-      DAPR_RUNTIME_PINNED_VERSION: "1.13.0-rc.2"
+      DAPR_RUNTIME_PINNED_VERSION: "1.13.5"
       DAPR_DASHBOARD_PINNED_VERSION: 0.14.0
       DAPR_RUNTIME_LATEST_STABLE_VERSION: ""
       DAPR_DASHBOARD_LATEST_STABLE_VERSION: ""
       GOLANG_PROTOBUF_REGISTRATION_CONFLICT: warn
-      PODMAN_VERSION: 4.4.4
+      PODMAN_VERSION: 4.9.3
     strategy:
       # TODO: Remove this when our E2E tests are stable for podman on MacOS.
       fail-fast: false # Keep running if one leg fails.
@@ -120,8 +120,9 @@ jobs:
 
           # Start podman machine
           sudo podman-mac-helper install
-          podman machine init
+          podman machine init -v $HOME:$HOME
           podman machine start --log-level debug
+          podman machine ssh sudo sysctl -w kernel.keys.maxkeys=20000
           echo "CONTAINER_RUNTIME=podman" >> $GITHUB_ENV
       - name: Determine latest Dapr Runtime version including Pre-releases
         if: github.base_ref == 'master'

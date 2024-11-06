@@ -17,7 +17,6 @@ import (
 	"os"
 	path_filepath "path/filepath"
 	"runtime"
-	"strconv"
 	"strings"
 )
 
@@ -59,16 +58,6 @@ func GetDaprRuntimePath(daprRuntimePath string) (string, error) {
 
 func getDaprBinPath(daprDir string) string {
 	return path_filepath.Join(daprDir, defaultDaprBinDirName)
-}
-
-// getSchedulerDataPath returns the data path of a given instance
-// Receiving instanceID allows multiple instances of scheduler to run locally in the future.
-func getSchedulerDataPath(daprDir string, instanceID int) string {
-	return path_filepath.Join(
-		daprDir,
-		defaultSchedulerDirName,
-		defaultSchedulerDataDirName,
-		strconv.Itoa(instanceID))
 }
 
 func binaryFilePathWithDir(binaryDir string, binaryFilePrefix string) string {

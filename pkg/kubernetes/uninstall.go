@@ -54,7 +54,6 @@ func Uninstall(namespace string, uninstallAll bool, uninstallDev bool, timeout u
 	}
 
 	_, err = uninstallClient.Run(daprReleaseName)
-
 	if err != nil {
 		return err
 	}
