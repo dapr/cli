@@ -56,7 +56,7 @@ func TestKubernetesRunFile(t *testing.T) {
 		HAEnabled:   false,
 		MTLSEnabled: true,
 	}
-	tests = append(tests, common.GetInstallOnlyTest(currentVersionDetails, opts))
+	tests = append(tests, common.GetInstallOnlyTest(common.CurrentVersionDetails, opts))
 
 	tests = append(tests, common.TestCase{
 		Name:     "run file k8s",
@@ -68,7 +68,7 @@ func TestKubernetesRunFile(t *testing.T) {
 		UninstallAll: true,
 	}
 
-	tests = append(tests, common.GetUninstallOnlyTest(currentVersionDetails, opts))
+	tests = append(tests, common.GetUninstallOnlyTest(common.CurrentVersionDetails, opts))
 
 	// execute tests
 	for _, tc := range tests {
