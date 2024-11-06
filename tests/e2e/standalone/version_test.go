@@ -1,5 +1,4 @@
 //go:build e2e && !template
-// +build e2e,!template
 
 /*
 Copyright 2022 The Dapr Authors

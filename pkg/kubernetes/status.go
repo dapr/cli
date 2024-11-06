@@ -33,6 +33,7 @@ var controlPlaneLabels = []string{
 	"dapr-placement-server",
 	"dapr-sidecar-injector",
 	"dapr-dashboard",
+	"dapr-scheduler-server",
 }
 
 type StatusClient struct {

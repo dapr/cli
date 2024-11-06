@@ -1,6 +1,4 @@
 //go:build windows && (e2e || template)
-// +build windows
-// +build e2e template
 
 /*
 Copyright 2023 The Dapr Authors
@@ -115,7 +113,6 @@ func startAppsWithAppLogDestFile(t *testing.T, file string) {
 	assert.NotContains(t, output, "msg=\"All outstanding components processed\" app_id=emit-metrics")
 
 	assert.Contains(t, output, "Received signal to stop Dapr and app processes. Shutting down Dapr and app processes.")
-
 }
 
 func startAppsWithAppLogDestConsole(t *testing.T, file string) {
@@ -139,5 +136,4 @@ func startAppsWithAppLogDestConsole(t *testing.T, file string) {
 	assert.NotContains(t, output, "msg=\"All outstanding components processed\" app_id=emit-metrics")
 
 	assert.Contains(t, output, "Received signal to stop Dapr and app processes. Shutting down Dapr and app processes.")
-
 }

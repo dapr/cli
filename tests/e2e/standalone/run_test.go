@@ -1,5 +1,4 @@
 //go:build e2e && !template
-// +build e2e,!template
 
 /*
 Copyright 2022 The Dapr Authors
@@ -17,6 +16,7 @@ limitations under the License.
 package standalone_test
 
 import (
+	"context"
 	"fmt"
 	"runtime"
 	"testing"
@@ -27,9 +27,23 @@ import (
 
 func TestStandaloneRun(t *testing.T) {
 	ensureDaprInstallation(t)
+
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	defer cancelFunc()
+
+	if isSlimMode() {
+		output, err := cmdProcess(ctx, "placement", t.Log, "--metrics-port", "9091", "--healthz-port", "8081")
+		require.NoError(t, err)
+		t.Log(output)
+		output, err = cmdProcess(ctx, "scheduler", t.Log, "--metrics-port", "9092", "--healthz-port", "8082")
+		require.NoError(t, err)
+		t.Log(output)
+	}
 	t.Cleanup(func() {
 		// remove dapr installation after all tests in this function.
 		must(t, cmdUninstall, "failed to uninstall Dapr")
+		// Call cancelFunc to stop the processes
+		cancelFunc()
 	})
 	for _, path := range getSocketCases() {
 		t.Run(fmt.Sprintf("normal exit, socket: %s", path), func(t *testing.T) {
@@ -54,7 +68,7 @@ func TestStandaloneRun(t *testing.T) {
 			output, err := cmdRun(path, "--dapr-internal-grpc-port", "9999", "--", "bash", "-c", "echo test")
 			t.Log(output)
 			require.NoError(t, err, "run failed")
-			assert.Contains(t, output, "Internal gRPC server is running on port 9999")
+			assert.Contains(t, output, "Internal gRPC server is running on :9999")
 			assert.Contains(t, output, "Exited App successfully")
 			assert.Contains(t, output, "Exited Dapr successfully")
 			assert.NotContains(t, output, "Could not update sidecar metadata for cliPID")
