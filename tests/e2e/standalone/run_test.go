@@ -21,13 +21,15 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/dapr/cli/tests/e2e/common"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestStandaloneRun(t *testing.T) {
 	ensureDaprInstallation(t)
-	ensureEnvVersionSet(t, false)
+	common.EnsureEnvVersionSet(t, false)
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	defer cancelFunc()
@@ -36,7 +38,7 @@ func TestStandaloneRun(t *testing.T) {
 		output, err := cmdProcess(ctx, "placement", t.Log, "--metrics-port", "9091", "--healthz-port", "8081")
 		require.NoError(t, err)
 		t.Log(output)
-		if currentVersionDetails.HasScheduler {
+		if common.CurrentVersionDetails.HasScheduler {
 			output, err = cmdProcess(ctx, "scheduler", t.Log, "--metrics-port", "9092", "--healthz-port", "8082")
 			require.NoError(t, err)
 			t.Log(output)
@@ -71,7 +73,7 @@ func TestStandaloneRun(t *testing.T) {
 			output, err := cmdRun(path, "--dapr-internal-grpc-port", "9999", "--", "bash", "-c", "echo test")
 			t.Log(output)
 			require.NoError(t, err, "run failed")
-			if currentVersionDetails.HasScheduler {
+			if common.CurrentVersionDetails.HasScheduler {
 				assert.Contains(t, output, "Internal gRPC server is running on :9999")
 			} else {
 				assert.Contains(t, output, "Internal gRPC server is running on port 9999")
