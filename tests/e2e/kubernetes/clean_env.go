@@ -36,6 +36,12 @@ var (
 // ensureCleanEnv function needs to be called in every Test function.
 // sets necessary variable values and uninstalls any previously installed `dapr`.
 func ensureCleanEnv(t *testing.T, useDaprLatestVersion bool) {
+	ensureEnvVersionSet(t, useDaprLatestVersion)
+	// Ensure a clean environment
+	common.EnsureUninstall(true, true) // does not wait for pod deletion
+}
+
+func ensureEnvVersionSet(t *testing.T, useDaprLatestVersion bool) {
 	currentRuntimeVersion, currentDashboardVersion = common.GetVersionsFromEnv(t, useDaprLatestVersion)
 
 	currentVersionDetails = common.VersionDetails{
@@ -52,6 +58,8 @@ func ensureCleanEnv(t *testing.T, useDaprLatestVersion bool) {
 		currentVersionDetails.ClusterRoles = clusterRoles1_10_X
 		currentVersionDetails.ClusterRoleBindings = clusterRoleBindings1_10_X
 	}
-	// Ensure a clean environment
-	common.EnsureUninstall(true, true) // does not wait for pod deletion
+
+	if strings.HasPrefix(currentRuntimeVersion, "1.14.") {
+		currentVersionDetails.HasScheduler = true
+	}
 }

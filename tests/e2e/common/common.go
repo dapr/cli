@@ -67,6 +67,7 @@ type VersionDetails struct {
 	ClusterRoles         []string
 	ClusterRoleBindings  []string
 	UseDaprLatestVersion bool
+	HasScheduler         bool
 }
 
 type TestOptions struct {
