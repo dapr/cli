@@ -57,7 +57,7 @@ const (
 	devZipkinReleaseName   = "dapr-dev-zipkin"
 )
 
-var VersionWithScheduler = semver.MustParse("1.14.0")
+var VersionWithScheduler = semver.MustParse("1.14.0-rc.1")
 
 type VersionDetails struct {
 	RuntimeVersion       string
@@ -107,6 +107,13 @@ func GetVersionsFromEnv(t *testing.T, latest bool) (string, string) {
 		t.Fatalf("env var \"%s\" not set", dashboardEnvVar)
 	}
 	return daprRuntimeVersion, daprDashboardVersion
+}
+
+func GetRuntimeVersion(t *testing.T, latest bool) *semver.Version {
+	daprRuntimeVersion, _ := GetVersionsFromEnv(t, latest)
+	runtimeVersion, err := semver.NewVersion(daprRuntimeVersion)
+	require.NoError(t, err)
+	return runtimeVersion
 }
 
 func UpgradeTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
