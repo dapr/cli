@@ -28,7 +28,7 @@ func TestKubernetesNonHAModeMTLSDisabled(t *testing.T) {
 
 	// setup tests
 	tests := []common.TestCase{}
-	tests = append(tests, common.GetTestsOnInstall(common.CurrentVersionDetails, common.TestOptions{
+	tests = append(tests, common.GetTestsOnInstall(currentVersionDetails, common.TestOptions{
 		HAEnabled:             false,
 		MTLSEnabled:           false,
 		ApplyComponentChanges: true,
@@ -39,7 +39,7 @@ func TestKubernetesNonHAModeMTLSDisabled(t *testing.T) {
 		},
 	})...)
 
-	tests = append(tests, common.GetTestsOnUninstall(common.CurrentVersionDetails, common.TestOptions{
+	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
 		CheckResourceExists: map[common.Resource]bool{
 			common.CustomResourceDefs:  true,
 			common.ClusterRoles:        false,
@@ -59,7 +59,7 @@ func TestKubernetesHAModeMTLSDisabled(t *testing.T) {
 
 	// setup tests
 	tests := []common.TestCase{}
-	tests = append(tests, common.GetTestsOnInstall(common.CurrentVersionDetails, common.TestOptions{
+	tests = append(tests, common.GetTestsOnInstall(currentVersionDetails, common.TestOptions{
 		HAEnabled:             true,
 		MTLSEnabled:           false,
 		ApplyComponentChanges: true,
@@ -70,7 +70,7 @@ func TestKubernetesHAModeMTLSDisabled(t *testing.T) {
 		},
 	})...)
 
-	tests = append(tests, common.GetTestsOnUninstall(common.CurrentVersionDetails, common.TestOptions{
+	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
 		CheckResourceExists: map[common.Resource]bool{
 			common.CustomResourceDefs:  true,
 			common.ClusterRoles:        false,
@@ -90,7 +90,7 @@ func TestKubernetesDev(t *testing.T) {
 
 	// setup tests
 	tests := []common.TestCase{}
-	tests = append(tests, common.GetTestsOnInstall(common.CurrentVersionDetails, common.TestOptions{
+	tests = append(tests, common.GetTestsOnInstall(currentVersionDetails, common.TestOptions{
 		DevEnabled:            true,
 		HAEnabled:             false,
 		MTLSEnabled:           true,
@@ -102,7 +102,7 @@ func TestKubernetesDev(t *testing.T) {
 		},
 	})...)
 
-	tests = append(tests, common.GetTestsOnUninstall(common.CurrentVersionDetails, common.TestOptions{
+	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
 		DevEnabled:   true,
 		UninstallAll: true,
 		CheckResourceExists: map[common.Resource]bool{
@@ -124,7 +124,7 @@ func TestKubernetesNonHAModeMTLSEnabled(t *testing.T) {
 
 	// setup tests
 	tests := []common.TestCase{}
-	tests = append(tests, common.GetTestsOnInstall(common.CurrentVersionDetails, common.TestOptions{
+	tests = append(tests, common.GetTestsOnInstall(currentVersionDetails, common.TestOptions{
 		HAEnabled:             false,
 		MTLSEnabled:           true,
 		ApplyComponentChanges: true,
@@ -135,7 +135,7 @@ func TestKubernetesNonHAModeMTLSEnabled(t *testing.T) {
 		},
 	})...)
 
-	tests = append(tests, common.GetTestsOnUninstall(common.CurrentVersionDetails, common.TestOptions{
+	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
 		CheckResourceExists: map[common.Resource]bool{
 			common.CustomResourceDefs:  true,
 			common.ClusterRoles:        false,
@@ -155,7 +155,7 @@ func TestKubernetesHAModeMTLSEnabled(t *testing.T) {
 
 	// setup tests
 	tests := []common.TestCase{}
-	tests = append(tests, common.GetTestsOnInstall(common.CurrentVersionDetails, common.TestOptions{
+	tests = append(tests, common.GetTestsOnInstall(currentVersionDetails, common.TestOptions{
 		HAEnabled:             true,
 		MTLSEnabled:           true,
 		ApplyComponentChanges: true,
@@ -166,7 +166,7 @@ func TestKubernetesHAModeMTLSEnabled(t *testing.T) {
 		},
 	})...)
 
-	tests = append(tests, common.GetTestsOnUninstall(common.CurrentVersionDetails, common.TestOptions{
+	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
 		UninstallAll: true,
 		CheckResourceExists: map[common.Resource]bool{
 			common.CustomResourceDefs:  false,
@@ -187,7 +187,7 @@ func TestKubernetesInitWithCustomCert(t *testing.T) {
 
 	// setup tests
 	tests := []common.TestCase{}
-	tests = append(tests, common.GetTestsOnInstall(common.CurrentVersionDetails, common.TestOptions{
+	tests = append(tests, common.GetTestsOnInstall(currentVersionDetails, common.TestOptions{
 		HAEnabled:             false,
 		MTLSEnabled:           true,
 		InitWithCustomCert:    true,
@@ -199,7 +199,7 @@ func TestKubernetesInitWithCustomCert(t *testing.T) {
 		},
 	})...)
 
-	tests = append(tests, common.GetTestsOnUninstall(common.CurrentVersionDetails, common.TestOptions{
+	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
 		CheckResourceExists: map[common.Resource]bool{
 			common.CustomResourceDefs:  true,
 			common.ClusterRoles:        false,
@@ -231,13 +231,13 @@ func TestRenewCertificateMTLSEnabled(t *testing.T) {
 		},
 	}
 
-	tests = append(tests, common.GetTestsOnInstall(common.CurrentVersionDetails, installOpts)...)
+	tests = append(tests, common.GetTestsOnInstall(currentVersionDetails, installOpts)...)
 
 	// tests for certifcate renewal.
-	tests = append(tests, common.GetTestForCertRenewal(common.CurrentVersionDetails, installOpts)...)
+	tests = append(tests, common.GetTestForCertRenewal(currentVersionDetails, installOpts)...)
 
 	// teardown everything
-	tests = append(tests, common.GetTestsOnUninstall(common.CurrentVersionDetails, common.TestOptions{
+	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
 		CheckResourceExists: map[common.Resource]bool{
 			common.CustomResourceDefs:  true,
 			common.ClusterRoles:        false,
@@ -266,13 +266,13 @@ func TestRenewCertificateMTLSDisabled(t *testing.T) {
 		},
 	}
 
-	tests = append(tests, common.GetTestsOnInstall(common.CurrentVersionDetails, installOpts)...)
+	tests = append(tests, common.GetTestsOnInstall(currentVersionDetails, installOpts)...)
 
 	// tests for certifcate renewal.
-	tests = append(tests, common.GetTestForCertRenewal(common.CurrentVersionDetails, installOpts)...)
+	tests = append(tests, common.GetTestForCertRenewal(currentVersionDetails, installOpts)...)
 
 	// teardown everything
-	tests = append(tests, common.GetTestsOnUninstall(common.CurrentVersionDetails, common.TestOptions{
+	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
 		CheckResourceExists: map[common.Resource]bool{
 			common.CustomResourceDefs:  true,
 			common.ClusterRoles:        false,
@@ -301,20 +301,20 @@ func TestRenewCertWithPrivateKey(t *testing.T) {
 		},
 	}
 
-	tests = append(tests, common.GetTestsOnInstall(common.CurrentVersionDetails, installOpts)...)
+	tests = append(tests, common.GetTestsOnInstall(currentVersionDetails, installOpts)...)
 
 	// tests for certifcate renewal with newly generated certificates when pem encoded private root.key file is provided
 	tests = append(tests, []common.TestCase{
-		{"Renew certificate which expires in less than 30 days", common.UseProvidedPrivateKeyAndRenewCerts(common.CurrentVersionDetails, installOpts)},
+		{"Renew certificate which expires in less than 30 days", common.UseProvidedPrivateKeyAndRenewCerts(currentVersionDetails, installOpts)},
 	}...)
 
-	tests = append(tests, common.GetTestsPostCertificateRenewal(common.CurrentVersionDetails, installOpts)...)
+	tests = append(tests, common.GetTestsPostCertificateRenewal(currentVersionDetails, installOpts)...)
 	tests = append(tests, []common.TestCase{
-		{"Cert Expiry warning message check " + common.CurrentVersionDetails.RuntimeVersion, common.CheckMTLSStatus(common.CurrentVersionDetails, installOpts, true)},
+		{"Cert Expiry warning message check " + currentVersionDetails.RuntimeVersion, common.CheckMTLSStatus(currentVersionDetails, installOpts, true)},
 	}...)
 
 	// teardown everything
-	tests = append(tests, common.GetTestsOnUninstall(common.CurrentVersionDetails, common.TestOptions{
+	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
 		CheckResourceExists: map[common.Resource]bool{
 			common.CustomResourceDefs:  true,
 			common.ClusterRoles:        false,
@@ -343,9 +343,9 @@ func TestKubernetesUninstall(t *testing.T) {
 		},
 	}
 
-	tests = append(tests, common.GetTestsOnInstall(common.CurrentVersionDetails, installOpts)...)
+	tests = append(tests, common.GetTestsOnInstall(currentVersionDetails, installOpts)...)
 	// setup tests
-	tests = append(tests, common.GetTestsOnUninstall(common.CurrentVersionDetails, common.TestOptions{
+	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
 		CheckResourceExists: map[common.Resource]bool{
 			common.CustomResourceDefs:  true,
 			common.ClusterRoles:        false,
@@ -373,7 +373,7 @@ func TestRenewCertWithIncorrectFlags(t *testing.T) {
 		},
 	}
 
-	tests = append(tests, common.GetTestsOnInstall(common.CurrentVersionDetails, installOpts)...)
+	tests = append(tests, common.GetTestsOnInstall(currentVersionDetails, installOpts)...)
 
 	// tests for certifcate renewal with incorrect set of flags provided.
 	tests = append(tests, []common.TestCase{
@@ -381,7 +381,7 @@ func TestRenewCertWithIncorrectFlags(t *testing.T) {
 	}...)
 
 	// teardown everything
-	tests = append(tests, common.GetTestsOnUninstall(common.CurrentVersionDetails, common.TestOptions{
+	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
 		CheckResourceExists: map[common.Resource]bool{
 			common.CustomResourceDefs:  true,
 			common.ClusterRoles:        false,
@@ -401,7 +401,7 @@ func TestK8sInstallwithMarinerImagesAndRenewCertificate(t *testing.T) {
 	ensureCleanEnv(t, false)
 
 	//	install with mariner images
-	common.CurrentVersionDetails.ImageVariant = "mariner"
+	currentVersionDetails.ImageVariant = "mariner"
 
 	tests := []common.TestCase{}
 	installOpts := common.TestOptions{
@@ -415,13 +415,13 @@ func TestK8sInstallwithMarinerImagesAndRenewCertificate(t *testing.T) {
 		},
 	}
 
-	tests = append(tests, common.GetTestsOnInstall(common.CurrentVersionDetails, installOpts)...)
+	tests = append(tests, common.GetTestsOnInstall(currentVersionDetails, installOpts)...)
 
 	// tests for certifcate renewal.
-	tests = append(tests, common.GetTestForCertRenewal(common.CurrentVersionDetails, installOpts)...)
+	tests = append(tests, common.GetTestForCertRenewal(currentVersionDetails, installOpts)...)
 
 	// teardown everything
-	tests = append(tests, common.GetTestsOnUninstall(common.CurrentVersionDetails, common.TestOptions{
+	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
 		CheckResourceExists: map[common.Resource]bool{
 			common.CustomResourceDefs:  true,
 			common.ClusterRoles:        false,
@@ -450,10 +450,10 @@ func TestKubernetesInstallwithoutRuntimeVersionFlag(t *testing.T) {
 		},
 	}
 
-	tests = append(tests, common.GetTestsOnInstall(common.CurrentVersionDetails, installOpts)...)
+	tests = append(tests, common.GetTestsOnInstall(currentVersionDetails, installOpts)...)
 
 	// teardown everything
-	tests = append(tests, common.GetTestsOnUninstall(common.CurrentVersionDetails, common.TestOptions{
+	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
 		CheckResourceExists: map[common.Resource]bool{
 			common.CustomResourceDefs:  true,
 			common.ClusterRoles:        false,
@@ -471,7 +471,7 @@ func TestK8sInstallwithoutRuntimeVersionwithMarinerImagesFlag(t *testing.T) {
 	ensureCleanEnv(t, true)
 
 	//	install with mariner images
-	common.CurrentVersionDetails.ImageVariant = "mariner"
+	currentVersionDetails.ImageVariant = "mariner"
 
 	tests := []common.TestCase{}
 	installOpts := common.TestOptions{
@@ -485,10 +485,10 @@ func TestK8sInstallwithoutRuntimeVersionwithMarinerImagesFlag(t *testing.T) {
 		},
 	}
 
-	tests = append(tests, common.GetTestsOnInstall(common.CurrentVersionDetails, installOpts)...)
+	tests = append(tests, common.GetTestsOnInstall(currentVersionDetails, installOpts)...)
 
 	// teardown everything
-	tests = append(tests, common.GetTestsOnUninstall(common.CurrentVersionDetails, common.TestOptions{
+	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
 		CheckResourceExists: map[common.Resource]bool{
 			common.CustomResourceDefs:  true,
 			common.ClusterRoles:        false,
