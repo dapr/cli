@@ -57,10 +57,7 @@ const (
 	devZipkinReleaseName   = "dapr-dev-zipkin"
 )
 
-var (
-	VersionWithScheduler  = semver.MustParse("1.14.0-rc.1")
-	CurrentVersionDetails VersionDetails
-)
+var VersionWithScheduler = semver.MustParse("1.14.0")
 
 type VersionDetails struct {
 	RuntimeVersion       string
@@ -1271,23 +1268,4 @@ func exportCurrentCertificate(daprPath string) error {
 		return fmt.Errorf("error in exporting certificate %w", err)
 	}
 	return nil
-}
-
-func EnsureEnvVersionSet(t *testing.T, useDaprLatestVersion bool) VersionDetails {
-	currentRuntimeVersion, currentDashboardVersion := GetVersionsFromEnv(t, useDaprLatestVersion)
-
-	vd := VersionDetails{
-		RuntimeVersion:       currentRuntimeVersion,
-		DashboardVersion:     currentDashboardVersion,
-		CustomResourceDefs:   []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io", "httpendpoints.dapr.io"},
-		ImageVariant:         "",
-		UseDaprLatestVersion: useDaprLatestVersion,
-	}
-
-	version := semver.MustParse(currentRuntimeVersion)
-	if version.GreaterThan(VersionWithScheduler) {
-		CurrentVersionDetails.HasScheduler = true
-	}
-
-	return vd
 }

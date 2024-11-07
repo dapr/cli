@@ -24,6 +24,9 @@ import (
 )
 
 var (
+	currentRuntimeVersion     string
+	currentDashboardVersion   string
+	currentVersionDetails     common.VersionDetails
 	clusterRoles1_9_X         = []string{"dapr-operator-admin", "dashboard-reader"}
 	clusterRoleBindings1_9_X  = []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"}
 	clusterRoles1_10_X        = []string{"dapr-dashboard", "dapr-injector", "dapr-operator-admin", "dapr-placement", "dapr-sentry"}
@@ -33,15 +36,30 @@ var (
 // ensureCleanEnv function needs to be called in every Test function.
 // sets necessary variable values and uninstalls any previously installed `dapr`.
 func ensureCleanEnv(t *testing.T, useDaprLatestVersion bool) {
-	common.EnsureEnvVersionSet(t, useDaprLatestVersion)
-
-	if strings.HasPrefix(common.CurrentVersionDetails.RuntimeVersion, "1.9.") {
-		common.CurrentVersionDetails.ClusterRoles = clusterRoles1_9_X
-		common.CurrentVersionDetails.ClusterRoleBindings = clusterRoleBindings1_9_X
-	} else {
-		common.CurrentVersionDetails.ClusterRoles = clusterRoles1_10_X
-		common.CurrentVersionDetails.ClusterRoleBindings = clusterRoleBindings1_10_X
-	}
+	ensureEnvVersionSet(t, useDaprLatestVersion)
 	// Ensure a clean environment
 	common.EnsureUninstall(true, true) // does not wait for pod deletion
+}
+
+func ensureEnvVersionSet(t *testing.T, useDaprLatestVersion bool) {
+	currentRuntimeVersion, currentDashboardVersion = common.GetVersionsFromEnv(t, useDaprLatestVersion)
+
+	currentVersionDetails = common.VersionDetails{
+		RuntimeVersion:       currentRuntimeVersion,
+		DashboardVersion:     currentDashboardVersion,
+		CustomResourceDefs:   []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io", "httpendpoints.dapr.io"},
+		ImageVariant:         "",
+		UseDaprLatestVersion: useDaprLatestVersion,
+	}
+	if strings.HasPrefix(currentRuntimeVersion, "1.9.") {
+		currentVersionDetails.ClusterRoles = clusterRoles1_9_X
+		currentVersionDetails.ClusterRoleBindings = clusterRoleBindings1_9_X
+	} else {
+		currentVersionDetails.ClusterRoles = clusterRoles1_10_X
+		currentVersionDetails.ClusterRoleBindings = clusterRoleBindings1_10_X
+	}
+
+	if strings.HasPrefix(currentRuntimeVersion, "1.14.") {
+		currentVersionDetails.HasScheduler = true
+	}
 }
