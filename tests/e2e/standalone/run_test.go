@@ -21,6 +21,8 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/dapr/cli/tests/e2e/common"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -35,9 +37,12 @@ func TestStandaloneRun(t *testing.T) {
 		output, err := cmdProcess(ctx, "placement", t.Log, "--metrics-port", "9091", "--healthz-port", "8081")
 		require.NoError(t, err)
 		t.Log(output)
-		output, err = cmdProcess(ctx, "scheduler", t.Log, "--metrics-port", "9092", "--healthz-port", "8082")
-		require.NoError(t, err)
-		t.Log(output)
+
+		if common.GetRuntimeVersion(t, false).GreaterThan(common.VersionWithScheduler) {
+			output, err = cmdProcess(ctx, "scheduler", t.Log, "--metrics-port", "9092", "--healthz-port", "8082")
+			require.NoError(t, err)
+			t.Log(output)
+		}
 	}
 	t.Cleanup(func() {
 		// remove dapr installation after all tests in this function.
@@ -68,7 +73,11 @@ func TestStandaloneRun(t *testing.T) {
 			output, err := cmdRun(path, "--dapr-internal-grpc-port", "9999", "--", "bash", "-c", "echo test")
 			t.Log(output)
 			require.NoError(t, err, "run failed")
-			assert.Contains(t, output, "Internal gRPC server is running on :9999")
+			if common.GetRuntimeVersion(t, false).GreaterThan(common.VersionWithScheduler) {
+				assert.Contains(t, output, "Internal gRPC server is running on :9999")
+			} else {
+				assert.Contains(t, output, "Internal gRPC server is running on port 9999")
+			}
 			assert.Contains(t, output, "Exited App successfully")
 			assert.Contains(t, output, "Exited Dapr successfully")
 			assert.NotContains(t, output, "Could not update sidecar metadata for cliPID")
