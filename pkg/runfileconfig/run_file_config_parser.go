@@ -97,6 +97,15 @@ func (a *RunFileConfig) validateRunConfig(runFilePath string) error {
 		if len(strings.TrimSpace(a.Apps[i].ResourcesPath)) > 0 {
 			a.Apps[i].ResourcesPaths = append(a.Apps[i].ResourcesPaths, a.Apps[i].ResourcesPath)
 		}
+
+		// Check containerImagePullPolicy is valid
+		if a.Apps[i].ContainerImagePullPolicy != "" {
+			if a.Apps[i].ContainerImagePullPolicy != "Always" && a.Apps[i].ContainerImagePullPolicy != "Never" && a.Apps[i].ContainerImagePullPolicy != "IfNotPresent" {
+				return fmt.Errorf("invalid containerImagePullPolicy: %s", a.Apps[i].ContainerImagePullPolicy)
+			}
+		} else {
+			a.Apps[i].ContainerImagePullPolicy = "Always"
+		}
 	}
 	return nil
 }
