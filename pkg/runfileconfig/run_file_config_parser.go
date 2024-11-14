@@ -100,7 +100,7 @@ func (a *RunFileConfig) validateRunConfig(runFilePath string) error {
 			a.Apps[i].ResourcesPaths = append(a.Apps[i].ResourcesPaths, a.Apps[i].ResourcesPath)
 		}
 
-		// Check containerImagePullPolicy is valid
+		// Check containerImagePullPolicy is valid.
 		if a.Apps[i].ContainerImagePullPolicy != "" {
 			if !utils.Contains(imagePullPolicyValuesAllowed, a.Apps[i].ContainerImagePullPolicy) {
 				return fmt.Errorf("invalid containerImagePullPolicy: %s, allowed values: %s", a.Apps[i].ContainerImagePullPolicy, strings.Join(imagePullPolicyValuesAllowed, ", "))
