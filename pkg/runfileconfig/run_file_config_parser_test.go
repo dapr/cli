@@ -14,6 +14,7 @@ limitations under the License.
 package runfileconfig
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -149,10 +150,11 @@ func TestRunConfigFile(t *testing.T) {
 
 	t.Run("test containerImagePullPolicy", func(t *testing.T) {
 		testcases := []struct {
-			name                 string
-			runfFile             string
-			expectedPullPolicies []string
-			expectedErr          bool
+			name                   string
+			runfFile               string
+			expectedPullPolicies   []string
+			expectedBadPolicyValue string
+			expectedErr            bool
 		}{
 			{
 				name:                 "default value is Always",
@@ -167,10 +169,11 @@ func TestRunConfigFile(t *testing.T) {
 				expectedErr:          false,
 			},
 			{
-				name:                 "invalid value is rejected",
-				runfFile:             runFileForContainerImagePullPolicyInvalid,
-				expectedPullPolicies: []string{"Always", "Always"},
-				expectedErr:          true,
+				name:                   "invalid value is rejected",
+				runfFile:               runFileForContainerImagePullPolicyInvalid,
+				expectedPullPolicies:   []string{"Always", "Always"},
+				expectedBadPolicyValue: "Invalid",
+				expectedErr:            true,
 			},
 		}
 
@@ -181,7 +184,7 @@ func TestRunConfigFile(t *testing.T) {
 				err := config.validateRunConfig(tc.runfFile)
 				if tc.expectedErr {
 					assert.Error(t, err)
-					assert.Contains(t, err.Error(), "invalid containerImagePullPolicy: Invalid, allowed values: Always, Never, IfNotPresent")
+					assert.Contains(t, err.Error(), fmt.Sprintf("invalid containerImagePullPolicy: %s, allowed values: Always, Never, IfNotPresent", tc.expectedBadPolicyValue))
 					return
 				}
 				assert.Equal(t, tc.expectedPullPolicies[0], config.Apps[0].ContainerImagePullPolicy)
