@@ -32,6 +32,9 @@ var (
 	runFileForPrecedenceRuleDaprDir = filepath.Join(".", "testdata", "test_run_config_precedence_rule_dapr_dir.yaml")
 	runFileForLogDestination        = filepath.Join(".", "testdata", "test_run_config_log_destination.yaml")
 	runFileForMultiResourcePaths    = filepath.Join(".", "testdata", "test_run_config_multiple_resources_paths.yaml")
+
+	runFileForContainerImagePullPolicy        = filepath.Join(".", "testdata", "test_run_config_container_image_pull_policy.yaml")
+	runFileForContainerImagePullPolicyInvalid = filepath.Join(".", "testdata", "test_run_config_container_image_pull_policy_invalid.yaml")
 )
 
 func TestRunConfigFile(t *testing.T) {
@@ -142,6 +145,34 @@ func TestRunConfigFile(t *testing.T) {
 				assert.Equal(t, tc.expectedConfigFilePath, config.Apps[tc.appIndex].ConfigFile)
 			})
 		}
+	})
+
+	t.Run("test containerImagePullPolicy", func(t *testing.T) {
+		t.Run("default value is Always", func(t *testing.T) {
+			config := RunFileConfig{}
+			config.parseAppsConfig(validRunFilePath)
+			err := config.validateRunConfig(runFileForPrecedenceRuleDaprDir)
+			assert.NoError(t, err)
+			assert.Equal(t, "Always", config.Apps[0].ContainerImagePullPolicy)
+			assert.Equal(t, "Always", config.Apps[1].ContainerImagePullPolicy)
+		})
+
+		t.Run("custom value is respected", func(t *testing.T) {
+			config := RunFileConfig{}
+			config.parseAppsConfig(runFileForContainerImagePullPolicy)
+			err := config.validateRunConfig(runFileForContainerImagePullPolicy)
+			assert.NoError(t, err)
+			assert.Equal(t, "IfNotPresent", config.Apps[0].ContainerImagePullPolicy)
+			assert.Equal(t, "Always", config.Apps[1].ContainerImagePullPolicy)
+		})
+
+		t.Run("invalid value is rejected", func(t *testing.T) {
+			config := RunFileConfig{}
+			config.parseAppsConfig(runFileForContainerImagePullPolicyInvalid)
+			err := config.validateRunConfig(runFileForContainerImagePullPolicyInvalid)
+			assert.Error(t, err)
+			assert.Contains(t, err.Error(), "invalid containerImagePullPolicy: Invalid, allowed values: Always, Never, IfNotPresent")
+		})
 	})
 
 	t.Run("test precedence logic with daprInstallDir for resources-path and dapr config file", func(t *testing.T) {
