@@ -148,51 +148,6 @@ func TestRunConfigFile(t *testing.T) {
 		}
 	})
 
-	t.Run("test containerImagePullPolicy", func(t *testing.T) {
-		testcases := []struct {
-			name                   string
-			runfFile               string
-			expectedPullPolicies   []string
-			expectedBadPolicyValue string
-			expectedErr            bool
-		}{
-			{
-				name:                 "default value is Always",
-				runfFile:             validRunFilePath,
-				expectedPullPolicies: []string{"Always", "Always"},
-				expectedErr:          false,
-			},
-			{
-				name:                 "custom value is respected",
-				runfFile:             runFileForContainerImagePullPolicy,
-				expectedPullPolicies: []string{"IfNotPresent", "Always"},
-				expectedErr:          false,
-			},
-			{
-				name:                   "invalid value is rejected",
-				runfFile:               runFileForContainerImagePullPolicyInvalid,
-				expectedPullPolicies:   []string{"Always", "Always"},
-				expectedBadPolicyValue: "Invalid",
-				expectedErr:            true,
-			},
-		}
-
-		for _, tc := range testcases {
-			t.Run(tc.name, func(t *testing.T) {
-				config := RunFileConfig{}
-				config.parseAppsConfig(tc.runfFile)
-				err := config.validateRunConfig(tc.runfFile)
-				if tc.expectedErr {
-					assert.Error(t, err)
-					assert.Contains(t, err.Error(), fmt.Sprintf("invalid containerImagePullPolicy: %s, allowed values: Always, Never, IfNotPresent", tc.expectedBadPolicyValue))
-					return
-				}
-				assert.Equal(t, tc.expectedPullPolicies[0], config.Apps[0].ContainerImagePullPolicy)
-				assert.Equal(t, tc.expectedPullPolicies[1], config.Apps[1].ContainerImagePullPolicy)
-			})
-		}
-	})
-
 	t.Run("test precedence logic with daprInstallDir for resources-path and dapr config file", func(t *testing.T) {
 		config := RunFileConfig{}
 
@@ -298,6 +253,51 @@ func TestRunConfigFile(t *testing.T) {
 		assert.Equal(t, "file", apps[5].DaprdLogDestination.String())
 		assert.Equal(t, "console", apps[5].AppLogDestination.String())
 	})
+}
+
+func TestContainerImagePullPolicy(t *testing.T) {
+	testcases := []struct {
+		name                   string
+		runfFile               string
+		expectedPullPolicies   []string
+		expectedBadPolicyValue string
+		expectedErr            bool
+	}{
+		{
+			name:                 "default value is Always",
+			runfFile:             validRunFilePath,
+			expectedPullPolicies: []string{"Always", "Always"},
+			expectedErr:          false,
+		},
+		{
+			name:                 "custom value is respected",
+			runfFile:             runFileForContainerImagePullPolicy,
+			expectedPullPolicies: []string{"IfNotPresent", "Always"},
+			expectedErr:          false,
+		},
+		{
+			name:                   "invalid value is rejected",
+			runfFile:               runFileForContainerImagePullPolicyInvalid,
+			expectedPullPolicies:   []string{"Always", "Always"},
+			expectedBadPolicyValue: "Invalid",
+			expectedErr:            true,
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			config := RunFileConfig{}
+			config.parseAppsConfig(tc.runfFile)
+			err := config.validateRunConfig(tc.runfFile)
+			if tc.expectedErr {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), fmt.Sprintf("invalid containerImagePullPolicy: %s, allowed values: Always, Never, IfNotPresent", tc.expectedBadPolicyValue))
+				return
+			}
+			assert.Equal(t, tc.expectedPullPolicies[0], config.Apps[0].ContainerImagePullPolicy)
+			assert.Equal(t, tc.expectedPullPolicies[1], config.Apps[1].ContainerImagePullPolicy)
+		})
+	}
 }
 
 func TestMultiResourcePathsResolution(t *testing.T) {
