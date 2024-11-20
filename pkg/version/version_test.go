@@ -39,6 +39,16 @@ func TestGetVersionsGithub(t *testing.T) {
 			`[
   {
     "url": "https://api.github.com/repos/dapr/dapr/releases/44766923",
+    "html_url": "https://github.com/dapr/dapr/releases/tag/v1.9.3-alpha.1",
+    "id": 44766927,
+    "tag_name": "v1.9.3-alpha.1",
+    "target_commitish": "master",
+    "name": "Dapr Runtime v1.9.3-alpha.1",
+    "draft": false,
+    "prerelease": true
+  },
+  {
+    "url": "https://api.github.com/repos/dapr/dapr/releases/44766923",
     "html_url": "https://github.com/dapr/dapr/releases/tag/v1.2.3-rc.1",
     "id": 44766926,
     "tag_name": "v1.2.3-rc.1",

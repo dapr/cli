@@ -119,7 +119,9 @@ func GetLatestReleaseGithub(githubURL string) (string, error) {
 		latestVersion := defaultVersion
 
 		for _, release := range githubRepoReleases {
-			if !strings.Contains(release.TagName, "-rc") {
+			if !strings.Contains(release.TagName, "-rc") &&
+				!strings.Contains(release.TagName, "-alpha") &&
+				!strings.Contains(release.TagName, "-beta") {
 				cur, _ := version.NewVersion(strings.TrimPrefix(release.TagName, "v"))
 				if cur.GreaterThan(latestVersion) {
 					latestVersion = cur
