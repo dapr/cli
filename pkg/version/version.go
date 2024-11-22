@@ -120,7 +120,18 @@ func GetLatestReleaseGithub(githubURL string) (string, error) {
 
 		for _, release := range githubRepoReleases {
 			if !strings.Contains(release.TagName, "-rc") {
-				cur, _ := version.NewVersion(strings.TrimPrefix(release.TagName, "v"))
+				cur, err := version.NewVersion(strings.TrimPrefix(release.TagName, "v"))
+				if err != nil {
+					if strings.HasPrefix(err.Error(), "Malformed version") {
+						continue
+					}
+					return "", err
+				}
+				// just a safety check to make sure we don't get a nil version.
+				// all errors should be handled above
+				if cur == nil {
+					return "", fmt.Errorf("failed to parse version %s, resulted in nil version", release.TagName)
+				}
 				if cur.GreaterThan(latestVersion) {
 					latestVersion = cur
 				}
