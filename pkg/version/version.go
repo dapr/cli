@@ -119,22 +119,18 @@ func GetLatestReleaseGithub(githubURL string) (string, error) {
 		latestVersion := defaultVersion
 
 		for _, release := range githubRepoReleases {
-			if !strings.Contains(release.TagName, "-rc") {
-				cur, err := version.NewVersion(strings.TrimPrefix(release.TagName, "v"))
-				if err != nil {
-					if strings.HasPrefix(err.Error(), "Malformed version") {
-						continue
-					}
-					return "", err
-				}
-				// just a safety check to make sure we don't get a nil version.
-				// all errors should be handled above.
-				if cur == nil {
-					continue
-				}
-				if cur.GreaterThan(latestVersion) {
-					latestVersion = cur
-				}
+			cur, err := version.NewVersion(strings.TrimPrefix(release.TagName, "v"))
+			if err != nil || cur == nil {
+				print.WarningStatusEvent(os.Stdout, "Malformed version %s, skipping", release.TagName)
+				continue
+			}
+			// Prerelease versions and versions with metadata are skipped.
+			if cur.Prerelease() != "" || cur.Metadata() != "" {
+				continue
+			}
+
+			if cur.GreaterThan(latestVersion) {
+				latestVersion = cur
 			}
 		}
 
