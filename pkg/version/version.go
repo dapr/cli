@@ -22,7 +22,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-version"
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/utils"
@@ -120,7 +120,11 @@ func GetLatestReleaseGithub(githubURL string) (string, error) {
 
 		for _, release := range githubRepoReleases {
 			if !strings.Contains(release.TagName, "-rc") {
-				cur, _ := version.NewVersion(strings.TrimPrefix(release.TagName, "v"))
+				cur, curErr := version.NewVersion(strings.TrimPrefix(release.TagName, "v"))
+				if curErr != nil {
+					print.WarningStatusEvent(os.Stdout, "Failed to parse version: '%s'", curErr)
+					continue
+				}
 				if cur.GreaterThan(latestVersion) {
 					latestVersion = cur
 				}
