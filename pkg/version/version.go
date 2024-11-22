@@ -128,7 +128,7 @@ func GetLatestReleaseGithub(githubURL string) (string, error) {
 					return "", err
 				}
 				// just a safety check to make sure we don't get a nil version.
-				// all errors should be handled above
+				// all errors should be handled above.
 				if cur == nil {
 					return "", fmt.Errorf("failed to parse version %s, resulted in nil version", release.TagName)
 				}
