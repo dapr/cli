@@ -130,7 +130,7 @@ func GetLatestReleaseGithub(githubURL string) (string, error) {
 				// just a safety check to make sure we don't get a nil version.
 				// all errors should be handled above.
 				if cur == nil {
-					return "", fmt.Errorf("failed to parse version %s, resulted in nil version", release.TagName)
+					continue
 				}
 				if cur.GreaterThan(latestVersion) {
 					latestVersion = cur
