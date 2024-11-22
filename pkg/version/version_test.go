@@ -162,6 +162,52 @@ func TestGetVersionsGithub(t *testing.T) {
 			"no releases",
 			"",
 		},
+		{
+			"Malformed version no releases",
+			"/malformed_version_no_releases",
+			`[
+  {
+    "url": "https://api.github.com/repos/dapr/dapr/releases/186741665",
+    "html_url": "https://github.com/dapr/dapr/releases/tag/vedge",
+    "id": 186741665,
+    "tag_name": "vedge",
+    "target_commitish": "master",
+    "name": "Dapr Runtime vedge",
+    "draft": false,
+    "prerelease": false
+  }
+]			`,
+			"no releases",
+			"",
+		},
+		{
+			"Malformed version with latest",
+			"/malformed_version_with_latest",
+			`[
+  {
+    "url": "https://api.github.com/repos/dapr/dapr/releases/186741665",
+    "html_url": "https://github.com/dapr/dapr/releases/tag/vedge",
+    "id": 186741665,
+    "tag_name": "vedge",
+    "target_commitish": "master",
+    "name": "Dapr Runtime vedge",
+    "draft": false,
+    "prerelease": false
+  },
+  {
+	"url": "https://api.github.com/repos/dapr/dapr/releases/44766923",
+	"html_url": "https://github.com/dapr/dapr/releases/tag/v1.5.1",
+	"id": 44766923,
+	"tag_name": "v1.5.1",
+	"target_commitish": "master",
+	"name": "Dapr Runtime v1.5.1",
+	"draft": false,
+	"prerelease": false
+  }
+]			`,
+			"",
+			"1.5.1",
+		},
 	}
 	m := http.NewServeMux()
 	s := http.Server{Addr: ":12345", Handler: m, ReadHeaderTimeout: time.Duration(5) * time.Second}
