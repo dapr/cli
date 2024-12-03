@@ -297,7 +297,7 @@ func createDeploymentConfig(client versioned.Interface, app runfileconfig.App) d
 						Name:            app.AppID,
 						Image:           app.ContainerImage,
 						Env:             getEnv(app),
-						ImagePullPolicy: corev1.PullAlways,
+						ImagePullPolicy: corev1.PullPolicy(app.ContainerImagePullPolicy),
 					},
 				},
 			},
