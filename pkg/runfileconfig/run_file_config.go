@@ -41,8 +41,9 @@ type RunFileConfig struct {
 
 // ContainerConfiguration represents the application container configuration parameters.
 type ContainerConfiguration struct {
-	ContainerImage string `yaml:"containerImage"`
-	CreateService  bool   `yaml:"createService"`
+	ContainerImage           string `yaml:"containerImage"`
+	ContainerImagePullPolicy string `yaml:"containerImagePullPolicy"`
+	CreateService            bool   `yaml:"createService"`
 }
 
 // App represents the configuration options for the apps in the run file.
