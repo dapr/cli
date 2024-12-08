@@ -14,12 +14,15 @@ limitations under the License.
 package kubernetes
 
 import (
+	"errors"
 	"flag"
 	"sync"
 
+	"k8s.io/apimachinery/pkg/runtime"
 	k8s "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	scheme "github.com/dapr/dapr/pkg/client/clientset/versioned"
 
@@ -31,6 +34,14 @@ import (
 
 	//  oidc auth
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
+
+	componentsapi "github.com/dapr/dapr/pkg/apis/components/v1alpha1"
+	configurationapi "github.com/dapr/dapr/pkg/apis/configuration/v1alpha1"
+	httpendpointsapi "github.com/dapr/dapr/pkg/apis/httpEndpoint/v1alpha1"
+	resiliencyapi "github.com/dapr/dapr/pkg/apis/resiliency/v1alpha1"
+	subscriptionsapiV1alpha1 "github.com/dapr/dapr/pkg/apis/subscriptions/v1alpha1"
+	subapi "github.com/dapr/dapr/pkg/apis/subscriptions/v2alpha1"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
 var (
@@ -95,4 +106,42 @@ func DaprClient() (scheme.Interface, error) {
 		return nil, err
 	}
 	return scheme.NewForConfig(config)
+}
+
+// buildScheme builds the scheme for the controller-runtime client
+// from https://github.com/dapr/dapr/blob/eb49e564fbd704ceb1379498fc8e94ad7110840f/pkg/operator/operator.go#L444-L466
+func buildScheme() (*runtime.Scheme, error) {
+	builders := []func(*runtime.Scheme) error{
+		clientgoscheme.AddToScheme,
+		componentsapi.AddToScheme,
+		configurationapi.AddToScheme,
+		resiliencyapi.AddToScheme,
+		httpendpointsapi.AddToScheme,
+		subscriptionsapiV1alpha1.AddToScheme,
+		subapi.AddToScheme,
+	}
+
+	errs := make([]error, len(builders))
+	scheme := runtime.NewScheme()
+	for i, builder := range builders {
+		errs[i] = builder(scheme)
+	}
+
+	return scheme, errors.Join(errs...)
+}
+
+// CtrlClient returns a new Controller-Runtime Client (https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/client) - no caching
+// with the scheme built with the Dapr API groups.
+func CtrlClient() (client.Client, error) {
+	config, err := getConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	scheme, err := buildScheme()
+	if err != nil {
+		return nil, err
+	}
+
+	return client.New(config, client.Options{Scheme: scheme})
 }
