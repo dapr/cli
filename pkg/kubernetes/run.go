@@ -119,6 +119,23 @@ func Run(runFilePath string, config runfileconfig.RunFileConfig) (bool, error) {
 	runStates := []runState{}
 	print.InfoStatusEvent(os.Stdout, "This is a preview feature and subject to change in future releases.")
 
+	ctrlClient, cErr := CtrlClient()
+	if cErr != nil {
+		// exit with error.
+		return true, fmt.Errorf("error getting controller-runtime k8s client: %w", cErr)
+	}
+
+	resources, err := getResources(config.Common.ResourcesPath)
+	if err != nil {
+		print.FailureStatusEvent(os.Stderr, "Error getting resources from %q: %s", config.Common.ResourcesPath, err.Error())
+		exitWithError = true
+	}
+
+	if err := createOrUpdateResources(context.Background(), ctrlClient, resources, namespace); err != nil {
+		print.FailureStatusEvent(os.Stderr, "Error creating or updating resources: %s", err.Error())
+		exitWithError = true
+	}
+
 	for _, app := range config.Apps {
 		print.StatusEvent(os.Stdout, print.LogInfo, "Validating config and starting app %q", app.RunConfig.AppID)
 		// Set defaults if zero value provided in config yaml.
@@ -140,11 +157,7 @@ func Run(runFilePath string, config runfileconfig.RunFileConfig) (bool, error) {
 
 		// create default deployment config.
 		dep := createDeploymentConfig(daprClient, app)
-		if err != nil {
-			print.FailureStatusEvent(os.Stderr, "Error creating deployment file for app %q present in %s: %s", app.RunConfig.AppID, runFilePath, err.Error())
-			exitWithError = true
-			break
-		}
+
 		// overwrite <app-id>/.dapr/deploy/service.yaml.
 		// overwrite <app-id>/.dapr/deploy/deployment.yaml.
 
@@ -297,7 +310,7 @@ func createDeploymentConfig(client versioned.Interface, app runfileconfig.App) d
 						Name:            app.AppID,
 						Image:           app.ContainerImage,
 						Env:             getEnv(app),
-						ImagePullPolicy: corev1.PullAlways,
+						ImagePullPolicy: corev1.PullPolicy(app.ContainerImagePullPolicy),
 					},
 				},
 			},
