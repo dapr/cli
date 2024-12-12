@@ -121,8 +121,8 @@ func Run(runFilePath string, config runfileconfig.RunFileConfig) (bool, error) {
 
 	ctrlClient, cErr := CtrlClient()
 	if cErr != nil {
-		// exit with error.
-		return true, fmt.Errorf("error getting controller-runtime k8s client: %w", cErr)
+		print.FailureStatusEvent(os.Stderr, "Error getting controller-runtime k8s client: %s", cErr.Error())
+		exitWithError = true
 	}
 
 	resources, err := getResources(config.Common.ResourcesPath)

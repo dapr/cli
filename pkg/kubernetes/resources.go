@@ -15,6 +15,9 @@ import (
 	"github.com/dapr/cli/pkg/print"
 )
 
+// getResources returns a list of Kubernetes resources from the given resources folder.
+// There can be only one configuration file as dapr cli is not enabled to take a configuration per app and can only
+// use the configuration named `appconfig`.
 func getResources(resourcesFolder string) ([]client.Object, error) {
 	// Create YAML decoder
 	decUnstructured := yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
@@ -24,6 +27,10 @@ func getResources(resourcesFolder string) ([]client.Object, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error reading resources folder: %w", err)
 	}
+
+	// we can only have one configuration file as dapr cli is not enabled to take a configuration per app and can only
+	// use the configuration named `appconfig`.
+	var configurationAlreadyFound bool
 
 	var resources []client.Object
 	for _, file := range files {
@@ -42,6 +49,15 @@ func getResources(resourcesFolder string) ([]client.Object, error) {
 		_, _, err = decUnstructured.Decode(content, nil, obj)
 		if err != nil {
 			return nil, fmt.Errorf("error decoding file %s: %w", file.Name(), err)
+		}
+
+		// check if the resource is a configuration
+		if obj.GetKind() == "Configuration" {
+			if configurationAlreadyFound {
+				return nil, fmt.Errorf("error: multiple configuration files found in %s. Only one configuration file is allowed", resourcesFolder)
+			}
+			configurationAlreadyFound = true
+			obj.SetName("appconfig")
 		}
 
 		resources = append(resources, obj)
