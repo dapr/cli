@@ -24,6 +24,8 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/mod/semver"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -38,34 +40,35 @@ import (
 )
 
 var (
-	appPort            int
-	profilePort        int
-	appID              string
-	configFile         string
-	port               int
-	grpcPort           int
-	internalGRPCPort   int
-	maxConcurrency     int
-	enableProfiling    bool
-	logLevel           string
-	protocol           string
-	componentsPath     string
-	resourcesPaths     []string
-	appSSL             bool
-	metricsPort        int
-	maxRequestBodySize int
-	readBufferSize     int
-	unixDomainSocket   string
-	enableAppHealth    bool
-	appHealthPath      string
-	appHealthInterval  int
-	appHealthTimeout   int
-	appHealthThreshold int
-	enableAPILogging   bool
-	apiListenAddresses string
-	runFilePath        string
-	appChannelAddress  string
-	enableRunK8s       bool
+	appPort              int
+	profilePort          int
+	appID                string
+	configFile           string
+	port                 int
+	grpcPort             int
+	internalGRPCPort     int
+	maxConcurrency       int
+	enableProfiling      bool
+	logLevel             string
+	protocol             string
+	componentsPath       string
+	resourcesPaths       []string
+	appSSL               bool
+	metricsPort          int
+	maxRequestBodySize   int
+	readBufferSize       int
+	unixDomainSocket     string
+	enableAppHealth      bool
+	appHealthPath        string
+	appHealthInterval    int
+	appHealthTimeout     int
+	appHealthThreshold   int
+	enableAPILogging     bool
+	apiListenAddresses   string
+	schedulerHostAddress string
+	runFilePath          string
+	appChannelAddress    string
+	enableRunK8s         bool
 )
 
 const (
@@ -120,7 +123,6 @@ dapr run --run-file /path/to/directory -k
 	Args: cobra.MinimumNArgs(0),
 	PreRun: func(cmd *cobra.Command, args []string) {
 		viper.BindPFlag("placement-host-address", cmd.Flags().Lookup("placement-host-address"))
-		viper.BindPFlag("scheduler-host-address", cmd.Flags().Lookup("scheduler-host-address"))
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(runFilePath) > 0 {
@@ -166,26 +168,26 @@ dapr run --run-file /path/to/directory -k
 		}
 
 		sharedRunConfig := &standalone.SharedRunConfig{
-			ConfigFile:         configFile,
-			EnableProfiling:    enableProfiling,
-			LogLevel:           logLevel,
-			MaxConcurrency:     maxConcurrency,
-			AppProtocol:        protocol,
-			PlacementHostAddr:  viper.GetString("placement-host-address"),
-			SchedulerHostAddr:  viper.GetString("scheduler-host-address"),
-			ComponentsPath:     componentsPath,
-			ResourcesPaths:     resourcesPaths,
-			AppSSL:             appSSL,
-			MaxRequestBodySize: maxRequestBodySize,
-			HTTPReadBufferSize: readBufferSize,
-			EnableAppHealth:    enableAppHealth,
-			AppHealthPath:      appHealthPath,
-			AppHealthInterval:  appHealthInterval,
-			AppHealthTimeout:   appHealthTimeout,
-			AppHealthThreshold: appHealthThreshold,
-			EnableAPILogging:   enableAPILogging,
-			APIListenAddresses: apiListenAddresses,
-			DaprdInstallPath:   daprRuntimePath,
+			ConfigFile:           configFile,
+			EnableProfiling:      enableProfiling,
+			LogLevel:             logLevel,
+			MaxConcurrency:       maxConcurrency,
+			AppProtocol:          protocol,
+			PlacementHostAddr:    viper.GetString("placement-host-address"),
+			ComponentsPath:       componentsPath,
+			ResourcesPaths:       resourcesPaths,
+			AppSSL:               appSSL,
+			MaxRequestBodySize:   maxRequestBodySize,
+			HTTPReadBufferSize:   readBufferSize,
+			EnableAppHealth:      enableAppHealth,
+			AppHealthPath:        appHealthPath,
+			AppHealthInterval:    appHealthInterval,
+			AppHealthTimeout:     appHealthTimeout,
+			AppHealthThreshold:   appHealthThreshold,
+			EnableAPILogging:     enableAPILogging,
+			APIListenAddresses:   apiListenAddresses,
+			SchedulerHostAddress: schedulerHostAddress,
+			DaprdInstallPath:     daprRuntimePath,
 		}
 		output, err := runExec.NewOutput(&standalone.RunConfig{
 			AppID:             appID,
@@ -226,6 +228,15 @@ dapr run --run-file /path/to/directory -k
 					output.AppID,
 					output.DaprHTTPPort,
 					output.DaprGRPCPort)
+			}
+
+			if (daprVer.RuntimeVersion != "edge") && (semver.Compare(fmt.Sprintf("v%v", daprVer.RuntimeVersion), "v1.14.0-rc.1") == -1) {
+				print.InfoStatusEvent(os.Stdout, "The scheduler is only compatible with dapr runtime 1.14 onwards.")
+				for i, arg := range output.DaprCMD.Args {
+					if strings.HasPrefix(arg, "--scheduler-host-address") {
+						output.DaprCMD.Args[i] = ""
+					}
+				}
 			}
 			print.InfoStatusEvent(os.Stdout, startInfo)
 
@@ -456,7 +467,7 @@ func init() {
 	// By marking this as deprecated, the flag will be hidden from the help menu, but will continue to work. It will show a warning message when used.
 	RunCmd.Flags().MarkDeprecated("components-path", "This flag is deprecated and will be removed in the future releases. Use \"resources-path\" flag instead")
 	RunCmd.Flags().String("placement-host-address", "localhost", "The address of the placement service. Format is either <hostname> for default port or <hostname>:<port> for custom port")
-	RunCmd.Flags().String("scheduler-host-address", "localhost", "The address of the scheduler service. Format is either <hostname> for default port or <hostname>:<port> for custom port")
+	RunCmd.Flags().StringVarP(&schedulerHostAddress, "scheduler-host-address", "", "localhost", "The address of the scheduler service. Format is either <hostname> for default port or <hostname>:<port> for custom port")
 	// TODO: Remove below flag once the flag is removed in runtime in future release.
 	RunCmd.Flags().BoolVar(&appSSL, "app-ssl", false, "Enable https when Dapr invokes the application")
 	RunCmd.Flags().MarkDeprecated("app-ssl", "This flag is deprecated and will be removed in the future releases. Use \"app-protocol\" flag with https or grpcs values instead")

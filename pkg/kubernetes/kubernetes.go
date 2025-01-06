@@ -40,6 +40,7 @@ const (
 	daprReleaseName      = "dapr"
 	dashboardReleaseName = "dapr-dashboard"
 	latestVersion        = "latest"
+	bitnamiStableVersion = "17.14.5"
 
 	// dev mode constants.
 	thirdPartyDevNamespace   = "default"
@@ -47,7 +48,7 @@ const (
 	redisChartName           = "redis"
 	zipkinReleaseName        = "dapr-dev-zipkin"
 	redisReleaseName         = "dapr-dev-redis"
-	redisVersion             = "6.2"
+	redisVersion             = "6.2.11"
 	bitnamiHelmRepo          = "https://charts.bitnami.com/bitnami"
 	daprHelmRepo             = "https://dapr.github.io/helm-charts"
 	zipkinHelmRepo           = "https://openzipkin.github.io/zipkin"
@@ -99,9 +100,10 @@ func Init(config InitConfiguration) error {
 	if config.EnableDev {
 		redisChartVals := []string{
 			"image.tag=" + redisVersion,
+			"replica.replicaCount=0",
 		}
 
-		err = installThirdPartyWithConsole(redisReleaseName, redisChartName, latestVersion, bitnamiHelmRepo, "Dapr Redis", redisChartVals, config)
+		err = installThirdPartyWithConsole(redisReleaseName, redisChartName, bitnamiStableVersion, bitnamiHelmRepo, "Dapr Redis", redisChartVals, config)
 		if err != nil {
 			return err
 		}
@@ -124,7 +126,7 @@ func installThirdPartyWithConsole(releaseName, chartName, releaseVersion, helmRe
 	defer installSpinning(print.Failure)
 
 	// releaseVersion of chart will always be latest version.
-	err := installThirdParty(releaseName, chartName, latestVersion, helmRepo, chartValues, config)
+	err := installThirdParty(releaseName, chartName, releaseVersion, helmRepo, chartValues, config)
 	if err != nil {
 		return err
 	}
@@ -214,7 +216,7 @@ func getHelmChart(version, releaseName, helmRepo string, config *helm.Configurat
 
 	pull.Settings = &cli.EnvSettings{}
 
-	if version != latestVersion && (releaseName == daprReleaseName || releaseName == dashboardReleaseName) {
+	if version != latestVersion && (releaseName == daprReleaseName || releaseName == dashboardReleaseName || releaseName == redisChartName) {
 		pull.Version = chartVersion(version)
 	}
 
