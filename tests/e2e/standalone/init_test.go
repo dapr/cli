@@ -1,5 +1,4 @@
 //go:build e2e && !template
-// +build e2e,!template
 
 /*
 Copyright 2022 The Dapr Authors
@@ -18,12 +17,16 @@ package standalone_test
 
 import (
 	"context"
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/Masterminds/semver"
 	"github.com/dapr/cli/tests/e2e/common"
 	"github.com/dapr/cli/tests/e2e/spawn"
 	"github.com/docker/docker/api/types"
@@ -157,6 +160,49 @@ func TestStandaloneInit(t *testing.T) {
 		verifyContainers(t, latestDaprRuntimeVersion)
 		verifyBinaries(t, daprPath, latestDaprRuntimeVersion, latestDaprDashboardVersion)
 		verifyConfigs(t, daprPath)
+
+		placementPort := 50005
+		if runtime.GOOS == "windows" {
+			placementPort = 6050
+		}
+
+		verifyTCPLocalhost(t, placementPort)
+	})
+
+	t.Run("init version with scheduler", func(t *testing.T) {
+		// Ensure a clean environment
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+
+		latestDaprRuntimeVersion, latestDaprDashboardVersion := common.GetVersionsFromEnv(t, true)
+
+		args := []string{
+			"--runtime-version", latestDaprRuntimeVersion,
+			"--dev",
+		}
+		output, err := cmdInit(args...)
+		t.Log(output)
+		require.NoError(t, err, "init failed")
+		assert.Contains(t, output, "Success! Dapr is up and running.")
+
+		homeDir, err := os.UserHomeDir()
+		require.NoError(t, err, "failed to get user home directory")
+
+		daprPath := filepath.Join(homeDir, ".dapr")
+		require.DirExists(t, daprPath, "Directory %s does not exist", daprPath)
+
+		verifyContainers(t, latestDaprRuntimeVersion)
+		verifyBinaries(t, daprPath, latestDaprRuntimeVersion, latestDaprDashboardVersion)
+		verifyConfigs(t, daprPath)
+
+		placementPort := 50005
+		schedulerPort := 50006
+		if runtime.GOOS == "windows" {
+			placementPort = 6050
+			schedulerPort = 6060
+		}
+
+		verifyTCPLocalhost(t, placementPort)
+		verifyTCPLocalhost(t, schedulerPort)
 	})
 
 	t.Run("init without runtime-version flag with mariner images", func(t *testing.T) {
@@ -187,10 +233,11 @@ func TestStandaloneInit(t *testing.T) {
 // Note, in case of slim installation, the containers are not installed and
 // this test is automatically skipped.
 func verifyContainers(t *testing.T, daprRuntimeVersion string) {
+	t.Helper()
+
 	t.Run("verifyContainers", func(t *testing.T) {
 		if isSlimMode() {
-			t.Log("Skipping container verification because of slim installation")
-			return
+			t.Skip("Skipping container verification because of slim installation")
 		}
 
 		cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv)
@@ -203,6 +250,12 @@ func verifyContainers(t *testing.T, daprRuntimeVersion string) {
 			"dapr_placement": daprRuntimeVersion,
 			"dapr_zipkin":    "",
 			"dapr_redis":     "",
+		}
+
+		v, err := semver.NewVersion(daprRuntimeVersion)
+		require.NoError(t, err)
+		if v.Major() >= 1 && v.Minor() >= 14 {
+			daprContainers["dapr_scheduler"] = daprRuntimeVersion
 		}
 
 		for _, container := range containers {
@@ -233,6 +286,8 @@ func verifyContainers(t *testing.T, daprRuntimeVersion string) {
 
 // verifyBinaries ensures that the correct binaries are present in the correct path.
 func verifyBinaries(t *testing.T, daprPath, runtimeVersion, dashboardVersion string) {
+	t.Helper()
+
 	binPath := filepath.Join(daprPath, "bin")
 	require.DirExists(t, binPath, "Directory %s does not exist", binPath)
 
@@ -247,6 +302,8 @@ func verifyBinaries(t *testing.T, daprPath, runtimeVersion, dashboardVersion str
 
 	for bin, version := range binaries {
 		t.Run("verifyBinaries/"+bin, func(t *testing.T) {
+			t.Helper()
+
 			file := filepath.Join(binPath, bin)
 			if runtime.GOOS == "windows" {
 				file += ".exe"
@@ -265,6 +322,8 @@ func verifyBinaries(t *testing.T, daprPath, runtimeVersion, dashboardVersion str
 // verifyConfigs ensures that the Dapr configuration and component YAMLs
 // are present in the correct path and have the correct values.
 func verifyConfigs(t *testing.T, daprPath string) {
+	t.Helper()
+
 	configSpec := map[interface{}]interface{}{}
 	// tracing is not enabled in slim mode by default.
 	if !isSlimMode() {
@@ -352,4 +411,23 @@ func verifyConfigs(t *testing.T, daprPath string) {
 			assert.Equal(t, expected, actual)
 		})
 	}
+}
+
+// verifyTCPLocalhost verifies a given localhost TCP port is being listened to.
+func verifyTCPLocalhost(t *testing.T, port int) {
+	t.Helper()
+
+	if isSlimMode() {
+		t.Skip("Skipping container verification because of slim installation")
+	}
+
+	// Check that the server is up and can accept connections.
+	endpoint := "127.0.0.1:" + strconv.Itoa(port)
+	assert.EventuallyWithT(t, func(c *assert.CollectT) {
+		conn, err := net.Dial("tcp", endpoint)
+		//nolint:testifylint
+		if assert.NoError(c, err) {
+			conn.Close()
+		}
+	}, time.Second*10, time.Millisecond*10)
 }
