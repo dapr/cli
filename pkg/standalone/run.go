@@ -14,6 +14,7 @@ limitations under the License.
 package standalone
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
@@ -28,7 +29,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/dapr/cli/pkg/print"
-	"github.com/dapr/dapr/pkg/components"
+	localloader "github.com/dapr/dapr/pkg/components/loader"
 )
 
 type LogDestType string
@@ -113,8 +114,8 @@ func (config *RunConfig) validateResourcesPaths() error {
 			return fmt.Errorf("error validating resources path %q : %w", dirPath, err)
 		}
 	}
-	componentsLoader := components.NewLocalComponents(dirPath...)
-	_, err := componentsLoader.Load()
+	localLoader := localloader.NewLocalLoader(config.AppID, dirPath)
+	err := localLoader.Validate(context.Background())
 	if err != nil {
 		return fmt.Errorf("error validating components in resources path %q : %w", dirPath, err)
 	}
