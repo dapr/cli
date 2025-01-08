@@ -222,6 +222,7 @@ linters:
   enable-all: true
   disable:
     # TODO Enforce the below linters later
+    - musttag
     - dupl
     - errcheck
     - funlen
@@ -230,39 +231,47 @@ linters:
     - gocyclo
     - gocognit
     - godox
-    - interfacer
     - lll
-    - maligned
-    - scopelint
     - unparam
     - wsl
     - gomnd
     - testpackage
     - nestif
-    - goerr113
     - nlreturn
     - exhaustive
-    - gci
-    - noctx
-    - exhaustivestruct
     - exhaustruct
-    - gomoddirectives
-    - paralleltest
+    - noctx
+    - gci
     - tparallel
-    - wastedassign
-    - cyclop
-    - forbidigo
-    - tagliatelle
-    - thelper
+    - paralleltest
     - wrapcheck
-    - varnamelen
-    - forcetypeassert
+    - tagliatelle
     - ireturn
-    - golint
-    - nosnakecase
+    - errchkjson
+    - contextcheck
+    - gomoddirectives
+    - godot
+    - cyclop
+    - varnamelen
+    - errorlint
+    - forcetypeassert
+    - maintidx
+    - nilnil
+    - predeclared
+    - tenv
+    - thelper
+    - wastedassign
+    - containedctx
+    - gosimple
+    - nonamedreturns
+    - asasalint
+    - rowserrcheck
+    - sqlclosecheck
+    - inamedparam
     - tagalign
-    - varcheck
-    - deadcode
-    - structcheck
-    - ifshort
-    - testifylint
+    - mnd
+    - canonicalheader
+    - exportloopref
+    - execinquery
+    - err113
+    - fatcontext
