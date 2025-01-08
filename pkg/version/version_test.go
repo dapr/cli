@@ -225,7 +225,7 @@ func TestGetVersionsGithub(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) {
-			version, err := GetLatestReleaseGithub(fmt.Sprintf("http://localhost:12345%s", tc.Path))
+			version, err := GetLatestReleaseGithub("http://localhost:12345" + tc.Path)
 			assert.Equal(t, tc.ExpectedVer, version)
 			if tc.ExpectedErr != "" {
 				assert.EqualError(t, err, tc.ExpectedErr)
@@ -334,7 +334,7 @@ entries:
 
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) {
-			version, err := GetLatestReleaseHelmChart(fmt.Sprintf("http://localhost:12346%s", tc.Path))
+			version, err := GetLatestReleaseHelmChart("http://localhost:12346" + tc.Path)
 			assert.Equal(t, tc.ExpectedVer, version)
 			if tc.ExpectedErr != "" {
 				assert.EqualError(t, err, tc.ExpectedErr)

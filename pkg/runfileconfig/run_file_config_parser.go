@@ -72,7 +72,7 @@ func (a *RunFileConfig) validateRunConfig(runFilePath string) error {
 		a.Common.ResourcesPaths = append(a.Common.ResourcesPaths, a.Common.ResourcesPath)
 	}
 
-	for i := 0; i < len(a.Apps); i++ {
+	for i := range len(a.Apps) {
 		if a.Apps[i].AppDirPath == "" {
 			return errors.New("required field 'appDirPath' not found in the provided app config file")
 		}
@@ -223,9 +223,6 @@ func (a *RunFileConfig) resolvePathToAbsAndValidate(baseDir string, paths ...*st
 			return err
 		}
 		absPath := utils.GetAbsPath(baseDir, *path)
-		if err != nil {
-			return err
-		}
 		*path = absPath
 		if err = utils.ValidateFilePath(*path); err != nil {
 			return err

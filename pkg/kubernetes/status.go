@@ -65,7 +65,6 @@ func NewStatusClient() (*StatusClient, error) {
 
 // List status for Dapr resources.
 func (s *StatusClient) Status() ([]StatusOutput, error) {
-	//nolint
 	client := s.client
 	if client == nil {
 		return nil, errors.New("kubernetes client not initialized")

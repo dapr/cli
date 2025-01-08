@@ -45,7 +45,7 @@ func TestRunConfigFile(t *testing.T) {
 		err := appsRunConfig.parseAppsConfig(validRunFilePath)
 
 		assert.NoError(t, err)
-		assert.Equal(t, 2, len(appsRunConfig.Apps))
+		assert.Len(t, appsRunConfig.Apps, 2)
 
 		assert.Equal(t, 1, appsRunConfig.Version)
 		assert.NotEmpty(t, appsRunConfig.Common.ResourcesPath)
@@ -64,7 +64,7 @@ func TestRunConfigFile(t *testing.T) {
 
 		apps, err := config.GetApps(validRunFilePath)
 		assert.NoError(t, err)
-		assert.Equal(t, 2, len(apps))
+		assert.Len(t, apps, 2)
 		assert.Equal(t, "webapp", apps[0].AppID)
 		assert.Equal(t, "backend", apps[1].AppID)
 		assert.Equal(t, "HTTP", apps[0].AppProtocol)
@@ -90,8 +90,8 @@ func TestRunConfigFile(t *testing.T) {
 		assert.Equal(t, filepath.Join(apps[1].AppDirPath, ".dapr", "resources"), apps[1].ResourcesPaths[0])
 
 		// test merged envs from common and app sections.
-		assert.Equal(t, 2, len(apps[0].Env))
-		assert.Equal(t, 2, len(apps[1].Env))
+		assert.Len(t, apps[0].Env, 2)
+		assert.Len(t, apps[1].Env, 2)
 		assert.Contains(t, apps[0].Env, "DEBUG")
 		assert.Contains(t, apps[0].Env, "tty")
 		assert.Contains(t, apps[1].Env, "DEBUG")
@@ -233,7 +233,7 @@ func TestRunConfigFile(t *testing.T) {
 		config := RunFileConfig{}
 		apps, err := config.GetApps(runFileForLogDestination)
 		assert.NoError(t, err)
-		assert.Equal(t, 6, len(apps))
+		assert.Len(t, apps, 6)
 
 		assert.Equal(t, "file", apps[0].DaprdLogDestination.String())
 		assert.Equal(t, "fileAndConsole", apps[0].AppLogDestination.String())
@@ -346,7 +346,7 @@ func TestMultiResourcePathsResolution(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.expectedNoOfResources, len(config.Apps[tc.appIndex].ResourcesPaths))
+			assert.Len(t, config.Apps[tc.appIndex].ResourcesPaths, tc.expectedNoOfResources)
 			var rsrcFound bool
 			for _, resourcePath := range config.Apps[tc.appIndex].ResourcesPaths {
 				if rsrcFound = strings.Contains(resourcePath, tc.expectedResourcesPathsContains); rsrcFound {

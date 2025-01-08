@@ -212,7 +212,7 @@ func TestGetQueryParams(t *testing.T) {
 		queryParams := getQueryParams(tc.metadata)
 
 		if queryParams != "" {
-			assert.True(t, queryParams[0] == '?', "expected query params to start with '?'")
+			assert.Equal(t, '?', queryParams[0], "expected query params to start with '?'")
 			queryParams = queryParams[1:]
 		}
 
