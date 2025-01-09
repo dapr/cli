@@ -69,7 +69,7 @@ func tryGetRunDataLock() (*lockfile.Lockfile, error) {
 		return nil, err
 	}
 
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		err = lockFile.TryLock()
 
 		// Error handling is essential, as we only try to get the lock.

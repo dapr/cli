@@ -292,7 +292,6 @@ func TestAnnotate(t *testing.T) {
 			var out bytes.Buffer
 			in := []io.Reader{inputFile}
 			for i, annotation := range tt.annotations {
-				annotation := annotation
 				annotator := NewK8sAnnotator(K8sAnnotatorConfig{
 					TargetResource:  &annotation.targetResource,
 					TargetNamespace: &annotation.targetNamespace,
@@ -334,7 +333,7 @@ func TestAnnotate(t *testing.T) {
 
 			for i := range expectedDocs {
 				if tt.printOutput {
-					t.Logf(outDocs[i])
+					t.Logf(outDocs[i]) //nolint:govet
 				}
 				assert.YAMLEq(t, expectedDocs[i], outDocs[i])
 			}

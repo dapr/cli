@@ -15,6 +15,7 @@ package version
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -112,7 +113,7 @@ func GetLatestReleaseGithub(githubURL string) (string, error) {
 		}
 
 		if len(githubRepoReleases) == 0 {
-			return "", fmt.Errorf("no releases")
+			return "", errors.New("no releases")
 		}
 
 		defaultVersion, _ := version.NewVersion("0.0.0")
@@ -135,7 +136,7 @@ func GetLatestReleaseGithub(githubURL string) (string, error) {
 		}
 
 		if latestVersion.Equal(defaultVersion) {
-			return "", fmt.Errorf("no releases")
+			return "", errors.New("no releases")
 		}
 
 		return latestVersion.String(), nil
@@ -151,7 +152,7 @@ func GetLatestReleaseHelmChart(helmChartURL string) (string, error) {
 			return "", err
 		}
 		if len(helmChartReleases.Entries.Dapr) == 0 {
-			return "", fmt.Errorf("no releases")
+			return "", errors.New("no releases")
 		}
 
 		for _, release := range helmChartReleases.Entries.Dapr {
@@ -166,6 +167,6 @@ func GetLatestReleaseHelmChart(helmChartURL string) (string, error) {
 			return release.Version, nil
 		}
 
-		return "", fmt.Errorf("no releases")
+		return "", errors.New("no releases")
 	})
 }

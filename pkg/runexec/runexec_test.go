@@ -80,10 +80,10 @@ func setupRun(t *testing.T) {
 	componentsDir := standalone.GetDaprComponentsPath(myDaprPath)
 	configFile := standalone.GetDaprConfigPath(myDaprPath)
 	err = os.MkdirAll(componentsDir, 0o700)
-	assert.Equal(t, nil, err, "Unable to setup components dir before running test")
+	assert.NoError(t, err, "Unable to setup components dir before running test")
 	file, err := os.Create(configFile)
 	file.Close()
-	assert.Equal(t, nil, err, "Unable to create config file before running test")
+	assert.NoError(t, err, "Unable to create config file before running test")
 }
 
 func tearDownRun(t *testing.T) {
@@ -94,9 +94,9 @@ func tearDownRun(t *testing.T) {
 	configFile := standalone.GetDaprConfigPath(myDaprPath)
 
 	err = os.RemoveAll(componentsDir)
-	assert.Equal(t, nil, err, "Unable to delete default components dir after running test")
+	assert.NoError(t, err, "Unable to delete default components dir after running test")
 	err = os.Remove(configFile)
-	assert.Equal(t, nil, err, "Unable to delete default config file after running test")
+	assert.NoError(t, err, "Unable to delete default config file after running test")
 }
 
 func assertCommonArgs(t *testing.T, basicConfig *standalone.RunConfig, output *RunOutput) {
@@ -301,10 +301,10 @@ func TestRun(t *testing.T) {
 		basicConfig.SetDefaultFromSchema()
 
 		assert.Equal(t, -1, basicConfig.AppPort)
-		assert.True(t, basicConfig.HTTPPort == -1)
-		assert.True(t, basicConfig.GRPCPort == -1)
-		assert.True(t, basicConfig.MetricsPort == -1)
-		assert.True(t, basicConfig.ProfilePort == -1)
+		assert.Equal(t, -1, basicConfig.HTTPPort)
+		assert.Equal(t, -1, basicConfig.GRPCPort)
+		assert.Equal(t, -1, basicConfig.MetricsPort)
+		assert.Equal(t, -1, basicConfig.ProfilePort)
 		assert.True(t, basicConfig.EnableProfiling)
 		assert.Equal(t, -1, basicConfig.MaxConcurrency)
 		assert.Equal(t, -1, basicConfig.MaxRequestBodySize)
@@ -316,10 +316,10 @@ func TestRun(t *testing.T) {
 		assert.NoError(t, err)
 
 		assert.Equal(t, 0, basicConfig.AppPort)
-		assert.True(t, basicConfig.HTTPPort > 0)
-		assert.True(t, basicConfig.GRPCPort > 0)
-		assert.True(t, basicConfig.MetricsPort > 0)
-		assert.True(t, basicConfig.ProfilePort > 0)
+		assert.Positive(t, basicConfig.HTTPPort)
+		assert.Positive(t, basicConfig.GRPCPort)
+		assert.Positive(t, basicConfig.MetricsPort)
+		assert.Positive(t, basicConfig.ProfilePort)
 		assert.True(t, basicConfig.EnableProfiling)
 		assert.Equal(t, -1, basicConfig.MaxConcurrency)
 		assert.Equal(t, -1, basicConfig.MaxRequestBodySize)
