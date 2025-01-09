@@ -41,7 +41,7 @@ func Uninstall(namespace string, uninstallAll bool, uninstallDev bool, timeout u
 	}
 
 	uninstallClient := helm.NewUninstall(config)
-	uninstallClient.Timeout = time.Duration(timeout) * time.Second
+	uninstallClient.Timeout = time.Duration(timeout) * time.Second //nolint:gosec
 
 	// Uninstall Dashboard as a best effort.
 	// Chart versions < 1.11 for Dapr will delete dashboard as part of the main chart.

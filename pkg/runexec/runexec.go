@@ -14,7 +14,7 @@ limitations under the License.
 package runexec
 
 import (
-	"fmt"
+	"errors"
 	"io"
 	"os"
 	"os/exec"
@@ -86,7 +86,7 @@ func (c *CmdProcess) WithOutputWriter(w io.Writer) {
 // SetStdout should be called after WithOutputWriter.
 func (c *CmdProcess) SetStdout() error {
 	if c.Command == nil {
-		return fmt.Errorf("command is nil")
+		return errors.New("command is nil")
 	}
 	c.Command.Stdout = c.OutputWriter
 	return nil
@@ -99,7 +99,7 @@ func (c *CmdProcess) WithErrorWriter(w io.Writer) {
 // SetStdErr should be called after WithErrorWriter.
 func (c *CmdProcess) SetStderr() error {
 	if c.Command == nil {
-		return fmt.Errorf("command is nil")
+		return errors.New("command is nil")
 	}
 	c.Command.Stderr = c.ErrorWriter
 	return nil
@@ -108,7 +108,7 @@ func (c *CmdProcess) SetStderr() error {
 func NewOutput(config *standalone.RunConfig) (*RunOutput, error) {
 	// set default values from RunConfig struct's tag.
 	config.SetDefaultFromSchema()
-	//nolint
+
 	err := config.Validate()
 	if err != nil {
 		return nil, err

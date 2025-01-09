@@ -26,8 +26,8 @@ func TestDashboardRun(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Contains(t, cmd.Args[0], "dashboard")
-		assert.Equal(t, cmd.Args[1], "--port")
-		assert.Equal(t, cmd.Args[2], "9090")
+		assert.Equal(t, "--port", cmd.Args[1])
+		assert.Equal(t, "9090", cmd.Args[2])
 	})
 
 	t.Run("start dashboard on random free port", func(t *testing.T) {
@@ -35,7 +35,7 @@ func TestDashboardRun(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Contains(t, cmd.Args[0], "dashboard")
-		assert.Equal(t, cmd.Args[1], "--port")
-		assert.NotEqual(t, cmd.Args[2], "0")
+		assert.Equal(t, "--port", cmd.Args[1])
+		assert.NotEqual(t, "0", cmd.Args[2])
 	})
 }

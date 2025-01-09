@@ -15,7 +15,7 @@ package kubernetes
 
 import (
 	"bytes"
-	"fmt"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -221,7 +221,7 @@ func TestConfigurations(t *testing.T) {
 			err := writeConfigurations(&buff,
 				func() (*v1alpha1.ConfigurationList, error) {
 					if len(tc.errString) > 0 {
-						return nil, fmt.Errorf(tc.errString)
+						return nil, errors.New(tc.errString)
 					}
 
 					return &v1alpha1.ConfigurationList{Items: tc.k8sConfig}, nil

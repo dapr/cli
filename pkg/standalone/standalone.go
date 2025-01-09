@@ -888,7 +888,7 @@ func createSlimConfiguration(wg *sync.WaitGroup, errorChan chan<- error, info in
 func makeDefaultComponentsDir(installDir string) error {
 	// Make default components directory.
 	componentsDir := GetDaprComponentsPath(installDir)
-	//nolint
+
 	_, err := os.Stat(componentsDir)
 	if os.IsNotExist(err) {
 		errDir := os.MkdirAll(componentsDir, 0o755)
@@ -955,7 +955,7 @@ func unzip(r *zip.Reader, targetDir string, binaryFilePrefix string) (string, er
 			return "", err
 		}
 
-		if strings.HasSuffix(fpath, fmt.Sprintf("%s.exe", binaryFilePrefix)) {
+		if strings.HasSuffix(fpath, binaryFilePrefix+".exe") {
 			foundBinary = fpath
 		}
 
@@ -1013,7 +1013,6 @@ func untar(reader io.Reader, targetDir string, binaryFilePrefix string) (string,
 	foundBinary := ""
 	for {
 		header, err := tr.Next()
-		//nolint
 		if err == io.EOF {
 			break
 		} else if err != nil {
@@ -1036,7 +1035,7 @@ func untar(reader io.Reader, targetDir string, binaryFilePrefix string) (string,
 			continue
 		}
 
-		f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
+		f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode)) //nolint:gosec
 		if err != nil {
 			return "", err
 		}
@@ -1085,14 +1084,14 @@ func moveFileToPath(filepath string, installLocation string) (string, error) {
 
 		if !strings.Contains(strings.ToLower(p), strings.ToLower(destDir)) {
 			destDir = utils.SanitizeDir(destDir)
-			pathCmd := "[System.Environment]::SetEnvironmentVariable('Path',[System.Environment]::GetEnvironmentVariable('Path','user') + '" + fmt.Sprintf(";%s", destDir) + "', 'user')"
+			pathCmd := "[System.Environment]::SetEnvironmentVariable('Path',[System.Environment]::GetEnvironmentVariable('Path','user') + '" + ";" + destDir + "', 'user')"
 			_, err := utils.RunCmdAndWait("powershell", pathCmd)
 			if err != nil {
 				return "", err
 			}
 		}
 
-		return fmt.Sprintf("%s\\daprd.exe", destDir), nil
+		return destDir + "\\daprd.exe", nil
 	}
 
 	if strings.HasPrefix(fileName, daprRuntimeFilePrefix) && installLocation != "" {
@@ -1117,7 +1116,7 @@ func createRedisStateStore(redisHost string, componentsPath string) error {
 	redisStore.Spec.Metadata = []componentMetadataItem{
 		{
 			Name:  "redisHost",
-			Value: fmt.Sprintf("%s:6379", redisHost),
+			Value: redisHost + ":6379",
 		},
 		{
 			Name:  "redisPassword",
@@ -1152,7 +1151,7 @@ func createRedisPubSub(redisHost string, componentsPath string) error {
 	redisPubSub.Spec.Metadata = []componentMetadataItem{
 		{
 			Name:  "redisHost",
-			Value: fmt.Sprintf("%s:6379", redisHost),
+			Value: redisHost + ":6379",
 		},
 		{
 			Name:  "redisPassword",

@@ -906,7 +906,7 @@ func componentsTestOnUninstall(opts TestOptions) func(t *testing.T) {
 		lines := strings.Split(output, "\n")
 
 		// An extra empty line is there in output.
-		require.Equal(t, 3, len(lines), "expected header and warning message of the output to remain")
+		require.Len(t, lines, 3, "expected header and warning message of the output to remain")
 	}
 }
 
@@ -936,7 +936,7 @@ func httpEndpointsTestOnUninstall(opts TestOptions) func(t *testing.T) {
 			lines := strings.Split(output, "\n")
 
 			// An extra empty line is there in output.
-			require.Equal(t, 2, len(lines), "expected kubernetes response message to remain")
+			require.Len(t, lines, 2, "expected kubernetes response message to remain")
 		}
 	}
 }
@@ -959,7 +959,7 @@ func componentOutputCheck(t *testing.T, opts TestOptions, output string) {
 	}
 
 	if opts.UninstallAll {
-		assert.Equal(t, 2, len(lines), "expected at 0 components and 2 output lines")
+		assert.Len(t, lines, 2, "expected at 0 components and 2 output lines")
 		return
 	}
 
@@ -969,9 +969,9 @@ func componentOutputCheck(t *testing.T, opts TestOptions, output string) {
 		// default, test statestore.
 		// default pubsub.
 		// 3 components.
-		assert.Equal(t, 3, len(lines), "expected 3 components")
+		assert.Len(t, lines, 3, "expected 3 components")
 	} else {
-		assert.Equal(t, 2, len(lines), "expected 2 components") // default and test namespace components.
+		assert.Len(t, lines, 2, "expected 2 components") // default and test namespace components.
 
 		// for fresh cluster only one component yaml has been applied.
 		testNsFields := strings.Fields(lines[0])
