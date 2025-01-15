@@ -524,6 +524,9 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 			exitWithError = true
 			break
 		}
+
+		runConfig.SchedulerHostAddress = validateSchedulerHostAddress(daprVer.RuntimeVersion, runConfig.SchedulerHostAddress)
+
 		// Combined multiwriter for logs.
 		var appDaprdWriter io.Writer
 		// appLogWriter is used when app command is present.
@@ -662,6 +665,17 @@ func executeRunWithAppsConfigFile(runFilePath string, k8sEnabled bool) {
 		}
 		os.Exit(1)
 	}
+}
+
+// populate the scheduler host address based on the dapr version.
+func validateSchedulerHostAddress(version, address string) string {
+	// If no SchedulerHostAddress is supplied, set it to default value.
+	if semver.Compare(fmt.Sprintf("v%v", version), "v1.15.0-rc.0") == 1 {
+		if address == "" {
+			return "localhost:50006"
+		}
+	}
+	return address
 }
 
 func getRunConfigFromRunFile(runFilePath string) (runfileconfig.RunFileConfig, []runfileconfig.App, error) {
