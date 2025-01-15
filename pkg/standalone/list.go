@@ -66,7 +66,7 @@ func List() ([]ListOutput, error) {
 	for _, proc := range processes {
 		executable := strings.ToLower(proc.Executable())
 		if (executable == "daprd") || (executable == "daprd.exe") {
-			procDetails, err := process.NewProcess(int32(proc.Pid()))
+			procDetails, err := process.NewProcess(int32(proc.Pid())) //nolint:gosec
 			if err != nil {
 				continue
 			}

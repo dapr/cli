@@ -14,6 +14,7 @@ limitations under the License.
 package standalone
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
@@ -28,7 +29,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/dapr/cli/pkg/print"
-	"github.com/dapr/dapr/pkg/components"
+	localloader "github.com/dapr/dapr/pkg/components/loader"
 )
 
 type LogDestType string
@@ -113,8 +114,8 @@ func (config *RunConfig) validateResourcesPaths() error {
 			return fmt.Errorf("error validating resources path %q : %w", dirPath, err)
 		}
 	}
-	componentsLoader := components.NewLocalComponents(dirPath...)
-	_, err := componentsLoader.Load()
+	localLoader := localloader.NewLocalLoader(config.AppID, dirPath)
+	err := localLoader.Validate(context.Background())
 	if err != nil {
 		return fmt.Errorf("error validating components in resources path %q : %w", dirPath, err)
 	}
@@ -128,9 +129,9 @@ func (config *RunConfig) validatePlacementHostAddr() error {
 	}
 	if indx := strings.Index(placementHostAddr, ":"); indx == -1 {
 		if runtime.GOOS == daprWindowsOS {
-			placementHostAddr = fmt.Sprintf("%s:6050", placementHostAddr)
+			placementHostAddr += ":6050"
 		} else {
-			placementHostAddr = fmt.Sprintf("%s:50005", placementHostAddr)
+			placementHostAddr += ":50005"
 		}
 	}
 	config.PlacementHostAddr = placementHostAddr
@@ -145,9 +146,9 @@ func (config *RunConfig) validateSchedulerHostAddr() error {
 
 	if indx := strings.Index(schedulerHostAddr, ":"); indx == -1 {
 		if runtime.GOOS == daprWindowsOS {
-			schedulerHostAddr = fmt.Sprintf("%s:6060", schedulerHostAddr)
+			schedulerHostAddr += ":6060"
 		} else {
-			schedulerHostAddr = fmt.Sprintf("%s:50006", schedulerHostAddr)
+			schedulerHostAddr += ":50006"
 		}
 	}
 
@@ -289,7 +290,7 @@ func (meta *DaprMeta) portExists(port int) bool {
 	if port <= 0 {
 		return false
 	}
-	//nolint
+
 	_, ok := meta.ExistingPorts[port]
 	if ok {
 		return true
@@ -346,7 +347,7 @@ func (config *RunConfig) getArgs() []string {
 // Recursive function to get all the args from the config struct.
 // This is needed because the config struct has embedded struct.
 func getArgsFromSchema(schema reflect.Value, args []string) []string {
-	for i := 0; i < schema.NumField(); i++ {
+	for i := range schema.NumField() {
 		valueField := schema.Field(i).Interface()
 		typeField := schema.Type().Field(i)
 		key := typeField.Tag.Get("arg")
@@ -388,7 +389,7 @@ func (config *RunConfig) SetDefaultFromSchema() {
 }
 
 func (config *RunConfig) setDefaultFromSchemaRecursive(schema reflect.Value) {
-	for i := 0; i < schema.NumField(); i++ {
+	for i := range schema.NumField() {
 		valueField := schema.Field(i)
 		typeField := schema.Type().Field(i)
 		if typeField.Type.Kind() == reflect.Struct {
@@ -414,7 +415,7 @@ func (config *RunConfig) getEnv() []string {
 
 	// Handle values from config that have an "env" tag.
 	schema := reflect.ValueOf(*config)
-	for i := 0; i < schema.NumField(); i++ {
+	for i := range schema.NumField() {
 		valueField := schema.Field(i).Interface()
 		typeField := schema.Type().Field(i)
 		key := typeField.Tag.Get("env")
@@ -474,7 +475,7 @@ func (config *RunConfig) getAppProtocol() string {
 func (config *RunConfig) GetEnv() map[string]string {
 	env := map[string]string{}
 	schema := reflect.ValueOf(*config)
-	for i := 0; i < schema.NumField(); i++ {
+	for i := range schema.NumField() {
 		valueField := schema.Field(i).Interface()
 		typeField := schema.Type().Field(i)
 		key := typeField.Tag.Get("env")
@@ -498,7 +499,7 @@ func (config *RunConfig) GetEnv() map[string]string {
 func (config *RunConfig) GetAnnotations() map[string]string {
 	annotations := map[string]string{}
 	schema := reflect.ValueOf(*config)
-	for i := 0; i < schema.NumField(); i++ {
+	for i := range schema.NumField() {
 		valueField := schema.Field(i).Interface()
 		typeField := schema.Type().Field(i)
 		key := typeField.Tag.Get("annotation")

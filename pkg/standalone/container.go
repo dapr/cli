@@ -85,7 +85,6 @@ func confirmContainerIsRunningOrExists(containerName string, isRunning bool, run
 
 	// If 'docker ps' failed due to some reason.
 	if err != nil {
-		//nolint
 		return false, fmt.Errorf("unable to confirm whether %s is running or exists. error\n%v", containerName, err.Error())
 	}
 	// 'docker ps' worked fine, but the response did not have the container name.
@@ -100,7 +99,6 @@ func confirmContainerIsRunningOrExists(containerName string, isRunning bool, run
 }
 
 func isContainerRunError(err error) bool {
-	//nolint
 	if exitError, ok := err.(*exec.ExitError); ok {
 		exitCode := exitError.ExitCode()
 		return exitCode == 125
@@ -109,7 +107,6 @@ func isContainerRunError(err error) bool {
 }
 
 func parseContainerRuntimeError(component string, err error) error {
-	//nolint
 	if exitError, ok := err.(*exec.ExitError); ok {
 		exitCode := exitError.ExitCode()
 		if exitCode == 125 { // see https://github.com/moby/moby/pull/14012

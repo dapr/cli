@@ -76,7 +76,6 @@ func TestContainerRuntimeUtils(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			actualValid := IsValidContainerRuntime(tc.input)
@@ -120,7 +119,6 @@ func TestContains(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			actualValid := Contains(tc.input, tc.expected)
@@ -165,7 +163,6 @@ func TestGetVersionAndImageVariant(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			version, imageVariant := GetVersionAndImageVariant(tc.input)
@@ -202,7 +199,6 @@ func TestValidateFilePaths(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			actual := ValidateFilePath(tc.input)
@@ -244,7 +240,6 @@ func TestGetAbsPath(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			actual := GetAbsPath(baseDir, tc.input)
@@ -302,7 +297,6 @@ func TestResolveHomeDir(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			if tc.skipWindows && runtime.GOOS == "windows" {
 				t.Skip("Skipping test on Windows")
@@ -335,7 +329,6 @@ func TestReadFile(t *testing.T) {
 		},
 	}
 	for _, tc := range testcases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			_, actual := ReadFile(tc.input)
@@ -398,7 +391,6 @@ func TestFindFileInDir(t *testing.T) {
 		},
 	}
 	for _, tc := range testcases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			filePath, err := FindFileInDir(tc.input, "dapr.yaml")
@@ -480,7 +472,6 @@ func TestPrintDetail(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			var buf bytes.Buffer
@@ -552,7 +543,6 @@ func TestSanitizeDir(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			actual := SanitizeDir(tc.input)

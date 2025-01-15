@@ -15,7 +15,7 @@ package kubernetes
 
 import (
 	"bytes"
-	"fmt"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -242,7 +242,7 @@ func TestComponents(t *testing.T) {
 			err := writeComponents(&buff,
 				func() (*v1alpha1.ComponentList, error) {
 					if len(tc.errString) > 0 {
-						return nil, fmt.Errorf(tc.errString)
+						return nil, errors.New(tc.errString)
 					}
 
 					return &v1alpha1.ComponentList{Items: tc.k8sConfig}, nil

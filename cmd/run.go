@@ -230,7 +230,7 @@ dapr run --run-file /path/to/directory -k
 					output.DaprGRPCPort)
 			}
 
-			if semver.Compare(fmt.Sprintf("v%v", daprVer.RuntimeVersion), "v1.14.0-rc.1") == -1 {
+			if (daprVer.RuntimeVersion != "edge") && (semver.Compare(fmt.Sprintf("v%v", daprVer.RuntimeVersion), "v1.14.0-rc.1") == -1) {
 				print.InfoStatusEvent(os.Stdout, "The scheduler is only compatible with dapr runtime 1.14 onwards.")
 				for i, arg := range output.DaprCMD.Args {
 					if strings.HasPrefix(arg, "--scheduler-host-address") {
@@ -319,14 +319,14 @@ dapr run --run-file /path/to/directory -k
 
 			stdErrPipe, pipeErr := output.AppCMD.StderrPipe()
 			if pipeErr != nil {
-				print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Error creating stderr for App: %s", err.Error()))
+				print.FailureStatusEvent(os.Stderr, "Error creating stderr for App: "+err.Error())
 				appRunning <- false
 				return
 			}
 
 			stdOutPipe, pipeErr := output.AppCMD.StdoutPipe()
 			if pipeErr != nil {
-				print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Error creating stdout for App: %s", err.Error()))
+				print.FailureStatusEvent(os.Stderr, "Error creating stdout for App: "+err.Error())
 				appRunning <- false
 				return
 			}
@@ -335,13 +335,13 @@ dapr run --run-file /path/to/directory -k
 			outScanner := bufio.NewScanner(stdOutPipe)
 			go func() {
 				for errScanner.Scan() {
-					fmt.Println(print.Blue(fmt.Sprintf("== APP == %s", errScanner.Text())))
+					fmt.Println(print.Blue("== APP == " + errScanner.Text()))
 				}
 			}()
 
 			go func() {
 				for outScanner.Scan() {
-					fmt.Println(print.Blue(fmt.Sprintf("== APP == %s", outScanner.Text())))
+					fmt.Println(print.Blue("== APP == " + outScanner.Text()))
 				}
 			}()
 
@@ -395,7 +395,7 @@ dapr run --run-file /path/to/directory -k
 			}
 
 			appCommand := strings.Join(args, " ")
-			print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Updating metadata for app command: %s", appCommand))
+			print.InfoStatusEvent(os.Stdout, "Updating metadata for app command: "+appCommand)
 			err = metadata.Put(output.DaprHTTPPort, "appCommand", appCommand, output.AppID, unixDomainSocket)
 			if err != nil {
 				print.WarningStatusEvent(os.Stdout, "Could not update sidecar metadata for appCommand: %s", err.Error())

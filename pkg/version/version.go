@@ -15,6 +15,7 @@ package version
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -112,23 +113,30 @@ func GetLatestReleaseGithub(githubURL string) (string, error) {
 		}
 
 		if len(githubRepoReleases) == 0 {
-			return "", fmt.Errorf("no releases")
+			return "", errors.New("no releases")
 		}
 
 		defaultVersion, _ := version.NewVersion("0.0.0")
 		latestVersion := defaultVersion
 
 		for _, release := range githubRepoReleases {
-			if !strings.Contains(release.TagName, "-rc") {
-				cur, _ := version.NewVersion(strings.TrimPrefix(release.TagName, "v"))
-				if cur.GreaterThan(latestVersion) {
-					latestVersion = cur
-				}
+			cur, err := version.NewVersion(strings.TrimPrefix(release.TagName, "v"))
+			if err != nil || cur == nil {
+				print.WarningStatusEvent(os.Stdout, "Malformed version %s, skipping", release.TagName)
+				continue
+			}
+			// Prerelease versions and versions with metadata are skipped.
+			if cur.Prerelease() != "" || cur.Metadata() != "" {
+				continue
+			}
+
+			if cur.GreaterThan(latestVersion) {
+				latestVersion = cur
 			}
 		}
 
 		if latestVersion.Equal(defaultVersion) {
-			return "", fmt.Errorf("no releases")
+			return "", errors.New("no releases")
 		}
 
 		return latestVersion.String(), nil
@@ -144,7 +152,7 @@ func GetLatestReleaseHelmChart(helmChartURL string) (string, error) {
 			return "", err
 		}
 		if len(helmChartReleases.Entries.Dapr) == 0 {
-			return "", fmt.Errorf("no releases")
+			return "", errors.New("no releases")
 		}
 
 		for _, release := range helmChartReleases.Entries.Dapr {
@@ -159,6 +167,6 @@ func GetLatestReleaseHelmChart(helmChartURL string) (string, error) {
 			return release.Version, nil
 		}
 
-		return "", fmt.Errorf("no releases")
+		return "", errors.New("no releases")
 	})
 }

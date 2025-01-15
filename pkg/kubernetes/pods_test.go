@@ -28,9 +28,9 @@ func TestListPodsInterface(t *testing.T) {
 		output, err := ListPodsInterface(k8s, map[string]string{
 			"test": "test",
 		})
-		assert.Nil(t, err, "unexpected error")
+		assert.NoError(t, err, "unexpected error")
 		assert.NotNil(t, output, "Expected empty list")
-		assert.Equal(t, 0, len(output.Items), "Expected length 0")
+		assert.Empty(t, output.Items, "Expected length 0")
 	})
 	t.Run("one matching pod", func(t *testing.T) {
 		k8s := fake.NewSimpleClientset((&v1.Pod{
@@ -46,9 +46,9 @@ func TestListPodsInterface(t *testing.T) {
 		output, err := ListPodsInterface(k8s, map[string]string{
 			"test": "test",
 		})
-		assert.Nil(t, err, "unexpected error")
+		assert.NoError(t, err, "unexpected error")
 		assert.NotNil(t, output, "Expected non empty list")
-		assert.Equal(t, 1, len(output.Items), "Expected length 0")
+		assert.Len(t, output.Items, 1, "Expected length 0")
 		assert.Equal(t, "test", output.Items[0].Name, "expected name to match")
 		assert.Equal(t, "test", output.Items[0].Namespace, "expected namespace to match")
 	})
