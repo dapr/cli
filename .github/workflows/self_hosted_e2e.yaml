@@ -72,42 +72,12 @@ jobs:
           echo "GOBIN=$HOME/bin" >> $GITHUB_ENV
           mkdir -p $HOME/bin
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         id: setup-go
         with:
           go-version-file: "go.mod"
-      - name: Cache Go modules (Linux)
-        if: matrix.target_os == 'linux'
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ matrix.target_os }}-${{ matrix.target_arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ matrix.target_os }}-${{ matrix.target_arch }}-go-${{ steps.setup-go.outputs.go-version }}-
-      - name: Cache Go modules (Windows)
-        if: matrix.target_os == 'windows'
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~\AppData\Local\go-build
-            ~\go\pkg\mod
-          key: ${{ matrix.target_os }}-${{ matrix.target_arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ matrix.target_os }}-${{ matrix.target_arch }}-go-${{ steps.setup-go.outputs.go-version }}-
-      - name: Cache Go modules (macOS)
-        if: matrix.target_os == 'darwin'
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/Library/Caches/go-build
-            ~/go/pkg/mod
-          key: ${{ matrix.target_os }}-${{ matrix.target_arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ matrix.target_os }}-${{ matrix.target_arch }}-go-${{ steps.setup-go.outputs.go-version }}-
       - name: Install podman - MacOS
         timeout-minutes: 15
         if: matrix.os == 'macos-latest-large' && matrix.dapr_install_mode == 'complete'
