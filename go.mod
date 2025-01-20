@@ -1,6 +1,6 @@
 module github.com/dapr/cli
 
-go 1.23.1
+go 1.23.5
 
 require (
 	github.com/Masterminds/semver v1.5.0
