@@ -141,7 +141,7 @@ func (config *RunConfig) validatePlacementHostAddr() error {
 func (config *RunConfig) validateSchedulerHostAddr() error {
 	schedulerHostAddr := config.SchedulerHostAddress
 	if len(schedulerHostAddr) == 0 {
-		return nil
+		schedulerHostAddr = "localhost"
 	}
 
 	if indx := strings.Index(schedulerHostAddr, ":"); indx == -1 {
