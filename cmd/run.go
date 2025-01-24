@@ -230,8 +230,13 @@ dapr run --run-file /path/to/directory -k
 					output.DaprGRPCPort)
 			}
 
-			if (daprVer.RuntimeVersion != "edge") && (semver.Compare(fmt.Sprintf("v%v", daprVer.RuntimeVersion), "v1.14.0-rc.1") == -1) {
+			if (daprVer.RuntimeVersion != "edge") && (daprVer.RuntimeVersion != "dev") && (semver.Compare(fmt.Sprintf("v%v", daprVer.RuntimeVersion), "v1.14.0-rc.1") == -1) {
 				print.InfoStatusEvent(os.Stdout, "The scheduler is only compatible with dapr runtime 1.14 onwards.")
+				for i, arg := range output.DaprCMD.Args {
+					if strings.HasPrefix(arg, "--scheduler-host-address") {
+						output.DaprCMD.Args[i] = ""
+					}
+				}
 			}
 			print.InfoStatusEvent(os.Stdout, startInfo)
 
@@ -665,7 +670,7 @@ func executeRunWithAppsConfigFile(runFilePath string, k8sEnabled bool) {
 // populate the scheduler host address based on the dapr version.
 func validateSchedulerHostAddress(version, address string) string {
 	// If no SchedulerHostAddress is supplied, set it to default value.
-	if semver.Compare(fmt.Sprintf("v%v", version), "v1.15.0-rc.0") == 1 {
+	if version == "dev" || version == "edge" || semver.Compare(fmt.Sprintf("v%v", version), "v1.15.0-rc.0") == 1 {
 		if address == "" {
 			return "localhost:50006"
 		}
