@@ -90,7 +90,8 @@ const (
 	schedulerMetricPort = 59091
 	schedulerEtcdPort   = 52379
 
-	daprVersionsWithScheduler = ">= 1.14.x"
+	daprVersionsWithScheduler        = ">= 1.14.x"
+	schedulerVersionWithHostOverride = ">= 1.15.0-rc.6"
 )
 
 var (
@@ -182,6 +183,22 @@ func isSchedulerIncluded(runtimeVersion string) (bool, error) {
 		return false, err
 	}
 	return c.Check(&vNoPrerelease), nil
+}
+
+func isSchedulerHostOverrideSupported(runtimeVersion string) (bool, error) {
+	if runtimeVersion == "edge" || runtimeVersion == "dev" {
+		return true, nil
+	}
+	c, err := semver.NewConstraint(schedulerVersionWithHostOverride)
+	if err != nil {
+		return false, err
+	}
+
+	v, err := semver.NewVersion(runtimeVersion)
+	if err != nil {
+		return false, err
+	}
+	return c.Check(v), nil
 }
 
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
@@ -681,6 +698,13 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		args = append(args, image, "--etcd-data-dir=/var/tmp/dapr/scheduler")
 	} else {
 		args = append(args, image, "--etcd-data-dir=/var/lock/dapr/scheduler")
+	}
+
+	hostOverrideSupported, err := isSchedulerHostOverrideSupported(info.runtimeVersion)
+	if err != nil {
+		errorChan <- err
+	} else if hostOverrideSupported {
+		args = append(args, "--override-broadcast-host", "localhost")
 	}
 
 	_, err = utils.RunCmdAndWait(runtimeCmd, args...)
