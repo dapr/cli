@@ -683,6 +683,10 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		args = append(args, image, "--etcd-data-dir=/var/lock/dapr/scheduler")
 	}
 
+	if schedulerOverrideHostPort(info) {
+		args = append(args, "--override-broadcast-host-port=localhost:50006")
+	}
+
 	_, err = utils.RunCmdAndWait(runtimeCmd, args...)
 	if err != nil {
 		runError := isContainerRunError(err)
@@ -694,6 +698,21 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		return
 	}
 	errorChan <- nil
+}
+
+func schedulerOverrideHostPort(info initInfo) bool {
+	if info.runtimeVersion == "edge" || info.runtimeVersion == "dev" {
+		return true
+	}
+
+	runV, err := semver.NewVersion(info.runtimeVersion)
+	if err != nil {
+		return true
+	}
+
+	v115rc5, _ := semver.NewVersion("1.15.0-rc.5")
+
+	return runV.GreaterThan(v115rc5)
 }
 
 func moveDashboardFiles(extractedFilePath string, dir string) (string, error) {
