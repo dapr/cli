@@ -701,6 +701,10 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 }
 
 func schedulerOverrideHostPort(info initInfo) bool {
+	if info.runtimeVersion == "edge" || info.runtimeVersion == "dev" {
+		return true
+	}
+
 	runV, err := semver.NewVersion(info.runtimeVersion)
 	if err != nil {
 		return true
