@@ -659,12 +659,12 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		}
 	}
 
+	osPort := 50006
 	if info.dockerNetwork != "" {
 		args = append(args,
 			"--network", info.dockerNetwork,
 			"--network-alias", DaprSchedulerContainerName)
 	} else {
-		osPort := 50006
 		if runtime.GOOS == daprWindowsOS {
 			osPort = 6060
 		}
@@ -684,7 +684,7 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 	}
 
 	if schedulerOverrideHostPort(info) {
-		args = append(args, "--override-broadcast-host-port=localhost:50006")
+		args = append(args, fmt.Sprintf("--override-broadcast-host-port=localhost:%v", osPort))
 	}
 
 	_, err = utils.RunCmdAndWait(runtimeCmd, args...)
