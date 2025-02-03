@@ -105,9 +105,9 @@ func List() ([]ListOutput, error) {
 				enableMetrics = true
 			}
 
-			maxRequestBodySize := getIntArg(argumentsMap, "http-max-request-size", runtime.DefaultMaxRequestBodySize)
+			maxRequestBodySize := getIntArg(argumentsMap, "max-body-size", runtime.DefaultMaxRequestBodySize)
 
-			httpReadBufferSize := getIntArg(argumentsMap, "http-read-buffer-size", runtime.DefaultReadBufferSize)
+			httpReadBufferSize := getIntArg(argumentsMap, "read-buffer-size", runtime.DefaultReadBufferSize)
 
 			appID := argumentsMap["--app-id"]
 			appCmd := ""

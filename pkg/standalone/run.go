@@ -79,8 +79,8 @@ type SharedRunConfig struct {
 	ResourcesPaths []string `arg:"resources-path" yaml:"resourcesPaths"`
 	// Speicifcally omitted from annotations as appSSL is deprecated.
 	AppSSL             bool   `arg:"app-ssl" yaml:"appSSL"`
-	MaxRequestBodySize int    `arg:"dapr-http-max-request-size" annotation:"dapr.io/http-max-request-size" yaml:"daprHTTPMaxRequestSize" default:"-1"`
-	HTTPReadBufferSize int    `arg:"dapr-http-read-buffer-size" annotation:"dapr.io/http-read-buffer-size" yaml:"daprHTTPReadBufferSize" default:"-1"`
+	MaxRequestBodySize int    `arg:"max-body-size" annotation:"dapr.io/max-body-size" yaml:"maxBodySize" default:"-1"`
+	HTTPReadBufferSize int    `arg:"read-buffer-size" annotation:"dapr.io/read-buffer-size" yaml:"readBufferSize" default:"-1"`
 	EnableAppHealth    bool   `arg:"enable-app-health-check" annotation:"dapr.io/enable-app-health-check" yaml:"enableAppHealthCheck"`
 	AppHealthPath      string `arg:"app-health-check-path" annotation:"dapr.io/app-health-check-path" yaml:"appHealthCheckPath"`
 	AppHealthInterval  int    `arg:"app-health-probe-interval" annotation:"dapr.io/app-health-probe-interval" ifneq:"0" yaml:"appHealthProbeInterval"`
