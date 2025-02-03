@@ -120,9 +120,9 @@ func assertCommonArgs(t *testing.T, basicConfig *standalone.RunConfig, output *R
 	assertArgumentEqual(t, "components-path", standalone.GetDaprComponentsPath(daprPath), output.DaprCMD.Args)
 	assertArgumentEqual(t, "app-ssl", "", output.DaprCMD.Args)
 	assertArgumentEqual(t, "metrics-port", "9001", output.DaprCMD.Args)
-	assertArgumentEqual(t, "dapr-http-max-request-size", "-1", output.DaprCMD.Args)
+	assertArgumentEqual(t, "max-body-size", "-1", output.DaprCMD.Args)
 	assertArgumentEqual(t, "dapr-internal-grpc-port", "5050", output.DaprCMD.Args)
-	assertArgumentEqual(t, "dapr-http-read-buffer-size", "-1", output.DaprCMD.Args)
+	assertArgumentEqual(t, "read-buffer-size", "-1", output.DaprCMD.Args)
 	assertArgumentEqual(t, "dapr-listen-addresses", "127.0.0.1", output.DaprCMD.Args)
 }
 
