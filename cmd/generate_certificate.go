@@ -35,9 +35,7 @@ dapr mtls generate-certificate --valid-until <no of days>
 dapr mtls generate-certificate --valid-until <no of days> --out ./certs
 `,
 		Run: func(cmd *cobra.Command, args []string) {
-			rootCertBytes, issuerCertBytes, issuerKeyBytes, err := kubernetes.GenerateNewCertificates(
-				time.Hour*time.Duration(certificateValidUntil*24), //nolint:gosec
-				"")
+			rootCertBytes, issuerCertBytes, issuerKeyBytes, err := kubernetes.GenerateNewCertificatesStandalone(time.Hour * time.Duration(certificateValidUntil*24)) //nolint:gosec
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, fmt.Sprintf("error generating cert: %s", err))
 				os.Exit(1)

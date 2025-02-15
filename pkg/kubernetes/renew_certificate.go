@@ -203,3 +203,20 @@ func GenerateNewCertificates(validUntil time.Duration, privateKeyFile string) ([
 
 	return bundle.TrustAnchors, bundle.IssChainPEM, bundle.IssKeyPEM, nil
 }
+
+// GenerateNewCertificatesStandalone Generate certificates for local mtls generate-certificate command
+// without dependency on kubernetes and dapr control plane configuration
+func GenerateNewCertificatesStandalone(validUntil time.Duration) ([]byte, []byte, []byte, error) {
+	rootKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	var allowedClockSkew time.Duration
+	bundle, err := ca.GenerateBundle(rootKey, "cluster.local", allowedClockSkew, &validUntil)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	return bundle.TrustAnchors, bundle.IssChainPEM, bundle.IssKeyPEM, nil
+}
