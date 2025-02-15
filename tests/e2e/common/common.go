@@ -704,16 +704,16 @@ func GenerateCertificateTests() func(t *testing.T) {
 		assert.Contains(t, output, "Issuer Key: issuer.key")
 
 		beginCertCount := strings.Count(output, "-----BEGIN CERTIFICATE-----")
-		assert.Equal(t, beginCertCount, 2, "expected 2 BEGIN CERTIFICATE in output")
+		assert.Equal(t, 2, beginCertCount, "expected 2 BEGIN CERTIFICATE in output")
 
 		endCertCount := strings.Count(output, "-----END CERTIFICATE-----")
-		assert.Equal(t, endCertCount, 2, "expected 2 END CERTIFICATE in output")
+		assert.Equal(t, 2, endCertCount, "expected 2 END CERTIFICATE in output")
 
 		beginPrivateKeyCount := strings.Count(output, "-----BEGIN PRIVATE KEY-----")
-		assert.Equal(t, beginPrivateKeyCount, 1, "expected 1 BEGIN PRIVATE KEY in output")
+		assert.Equal(t, 1, beginPrivateKeyCount, "expected 1 BEGIN PRIVATE KEY in output")
 
 		endPrivateKeyCount := strings.Count(output, "-----END PRIVATE KEY-----")
-		assert.Equal(t, endPrivateKeyCount, 1, "expected 1 END PRIVATE KEY in output")
+		assert.Equal(t, 1, endPrivateKeyCount, "expected 1 END PRIVATE KEY in output")
 	}
 }
 
