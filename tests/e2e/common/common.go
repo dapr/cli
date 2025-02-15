@@ -734,6 +734,9 @@ func GenerateCertificateWithOutDirTests() func(t *testing.T) {
 		assert.FileExists(t, "./certs/ca.crt")
 		assert.FileExists(t, "./certs/issuer.crt")
 		assert.FileExists(t, "./certs/issuer.key")
+
+		err = os.RemoveAll("./certs")
+		assert.NoError(t, err)
 	}
 }
 
