@@ -129,7 +129,7 @@ dapr mtls renew-cert -k --valid-until <no of days> --restart
 				logErrorAndExit(err)
 			}
 			print.SuccessStatusEvent(os.Stdout,
-				"Certificate rotation is successful! Your new certicate is valid through "+expiry.Format(time.RFC1123))
+				"Certificate rotation is successful! Your new certificate is valid through "+expiry.Format(time.RFC1123))
 
 			if restartDaprServices {
 				restartControlPlaneService()

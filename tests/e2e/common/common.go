@@ -250,6 +250,13 @@ func GetTestForCertRenewal(currentVersionDetails VersionDetails, installOpts Tes
 	return tests
 }
 
+func GetTestForCertGeneration() []TestCase {
+	return []TestCase{
+		{"Generate certificate", GenerateCertificateTests()},
+		{"Generate certificate with out dir", GenerateCertificateWithOutDirTests()},
+	}
+}
+
 func GetTestsPostCertificateRenewal(details VersionDetails, opts TestOptions) []TestCase {
 	return []TestCase{
 		{"crds exist " + details.RuntimeVersion, CRDTest(details, opts)},
@@ -678,6 +685,55 @@ func NegativeScenarioForCertRenew() func(t *testing.T) {
 		t.Log(output)
 		require.Error(t, err, "expected error on certificate renewal")
 		assert.Contains(t, output, "certificate rotation failed: open invalid_root_key.pem: no such file or directory")
+	}
+}
+
+func GenerateCertificateTests() func(t *testing.T) {
+	return func(t *testing.T) {
+		daprPath := GetDaprPath()
+		args := []string{
+			"mtls", "generate-certificate",
+		}
+		output, err := spawn.Command(daprPath, args...)
+		t.Log(output)
+		require.NoError(t, err, "expected no error on certificate generation")
+		assert.Contains(t, output, "Generated new certificates")
+
+		assert.Contains(t, output, "CA Root Certificate: ca.crt")
+		assert.Contains(t, output, "Issuer Certificate: issuer.crt")
+		assert.Contains(t, output, "Issuer Key: issuer.key")
+
+		beginCertCount := strings.Count(output, "-----BEGIN CERTIFICATE-----")
+		assert.Equal(t, beginCertCount, 2, "expected 2 BEGIN CERTIFICATE in output")
+
+		endCertCount := strings.Count(output, "-----END CERTIFICATE-----")
+		assert.Equal(t, endCertCount, 2, "expected 2 END CERTIFICATE in output")
+
+		beginPrivateKeyCount := strings.Count(output, "-----BEGIN PRIVATE KEY-----")
+		assert.Equal(t, beginPrivateKeyCount, 1, "expected 1 BEGIN PRIVATE KEY in output")
+
+		endPrivateKeyCount := strings.Count(output, "-----END PRIVATE KEY-----")
+		assert.Equal(t, endPrivateKeyCount, 1, "expected 1 END PRIVATE KEY in output")
+	}
+}
+
+func GenerateCertificateWithOutDirTests() func(t *testing.T) {
+	return func(t *testing.T) {
+		daprPath := GetDaprPath()
+		args := []string{
+			"mtls", "generate-certificate", "--out", "./certs",
+		}
+		output, err := spawn.Command(daprPath, args...)
+		t.Log(output)
+
+		require.NoError(t, err, "expected no error on certificate generation")
+		assert.Contains(t, output, "Generated new certificates and saved to ./certs")
+		assert.Contains(t, output, "CA Root Certificate: certs/ca.crt")
+		assert.Contains(t, output, "Issuer Certificate: certs/issuer.crt")
+		assert.Contains(t, output, "Issuer Key: certs/issuer.key")
+		assert.FileExists(t, "./certs/ca.crt")
+		assert.FileExists(t, "./certs/issuer.crt")
+		assert.FileExists(t, "./certs/issuer.key")
 	}
 }
 

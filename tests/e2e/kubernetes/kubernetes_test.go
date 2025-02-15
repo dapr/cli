@@ -233,8 +233,11 @@ func TestRenewCertificateMTLSEnabled(t *testing.T) {
 
 	tests = append(tests, common.GetTestsOnInstall(currentVersionDetails, installOpts)...)
 
-	// tests for certifcate renewal.
+	// tests for certificate renewal.
 	tests = append(tests, common.GetTestForCertRenewal(currentVersionDetails, installOpts)...)
+
+	// tests for certificate generation.
+	tests = append(tests, common.GetTestForCertGeneration()...)
 
 	// teardown everything
 	tests = append(tests, common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
@@ -268,7 +271,7 @@ func TestRenewCertificateMTLSDisabled(t *testing.T) {
 
 	tests = append(tests, common.GetTestsOnInstall(currentVersionDetails, installOpts)...)
 
-	// tests for certifcate renewal.
+	// tests for certificate renewal.
 	tests = append(tests, common.GetTestForCertRenewal(currentVersionDetails, installOpts)...)
 
 	// teardown everything
@@ -303,7 +306,7 @@ func TestRenewCertWithPrivateKey(t *testing.T) {
 
 	tests = append(tests, common.GetTestsOnInstall(currentVersionDetails, installOpts)...)
 
-	// tests for certifcate renewal with newly generated certificates when pem encoded private root.key file is provided
+	// tests for certificate renewal with newly generated certificates when pem encoded private root.key file is provided
 	tests = append(tests, []common.TestCase{
 		{"Renew certificate which expires in less than 30 days", common.UseProvidedPrivateKeyAndRenewCerts(currentVersionDetails, installOpts)},
 	}...)
@@ -375,7 +378,7 @@ func TestRenewCertWithIncorrectFlags(t *testing.T) {
 
 	tests = append(tests, common.GetTestsOnInstall(currentVersionDetails, installOpts)...)
 
-	// tests for certifcate renewal with incorrect set of flags provided.
+	// tests for certificate renewal with incorrect set of flags provided.
 	tests = append(tests, []common.TestCase{
 		{"Renew certificate with incorrect flags", common.NegativeScenarioForCertRenew()},
 	}...)
@@ -417,7 +420,7 @@ func TestK8sInstallwithMarinerImagesAndRenewCertificate(t *testing.T) {
 
 	tests = append(tests, common.GetTestsOnInstall(currentVersionDetails, installOpts)...)
 
-	// tests for certifcate renewal.
+	// tests for certificate renewal.
 	tests = append(tests, common.GetTestForCertRenewal(currentVersionDetails, installOpts)...)
 
 	// teardown everything
