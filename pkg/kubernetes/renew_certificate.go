@@ -52,7 +52,6 @@ func RenewCertificate(conf RenewCertificateParams) error {
 			conf.RootCertificateFilePath,
 			conf.IssuerCertificateFilePath,
 			conf.IssuerPrivateKeyFilePath)
-
 		if err != nil {
 			return err
 		}
@@ -60,7 +59,6 @@ func RenewCertificate(conf RenewCertificateParams) error {
 		rootCertBytes, issuerCertBytes, issuerKeyBytes, err = GenerateNewCertificates(
 			conf.ValidUntil,
 			conf.RootPrivateKeyFilePath)
-
 		if err != nil {
 			return err
 		}
@@ -123,7 +121,7 @@ func renewCertificate(rootCert, issuerCert, issuerKey []byte, timeout uint, imag
 	// Reuse the existing helm configuration values i.e. tags, registry, etc.
 	upgradeClient.ReuseValues = true
 	upgradeClient.Wait = true
-	upgradeClient.Timeout = time.Duration(timeout) * time.Second
+	upgradeClient.Timeout = time.Duration(timeout) * time.Second //nolint:gosec
 	upgradeClient.Namespace = status[0].Namespace
 
 	// Override the helm configuration values with the new certificates.
@@ -148,12 +146,12 @@ func createHelmParamsForNewCertificates(ca, issuerCert, issuerKey string) (map[s
 	args := []string{}
 
 	if ca != "" && issuerCert != "" && issuerKey != "" {
-		args = append(args, fmt.Sprintf("dapr_sentry.tls.root.certPEM=%s", ca),
-			fmt.Sprintf("dapr_sentry.tls.issuer.certPEM=%s", issuerCert),
-			fmt.Sprintf("dapr_sentry.tls.issuer.keyPEM=%s", issuerKey),
+		args = append(args, "dapr_sentry.tls.root.certPEM="+ca,
+			"dapr_sentry.tls.issuer.certPEM="+issuerCert,
+			"dapr_sentry.tls.issuer.keyPEM="+issuerKey,
 		)
 	} else {
-		return nil, fmt.Errorf("parameters not found")
+		return nil, errors.New("parameters not found")
 	}
 
 	for _, v := range args {

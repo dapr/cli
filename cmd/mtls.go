@@ -67,7 +67,7 @@ dapr mtls export -o ./certs
 		}
 
 		dir, _ := filepath.Abs(exportPath)
-		print.SuccessStatusEvent(os.Stdout, fmt.Sprintf("Trust certs successfully exported to %s", dir))
+		print.SuccessStatusEvent(os.Stdout, "Trust certs successfully exported to "+dir)
 	},
 	PostRun: func(cmd *cobra.Command, args []string) {
 		kubernetes.CheckForCertExpiry()

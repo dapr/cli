@@ -26,6 +26,8 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+var imagePullPolicyValuesAllowed = []string{"Always", "Never", "IfNotPresent"}
+
 // Parse the provided run file into a RunFileConfig struct.
 func (a *RunFileConfig) parseAppsConfig(runFilePath string) error {
 	var err error
@@ -70,7 +72,7 @@ func (a *RunFileConfig) validateRunConfig(runFilePath string) error {
 		a.Common.ResourcesPaths = append(a.Common.ResourcesPaths, a.Common.ResourcesPath)
 	}
 
-	for i := 0; i < len(a.Apps); i++ {
+	for i := range len(a.Apps) {
 		if a.Apps[i].AppDirPath == "" {
 			return errors.New("required field 'appDirPath' not found in the provided app config file")
 		}
@@ -96,6 +98,15 @@ func (a *RunFileConfig) validateRunConfig(runFilePath string) error {
 		// Merge app's section ResourcesPaths and ResourcePath. ResourcesPaths will be single source of truth for resources to be loaded.
 		if len(strings.TrimSpace(a.Apps[i].ResourcesPath)) > 0 {
 			a.Apps[i].ResourcesPaths = append(a.Apps[i].ResourcesPaths, a.Apps[i].ResourcesPath)
+		}
+
+		// Check containerImagePullPolicy is valid.
+		if a.Apps[i].ContainerImagePullPolicy != "" {
+			if !utils.Contains(imagePullPolicyValuesAllowed, a.Apps[i].ContainerImagePullPolicy) {
+				return fmt.Errorf("invalid containerImagePullPolicy: %s, allowed values: %s", a.Apps[i].ContainerImagePullPolicy, strings.Join(imagePullPolicyValuesAllowed, ", "))
+			}
+		} else {
+			a.Apps[i].ContainerImagePullPolicy = "Always"
 		}
 	}
 	return nil
@@ -212,9 +223,6 @@ func (a *RunFileConfig) resolvePathToAbsAndValidate(baseDir string, paths ...*st
 			return err
 		}
 		absPath := utils.GetAbsPath(baseDir, *path)
-		if err != nil {
-			return err
-		}
 		*path = absPath
 		if err = utils.ValidateFilePath(*path); err != nil {
 			return err

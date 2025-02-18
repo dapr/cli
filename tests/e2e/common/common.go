@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	core_v1 "k8s.io/api/core/v1"
@@ -46,13 +47,17 @@ const (
 	ClusterRoles
 	ClusterRoleBindings
 
-	numHAPods    = 13
-	numNonHAPods = 5
+	numHAPodsWithScheduler    = 16
+	numHAPodsOld              = 13
+	numNonHAPodsWithScheduler = 6
+	numNonHAPodsOld           = 5
 
 	thirdPartyDevNamespace = "default"
 	devRedisReleaseName    = "dapr-dev-redis"
 	devZipkinReleaseName   = "dapr-dev-zipkin"
 )
+
+var VersionWithScheduler = semver.MustParse("1.14.0-rc.1")
 
 type VersionDetails struct {
 	RuntimeVersion       string
@@ -104,6 +109,13 @@ func GetVersionsFromEnv(t *testing.T, latest bool) (string, string) {
 	return daprRuntimeVersion, daprDashboardVersion
 }
 
+func GetRuntimeVersion(t *testing.T, latest bool) *semver.Version {
+	daprRuntimeVersion, _ := GetVersionsFromEnv(t, latest)
+	runtimeVersion, err := semver.NewVersion(daprRuntimeVersion)
+	require.NoError(t, err)
+	return runtimeVersion
+}
+
 func UpgradeTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
 		daprPath := GetDaprPath()
@@ -131,7 +143,7 @@ func UpgradeTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 		done := make(chan struct{})
 		podsRunning := make(chan struct{})
 
-		go waitAllPodsRunning(t, DaprTestNamespace, opts.HAEnabled, done, podsRunning)
+		go waitAllPodsRunning(t, DaprTestNamespace, opts.HAEnabled, done, podsRunning, details)
 		select {
 		case <-podsRunning:
 			t.Logf("verified all pods running in namespace %s are running after upgrade", DaprTestNamespace)
@@ -544,7 +556,7 @@ func GenerateNewCertAndRenew(details VersionDetails, opts TestOptions) func(t *t
 		done := make(chan struct{})
 		podsRunning := make(chan struct{})
 
-		go waitAllPodsRunning(t, DaprTestNamespace, opts.HAEnabled, done, podsRunning)
+		go waitAllPodsRunning(t, DaprTestNamespace, opts.HAEnabled, done, podsRunning, details)
 		select {
 		case <-podsRunning:
 			t.Logf("verified all pods running in namespace %s are running after certficate change", DaprTestNamespace)
@@ -575,7 +587,7 @@ func UseProvidedPrivateKeyAndRenewCerts(details VersionDetails, opts TestOptions
 		done := make(chan struct{})
 		podsRunning := make(chan struct{})
 
-		go waitAllPodsRunning(t, DaprTestNamespace, opts.HAEnabled, done, podsRunning)
+		go waitAllPodsRunning(t, DaprTestNamespace, opts.HAEnabled, done, podsRunning, details)
 		select {
 		case <-podsRunning:
 			t.Logf("verified all pods running in namespace %s are running after certficate change", DaprTestNamespace)
@@ -608,7 +620,7 @@ func UseProvidedNewCertAndRenew(details VersionDetails, opts TestOptions) func(t
 		done := make(chan struct{})
 		podsRunning := make(chan struct{})
 
-		go waitAllPodsRunning(t, DaprTestNamespace, opts.HAEnabled, done, podsRunning)
+		go waitAllPodsRunning(t, DaprTestNamespace, opts.HAEnabled, done, podsRunning, details)
 		select {
 		case <-podsRunning:
 			t.Logf("verified all pods running in namespace %s are running after certficate change", DaprTestNamespace)
@@ -894,7 +906,7 @@ func componentsTestOnUninstall(opts TestOptions) func(t *testing.T) {
 		lines := strings.Split(output, "\n")
 
 		// An extra empty line is there in output.
-		require.Equal(t, 3, len(lines), "expected header and warning message of the output to remain")
+		require.Len(t, lines, 3, "expected header and warning message of the output to remain")
 	}
 }
 
@@ -924,7 +936,7 @@ func httpEndpointsTestOnUninstall(opts TestOptions) func(t *testing.T) {
 			lines := strings.Split(output, "\n")
 
 			// An extra empty line is there in output.
-			require.Equal(t, 2, len(lines), "expected kubernetes response message to remain")
+			require.Len(t, lines, 2, "expected kubernetes response message to remain")
 		}
 	}
 }
@@ -947,7 +959,7 @@ func componentOutputCheck(t *testing.T, opts TestOptions, output string) {
 	}
 
 	if opts.UninstallAll {
-		assert.Equal(t, 2, len(lines), "expected at 0 components and 2 output lines")
+		assert.Len(t, lines, 2, "expected at 0 components and 2 output lines")
 		return
 	}
 
@@ -957,9 +969,9 @@ func componentOutputCheck(t *testing.T, opts TestOptions, output string) {
 		// default, test statestore.
 		// default pubsub.
 		// 3 components.
-		assert.Equal(t, 3, len(lines), "expected 3 components")
+		assert.Len(t, lines, 3, "expected 3 components")
 	} else {
-		assert.Equal(t, 2, len(lines), "expected 2 components") // default and test namespace components.
+		assert.Len(t, lines, 2, "expected 2 components") // default and test namespace components.
 
 		// for fresh cluster only one component yaml has been applied.
 		testNsFields := strings.Fields(lines[0])
@@ -1164,7 +1176,7 @@ func waitPodDeletion(t *testing.T, done, podsDeleted chan struct{}) {
 	}
 }
 
-func waitAllPodsRunning(t *testing.T, namespace string, haEnabled bool, done, podsRunning chan struct{}) {
+func waitAllPodsRunning(t *testing.T, namespace string, haEnabled bool, done, podsRunning chan struct{}, details VersionDetails) {
 	for {
 		select {
 		case <-done: // if timeout was reached.
@@ -1181,8 +1193,10 @@ func waitAllPodsRunning(t *testing.T, namespace string, haEnabled bool, done, po
 			Limit: 100,
 		})
 		require.NoError(t, err, "error getting pods list from k8s")
+		t.Logf("items %d", len(list.Items))
 		countOfReadyPods := 0
 		for _, item := range list.Items {
+			t.Log(item.ObjectMeta.Name)
 			// Check pods running, and containers ready.
 			if item.Status.Phase == core_v1.PodRunning && len(item.Status.ContainerStatuses) != 0 {
 				size := len(item.Status.ContainerStatuses)
@@ -1196,11 +1210,45 @@ func waitAllPodsRunning(t *testing.T, namespace string, haEnabled bool, done, po
 				}
 			}
 		}
-		if len(list.Items) == countOfReadyPods && ((haEnabled && countOfReadyPods == numHAPods) || (!haEnabled && countOfReadyPods == numNonHAPods)) {
+		pods, err := getVersionedNumberOfPods(haEnabled, details)
+		if err != nil {
+			t.Error(err)
+		}
+		if len(list.Items) == countOfReadyPods && ((haEnabled && countOfReadyPods == pods) || (!haEnabled && countOfReadyPods == pods)) {
 			podsRunning <- struct{}{}
 		}
 
 		time.Sleep(15 * time.Second)
+	}
+}
+
+func getVersionedNumberOfPods(isHAEnabled bool, details VersionDetails) (int, error) {
+	if isHAEnabled {
+		if details.UseDaprLatestVersion {
+			return numHAPodsWithScheduler, nil
+		}
+		rv, err := semver.NewVersion(details.RuntimeVersion)
+		if err != nil {
+			return 0, err
+		}
+
+		if rv.LessThan(VersionWithScheduler) {
+			return numHAPodsOld, nil
+		}
+		return numHAPodsWithScheduler, nil
+	} else {
+		if details.UseDaprLatestVersion {
+			return numNonHAPodsWithScheduler, nil
+		}
+		rv, err := semver.NewVersion(details.RuntimeVersion)
+		if err != nil {
+			return 0, err
+		}
+
+		if rv.LessThan(VersionWithScheduler) {
+			return numNonHAPodsOld, nil
+		}
+		return numNonHAPodsWithScheduler, nil
 	}
 }
 
@@ -1210,7 +1258,6 @@ func exportCurrentCertificate(daprPath string) error {
 		os.RemoveAll("./certs")
 	}
 	_, err = spawn.Command(daprPath, "mtls", "export", "-o", "./certs")
-
 	if err != nil {
 		return fmt.Errorf("error in exporting certificate %w", err)
 	}

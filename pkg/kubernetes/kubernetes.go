@@ -40,6 +40,7 @@ const (
 	daprReleaseName      = "dapr"
 	dashboardReleaseName = "dapr-dashboard"
 	latestVersion        = "latest"
+	bitnamiStableVersion = "17.14.5"
 
 	// dev mode constants.
 	thirdPartyDevNamespace   = "default"
@@ -47,7 +48,7 @@ const (
 	redisChartName           = "redis"
 	zipkinReleaseName        = "dapr-dev-zipkin"
 	redisReleaseName         = "dapr-dev-redis"
-	redisVersion             = "6.2"
+	redisVersion             = "6.2.11"
 	bitnamiHelmRepo          = "https://charts.bitnami.com/bitnami"
 	daprHelmRepo             = "https://dapr.github.io/helm-charts"
 	zipkinHelmRepo           = "https://openzipkin.github.io/zipkin"
@@ -99,9 +100,10 @@ func Init(config InitConfiguration) error {
 	if config.EnableDev {
 		redisChartVals := []string{
 			"image.tag=" + redisVersion,
+			"replica.replicaCount=0",
 		}
 
-		err = installThirdPartyWithConsole(redisReleaseName, redisChartName, latestVersion, bitnamiHelmRepo, "Dapr Redis", redisChartVals, config)
+		err = installThirdPartyWithConsole(redisReleaseName, redisChartName, bitnamiStableVersion, bitnamiHelmRepo, "Dapr Redis", redisChartVals, config)
 		if err != nil {
 			return err
 		}
@@ -124,7 +126,7 @@ func installThirdPartyWithConsole(releaseName, chartName, releaseVersion, helmRe
 	defer installSpinning(print.Failure)
 
 	// releaseVersion of chart will always be latest version.
-	err := installThirdParty(releaseName, chartName, latestVersion, helmRepo, chartValues, config)
+	err := installThirdParty(releaseName, chartName, releaseVersion, helmRepo, chartValues, config)
 	if err != nil {
 		return err
 	}
@@ -214,7 +216,7 @@ func getHelmChart(version, releaseName, helmRepo string, config *helm.Configurat
 
 	pull.Settings = &cli.EnvSettings{}
 
-	if version != latestVersion && (releaseName == daprReleaseName || releaseName == dashboardReleaseName) {
+	if version != latestVersion && (releaseName == daprReleaseName || releaseName == dashboardReleaseName || releaseName == redisChartName) {
 		pull.Version = chartVersion(version)
 	}
 
@@ -247,10 +249,10 @@ func daprChartValues(config InitConfiguration, version string) (map[string]inter
 	helmVals := []string{
 		fmt.Sprintf("global.ha.enabled=%t", config.EnableHA),
 		fmt.Sprintf("global.mtls.enabled=%t", config.EnableMTLS),
-		fmt.Sprintf("global.tag=%s", utils.GetVariantVersion(version, config.ImageVariant)),
+		"global.tag=" + utils.GetVariantVersion(version, config.ImageVariant),
 	}
 	if len(config.ImageRegistryURI) != 0 {
-		helmVals = append(helmVals, fmt.Sprintf("global.registry=%s", config.ImageRegistryURI))
+		helmVals = append(helmVals, "global.registry="+config.ImageRegistryURI)
 	}
 	helmVals = append(helmVals, config.Args...)
 
@@ -263,9 +265,9 @@ func daprChartValues(config InitConfiguration, version string) (map[string]inter
 		if err != nil {
 			return nil, err
 		}
-		helmVals = append(helmVals, fmt.Sprintf("dapr_sentry.tls.root.certPEM=%s", string(rootCertBytes)),
-			fmt.Sprintf("dapr_sentry.tls.issuer.certPEM=%s", string(issuerCertBytes)),
-			fmt.Sprintf("dapr_sentry.tls.issuer.keyPEM=%s", string(issuerKeyBytes)),
+		helmVals = append(helmVals, "dapr_sentry.tls.root.certPEM="+string(rootCertBytes),
+			"dapr_sentry.tls.issuer.certPEM="+string(issuerCertBytes),
+			"dapr_sentry.tls.issuer.keyPEM="+string(issuerKeyBytes),
 		)
 	}
 
@@ -299,7 +301,7 @@ func install(releaseName, releaseVersion, helmRepo string, config InitConfigurat
 	}
 
 	if releaseName == daprReleaseName {
-		err = applyCRDs(fmt.Sprintf("v%s", version))
+		err = applyCRDs("v" + version)
 		if err != nil {
 			return err
 		}
@@ -309,7 +311,7 @@ func install(releaseName, releaseVersion, helmRepo string, config InitConfigurat
 	installClient.ReleaseName = releaseName
 	installClient.Namespace = config.Namespace
 	installClient.Wait = config.Wait
-	installClient.Timeout = time.Duration(config.Timeout) * time.Second
+	installClient.Timeout = time.Duration(config.Timeout) * time.Second //nolint:gosec
 
 	values, err := daprChartValues(config, version)
 	if err != nil {
@@ -338,7 +340,7 @@ func installThirdParty(releaseName, chartName, releaseVersion, helmRepo string, 
 	installClient.ReleaseName = releaseName
 	installClient.Namespace = thirdPartyDevNamespace
 	installClient.Wait = config.Wait
-	installClient.Timeout = time.Duration(config.Timeout) * time.Second
+	installClient.Timeout = time.Duration(config.Timeout) * time.Second //nolint:gosec
 
 	values := map[string]interface{}{}
 

@@ -98,7 +98,6 @@ func TestResolveImageWithGHCR(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		test := test
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			got, err := resolveImageURI(test.args)
@@ -144,7 +143,6 @@ func TestResolveImageWithDockerHub(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		test := test
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			got, err := resolveImageURI(test.args)
@@ -190,7 +188,6 @@ func TestResolveImageWithPrivateRegistry(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		test := test
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			got, err := resolveImageURI(test.args)
@@ -328,9 +325,31 @@ func TestInitLogActualContainerRuntimeName(t *testing.T) {
 				t.Skip("Skipping test as container runtime is available")
 			}
 
-			err := Init(latestVersion, latestVersion, "", false, "", "", test.containerRuntime, "", "")
-			assert.NotNil(t, err)
+			err := Init(latestVersion, latestVersion, "", false, "", "", test.containerRuntime, "", "", nil)
+			assert.Error(t, err)
 			assert.Contains(t, err.Error(), test.containerRuntime)
+		})
+	}
+}
+
+func TestIsSchedulerIncluded(t *testing.T) {
+	scenarios := []struct {
+		version    string
+		isIncluded bool
+	}{
+		{"1.13.0-rc.1", false},
+		{"1.13.0", false},
+		{"1.13.1", false},
+		{"1.14.0", true},
+		{"1.14.0-rc.1", true},
+		{"1.14.0-mycompany.1", true},
+		{"1.14.1", true},
+	}
+	for _, scenario := range scenarios {
+		t.Run("isSchedulerIncludedIn"+scenario.version, func(t *testing.T) {
+			included, err := isSchedulerIncluded(scenario.version)
+			assert.NoError(t, err)
+			assert.Equal(t, scenario.isIncluded, included)
 		})
 	}
 }

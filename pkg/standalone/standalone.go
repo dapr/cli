@@ -143,6 +143,7 @@ type initInfo struct {
 	imageRegistryURL string
 	containerRuntime string
 	imageVariant     string
+	schedulerVolume  *string
 }
 
 type daprImageInfo struct {
@@ -176,11 +177,15 @@ func isSchedulerIncluded(runtimeVersion string) (bool, error) {
 		return false, err
 	}
 
-	return c.Check(v), nil
+	vNoPrerelease, err := v.SetPrerelease("")
+	if err != nil {
+		return false, err
+	}
+	return c.Check(&vNoPrerelease), nil
 }
 
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
-func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool, imageRegistryURL string, fromDir string, containerRuntime string, imageVariant string, daprInstallPath string) error {
+func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool, imageRegistryURL string, fromDir string, containerRuntime string, imageVariant string, daprInstallPath string, schedulerVolume *string) error {
 	var err error
 	var bundleDet bundleDetails
 	containerRuntime = strings.TrimSpace(containerRuntime)
@@ -301,6 +306,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		imageRegistryURL: imageRegistryURL,
 		containerRuntime: containerRuntime,
 		imageVariant:     imageVariant,
+		schedulerVolume:  schedulerVolume,
 	}
 	for _, step := range initSteps {
 		// Run init on the configurations and containers.
@@ -411,7 +417,6 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 		args = append(args, imageName)
 	}
 	_, err = utils.RunCmdAndWait(runtimeCmd, args...)
-
 	if err != nil {
 		runError := isContainerRunError(err)
 		if !runError {
@@ -477,7 +482,6 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 		args = append(args, imageName)
 	}
 	_, err = utils.RunCmdAndWait(runtimeCmd, args...)
-
 	if err != nil {
 		runError := isContainerRunError(err)
 		if !runError {
@@ -564,7 +568,6 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 	args = append(args, image)
 
 	_, err = utils.RunCmdAndWait(runtimeCmd, args...)
-
 	if err != nil {
 		runError := isContainerRunError(err)
 		if !runError {
@@ -632,15 +635,28 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		}
 	}
 
-	// instanceID is 0 because we run one instance only for now.
-	schedulerDataDir := getSchedulerDataPath(info.installDir, 0)
 	args := []string{
 		"run",
 		"--name", schedulerContainerName,
 		"--restart", "always",
 		"-d",
 		"--entrypoint", "./scheduler",
-		"--volume", fmt.Sprintf("%v:/data-default-dapr-scheduler-server-0", schedulerDataDir),
+	}
+	if info.schedulerVolume != nil {
+		// Don't touch this file location unless things start breaking.
+		// In Docker, when Docker creates a volume and mounts that volume. Docker
+		// assumes the file permissions of that directory if it exists in the container.
+		// If that directory didn't exist in the container previously, then Docker sets
+		// the permissions owned by root and not writeable.
+		// We are lucky in that the Dapr containers have a world writeable directory at
+		// /var/lock and can therefore mount the Docker volume here.
+		// TODO: update the Dapr scheduler dockerfile to create a scheduler user id writeable
+		// directory at /var/lib/dapr/scheduler, then update the path here.
+		if strings.EqualFold(info.imageVariant, "mariner") {
+			args = append(args, "--volume", *info.schedulerVolume+":/var/tmp")
+		} else {
+			args = append(args, "--volume", *info.schedulerVolume+":/var/lock")
+		}
 	}
 
 	if info.dockerNetwork != "" {
@@ -661,10 +677,13 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		)
 	}
 
-	args = append(args, image)
+	if strings.EqualFold(info.imageVariant, "mariner") {
+		args = append(args, image, "--etcd-data-dir=/var/tmp/dapr/scheduler")
+	} else {
+		args = append(args, image, "--etcd-data-dir=/var/lock/dapr/scheduler")
+	}
 
 	_, err = utils.RunCmdAndWait(runtimeCmd, args...)
-
 	if err != nil {
 		runError := isContainerRunError(err)
 		if !runError {
@@ -869,7 +888,7 @@ func createSlimConfiguration(wg *sync.WaitGroup, errorChan chan<- error, info in
 func makeDefaultComponentsDir(installDir string) error {
 	// Make default components directory.
 	componentsDir := GetDaprComponentsPath(installDir)
-	//nolint
+
 	_, err := os.Stat(componentsDir)
 	if os.IsNotExist(err) {
 		errDir := os.MkdirAll(componentsDir, 0o755)
@@ -936,7 +955,7 @@ func unzip(r *zip.Reader, targetDir string, binaryFilePrefix string) (string, er
 			return "", err
 		}
 
-		if strings.HasSuffix(fpath, fmt.Sprintf("%s.exe", binaryFilePrefix)) {
+		if strings.HasSuffix(fpath, binaryFilePrefix+".exe") {
 			foundBinary = fpath
 		}
 
@@ -994,7 +1013,6 @@ func untar(reader io.Reader, targetDir string, binaryFilePrefix string) (string,
 	foundBinary := ""
 	for {
 		header, err := tr.Next()
-		//nolint
 		if err == io.EOF {
 			break
 		} else if err != nil {
@@ -1017,7 +1035,7 @@ func untar(reader io.Reader, targetDir string, binaryFilePrefix string) (string,
 			continue
 		}
 
-		f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
+		f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode)) //nolint:gosec
 		if err != nil {
 			return "", err
 		}
@@ -1066,14 +1084,14 @@ func moveFileToPath(filepath string, installLocation string) (string, error) {
 
 		if !strings.Contains(strings.ToLower(p), strings.ToLower(destDir)) {
 			destDir = utils.SanitizeDir(destDir)
-			pathCmd := "[System.Environment]::SetEnvironmentVariable('Path',[System.Environment]::GetEnvironmentVariable('Path','user') + '" + fmt.Sprintf(";%s", destDir) + "', 'user')"
+			pathCmd := "[System.Environment]::SetEnvironmentVariable('Path',[System.Environment]::GetEnvironmentVariable('Path','user') + '" + ";" + destDir + "', 'user')"
 			_, err := utils.RunCmdAndWait("powershell", pathCmd)
 			if err != nil {
 				return "", err
 			}
 		}
 
-		return fmt.Sprintf("%s\\daprd.exe", destDir), nil
+		return destDir + "\\daprd.exe", nil
 	}
 
 	if strings.HasPrefix(fileName, daprRuntimeFilePrefix) && installLocation != "" {
@@ -1098,7 +1116,7 @@ func createRedisStateStore(redisHost string, componentsPath string) error {
 	redisStore.Spec.Metadata = []componentMetadataItem{
 		{
 			Name:  "redisHost",
-			Value: fmt.Sprintf("%s:6379", redisHost),
+			Value: redisHost + ":6379",
 		},
 		{
 			Name:  "redisPassword",
@@ -1133,7 +1151,7 @@ func createRedisPubSub(redisHost string, componentsPath string) error {
 	redisPubSub.Spec.Metadata = []componentMetadataItem{
 		{
 			Name:  "redisHost",
-			Value: fmt.Sprintf("%s:6379", redisHost),
+			Value: redisHost + ":6379",
 		},
 		{
 			Name:  "redisPassword",

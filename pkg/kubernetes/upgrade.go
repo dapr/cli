@@ -111,7 +111,7 @@ func Upgrade(conf UpgradeConfig) error {
 	if !hasDashboardInDaprChart && willHaveDashboardInDaprChart && dashboardExists {
 		print.InfoStatusEvent(os.Stdout, "Dashboard being uninstalled prior to Dapr control plane upgrade...")
 		uninstallClient := helm.NewUninstall(helmConf)
-		uninstallClient.Timeout = time.Duration(conf.Timeout) * time.Second
+		uninstallClient.Timeout = time.Duration(conf.Timeout) * time.Second //nolint:gosec
 
 		_, err = uninstallClient.Run(dashboardReleaseName)
 		if err != nil {
@@ -157,7 +157,7 @@ func Upgrade(conf UpgradeConfig) error {
 	}
 
 	if !isDowngrade(conf.RuntimeVersion, daprVersion) {
-		err = applyCRDs(fmt.Sprintf("v%s", conf.RuntimeVersion))
+		err = applyCRDs("v" + conf.RuntimeVersion)
 		if err != nil {
 			return fmt.Errorf("unable to apply CRDs: %w", err)
 		}
@@ -240,7 +240,7 @@ func helmUpgrade(client *helm.Upgrade, name string, chart *chart.Chart, vals map
 
 		// create a totally new helm client, this ensures that we fetch a fresh openapi schema from the server on each attempt.
 		client, _, err = newUpgradeClient(client.Namespace, UpgradeConfig{
-			Timeout: uint(client.Timeout),
+			Timeout: uint(client.Timeout), //nolint:gosec
 		})
 		if err != nil {
 			return nil, fmt.Errorf("unable to create helm client: %w", err)
@@ -267,7 +267,7 @@ func applyCRDs(version string) error {
 		url := fmt.Sprintf("https://raw.githubusercontent.com/dapr/dapr/%s/charts/dapr/crds/%s.yaml", version, crd)
 
 		resp, _ := http.Get(url) //nolint:gosec
-		if resp != nil && resp.StatusCode == 200 {
+		if resp != nil && resp.StatusCode == http.StatusOK {
 			defer resp.Body.Close()
 
 			_, err := utils.RunCmdAndWait("kubectl", "apply", "-f", url)
@@ -286,18 +286,18 @@ func upgradeChartValues(ca, issuerCert, issuerKey string, haMode, mtls bool, con
 	if err != nil {
 		return nil, err
 	}
-	globalVals = append(globalVals, fmt.Sprintf("global.tag=%s", utils.GetVariantVersion(conf.RuntimeVersion, conf.ImageVariant)))
+	globalVals = append(globalVals, "global.tag="+utils.GetVariantVersion(conf.RuntimeVersion, conf.ImageVariant))
 
 	if mtls && ca != "" && issuerCert != "" && issuerKey != "" {
-		globalVals = append(globalVals, fmt.Sprintf("dapr_sentry.tls.root.certPEM=%s", ca),
-			fmt.Sprintf("dapr_sentry.tls.issuer.certPEM=%s", issuerCert),
-			fmt.Sprintf("dapr_sentry.tls.issuer.keyPEM=%s", issuerKey),
+		globalVals = append(globalVals, "dapr_sentry.tls.root.certPEM="+ca,
+			"dapr_sentry.tls.issuer.certPEM="+issuerCert,
+			"dapr_sentry.tls.issuer.keyPEM="+issuerKey,
 		)
 	} else {
 		globalVals = append(globalVals, "global.mtls.enabled=false")
 	}
 	if len(conf.ImageRegistryURI) != 0 {
-		globalVals = append(globalVals, fmt.Sprintf("global.registry=%s", conf.ImageRegistryURI))
+		globalVals = append(globalVals, "global.registry="+conf.ImageRegistryURI)
 	}
 	if haMode {
 		globalVals = append(globalVals, "global.ha.enabled=true")
@@ -334,7 +334,7 @@ func newUpgradeClient(namespace string, cfg UpgradeConfig) (*helm.Upgrade, *helm
 	client.Namespace = namespace
 	client.CleanupOnFail = true
 	client.Wait = true
-	client.Timeout = time.Duration(cfg.Timeout) * time.Second
+	client.Timeout = time.Duration(cfg.Timeout) * time.Second //nolint:gosec
 
 	return client, helmCfg, nil
 }

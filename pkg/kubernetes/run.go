@@ -297,7 +297,7 @@ func createDeploymentConfig(client versioned.Interface, app runfileconfig.App) d
 						Name:            app.AppID,
 						Image:           app.ContainerImage,
 						Env:             getEnv(app),
-						ImagePullPolicy: corev1.PullAlways,
+						ImagePullPolicy: corev1.PullPolicy(app.ContainerImagePullPolicy),
 					},
 				},
 			},
@@ -317,7 +317,7 @@ func createDeploymentConfig(client versioned.Interface, app runfileconfig.App) d
 	if app.AppPort != 0 {
 		dep.Spec.Template.Spec.Containers[0].Ports = []corev1.ContainerPort{
 			{
-				ContainerPort: int32(app.AppPort),
+				ContainerPort: int32(app.AppPort), //nolint:gosec
 			},
 		}
 	}

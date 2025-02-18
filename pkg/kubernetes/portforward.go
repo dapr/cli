@@ -14,6 +14,7 @@ limitations under the License.
 package kubernetes
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -133,7 +134,7 @@ func (pf *PortForward) Init() error {
 			return fmt.Errorf("can not get the local and remote ports: %w", err)
 		}
 		if len(ports) == 0 {
-			return fmt.Errorf("can not get the local and remote ports: error getting ports length")
+			return errors.New("can not get the local and remote ports: error getting ports length")
 		}
 
 		pf.LocalPort = int(ports[0].Local)
