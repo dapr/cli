@@ -241,7 +241,6 @@ func (config *RunConfig) Validate() error {
 	}
 
 	qBuffer, err := resource.ParseQuantity(config.HTTPReadBufferSize)
-
 	if err != nil {
 		return fmt.Errorf("invalid http read buffer size: %w", err)
 	}
@@ -296,7 +295,6 @@ func (config *RunConfig) ValidateK8s() error {
 	}
 
 	qBuffer, err := resource.ParseQuantity(config.HTTPReadBufferSize)
-
 	if err != nil {
 		return fmt.Errorf("invalid http read buffer size: %w", err)
 	}
