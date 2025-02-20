@@ -16,13 +16,14 @@ package cmd
 import (
 	"bytes"
 	"fmt"
-	"github.com/dapr/dapr/pkg/runtime"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
+
+	"github.com/dapr/dapr/pkg/runtime"
 
 	"k8s.io/apimachinery/pkg/api/resource"
 
