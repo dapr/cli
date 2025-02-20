@@ -16,6 +16,7 @@ package standalone
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"net"
 	"os"
 	"os/exec"
@@ -79,8 +80,8 @@ type SharedRunConfig struct {
 	ResourcesPaths []string `arg:"resources-path" yaml:"resourcesPaths"`
 	// Speicifcally omitted from annotations as appSSL is deprecated.
 	AppSSL             bool   `arg:"app-ssl" yaml:"appSSL"`
-	MaxRequestBodySize int    `arg:"max-body-size" annotation:"dapr.io/max-body-size" yaml:"maxBodySize" default:"-1"`
-	HTTPReadBufferSize int    `arg:"read-buffer-size" annotation:"dapr.io/read-buffer-size" yaml:"readBufferSize" default:"-1"`
+	MaxRequestBodySize string `arg:"max-body-size" annotation:"dapr.io/max-body-size" yaml:"maxBodySize" default:"-1"`
+	HTTPReadBufferSize string `arg:"read-buffer-size" annotation:"dapr.io/read-buffer-size" yaml:"readBufferSize" default:"-1"`
 	EnableAppHealth    bool   `arg:"enable-app-health-check" annotation:"dapr.io/enable-app-health-check" yaml:"enableAppHealthCheck"`
 	AppHealthPath      string `arg:"app-health-check-path" annotation:"dapr.io/app-health-check-path" yaml:"appHealthCheckPath"`
 	AppHealthInterval  int    `arg:"app-health-probe-interval" annotation:"dapr.io/app-health-probe-interval" ifneq:"0" yaml:"appHealthProbeInterval"`
@@ -226,12 +227,21 @@ func (config *RunConfig) Validate() error {
 	if config.MaxConcurrency < 1 {
 		config.MaxConcurrency = -1
 	}
-	if config.MaxRequestBodySize < 0 {
-		config.MaxRequestBodySize = -1
+
+	if q, err := resource.ParseQuantity(config.MaxRequestBodySize); err != nil {
+		return fmt.Errorf("invalid max request body size: %w", err)
+	} else if q.Value() < 0 {
+		config.MaxRequestBodySize = "-1"
+	} else {
+		config.MaxRequestBodySize = q.String()
 	}
 
-	if config.HTTPReadBufferSize < 0 {
-		config.HTTPReadBufferSize = -1
+	if q, err := resource.ParseQuantity(config.HTTPReadBufferSize); err != nil {
+		return fmt.Errorf("invalid http read buffer size: %w", err)
+	} else if q.Value() < 0 {
+		config.HTTPReadBufferSize = "-1"
+	} else {
+		config.HTTPReadBufferSize = q.String()
 	}
 
 	err = config.validatePlacementHostAddr()
@@ -265,12 +275,21 @@ func (config *RunConfig) ValidateK8s() error {
 	if config.MaxConcurrency < 1 {
 		config.MaxConcurrency = -1
 	}
-	if config.MaxRequestBodySize < 0 {
-		config.MaxRequestBodySize = -1
+
+	if q, err := resource.ParseQuantity(config.MaxRequestBodySize); err != nil {
+		return fmt.Errorf("invalid max request body size: %w", err)
+	} else if q.Value() <= 0 {
+		config.MaxRequestBodySize = "-1"
+	} else {
+		config.MaxRequestBodySize = q.String()
 	}
 
-	if config.HTTPReadBufferSize < 0 {
-		config.HTTPReadBufferSize = -1
+	if q, err := resource.ParseQuantity(config.HTTPReadBufferSize); err != nil {
+		return fmt.Errorf("invalid http read buffer size: %w", err)
+	} else if q.Value() <= 0 {
+		config.HTTPReadBufferSize = "-1"
+	} else {
+		config.HTTPReadBufferSize = q.String()
 	}
 
 	return nil
