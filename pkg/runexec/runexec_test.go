@@ -296,6 +296,8 @@ func TestRun(t *testing.T) {
 		basicConfig.ProfilePort = 0
 		basicConfig.EnableProfiling = true
 		basicConfig.MaxConcurrency = 0
+		basicConfig.MaxRequestBodySize = ""
+		basicConfig.HTTPReadBufferSize = ""
 		basicConfig.AppProtocol = ""
 
 		basicConfig.SetDefaultFromSchema()
@@ -307,8 +309,8 @@ func TestRun(t *testing.T) {
 		assert.Equal(t, -1, basicConfig.ProfilePort)
 		assert.True(t, basicConfig.EnableProfiling)
 		assert.Equal(t, -1, basicConfig.MaxConcurrency)
-		assert.Equal(t, "-1", basicConfig.MaxRequestBodySize)
-		assert.Equal(t, "-1", basicConfig.HTTPReadBufferSize)
+		assert.Equal(t, "4Mi", basicConfig.MaxRequestBodySize)
+		assert.Equal(t, "4Ki", basicConfig.HTTPReadBufferSize)
 		assert.Equal(t, "http", basicConfig.AppProtocol)
 
 		// Test after Validate gets called.
@@ -322,8 +324,8 @@ func TestRun(t *testing.T) {
 		assert.Positive(t, basicConfig.ProfilePort)
 		assert.True(t, basicConfig.EnableProfiling)
 		assert.Equal(t, -1, basicConfig.MaxConcurrency)
-		assert.Equal(t, "-1", basicConfig.MaxRequestBodySize)
-		assert.Equal(t, "-1", basicConfig.HTTPReadBufferSize)
+		assert.Equal(t, "4Mi", basicConfig.MaxRequestBodySize)
+		assert.Equal(t, "4Ki", basicConfig.HTTPReadBufferSize)
 		assert.Equal(t, "http", basicConfig.AppProtocol)
 	})
 
