@@ -16,11 +16,13 @@ package cmd
 import (
 	"bytes"
 	"fmt"
+	"github.com/dapr/dapr/pkg/runtime"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"k8s.io/apimachinery/pkg/api/resource"
 
@@ -396,8 +398,8 @@ func init() {
 	AnnotateCmd.Flags().StringVar(&annotateDaprImage, "dapr-image", "", "The image to use for the dapr sidecar container")
 	AnnotateCmd.Flags().BoolVar(&annotateAppSSL, "app-ssl", false, "Enable SSL for the app")
 	AnnotateCmd.Flags().MarkDeprecated("app-ssl", "This flag is deprecated and will be removed in a future release. Use \"app-protocol\" flag with https or grpcs instead")
-	AnnotateCmd.Flags().StringVar(&annotateMaxRequestBodySize, "max-body-size", "-1", "The maximum request body size to use")
-	AnnotateCmd.Flags().StringVar(&annotateReadBufferSize, "read-buffer-size", "-1", "The maximum size of HTTP header read buffer in kilobytes")
+	AnnotateCmd.Flags().StringVar(&annotateMaxRequestBodySize, "max-body-size", strconv.Itoa(runtime.DefaultMaxRequestBodySize>>20)+"Mi", "The maximum request body size to use")
+	AnnotateCmd.Flags().StringVar(&annotateReadBufferSize, "read-buffer-size", strconv.Itoa(runtime.DefaultReadBufferSize>>10)+"Ki", "The maximum size of HTTP header read buffer in kilobytes")
 	AnnotateCmd.Flags().BoolVar(&annotateHTTPStreamRequestBody, "http-stream-request-body", false, "Enable streaming request body for HTTP")
 	AnnotateCmd.Flags().IntVar(&annotateGracefulShutdownSeconds, "graceful-shutdown-seconds", -1, "The number of seconds to wait for the app to shutdown")
 	AnnotateCmd.Flags().BoolVar(&annotateEnableAPILogging, "enable-api-logging", false, "Enable API logging for the Dapr sidecar")
