@@ -16,7 +16,6 @@ package standalone
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/api/resource"
 	"net"
 	"os"
 	"os/exec"
@@ -24,6 +23,8 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+
+	"k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/Pallinder/sillyname-go"
 	"github.com/phayes/freeport"

@@ -17,11 +17,12 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"k8s.io/apimachinery/pkg/api/resource"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
+
+	"k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/spf13/cobra"
 
@@ -325,7 +326,6 @@ func getOptionsFromFlags() kubernetes.AnnotateOptions {
 		} else {
 			o = append(o, kubernetes.WithMaxRequestBodySize(int(q.Value())))
 		}
-
 	}
 	if annotateReadBufferSize != "-1" {
 		if q, err := resource.ParseQuantity(annotateReadBufferSize); err != nil {

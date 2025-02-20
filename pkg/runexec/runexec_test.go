@@ -15,11 +15,12 @@ package runexec
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/require"
 	"os"
 	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/stretchr/testify/assert"
 
