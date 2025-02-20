@@ -229,20 +229,27 @@ func (config *RunConfig) Validate() error {
 		config.MaxConcurrency = -1
 	}
 
-	if q, err := resource.ParseQuantity(config.MaxRequestBodySize); err != nil {
+	qBody, err := resource.ParseQuantity(config.MaxRequestBodySize)
+	if err != nil {
 		return fmt.Errorf("invalid max request body size: %w", err)
-	} else if q.Value() < 0 {
-		config.MaxRequestBodySize = "-1"
-	} else {
-		config.MaxRequestBodySize = q.String()
 	}
 
-	if q, err := resource.ParseQuantity(config.HTTPReadBufferSize); err != nil {
+	if qBody.Value() < 0 {
+		config.MaxRequestBodySize = "-1"
+	} else {
+		config.MaxRequestBodySize = qBody.String()
+	}
+
+	qBuffer, err := resource.ParseQuantity(config.HTTPReadBufferSize)
+
+	if err != nil {
 		return fmt.Errorf("invalid http read buffer size: %w", err)
-	} else if q.Value() < 0 {
+	}
+
+	if qBuffer.Value() < 0 {
 		config.HTTPReadBufferSize = "-1"
 	} else {
-		config.HTTPReadBufferSize = q.String()
+		config.HTTPReadBufferSize = qBuffer.String()
 	}
 
 	err = config.validatePlacementHostAddr()
@@ -277,20 +284,27 @@ func (config *RunConfig) ValidateK8s() error {
 		config.MaxConcurrency = -1
 	}
 
-	if q, err := resource.ParseQuantity(config.MaxRequestBodySize); err != nil {
+	qBody, err := resource.ParseQuantity(config.MaxRequestBodySize)
+	if err != nil {
 		return fmt.Errorf("invalid max request body size: %w", err)
-	} else if q.Value() <= 0 {
-		config.MaxRequestBodySize = "-1"
-	} else {
-		config.MaxRequestBodySize = q.String()
 	}
 
-	if q, err := resource.ParseQuantity(config.HTTPReadBufferSize); err != nil {
+	if qBody.Value() < 0 {
+		config.MaxRequestBodySize = "-1"
+	} else {
+		config.MaxRequestBodySize = qBody.String()
+	}
+
+	qBuffer, err := resource.ParseQuantity(config.HTTPReadBufferSize)
+
+	if err != nil {
 		return fmt.Errorf("invalid http read buffer size: %w", err)
-	} else if q.Value() <= 0 {
+	}
+
+	if qBuffer.Value() < 0 {
 		config.HTTPReadBufferSize = "-1"
 	} else {
-		config.HTTPReadBufferSize = q.String()
+		config.HTTPReadBufferSize = qBuffer.String()
 	}
 
 	return nil
