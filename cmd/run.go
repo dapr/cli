@@ -29,6 +29,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	daprRuntime "github.com/dapr/dapr/pkg/runtime"
+
 	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/pkg/metadata"
 	"github.com/dapr/cli/pkg/print"
@@ -55,8 +57,8 @@ var (
 	resourcesPaths       []string
 	appSSL               bool
 	metricsPort          int
-	maxRequestBodySize   int
-	readBufferSize       int
+	maxRequestBodySize   string
+	readBufferSize       string
 	unixDomainSocket     string
 	enableAppHealth      bool
 	appHealthPath        string
@@ -473,8 +475,8 @@ func init() {
 	RunCmd.Flags().MarkDeprecated("app-ssl", "This flag is deprecated and will be removed in the future releases. Use \"app-protocol\" flag with https or grpcs values instead")
 	RunCmd.Flags().IntVarP(&metricsPort, "metrics-port", "M", -1, "The port of metrics on dapr")
 	RunCmd.Flags().BoolP("help", "h", false, "Print this help message")
-	RunCmd.Flags().IntVarP(&maxRequestBodySize, "max-body-size", "", -1, "Max size of request body in MB")
-	RunCmd.Flags().IntVarP(&readBufferSize, "read-buffer-size", "", -1, "HTTP header read buffer in KB")
+	RunCmd.Flags().StringVarP(&maxRequestBodySize, "max-body-size", "", strconv.Itoa(daprRuntime.DefaultMaxRequestBodySize>>20)+"Mi", "Max size of request body in MB")
+	RunCmd.Flags().StringVarP(&readBufferSize, "read-buffer-size", "", strconv.Itoa(daprRuntime.DefaultReadBufferSize>>10)+"Ki", "HTTP header read buffer in KB")
 	RunCmd.Flags().StringVarP(&unixDomainSocket, "unix-domain-socket", "u", "", "Path to a unix domain socket dir. If specified, Dapr API servers will use Unix Domain Sockets")
 	RunCmd.Flags().BoolVar(&enableAppHealth, "enable-app-health-check", false, "Enable health checks for the application using the protocol defined with app-protocol")
 	RunCmd.Flags().StringVar(&appHealthPath, "app-health-check-path", "", "Path used for health checks; HTTP only")
