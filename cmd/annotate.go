@@ -325,14 +325,16 @@ func getOptionsFromFlags() kubernetes.AnnotateOptions {
 	}
 	if annotateMaxRequestBodySize != "-1" {
 		if q, err := resource.ParseQuantity(annotateMaxRequestBodySize); err != nil {
-			panic(err)
+			print.FailureStatusEvent(os.Stderr, "error parsing value of max-body-size: %s, error: %s", annotateMaxRequestBodySize, err.Error())
+			os.Exit(1)
 		} else {
 			o = append(o, kubernetes.WithMaxRequestBodySize(int(q.Value())))
 		}
 	}
 	if annotateReadBufferSize != "-1" {
 		if q, err := resource.ParseQuantity(annotateReadBufferSize); err != nil {
-			panic(err)
+			print.FailureStatusEvent(os.Stderr, "error parsing value of read-buffer-size: %s, error: %s", annotateMaxRequestBodySize, err.Error())
+			os.Exit(1)
 		} else {
 			o = append(o, kubernetes.WithReadBufferSize(int(q.Value())))
 		}
