@@ -43,7 +43,7 @@ jobs:
       DAPR_RUNTIME_LATEST_STABLE_VERSION: ""
       DAPR_DASHBOARD_LATEST_STABLE_VERSION: ""
       GOLANG_PROTOBUF_REGISTRATION_CONFLICT: warn
-      PODMAN_VERSION: 4.9.3
+      PODMAN_VERSION: 5.4.0
     strategy:
       # TODO: Remove this when our E2E tests are stable for podman on MacOS.
       fail-fast: false # Keep running if one leg fails.
@@ -90,9 +90,10 @@ jobs:
 
           # Start podman machine
           sudo podman-mac-helper install
-          podman machine init -v $HOME:$HOME
+          podman machine init -v $HOME:$HOME --memory 16384 --cpu 12
           podman machine start --log-level debug
           podman machine ssh sudo sysctl -w kernel.keys.maxkeys=20000
+          podman info
           echo "CONTAINER_RUNTIME=podman" >> $GITHUB_ENV
       - name: Determine latest Dapr Runtime version including Pre-releases
         if: github.base_ref == 'master'
