@@ -90,7 +90,7 @@ jobs:
 
           # Start podman machine
           sudo podman-mac-helper install
-          podman machine init -v $HOME:$HOME --memory 16384 --cpu 12
+          podman machine init -v $HOME:$HOME --memory 16384 --cpus 12
           podman machine start --log-level debug
           podman machine ssh sudo sysctl -w kernel.keys.maxkeys=20000
           podman info
