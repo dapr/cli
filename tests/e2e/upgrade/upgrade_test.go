@@ -34,18 +34,16 @@ var supportedUpgradePaths = []upgradePath{
 		// test upgrade on mariner images.
 		previous: common.VersionDetails{
 			RuntimeVersion:      "1.14.4",
-			DashboardVersion:    "0.14.0",
-			ImageVariant:        "mariner",
-			ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
-			ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
-			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io"},
+			DashboardVersion:    "0.15.0",
+			ClusterRoles:        []string{"dapr-dashboard", "dapr-injector", "dapr-operator-admin", "dapr-placement", "dapr-sentry"},
+			ClusterRoleBindings: []string{"dapr-operator-admin", "dapr-dashboard", "dapr-injector", "dapr-placement", "dapr-sentry"},
+			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io", "httpendpoints.dapr.io"},
 		},
 		next: common.VersionDetails{
 			RuntimeVersion:      "1.15.0-rc.16",
-			DashboardVersion:    "0.14.0",
-			ImageVariant:        "mariner",
-			ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
-			ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+			DashboardVersion:    "0.15.0",
+			ClusterRoles:        []string{"dapr-dashboard", "dapr-injector", "dapr-operator-admin", "dapr-placement", "dapr-sentry"},
+			ClusterRoleBindings: []string{"dapr-operator-admin", "dapr-dashboard", "dapr-injector", "dapr-placement", "dapr-sentry"},
 			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io"},
 		},
 	},
@@ -53,8 +51,8 @@ var supportedUpgradePaths = []upgradePath{
 		previous: common.VersionDetails{
 			RuntimeVersion:      "1.13.6",
 			DashboardVersion:    "0.14.0",
-			ClusterRoles:        []string{"dapr-operator-admin", "dashboard-reader"},
-			ClusterRoleBindings: []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"},
+			ClusterRoles:        []string{"dapr-dashboard", "dapr-injector", "dapr-operator-admin", "dapr-placement", "dapr-sentry"},
+			ClusterRoleBindings: []string{"dapr-operator-admin", "dapr-dashboard", "dapr-injector", "dapr-placement", "dapr-sentry"},
 			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io"},
 		},
 		next: common.VersionDetails{
