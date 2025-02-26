@@ -19,6 +19,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -392,6 +393,26 @@ func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t
 			notFound["dapr-sidecar-injector"][0] = notFound["dapr-sidecar-injector"][0] + "-" + details.ImageVariant
 			notFound["dapr-placement-server"][0] = notFound["dapr-placement-server"][0] + "-" + details.ImageVariant
 			notFound["dapr-operator"][0] = notFound["dapr-operator"][0] + "-" + details.ImageVariant
+		}
+
+		version, err := semver.NewVersion(details.RuntimeVersion)
+		if err != nil {
+			t.Error("failed to get version of runtime", err)
+		}
+
+		schedulerPods := 0
+		if version.GreaterThanEqual(VersionWithHAScheduler) {
+			schedulerPods = 3
+		} else if version.GreaterThanEqual(VersionWithScheduler) {
+			schedulerPods = 1
+		}
+
+		if schedulerPods > 0 {
+			schedulerName := "dapr-scheduler-server"
+			if details.ImageVariant != "" {
+				schedulerName = schedulerName + "-" + details.ImageVariant
+			}
+			notFound[schedulerName] = []string{details.RuntimeVersion, strconv.Itoa(schedulerPods)}
 		}
 
 		lines := strings.Split(output, "\n")[1:] // remove header of status.
