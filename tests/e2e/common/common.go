@@ -47,17 +47,21 @@ const (
 	ClusterRoles
 	ClusterRoleBindings
 
-	numHAPodsWithScheduler    = 16
-	numHAPodsOld              = 13
-	numNonHAPodsWithScheduler = 6
-	numNonHAPodsOld           = 5
+	numHAPodsWithScheduler      = 16
+	numHAPodsOld                = 13
+	numNonHAPodsWithHAScheduler = 8
+	numNonHAPodsWithScheduler   = 6
+	numNonHAPodsOld             = 5
 
 	thirdPartyDevNamespace = "default"
 	devRedisReleaseName    = "dapr-dev-redis"
 	devZipkinReleaseName   = "dapr-dev-zipkin"
 )
 
-var VersionWithScheduler = semver.MustParse("1.14.0-rc.1")
+var (
+	VersionWithScheduler   = semver.MustParse("1.14.0-rc.1")
+	VersionWithHAScheduler = semver.MustParse("1.15.0-rc.1")
+)
 
 type VersionDetails struct {
 	RuntimeVersion       string
@@ -1232,23 +1236,26 @@ func getVersionedNumberOfPods(isHAEnabled bool, details VersionDetails) (int, er
 			return 0, err
 		}
 
-		if rv.LessThan(VersionWithScheduler) {
-			return numHAPodsOld, nil
+		if rv.GreaterThanEqual(VersionWithScheduler) {
+			return numHAPodsWithScheduler, nil
 		}
-		return numHAPodsWithScheduler, nil
+		return numHAPodsOld, nil
 	} else {
 		if details.UseDaprLatestVersion {
-			return numNonHAPodsWithScheduler, nil
+			return numNonHAPodsWithHAScheduler, nil
 		}
 		rv, err := semver.NewVersion(details.RuntimeVersion)
 		if err != nil {
 			return 0, err
 		}
 
-		if rv.LessThan(VersionWithScheduler) {
-			return numNonHAPodsOld, nil
+		if rv.GreaterThanEqual(VersionWithHAScheduler) {
+			return numNonHAPodsWithHAScheduler, nil
 		}
-		return numNonHAPodsWithScheduler, nil
+		if rv.GreaterThanEqual(VersionWithScheduler) {
+			return numNonHAPodsWithScheduler, nil
+		}
+		return numNonHAPodsOld, nil
 	}
 }
 
