@@ -368,6 +368,12 @@ func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t
 		daprPath := GetDaprPath()
 		output, err := spawn.Command(daprPath, "status", "-k")
 		require.NoError(t, err, "status check failed")
+
+		version, err := semver.NewVersion(details.RuntimeVersion)
+		if err != nil {
+			t.Error("failed to parse runtime version", err)
+		}
+
 		var notFound map[string][]string
 		if !opts.HAEnabled {
 			notFound = map[string][]string{
@@ -377,6 +383,11 @@ func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t
 				"dapr-placement-server": {details.RuntimeVersion, "1"},
 				"dapr-operator":         {details.RuntimeVersion, "1"},
 			}
+			if version.GreaterThanEqual(VersionWithHAScheduler) {
+				notFound["dapr-scheduler-server"] = []string{details.RuntimeVersion, "3"}
+			} else if version.GreaterThanEqual(VersionWithScheduler) {
+				notFound["dapr-scheduler-server"] = []string{details.RuntimeVersion, "1"}
+			}
 		} else {
 			notFound = map[string][]string{
 				"dapr-sentry":           {details.RuntimeVersion, "3"},
@@ -385,6 +396,9 @@ func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t
 				"dapr-placement-server": {details.RuntimeVersion, "3"},
 				"dapr-operator":         {details.RuntimeVersion, "3"},
 			}
+			if version.GreaterThanEqual(VersionWithScheduler) {
+				notFound["dapr-scheduler-server"] = []string{details.RuntimeVersion, "3"}
+			}
 		}
 
 		if details.ImageVariant != "" {
@@ -392,6 +406,9 @@ func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t
 			notFound["dapr-sidecar-injector"][0] = notFound["dapr-sidecar-injector"][0] + "-" + details.ImageVariant
 			notFound["dapr-placement-server"][0] = notFound["dapr-placement-server"][0] + "-" + details.ImageVariant
 			notFound["dapr-operator"][0] = notFound["dapr-operator"][0] + "-" + details.ImageVariant
+			if notFound["dapr-scheduler-server"] != nil {
+				notFound["dapr-scheduler-server"][0] = notFound["dapr-scheduler-server"][0] + "-" + details.ImageVariant
+			}
 		}
 
 		lines := strings.Split(output, "\n")[1:] // remove header of status.
@@ -400,13 +417,13 @@ func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t
 			cols := strings.Fields(strings.TrimSpace(line))
 			if len(cols) > 6 { // atleast 6 fields are verified from status (Age and created time are not).
 				if toVerify, ok := notFound[cols[0]]; ok { // get by name.
-					require.Equal(t, DaprTestNamespace, cols[1], "namespace must match")
-					require.Equal(t, "True", cols[2], "healthly field must be true")
-					require.Equal(t, "Running", cols[3], "pods must be Running")
-					require.Equal(t, toVerify[1], cols[4], "replicas must be equal")
+					require.Equal(t, DaprTestNamespace, cols[1], "%s namespace must match", cols[0])
+					require.Equal(t, "True", cols[2], "%s healthy field must be true", cols[0])
+					require.Equal(t, "Running", cols[3], "%s pods must be Running", cols[0])
+					require.Equal(t, toVerify[1], cols[4], "%s replicas must be equal", cols[0])
 					// TODO: Skip the dashboard version check for now until the helm chart is updated.
 					if cols[0] != "dapr-dashboard" {
-						require.Equal(t, toVerify[0], cols[5], "versions must match")
+						require.Equal(t, toVerify[0], cols[5], "%s versions must match", cols[0])
 					}
 					delete(notFound, cols[0])
 				}
