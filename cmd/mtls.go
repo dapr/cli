@@ -102,5 +102,6 @@ func init() {
 	MTLSCmd.AddCommand(ExportCMD)
 	MTLSCmd.AddCommand(ExpiryCMD)
 	MTLSCmd.AddCommand(RenewCertificateCmd())
+	MTLSCmd.AddCommand(GenerateCertificateCmd())
 	RootCmd.AddCommand(MTLSCmd)
 }
