@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	helm "helm.sh/helm/v3/pkg/action"
@@ -253,6 +254,11 @@ func helmUpgrade(client *helm.Upgrade, name string, chart *chart.Chart, vals map
 func highAvailabilityEnabled(status []StatusOutput) bool {
 	for _, s := range status {
 		if s.Name == "dapr-dashboard" {
+			continue
+		}
+		// Skip the scheduler server because it's in HA mode by default since version 1.15.0
+		// This will fall back to other dapr services to determine if HA mode is enabled.
+		if strings.HasPrefix(s.Name, "dapr-scheduler-server") {
 			continue
 		}
 		if s.Replicas > 1 {
