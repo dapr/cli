@@ -20,6 +20,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/dapr/cli/pkg/standalone"
@@ -180,8 +182,8 @@ func TestRun(t *testing.T) {
 		AppProtocol:        "http",
 		ComponentsPath:     componentsDir,
 		AppSSL:             true,
-		MaxRequestBodySize: -1,
-		HTTPReadBufferSize: -1,
+		MaxRequestBodySize: "-1",
+		HTTPReadBufferSize: "-1",
 		EnableAPILogging:   true,
 		APIListenAddresses: "127.0.0.1",
 	}
@@ -294,8 +296,8 @@ func TestRun(t *testing.T) {
 		basicConfig.ProfilePort = 0
 		basicConfig.EnableProfiling = true
 		basicConfig.MaxConcurrency = 0
-		basicConfig.MaxRequestBodySize = 0
-		basicConfig.HTTPReadBufferSize = 0
+		basicConfig.MaxRequestBodySize = ""
+		basicConfig.HTTPReadBufferSize = ""
 		basicConfig.AppProtocol = ""
 
 		basicConfig.SetDefaultFromSchema()
@@ -307,8 +309,8 @@ func TestRun(t *testing.T) {
 		assert.Equal(t, -1, basicConfig.ProfilePort)
 		assert.True(t, basicConfig.EnableProfiling)
 		assert.Equal(t, -1, basicConfig.MaxConcurrency)
-		assert.Equal(t, -1, basicConfig.MaxRequestBodySize)
-		assert.Equal(t, -1, basicConfig.HTTPReadBufferSize)
+		assert.Equal(t, "4Mi", basicConfig.MaxRequestBodySize)
+		assert.Equal(t, "4Ki", basicConfig.HTTPReadBufferSize)
 		assert.Equal(t, "http", basicConfig.AppProtocol)
 
 		// Test after Validate gets called.
@@ -322,8 +324,46 @@ func TestRun(t *testing.T) {
 		assert.Positive(t, basicConfig.ProfilePort)
 		assert.True(t, basicConfig.EnableProfiling)
 		assert.Equal(t, -1, basicConfig.MaxConcurrency)
-		assert.Equal(t, -1, basicConfig.MaxRequestBodySize)
-		assert.Equal(t, -1, basicConfig.HTTPReadBufferSize)
+		assert.Equal(t, "4Mi", basicConfig.MaxRequestBodySize)
+		assert.Equal(t, "4Ki", basicConfig.HTTPReadBufferSize)
 		assert.Equal(t, "http", basicConfig.AppProtocol)
+	})
+
+	t.Run("run with max body size without units", func(t *testing.T) {
+		basicConfig.MaxRequestBodySize = "4000000"
+
+		output, err := NewOutput(basicConfig)
+		require.NoError(t, err)
+		assertArgumentEqual(t, "max-body-size", "4M", output.DaprCMD.Args)
+	})
+
+	t.Run("run with max body size with units", func(t *testing.T) {
+		basicConfig.MaxRequestBodySize = "4Mi"
+
+		output, err := NewOutput(basicConfig)
+		require.NoError(t, err)
+		assertArgumentEqual(t, "max-body-size", "4Mi", output.DaprCMD.Args)
+
+		basicConfig.MaxRequestBodySize = "5M"
+
+		output, err = NewOutput(basicConfig)
+		require.NoError(t, err)
+		assertArgumentEqual(t, "max-body-size", "5M", output.DaprCMD.Args)
+	})
+
+	t.Run("run with read buffer size set without units", func(t *testing.T) {
+		basicConfig.HTTPReadBufferSize = "16001"
+
+		output, err := NewOutput(basicConfig)
+		require.NoError(t, err)
+		assertArgumentEqual(t, "read-buffer-size", "16001", output.DaprCMD.Args)
+	})
+
+	t.Run("run with read buffer size set with units", func(t *testing.T) {
+		basicConfig.HTTPReadBufferSize = "4Ki"
+
+		output, err := NewOutput(basicConfig)
+		require.NoError(t, err)
+		assertArgumentEqual(t, "read-buffer-size", "4Ki", output.DaprCMD.Args)
 	})
 }
