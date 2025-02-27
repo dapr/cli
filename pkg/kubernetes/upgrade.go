@@ -14,6 +14,8 @@ limitations under the License.
 package kubernetes
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -23,8 +25,11 @@ import (
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/release"
+	core_v1 "k8s.io/api/core/v1"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/helm/pkg/strvals"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/hashicorp/go-version"
 
 	"github.com/dapr/cli/pkg/print"
@@ -48,6 +53,8 @@ var crdsFullResources = []string{
 	"resiliencies.dapr.io",
 	"httpendpoints.dapr.io",
 }
+
+var versionWithHAScheduler = semver.MustParse("1.15.0-rc.1")
 
 type UpgradeConfig struct {
 	RuntimeVersion   string
@@ -157,6 +164,10 @@ func Upgrade(conf UpgradeConfig) error {
 		return err
 	}
 
+	// used to signal the deletion of the scheduler pods only when downgrading from 1.15 to previous versions to handle incompatible changes
+	// in other cases the channel should be nil
+	var downgradeDeletionChan chan error
+
 	if !isDowngrade(conf.RuntimeVersion, daprVersion) {
 		err = applyCRDs("v" + conf.RuntimeVersion)
 		if err != nil {
@@ -164,6 +175,29 @@ func Upgrade(conf UpgradeConfig) error {
 		}
 	} else {
 		print.InfoStatusEvent(os.Stdout, "Downgrade detected, skipping CRDs.")
+
+		targetVersion, errVersion := semver.NewVersion(conf.RuntimeVersion)
+		if errVersion != nil {
+			return fmt.Errorf("unable to parse dapr target version: %w", errVersion)
+		}
+
+		currentVersion, errVersion := semver.NewVersion(daprVersion)
+		if errVersion != nil {
+			return fmt.Errorf("unable to parse dapr current version: %w", errVersion)
+		}
+
+		if currentVersion.GreaterThanEqual(versionWithHAScheduler) && targetVersion.LessThan(versionWithHAScheduler) {
+			downgradeDeletionChan = make(chan error)
+			// Must delete all scheduler pods from cluster due to incompatible changes in version 1.15 with older versions.
+			go func() {
+				errDeletion := deleteSchedulerPods(status[0].Namespace, currentVersion, targetVersion)
+				if errDeletion != nil {
+					downgradeDeletionChan <- fmt.Errorf("failed to delete scheduler pods: %w", errDeletion)
+					print.FailureStatusEvent(os.Stderr, "Failed to delete scheduler pods: "+errDeletion.Error())
+				}
+				close(downgradeDeletionChan)
+			}()
+		}
 	}
 
 	chart, err := GetDaprHelmChartName(helmConf)
@@ -178,6 +212,11 @@ func Upgrade(conf UpgradeConfig) error {
 	_, err = helmUpgrade(upgradeClient, chart, controlPlaneChart, vals, WithRetry(5, 100*time.Millisecond))
 	if err != nil {
 		return fmt.Errorf("failure while running upgrade: %w", err)
+	}
+
+	// wait for the deletion of the scheduler pods to finish
+	if downgradeDeletionChan != nil {
+		<-downgradeDeletionChan
 	}
 
 	if dashboardChart != nil {
@@ -199,6 +238,63 @@ func Upgrade(conf UpgradeConfig) error {
 		}
 	}
 
+	return nil
+}
+
+func deleteSchedulerPods(namespace string, currentVersion *semver.Version, targetVersion *semver.Version) error {
+	_, client, err := GetKubeConfigClient()
+	if err != nil {
+		return err
+	}
+
+	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), time.Second*30)
+	defer cancel()
+
+	var pods *core_v1.PodList
+
+	// wait for at least one pod of the target version to be in the list before deleting the rest
+	// check the label app.kubernetes.io/version to determine the version of the pod
+	foundTargetVersion := false
+	for {
+		if foundTargetVersion {
+			break
+		}
+		pods, err = client.CoreV1().Pods(namespace).List(ctxWithTimeout, meta_v1.ListOptions{
+			LabelSelector: "app=dapr-scheduler-server",
+		})
+		if err != nil {
+			return err
+		}
+
+		for _, pod := range pods.Items {
+			pv, ok := pod.Labels["app.kubernetes.io/version"]
+			if ok {
+				podVersion, err := semver.NewVersion(pv)
+				if err == nil && podVersion.Equal(targetVersion) {
+					foundTargetVersion = true
+					break
+				}
+			}
+		}
+		time.Sleep(time.Second)
+	}
+
+	if pods == nil {
+		return errors.New("no scheduler pods found")
+	}
+
+	// delete scheduler pods of the current version, i.e. >1.15.0
+	for _, pod := range pods.Items {
+		if pv, ok := pod.Labels["app.kubernetes.io/version"]; ok {
+			podVersion, err := semver.NewVersion(pv)
+			if err == nil && podVersion.Equal(currentVersion) {
+				err = client.CoreV1().Pods(namespace).Delete(ctxWithTimeout, pod.Name, meta_v1.DeleteOptions{})
+				if err != nil {
+					return fmt.Errorf("failed to delete pod %s during downgrade: %w", pod.Name, err)
+				}
+			}
+		}
+	}
 	return nil
 }
 
