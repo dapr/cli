@@ -1193,7 +1193,7 @@ func waitPodDeletion(t *testing.T, done, podsDeleted chan struct{}) {
 		if len(list.Items) == 0 {
 			podsDeleted <- struct{}{}
 		}
-		time.Sleep(15 * time.Second)
+		time.Sleep(5 * time.Second)
 	}
 }
 
@@ -1239,7 +1239,7 @@ func waitAllPodsRunning(t *testing.T, namespace string, haEnabled bool, done, po
 			podsRunning <- struct{}{}
 		}
 
-		time.Sleep(15 * time.Second)
+		time.Sleep(5 * time.Second)
 	}
 }
 

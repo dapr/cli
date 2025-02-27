@@ -216,7 +216,11 @@ func Upgrade(conf UpgradeConfig) error {
 
 	// wait for the deletion of the scheduler pods to finish
 	if downgradeDeletionChan != nil {
-		<-downgradeDeletionChan
+		select {
+		case <-downgradeDeletionChan:
+		case <-time.After(3 * time.Minute):
+			return errors.New("timed out waiting for downgrade deletion")
+		}
 	}
 
 	if dashboardChart != nil {
@@ -242,11 +246,6 @@ func Upgrade(conf UpgradeConfig) error {
 }
 
 func deleteSchedulerPods(namespace string, currentVersion *semver.Version, targetVersion *semver.Version) error {
-	_, client, err := GetKubeConfigClient()
-	if err != nil {
-		return err
-	}
-
 	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
 
@@ -259,11 +258,20 @@ func deleteSchedulerPods(namespace string, currentVersion *semver.Version, targe
 		if foundTargetVersion {
 			break
 		}
-		pods, err = client.CoreV1().Pods(namespace).List(ctxWithTimeout, meta_v1.ListOptions{
-			LabelSelector: "app=dapr-scheduler-server",
-		})
+		k8sClient, err := Client()
 		if err != nil {
 			return err
+		}
+
+		pods, err = k8sClient.CoreV1().Pods(namespace).List(ctxWithTimeout, meta_v1.ListOptions{
+			LabelSelector: "app=dapr-scheduler-server",
+		})
+		if err != nil && !errors.Is(err, context.DeadlineExceeded) {
+			return err
+		}
+
+		if len(pods.Items) == 0 {
+			return nil
 		}
 
 		for _, pod := range pods.Items {
@@ -276,11 +284,17 @@ func deleteSchedulerPods(namespace string, currentVersion *semver.Version, targe
 				}
 			}
 		}
-		time.Sleep(time.Second)
+		time.Sleep(5 * time.Second)
 	}
 
 	if pods == nil {
 		return errors.New("no scheduler pods found")
+	}
+
+	// get a fresh client to ensure we have the latest state of the cluster
+	k8sClient, err := Client()
+	if err != nil {
+		return err
 	}
 
 	// delete scheduler pods of the current version, i.e. >1.15.0
@@ -288,7 +302,7 @@ func deleteSchedulerPods(namespace string, currentVersion *semver.Version, targe
 		if pv, ok := pod.Labels["app.kubernetes.io/version"]; ok {
 			podVersion, err := semver.NewVersion(pv)
 			if err == nil && podVersion.Equal(currentVersion) {
-				err = client.CoreV1().Pods(namespace).Delete(ctxWithTimeout, pod.Name, meta_v1.DeleteOptions{})
+				err = k8sClient.CoreV1().Pods(namespace).Delete(ctxWithTimeout, pod.Name, meta_v1.DeleteOptions{})
 				if err != nil {
 					return fmt.Errorf("failed to delete pod %s during downgrade: %w", pod.Name, err)
 				}
