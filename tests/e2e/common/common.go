@@ -213,7 +213,7 @@ func GetTestsOnInstall(details VersionDetails, opts TestOptions) []TestCase {
 		{"clusterroles exist " + details.RuntimeVersion, ClusterRolesTest(details, opts)},
 		{"clusterrolebindings exist " + details.RuntimeVersion, ClusterRoleBindingsTest(details, opts)},
 		{"apply and check components exist " + details.RuntimeVersion, ComponentsTestOnInstallUpgrade(opts)},
-		{"apply and check httpendpoints exist " + details.RuntimeVersion, HTTPEndpointsTestOnInstallUpgrade(opts)},
+		{"apply and check httpendpoints exist " + details.RuntimeVersion, HTTPEndpointsTestOnInstallUpgrade(opts, TestOptions{})},
 		{"check mtls " + details.RuntimeVersion, MTLSTestOnInstallUpgrade(opts)},
 		{"status check " + details.RuntimeVersion, StatusTestOnInstallUpgrade(details, opts)},
 	}
@@ -341,10 +341,10 @@ func ComponentsTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 	}
 }
 
-func HTTPEndpointsTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
+func HTTPEndpointsTestOnInstallUpgrade(installOpts TestOptions, upgradeOpts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
 		// if dapr is installed with httpendpoints.
-		if opts.ApplyHTTPEndpointChanges {
+		if installOpts.ApplyHTTPEndpointChanges {
 			// apply any changes to the httpendpoint.
 			t.Log("apply httpendpoint changes")
 			output, err := spawn.Command("kubectl", "apply", "-f", "../testdata/namespace.yaml")
@@ -353,12 +353,17 @@ func HTTPEndpointsTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 			output, err = spawn.Command("kubectl", "apply", "-f", "../testdata/httpendpoint.yaml")
 			t.Log(output)
 			require.NoError(t, err, "expected no error on kubectl apply")
-			require.Equal(t, "httpendpoints.dapr.io/httpendpoint created\nhttpendpoints.dapr.io/httpendpoint created\n", output, "expected output to match")
-			httpEndpointOutputCheck(t, output)
+
+			if installOpts.ApplyHTTPEndpointChanges && upgradeOpts.ApplyHTTPEndpointChanges {
+				require.Equal(t, "httpendpoint.dapr.io/httpendpoint unchanged\n", output, "expected output to match")
+			} else {
+				require.Equal(t, "httpendpoint.dapr.io/httpendpoint created\n", output, "expected output to match")
+			}
 
 			t.Log("check applied httpendpoint exists")
-			_, err = spawn.Command("kubectl", "get", "httpendpoint")
+			output, err = spawn.Command("kubectl", "get", "httpendpoint")
 			require.NoError(t, err, "expected no error on calling to retrieve httpendpoints")
+			httpEndpointOutputCheck(t, output)
 		}
 	}
 }
@@ -984,7 +989,7 @@ func componentOutputCheck(t *testing.T, opts TestOptions, output string) {
 		return
 	}
 
-	lines = strings.Split(output, "\n")[2:] // remove header and warning message.
+	lines = lines[2:] // remove header and warning message.
 
 	if opts.DevEnabled {
 		// default, test statestore.
