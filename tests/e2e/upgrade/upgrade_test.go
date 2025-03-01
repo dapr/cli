@@ -186,6 +186,10 @@ func getTestsOnUpgrade(p upgradePath, installOpts, upgradeOpts common.TestOption
 // Upgrade path tests.
 
 func TestUpgradePathNonHAModeMTLSDisabled(t *testing.T) {
+	if common.ShouldSkipTest(common.DaprModeNonHA) {
+		t.Skip(fmt.Sprintf("Skipping %s mode test", common.DaprModeNonHA))
+	}
+
 	// Ensure a clean environment.
 	common.EnsureUninstall(false, false) // does not wait for pod deletion.
 
@@ -230,6 +234,10 @@ func TestUpgradePathNonHAModeMTLSDisabled(t *testing.T) {
 }
 
 func TestUpgradePathNonHAModeMTLSEnabled(t *testing.T) {
+	if common.ShouldSkipTest(common.DaprModeNonHA) {
+		t.Skip(fmt.Sprintf("Skipping %s mode test", common.DaprModeNonHA))
+	}
+
 	// Ensure a clean environment.
 	common.EnsureUninstall(false, false) // does not wait for pod deletion.
 
@@ -274,6 +282,10 @@ func TestUpgradePathNonHAModeMTLSEnabled(t *testing.T) {
 }
 
 func TestUpgradePathHAModeMTLSDisabled(t *testing.T) {
+	if common.ShouldSkipTest(common.DaprModeHA) {
+		t.Skip(fmt.Sprintf("Skipping %s mode test", common.DaprModeHA))
+	}
+
 	// Ensure a clean environment.
 	common.EnsureUninstall(false, false) // does not wait for pod deletion.
 
@@ -317,6 +329,10 @@ func TestUpgradePathHAModeMTLSDisabled(t *testing.T) {
 }
 
 func TestUpgradePathHAModeMTLSEnabled(t *testing.T) {
+	if common.ShouldSkipTest(common.DaprModeHA) {
+		t.Skip(fmt.Sprintf("Skipping %s mode test", common.DaprModeHA))
+	}
+
 	// Ensure a clean environment.
 	common.EnsureUninstall(false, false) // does not wait for pod deletion.
 
@@ -363,6 +379,10 @@ func TestUpgradePathHAModeMTLSEnabled(t *testing.T) {
 // HTTPEndpoint Dapr resource is a new type as of v1.11.
 // This test verifies install/upgrade functionality with this additional resource.
 func TestUpgradeWithHTTPEndpoint(t *testing.T) {
+	if common.ShouldSkipTest(common.DaprModeHA) {
+		t.Skip(fmt.Sprintf("Skipping %s mode test", common.DaprModeHA))
+	}
+
 	// Ensure a clean environment.
 	common.EnsureUninstall(false, false) // does not wait for pod deletion.
 

@@ -56,6 +56,9 @@ const (
 	thirdPartyDevNamespace = "default"
 	devRedisReleaseName    = "dapr-dev-redis"
 	devZipkinReleaseName   = "dapr-dev-zipkin"
+
+	DaprModeHA    = "ha"
+	DaprModeNonHA = "non-ha"
 )
 
 var (
@@ -118,6 +121,22 @@ func GetRuntimeVersion(t *testing.T, latest bool) *semver.Version {
 	runtimeVersion, err := semver.NewVersion(daprRuntimeVersion)
 	require.NoError(t, err)
 	return runtimeVersion
+}
+
+func GetDaprTestHaMode() string {
+	daprHaMode := os.Getenv("TEST_DAPR_HA_MODE")
+	if daprHaMode != "" {
+		return daprHaMode
+	}
+	return ""
+}
+
+func ShouldSkipTest(mode string) bool {
+	envDaprHaMode := GetDaprTestHaMode()
+	if envDaprHaMode != "" {
+		return envDaprHaMode != mode
+	}
+	return false
 }
 
 func UpgradeTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
