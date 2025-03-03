@@ -17,12 +17,17 @@ limitations under the License.
 package kubernetes_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/dapr/cli/tests/e2e/common"
 )
 
 func TestKubernetesNonHAModeMTLSDisabled(t *testing.T) {
+	if common.ShouldSkipTest(common.DaprModeNonHA) {
+		t.Skip(fmt.Sprintf("Skipping %s mode test", common.DaprModeNonHA))
+	}
+
 	// ensure clean env for test
 	ensureCleanEnv(t, false)
 
@@ -54,6 +59,10 @@ func TestKubernetesNonHAModeMTLSDisabled(t *testing.T) {
 }
 
 func TestKubernetesHAModeMTLSDisabled(t *testing.T) {
+	if common.ShouldSkipTest(common.DaprModeHA) {
+		t.Skip(fmt.Sprintf("Skipping %s mode test", common.DaprModeHA))
+	}
+
 	// ensure clean env for test
 	ensureCleanEnv(t, false)
 
@@ -85,6 +94,10 @@ func TestKubernetesHAModeMTLSDisabled(t *testing.T) {
 }
 
 func TestKubernetesDev(t *testing.T) {
+	if common.ShouldSkipTest(common.DaprModeNonHA) {
+		t.Skip(fmt.Sprintf("Skipping %s mode test", common.DaprModeNonHA))
+	}
+
 	// ensure clean env for test
 	ensureCleanEnv(t, false)
 
@@ -119,6 +132,10 @@ func TestKubernetesDev(t *testing.T) {
 }
 
 func TestKubernetesNonHAModeMTLSEnabled(t *testing.T) {
+	if common.ShouldSkipTest(common.DaprModeNonHA) {
+		t.Skip(fmt.Sprintf("Skipping %s mode test", common.DaprModeNonHA))
+	}
+
 	// ensure clean env for test
 	ensureCleanEnv(t, false)
 
@@ -150,6 +167,10 @@ func TestKubernetesNonHAModeMTLSEnabled(t *testing.T) {
 }
 
 func TestKubernetesHAModeMTLSEnabled(t *testing.T) {
+	if common.ShouldSkipTest(common.DaprModeHA) {
+		t.Skip(fmt.Sprintf("Skipping %s mode test", common.DaprModeHA))
+	}
+
 	// ensure clean env for test
 	ensureCleanEnv(t, false)
 
@@ -182,6 +203,10 @@ func TestKubernetesHAModeMTLSEnabled(t *testing.T) {
 }
 
 func TestKubernetesInitWithCustomCert(t *testing.T) {
+	if common.ShouldSkipTest(common.DaprModeNonHA) {
+		t.Skip(fmt.Sprintf("Skipping %s mode test", common.DaprModeNonHA))
+	}
+
 	// ensure clean env for test
 	ensureCleanEnv(t, false)
 
@@ -216,6 +241,10 @@ func TestKubernetesInitWithCustomCert(t *testing.T) {
 // Test for certificate renewal
 
 func TestRenewCertificateMTLSEnabled(t *testing.T) {
+	if common.ShouldSkipTest(common.DaprModeNonHA) {
+		t.Skip(fmt.Sprintf("Skipping %s mode test", common.DaprModeNonHA))
+	}
+
 	// ensure clean env for test
 	ensureCleanEnv(t, false)
 
@@ -251,6 +280,10 @@ func TestRenewCertificateMTLSEnabled(t *testing.T) {
 }
 
 func TestRenewCertificateMTLSDisabled(t *testing.T) {
+	if common.ShouldSkipTest(common.DaprModeNonHA) {
+		t.Skip(fmt.Sprintf("Skipping %s mode test", common.DaprModeNonHA))
+	}
+
 	// ensure clean env for test
 	ensureCleanEnv(t, false)
 
@@ -286,6 +319,10 @@ func TestRenewCertificateMTLSDisabled(t *testing.T) {
 }
 
 func TestRenewCertWithPrivateKey(t *testing.T) {
+	if common.ShouldSkipTest(common.DaprModeNonHA) {
+		t.Skip(fmt.Sprintf("Skipping %s mode test", common.DaprModeNonHA))
+	}
+
 	// ensure clean env for test
 	ensureCleanEnv(t, false)
 
@@ -328,6 +365,10 @@ func TestRenewCertWithPrivateKey(t *testing.T) {
 }
 
 func TestKubernetesUninstall(t *testing.T) {
+	if common.ShouldSkipTest(common.DaprModeNonHA) {
+		t.Skip(fmt.Sprintf("Skipping %s mode test", common.DaprModeNonHA))
+	}
+
 	// ensure clean env for test
 	ensureCleanEnv(t, false)
 
@@ -359,6 +400,10 @@ func TestKubernetesUninstall(t *testing.T) {
 }
 
 func TestRenewCertWithIncorrectFlags(t *testing.T) {
+	if common.ShouldSkipTest(common.DaprModeNonHA) {
+		t.Skip(fmt.Sprintf("Skipping %s mode test", common.DaprModeNonHA))
+	}
+
 	common.EnsureUninstall(true, true)
 
 	tests := []common.TestCase{}
@@ -397,6 +442,10 @@ func TestRenewCertWithIncorrectFlags(t *testing.T) {
 // install dapr control plane with mariner docker images.
 // Renew the certificate of this control plane.
 func TestK8sInstallwithMarinerImagesAndRenewCertificate(t *testing.T) {
+	if common.ShouldSkipTest(common.DaprModeNonHA) {
+		t.Skip(fmt.Sprintf("Skipping %s mode test", common.DaprModeNonHA))
+	}
+
 	// ensure clean env for test
 	ensureCleanEnv(t, false)
 
@@ -435,6 +484,10 @@ func TestK8sInstallwithMarinerImagesAndRenewCertificate(t *testing.T) {
 }
 
 func TestKubernetesInstallwithoutRuntimeVersionFlag(t *testing.T) {
+	if common.ShouldSkipTest(common.DaprModeNonHA) {
+		t.Skip(fmt.Sprintf("Skipping %s mode test", common.DaprModeNonHA))
+	}
+
 	// ensure clean env for test
 	ensureCleanEnv(t, true)
 
@@ -467,6 +520,10 @@ func TestKubernetesInstallwithoutRuntimeVersionFlag(t *testing.T) {
 }
 
 func TestK8sInstallwithoutRuntimeVersionwithMarinerImagesFlag(t *testing.T) {
+	if common.ShouldSkipTest(common.DaprModeNonHA) {
+		t.Skip(fmt.Sprintf("Skipping %s mode test", common.DaprModeNonHA))
+	}
+
 	// ensure clean env for test
 	ensureCleanEnv(t, true)
 

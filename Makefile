@@ -174,7 +174,7 @@ e2e-build-run-k8s: build test-e2e-k8s
 ################################################################################
 .PHONY: test-e2e-upgrade
 test-e2e-upgrade: test-deps
-	gotestsum --jsonfile $(TEST_OUTPUT_FILE) --format standard-verbose -- -timeout 40m -count=1 -tags=e2e ./tests/e2e/upgrade/...
+	gotestsum --jsonfile $(TEST_OUTPUT_FILE) --format standard-verbose -- -timeout 60m -count=1 -tags=e2e ./tests/e2e/upgrade/...
 
 ################################################################################
 # Build, E2E Tests for Kubernetes Upgrade									   #
