@@ -47,8 +47,8 @@ var (
 )
 
 func TestKubernetesRunFile(t *testing.T) {
-	if common.ShouldSkipTest(common.DaprModeHA) {
-		t.Skip(fmt.Sprintf("Skipping %s mode test", common.DaprModeHA))
+	if common.ShouldSkipTest(common.DaprModeNonHA) {
+		t.Skip(fmt.Sprintf("Skipping %s mode test", common.DaprModeNonHA))
 	}
 
 	ensureCleanEnv(t, false)
