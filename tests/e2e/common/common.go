@@ -1176,6 +1176,8 @@ func waitPodDeletionDev(t *testing.T, done, podsDeleted chan struct{}) {
 			devRedisReleaseName:  "dapr-dev-redis-master-",
 			devZipkinReleaseName: "dapr-dev-zipkin-",
 		}
+
+		t.Logf("dev pods waiting to be deleted: %d", len(list.Items))
 		for _, pod := range list.Items {
 			t.Log(pod.ObjectMeta.Name)
 			for component, prefix := range prefixes {
@@ -1193,7 +1195,7 @@ func waitPodDeletionDev(t *testing.T, done, podsDeleted chan struct{}) {
 		if len(found) == 2 {
 			podsDeleted <- struct{}{}
 		}
-		time.Sleep(15 * time.Second)
+		time.Sleep(10 * time.Second)
 	}
 }
 
@@ -1205,17 +1207,26 @@ func waitPodDeletion(t *testing.T, done, podsDeleted chan struct{}) {
 		default:
 			break
 		}
+
 		ctx := context.Background()
 		ctxt, cancel := context.WithTimeout(ctx, 10*time.Second)
 		defer cancel()
+
 		k8sClient, err := getClient()
 		require.NoError(t, err, "error getting k8s client for pods check")
+
 		list, err := k8sClient.CoreV1().Pods(DaprTestNamespace).List(ctxt, v1.ListOptions{
 			Limit: 100,
 		})
 		require.NoError(t, err, "error getting pods list from k8s")
+
 		if len(list.Items) == 0 {
 			podsDeleted <- struct{}{}
+		} else {
+			t.Logf("pods waiting to be deleted: %d", len(list.Items))
+			for _, pod := range list.Items {
+				t.Log(pod.ObjectMeta.Name)
+			}
 		}
 		time.Sleep(5 * time.Second)
 	}
@@ -1238,7 +1249,8 @@ func waitAllPodsRunning(t *testing.T, namespace string, haEnabled bool, done, po
 			Limit: 100,
 		})
 		require.NoError(t, err, "error getting pods list from k8s")
-		t.Logf("items %d", len(list.Items))
+
+		t.Logf("waiting for pods to be running, current count: %d", len(list.Items))
 		countOfReadyPods := 0
 		for _, item := range list.Items {
 			t.Log(item.ObjectMeta.Name)
@@ -1259,7 +1271,7 @@ func waitAllPodsRunning(t *testing.T, namespace string, haEnabled bool, done, po
 		if err != nil {
 			t.Error(err)
 		}
-		if len(list.Items) == countOfReadyPods && ((haEnabled && countOfReadyPods == pods) || (!haEnabled && countOfReadyPods == pods)) {
+		if len(list.Items) == countOfReadyPods && countOfReadyPods == pods {
 			podsRunning <- struct{}{}
 		}
 
