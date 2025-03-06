@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver"
+	"github.com/dapr/cli/pkg/version"
 	"github.com/dapr/cli/tests/e2e/common"
 	"github.com/dapr/cli/tests/e2e/spawn"
 	"github.com/docker/docker/api/types"
@@ -156,7 +157,11 @@ func TestStandaloneInit(t *testing.T) {
 		daprPath := filepath.Join(homeDir, ".dapr")
 		require.DirExists(t, daprPath, "Directory %s does not exist", daprPath)
 
-		latestDaprRuntimeVersion, latestDaprDashboardVersion := common.GetVersionsFromEnv(t, true)
+		latestDaprRuntimeVersion, err := version.GetDaprVersion()
+		require.NoError(t, err)
+		latestDaprDashboardVersion, err := version.GetDashboardVersion()
+		require.NoError(t, err)
+
 		verifyContainers(t, latestDaprRuntimeVersion)
 		verifyBinaries(t, daprPath, latestDaprRuntimeVersion, latestDaprDashboardVersion)
 		verifyConfigs(t, daprPath)
@@ -222,7 +227,11 @@ func TestStandaloneInit(t *testing.T) {
 		daprPath := filepath.Join(homeDir, ".dapr")
 		require.DirExists(t, daprPath, "Directory %s does not exist", daprPath)
 
-		latestDaprRuntimeVersion, latestDaprDashboardVersion := common.GetVersionsFromEnv(t, true)
+		latestDaprRuntimeVersion, err := version.GetDaprVersion()
+		require.NoError(t, err)
+		latestDaprDashboardVersion, err := version.GetDashboardVersion()
+		require.NoError(t, err)
+
 		verifyContainers(t, latestDaprRuntimeVersion+"-mariner")
 		verifyBinaries(t, daprPath, latestDaprRuntimeVersion, latestDaprDashboardVersion)
 		verifyConfigs(t, daprPath)
