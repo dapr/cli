@@ -190,6 +190,8 @@ func Upgrade(conf UpgradeConfig) error {
 			downgradeDeletionChan = make(chan error)
 			// Must delete all scheduler pods from cluster due to incompatible changes in version 1.15 with older versions.
 			go func() {
+				// Add an artificial delay to allow helm upgrade to progress and delete the pods only when necessary.
+				time.Sleep(15 * time.Second)
 				errDeletion := deleteSchedulerPods(status[0].Namespace, currentVersion, targetVersion)
 				if errDeletion != nil {
 					downgradeDeletionChan <- fmt.Errorf("failed to delete scheduler pods: %w", errDeletion)
