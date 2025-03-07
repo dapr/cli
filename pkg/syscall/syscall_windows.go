@@ -26,6 +26,7 @@ import (
 	"golang.org/x/sys/windows"
 
 	"github.com/dapr/cli/pkg/print"
+
 	"github.com/kolesnikovae/go-winjob"
 	"github.com/kolesnikovae/go-winjob/jobapi"
 )
