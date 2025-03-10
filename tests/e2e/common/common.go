@@ -19,6 +19,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -85,6 +86,7 @@ type TestOptions struct {
 	CheckResourceExists      map[Resource]bool
 	UninstallAll             bool
 	InitWithCustomCert       bool
+	TimeoutSeconds           int
 }
 
 type TestCase struct {
@@ -157,6 +159,10 @@ func UpgradeTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 
 		if details.ImageVariant != "" {
 			args = append(args, "--image-variant", details.ImageVariant)
+		}
+
+		if opts.TimeoutSeconds > 0 {
+			args = append(args, "--timeout", strconv.Itoa(opts.TimeoutSeconds))
 		}
 
 		output, err := spawn.Command(daprPath, args...)
