@@ -19,6 +19,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -85,6 +86,7 @@ type TestOptions struct {
 	CheckResourceExists      map[Resource]bool
 	UninstallAll             bool
 	InitWithCustomCert       bool
+	TimeoutSeconds           int
 }
 
 type TestCase struct {
@@ -159,12 +161,18 @@ func UpgradeTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 			args = append(args, "--image-variant", details.ImageVariant)
 		}
 
+		if opts.TimeoutSeconds > 0 {
+			args = append(args, "--timeout", strconv.Itoa(opts.TimeoutSeconds))
+		}
+
 		output, err := spawn.Command(daprPath, args...)
 		t.Log(output)
 		require.NoError(t, err, "upgrade failed")
 
 		done := make(chan struct{})
+		defer close(done)
 		podsRunning := make(chan struct{})
+		defer close(podsRunning)
 
 		go waitAllPodsRunning(t, DaprTestNamespace, opts.HAEnabled, done, podsRunning, details)
 		select {
@@ -872,8 +880,11 @@ func uninstallTest(all bool, devEnabled bool) func(t *testing.T) {
 		require.NoError(t, err, "uninstall failed")
 		// wait for pods to be deleted completely.
 		// needed to verify status checks fails correctly.
-		podsDeleted := make(chan struct{})
 		done := make(chan struct{})
+		defer close(done)
+		podsDeleted := make(chan struct{})
+		defer close(podsDeleted)
+
 		t.Log("waiting for pods to be deleted completely")
 		go waitPodDeletion(t, done, podsDeleted)
 		select {
@@ -1242,7 +1253,7 @@ func waitAllPodsRunning(t *testing.T, namespace string, haEnabled bool, done, po
 		}
 		ctx := context.Background()
 		ctxt, cancel := context.WithTimeout(ctx, 10*time.Second)
-		defer cancel()
+
 		k8sClient, err := getClient()
 		require.NoError(t, err, "error getting k8s client for pods check")
 		list, err := k8sClient.CoreV1().Pods(namespace).List(ctxt, v1.ListOptions{
@@ -1276,6 +1287,8 @@ func waitAllPodsRunning(t *testing.T, namespace string, haEnabled bool, done, po
 		}
 
 		time.Sleep(5 * time.Second)
+
+		cancel()
 	}
 }
 

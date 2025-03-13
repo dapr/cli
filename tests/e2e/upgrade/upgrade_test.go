@@ -223,6 +223,7 @@ func TestUpgradePathNonHAModeMTLSDisabled(t *testing.T) {
 					common.ClusterRoles:        true,
 					common.ClusterRoleBindings: true,
 				},
+				TimeoutSeconds: 120,
 			}
 			tests := getTestsOnUpgrade(p, installOpts, upgradeOpts)
 
@@ -271,6 +272,7 @@ func TestUpgradePathNonHAModeMTLSEnabled(t *testing.T) {
 					common.ClusterRoles:        true,
 					common.ClusterRoleBindings: true,
 				},
+				TimeoutSeconds: 120,
 			}
 			tests := getTestsOnUpgrade(p, installOpts, upgradeOpts)
 
@@ -318,6 +320,7 @@ func TestUpgradePathHAModeMTLSDisabled(t *testing.T) {
 					common.ClusterRoles:        true,
 					common.ClusterRoleBindings: true,
 				},
+				TimeoutSeconds: 120,
 			}
 			tests := getTestsOnUpgrade(p, installOpts, upgradeOpts)
 
@@ -366,6 +369,7 @@ func TestUpgradePathHAModeMTLSEnabled(t *testing.T) {
 					common.ClusterRoles:        true,
 					common.ClusterRoleBindings: true,
 				},
+				TimeoutSeconds: 120,
 			}
 			tests := getTestsOnUpgrade(p, installOpts, upgradeOpts)
 
@@ -426,6 +430,7 @@ func TestUpgradeWithHTTPEndpoint(t *testing.T) {
 					common.ClusterRoles:        true,
 					common.ClusterRoleBindings: true,
 				},
+				TimeoutSeconds: 120,
 			}
 			tests := getTestsOnUpgrade(p, installOpts, upgradeOpts)
 
