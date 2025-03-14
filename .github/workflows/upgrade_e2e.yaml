@@ -137,6 +137,7 @@ jobs:
       run: |
         export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-upgrade-kind.json
         echo "TEST_OUTPUT_FILE=$TEST_OUTPUT_FILE" >> $GITHUB_ENV
+        export TEST_DAPR_HA_MODE=${{ matrix.mode }}
         make e2e-build-run-upgrade
 
     - name: Run tests with Docker hub
@@ -144,6 +145,7 @@ jobs:
       run: |
         export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-upgrade-kind.json
         echo "TEST_OUTPUT_FILE=$TEST_OUTPUT_FILE" >> $GITHUB_ENV
+        export TEST_DAPR_HA_MODE=${{ matrix.mode }}
         make e2e-build-run-upgrade
 
     - name: Upload test results
