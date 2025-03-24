@@ -78,6 +78,20 @@ const (
 	runtimeWaitTimeoutInSeconds = 60
 )
 
+// Flags that are incompatible with --run-file
+var runFileIncompatibleFlags = []string{
+	"app-id", "app-port", "app-protocol", "app-max-concurrency",
+	"app-ssl", "app-channel-address", "enable-app-health-check",
+	"app-health-check-path", "app-health-probe-interval",
+	"app-health-probe-timeout", "app-health-threshold",
+	"config", "dapr-http-port", "dapr-grpc-port",
+	"dapr-internal-grpc-port", "enable-profiling", "profile-port",
+	"dapr-http-max-request-size", "dapr-http-read-buffer-size",
+	"metrics-port", "placement-host-address", "scheduler-host-address",
+	"components-path", "resources-path", "unix-domain-socket",
+	"enable-api-logging", "dapr-listen-addresses", "log-level",
+}
+
 var RunCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Run Dapr and (optionally) your application side by side. Supported platforms: Self-hosted",
@@ -128,6 +142,14 @@ dapr run --run-file /path/to/directory -k
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(runFilePath) > 0 {
+			// Check for incompatible flags
+			incompatibleFlags := detectIncompatibleFlags(cmd)
+			if len(incompatibleFlags) > 0 {
+				// Print warning message about incompatible flags
+				warningMsg := generateWarningMessage(incompatibleFlags)
+				print.WarningStatusEvent(os.Stdout, warningMsg)
+			}
+
 			runConfigFilePath, err := getRunFilePath(runFilePath)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, "Failed to get run file path: %v", err)
@@ -1060,4 +1082,31 @@ func getRunFilePath(path string) (string, error) {
 		return "", fmt.Errorf("file %q is not a YAML file", path)
 	}
 	return path, nil
+}
+
+// detectIncompatibleFlags checks if any incompatible flags are used with --run-file
+// and returns a slice of the flag names that were used
+func detectIncompatibleFlags(cmd *cobra.Command) []string {
+	if runFilePath == "" {
+		return nil // No run file specified, so no incompatibilities
+	}
+
+	var incompatibleFlags []string
+
+	// Check each incompatible flag to see if it was explicitly set
+	for _, flagName := range runFileIncompatibleFlags {
+		if cmd.Flags().Changed(flagName) {
+			incompatibleFlags = append(incompatibleFlags, flagName)
+		}
+	}
+
+	return incompatibleFlags
+}
+
+// generateWarningMessage creates an appropriate warning message based on the
+// number and types of incompatible flags
+func generateWarningMessage(incompatibleFlags []string) string {
+	return fmt.Sprintf(
+		"The following flags are ignored when using --run-file and should be configured in the run file instead: %s",
+		strings.Join(incompatibleFlags, ", "))
 }
