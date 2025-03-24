@@ -146,7 +146,7 @@ dapr run --run-file /path/to/directory -k
 			incompatibleFlags := detectIncompatibleFlags(cmd)
 			if len(incompatibleFlags) > 0 {
 				// Print warning message about incompatible flags
-				warningMsg := generateWarningMessage(incompatibleFlags)
+				warningMsg := "The following flags are ignored when using --run-file and should be configured in the run file instead: " + strings.Join(incompatibleFlags, ", ")
 				print.WarningStatusEvent(os.Stdout, warningMsg)
 			}
 
@@ -1101,12 +1101,4 @@ func detectIncompatibleFlags(cmd *cobra.Command) []string {
 	}
 
 	return incompatibleFlags
-}
-
-// generateWarningMessage creates an appropriate warning message based on the
-// number and types of incompatible flags
-func generateWarningMessage(incompatibleFlags []string) string {
-	return fmt.Sprintf(
-		"The following flags are ignored when using --run-file and should be configured in the run file instead: %s",
-		strings.Join(incompatibleFlags, ", "))
 }
