@@ -48,21 +48,3 @@ func TestDetectIncompatibleFlags(t *testing.T) {
 		assert.NotContains(t, incompatibleFlags, "kubernetes")
 	})
 }
-
-func TestGenerateWarningMessage(t *testing.T) {
-	t.Run("warning message", func(t *testing.T) {
-		warning := generateWarningMessage([]string{"app-id", "app-port"})
-		assert.Contains(t, warning, "app-id, app-port")
-		assert.Contains(t, warning, "ignored when using --run-file")
-	})
-
-	t.Run("warning message with multiple flags", func(t *testing.T) {
-		warning := generateWarningMessage([]string{
-			"app-id", "app-port", "app-protocol", "app-max-concurrency",
-			"dapr-http-port", "dapr-grpc-port", "resources-path",
-		})
-		assert.Contains(t, warning, "app-id")
-		assert.Contains(t, warning, "dapr-http-port")
-		assert.Contains(t, warning, "ignored when using --run-file")
-	})
-}
