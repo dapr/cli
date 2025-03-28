@@ -50,7 +50,7 @@ jobs:
     name: E2E tests for K8s (KinD)
     runs-on: ubuntu-latest
     env:
-      DAPR_RUNTIME_PINNED_VERSION: 1.13.5
+      DAPR_RUNTIME_PINNED_VERSION: 1.14.4
       DAPR_DASHBOARD_PINNED_VERSION: 0.14.0
       DAPR_RUNTIME_LATEST_STABLE_VERSION:
       DAPR_DASHBOARD_LATEST_STABLE_VERSION:
@@ -173,6 +173,7 @@ jobs:
         export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-kind.json
         echo "TEST_OUTPUT_FILE=$TEST_OUTPUT_FILE" >> $GITHUB_ENV
         export GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+        export TEST_DAPR_HA_MODE=${{ matrix.mode }}
         make e2e-build-run-k8s
       shell: bash
     - name: Run tests with Docker hub
@@ -181,6 +182,7 @@ jobs:
         export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-kind.json
         echo "TEST_OUTPUT_FILE=$TEST_OUTPUT_FILE" >> $GITHUB_ENV
         export GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+        export TEST_DAPR_HA_MODE=${{ matrix.mode }}
         make e2e-build-run-k8s
       shell: bash
     - name: Upload test results
