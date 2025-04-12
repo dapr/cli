@@ -20,6 +20,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -27,6 +28,7 @@ import (
 	"golang.org/x/mod/semver"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
 	daprRuntime "github.com/dapr/dapr/pkg/runtime"
@@ -78,18 +80,13 @@ const (
 	runtimeWaitTimeoutInSeconds = 60
 )
 
-// Flags that are incompatible with --run-file
-var runFileIncompatibleFlags = []string{
-	"app-id", "app-port", "app-protocol", "app-max-concurrency",
-	"app-ssl", "app-channel-address", "enable-app-health-check",
-	"app-health-check-path", "app-health-probe-interval",
-	"app-health-probe-timeout", "app-health-threshold",
-	"config", "dapr-http-port", "dapr-grpc-port",
-	"dapr-internal-grpc-port", "enable-profiling", "profile-port",
-	"dapr-http-max-request-size", "dapr-http-read-buffer-size",
-	"metrics-port", "placement-host-address", "scheduler-host-address",
-	"components-path", "resources-path", "unix-domain-socket",
-	"enable-api-logging", "dapr-listen-addresses", "log-level",
+// Flags that are compatible with --run-file
+var runFileCompatibleFlags = []string{
+	"kubernetes",
+	"help",
+	"version",
+	"runtime-path",
+	"log-as-json",
 }
 
 var RunCmd = &cobra.Command{
@@ -1084,6 +1081,18 @@ func getRunFilePath(path string) (string, error) {
 	return path, nil
 }
 
+// getConflictingFlags checks if any flags are set other than the ones passed in the excludedFlags slice.
+// Used for logic or notifications when any of the flags are conflicting and should not be used together.
+func getConflictingFlags(cmd *cobra.Command, excludedFlags ...string) []string {
+	var conflictingFlags []string
+	cmd.Flags().Visit(func(f *pflag.Flag) {
+		if !slices.Contains(excludedFlags, f.Name) {
+			conflictingFlags = append(conflictingFlags, f.Name)
+		}
+	})
+	return conflictingFlags
+}
+
 // detectIncompatibleFlags checks if any incompatible flags are used with --run-file
 // and returns a slice of the flag names that were used
 func detectIncompatibleFlags(cmd *cobra.Command) []string {
@@ -1091,14 +1100,6 @@ func detectIncompatibleFlags(cmd *cobra.Command) []string {
 		return nil // No run file specified, so no incompatibilities
 	}
 
-	var incompatibleFlags []string
-
-	// Check each incompatible flag to see if it was explicitly set
-	for _, flagName := range runFileIncompatibleFlags {
-		if cmd.Flags().Changed(flagName) {
-			incompatibleFlags = append(incompatibleFlags, flagName)
-		}
-	}
-
-	return incompatibleFlags
+	// Get all flags that are not in the compatible list
+	return getConflictingFlags(cmd, append(runFileCompatibleFlags, "run-file")...)
 }
