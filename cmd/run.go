@@ -20,6 +20,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -27,6 +28,7 @@ import (
 	"golang.org/x/mod/semver"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
 	daprRuntime "github.com/dapr/dapr/pkg/runtime"
@@ -78,6 +80,15 @@ const (
 	runtimeWaitTimeoutInSeconds = 60
 )
 
+// Flags that are compatible with --run-file
+var runFileCompatibleFlags = []string{
+	"kubernetes",
+	"help",
+	"version",
+	"runtime-path",
+	"log-as-json",
+}
+
 var RunCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Run Dapr and (optionally) your application side by side. Supported platforms: Self-hosted",
@@ -128,6 +139,14 @@ dapr run --run-file /path/to/directory -k
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(runFilePath) > 0 {
+			// Check for incompatible flags
+			incompatibleFlags := detectIncompatibleFlags(cmd)
+			if len(incompatibleFlags) > 0 {
+				// Print warning message about incompatible flags
+				warningMsg := "The following flags are ignored when using --run-file and should be configured in the run file instead: " + strings.Join(incompatibleFlags, ", ")
+				print.WarningStatusEvent(os.Stdout, warningMsg)
+			}
+
 			runConfigFilePath, err := getRunFilePath(runFilePath)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, "Failed to get run file path: %v", err)
@@ -1060,4 +1079,27 @@ func getRunFilePath(path string) (string, error) {
 		return "", fmt.Errorf("file %q is not a YAML file", path)
 	}
 	return path, nil
+}
+
+// getConflictingFlags checks if any flags are set other than the ones passed in the excludedFlags slice.
+// Used for logic or notifications when any of the flags are conflicting and should not be used together.
+func getConflictingFlags(cmd *cobra.Command, excludedFlags ...string) []string {
+	var conflictingFlags []string
+	cmd.Flags().Visit(func(f *pflag.Flag) {
+		if !slices.Contains(excludedFlags, f.Name) {
+			conflictingFlags = append(conflictingFlags, f.Name)
+		}
+	})
+	return conflictingFlags
+}
+
+// detectIncompatibleFlags checks if any incompatible flags are used with --run-file
+// and returns a slice of the flag names that were used
+func detectIncompatibleFlags(cmd *cobra.Command) []string {
+	if runFilePath == "" {
+		return nil // No run file specified, so no incompatibilities
+	}
+
+	// Get all flags that are not in the compatible list
+	return getConflictingFlags(cmd, append(runFileCompatibleFlags, "run-file")...)
 }
