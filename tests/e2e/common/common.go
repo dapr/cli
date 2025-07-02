@@ -19,6 +19,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -56,6 +57,9 @@ const (
 	thirdPartyDevNamespace = "default"
 	devRedisReleaseName    = "dapr-dev-redis"
 	devZipkinReleaseName   = "dapr-dev-zipkin"
+
+	DaprModeHA    = "ha"
+	DaprModeNonHA = "non-ha"
 )
 
 var (
@@ -82,6 +86,7 @@ type TestOptions struct {
 	CheckResourceExists      map[Resource]bool
 	UninstallAll             bool
 	InitWithCustomCert       bool
+	TimeoutSeconds           int
 }
 
 type TestCase struct {
@@ -120,6 +125,22 @@ func GetRuntimeVersion(t *testing.T, latest bool) *semver.Version {
 	return runtimeVersion
 }
 
+func GetDaprTestHaMode() string {
+	daprHaMode := os.Getenv("TEST_DAPR_HA_MODE")
+	if daprHaMode != "" {
+		return daprHaMode
+	}
+	return ""
+}
+
+func ShouldSkipTest(mode string) bool {
+	envDaprHaMode := GetDaprTestHaMode()
+	if envDaprHaMode != "" {
+		return envDaprHaMode != mode
+	}
+	return false
+}
+
 func UpgradeTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
 		daprPath := GetDaprPath()
@@ -140,12 +161,18 @@ func UpgradeTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 			args = append(args, "--image-variant", details.ImageVariant)
 		}
 
+		if opts.TimeoutSeconds > 0 {
+			args = append(args, "--timeout", strconv.Itoa(opts.TimeoutSeconds))
+		}
+
 		output, err := spawn.Command(daprPath, args...)
 		t.Log(output)
 		require.NoError(t, err, "upgrade failed")
 
 		done := make(chan struct{})
+		defer close(done)
 		podsRunning := make(chan struct{})
+		defer close(podsRunning)
 
 		go waitAllPodsRunning(t, DaprTestNamespace, opts.HAEnabled, done, podsRunning, details)
 		select {
@@ -213,7 +240,7 @@ func GetTestsOnInstall(details VersionDetails, opts TestOptions) []TestCase {
 		{"clusterroles exist " + details.RuntimeVersion, ClusterRolesTest(details, opts)},
 		{"clusterrolebindings exist " + details.RuntimeVersion, ClusterRoleBindingsTest(details, opts)},
 		{"apply and check components exist " + details.RuntimeVersion, ComponentsTestOnInstallUpgrade(opts)},
-		{"apply and check httpendpoints exist " + details.RuntimeVersion, HTTPEndpointsTestOnInstallUpgrade(opts)},
+		{"apply and check httpendpoints exist " + details.RuntimeVersion, HTTPEndpointsTestOnInstallUpgrade(opts, TestOptions{})},
 		{"check mtls " + details.RuntimeVersion, MTLSTestOnInstallUpgrade(opts)},
 		{"status check " + details.RuntimeVersion, StatusTestOnInstallUpgrade(details, opts)},
 	}
@@ -348,10 +375,10 @@ func ComponentsTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 	}
 }
 
-func HTTPEndpointsTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
+func HTTPEndpointsTestOnInstallUpgrade(installOpts TestOptions, upgradeOpts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
 		// if dapr is installed with httpendpoints.
-		if opts.ApplyHTTPEndpointChanges {
+		if installOpts.ApplyHTTPEndpointChanges {
 			// apply any changes to the httpendpoint.
 			t.Log("apply httpendpoint changes")
 			output, err := spawn.Command("kubectl", "apply", "-f", "../testdata/namespace.yaml")
@@ -360,12 +387,17 @@ func HTTPEndpointsTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 			output, err = spawn.Command("kubectl", "apply", "-f", "../testdata/httpendpoint.yaml")
 			t.Log(output)
 			require.NoError(t, err, "expected no error on kubectl apply")
-			require.Equal(t, "httpendpoints.dapr.io/httpendpoint created\nhttpendpoints.dapr.io/httpendpoint created\n", output, "expected output to match")
-			httpEndpointOutputCheck(t, output)
+
+			if installOpts.ApplyHTTPEndpointChanges && upgradeOpts.ApplyHTTPEndpointChanges {
+				require.Equal(t, "httpendpoint.dapr.io/httpendpoint unchanged\n", output, "expected output to match")
+			} else {
+				require.Equal(t, "httpendpoint.dapr.io/httpendpoint created\n", output, "expected output to match")
+			}
 
 			t.Log("check applied httpendpoint exists")
-			_, err = spawn.Command("kubectl", "get", "httpendpoint")
+			output, err = spawn.Command("kubectl", "get", "httpendpoint")
 			require.NoError(t, err, "expected no error on calling to retrieve httpendpoints")
+			httpEndpointOutputCheck(t, output)
 		}
 	}
 }
@@ -375,6 +407,12 @@ func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t
 		daprPath := GetDaprPath()
 		output, err := spawn.Command(daprPath, "status", "-k")
 		require.NoError(t, err, "status check failed")
+
+		version, err := semver.NewVersion(details.RuntimeVersion)
+		if err != nil {
+			t.Error("failed to parse runtime version", err)
+		}
+
 		var notFound map[string][]string
 		if !opts.HAEnabled {
 			notFound = map[string][]string{
@@ -384,6 +422,11 @@ func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t
 				"dapr-placement-server": {details.RuntimeVersion, "1"},
 				"dapr-operator":         {details.RuntimeVersion, "1"},
 			}
+			if version.GreaterThanEqual(VersionWithHAScheduler) {
+				notFound["dapr-scheduler-server"] = []string{details.RuntimeVersion, "3"}
+			} else if version.GreaterThanEqual(VersionWithScheduler) {
+				notFound["dapr-scheduler-server"] = []string{details.RuntimeVersion, "1"}
+			}
 		} else {
 			notFound = map[string][]string{
 				"dapr-sentry":           {details.RuntimeVersion, "3"},
@@ -392,6 +435,9 @@ func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t
 				"dapr-placement-server": {details.RuntimeVersion, "3"},
 				"dapr-operator":         {details.RuntimeVersion, "3"},
 			}
+			if version.GreaterThanEqual(VersionWithScheduler) {
+				notFound["dapr-scheduler-server"] = []string{details.RuntimeVersion, "3"}
+			}
 		}
 
 		if details.ImageVariant != "" {
@@ -399,6 +445,9 @@ func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t
 			notFound["dapr-sidecar-injector"][0] = notFound["dapr-sidecar-injector"][0] + "-" + details.ImageVariant
 			notFound["dapr-placement-server"][0] = notFound["dapr-placement-server"][0] + "-" + details.ImageVariant
 			notFound["dapr-operator"][0] = notFound["dapr-operator"][0] + "-" + details.ImageVariant
+			if notFound["dapr-scheduler-server"] != nil {
+				notFound["dapr-scheduler-server"][0] = notFound["dapr-scheduler-server"][0] + "-" + details.ImageVariant
+			}
 		}
 
 		lines := strings.Split(output, "\n")[1:] // remove header of status.
@@ -407,13 +456,13 @@ func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t
 			cols := strings.Fields(strings.TrimSpace(line))
 			if len(cols) > 6 { // atleast 6 fields are verified from status (Age and created time are not).
 				if toVerify, ok := notFound[cols[0]]; ok { // get by name.
-					require.Equal(t, DaprTestNamespace, cols[1], "namespace must match")
-					require.Equal(t, "True", cols[2], "healthly field must be true")
-					require.Equal(t, "Running", cols[3], "pods must be Running")
-					require.Equal(t, toVerify[1], cols[4], "replicas must be equal")
+					require.Equal(t, DaprTestNamespace, cols[1], "%s namespace must match", cols[0])
+					require.Equal(t, "True", cols[2], "%s healthy field must be true", cols[0])
+					require.Equal(t, "Running", cols[3], "%s pods must be Running", cols[0])
+					require.Equal(t, toVerify[1], cols[4], "%s replicas must be equal", cols[0])
 					// TODO: Skip the dashboard version check for now until the helm chart is updated.
 					if cols[0] != "dapr-dashboard" {
-						require.Equal(t, toVerify[0], cols[5], "versions must match")
+						require.Equal(t, toVerify[0], cols[5], "%s versions must match", cols[0])
 					}
 					delete(notFound, cols[0])
 				}
@@ -890,8 +939,11 @@ func uninstallTest(all bool, devEnabled bool) func(t *testing.T) {
 		require.NoError(t, err, "uninstall failed")
 		// wait for pods to be deleted completely.
 		// needed to verify status checks fails correctly.
-		podsDeleted := make(chan struct{})
 		done := make(chan struct{})
+		defer close(done)
+		podsDeleted := make(chan struct{})
+		defer close(podsDeleted)
+
 		t.Log("waiting for pods to be deleted completely")
 		go waitPodDeletion(t, done, podsDeleted)
 		select {
@@ -1026,7 +1078,7 @@ func componentOutputCheck(t *testing.T, opts TestOptions, output string) {
 		return
 	}
 
-	lines = strings.Split(output, "\n")[2:] // remove header and warning message.
+	lines = lines[2:] // remove header and warning message.
 
 	if opts.DevEnabled {
 		// default, test statestore.
@@ -1194,6 +1246,8 @@ func waitPodDeletionDev(t *testing.T, done, podsDeleted chan struct{}) {
 			devRedisReleaseName:  "dapr-dev-redis-master-",
 			devZipkinReleaseName: "dapr-dev-zipkin-",
 		}
+
+		t.Logf("dev pods waiting to be deleted: %d", len(list.Items))
 		for _, pod := range list.Items {
 			t.Log(pod.ObjectMeta.Name)
 			for component, prefix := range prefixes {
@@ -1211,7 +1265,7 @@ func waitPodDeletionDev(t *testing.T, done, podsDeleted chan struct{}) {
 		if len(found) == 2 {
 			podsDeleted <- struct{}{}
 		}
-		time.Sleep(15 * time.Second)
+		time.Sleep(10 * time.Second)
 	}
 }
 
@@ -1223,19 +1277,28 @@ func waitPodDeletion(t *testing.T, done, podsDeleted chan struct{}) {
 		default:
 			break
 		}
+
 		ctx := context.Background()
 		ctxt, cancel := context.WithTimeout(ctx, 10*time.Second)
 		defer cancel()
+
 		k8sClient, err := getClient()
 		require.NoError(t, err, "error getting k8s client for pods check")
+
 		list, err := k8sClient.CoreV1().Pods(DaprTestNamespace).List(ctxt, v1.ListOptions{
 			Limit: 100,
 		})
 		require.NoError(t, err, "error getting pods list from k8s")
+
 		if len(list.Items) == 0 {
 			podsDeleted <- struct{}{}
+		} else {
+			t.Logf("pods waiting to be deleted: %d", len(list.Items))
+			for _, pod := range list.Items {
+				t.Log(pod.ObjectMeta.Name)
+			}
 		}
-		time.Sleep(15 * time.Second)
+		time.Sleep(5 * time.Second)
 	}
 }
 
@@ -1249,14 +1312,15 @@ func waitAllPodsRunning(t *testing.T, namespace string, haEnabled bool, done, po
 		}
 		ctx := context.Background()
 		ctxt, cancel := context.WithTimeout(ctx, 10*time.Second)
-		defer cancel()
+
 		k8sClient, err := getClient()
 		require.NoError(t, err, "error getting k8s client for pods check")
 		list, err := k8sClient.CoreV1().Pods(namespace).List(ctxt, v1.ListOptions{
 			Limit: 100,
 		})
 		require.NoError(t, err, "error getting pods list from k8s")
-		t.Logf("items %d", len(list.Items))
+
+		t.Logf("waiting for pods to be running, current count: %d", len(list.Items))
 		countOfReadyPods := 0
 		for _, item := range list.Items {
 			t.Log(item.ObjectMeta.Name)
@@ -1277,11 +1341,13 @@ func waitAllPodsRunning(t *testing.T, namespace string, haEnabled bool, done, po
 		if err != nil {
 			t.Error(err)
 		}
-		if len(list.Items) == countOfReadyPods && ((haEnabled && countOfReadyPods == pods) || (!haEnabled && countOfReadyPods == pods)) {
+		if len(list.Items) == countOfReadyPods && countOfReadyPods == pods {
 			podsRunning <- struct{}{}
 		}
 
-		time.Sleep(15 * time.Second)
+		time.Sleep(5 * time.Second)
+
+		cancel()
 	}
 }
 

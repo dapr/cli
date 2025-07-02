@@ -510,6 +510,8 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 		// Set defaults if zero value provided in config yaml.
 		app.RunConfig.SetDefaultFromSchema()
 
+		app.RunConfig.SchedulerHostAddress = validateSchedulerHostAddress(daprVer.RuntimeVersion, app.RunConfig.SchedulerHostAddress)
+
 		// Validate validates the configs and modifies the ports to free ports, appId etc.
 		err := app.RunConfig.Validate()
 		if err != nil {
@@ -526,8 +528,6 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 			exitWithError = true
 			break
 		}
-
-		runConfig.SchedulerHostAddress = validateSchedulerHostAddress(daprVer.RuntimeVersion, runConfig.SchedulerHostAddress)
 
 		// Combined multiwriter for logs.
 		var appDaprdWriter io.Writer
@@ -674,7 +674,7 @@ func validateSchedulerHostAddress(version, address string) string {
 	// If no SchedulerHostAddress is supplied, set it to default value.
 	if semver.Compare(fmt.Sprintf("v%v", version), "v1.15.0-rc.0") == 1 {
 		if address == "" {
-			return "localhost:50006"
+			return "localhost"
 		}
 	}
 	return address
