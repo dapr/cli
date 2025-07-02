@@ -18,6 +18,7 @@ package standalone
 
 import (
 	"fmt"
+	"strconv"
 	"syscall"
 
 	"github.com/dapr/cli/utils"
@@ -31,10 +32,10 @@ func Stop(appID string, cliPIDToNoOfApps map[int]int, apps []ListOutput) error {
 			// Kill the Daprd process if Daprd was started without CLI, otherwise
 			// kill the CLI process which also kills the associated Daprd process.
 			if a.CliPID == 0 || cliPIDToNoOfApps[a.CliPID] > 1 {
-				pid = fmt.Sprintf("%v", a.DaprdPID) //nolint: perfsprint
+				pid = strconv.Itoa(a.DaprdPID)
 				cliPIDToNoOfApps[a.CliPID]--
 			} else {
-				pid = fmt.Sprintf("%v", a.CliPID) //nolint: perfsprint
+				pid = strconv.Itoa(a.CliPID)
 			}
 
 			_, err := utils.RunCmdAndWait("kill", pid)
