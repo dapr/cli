@@ -279,6 +279,7 @@ dapr run --run-file /path/to/directory -k
 				} else {
 					print.SuccessStatusEvent(os.Stdout, "Exited Dapr successfully")
 				}
+				daprRunning <- false
 				sigCh <- os.Interrupt
 			}()
 
@@ -330,7 +331,7 @@ dapr run --run-file /path/to/directory -k
 			daprRunning <- true
 		}()
 
-		<-daprRunning
+		daprRunStatus := <-daprRunning
 
 		go func() {
 			if output.AppCMD == nil {
@@ -382,6 +383,7 @@ dapr run --run-file /path/to/directory -k
 				} else {
 					print.SuccessStatusEvent(os.Stdout, "Exited App successfully")
 				}
+				appRunning <- false
 				sigCh <- os.Interrupt
 			}()
 
@@ -400,32 +402,41 @@ dapr run --run-file /path/to/directory -k
 			os.Exit(1)
 		}
 
-		// Metadata API is only available if app has started listening to port, so wait for app to start before calling metadata API.
-		err = metadata.Put(output.DaprHTTPPort, "cliPID", strconv.Itoa(os.Getpid()), output.AppID, unixDomainSocket)
-		if err != nil {
-			print.WarningStatusEvent(os.Stdout, "Could not update sidecar metadata for cliPID: %s", err.Error())
-		}
-
-		if output.AppCMD != nil {
-			if output.AppCMD.Process != nil {
-				print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Updating metadata for appPID: %d", output.AppCMD.Process.Pid))
-				err = metadata.Put(output.DaprHTTPPort, "appPID", strconv.Itoa(output.AppCMD.Process.Pid), output.AppID, unixDomainSocket)
-				if err != nil {
-					print.WarningStatusEvent(os.Stdout, "Could not update sidecar metadata for appPID: %s", err.Error())
-				}
+		// Call metadata endpoint and update the dapr cli PID, app PID and app command in separate goroutine to avoid blocking termination signals.
+		// For example, when "dapr run" initialization fails with fatal errors on component init errors.
+		// See issue: https://github.com/dapr/cli/issues/1338
+		go func() {
+			for !daprRunStatus || !appRunStatus {
+				return
 			}
 
-			appCommand := strings.Join(args, " ")
-			print.InfoStatusEvent(os.Stdout, "Updating metadata for app command: "+appCommand)
-			err = metadata.Put(output.DaprHTTPPort, "appCommand", appCommand, output.AppID, unixDomainSocket)
+			// Metadata API is only available if app has started listening to port, so wait for app to start before calling metadata API.
+			err = metadata.Put(output.DaprHTTPPort, "cliPID", strconv.Itoa(os.Getpid()), output.AppID, unixDomainSocket)
 			if err != nil {
-				print.WarningStatusEvent(os.Stdout, "Could not update sidecar metadata for appCommand: %s", err.Error())
-			} else {
-				print.SuccessStatusEvent(os.Stdout, "You're up and running! Both Dapr and your app logs will appear here.\n")
+				print.WarningStatusEvent(os.Stdout, "Could not update sidecar metadata for cliPID: %s", err.Error())
 			}
-		} else {
-			print.SuccessStatusEvent(os.Stdout, "You're up and running! Dapr logs will appear here.\n")
-		}
+
+			if output.AppCMD != nil {
+				if output.AppCMD.Process != nil {
+					print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Updating metadata for appPID: %d", output.AppCMD.Process.Pid))
+					err = metadata.Put(output.DaprHTTPPort, "appPID", strconv.Itoa(output.AppCMD.Process.Pid), output.AppID, unixDomainSocket)
+					if err != nil {
+						print.WarningStatusEvent(os.Stdout, "Could not update sidecar metadata for appPID: %s", err.Error())
+					}
+				}
+
+				appCommand := strings.Join(args, " ")
+				print.InfoStatusEvent(os.Stdout, "Updating metadata for app command: "+appCommand)
+				err = metadata.Put(output.DaprHTTPPort, "appCommand", appCommand, output.AppID, unixDomainSocket)
+				if err != nil {
+					print.WarningStatusEvent(os.Stdout, "Could not update sidecar metadata for appCommand: %s", err.Error())
+				} else {
+					print.SuccessStatusEvent(os.Stdout, "You're up and running! Both Dapr and your app logs will appear here.\n")
+				}
+			} else {
+				print.SuccessStatusEvent(os.Stdout, "You're up and running! Dapr logs will appear here.\n")
+			}
+		}()
 
 		<-sigCh
 		print.InfoStatusEvent(os.Stdout, "\nterminated signal received: shutting down")
