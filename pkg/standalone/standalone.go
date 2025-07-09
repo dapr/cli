@@ -144,6 +144,7 @@ type initInfo struct {
 	containerRuntime string
 	imageVariant     string
 	schedulerVolume  *string
+	schedulerHost    string
 }
 
 type daprImageInfo struct {
@@ -185,7 +186,7 @@ func isSchedulerIncluded(runtimeVersion string) (bool, error) {
 }
 
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
-func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool, imageRegistryURL string, fromDir string, containerRuntime string, imageVariant string, daprInstallPath string, schedulerVolume *string) error {
+func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool, imageRegistryURL string, fromDir string, containerRuntime string, imageVariant string, daprInstallPath string, schedulerVolume *string, schedulerHost string) error {
 	var err error
 	var bundleDet bundleDetails
 	containerRuntime = strings.TrimSpace(containerRuntime)
@@ -307,6 +308,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		containerRuntime: containerRuntime,
 		imageVariant:     imageVariant,
 		schedulerVolume:  schedulerVolume,
+		schedulerHost:    schedulerHost,
 	}
 	for _, step := range initSteps {
 		// Run init on the configurations and containers.
@@ -684,7 +686,7 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 	}
 
 	if schedulerOverrideHostPort(info) {
-		args = append(args, fmt.Sprintf("--override-broadcast-host-port=localhost:%v", osPort))
+		args = append(args, fmt.Sprintf("--override-broadcast-host-port=%s:%v", info.schedulerHost, osPort))
 	}
 
 	_, err = utils.RunCmdAndWait(runtimeCmd, args...)
