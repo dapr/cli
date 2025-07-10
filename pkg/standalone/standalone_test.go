@@ -20,6 +20,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/dapr/cli/utils"
+	"github.com/dapr/kit/ptr"
 )
 
 func TestStandaloneConfig(t *testing.T) {
@@ -325,7 +326,7 @@ func TestInitLogActualContainerRuntimeName(t *testing.T) {
 				t.Skip("Skipping test as container runtime is available")
 			}
 
-			err := Init(latestVersion, latestVersion, "", false, "", "", test.containerRuntime, "", "", nil, "localhost")
+			err := Init(latestVersion, latestVersion, "", false, "", "", test.containerRuntime, "", "", nil, ptr.Of("localhost:50006"))
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), test.containerRuntime)
 		})

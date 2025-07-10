@@ -158,12 +158,12 @@ You can install Dapr runtime by pulling docker images from a given private regis
 dapr init --image-registry example.io/<username>
 ```
 
-#### Install with a custom scheduler host
+#### Install with a custom scheduler host and port
 
-You can install Dapr runtime with a custom scheduler host by using `--scheduler-host` flag.
+You can install Dapr runtime with a custom scheduler host and port by using `--scheduler-override-broadcast-host-port` flag.
 
 ```bash
-dapr init --scheduler-host 192.168.42.42
+dapr init --scheduler-override-broadcast-host-port 192.168.42.42:50006
 ```
 
 > Note: The default host is `localhost`.

@@ -29,24 +29,24 @@ import (
 )
 
 var (
-	kubernetesMode    bool
-	wait              bool
-	timeout           uint
-	slimMode          bool
-	devMode           bool
-	runtimeVersion    string
-	dashboardVersion  string
-	allNamespaces     bool
-	initNamespace     string
-	resourceNamespace string
-	enableMTLS        bool
-	enableHA          bool
-	values            []string
-	fromDir           string
-	containerRuntime  string
-	imageVariant      string
-	schedulerVolume   string
-	schedulerHost     string
+	kubernetesMode                     bool
+	wait                               bool
+	timeout                            uint
+	slimMode                           bool
+	devMode                            bool
+	runtimeVersion                     string
+	dashboardVersion                   string
+	allNamespaces                      bool
+	initNamespace                      string
+	resourceNamespace                  string
+	enableMTLS                         bool
+	enableHA                           bool
+	values                             []string
+	fromDir                            string
+	containerRuntime                   string
+	imageVariant                       string
+	schedulerVolume                    string
+	schedulerOverrideBroadcastHostPort string
 )
 
 var InitCmd = &cobra.Command{
@@ -172,7 +172,13 @@ dapr init --runtime-path <path-to-install-directory>
 				print.FailureStatusEvent(os.Stdout, "Invalid container runtime. Supported values are docker and podman.")
 				os.Exit(1)
 			}
-			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode, imageRegistryURI, fromDir, containerRuntime, imageVariant, daprRuntimePath, &schedulerVolume, schedulerHost)
+
+			schedulerHostPort := &schedulerOverrideBroadcastHostPort
+			if schedulerOverrideBroadcastHostPort == "" {
+				schedulerHostPort = nil
+			}
+
+			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode, imageRegistryURI, fromDir, containerRuntime, imageVariant, daprRuntimePath, &schedulerVolume, schedulerHostPort)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)
@@ -222,7 +228,7 @@ func init() {
 	InitCmd.Flags().StringVarP(&fromDir, "from-dir", "", "", "Use Dapr artifacts from local directory for self-hosted installation")
 	InitCmd.Flags().StringVarP(&imageVariant, "image-variant", "", "", "The image variant to use for the Dapr runtime, for example: mariner")
 	InitCmd.Flags().StringVarP(&schedulerVolume, "scheduler-volume", "", "dapr_scheduler", "Self-hosted only. Specify a volume for the scheduler service data directory.")
-	InitCmd.Flags().StringVarP(&schedulerHost, "scheduler-host", "", "localhost", "Self-hosted only. Specify the host address for the scheduler service. If not specified, it uses localhost.")
+	InitCmd.Flags().StringVarP(&schedulerOverrideBroadcastHostPort, "scheduler-override-broadcast-host-port", "", "", "Self-hosted only. Specify the scheduler broadcast host and port, for example: 192.168.42.42:50006. If not specified, it uses localhost:50006 (6060 for Windows).")
 	InitCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	InitCmd.Flags().StringArrayVar(&values, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
 	InitCmd.Flags().String("image-registry", "", "Custom/private docker image repository URL")

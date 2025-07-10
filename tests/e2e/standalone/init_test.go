@@ -218,16 +218,16 @@ func TestStandaloneInit(t *testing.T) {
 		// Ensure a clean environment
 		must(t, cmdUninstall, "failed to uninstall Dapr")
 
-		customHost := "192.168.42.42"
+		customBroadcastHostPort := "192.168.42.42:50006"
 		args := []string{
-			"--scheduler-host", customHost,
+			"--scheduler-override-broadcast-host-port", customBroadcastHostPort,
 		}
 		output, err := cmdInit(args...)
 		t.Log(output)
 		require.NoError(t, err, "init failed")
 		assert.Contains(t, output, "Success! Dapr is up and running.")
 
-		verifySchedulerHost(t, customHost)
+		verifySchedulerBroadcastHostPort(t, customBroadcastHostPort)
 	})
 
 	t.Run("init without runtime-version flag with mariner images", func(t *testing.T) {
@@ -461,8 +461,8 @@ func verifyTCPLocalhost(t *testing.T, port int) {
 	}, time.Second*10, time.Millisecond*10)
 }
 
-// verifySchedulerHost verifies that the scheduler container was started with the correct host.
-func verifySchedulerHost(t *testing.T, expectedHost string) {
+// verifySchedulerBroadcastHostPort verifies that the scheduler container was started with the correct broadcast host and port.
+func verifySchedulerBroadcastHostPort(t *testing.T, expectedBroadcastHostPort string) {
 	t.Helper()
 
 	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv)
@@ -471,11 +471,6 @@ func verifySchedulerHost(t *testing.T, expectedHost string) {
 	containerInfo, err := cli.ContainerInspect(context.Background(), "dapr_scheduler")
 	require.NoError(t, err)
 
-	expectedPort := 50006
-	if runtime.GOOS == "windows" {
-		expectedPort = 6060
-	}
-
-	expectedArg := "--override-broadcast-host-port=" + expectedHost + ":" + strconv.Itoa(expectedPort)
+	expectedArg := "--override-broadcast-host-port=" + expectedBroadcastHostPort
 	assert.Contains(t, containerInfo.Args, expectedArg, "Expected scheduler argument %s not found in container args: %v", expectedArg, containerInfo.Args)
 }
