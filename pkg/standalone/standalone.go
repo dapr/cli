@@ -687,7 +687,7 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 
 	if schedulerOverrideHostPort(info) {
 		if info.schedulerOverrideBroadcastHostPort != nil {
-			args = append(args, fmt.Sprintf("--override-broadcast-host-port=%s", *info.schedulerOverrideBroadcastHostPort))
+			args = append(args, "--override-broadcast-host-port="+*info.schedulerOverrideBroadcastHostPort)
 		} else {
 			args = append(args, fmt.Sprintf("--override-broadcast-host-port=localhost:%v", osPort))
 		}
