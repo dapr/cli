@@ -210,6 +210,26 @@ func TestStandaloneInit(t *testing.T) {
 		verifyTCPLocalhost(t, schedulerPort)
 	})
 
+	t.Run("init with custom scheduler host", func(t *testing.T) {
+		if isSlimMode() {
+			t.Skip("Skipping scheduler host test because of slim installation")
+		}
+
+		// Ensure a clean environment
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+
+		customBroadcastHostPort := "192.168.42.42:50006"
+		args := []string{
+			"--scheduler-override-broadcast-host-port", customBroadcastHostPort,
+		}
+		output, err := cmdInit(args...)
+		t.Log(output)
+		require.NoError(t, err, "init failed")
+		assert.Contains(t, output, "Success! Dapr is up and running.")
+
+		verifySchedulerBroadcastHostPort(t, customBroadcastHostPort)
+	})
+
 	t.Run("init without runtime-version flag with mariner images", func(t *testing.T) {
 		// Ensure a clean environment
 		must(t, cmdUninstall, "failed to uninstall Dapr")
@@ -439,4 +459,18 @@ func verifyTCPLocalhost(t *testing.T, port int) {
 			conn.Close()
 		}
 	}, time.Second*10, time.Millisecond*10)
+}
+
+// verifySchedulerBroadcastHostPort verifies that the scheduler container was started with the correct broadcast host and port.
+func verifySchedulerBroadcastHostPort(t *testing.T, expectedBroadcastHostPort string) {
+	t.Helper()
+
+	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv)
+	require.NoError(t, err)
+
+	containerInfo, err := cli.ContainerInspect(context.Background(), "dapr_scheduler")
+	require.NoError(t, err)
+
+	expectedArg := "--override-broadcast-host-port=" + expectedBroadcastHostPort
+	assert.Contains(t, containerInfo.Args, expectedArg, "Expected scheduler argument %s not found in container args: %v", expectedArg, containerInfo.Args)
 }
