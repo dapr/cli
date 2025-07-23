@@ -137,6 +137,8 @@ type initInfo struct {
 	installDir                         string
 	bundleDet                          *bundleDetails
 	slimMode                           bool
+	disablePlacement                   bool
+	disableScheduler                   bool
 	runtimeVersion                     string
 	dashboardVersion                   string
 	dockerNetwork                      string
@@ -186,7 +188,7 @@ func isSchedulerIncluded(runtimeVersion string) (bool, error) {
 }
 
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
-func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool, imageRegistryURL string, fromDir string, containerRuntime string, imageVariant string, daprInstallPath string, schedulerVolume *string, schedulerOverrideBroadcastHostPort *string) error {
+func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool, imageRegistryURL string, fromDir string, containerRuntime string, imageVariant string, daprInstallPath string, schedulerVolume *string, schedulerOverrideBroadcastHostPort *string, disablePlacement bool, disableScheduler bool) error {
 	var err error
 	var bundleDet bundleDetails
 	containerRuntime = strings.TrimSpace(containerRuntime)
@@ -301,6 +303,8 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		fromDir:                            fromDir,
 		installDir:                         installDir,
 		slimMode:                           slimMode,
+		disablePlacement:                   disablePlacement,
+		disableScheduler:                   disableScheduler,
 		runtimeVersion:                     runtimeVersion,
 		dashboardVersion:                   dashboardVersion,
 		dockerNetwork:                      dockerNetwork,
@@ -346,8 +350,11 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 			dockerContainerNames = []string{DaprPlacementContainerName}
 		}
 		hasScheduler, err := isSchedulerIncluded(info.runtimeVersion)
-		if err == nil && hasScheduler {
+		if err == nil && hasScheduler && !info.disableScheduler {
 			dockerContainerNames = append(dockerContainerNames, DaprSchedulerContainerName)
+		}
+		if !info.disablePlacement {
+			dockerContainerNames = append(dockerContainerNames, DaprPlacementContainerName)
 		}
 		for _, container := range dockerContainerNames {
 			containerName := utils.CreateContainerName(container, dockerNetwork)
@@ -499,7 +506,7 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 	defer wg.Done()
 
-	if info.slimMode {
+	if info.slimMode || info.disablePlacement {
 		return
 	}
 
@@ -585,7 +592,7 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 	defer wg.Done()
 
-	if info.slimMode {
+	if info.slimMode || info.disableScheduler {
 		return
 	}
 
