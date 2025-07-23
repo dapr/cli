@@ -125,6 +125,20 @@ Output should look like so:
 
 >Note: When initializing Dapr with the `--slim` flag only the Dapr runtime, placement, and scheduler service binaries are installed. An empty default components folder is created with no default configuration files. During `dapr run` user should use `--resources-path` (`--components-path` is deprecated and will be removed in future releases) to point to a components directory with custom configurations files or alternatively place these files in the default directory. For Linux/MacOS, the default components directory path is `$HOME/.dapr/components` and for Windows it is `%USERPROFILE%\.dapr\components`.
 
+#### Disable Specific Services
+For more granular control in self-hosted mode, you can selectively disable individual services using the `--disable-placement` and `--disable-scheduler` flags with the init command. This allows you to exclude specific service containers while keeping others running.
+
+```bash
+# Disable only placement service
+dapr init --disable-placement
+
+# Disable only scheduler service  
+dapr init --disable-scheduler
+
+# Disable both placement and scheduler services
+dapr init --disable-placement --disable-scheduler
+```
+
 #### Install a specific runtime version
 
 You can install or upgrade to a specific version of the Dapr runtime using `dapr init --runtime-version`. You can find the list of versions in [Dapr Release](https://github.com/dapr/dapr/releases).
