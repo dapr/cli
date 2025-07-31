@@ -133,17 +133,18 @@ type componentMetadataItem struct {
 }
 
 type initInfo struct {
-	fromDir          string
-	installDir       string
-	bundleDet        *bundleDetails
-	slimMode         bool
-	runtimeVersion   string
-	dashboardVersion string
-	dockerNetwork    string
-	imageRegistryURL string
-	containerRuntime string
-	imageVariant     string
-	schedulerVolume  *string
+	fromDir                            string
+	installDir                         string
+	bundleDet                          *bundleDetails
+	slimMode                           bool
+	runtimeVersion                     string
+	dashboardVersion                   string
+	dockerNetwork                      string
+	imageRegistryURL                   string
+	containerRuntime                   string
+	imageVariant                       string
+	schedulerVolume                    *string
+	schedulerOverrideBroadcastHostPort *string
 }
 
 type daprImageInfo struct {
@@ -185,7 +186,7 @@ func isSchedulerIncluded(runtimeVersion string) (bool, error) {
 }
 
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
-func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool, imageRegistryURL string, fromDir string, containerRuntime string, imageVariant string, daprInstallPath string, schedulerVolume *string) error {
+func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool, imageRegistryURL string, fromDir string, containerRuntime string, imageVariant string, daprInstallPath string, schedulerVolume *string, schedulerOverrideBroadcastHostPort *string) error {
 	var err error
 	var bundleDet bundleDetails
 	containerRuntime = strings.TrimSpace(containerRuntime)
@@ -296,17 +297,18 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 
 	info := initInfo{
 		// values in bundleDet can be nil if fromDir is empty, so must be used in conjunction with fromDir.
-		bundleDet:        &bundleDet,
-		fromDir:          fromDir,
-		installDir:       installDir,
-		slimMode:         slimMode,
-		runtimeVersion:   runtimeVersion,
-		dashboardVersion: dashboardVersion,
-		dockerNetwork:    dockerNetwork,
-		imageRegistryURL: imageRegistryURL,
-		containerRuntime: containerRuntime,
-		imageVariant:     imageVariant,
-		schedulerVolume:  schedulerVolume,
+		bundleDet:                          &bundleDet,
+		fromDir:                            fromDir,
+		installDir:                         installDir,
+		slimMode:                           slimMode,
+		runtimeVersion:                     runtimeVersion,
+		dashboardVersion:                   dashboardVersion,
+		dockerNetwork:                      dockerNetwork,
+		imageRegistryURL:                   imageRegistryURL,
+		containerRuntime:                   containerRuntime,
+		imageVariant:                       imageVariant,
+		schedulerVolume:                    schedulerVolume,
+		schedulerOverrideBroadcastHostPort: schedulerOverrideBroadcastHostPort,
 	}
 	for _, step := range initSteps {
 		// Run init on the configurations and containers.
@@ -684,7 +686,11 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 	}
 
 	if schedulerOverrideHostPort(info) {
-		args = append(args, fmt.Sprintf("--override-broadcast-host-port=localhost:%v", osPort))
+		if info.schedulerOverrideBroadcastHostPort != nil {
+			args = append(args, "--override-broadcast-host-port="+*info.schedulerOverrideBroadcastHostPort)
+		} else {
+			args = append(args, fmt.Sprintf("--override-broadcast-host-port=localhost:%v", osPort))
+		}
 	}
 
 	_, err = utils.RunCmdAndWait(runtimeCmd, args...)
