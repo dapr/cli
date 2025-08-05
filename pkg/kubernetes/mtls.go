@@ -130,7 +130,7 @@ func CheckForCertExpiry() {
 		}
 		helpMessage := "Please see docs.dapr.io for certificate renewal instructions to avoid service interruptions."
 		print.WarningStatusEvent(os.Stdout,
-			fmt.Sprintf("%s Expiry date: %s. \n %s", warningMessage, expiry.Format(time.RFC1123), helpMessage))
+			"%s", fmt.Sprintf("%s Expiry date: %s. \n %s", warningMessage, expiry.Format(time.RFC1123), helpMessage))
 	}
 }
 
