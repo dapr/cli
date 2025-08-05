@@ -42,7 +42,7 @@ var ComponentsCmd = &cobra.Command{
 			}
 			err := kubernetes.PrintComponents(componentsName, resourceNamespace, componentsOutputFormat)
 			if err != nil {
-				print.FailureStatusEvent(os.Stderr, err.Error())
+				print.FailureStatusEvent(os.Stderr, "%s", err.Error())
 				os.Exit(1)
 			}
 		}
