@@ -195,7 +195,7 @@ func Upgrade(conf UpgradeConfig) error {
 				errDeletion := deleteSchedulerPods(status[0].Namespace, currentVersion, targetVersion)
 				if errDeletion != nil {
 					downgradeDeletionChan <- fmt.Errorf("failed to delete scheduler pods: %w", errDeletion)
-					print.FailureStatusEvent(os.Stderr, "Failed to delete scheduler pods: "+errDeletion.Error())
+					print.FailureStatusEvent(os.Stderr, "Failed to delete scheduler pods: %v", errDeletion)
 				}
 				close(downgradeDeletionChan)
 			}()
