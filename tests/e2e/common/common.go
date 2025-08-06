@@ -473,7 +473,7 @@ func ClusterRoleBindingsTest(details VersionDetails, opts TestOptions) func(t *t
 			t.Errorf("check on cluster roles bindings called when not defined in test options")
 		}
 
-		ctx := context.Background()
+		ctx := t.Context()
 		k8sClient, err := getClient()
 		require.NoError(t, err)
 
@@ -513,7 +513,7 @@ func ClusterRolesTest(details VersionDetails, opts TestOptions) func(t *testing.
 		if !ok {
 			t.Errorf("check on cluster roles called when not defined in test options")
 		}
-		ctx := context.Background()
+		ctx := t.Context()
 		k8sClient, err := getClient()
 		require.NoError(t, err)
 
@@ -550,7 +550,7 @@ func CRDTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 		if !ok {
 			t.Errorf("check on CRDs called when not defined in test options")
 		}
-		ctx := context.Background()
+		ctx := t.Context()
 		cfg, err := getConfig()
 		require.NoError(t, err)
 
@@ -1061,7 +1061,7 @@ func httpEndpointOutputCheck(t *testing.T, output string) {
 }
 
 func validateThirdpartyPodsOnInit(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	ctxt, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	k8sClient, err := getClient()
@@ -1096,7 +1096,7 @@ func validateThirdpartyPodsOnInit(t *testing.T) {
 }
 
 func validatePodsOnInstallUpgrade(t *testing.T, details VersionDetails) {
-	ctx := context.Background()
+	ctx := t.Context()
 	ctxt, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	k8sClient, err := getClient()
@@ -1170,7 +1170,7 @@ func waitPodDeletionDev(t *testing.T, done, podsDeleted chan struct{}) {
 		default:
 			break
 		}
-		ctx := context.Background()
+		ctx := t.Context()
 		ctxt, cancel := context.WithTimeout(ctx, 10*time.Second)
 		defer cancel()
 		k8sClient, err := getClient()
@@ -1219,7 +1219,7 @@ func waitPodDeletion(t *testing.T, done, podsDeleted chan struct{}) {
 			break
 		}
 
-		ctx := context.Background()
+		ctx := t.Context()
 		ctxt, cancel := context.WithTimeout(ctx, 10*time.Second)
 		defer cancel()
 
@@ -1251,7 +1251,7 @@ func waitAllPodsRunning(t *testing.T, namespace string, haEnabled bool, done, po
 		default:
 			break
 		}
-		ctx := context.Background()
+		ctx := t.Context()
 		ctxt, cancel := context.WithTimeout(ctx, 10*time.Second)
 
 		k8sClient, err := getClient()
