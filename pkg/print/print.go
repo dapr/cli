@@ -175,9 +175,9 @@ func Spinner(w io.Writer, fmtstr string, a ...interface{}) func(result Result) {
 				s.Stop()
 			}
 			if result {
-				SuccessStatusEvent(w, msg)
+				SuccessStatusEvent(w, "%s", msg)
 			} else {
-				FailureStatusEvent(w, msg)
+				FailureStatusEvent(w, "%s", msg)
 			}
 		})
 	}

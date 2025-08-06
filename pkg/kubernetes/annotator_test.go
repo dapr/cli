@@ -333,7 +333,7 @@ func TestAnnotate(t *testing.T) {
 
 			for i := range expectedDocs {
 				if tt.printOutput {
-					t.Logf(outDocs[i]) //nolint:govet
+					t.Logf("%s", outDocs[i]) //nolint:govet
 				}
 				assert.YAMLEq(t, expectedDocs[i], outDocs[i])
 			}
