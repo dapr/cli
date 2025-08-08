@@ -150,8 +150,8 @@ github.com/cyphar/filepath-securejoin v0.3.6 h1:4d9N5ykBnSp5Xn2JkhocYDkOpURL/18C
 github.com/cyphar/filepath-securejoin v0.3.6/go.mod h1:Sdj7gXlvMcPZsbhwhQ33GguGLDGQL7h7bg04C/+u9jI=
 github.com/dapr/components-contrib v1.15.1-0.20250725163610-adc76bd6ec85 h1:eSCTYjRM8oRMWMXCXLxAQRCli03FNVUFbS00IF4h+zQ=
 github.com/dapr/components-contrib v1.15.1-0.20250725163610-adc76bd6ec85/go.mod h1:GfreXwMaOEn1ISA8lPtlLQCb8lzI4Ux/4TlYPE/OHfU=
-github.com/dapr/dapr v1.16.0-rc.2 h1:ivWjZIcwggS+R1gbyd7JYmYGM8nfZYhi8/tS059x0g0=
-github.com/dapr/dapr v1.16.0-rc.2/go.mod h1:uyKnxMohSg87LSFzZ/oyuiGSo0+qkzeR0eXncPyIV9c=
+github.com/dapr/dapr v1.16.0-rc.3 h1:D99V20GOhb+bZXH1PngME+wgzIZCcBFOvmaP7DOZxGo=
+github.com/dapr/dapr v1.16.0-rc.3/go.mod h1:uyKnxMohSg87LSFzZ/oyuiGSo0+qkzeR0eXncPyIV9c=
 github.com/dapr/durabletask-go v0.7.3-0.20250711135247-7a35af6fe0e5 h1:l8oBGwcfCwqvSYDZwla0A2fhENmXFc1Wk4lR0VEq+is=
 github.com/dapr/durabletask-go v0.7.3-0.20250711135247-7a35af6fe0e5/go.mod h1:0Ts4rXp74JyG19gDWPcwNo5V6NBZzhARzHF5XynmA7Q=
 github.com/dapr/go-sdk v1.11.0 h1:clANpOQd6MsfvSa6snaX8MVk6eRx26Vsj5GxGdQ6mpE=

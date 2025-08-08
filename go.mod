@@ -7,7 +7,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.3.0
 	github.com/Pallinder/sillyname-go v0.0.0-20130730142914-97aeae9e6ba1
 	github.com/briandowns/spinner v1.19.0
-	github.com/dapr/dapr v1.16.0-rc.2
+	github.com/dapr/dapr v1.16.0-rc.3
 	github.com/dapr/go-sdk v1.11.0
 	github.com/dapr/kit v0.15.3-0.20250717140748-8b780b4d81c5
 	github.com/docker/docker v25.0.6+incompatible
