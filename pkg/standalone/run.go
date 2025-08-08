@@ -129,6 +129,11 @@ func (config *RunConfig) validatePlacementHostAddr() error {
 	if len(placementHostAddr) == 0 {
 		placementHostAddr = "localhost"
 	}
+
+	if strings.TrimSpace(placementHostAddr) == "" {
+		return nil
+	}
+
 	if indx := strings.Index(placementHostAddr, ":"); indx == -1 {
 		if runtime.GOOS == daprWindowsOS {
 			placementHostAddr += ":6050"
@@ -143,6 +148,10 @@ func (config *RunConfig) validatePlacementHostAddr() error {
 func (config *RunConfig) validateSchedulerHostAddr() error {
 	schedulerHostAddr := config.SchedulerHostAddress
 	if len(schedulerHostAddr) == 0 {
+		return nil
+	}
+
+	if strings.TrimSpace(schedulerHostAddr) == "" {
 		return nil
 	}
 
