@@ -175,9 +175,9 @@ func Spinner(w io.Writer, fmtstr string, a ...interface{}) func(result Result) {
 				s.Stop()
 			}
 			if result {
-				SuccessStatusEvent(w, msg)
+				SuccessStatusEvent(w, "%s", msg)
 			} else {
-				FailureStatusEvent(w, msg)
+				FailureStatusEvent(w, "%s", msg)
 			}
 		})
 	}
@@ -216,7 +216,10 @@ func (c CustomLogWriter) Write(p []byte) (int, error) {
 		b := p
 		if !isStdIO {
 			// below regex is used to replace the color codes from the logs collected in the log file.
-			reg := regexp.MustCompile("\x1b\\[[\\d;]+m")
+			reg, err := regexp.Compile("\x1b\\[[\\d;]+m")
+			if err != nil {
+				return 0, err
+			}
 			b = reg.ReplaceAll(b, []byte(""))
 		}
 		n, err := w.Write(b)

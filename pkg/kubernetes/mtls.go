@@ -129,8 +129,7 @@ func CheckForCertExpiry() {
 			warningMessage = fmt.Sprintf("Dapr root certificate of your Kubernetes cluster expires in %v days.", daysRemaining)
 		}
 		helpMessage := "Please see docs.dapr.io for certificate renewal instructions to avoid service interruptions."
-		print.WarningStatusEvent(os.Stdout,
-			fmt.Sprintf("%s Expiry date: %s. \n %s", warningMessage, expiry.Format(time.RFC1123), helpMessage))
+		print.WarningStatusEvent(os.Stdout, "%s Expiry date: %s. \n %s", warningMessage, expiry.Format(time.RFC1123), helpMessage)
 	}
 }
 

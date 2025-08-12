@@ -61,7 +61,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		output, err := cmdRunWithContext(ctx, "", args...)
-		t.Logf(output)
+		t.Logf("%s", output)
 		require.NoError(t, err, "run failed")
 		// Deterministic output for template file, so we can assert line by line
 		lines := strings.Split(output, "\n")
@@ -110,7 +110,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		output, err := cmdRunWithContext(ctx, "", args...)
-		t.Logf(output)
+		t.Logf("%s", output)
 		require.NoError(t, err, "run failed")
 		// Deterministic output for template file, so we can assert line by line
 		lines := strings.Split(output, "\n")
@@ -166,7 +166,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		output, err := cmdRunWithContext(ctx, "", args...)
-		t.Logf(output)
+		t.Logf("%s", output)
 		require.NoError(t, err, "run failed")
 		// Deterministic output for template file, so we can assert line by line
 		lines := strings.Split(output, "\n")
@@ -216,7 +216,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		output, err := cmdRunWithContext(ctx, "", args...)
-		t.Logf(output)
+		t.Logf("%s", output)
 		require.NoError(t, err, "run failed")
 		// Deterministic output for template file, so we can assert line by line
 		lines := strings.Split(output, "\n")
@@ -267,7 +267,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		output, err := cmdRunWithContext(ctx, "", args...)
-		t.Logf(output)
+		t.Logf("%s", output)
 		require.Error(t, err, "run must fail")
 		// Deterministic output for template file, so we can assert line by line
 		lines := strings.Split(output, "\n")
@@ -315,7 +315,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		output, err := cmdRunWithContext(ctx, "", args...)
-		t.Logf(output)
+		t.Logf("%s", output)
 		require.NoError(t, err, "run failed")
 
 		// App logs for processor app should not be printed to console and only written to file.
@@ -374,7 +374,7 @@ func TestRunTemplateFileWithoutDaprInit(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		output, err := cmdRunWithContext(ctx, "", args...)
-		t.Logf(output)
+		t.Logf("%s", output)
 		require.Error(t, err, "run must fail")
 		assert.Contains(t, output, "Error starting Dapr and app (\"processor\"): fork/exec")
 		assert.Contains(t, output, "daprd: no such file or directory")
