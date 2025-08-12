@@ -14,7 +14,6 @@ limitations under the License.
 package version
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"testing"
@@ -245,7 +244,7 @@ func TestGetVersionsGithub(t *testing.T) {
 		assert.Error(t, err)
 	})
 
-	s.Shutdown(context.Background())
+	s.Shutdown(t.Context())
 }
 
 func TestGetVersionsHelm(t *testing.T) {
@@ -342,5 +341,5 @@ entries:
 		})
 	}
 
-	s.Shutdown(context.Background())
+	s.Shutdown(t.Context())
 }

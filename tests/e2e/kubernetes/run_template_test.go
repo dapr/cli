@@ -153,7 +153,7 @@ func startAppsWithTemplateFile(t *testing.T, runFilePath string) {
 		"-k",
 	}
 	output, err := cmdRun(args...)
-	t.Logf(output)
+	t.Logf("%s", output)
 	require.NoError(t, err, "run failed")
 	assert.Contains(t, output, "Deploying service YAML")
 	assert.Contains(t, output, "Deploying deployment YAML")
