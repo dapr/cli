@@ -313,7 +313,11 @@ func MTLSTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 		}
 
 		// export
-		// check that the dir does not exist now.
+		// ensure the dir does not exist before export.
+		err = os.RemoveAll("./certs")
+		if err != nil {
+			t.Logf("error removing existing certs directory: %s", err.Error())
+		}
 		_, err = os.Stat("./certs")
 		if assert.Error(t, err) {
 			assert.True(t, os.IsNotExist(err), err.Error())
@@ -1251,8 +1255,7 @@ func waitAllPodsRunning(t *testing.T, namespace string, haEnabled bool, done, po
 		default:
 			break
 		}
-		ctx := t.Context()
-		ctxt, cancel := context.WithTimeout(ctx, 10*time.Second)
+		ctxt, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
 		k8sClient, err := getClient()
 		require.NoError(t, err, "error getting k8s client for pods check")
