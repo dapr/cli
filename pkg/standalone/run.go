@@ -126,8 +126,9 @@ func (config *RunConfig) validateResourcesPaths() error {
 
 func (config *RunConfig) validatePlacementHostAddr() error {
 	placementHostAddr := config.PlacementHostAddr
+	// If user explicitly set empty, honor that to disable placement
 	if len(placementHostAddr) == 0 {
-		placementHostAddr = "localhost"
+		return nil
 	}
 	if indx := strings.Index(placementHostAddr, ":"); indx == -1 {
 		if runtime.GOOS == daprWindowsOS {
