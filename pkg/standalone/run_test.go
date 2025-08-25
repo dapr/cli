@@ -150,6 +150,13 @@ func TestValidatePlacementHostAddr(t *testing.T) {
 		assert.Equal(t, "", cfg.PlacementHostAddr)
 	})
 
+	t.Run("whitespace disables placement", func(t *testing.T) {
+		cfg := &RunConfig{SharedRunConfig: SharedRunConfig{PlacementHostAddr: "  "}}
+		err := cfg.validatePlacementHostAddr()
+		assert.NoError(t, err)
+		assert.Equal(t, "  ", cfg.PlacementHostAddr)
+	})
+
 	t.Run("default port appended when hostname provided without port", func(t *testing.T) {
 		cfg := &RunConfig{SharedRunConfig: SharedRunConfig{PlacementHostAddr: "localhost"}}
 		err := cfg.validatePlacementHostAddr()
@@ -166,5 +173,39 @@ func TestValidatePlacementHostAddr(t *testing.T) {
 		err := cfg.validatePlacementHostAddr()
 		assert.NoError(t, err)
 		assert.Equal(t, "1.2.3.4:12345", cfg.PlacementHostAddr)
+	})
+}
+
+func TestValidateSchedulerHostAddr(t *testing.T) {
+	t.Run("empty disables scheduler", func(t *testing.T) {
+		cfg := &RunConfig{SharedRunConfig: SharedRunConfig{SchedulerHostAddress: ""}}
+		err := cfg.validateSchedulerHostAddr()
+		assert.NoError(t, err)
+		assert.Equal(t, "", cfg.SchedulerHostAddress)
+	})
+
+	t.Run("whitespace disables scheduler", func(t *testing.T) {
+		cfg := &RunConfig{SharedRunConfig: SharedRunConfig{SchedulerHostAddress:  "  "}}
+		err := cfg.validateSchedulerHostAddr()
+		assert.NoError(t, err)
+		assert.Equal(t, "  ", cfg.SchedulerHostAddress)
+	})
+
+	t.Run("default port appended when hostname provided without port", func(t *testing.T) {
+		cfg := &RunConfig{SharedRunConfig: SharedRunConfig{SchedulerHostAddress: "localhost"}}
+		err := cfg.validateSchedulerHostAddr()
+		assert.NoError(t, err)
+		if runtime.GOOS == daprWindowsOS {
+			assert.True(t, strings.HasSuffix(cfg.SchedulerHostAddress, ":6060"))
+		} else {
+			assert.True(t, strings.HasSuffix(cfg.SchedulerHostAddress, ":50006"))
+		}
+	})
+
+	t.Run("custom port preserved when provided", func(t *testing.T) {
+		cfg := &RunConfig{SharedRunConfig: SharedRunConfig{SchedulerHostAddress: "1.2.3.4:45678"}}
+		err := cfg.validateSchedulerHostAddr()
+		assert.NoError(t, err)
+		assert.Equal(t, "1.2.3.4:45678", cfg.SchedulerHostAddress)
 	})
 }

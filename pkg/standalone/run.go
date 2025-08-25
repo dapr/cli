@@ -125,7 +125,7 @@ func (config *RunConfig) validateResourcesPaths() error {
 }
 
 func (config *RunConfig) validatePlacementHostAddr() error {
-	placementHostAddr := config.PlacementHostAddr
+	placementHostAddr := strings.TrimSpace(config.PlacementHostAddr)
 	// If user explicitly set empty, honor that to disable placement
 	if len(placementHostAddr) == 0 {
 		return nil
@@ -142,7 +142,7 @@ func (config *RunConfig) validatePlacementHostAddr() error {
 }
 
 func (config *RunConfig) validateSchedulerHostAddr() error {
-	schedulerHostAddr := config.SchedulerHostAddress
+	schedulerHostAddr := strings.TrimSpace(config.SchedulerHostAddress)
 	if len(schedulerHostAddr) == 0 {
 		return nil
 	}
