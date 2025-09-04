@@ -215,8 +215,7 @@ linters-settings:
       
 
 linters:
-  fast: false
-  enable-all: true
+  default: all
   disable:
     # TODO Enforce the below linters later
     - musttag
@@ -231,7 +230,6 @@ linters:
     - lll
     - unparam
     - wsl
-    - gomnd
     - testpackage
     - nestif
     - nlreturn
@@ -268,8 +266,6 @@ linters:
     - tagalign
     - mnd
     - canonicalheader
-    - exportloopref
-    - execinquery
     - err113
     - fatcontext
     - forbidigo

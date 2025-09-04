@@ -286,7 +286,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 	if isAirGapInit {
 		msg = "Extracting binaries and setting up components..."
 	}
-	stopSpinning := print.Spinner(os.Stdout, msg)
+	stopSpinning := print.Spinner(os.Stdout, "%s", msg)
 	defer stopSpinning(print.Failure)
 
 	// Make default components directory.
@@ -332,7 +332,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 	if isAirGapInit {
 		msg = "Extracted binaries and completed components set up."
 	}
-	print.SuccessStatusEvent(os.Stdout, msg)
+	print.SuccessStatusEvent(os.Stdout, "%s", msg)
 	print.InfoStatusEvent(os.Stdout, "%s binary has been installed to %s.", daprRuntimeFilePrefix, daprBinDir)
 	if slimMode {
 		// Print info on placement binary only on slim install.
