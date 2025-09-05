@@ -72,7 +72,8 @@ type SharedRunConfig struct {
 	LogLevel           string `arg:"log-level" annotation:"dapr.io.log-level" yaml:"logLevel"`
 	MaxConcurrency     int    `arg:"app-max-concurrency" annotation:"dapr.io/app-max-concurrerncy" yaml:"appMaxConcurrency" default:"-1"`
 	// Speicifcally omitted from annotations similar to config file path above.
-	PlacementHostAddr string `arg:"placement-host-address" yaml:"placementHostAddress"`
+	// Pointer string to distinguish omitted (nil) vs explicitly empty (disable) vs value provided
+	PlacementHostAddr *string `arg:"placement-host-address" yaml:"placementHostAddress"`
 	// Speicifcally omitted from annotations similar to config file path above.
 	ComponentsPath string `arg:"components-path"` // Deprecated in run template file: use ResourcesPaths instead.
 	// Speicifcally omitted from annotations similar to config file path above.
@@ -90,11 +91,12 @@ type SharedRunConfig struct {
 	AppHealthThreshold int    `arg:"app-health-threshold" annotation:"dapr.io/app-health-threshold" ifneq:"0" yaml:"appHealthThreshold"`
 	EnableAPILogging   bool   `arg:"enable-api-logging" annotation:"dapr.io/enable-api-logging" yaml:"enableApiLogging"`
 	// Specifically omitted from annotations see https://github.com/dapr/cli/issues/1324 .
-	DaprdInstallPath     string            `yaml:"runtimePath"`
-	Env                  map[string]string `yaml:"env"`
-	DaprdLogDestination  LogDestType       `yaml:"daprdLogDestination"`
-	AppLogDestination    LogDestType       `yaml:"appLogDestination"`
-	SchedulerHostAddress string            `arg:"scheduler-host-address" yaml:"schedulerHostAddress"`
+	DaprdInstallPath    string            `yaml:"runtimePath"`
+	Env                 map[string]string `yaml:"env"`
+	DaprdLogDestination LogDestType       `yaml:"daprdLogDestination"`
+	AppLogDestination   LogDestType       `yaml:"appLogDestination"`
+	// Pointer string to distinguish omitted (nil) vs explicitly empty (disable) vs value provided
+	SchedulerHostAddress *string `arg:"scheduler-host-address" yaml:"schedulerHostAddress"`
 }
 
 func (meta *DaprMeta) newAppID() string {
@@ -125,9 +127,22 @@ func (config *RunConfig) validateResourcesPaths() error {
 }
 
 func (config *RunConfig) validatePlacementHostAddr() error {
-	placementHostAddr := config.PlacementHostAddr
+	// nil => default localhost:port; empty => disable; non-empty => ensure port
+	if config.PlacementHostAddr == nil {
+		addr := "localhost"
+		if runtime.GOOS == daprWindowsOS {
+			addr += ":6050"
+		} else {
+			addr += ":50005"
+		}
+		config.PlacementHostAddr = &addr
+		return nil
+	}
+	placementHostAddr := strings.TrimSpace(*config.PlacementHostAddr)
 	if len(placementHostAddr) == 0 {
-		placementHostAddr = "localhost"
+		empty := ""
+		config.PlacementHostAddr = &empty
+		return nil
 	}
 	if indx := strings.Index(placementHostAddr, ":"); indx == -1 {
 		if runtime.GOOS == daprWindowsOS {
@@ -136,16 +151,21 @@ func (config *RunConfig) validatePlacementHostAddr() error {
 			placementHostAddr += ":50005"
 		}
 	}
-	config.PlacementHostAddr = placementHostAddr
+	config.PlacementHostAddr = &placementHostAddr
 	return nil
 }
 
 func (config *RunConfig) validateSchedulerHostAddr() error {
-	schedulerHostAddr := config.SchedulerHostAddress
-	if len(schedulerHostAddr) == 0 {
+	// nil => leave as-is (set later based on version), empty => disable; non-empty => ensure port
+	if config.SchedulerHostAddress == nil {
 		return nil
 	}
-
+	schedulerHostAddr := strings.TrimSpace(*config.SchedulerHostAddress)
+	if len(schedulerHostAddr) == 0 {
+		empty := ""
+		config.SchedulerHostAddress = &empty
+		return nil
+	}
 	if indx := strings.Index(schedulerHostAddr, ":"); indx == -1 {
 		if runtime.GOOS == daprWindowsOS {
 			schedulerHostAddr += ":6060"
@@ -153,9 +173,7 @@ func (config *RunConfig) validateSchedulerHostAddr() error {
 			schedulerHostAddr += ":50006"
 		}
 	}
-
-	config.SchedulerHostAddress = schedulerHostAddr
-
+	config.SchedulerHostAddress = &schedulerHostAddr
 	return nil
 }
 
@@ -402,6 +420,13 @@ func getArgsFromSchema(schema reflect.Value, args []string) []string {
 		case []string:
 			if len(vType) > 0 {
 				for _, val := range vType {
+					args = append(args, key, val)
+				}
+			}
+		case *string:
+			if vType != nil {
+				val := strings.TrimSpace(*vType)
+				if len(val) != 0 && (!hasIfneq || val != ifneq) {
 					args = append(args, key, val)
 				}
 			}
