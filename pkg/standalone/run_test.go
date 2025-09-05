@@ -14,11 +14,15 @@ limitations under the License.
 package standalone
 
 import (
+	"runtime"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func strPtr(s string) *string { return &s }
 
 func TestGetEnv(t *testing.T) {
 	config := &RunConfig{
@@ -137,5 +141,77 @@ func TestGetEnv(t *testing.T) {
 		sort.Strings(got)
 
 		assert.Equal(t, expect, got)
+	})
+}
+
+func TestValidatePlacementHostAddr(t *testing.T) {
+	t.Run("empty disables placement", func(t *testing.T) {
+		cfg := &RunConfig{SharedRunConfig: SharedRunConfig{PlacementHostAddr: strPtr("")}}
+		err := cfg.validatePlacementHostAddr()
+		assert.NoError(t, err)
+		assert.NotNil(t, cfg.PlacementHostAddr)
+		assert.Equal(t, "", *cfg.PlacementHostAddr)
+	})
+
+	t.Run("whitespace disables placement", func(t *testing.T) {
+		cfg := &RunConfig{SharedRunConfig: SharedRunConfig{PlacementHostAddr: strPtr("  ")}}
+		err := cfg.validatePlacementHostAddr()
+		assert.NoError(t, err)
+		assert.NotNil(t, cfg.PlacementHostAddr)
+		assert.Equal(t, "", *cfg.PlacementHostAddr)
+	})
+
+	t.Run("default port appended when hostname provided without port", func(t *testing.T) {
+		cfg := &RunConfig{SharedRunConfig: SharedRunConfig{PlacementHostAddr: strPtr("localhost")}}
+		err := cfg.validatePlacementHostAddr()
+		assert.NoError(t, err)
+		if runtime.GOOS == daprWindowsOS {
+			assert.True(t, strings.HasSuffix(*cfg.PlacementHostAddr, ":6050"))
+		} else {
+			assert.True(t, strings.HasSuffix(*cfg.PlacementHostAddr, ":50005"))
+		}
+	})
+
+	t.Run("custom port preserved when provided", func(t *testing.T) {
+		cfg := &RunConfig{SharedRunConfig: SharedRunConfig{PlacementHostAddr: strPtr("1.2.3.4:12345")}}
+		err := cfg.validatePlacementHostAddr()
+		assert.NoError(t, err)
+		assert.Equal(t, "1.2.3.4:12345", *cfg.PlacementHostAddr)
+	})
+}
+
+func TestValidateSchedulerHostAddr(t *testing.T) {
+	t.Run("empty disables scheduler", func(t *testing.T) {
+		cfg := &RunConfig{SharedRunConfig: SharedRunConfig{SchedulerHostAddress: strPtr("")}}
+		err := cfg.validateSchedulerHostAddr()
+		assert.NoError(t, err)
+		assert.NotNil(t, cfg.SchedulerHostAddress)
+		assert.Equal(t, "", *cfg.SchedulerHostAddress)
+	})
+
+	t.Run("whitespace disables scheduler", func(t *testing.T) {
+		cfg := &RunConfig{SharedRunConfig: SharedRunConfig{SchedulerHostAddress: strPtr("  ")}}
+		err := cfg.validateSchedulerHostAddr()
+		assert.NoError(t, err)
+		assert.NotNil(t, cfg.SchedulerHostAddress)
+		assert.Equal(t, "", *cfg.SchedulerHostAddress)
+	})
+
+	t.Run("default port appended when hostname provided without port", func(t *testing.T) {
+		cfg := &RunConfig{SharedRunConfig: SharedRunConfig{SchedulerHostAddress: strPtr("localhost")}}
+		err := cfg.validateSchedulerHostAddr()
+		assert.NoError(t, err)
+		if runtime.GOOS == daprWindowsOS {
+			assert.True(t, strings.HasSuffix(*cfg.SchedulerHostAddress, ":6060"))
+		} else {
+			assert.True(t, strings.HasSuffix(*cfg.SchedulerHostAddress, ":50006"))
+		}
+	})
+
+	t.Run("custom port preserved when provided", func(t *testing.T) {
+		cfg := &RunConfig{SharedRunConfig: SharedRunConfig{SchedulerHostAddress: strPtr("1.2.3.4:45678")}}
+		err := cfg.validateSchedulerHostAddr()
+		assert.NoError(t, err)
+		assert.Equal(t, "1.2.3.4:45678", *cfg.SchedulerHostAddress)
 	})
 }
