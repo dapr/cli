@@ -15,6 +15,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -57,15 +58,31 @@ var WorkflowGetHistoryCmd = &cobra.Command{
 			return
 		}
 
-		marshaler := &protojson.MarshalOptions{Multiline: true, Indent: "  "}
+		marshaler := &protojson.MarshalOptions{Multiline: false}
+
+		var outEvents []interface{}
 		for _, e := range events {
 			b, err := marshaler.Marshal(e)
 			if err != nil {
-				fmt.Println(e)
-				continue
+				print.FailureStatusEvent(os.Stderr, "failed to marshal event: %v", err)
+				os.Exit(1)
 			}
-			fmt.Println(string(b))
+
+			var m map[string]interface{}
+			if err := json.Unmarshal(b, &m); err != nil {
+				print.FailureStatusEvent(os.Stderr, "failed to unmarshal event json: %v", err)
+				os.Exit(1)
+			}
+			outEvents = append(outEvents, m)
 		}
+
+		wrapped := map[string]interface{}{"events": outEvents}
+		pretty, err := json.MarshalIndent(wrapped, "", "  ")
+		if err != nil {
+			print.FailureStatusEvent(os.Stderr, "failed to marshal output json: %v", err)
+			os.Exit(1)
+		}
+		fmt.Println(string(pretty))
 	},
 }
 
