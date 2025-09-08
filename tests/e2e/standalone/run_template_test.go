@@ -58,7 +58,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		args := []string{
 			"-f", runFilePath,
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 		defer cancel()
 		output, err := cmdRunWithContext(ctx, "", args...)
 		t.Logf("%s", output)
@@ -107,7 +107,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		args := []string{
 			"-f", runFilePath,
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 		defer cancel()
 		output, err := cmdRunWithContext(ctx, "", args...)
 		t.Logf("%s", output)
@@ -163,7 +163,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		args := []string{
 			"-f", runFilePath,
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 		defer cancel()
 		output, err := cmdRunWithContext(ctx, "", args...)
 		t.Logf("%s", output)
@@ -213,7 +213,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		args := []string{
 			"-f", runFilePath,
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 		defer cancel()
 		output, err := cmdRunWithContext(ctx, "", args...)
 		t.Logf("%s", output)
@@ -264,7 +264,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		args := []string{
 			"-f", runFilePath,
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 		defer cancel()
 		output, err := cmdRunWithContext(ctx, "", args...)
 		t.Logf("%s", output)
@@ -312,7 +312,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		args := []string{
 			"-f", runFilePath,
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 		defer cancel()
 		output, err := cmdRunWithContext(ctx, "", args...)
 		t.Logf("%s", output)
@@ -371,7 +371,7 @@ func TestRunTemplateFileWithoutDaprInit(t *testing.T) {
 		args := []string{
 			"-f", "../testdata/run-template-files/no_app_command.yaml",
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 		defer cancel()
 		output, err := cmdRunWithContext(ctx, "", args...)
 		t.Logf("%s", output)
