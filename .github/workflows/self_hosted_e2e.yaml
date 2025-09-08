@@ -49,13 +49,13 @@ jobs:
       fail-fast: false # Keep running if one leg fails.
       matrix:
         # See https://github.com/actions/runner-images
-        os: [macos-latest-large, ubuntu-latest, windows-latest]
+        os: [macos-14-large, ubuntu-latest, windows-latest]
         target_arch: [amd64]
         dapr_install_mode: [slim, complete]
         include:
           - os: ubuntu-latest
             target_os: linux
-          - os: macos-latest-large
+          - os: macos-14-large
             target_os: darwin
           - os: windows-latest
             target_os: windows
@@ -64,7 +64,7 @@ jobs:
             dapr_install_mode: complete
     steps:
       - name: Prepare Go's bin location - MacOS
-        if: matrix.os == 'macos-latest-large'
+        if: matrix.os == 'macos-14-large'
         run: |
           export PATH=$HOME/bin:$PATH
           echo "$HOME/bin" >> $GITHUB_PATH
@@ -80,7 +80,7 @@ jobs:
           go-version-file: "go.mod"
       - name: Install podman - MacOS
         timeout-minutes: 15
-        if: matrix.os == 'macos-latest-large' && matrix.dapr_install_mode == 'complete'
+        if: matrix.os == 'macos-14-large' && matrix.dapr_install_mode == 'complete'
         run: |
           # Install podman
           curl -sL -o podman.pkg https://github.com/containers/podman/releases/download/v${{ env.PODMAN_VERSION }}/podman-installer-macos-amd64.pkg
@@ -130,7 +130,7 @@ jobs:
           echo "DAPR_DASHBOARD_LATEST_STABLE_VERSION=$LATEST_STABLE_DASHBOARD_VERSION" >> $GITHUB_ENV
         shell: bash
       - name: Set the test timeout - MacOS
-        if: matrix.os == 'macos-latest-large'
+        if: matrix.os == 'macos-14-large'
         run: echo "E2E_SH_TEST_TIMEOUT=30m" >> $GITHUB_ENV
       - name: Run E2E tests with GHCR
         # runs every 6hrs

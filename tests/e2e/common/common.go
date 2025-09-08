@@ -401,10 +401,6 @@ func HTTPEndpointsTestOnInstallUpgrade(installOpts TestOptions, upgradeOpts Test
 
 func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
-		daprPath := GetDaprPath()
-		output, err := spawn.Command(daprPath, "status", "-k")
-		require.NoError(t, err, "status check failed")
-
 		version, err := semver.NewVersion(details.RuntimeVersion)
 		if err != nil {
 			t.Error("failed to parse runtime version", err)
@@ -447,25 +443,31 @@ func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t
 			}
 		}
 
-		lines := strings.Split(output, "\n")[1:] // remove header of status.
-		t.Logf("dapr status -k infos: \n%s\n", lines)
-		for _, line := range lines {
-			cols := strings.Fields(strings.TrimSpace(line))
-			if len(cols) > 6 { // atleast 6 fields are verified from status (Age and created time are not).
-				if toVerify, ok := notFound[cols[0]]; ok { // get by name.
-					require.Equal(t, DaprTestNamespace, cols[1], "%s namespace must match", cols[0])
-					require.Equal(t, "True", cols[2], "%s healthy field must be true", cols[0])
-					require.Equal(t, "Running", cols[3], "%s pods must be Running", cols[0])
-					require.Equal(t, toVerify[1], cols[4], "%s replicas must be equal", cols[0])
-					// TODO: Skip the dashboard version check for now until the helm chart is updated.
-					if cols[0] != "dapr-dashboard" {
-						require.Equal(t, toVerify[0], cols[5], "%s versions must match", cols[0])
+		assert.EventuallyWithT(t, func(c *assert.CollectT) {
+			daprPath := GetDaprPath()
+			output, err := spawn.Command(daprPath, "status", "-k")
+			require.NoError(t, err, "status check failed")
+
+			lines := strings.Split(output, "\n")[1:] // remove header of status.
+			t.Logf("dapr status -k infos: \n%s\n", lines)
+			for _, line := range lines {
+				cols := strings.Fields(strings.TrimSpace(line))
+				if len(cols) > 6 { // atleast 6 fields are verified from status (Age and created time are not).
+					if toVerify, ok := notFound[cols[0]]; ok { // get by name.
+						require.Equal(c, DaprTestNamespace, cols[1], "%s namespace must match", cols[0])
+						require.Equal(c, "True", cols[2], "%s healthy field must be true", cols[0])
+						require.Equal(c, "Running", cols[3], "%s pods must be Running", cols[0])
+						require.Equal(c, toVerify[1], cols[4], "%s replicas must be equal", cols[0])
+						// TODO: Skip the dashboard version check for now until the helm chart is updated.
+						if cols[0] != "dapr-dashboard" {
+							require.Equal(c, toVerify[0], cols[5], "%s versions must match", cols[0])
+						}
+						delete(notFound, cols[0])
 					}
-					delete(notFound, cols[0])
 				}
 			}
-		}
-		assert.Empty(t, notFound)
+			assert.Empty(t, notFound)
+		}, time.Second*20, time.Millisecond*500)
 	}
 }
 
