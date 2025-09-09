@@ -18,8 +18,10 @@ package standalone
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"syscall"
+	"time"
 
 	"github.com/dapr/cli/utils"
 )
@@ -63,6 +65,18 @@ func StopAppsWithRunFile(runTemplatePath string) error {
 			}
 			// Kill the whole process group.
 			err = syscall.Kill(-pgid, syscall.SIGINT)
+			if err != nil {
+				return err
+			}
+
+			for {
+				_, perr := os.FindProcess(a.CliPID)
+				if perr != nil {
+					return nil
+				}
+				time.Sleep(time.Millisecond * 100)
+			}
+
 			return err
 		}
 	}
