@@ -73,9 +73,7 @@ func StopAppsWithRunFile(runTemplatePath string) error {
 				if err != nil {
 					return nil
 				}
-				if _, err = ps.Wait(); err != nil {
-					return err
-				}
+				ps.Wait()
 			}
 		}
 	}
