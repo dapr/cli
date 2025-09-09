@@ -90,27 +90,14 @@ func CommandExecWithContext(ctx context.Context, command string, arguments ...st
 		return "", fmt.Errorf("error starting command : %w", err)
 	}
 
-	waitErrChan := make(chan error, 1)
-	go func(errChan chan error) {
-		waitErr := cmd.Wait()
-		if waitErr != nil {
-			fmt.Printf("error waiting for command : %s\n", waitErr)
-		}
-		waitErrChan <- waitErr
-	}(waitErrChan)
-	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
-	defer cancel()
-	<-ctx.Done()
+	time.Sleep(time.Second * 10)
+
 	if cmd.ProcessState == nil || !cmd.ProcessState.Exited() {
 		cmd.Process.Signal(syscall.SIGTERM)
-		time.Sleep(10 * time.Second)
-		if cmd.ProcessState == nil || !cmd.ProcessState.Exited() {
-			err = cmd.Process.Kill()
-			if err != nil {
-				return b.String(), fmt.Errorf("error killing command : %w", err)
-			}
+		if err = cmd.Wait(); err != nil {
+			return b.String(), fmt.Errorf("error waiting for command after SIGTERM: %w", err)
 		}
 	}
 
-	return b.String(), <-waitErrChan
+	return b.String(), nil
 }

@@ -77,8 +77,6 @@ func StopAppsWithRunFile(runTemplatePath string) error {
 					return err
 				}
 			}
-
-			return err
 		}
 	}
 	return fmt.Errorf("couldn't find apps with run file %q", runTemplatePath)
