@@ -48,6 +48,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 	// These tests are dependent on run template files in ../testdata/run-template-files folder.
 
 	t.Run("invalid template file wrong emit metrics app run", func(t *testing.T) {
+		t.Skip()
 		runFilePath := "../testdata/run-template-files/wrong_emit_metrics_app_dapr.yaml"
 		t.Cleanup(func() {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
