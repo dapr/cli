@@ -413,5 +413,5 @@ func lookUpFileFullName(dirPath, partialFilename string) (string, error) {
 func stopAllApps(t *testing.T, runfile string) {
 	_, err := cmdStopWithRunTemplate(runfile)
 	require.NoError(t, err, "failed to stop apps")
-	time.Sleep(5 * time.Second)
+	time.Sleep(10 * time.Second)
 }
