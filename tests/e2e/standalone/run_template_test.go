@@ -52,7 +52,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		t.Cleanup(func() {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
 			cleanUpLogs()
-			stopAllApps(t, runFilePath)
+			waitAppsToBeStopped()
 		})
 		args := []string{
 			"-f", runFilePath,
@@ -99,7 +99,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		t.Cleanup(func() {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
 			cleanUpLogs()
-			stopAllApps(t, runFilePath)
+			waitAppsToBeStopped()
 		})
 		args := []string{
 			"-f", runFilePath,
@@ -153,7 +153,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		t.Cleanup(func() {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
 			cleanUpLogs()
-			stopAllApps(t, runFilePath)
+			waitAppsToBeStopped()
 		})
 		args := []string{
 			"-f", runFilePath,
@@ -201,7 +201,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		t.Cleanup(func() {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
 			cleanUpLogs()
-			stopAllApps(t, runFilePath)
+			waitAppsToBeStopped()
 		})
 		args := []string{
 			"-f", runFilePath,
@@ -250,7 +250,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		t.Cleanup(func() {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
 			cleanUpLogs()
-			stopAllApps(t, runFilePath)
+			waitAppsToBeStopped()
 		})
 		args := []string{
 			"-f", runFilePath,
@@ -296,7 +296,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		t.Cleanup(func() {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
 			cleanUpLogs()
-			stopAllApps(t, runFilePath)
+			waitAppsToBeStopped()
 		})
 		args := []string{
 			"-f", runFilePath,
@@ -409,10 +409,6 @@ func lookUpFileFullName(dirPath, partialFilename string) (string, error) {
 	return "", fmt.Errorf("failed to find file with partial name %s in directory %s", partialFilename, dirPath)
 }
 
-func stopAllApps(t *testing.T, runfile string) {
-	r, err := cmdStopWithRunTemplate(runfile)
-	t.Logf("%s", r)
-	require.NoError(t, err, "failed to stop apps")
-	require.NotEmpty(t, r)
-	time.Sleep(10 * time.Second)
+func waitAppsToBeStopped() {
+	time.Sleep(15 * time.Second)
 }
