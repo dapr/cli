@@ -21,7 +21,6 @@ import (
 	"os"
 	"strconv"
 	"syscall"
-	"time"
 
 	"github.com/dapr/cli/utils"
 )
@@ -70,11 +69,13 @@ func StopAppsWithRunFile(runTemplatePath string) error {
 			}
 
 			for {
-				_, perr := os.FindProcess(a.CliPID)
-				if perr != nil {
+				ps, err := os.FindProcess(a.CliPID)
+				if err != nil {
 					return nil
 				}
-				time.Sleep(time.Millisecond * 100)
+				if _, err = ps.Wait(); err != nil {
+					return err
+				}
 			}
 
 			return err
