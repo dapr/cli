@@ -98,7 +98,7 @@ func CommandExecWithContext(ctx context.Context, command string, arguments ...st
 		}
 		waitErrChan <- waitErr
 	}(waitErrChan)
-	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+	ctx, cancel := context.WithTimeout(ctx, time.Second*20)
 	defer cancel()
 	<-ctx.Done()
 	if cmd.ProcessState == nil || !cmd.ProcessState.Exited() {
