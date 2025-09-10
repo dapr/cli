@@ -1,10 +1,12 @@
 version: 1
 apps:
   - appDirPath: ../../../apps/processor/
-    appPort: 9081
+    appPort: 9087
     daprHTTPPort: 3510
     command: ["go","run", "app.go"]
     appLogDestination: file
+    env:
+      APP_PORT: 9087
   - appID: emit-metrics
     appDirPath: ../../../apps/emit-metrics/
     daprHTTPPort: 3511

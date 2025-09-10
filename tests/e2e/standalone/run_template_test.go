@@ -224,7 +224,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 			appID:          "processor",
 			baseLogDirPath: "../../apps/processor/.dapr/logs",
 			appLogContents: []string{
-				"Starting server in port 9081...",
+				"Starting server in port 9086...",
 				"termination signal received: shutting down",
 			},
 			daprdLogContent: []string{
@@ -269,7 +269,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 			appID:          "processor",
 			baseLogDirPath: "../../apps/processor/.dapr/logs",
 			appLogContents: []string{
-				"Starting server in port 9081...",
+				"Starting server in port 9084...",
 				"termination signal received: shutting down",
 			},
 			daprdLogContent: []string{
