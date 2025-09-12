@@ -29,7 +29,7 @@ import (
 
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/utils"
-	"github.com/dapr/dapr/pkg/sentry/server/ca"
+	"github.com/dapr/dapr/pkg/sentry/server/ca/bundle"
 )
 
 type RenewCertificateParams struct {
@@ -196,7 +196,12 @@ func GenerateNewCertificates(validUntil time.Duration, privateKeyFile string) ([
 		}
 	}
 
-	bundle, err := ca.GenerateBundle(rootKey, "cluster.local", allowedClockSkew, &validUntil)
+	bundle, err := bundle.GenerateX509(bundle.OptionsX509{
+		X509RootKey:      rootKey,
+		TrustDomain:      "cluster.local",
+		AllowedClockSkew: allowedClockSkew,
+		OverrideCATTL:    &validUntil,
+	})
 	if err != nil {
 		return nil, nil, nil, err
 	}
