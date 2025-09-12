@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 )
@@ -47,8 +48,21 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	fmt.Println("Starting server in port 9081...")
-	StartServer(9081, &handler{})
+	var port int
+	var err error
+	if val, ok := os.LookupEnv("APP_PORT"); !ok {
+		log.Println("APP_PORT not automatically injected, setting to 9081")
+		port = 9081
+	} else {
+		log.Println("APP_PORT set to", val)
+		port, err = strconv.Atoi(val)
+		if err != nil {
+			log.Fatalf("Error parsing APP_PORT: %v", err)
+		}
+
+	}
+	fmt.Printf("Starting server in port %v...\n", port)
+	StartServer(port, &handler{})
 }
 
 // StartServer starts a HTTP or HTTP2 server
