@@ -61,8 +61,9 @@ var WorkflowGetHistoryCmd = &cobra.Command{
 		marshaler := &protojson.MarshalOptions{Multiline: false}
 
 		var outEvents []interface{}
+		var b []byte
 		for _, e := range events {
-			b, err := marshaler.Marshal(e)
+			b, err = marshaler.Marshal(e)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, "failed to marshal event: %v", err)
 				os.Exit(1)
