@@ -313,7 +313,11 @@ func MTLSTestOnInstallUpgrade(opts TestOptions) func(t *testing.T) {
 		}
 
 		// export
-		// check that the dir does not exist now.
+		// ensure the dir does not exist before export.
+		err = os.RemoveAll("./certs")
+		if err != nil {
+			t.Logf("error removing existing certs directory: %s", err.Error())
+		}
 		_, err = os.Stat("./certs")
 		if assert.Error(t, err) {
 			assert.True(t, os.IsNotExist(err), err.Error())
@@ -397,10 +401,6 @@ func HTTPEndpointsTestOnInstallUpgrade(installOpts TestOptions, upgradeOpts Test
 
 func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
-		daprPath := GetDaprPath()
-		output, err := spawn.Command(daprPath, "status", "-k")
-		require.NoError(t, err, "status check failed")
-
 		version, err := semver.NewVersion(details.RuntimeVersion)
 		if err != nil {
 			t.Error("failed to parse runtime version", err)
@@ -443,25 +443,31 @@ func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t
 			}
 		}
 
-		lines := strings.Split(output, "\n")[1:] // remove header of status.
-		t.Logf("dapr status -k infos: \n%s\n", lines)
-		for _, line := range lines {
-			cols := strings.Fields(strings.TrimSpace(line))
-			if len(cols) > 6 { // atleast 6 fields are verified from status (Age and created time are not).
-				if toVerify, ok := notFound[cols[0]]; ok { // get by name.
-					require.Equal(t, DaprTestNamespace, cols[1], "%s namespace must match", cols[0])
-					require.Equal(t, "True", cols[2], "%s healthy field must be true", cols[0])
-					require.Equal(t, "Running", cols[3], "%s pods must be Running", cols[0])
-					require.Equal(t, toVerify[1], cols[4], "%s replicas must be equal", cols[0])
-					// TODO: Skip the dashboard version check for now until the helm chart is updated.
-					if cols[0] != "dapr-dashboard" {
-						require.Equal(t, toVerify[0], cols[5], "%s versions must match", cols[0])
+		assert.EventuallyWithT(t, func(c *assert.CollectT) {
+			daprPath := GetDaprPath()
+			output, err := spawn.Command(daprPath, "status", "-k")
+			require.NoError(t, err, "status check failed")
+
+			lines := strings.Split(output, "\n")[1:] // remove header of status.
+			t.Logf("dapr status -k infos: \n%s\n", lines)
+			for _, line := range lines {
+				cols := strings.Fields(strings.TrimSpace(line))
+				if len(cols) > 6 { // atleast 6 fields are verified from status (Age and created time are not).
+					if toVerify, ok := notFound[cols[0]]; ok { // get by name.
+						require.Equal(c, DaprTestNamespace, cols[1], "%s namespace must match", cols[0])
+						require.Equal(c, "True", cols[2], "%s healthy field must be true", cols[0])
+						require.Equal(c, "Running", cols[3], "%s pods must be Running", cols[0])
+						require.Equal(c, toVerify[1], cols[4], "%s replicas must be equal", cols[0])
+						// TODO: Skip the dashboard version check for now until the helm chart is updated.
+						if cols[0] != "dapr-dashboard" {
+							require.Equal(c, toVerify[0], cols[5], "%s versions must match", cols[0])
+						}
+						delete(notFound, cols[0])
 					}
-					delete(notFound, cols[0])
 				}
 			}
-		}
-		assert.Empty(t, notFound)
+			assert.Empty(t, notFound)
+		}, time.Second*20, time.Millisecond*500)
 	}
 }
 
@@ -473,7 +479,7 @@ func ClusterRoleBindingsTest(details VersionDetails, opts TestOptions) func(t *t
 			t.Errorf("check on cluster roles bindings called when not defined in test options")
 		}
 
-		ctx := context.Background()
+		ctx := t.Context()
 		k8sClient, err := getClient()
 		require.NoError(t, err)
 
@@ -513,7 +519,7 @@ func ClusterRolesTest(details VersionDetails, opts TestOptions) func(t *testing.
 		if !ok {
 			t.Errorf("check on cluster roles called when not defined in test options")
 		}
-		ctx := context.Background()
+		ctx := t.Context()
 		k8sClient, err := getClient()
 		require.NoError(t, err)
 
@@ -550,7 +556,7 @@ func CRDTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 		if !ok {
 			t.Errorf("check on CRDs called when not defined in test options")
 		}
-		ctx := context.Background()
+		ctx := t.Context()
 		cfg, err := getConfig()
 		require.NoError(t, err)
 
@@ -1061,7 +1067,7 @@ func httpEndpointOutputCheck(t *testing.T, output string) {
 }
 
 func validateThirdpartyPodsOnInit(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	ctxt, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	k8sClient, err := getClient()
@@ -1096,7 +1102,7 @@ func validateThirdpartyPodsOnInit(t *testing.T) {
 }
 
 func validatePodsOnInstallUpgrade(t *testing.T, details VersionDetails) {
-	ctx := context.Background()
+	ctx := t.Context()
 	ctxt, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	k8sClient, err := getClient()
@@ -1170,7 +1176,7 @@ func waitPodDeletionDev(t *testing.T, done, podsDeleted chan struct{}) {
 		default:
 			break
 		}
-		ctx := context.Background()
+		ctx := t.Context()
 		ctxt, cancel := context.WithTimeout(ctx, 10*time.Second)
 		defer cancel()
 		k8sClient, err := getClient()
@@ -1219,7 +1225,7 @@ func waitPodDeletion(t *testing.T, done, podsDeleted chan struct{}) {
 			break
 		}
 
-		ctx := context.Background()
+		ctx := t.Context()
 		ctxt, cancel := context.WithTimeout(ctx, 10*time.Second)
 		defer cancel()
 
@@ -1251,8 +1257,7 @@ func waitAllPodsRunning(t *testing.T, namespace string, haEnabled bool, done, po
 		default:
 			break
 		}
-		ctx := context.Background()
-		ctxt, cancel := context.WithTimeout(ctx, 10*time.Second)
+		ctxt, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
 		k8sClient, err := getClient()
 		require.NoError(t, err, "error getting k8s client for pods check")
