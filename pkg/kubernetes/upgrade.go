@@ -195,7 +195,7 @@ func Upgrade(conf UpgradeConfig) error {
 				errDeletion := deleteSchedulerPods(status[0].Namespace, currentVersion, targetVersion)
 				if errDeletion != nil {
 					downgradeDeletionChan <- fmt.Errorf("failed to delete scheduler pods: %w", errDeletion)
-					print.FailureStatusEvent(os.Stderr, "Failed to delete scheduler pods: "+errDeletion.Error())
+					print.FailureStatusEvent(os.Stderr, "Failed to delete scheduler pods: %s", errDeletion.Error())
 				}
 				close(downgradeDeletionChan)
 			}()
@@ -435,7 +435,7 @@ func isDowngrade(targetVersion, existingVersion string) bool {
 	if err != nil {
 		print.FailureStatusEvent(
 			os.Stderr,
-			fmt.Sprintf("Upgrade failed, %s. The current installed version does not have sematic versioning", err.Error()))
+			"Upgrade failed, %s. The current installed version does not have sematic versioning", err.Error())
 		os.Exit(1)
 	}
 	return target.LessThan(existing)

@@ -122,7 +122,7 @@ func Init(config InitConfiguration) error {
 }
 
 func installThirdPartyWithConsole(releaseName, chartName, releaseVersion, helmRepo string, prettyName string, chartValues []string, config InitConfiguration) error {
-	installSpinning := print.Spinner(os.Stdout, "Deploying the "+prettyName+" with "+releaseVersion+" version to your cluster...")
+	installSpinning := print.Spinner(os.Stdout, "Deploying the %s with %s version to your cluster...", prettyName, releaseVersion)
 	defer installSpinning(print.Failure)
 
 	// releaseVersion of chart will always be latest version.
@@ -136,7 +136,7 @@ func installThirdPartyWithConsole(releaseName, chartName, releaseVersion, helmRe
 }
 
 func installWithConsole(releaseName, releaseVersion, helmRepo string, prettyName string, config InitConfiguration) error {
-	installSpinning := print.Spinner(os.Stdout, "Deploying the "+prettyName+" with "+releaseVersion+" version to your cluster...")
+	installSpinning := print.Spinner(os.Stdout, "Deploying the %s with %s version to your cluster...", prettyName, releaseVersion)
 	defer installSpinning(print.Failure)
 
 	err := install(releaseName, releaseVersion, helmRepo, config)
