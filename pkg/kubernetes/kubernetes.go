@@ -101,6 +101,7 @@ func Init(config InitConfiguration) error {
 		redisChartVals := []string{
 			"image.tag=" + redisVersion,
 			"replica.replicaCount=0",
+			"image.repository=bitnamilegacy/redis",
 		}
 
 		err = installThirdPartyWithConsole(redisReleaseName, redisChartName, bitnamiStableVersion, bitnamiHelmRepo, "Dapr Redis", redisChartVals, config)
