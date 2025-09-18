@@ -673,7 +673,7 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 
 		args = append(args,
 			"-p", fmt.Sprintf("%v:50006", osPort),
-			"-p", fmt.Sprintf("127.0.0.1:%v:2379", schedulerEtcdPort),
+			"-p", fmt.Sprintf("%v:2379", schedulerEtcdPort),
 			"-p", fmt.Sprintf("%v:8080", schedulerHealthPort),
 			"-p", fmt.Sprintf("%v:9090", schedulerMetricPort),
 		)
