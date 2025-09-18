@@ -16,6 +16,7 @@ require (
 	github.com/gocarina/gocsv v0.0.0-20220927221512-ad3251f9fa25
 	github.com/hashicorp/go-retryablehttp v0.7.7
 	github.com/hashicorp/go-version v1.6.0
+	github.com/joho/godotenv v1.5.1
 	github.com/kolesnikovae/go-winjob v1.0.0
 	github.com/mitchellh/go-ps v1.0.0
 	github.com/nightlyone/lockfile v1.0.0

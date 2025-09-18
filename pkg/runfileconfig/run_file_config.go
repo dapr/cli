@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/dapr/cli/pkg/standalone"
+	"github.com/joho/godotenv"
 )
 
 const (
@@ -60,17 +61,48 @@ type App struct {
 // Common represents the configuration options for the common section in the run file.
 type Common struct {
 	standalone.SharedRunConfig `yaml:",inline"`
+	EnvFile                    string `yaml:"envFile,omitempty"`
+}
+
+// ApplyEnv loads the .env file (if specified) and merges it into each app’s RunConfig.Env.
+func (c *RunFileConfig) applyEnv() error {
+	if c.Common.EnvFile == "" {
+		return nil
+	}
+
+	envMap, err := godotenv.Read(c.Common.EnvFile)
+	if err != nil {
+		return err
+	}
+
+	// Load into global process environment too
+	_ = godotenv.Load(c.Common.EnvFile)
+
+	// Merge into each app’s env
+	for i := range c.Apps {
+		if c.Apps[i].Env == nil {
+			c.Apps[i].Env = map[string]string{}
+		}
+		for k, v := range envMap {
+			// App-specific env overrides .env
+			if _, exists := c.Apps[i].Env[k]; !exists {
+				c.Apps[i].Env[k] = v
+			}
+		}
+	}
+
+	return nil
 }
 
 func (a *App) GetLogsDir() string {
 	logsPath := filepath.Join(a.AppDirPath, standalone.DefaultDaprDirName, logsDir)
-	os.MkdirAll(logsPath, 0o755)
+	_ = os.MkdirAll(logsPath, 0o755)
 	return logsPath
 }
 
 func (a *App) GetDeployDir() string {
 	logsPath := filepath.Join(a.AppDirPath, standalone.DefaultDaprDirName, deployDir)
-	os.MkdirAll(logsPath, 0o755)
+	_ = os.MkdirAll(logsPath, 0o755)
 	return logsPath
 }
 
@@ -113,8 +145,7 @@ func (a *App) CreateDaprdLogFile() error {
 func (a *App) createLogFile(logType string) (*os.File, error) {
 	logsPath := a.GetLogsDir()
 	fpath := filepath.Join(logsPath, a.AppID+"_"+logType+"_"+time.Now().Format("20060102150405")+logFileExtension)
-	f, err := os.Create(fpath)
-	return f, err
+	return os.Create(fpath)
 }
 
 func (a *App) CloseAppLogFile() error {
