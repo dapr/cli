@@ -72,8 +72,8 @@ func TestSchedulerList(t *testing.T) {
 	t.Run("short", func(t *testing.T) {
 		output, err := cmdSchedulerList()
 		require.NoError(t, err)
-		lines := strings.Lines(output),
-			require.Len(t, lines, 5)
+		lines := strings.Split(output, "\n")
+		require.Len(t, lines, 5)
 
 		require.Equal(t, []string{
 			"NAMESPACE",
@@ -88,7 +88,7 @@ func TestSchedulerList(t *testing.T) {
 
 		expNames := []string{"test1", "test2", "test1", "test2"}
 		expTargets := []string{"jobs", "jobs", "myactortype||actorid1", "myactortype||actorid2"}
-		for _, line := range lines[1:] {
+		for i, line := range lines[1:] {
 			assert.Equal(t, "default", strings.Fields(line)[0])
 
 			assert.Equal(t, "jobs", strings.Fields(line)[1])
@@ -99,7 +99,7 @@ func TestSchedulerList(t *testing.T) {
 
 			assert.NotEmpty(t, strings.Fields(line)[4])
 
-			count, err := strconv.Itoa(strings.Fields(line)[5])
+			count, err := strconv.Atoi(strings.Fields(line)[5])
 			require.NoError(t, err)
 			assert.Equal(t, 1, count)
 
@@ -110,8 +110,8 @@ func TestSchedulerList(t *testing.T) {
 	t.Run("wide", func(t *testing.T) {
 		output, err := cmdSchedulerList("-o", "wide")
 		require.NoError(t, err)
-		lines := strings.Lines(output),
-			require.Len(t, lintes, 5)
+		lines := strings.Split(output, "\n")
+		require.Len(t, lines, 5)
 
 		require.Equal(t, []string{
 			"NAMESPACE",
@@ -135,7 +135,7 @@ func TestSchedulerList(t *testing.T) {
 		require.NoError(t, err)
 
 		var list []scheduler.ListOutputWide
-		require.NoError(t, yaml.Marshal(&list, output))
+		require.NoError(t, yaml.Unmarshal([]byte(output), &list))
 		assert.Len(t, list, 4)
 	})
 
@@ -144,7 +144,7 @@ func TestSchedulerList(t *testing.T) {
 		require.NoError(t, err)
 
 		var list []scheduler.ListOutputWide
-		require.NoError(t, json.Marshal(&list, output))
+		require.NoError(t, json.Unmarshal([]byte(output), &list))
 		assert.Len(t, list, 4)
 	})
 
