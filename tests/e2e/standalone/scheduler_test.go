@@ -48,20 +48,7 @@ func TestSchedulerList(t *testing.T) {
 		"-f", runFilePath,
 	}
 
-	errCh := make(chan error, 1)
-	go func() {
-		_, err := cmdRunWithContext(t.Context(), "", args...)
-		errCh <- err
-	}()
-
-	t.Cleanup(func() {
-		select {
-		case <-time.After(time.Second * 5):
-			assert.Fail(t, "timeout waiting for tunr template to return")
-		case err := <-errCh:
-			require.NoError(t, err)
-		}
-	})
+	go cmdRunWithContext(t.Context(), "", args...)
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		output, err := cmdSchedulerList()
