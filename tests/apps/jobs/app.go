@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/dapr/go-sdk/client"
+	"github.com/dapr/kit/ptr"
 	"github.com/dapr/kit/signals"
 )
 
@@ -60,19 +61,19 @@ func register(ctx context.Context) {
 
 	if err = cl.ScheduleJobAlpha1(ctx, &client.Job{
 		Name:     "test1",
-		Schedule: "@every 100m",
-		Repeats:  1234,
-		DueTime:  ds,
+		Schedule: ptr.Of("@every 100m"),
+		Repeats:  ptr.Of(uint32(1234)),
+		DueTime:  ptr.Of(ds),
 	}); err != nil {
 		log.Fatal(err)
 	}
 
 	if err = cl.ScheduleJobAlpha1(ctx, &client.Job{
 		Name:     "test2",
-		Schedule: "@every 100m",
-		Repeats:  56788,
-		DueTime:  ds,
-		TTL:      "10000s",
+		Schedule: ptr.Of("@every 100m"),
+		Repeats:  ptr.Of(uint32(56788)),
+		DueTime:  ptr.Of(ds),
+		TTL:      ptr.Of("10000s"),
 	}); err != nil {
 		log.Fatal(err)
 	}
