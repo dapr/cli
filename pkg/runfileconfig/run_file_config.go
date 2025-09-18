@@ -76,7 +76,10 @@ func (c *RunFileConfig) applyEnv() error {
 	}
 
 	// Load into global process environment too
-	_ = godotenv.Load(c.Common.EnvFile)
+	err = godotenv.Load(c.Common.EnvFile)
+	if err != nil {
+		return err
+	}
 
 	// Merge into each app’s env
 	for i := range c.Apps {
