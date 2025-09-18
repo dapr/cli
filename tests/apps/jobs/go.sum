@@ -156,8 +156,8 @@ github.com/dapr/components-contrib v1.16.0-rc.6 h1:AB04RdqmWdZ84PBaHcUQFMHHl7XaI
 github.com/dapr/components-contrib v1.16.0-rc.6/go.mod h1:mPT6lNeoQxJoJ0y9HyOGWozscSmTdf4yVJTTJMjSOJE=
 github.com/dapr/dapr v1.16.0-rc.7 h1:VC38W4sJq/sZeBltY0SxdIy1QhuDXrOibY++PMU8YDY=
 github.com/dapr/dapr v1.16.0-rc.7/go.mod h1:jKw+BrQap6qjqHe++BMwzDN5ORABrhZiaqNvG06yizI=
-github.com/dapr/durabletask-go v0.9.0 h1:b2/aNOJau7VS639JodSES/+momwnjjrroAtbn7rp1PI=
-github.com/dapr/durabletask-go v0.9.0/go.mod h1:0Ts4rXp74JyG19gDWPcwNo5V6NBZzhARzHF5XynmA7Q=
+github.com/dapr/durabletask-go v0.10.0 h1:vfIivPl4JYd55xZTslDwhA6p6F8ipcNxBtMaupxArr8=
+github.com/dapr/durabletask-go v0.10.0/go.mod h1:0Ts4rXp74JyG19gDWPcwNo5V6NBZzhARzHF5XynmA7Q=
 github.com/dapr/go-sdk v1.11.0 h1:clANpOQd6MsfvSa6snaX8MVk6eRx26Vsj5GxGdQ6mpE=
 github.com/dapr/go-sdk v1.11.0/go.mod h1:btZ/tX8eYnx0fg3HiJUku8J5QBRXHsp3kAB1BUiTxXY=
 github.com/dapr/kit v0.16.1 h1:MqLAhHVg8trPy2WJChMZFU7ToeondvxcNHYVvMDiVf4=
@@ -1119,3 +1119,4 @@ sigs.k8s.io/structured-merge-diff/v4 v4.6.0 h1:IUA9nvMmnKWcj5jl84xn+T5MnlZKThmUW
 sigs.k8s.io/structured-merge-diff/v4 v4.6.0/go.mod h1:dDy58f92j70zLsuZVuUX5Wp9vtxXpaZnkPGWeqDfCps=
 sigs.k8s.io/yaml v1.4.0 h1:Mk1wCc2gy/F0THH0TAp1QYyJNzRm2KCLy3o5ASXVI5E=
 sigs.k8s.io/yaml v1.4.0/go.mod h1:Ejl7/uTz7PSA4eKMyQCUTnhZYNmLIl+5c2lQPGR2BPY=
+

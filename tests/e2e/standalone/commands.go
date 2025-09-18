@@ -219,3 +219,11 @@ func cmdVersion(output string, args ...string) (string, error) {
 
 	return spawn.Command(common.GetDaprPath(), verArgs...)
 }
+
+func cmdSchedulerList(args ...string) (string, error) {
+	listArgs := []string{"scheduler", "list"}
+
+	listArgs = append(listArgs, args...)
+
+	return spawn.Command(common.GetDaprPath(), listArgs...)
+}

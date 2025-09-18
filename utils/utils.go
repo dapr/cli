@@ -15,6 +15,7 @@ package utils
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -92,12 +93,18 @@ func PrintTable(csvContent string) {
 
 // WriteTable writes the csv table to writer.
 func WriteTable(writer io.Writer, csvContent string) {
-	table := tablewriter.NewWriter(writer)
+	var output bytes.Buffer
+
+	table := tablewriter.NewWriter(&output)
 	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
-	table.SetBorder(false)
+	//table.SetBorder(false)
 	table.SetHeaderLine(false)
-	table.SetRowLine(false)
-	table.SetCenterSeparator("")
+	//table.SetRowLine(false)
+	table.SetBorders(tablewriter.Border{
+		Top:    false,
+		Bottom: false,
+	})
+	table.SetTablePadding("")
 	table.SetRowSeparator("")
 	table.SetColumnSeparator("")
 	table.SetAlignment(tablewriter.ALIGN_LEFT)
@@ -116,6 +123,12 @@ func WriteTable(writer io.Writer, csvContent string) {
 	}
 
 	table.Render()
+
+	b := bufio.NewScanner(&output)
+	for b.Scan() {
+		writer.Write(bytes.TrimLeft(b.Bytes(), " "))
+		writer.Write([]byte("\n"))
+	}
 }
 
 func TruncateString(str string, maxLength int) string {

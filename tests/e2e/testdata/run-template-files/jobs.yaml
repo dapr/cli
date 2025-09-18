@@ -1,0 +1,8 @@
+version: 1
+apps:
+- appID: jobs
+  appDirPath: ../../../apps/jobs/
+  appPort: 9084
+  daprHTTPPort: 3510
+  command: ["go","run", "app.go"]
+  appLogDestination: console
