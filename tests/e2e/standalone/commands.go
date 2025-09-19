@@ -235,3 +235,19 @@ func cmdSchedulerDelete(args ...string) (string, error) {
 
 	return spawn.Command(common.GetDaprPath(), deleteArgs...)
 }
+
+func cmdSchedulerExport(args ...string) (string, error) {
+	exportArgs := []string{"scheduler", "export"}
+
+	exportArgs = append(exportArgs, args...)
+
+	return spawn.Command(common.GetDaprPath(), exportArgs...)
+}
+
+func cmdSchedulerImport(args ...string) (string, error) {
+	importArgs := []string{"scheduler", "import"}
+
+	importArgs = append(importArgs, args...)
+
+	return spawn.Command(common.GetDaprPath(), importArgs...)
+}
