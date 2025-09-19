@@ -153,3 +153,102 @@ func TestSchedulerList(t *testing.T) {
 		assert.Len(t, strings.Lines(output), 3)
 	})
 }
+
+func TestSchedulerDelete(t *testing.T) {
+	cleanUpLogs()
+	ensureDaprInstallation(t)
+	t.Cleanup(func() {
+		// remove dapr installation after all tests in this function.
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+	})
+
+	runFilePath := "../testdata/run-template-files/jobs.yaml"
+	t.Cleanup(func() {
+		// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
+		cleanUpLogs()
+		waitAppsToBeStopped()
+	})
+	args := []string{
+		"-f", runFilePath,
+	}
+
+	go cmdRunWithContext(t.Context(), "", args...)
+
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		output, err := cmdSchedulerList()
+		require.NoError(t, err)
+		assert.Len(c, strings.Lines(output), 5)
+	}, time.Second*10, time.Millisecond*10)
+
+	// No namespace
+	_, err := cmdSchedulerDelete("job/jobs/test1")
+	require.NoError(t, err)
+
+	var output string
+	output, err = cmdSchedulerList()
+	require.NoError(t, err)
+	assert.Len(t, strings.Lines(output), 5)
+
+	_, err = cmdSchedulerDelete("job/jobs/test1", "-n", "default")
+	require.NoError(t, err)
+	output, err = cmdSchedulerList()
+	require.NoError(t, err)
+	assert.Len(t, strings.Lines(output), 4)
+
+	_, err = cmdSchedulerDelete("-n", "default", "actorreminder/myactortype||actor1||test1")
+	require.NoError(t, err)
+	output, err = cmdSchedulerList()
+	require.NoError(t, err)
+	assert.Len(t, strings.Lines(output), 3)
+
+	_, err = cmdSchedulerDelete("-n", "default",
+		"job/jobs/test2",
+		"actorreminder/myactortype||actor2||test2",
+	)
+	require.NoError(t, err)
+	output, err = cmdSchedulerList()
+	require.NoError(t, err)
+	assert.Len(t, strings.Lines(output), 1)
+}
+
+func TestSchedulerDeleteAll(t *testing.T) {
+	cleanUpLogs()
+	ensureDaprInstallation(t)
+	t.Cleanup(func() {
+		// remove dapr installation after all tests in this function.
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+	})
+
+	runFilePath := "../testdata/run-template-files/jobs.yaml"
+	t.Cleanup(func() {
+		// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
+		cleanUpLogs()
+		waitAppsToBeStopped()
+	})
+	args := []string{
+		"-f", runFilePath,
+	}
+
+	go cmdRunWithContext(t.Context(), "", args...)
+
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		output, err := cmdSchedulerList()
+		require.NoError(t, err)
+		assert.Len(c, strings.Lines(output), 5)
+	}, time.Second*10, time.Millisecond*10)
+
+	// No namespace
+	_, err := cmdSchedulerDelete("job/jobs/test1")
+	require.NoError(t, err)
+
+	var output string
+	output, err = cmdSchedulerList()
+	require.NoError(t, err)
+	assert.Len(t, strings.Lines(output), 5)
+
+	_, err = cmdSchedulerDelete("--delete-all-yes-i-know-what-i-am-doing")
+	require.NoError(t, err)
+	output, err = cmdSchedulerList()
+	require.NoError(t, err)
+	assert.Len(t, strings.Lines(output), 1)
+}

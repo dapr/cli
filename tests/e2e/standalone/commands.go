@@ -227,3 +227,11 @@ func cmdSchedulerList(args ...string) (string, error) {
 
 	return spawn.Command(common.GetDaprPath(), listArgs...)
 }
+
+func cmdSchedulerDelete(args ...string) (string, error) {
+	deleteArgs := []string{"scheduler", "delete"}
+
+	deleteArgs = append(deleteArgs, args...)
+
+	return spawn.Command(common.GetDaprPath(), deleteArgs...)
+}
