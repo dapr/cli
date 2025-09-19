@@ -68,7 +68,7 @@ Install windows Dapr CLI using MSI package.
 
 ### Install Dapr on your local machine (self-hosted)
 
-In self-hosted mode, dapr can be initialized using the CLI  with the placement, redis and zipkin containers enabled by default(recommended) or without them which also does not require docker to be available in the environment.
+In self-hosted mode, dapr can be initialized using the CLI  with the placement, scheduler, redis, and zipkin containers enabled by default(recommended) or without them which also does not require docker to be available in the environment.
 
 #### Initialize Dapr
 
@@ -89,10 +89,11 @@ Output should look like so:
 ✅  Downloaded binaries and completed components set up.
 ℹ️  daprd binary has been installed to  $HOME/.dapr/bin.
 ℹ️  dapr_placement container is running.
+ℹ️  dapr_scheduler container is running.
 ℹ️  dapr_redis container is running.
 ℹ️  dapr_zipkin container is running.
 ℹ️  Use `docker ps` to check running containers.
-✅  Success! Dapr is up and running. To get started, go here: https://aka.ms/dapr-getting-started
+✅  Success! Dapr is up and running. To get started, go here: https://docs.dapr.io/getting-started
 ```
 
 > Note: To see that Dapr has been installed successfully, from a command prompt run the `docker ps` command and check that the `daprio/dapr:latest`,  `dapr_redis` and `dapr_zipkin` container images are all running.
@@ -118,10 +119,11 @@ Output should look like so:
 ✅  Downloaded binaries and completed components set up.
 ℹ️  daprd binary has been installed to $HOME/.dapr/bin.
 ℹ️  placement binary has been installed.
-✅  Success! Dapr is up and running. To get started, go here: https://aka.ms/dapr-getting-started
+ℹ️  scheduler binary has been installed.
+✅  Success! Dapr is up and running. To get started, go here: https://docs.dapr.io/getting-started
 ```
 
->Note: When initializing Dapr with the `--slim` flag only the Dapr runtime binary and the placement service binary are installed. An empty default components folder is created with no default configuration files. During `dapr run` user should use `--resources-path` (`--components-path` is deprecated and will be removed in future releases) to point to a components directory with custom configurations files or alternatively place these files in the default directory. For Linux/MacOS, the default components directory path is `$HOME/.dapr/components` and for Windows it is `%USERPROFILE%\.dapr\components`.
+>Note: When initializing Dapr with the `--slim` flag only the Dapr runtime, placement, and scheduler service binaries are installed. An empty default components folder is created with no default configuration files. During `dapr run` user should use `--resources-path` (`--components-path` is deprecated and will be removed in future releases) to point to a components directory with custom configurations files or alternatively place these files in the default directory. For Linux/MacOS, the default components directory path is `$HOME/.dapr/components` and for Windows it is `%USERPROFILE%\.dapr\components`.
 
 #### Install a specific runtime version
 
@@ -139,7 +141,7 @@ Runtime version: v1.0.0
 
 #### Install with mariner images
 
-You can install Dapr Runtime using mariner images using the `--image-variant` flag. 
+You can install Dapr Runtime using mariner images using the `--image-variant` flag.
 
 ```bash
 # Installing Dapr with Mariner images
@@ -156,6 +158,17 @@ You can install Dapr runtime by pulling docker images from a given private regis
 dapr init --image-registry example.io/<username>
 ```
 
+#### Install with a custom scheduler host and port
+
+You can install Dapr runtime with a custom scheduler host and port by using `--scheduler-override-broadcast-host-port` flag.
+
+```bash
+dapr init --scheduler-override-broadcast-host-port 192.168.42.42:50006
+```
+
+> Note: The default host is `localhost`.
+
+
 #### Install in airgap environment
 
 You can install Dapr runtime in airgap (offline) environment using a pre-downloaded [installer bundle](https://github.com/dapr/installer-bundle/releases). You need to download the archived bundle for your OS beforehand (e.g., daprbundle_linux_amd64.tar.gz,) and unpack it. Thereafter use the local Dapr CLI binary in the bundle with `--from-dir` flag in the init command to point to the extracted bundle location to initialize Dapr.
@@ -171,14 +184,14 @@ Move to the bundle directory and run the following command:
 
 > If you are not running the above command from the bundle directory, provide the full path to bundle directory as input. For example, assuming the bundle directory path is $HOME/daprbundle, run `$HOME/daprbundle/dapr init --from-dir $HOME/daprbundle` to have the same behavior.
 
-> Note: Dapr Installer bundle just contains the placement container apart from the binaries and so `zipkin` and `redis` are not enabled by default. You can pull the images locally either from network or private registry and run as follows:
+> Note: Dapr Installer bundle just contains the placement and scheduler containers apart from the binaries and so `zipkin` and `redis` are not enabled by default. You can pull the images locally either from network or private registry and run as follows:
 
 ```bash
 docker run --name "dapr_zipkin" --restart always -d -p 9411:9411 openzipkin/zipkin
 docker run --name "dapr_redis" --restart always -d -p 6379:6379 redis
 ```
 
-Alternatively to the above, you can also have slim installation as well to install dapr without running any Docker containers in airgap mode.   
+Alternatively to the above, you can also have slim installation as well to install dapr without running any Docker containers in airgap mode.
 
 ```bash
 ./dapr init --slim --from-dir .
@@ -198,6 +211,9 @@ dapr init --network dapr-network
 
 > Note: When installed to a specific Docker network, you will need to add the `--placement-host-address` arguments to `dapr run` commands run in any containers within that network.
 > The format of `--placement-host-address` argument is either `<hostname>` or `<hostname>:<port>`. If the port is omitted, the default port `6050` for Windows and `50005` for Linux/MacOS applies.
+
+> Note: When installed to a specific Docker network, you will need to add the `--scheduler-host-address` arguments to `dapr run` commands run in any containers within that network.
+> The format of `--scheduler-host-address` argument is either `<hostname>` or `<hostname>:<port>`. If the port is omitted, the default port `6060` for Windows and `50006` for Linux/MacOS applies.
 
 #### Install with a specific container runtime
 
@@ -228,7 +244,7 @@ For more details, see the docs for dev containers with [Visual Studio Code](http
 
 ### Uninstall Dapr in a standalone mode
 
-Uninstalling will remove daprd binary and the placement container (if installed with Docker or the placement binary if not).
+Uninstalling will remove daprd binary along with the placement and scheduler containers (if installed with Docker or the placement and scheduler binaries if not).
 
 
 ```bash
@@ -237,7 +253,7 @@ dapr uninstall
 
 > For Linux users, if you run your docker cmds with sudo, you need to use "**sudo dapr uninstall**" to remove the containers.
 
-The command above won't remove the redis or zipkin containers by default in case you were using it for other purposes.  It will also not remove the default dapr folder that was created on `dapr init`. To remove all the containers (placement, redis, zipkin) and also the default dapr folder created on init run:
+The command above won't remove the redis or zipkin containers by default in case you were using it for other purposes.  It will also not remove the default dapr folder that was created on `dapr init`. To remove all the containers (placement, scheduler, redis, zipkin) and also the default dapr folder created on init run:
 
 ```bash
 dapr uninstall --all
@@ -245,7 +261,7 @@ dapr uninstall --all
 
 The above command can also be run when Dapr has been installed in a non-docker environment, it will only remove the installed binaries and the default dapr folder in that case.
 
-> NB: The `dapr uninstall` command will always try to remove the placement binary/service and will throw an error is not able to.
+> NB: The `dapr uninstall` command will always try to remove the placement and scheduler binaries/services and will throw an error is not able to.
 
 **You should always run a `dapr uninstall` before running another `dapr init`.**
 
@@ -284,7 +300,7 @@ Output should look like as follows:
 ℹ️  Note: To install Dapr using Helm, see here:  https://docs.dapr.io/getting-started/install-dapr/#install-with-helm-advanced
 
 ✅  Deploying the Dapr control plane to your cluster...
-✅  Success! Dapr has been installed to namespace dapr-system. To verify, run "dapr status -k" in your terminal. To get started, go here: https://aka.ms/dapr-getting-started
+✅  Success! Dapr has been installed to namespace dapr-system. To verify, run "dapr status -k" in your terminal. To get started, go here: https://docs.dapr.io/getting-started
 ```
 
 #### Supplying Helm values
@@ -292,7 +308,7 @@ Output should look like as follows:
 All available [Helm Chart values](https://github.com/dapr/dapr/tree/master/charts/dapr#configuration) can be set by using the `--set` flag:
 
 ```bash
-dapr init -k --set global.tag=1.0.0 --set dapr_operator.logLevel=error  
+dapr init -k --set global.tag=1.0.0 --set dapr_operator.logLevel=error
 ```
 
 #### Installing to a custom namespace
@@ -358,7 +374,7 @@ The example above shows how to upgrade from your current version to version `1.0
 All available [Helm Chart values](https://github.com/dapr/dapr/tree/master/charts/dapr#configuration) can be set by using the `--set` flag:
 
 ```bash
-dapr upgrade -k --runtime-version=1.0.0 --set global.tag=my-tag --set dapr_operator.logLevel=error  
+dapr upgrade -k --runtime-version=1.0.0 --set global.tag=my-tag --set dapr_operator.logLevel=error
 ```
 
 *Note: do not use the `dapr upgrade` command if you're upgrading from 0.x versions of Dapr*
@@ -407,7 +423,7 @@ dapr init --network dapr-network
 dapr run --app-id nodeapp --placement-host-address dapr_placement node app.js
 ```
 
-> Note: When in a specific Docker network, the Redis, Zipkin and placement service containers are given specific network aliases, `dapr_redis`, `dapr_zipkin` and `dapr_placement`, respectively. The default configuration files reflect the network alias rather than `localhost` when a docker network is specified.
+> Note: When in a specific Docker network, the Redis, Zipkin and placement and scheduler service containers are given specific network aliases, `dapr_redis`, `dapr_zipkin`, `dapr_placement`, and `dapr_scheduler`, respectively. The default configuration files reflect the network alias rather than `localhost` when a docker network is specified.
 
 ### Use gRPC
 

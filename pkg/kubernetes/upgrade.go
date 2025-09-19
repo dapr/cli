@@ -14,16 +14,22 @@ limitations under the License.
 package kubernetes
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/release"
+	core_v1 "k8s.io/api/core/v1"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/helm/pkg/strvals"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/hashicorp/go-version"
 
 	"github.com/dapr/cli/pkg/print"
@@ -47,6 +53,8 @@ var crdsFullResources = []string{
 	"resiliencies.dapr.io",
 	"httpendpoints.dapr.io",
 }
+
+var versionWithHAScheduler = semver.MustParse("1.15.0-rc.1")
 
 type UpgradeConfig struct {
 	RuntimeVersion   string
@@ -111,7 +119,7 @@ func Upgrade(conf UpgradeConfig) error {
 	if !hasDashboardInDaprChart && willHaveDashboardInDaprChart && dashboardExists {
 		print.InfoStatusEvent(os.Stdout, "Dashboard being uninstalled prior to Dapr control plane upgrade...")
 		uninstallClient := helm.NewUninstall(helmConf)
-		uninstallClient.Timeout = time.Duration(conf.Timeout) * time.Second
+		uninstallClient.Timeout = time.Duration(conf.Timeout) * time.Second //nolint:gosec
 
 		_, err = uninstallClient.Run(dashboardReleaseName)
 		if err != nil {
@@ -156,13 +164,42 @@ func Upgrade(conf UpgradeConfig) error {
 		return err
 	}
 
+	// used to signal the deletion of the scheduler pods only when downgrading from 1.15 to previous versions to handle incompatible changes
+	// in other cases the channel should be nil
+	var downgradeDeletionChan chan error
+
 	if !isDowngrade(conf.RuntimeVersion, daprVersion) {
-		err = applyCRDs(fmt.Sprintf("v%s", conf.RuntimeVersion))
+		err = applyCRDs("v" + conf.RuntimeVersion)
 		if err != nil {
 			return fmt.Errorf("unable to apply CRDs: %w", err)
 		}
 	} else {
 		print.InfoStatusEvent(os.Stdout, "Downgrade detected, skipping CRDs.")
+
+		targetVersion, errVersion := semver.NewVersion(conf.RuntimeVersion)
+		if errVersion != nil {
+			return fmt.Errorf("unable to parse dapr target version: %w", errVersion)
+		}
+
+		currentVersion, errVersion := semver.NewVersion(daprVersion)
+		if errVersion != nil {
+			return fmt.Errorf("unable to parse dapr current version: %w", errVersion)
+		}
+
+		if currentVersion.GreaterThanEqual(versionWithHAScheduler) && targetVersion.LessThan(versionWithHAScheduler) {
+			downgradeDeletionChan = make(chan error)
+			// Must delete all scheduler pods from cluster due to incompatible changes in version 1.15 with older versions.
+			go func() {
+				// Add an artificial delay to allow helm upgrade to progress and delete the pods only when necessary.
+				time.Sleep(15 * time.Second)
+				errDeletion := deleteSchedulerPods(status[0].Namespace, currentVersion, targetVersion)
+				if errDeletion != nil {
+					downgradeDeletionChan <- fmt.Errorf("failed to delete scheduler pods: %w", errDeletion)
+					print.FailureStatusEvent(os.Stderr, "Failed to delete scheduler pods: %s", errDeletion.Error())
+				}
+				close(downgradeDeletionChan)
+			}()
+		}
 	}
 
 	chart, err := GetDaprHelmChartName(helmConf)
@@ -177,6 +214,15 @@ func Upgrade(conf UpgradeConfig) error {
 	_, err = helmUpgrade(upgradeClient, chart, controlPlaneChart, vals, WithRetry(5, 100*time.Millisecond))
 	if err != nil {
 		return fmt.Errorf("failure while running upgrade: %w", err)
+	}
+
+	// wait for the deletion of the scheduler pods to finish
+	if downgradeDeletionChan != nil {
+		select {
+		case <-downgradeDeletionChan:
+		case <-time.After(3 * time.Minute):
+			return errors.New("timed out waiting for downgrade deletion")
+		}
 	}
 
 	if dashboardChart != nil {
@@ -198,6 +244,73 @@ func Upgrade(conf UpgradeConfig) error {
 		}
 	}
 
+	return nil
+}
+
+func deleteSchedulerPods(namespace string, currentVersion *semver.Version, targetVersion *semver.Version) error {
+	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), time.Second*30)
+	defer cancel()
+
+	var pods *core_v1.PodList
+
+	// wait for at least one pod of the target version to be in the list before deleting the rest
+	// check the label app.kubernetes.io/version to determine the version of the pod
+	foundTargetVersion := false
+	for {
+		if foundTargetVersion {
+			break
+		}
+		k8sClient, err := Client()
+		if err != nil {
+			return err
+		}
+
+		pods, err = k8sClient.CoreV1().Pods(namespace).List(ctxWithTimeout, meta_v1.ListOptions{
+			LabelSelector: "app=dapr-scheduler-server",
+		})
+		if err != nil && !errors.Is(err, context.DeadlineExceeded) {
+			return err
+		}
+
+		if len(pods.Items) == 0 {
+			return nil
+		}
+
+		for _, pod := range pods.Items {
+			pv, ok := pod.Labels["app.kubernetes.io/version"]
+			if ok {
+				podVersion, err := semver.NewVersion(pv)
+				if err == nil && podVersion.Equal(targetVersion) {
+					foundTargetVersion = true
+					break
+				}
+			}
+		}
+		time.Sleep(5 * time.Second)
+	}
+
+	if pods == nil {
+		return errors.New("no scheduler pods found")
+	}
+
+	// get a fresh client to ensure we have the latest state of the cluster
+	k8sClient, err := Client()
+	if err != nil {
+		return err
+	}
+
+	// delete scheduler pods of the current version, i.e. >1.15.0
+	for _, pod := range pods.Items {
+		if pv, ok := pod.Labels["app.kubernetes.io/version"]; ok {
+			podVersion, err := semver.NewVersion(pv)
+			if err == nil && podVersion.Equal(currentVersion) {
+				err = k8sClient.CoreV1().Pods(namespace).Delete(ctxWithTimeout, pod.Name, meta_v1.DeleteOptions{})
+				if err != nil {
+					return fmt.Errorf("failed to delete pod %s during downgrade: %w", pod.Name, err)
+				}
+			}
+		}
+	}
 	return nil
 }
 
@@ -240,7 +353,7 @@ func helmUpgrade(client *helm.Upgrade, name string, chart *chart.Chart, vals map
 
 		// create a totally new helm client, this ensures that we fetch a fresh openapi schema from the server on each attempt.
 		client, _, err = newUpgradeClient(client.Namespace, UpgradeConfig{
-			Timeout: uint(client.Timeout),
+			Timeout: uint(client.Timeout), //nolint:gosec
 		})
 		if err != nil {
 			return nil, fmt.Errorf("unable to create helm client: %w", err)
@@ -255,6 +368,11 @@ func highAvailabilityEnabled(status []StatusOutput) bool {
 		if s.Name == "dapr-dashboard" {
 			continue
 		}
+		// Skip the scheduler server because it's in HA mode by default since version 1.15.0
+		// This will fall back to other dapr services to determine if HA mode is enabled.
+		if strings.HasPrefix(s.Name, "dapr-scheduler-server") {
+			continue
+		}
 		if s.Replicas > 1 {
 			return true
 		}
@@ -267,7 +385,7 @@ func applyCRDs(version string) error {
 		url := fmt.Sprintf("https://raw.githubusercontent.com/dapr/dapr/%s/charts/dapr/crds/%s.yaml", version, crd)
 
 		resp, _ := http.Get(url) //nolint:gosec
-		if resp != nil && resp.StatusCode == 200 {
+		if resp != nil && resp.StatusCode == http.StatusOK {
 			defer resp.Body.Close()
 
 			_, err := utils.RunCmdAndWait("kubectl", "apply", "-f", url)
@@ -286,18 +404,18 @@ func upgradeChartValues(ca, issuerCert, issuerKey string, haMode, mtls bool, con
 	if err != nil {
 		return nil, err
 	}
-	globalVals = append(globalVals, fmt.Sprintf("global.tag=%s", utils.GetVariantVersion(conf.RuntimeVersion, conf.ImageVariant)))
+	globalVals = append(globalVals, "global.tag="+utils.GetVariantVersion(conf.RuntimeVersion, conf.ImageVariant))
 
 	if mtls && ca != "" && issuerCert != "" && issuerKey != "" {
-		globalVals = append(globalVals, fmt.Sprintf("dapr_sentry.tls.root.certPEM=%s", ca),
-			fmt.Sprintf("dapr_sentry.tls.issuer.certPEM=%s", issuerCert),
-			fmt.Sprintf("dapr_sentry.tls.issuer.keyPEM=%s", issuerKey),
+		globalVals = append(globalVals, "dapr_sentry.tls.root.certPEM="+ca,
+			"dapr_sentry.tls.issuer.certPEM="+issuerCert,
+			"dapr_sentry.tls.issuer.keyPEM="+issuerKey,
 		)
 	} else {
 		globalVals = append(globalVals, "global.mtls.enabled=false")
 	}
 	if len(conf.ImageRegistryURI) != 0 {
-		globalVals = append(globalVals, fmt.Sprintf("global.registry=%s", conf.ImageRegistryURI))
+		globalVals = append(globalVals, "global.registry="+conf.ImageRegistryURI)
 	}
 	if haMode {
 		globalVals = append(globalVals, "global.ha.enabled=true")
@@ -317,7 +435,7 @@ func isDowngrade(targetVersion, existingVersion string) bool {
 	if err != nil {
 		print.FailureStatusEvent(
 			os.Stderr,
-			fmt.Sprintf("Upgrade failed, %s. The current installed version does not have sematic versioning", err.Error()))
+			"Upgrade failed, %s. The current installed version does not have sematic versioning", err.Error())
 		os.Exit(1)
 	}
 	return target.LessThan(existing)
@@ -334,7 +452,7 @@ func newUpgradeClient(namespace string, cfg UpgradeConfig) (*helm.Upgrade, *helm
 	client.Namespace = namespace
 	client.CleanupOnFail = true
 	client.Wait = true
-	client.Timeout = time.Duration(cfg.Timeout) * time.Second
+	client.Timeout = time.Duration(cfg.Timeout) * time.Second //nolint:gosec
 
 	return client, helmCfg, nil
 }

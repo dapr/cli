@@ -20,6 +20,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/dapr/cli/pkg/standalone"
@@ -80,10 +82,10 @@ func setupRun(t *testing.T) {
 	componentsDir := standalone.GetDaprComponentsPath(myDaprPath)
 	configFile := standalone.GetDaprConfigPath(myDaprPath)
 	err = os.MkdirAll(componentsDir, 0o700)
-	assert.Equal(t, nil, err, "Unable to setup components dir before running test")
+	assert.NoError(t, err, "Unable to setup components dir before running test")
 	file, err := os.Create(configFile)
 	file.Close()
-	assert.Equal(t, nil, err, "Unable to create config file before running test")
+	assert.NoError(t, err, "Unable to create config file before running test")
 }
 
 func tearDownRun(t *testing.T) {
@@ -94,9 +96,9 @@ func tearDownRun(t *testing.T) {
 	configFile := standalone.GetDaprConfigPath(myDaprPath)
 
 	err = os.RemoveAll(componentsDir)
-	assert.Equal(t, nil, err, "Unable to delete default components dir after running test")
+	assert.NoError(t, err, "Unable to delete default components dir after running test")
 	err = os.Remove(configFile)
-	assert.Equal(t, nil, err, "Unable to delete default config file after running test")
+	assert.NoError(t, err, "Unable to delete default config file after running test")
 }
 
 func assertCommonArgs(t *testing.T, basicConfig *standalone.RunConfig, output *RunOutput) {
@@ -120,9 +122,9 @@ func assertCommonArgs(t *testing.T, basicConfig *standalone.RunConfig, output *R
 	assertArgumentEqual(t, "components-path", standalone.GetDaprComponentsPath(daprPath), output.DaprCMD.Args)
 	assertArgumentEqual(t, "app-ssl", "", output.DaprCMD.Args)
 	assertArgumentEqual(t, "metrics-port", "9001", output.DaprCMD.Args)
-	assertArgumentEqual(t, "dapr-http-max-request-size", "-1", output.DaprCMD.Args)
+	assertArgumentEqual(t, "max-body-size", "-1", output.DaprCMD.Args)
 	assertArgumentEqual(t, "dapr-internal-grpc-port", "5050", output.DaprCMD.Args)
-	assertArgumentEqual(t, "dapr-http-read-buffer-size", "-1", output.DaprCMD.Args)
+	assertArgumentEqual(t, "read-buffer-size", "-1", output.DaprCMD.Args)
 	assertArgumentEqual(t, "dapr-listen-addresses", "127.0.0.1", output.DaprCMD.Args)
 }
 
@@ -180,8 +182,8 @@ func TestRun(t *testing.T) {
 		AppProtocol:        "http",
 		ComponentsPath:     componentsDir,
 		AppSSL:             true,
-		MaxRequestBodySize: -1,
-		HTTPReadBufferSize: -1,
+		MaxRequestBodySize: "-1",
+		HTTPReadBufferSize: "-1",
 		EnableAPILogging:   true,
 		APIListenAddresses: "127.0.0.1",
 	}
@@ -294,21 +296,21 @@ func TestRun(t *testing.T) {
 		basicConfig.ProfilePort = 0
 		basicConfig.EnableProfiling = true
 		basicConfig.MaxConcurrency = 0
-		basicConfig.MaxRequestBodySize = 0
-		basicConfig.HTTPReadBufferSize = 0
+		basicConfig.MaxRequestBodySize = ""
+		basicConfig.HTTPReadBufferSize = ""
 		basicConfig.AppProtocol = ""
 
 		basicConfig.SetDefaultFromSchema()
 
 		assert.Equal(t, -1, basicConfig.AppPort)
-		assert.True(t, basicConfig.HTTPPort == -1)
-		assert.True(t, basicConfig.GRPCPort == -1)
-		assert.True(t, basicConfig.MetricsPort == -1)
-		assert.True(t, basicConfig.ProfilePort == -1)
+		assert.Equal(t, -1, basicConfig.HTTPPort)
+		assert.Equal(t, -1, basicConfig.GRPCPort)
+		assert.Equal(t, -1, basicConfig.MetricsPort)
+		assert.Equal(t, -1, basicConfig.ProfilePort)
 		assert.True(t, basicConfig.EnableProfiling)
 		assert.Equal(t, -1, basicConfig.MaxConcurrency)
-		assert.Equal(t, -1, basicConfig.MaxRequestBodySize)
-		assert.Equal(t, -1, basicConfig.HTTPReadBufferSize)
+		assert.Equal(t, "4Mi", basicConfig.MaxRequestBodySize)
+		assert.Equal(t, "4Ki", basicConfig.HTTPReadBufferSize)
 		assert.Equal(t, "http", basicConfig.AppProtocol)
 
 		// Test after Validate gets called.
@@ -316,14 +318,52 @@ func TestRun(t *testing.T) {
 		assert.NoError(t, err)
 
 		assert.Equal(t, 0, basicConfig.AppPort)
-		assert.True(t, basicConfig.HTTPPort > 0)
-		assert.True(t, basicConfig.GRPCPort > 0)
-		assert.True(t, basicConfig.MetricsPort > 0)
-		assert.True(t, basicConfig.ProfilePort > 0)
+		assert.Positive(t, basicConfig.HTTPPort)
+		assert.Positive(t, basicConfig.GRPCPort)
+		assert.Positive(t, basicConfig.MetricsPort)
+		assert.Positive(t, basicConfig.ProfilePort)
 		assert.True(t, basicConfig.EnableProfiling)
 		assert.Equal(t, -1, basicConfig.MaxConcurrency)
-		assert.Equal(t, -1, basicConfig.MaxRequestBodySize)
-		assert.Equal(t, -1, basicConfig.HTTPReadBufferSize)
+		assert.Equal(t, "4Mi", basicConfig.MaxRequestBodySize)
+		assert.Equal(t, "4Ki", basicConfig.HTTPReadBufferSize)
 		assert.Equal(t, "http", basicConfig.AppProtocol)
+	})
+
+	t.Run("run with max body size without units", func(t *testing.T) {
+		basicConfig.MaxRequestBodySize = "4000000"
+
+		output, err := NewOutput(basicConfig)
+		require.NoError(t, err)
+		assertArgumentEqual(t, "max-body-size", "4M", output.DaprCMD.Args)
+	})
+
+	t.Run("run with max body size with units", func(t *testing.T) {
+		basicConfig.MaxRequestBodySize = "4Mi"
+
+		output, err := NewOutput(basicConfig)
+		require.NoError(t, err)
+		assertArgumentEqual(t, "max-body-size", "4Mi", output.DaprCMD.Args)
+
+		basicConfig.MaxRequestBodySize = "5M"
+
+		output, err = NewOutput(basicConfig)
+		require.NoError(t, err)
+		assertArgumentEqual(t, "max-body-size", "5M", output.DaprCMD.Args)
+	})
+
+	t.Run("run with read buffer size set without units", func(t *testing.T) {
+		basicConfig.HTTPReadBufferSize = "16001"
+
+		output, err := NewOutput(basicConfig)
+		require.NoError(t, err)
+		assertArgumentEqual(t, "read-buffer-size", "16001", output.DaprCMD.Args)
+	})
+
+	t.Run("run with read buffer size set with units", func(t *testing.T) {
+		basicConfig.HTTPReadBufferSize = "4Ki"
+
+		output, err := NewOutput(basicConfig)
+		require.NoError(t, err)
+		assertArgumentEqual(t, "read-buffer-size", "4Ki", output.DaprCMD.Args)
 	})
 }

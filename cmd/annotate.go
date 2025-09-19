@@ -21,6 +21,11 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
+
+	"github.com/dapr/dapr/pkg/runtime"
+
+	"k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/spf13/cobra"
 
@@ -60,8 +65,8 @@ var (
 	annotateReadinessProbeThreshold      int
 	annotateDaprImage                    string
 	annotateAppSSL                       bool
-	annotateMaxRequestBodySize           int
-	annotateReadBufferSize               int
+	annotateMaxRequestBodySize           string
+	annotateReadBufferSize               string
 	annotateHTTPStreamRequestBody        bool
 	annotateGracefulShutdownSeconds      int
 	annotateEnableAPILogging             bool
@@ -221,7 +226,6 @@ func readInputsFromFS(path string) ([]io.Reader, error) {
 		inputs = append(inputs, file)
 		return nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -319,12 +323,23 @@ func getOptionsFromFlags() kubernetes.AnnotateOptions {
 	if annotateAppSSL {
 		o = append(o, kubernetes.WithAppSSL())
 	}
-	if annotateMaxRequestBodySize != -1 {
-		o = append(o, kubernetes.WithMaxRequestBodySize(annotateMaxRequestBodySize))
+	if annotateMaxRequestBodySize != "-1" {
+		if q, err := resource.ParseQuantity(annotateMaxRequestBodySize); err != nil {
+			print.FailureStatusEvent(os.Stderr, "error parsing value of max-body-size: %s, error: %s", annotateMaxRequestBodySize, err.Error())
+			os.Exit(1)
+		} else {
+			o = append(o, kubernetes.WithMaxRequestBodySize(int(q.Value())))
+		}
 	}
-	if annotateReadBufferSize != -1 {
-		o = append(o, kubernetes.WithReadBufferSize(annotateReadBufferSize))
+	if annotateReadBufferSize != "-1" {
+		if q, err := resource.ParseQuantity(annotateReadBufferSize); err != nil {
+			print.FailureStatusEvent(os.Stderr, "error parsing value of read-buffer-size: %s, error: %s", annotateMaxRequestBodySize, err.Error())
+			os.Exit(1)
+		} else {
+			o = append(o, kubernetes.WithReadBufferSize(int(q.Value())))
+		}
 	}
+
 	if annotateHTTPStreamRequestBody {
 		o = append(o, kubernetes.WithHTTPStreamRequestBody())
 	}
@@ -386,8 +401,8 @@ func init() {
 	AnnotateCmd.Flags().StringVar(&annotateDaprImage, "dapr-image", "", "The image to use for the dapr sidecar container")
 	AnnotateCmd.Flags().BoolVar(&annotateAppSSL, "app-ssl", false, "Enable SSL for the app")
 	AnnotateCmd.Flags().MarkDeprecated("app-ssl", "This flag is deprecated and will be removed in a future release. Use \"app-protocol\" flag with https or grpcs instead")
-	AnnotateCmd.Flags().IntVar(&annotateMaxRequestBodySize, "max-request-body-size", -1, "The maximum request body size to use")
-	AnnotateCmd.Flags().IntVar(&annotateReadBufferSize, "http-read-buffer-size", -1, "The maximum size of HTTP header read buffer in kilobytes")
+	AnnotateCmd.Flags().StringVar(&annotateMaxRequestBodySize, "max-body-size", strconv.Itoa(runtime.DefaultMaxRequestBodySize>>20)+"Mi", "The maximum request body size to use")
+	AnnotateCmd.Flags().StringVar(&annotateReadBufferSize, "read-buffer-size", strconv.Itoa(runtime.DefaultReadBufferSize>>10)+"Ki", "The maximum size of HTTP header read buffer in kilobytes")
 	AnnotateCmd.Flags().BoolVar(&annotateHTTPStreamRequestBody, "http-stream-request-body", false, "Enable streaming request body for HTTP")
 	AnnotateCmd.Flags().IntVar(&annotateGracefulShutdownSeconds, "graceful-shutdown-seconds", -1, "The number of seconds to wait for the app to shutdown")
 	AnnotateCmd.Flags().BoolVar(&annotateEnableAPILogging, "enable-api-logging", false, "Enable API logging for the Dapr sidecar")

@@ -66,7 +66,7 @@ func List() ([]ListOutput, error) {
 	for _, proc := range processes {
 		executable := strings.ToLower(proc.Executable())
 		if (executable == "daprd") || (executable == "daprd.exe") {
-			procDetails, err := process.NewProcess(int32(proc.Pid()))
+			procDetails, err := process.NewProcess(int32(proc.Pid())) //nolint:gosec
 			if err != nil {
 				continue
 			}
@@ -105,9 +105,9 @@ func List() ([]ListOutput, error) {
 				enableMetrics = true
 			}
 
-			maxRequestBodySize := getIntArg(argumentsMap, "--dapr-http-max-request-size", runtime.DefaultMaxRequestBodySize)
+			maxRequestBodySize := getIntArg(argumentsMap, "max-body-size", runtime.DefaultMaxRequestBodySize)
 
-			httpReadBufferSize := getIntArg(argumentsMap, "--dapr-http-read-buffer-size", runtime.DefaultReadBufferSize)
+			httpReadBufferSize := getIntArg(argumentsMap, "read-buffer-size", runtime.DefaultReadBufferSize)
 
 			appID := argumentsMap["--app-id"]
 			appCmd := ""

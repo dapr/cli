@@ -62,7 +62,7 @@ func (s *Standalone) Publish(publishAppID, pubsubName, topic string, payload []b
 			},
 		}
 	} else {
-		url = fmt.Sprintf("http://localhost:%s/v%s/publish/%s/%s%s", fmt.Sprintf("%v", instance.HTTPPort), api.RuntimeAPIVersion, pubsubName, topic, queryParams) //nolint: perfsprint
+		url = fmt.Sprintf("http://localhost:%d/v%s/publish/%s/%s%s", instance.HTTPPort, api.RuntimeAPIVersion, pubsubName, topic, queryParams)
 	}
 
 	contentType := "application/json"
@@ -94,7 +94,7 @@ func (s *Standalone) Publish(publishAppID, pubsubName, topic string, payload []b
 }
 
 func getDaprInstance(list []ListOutput, publishAppID string) (ListOutput, error) {
-	for i := 0; i < len(list); i++ {
+	for i := range list {
 		if list[i].AppID == publishAppID {
 			return list[i], nil
 		}
@@ -112,7 +112,7 @@ func getQueryParams(metadata map[string]interface{}) string {
 	}
 	// Prefix with "?" and remove the last "&".
 	if queryParams != "" {
-		queryParams = fmt.Sprintf("?%s", queryParams[:len(queryParams)-1])
+		queryParams = "?" + queryParams[:len(queryParams)-1]
 	}
 	return queryParams
 }

@@ -83,7 +83,7 @@ func TestStatus(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s status should not raise an error", err.Error())
 		}
-		assert.Equal(t, 0, len(status), "Expected status to be empty list")
+		assert.Empty(t, status, "Expected status to be empty list")
 	})
 
 	t.Run("one status waiting", func(t *testing.T) {
@@ -102,8 +102,8 @@ func TestStatus(t *testing.T) {
 		}
 		k8s := newTestSimpleK8s(newDaprControlPlanePod(pd))
 		status, err := k8s.Status()
-		assert.Nil(t, err, "status should not raise an error")
-		assert.Equal(t, 1, len(status), "Expected status to be non-empty list")
+		assert.NoError(t, err, "status should not raise an error")
+		assert.Len(t, status, 1, "Expected status to be non-empty list")
 		stat := status[0]
 		assert.Equal(t, "dapr-dashboard", stat.Name, "expected name to match")
 		assert.Equal(t, "dapr-system", stat.Namespace, "expected namespace to match")
@@ -131,8 +131,8 @@ func TestStatus(t *testing.T) {
 		}
 		k8s := newTestSimpleK8s(newDaprControlPlanePod(pd))
 		status, err := k8s.Status()
-		assert.Nil(t, err, "status should not raise an error")
-		assert.Equal(t, 1, len(status), "Expected status to be non-empty list")
+		assert.NoError(t, err, "status should not raise an error")
+		assert.Len(t, status, 1, "Expected status to be non-empty list")
 		stat := status[0]
 		assert.Equal(t, "dapr-dashboard", stat.Name, "expected name to match")
 		assert.Equal(t, "dapr-system", stat.Namespace, "expected namespace to match")
@@ -140,7 +140,7 @@ func TestStatus(t *testing.T) {
 		assert.Equal(t, "0.0.1", stat.Version, "expected version to match")
 		assert.Equal(t, 1, stat.Replicas, "expected replicas to match")
 		assert.Equal(t, "True", stat.Healthy, "expected health to match")
-		assert.Equal(t, stat.Status, "Running", "expected running status")
+		assert.Equal(t, "Running", stat.Status, "expected running status")
 	})
 
 	t.Run("one status terminated", func(t *testing.T) {
@@ -160,8 +160,8 @@ func TestStatus(t *testing.T) {
 		k8s := newTestSimpleK8s(newDaprControlPlanePod(pd))
 
 		status, err := k8s.Status()
-		assert.Nil(t, err, "status should not raise an error")
-		assert.Equal(t, 1, len(status), "Expected status to be non-empty list")
+		assert.NoError(t, err, "status should not raise an error")
+		assert.Len(t, status, 1, "Expected status to be non-empty list")
 		stat := status[0]
 		assert.Equal(t, "dapr-dashboard", stat.Name, "expected name to match")
 		assert.Equal(t, "dapr-system", stat.Namespace, "expected namespace to match")
@@ -169,7 +169,7 @@ func TestStatus(t *testing.T) {
 		assert.Equal(t, "0.0.1", stat.Version, "expected version to match")
 		assert.Equal(t, 1, stat.Replicas, "expected replicas to match")
 		assert.Equal(t, "False", stat.Healthy, "expected health to match")
-		assert.Equal(t, stat.Status, "Terminated", "expected terminated status")
+		assert.Equal(t, "Terminated", stat.Status, "expected terminated status")
 	})
 
 	t.Run("one status pending", func(t *testing.T) {
@@ -193,8 +193,8 @@ func TestStatus(t *testing.T) {
 
 		k8s := newTestSimpleK8s(pod)
 		status, err := k8s.Status()
-		assert.Nil(t, err, "status should not raise an error")
-		assert.Equal(t, 1, len(status), "Expected status to be non-empty list")
+		assert.NoError(t, err, "status should not raise an error")
+		assert.Len(t, status, 1, "Expected status to be non-empty list")
 		stat := status[0]
 		assert.Equal(t, "dapr-dashboard", stat.Name, "expected name to match")
 		assert.Equal(t, "dapr-system", stat.Namespace, "expected namespace to match")
@@ -202,13 +202,13 @@ func TestStatus(t *testing.T) {
 		assert.Equal(t, "0.0.1", stat.Version, "expected version to match")
 		assert.Equal(t, 1, stat.Replicas, "expected replicas to match")
 		assert.Equal(t, "False", stat.Healthy, "expected health to match")
-		assert.Equal(t, stat.Status, "Pending", "expected pending status")
+		assert.Equal(t, "Pending", stat.Status, "expected pending status")
 	})
 
 	t.Run("one status empty client", func(t *testing.T) {
 		k8s := &StatusClient{}
 		status, err := k8s.Status()
-		assert.NotNil(t, err, "status should raise an error")
+		assert.Error(t, err, "status should raise an error")
 		assert.Equal(t, "kubernetes client not initialized", err.Error(), "expected errors to match")
 		assert.Nil(t, status, "expected nil for status")
 	})
@@ -233,6 +233,9 @@ func TestControlPlaneServices(t *testing.T) {
 		{"dapr-sidecar-injector-74648c9dcb-5bsmn", "dapr-sidecar-injector", daprImageTag},
 		{"dapr-sidecar-injector-74648c9dcb-6bsmn", "dapr-sidecar-injector", daprImageTag},
 		{"dapr-sidecar-injector-74648c9dcb-7bsmn", "dapr-sidecar-injector", daprImageTag},
+		{"dapr-scheduler-server-0", "dapr-scheduler-server", daprImageTag},
+		{"dapr-scheduler-server-1", "dapr-scheduler-server", daprImageTag},
+		{"dapr-scheduler-server-2", "dapr-scheduler-server", daprImageTag},
 	}
 
 	expectedReplicas := map[string]int{}
@@ -260,7 +263,7 @@ func TestControlPlaneServices(t *testing.T) {
 
 	k8s := newTestSimpleK8s(runtimeObj...)
 	status, err := k8s.Status()
-	assert.Nil(t, err, "status should not raise an error")
+	assert.NoError(t, err, "status should not raise an error")
 
 	assert.Equal(t, len(expectedReplicas), len(status), "Expected status to be empty list")
 
@@ -302,8 +305,8 @@ func TestControlPlaneVersion(t *testing.T) {
 		pd.imageURI = tc.imageURI
 		k8s := newTestSimpleK8s(newDaprControlPlanePod(pd))
 		status, err := k8s.Status()
-		assert.Nil(t, err, "status should not raise an error")
-		assert.Equal(t, 1, len(status), "Expected status to be non-empty list")
+		assert.NoError(t, err, "status should not raise an error")
+		assert.Len(t, status, 1, "Expected status to be non-empty list")
 		stat := status[0]
 		assert.Equal(t, tc.expectedVersion, stat.Version, "expected version to match")
 	}

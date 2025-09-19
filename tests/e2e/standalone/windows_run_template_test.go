@@ -1,6 +1,4 @@
 //go:build windows && (e2e || template)
-// +build windows
-// +build e2e template
 
 /*
 Copyright 2023 The Dapr Authors
@@ -80,7 +78,7 @@ func startAppsWithValidRunTemplate(t *testing.T, file string) {
 		"-f", file,
 	}
 	output, err := cmdRun("", args...)
-	t.Logf(output)
+	t.Logf("%s", output)
 	require.NoError(t, err, "run failed")
 	lines := strings.Split(output, "\n")
 	assert.GreaterOrEqual(t, len(lines), 6, "expected at least 6 lines in output of starting two apps")
@@ -99,7 +97,7 @@ func startAppsWithAppLogDestFile(t *testing.T, file string) {
 		"-f", file,
 	}
 	output, err := cmdRun("", args...)
-	t.Logf(output)
+	t.Logf("%s", output)
 	require.NoError(t, err, "run failed")
 
 	// App logs for processor app should not be printed to console and only written to file.
@@ -115,7 +113,6 @@ func startAppsWithAppLogDestFile(t *testing.T, file string) {
 	assert.NotContains(t, output, "msg=\"All outstanding components processed\" app_id=emit-metrics")
 
 	assert.Contains(t, output, "Received signal to stop Dapr and app processes. Shutting down Dapr and app processes.")
-
 }
 
 func startAppsWithAppLogDestConsole(t *testing.T, file string) {
@@ -123,7 +120,7 @@ func startAppsWithAppLogDestConsole(t *testing.T, file string) {
 		"-f", file,
 	}
 	output, err := cmdRun("", args...)
-	t.Logf(output)
+	t.Logf("%s", output)
 	require.NoError(t, err, "run failed")
 
 	// App logs for processor app should be printed to console.
@@ -139,5 +136,4 @@ func startAppsWithAppLogDestConsole(t *testing.T, file string) {
 	assert.NotContains(t, output, "msg=\"All outstanding components processed\" app_id=emit-metrics")
 
 	assert.Contains(t, output, "Received signal to stop Dapr and app processes. Shutting down Dapr and app processes.")
-
 }

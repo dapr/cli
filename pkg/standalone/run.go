@@ -14,6 +14,7 @@ limitations under the License.
 package standalone
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
@@ -23,12 +24,14 @@ import (
 	"strconv"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/api/resource"
+
 	"github.com/Pallinder/sillyname-go"
 	"github.com/phayes/freeport"
 	"gopkg.in/yaml.v2"
 
 	"github.com/dapr/cli/pkg/print"
-	"github.com/dapr/dapr/pkg/components"
+	localloader "github.com/dapr/dapr/pkg/components/loader"
 )
 
 type LogDestType string
@@ -78,8 +81,8 @@ type SharedRunConfig struct {
 	ResourcesPaths []string `arg:"resources-path" yaml:"resourcesPaths"`
 	// Speicifcally omitted from annotations as appSSL is deprecated.
 	AppSSL             bool   `arg:"app-ssl" yaml:"appSSL"`
-	MaxRequestBodySize int    `arg:"dapr-http-max-request-size" annotation:"dapr.io/http-max-request-size" yaml:"daprHTTPMaxRequestSize" default:"-1"`
-	HTTPReadBufferSize int    `arg:"dapr-http-read-buffer-size" annotation:"dapr.io/http-read-buffer-size" yaml:"daprHTTPReadBufferSize" default:"-1"`
+	MaxRequestBodySize string `arg:"max-body-size" annotation:"dapr.io/max-body-size" yaml:"maxBodySize" default:"4Mi"`
+	HTTPReadBufferSize string `arg:"read-buffer-size" annotation:"dapr.io/read-buffer-size" yaml:"readBufferSize" default:"4Ki"`
 	EnableAppHealth    bool   `arg:"enable-app-health-check" annotation:"dapr.io/enable-app-health-check" yaml:"enableAppHealthCheck"`
 	AppHealthPath      string `arg:"app-health-check-path" annotation:"dapr.io/app-health-check-path" yaml:"appHealthCheckPath"`
 	AppHealthInterval  int    `arg:"app-health-probe-interval" annotation:"dapr.io/app-health-probe-interval" ifneq:"0" yaml:"appHealthProbeInterval"`
@@ -87,10 +90,11 @@ type SharedRunConfig struct {
 	AppHealthThreshold int    `arg:"app-health-threshold" annotation:"dapr.io/app-health-threshold" ifneq:"0" yaml:"appHealthThreshold"`
 	EnableAPILogging   bool   `arg:"enable-api-logging" annotation:"dapr.io/enable-api-logging" yaml:"enableApiLogging"`
 	// Specifically omitted from annotations see https://github.com/dapr/cli/issues/1324 .
-	DaprdInstallPath    string            `yaml:"runtimePath"`
-	Env                 map[string]string `yaml:"env"`
-	DaprdLogDestination LogDestType       `yaml:"daprdLogDestination"`
-	AppLogDestination   LogDestType       `yaml:"appLogDestination"`
+	DaprdInstallPath     string            `yaml:"runtimePath"`
+	Env                  map[string]string `yaml:"env"`
+	DaprdLogDestination  LogDestType       `yaml:"daprdLogDestination"`
+	AppLogDestination    LogDestType       `yaml:"appLogDestination"`
+	SchedulerHostAddress string            `arg:"scheduler-host-address" yaml:"schedulerHostAddress"`
 }
 
 func (meta *DaprMeta) newAppID() string {
@@ -112,8 +116,8 @@ func (config *RunConfig) validateResourcesPaths() error {
 			return fmt.Errorf("error validating resources path %q : %w", dirPath, err)
 		}
 	}
-	componentsLoader := components.NewLocalComponents(dirPath...)
-	_, err := componentsLoader.Load()
+	localLoader := localloader.NewLocalLoader(config.AppID, dirPath)
+	err := localLoader.Validate(context.Background())
 	if err != nil {
 		return fmt.Errorf("error validating components in resources path %q : %w", dirPath, err)
 	}
@@ -127,12 +131,31 @@ func (config *RunConfig) validatePlacementHostAddr() error {
 	}
 	if indx := strings.Index(placementHostAddr, ":"); indx == -1 {
 		if runtime.GOOS == daprWindowsOS {
-			placementHostAddr = fmt.Sprintf("%s:6050", placementHostAddr)
+			placementHostAddr += ":6050"
 		} else {
-			placementHostAddr = fmt.Sprintf("%s:50005", placementHostAddr)
+			placementHostAddr += ":50005"
 		}
 	}
 	config.PlacementHostAddr = placementHostAddr
+	return nil
+}
+
+func (config *RunConfig) validateSchedulerHostAddr() error {
+	schedulerHostAddr := config.SchedulerHostAddress
+	if len(schedulerHostAddr) == 0 {
+		return nil
+	}
+
+	if indx := strings.Index(schedulerHostAddr, ":"); indx == -1 {
+		if runtime.GOOS == daprWindowsOS {
+			schedulerHostAddr += ":6060"
+		} else {
+			schedulerHostAddr += ":50006"
+		}
+	}
+
+	config.SchedulerHostAddress = schedulerHostAddr
+
 	return nil
 }
 
@@ -205,15 +228,35 @@ func (config *RunConfig) Validate() error {
 	if config.MaxConcurrency < 1 {
 		config.MaxConcurrency = -1
 	}
-	if config.MaxRequestBodySize < 0 {
-		config.MaxRequestBodySize = -1
+
+	qBody, err := resource.ParseQuantity(config.MaxRequestBodySize)
+	if err != nil {
+		return fmt.Errorf("invalid max request body size: %w", err)
 	}
 
-	if config.HTTPReadBufferSize < 0 {
-		config.HTTPReadBufferSize = -1
+	if qBody.Value() < 0 {
+		config.MaxRequestBodySize = "-1"
+	} else {
+		config.MaxRequestBodySize = qBody.String()
+	}
+
+	qBuffer, err := resource.ParseQuantity(config.HTTPReadBufferSize)
+	if err != nil {
+		return fmt.Errorf("invalid http read buffer size: %w", err)
+	}
+
+	if qBuffer.Value() < 0 {
+		config.HTTPReadBufferSize = "-1"
+	} else {
+		config.HTTPReadBufferSize = qBuffer.String()
 	}
 
 	err = config.validatePlacementHostAddr()
+	if err != nil {
+		return err
+	}
+
+	err = config.validateSchedulerHostAddr()
 	if err != nil {
 		return err
 	}
@@ -239,12 +282,27 @@ func (config *RunConfig) ValidateK8s() error {
 	if config.MaxConcurrency < 1 {
 		config.MaxConcurrency = -1
 	}
-	if config.MaxRequestBodySize < 0 {
-		config.MaxRequestBodySize = -1
+
+	qBody, err := resource.ParseQuantity(config.MaxRequestBodySize)
+	if err != nil {
+		return fmt.Errorf("invalid max request body size: %w", err)
 	}
 
-	if config.HTTPReadBufferSize < 0 {
-		config.HTTPReadBufferSize = -1
+	if qBody.Value() < 0 {
+		config.MaxRequestBodySize = "-1"
+	} else {
+		config.MaxRequestBodySize = qBody.String()
+	}
+
+	qBuffer, err := resource.ParseQuantity(config.HTTPReadBufferSize)
+	if err != nil {
+		return fmt.Errorf("invalid http read buffer size: %w", err)
+	}
+
+	if qBuffer.Value() < 0 {
+		config.HTTPReadBufferSize = "-1"
+	} else {
+		config.HTTPReadBufferSize = qBuffer.String()
 	}
 
 	return nil
@@ -264,7 +322,7 @@ func (meta *DaprMeta) portExists(port int) bool {
 	if port <= 0 {
 		return false
 	}
-	//nolint
+
 	_, ok := meta.ExistingPorts[port]
 	if ok {
 		return true
@@ -321,7 +379,7 @@ func (config *RunConfig) getArgs() []string {
 // Recursive function to get all the args from the config struct.
 // This is needed because the config struct has embedded struct.
 func getArgsFromSchema(schema reflect.Value, args []string) []string {
-	for i := 0; i < schema.NumField(); i++ {
+	for i := range schema.NumField() {
 		valueField := schema.Field(i).Interface()
 		typeField := schema.Type().Field(i)
 		key := typeField.Tag.Get("arg")
@@ -363,7 +421,7 @@ func (config *RunConfig) SetDefaultFromSchema() {
 }
 
 func (config *RunConfig) setDefaultFromSchemaRecursive(schema reflect.Value) {
-	for i := 0; i < schema.NumField(); i++ {
+	for i := range schema.NumField() {
 		valueField := schema.Field(i)
 		typeField := schema.Type().Field(i)
 		if typeField.Type.Kind() == reflect.Struct {
@@ -389,7 +447,7 @@ func (config *RunConfig) getEnv() []string {
 
 	// Handle values from config that have an "env" tag.
 	schema := reflect.ValueOf(*config)
-	for i := 0; i < schema.NumField(); i++ {
+	for i := range schema.NumField() {
 		valueField := schema.Field(i).Interface()
 		typeField := schema.Type().Field(i)
 		key := typeField.Tag.Get("env")
@@ -449,7 +507,7 @@ func (config *RunConfig) getAppProtocol() string {
 func (config *RunConfig) GetEnv() map[string]string {
 	env := map[string]string{}
 	schema := reflect.ValueOf(*config)
-	for i := 0; i < schema.NumField(); i++ {
+	for i := range schema.NumField() {
 		valueField := schema.Field(i).Interface()
 		typeField := schema.Type().Field(i)
 		key := typeField.Tag.Get("env")
@@ -473,7 +531,7 @@ func (config *RunConfig) GetEnv() map[string]string {
 func (config *RunConfig) GetAnnotations() map[string]string {
 	annotations := map[string]string{}
 	schema := reflect.ValueOf(*config)
-	for i := 0; i < schema.NumField(); i++ {
+	for i := range schema.NumField() {
 		valueField := schema.Field(i).Interface()
 		typeField := schema.Type().Field(i)
 		key := typeField.Tag.Get("annotation")

@@ -1,6 +1,4 @@
 //go:build !windows && (e2e || template)
-// +build !windows
-// +build e2e template
 
 /*
 Copyright 2023 The Dapr Authors
@@ -23,7 +21,6 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -43,6 +40,7 @@ type AppTestOutput struct {
 }
 
 func TestRunWithTemplateFile(t *testing.T) {
+	cleanUpLogs()
 	ensureDaprInstallation(t)
 	t.Cleanup(func() {
 		// remove dapr installation after all tests in this function.
@@ -54,8 +52,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		runFilePath := "../testdata/run-template-files/wrong_emit_metrics_app_dapr.yaml"
 		t.Cleanup(func() {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
-			os.RemoveAll("../../apps/emit-metrics/.dapr/logs")
-			os.RemoveAll("../../apps/processor/.dapr/logs")
+			cleanUpLogs()
 			stopAllApps(t, runFilePath)
 		})
 		args := []string{
@@ -64,7 +61,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		output, err := cmdRunWithContext(ctx, "", args...)
-		t.Logf(output)
+		t.Logf("%s", output)
 		require.NoError(t, err, "run failed")
 		// Deterministic output for template file, so we can assert line by line
 		lines := strings.Split(output, "\n")
@@ -104,8 +101,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		runFilePath := "../testdata/run-template-files/dapr.yaml"
 		t.Cleanup(func() {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
-			os.RemoveAll("../../apps/emit-metrics/.dapr/logs")
-			os.RemoveAll("../../apps/processor/.dapr/logs")
+			cleanUpLogs()
 			stopAllApps(t, runFilePath)
 		})
 		args := []string{
@@ -114,7 +110,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		output, err := cmdRunWithContext(ctx, "", args...)
-		t.Logf(output)
+		t.Logf("%s", output)
 		require.NoError(t, err, "run failed")
 		// Deterministic output for template file, so we can assert line by line
 		lines := strings.Split(output, "\n")
@@ -161,8 +157,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		runFilePath := "../testdata/run-template-files/env_var_not_set_dapr.yaml"
 		t.Cleanup(func() {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
-			os.RemoveAll("../../apps/emit-metrics/.dapr/logs")
-			os.RemoveAll("../../apps/processor/.dapr/logs")
+			cleanUpLogs()
 			stopAllApps(t, runFilePath)
 		})
 		args := []string{
@@ -171,7 +166,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		output, err := cmdRunWithContext(ctx, "", args...)
-		t.Logf(output)
+		t.Logf("%s", output)
 		require.NoError(t, err, "run failed")
 		// Deterministic output for template file, so we can assert line by line
 		lines := strings.Split(output, "\n")
@@ -212,8 +207,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		runFilePath := "../testdata/run-template-files/no_app_command.yaml"
 		t.Cleanup(func() {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
-			os.RemoveAll("../../apps/emit-metrics/.dapr/logs")
-			os.RemoveAll("../../apps/processor/.dapr/logs")
+			cleanUpLogs()
 			stopAllApps(t, runFilePath)
 		})
 		args := []string{
@@ -222,7 +216,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		output, err := cmdRunWithContext(ctx, "", args...)
-		t.Logf(output)
+		t.Logf("%s", output)
 		require.NoError(t, err, "run failed")
 		// Deterministic output for template file, so we can assert line by line
 		lines := strings.Split(output, "\n")
@@ -264,8 +258,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		runFilePath := "../testdata/run-template-files/empty_app_command.yaml"
 		t.Cleanup(func() {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
-			os.RemoveAll("../../apps/emit-metrics/.dapr/logs")
-			os.RemoveAll("../../apps/processor/.dapr/logs")
+			cleanUpLogs()
 			stopAllApps(t, runFilePath)
 		})
 		args := []string{
@@ -274,7 +267,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		output, err := cmdRunWithContext(ctx, "", args...)
-		t.Logf(output)
+		t.Logf("%s", output)
 		require.Error(t, err, "run must fail")
 		// Deterministic output for template file, so we can assert line by line
 		lines := strings.Split(output, "\n")
@@ -313,8 +306,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		runFilePath := "../testdata/run-template-files/app_output_to_file_and_console.yaml"
 		t.Cleanup(func() {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
-			os.RemoveAll("../../apps/emit-metrics/.dapr/logs")
-			os.RemoveAll("../../apps/processor/.dapr/logs")
+			cleanUpLogs()
 			stopAllApps(t, runFilePath)
 		})
 		args := []string{
@@ -323,7 +315,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		output, err := cmdRunWithContext(ctx, "", args...)
-		t.Logf(output)
+		t.Logf("%s", output)
 		require.NoError(t, err, "run failed")
 
 		// App logs for processor app should not be printed to console and only written to file.
@@ -372,13 +364,17 @@ func TestRunTemplateFileWithoutDaprInit(t *testing.T) {
 	// remove any dapr installation before this test.
 	must(t, cmdUninstall, "failed to uninstall Dapr")
 	t.Run("valid template file without dapr init", func(t *testing.T) {
+		t.Cleanup(func() {
+			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
+			cleanUpLogs()
+		})
 		args := []string{
 			"-f", "../testdata/run-template-files/no_app_command.yaml",
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		output, err := cmdRunWithContext(ctx, "", args...)
-		t.Logf(output)
+		t.Logf("%s", output)
 		require.Error(t, err, "run must fail")
 		assert.Contains(t, output, "Error starting Dapr and app (\"processor\"): fork/exec")
 		assert.Contains(t, output, "daprd: no such file or directory")

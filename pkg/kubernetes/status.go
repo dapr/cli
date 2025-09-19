@@ -33,6 +33,7 @@ var controlPlaneLabels = []string{
 	"dapr-placement-server",
 	"dapr-sidecar-injector",
 	"dapr-dashboard",
+	"dapr-scheduler-server",
 }
 
 type StatusClient struct {
@@ -64,7 +65,6 @@ func NewStatusClient() (*StatusClient, error) {
 
 // List status for Dapr resources.
 func (s *StatusClient) Status() ([]StatusOutput, error) {
-	//nolint
 	client := s.client
 	if client == nil {
 		return nil, errors.New("kubernetes client not initialized")

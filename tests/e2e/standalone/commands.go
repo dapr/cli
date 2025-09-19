@@ -1,5 +1,4 @@
 //go:build e2e || template
-// +build e2e template
 
 /*
 Copyright 2022 The Dapr Authors
@@ -19,8 +18,10 @@ package standalone_test
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strings"
 
+	"github.com/dapr/cli/pkg/standalone"
 	"github.com/dapr/cli/tests/e2e/common"
 	"github.com/dapr/cli/tests/e2e/spawn"
 	"github.com/dapr/cli/utils"
@@ -45,6 +46,47 @@ func cmdDashboard(ctx context.Context, port string) error {
 	}
 
 	return fmt.Errorf("Dashboard could not be started: %s", errOutput)
+}
+
+func cmdProcess(ctx context.Context, executable string, log func(args ...any), args ...string) (string, error) {
+	path, err := GetExecutablePath(executable)
+	if err != nil {
+		return "", err
+	}
+
+	stdOutChan, stdErrChan, err := spawn.CommandWithContext(ctx, path, args...)
+	if err != nil {
+		return "", err
+	}
+
+	if log != nil {
+		go func() {
+			for {
+				select {
+				case output := <-stdOutChan:
+					if output != "" {
+						log(executable + ": " + output)
+					}
+				case output := <-stdErrChan:
+					if output != "" {
+						log(executable + ": " + output)
+					}
+				case <-ctx.Done():
+					return
+				}
+			}
+		}()
+	}
+
+	return "", nil
+}
+
+func GetExecutablePath(executable string) (string, error) {
+	path, err := standalone.GetDaprRuntimePath("")
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(path, "bin", executable), nil
 }
 
 // cmdInit installs Dapr with the init command and returns the command output and error.

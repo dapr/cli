@@ -103,7 +103,7 @@ dapr mtls renew-cert -k --valid-until <no of days> --restart
 					print.InfoStatusEvent(os.Stdout, "Using password file to generate root certificate")
 					err = kubernetes.RenewCertificate(kubernetes.RenewCertificateParams{
 						RootPrivateKeyFilePath: privateKey,
-						ValidUntil:             time.Hour * time.Duration(validUntil*24),
+						ValidUntil:             time.Hour * time.Duration(validUntil*24), //nolint:gosec
 						Timeout:                timeout,
 						ImageVariant:           imageVariant,
 					})
@@ -113,7 +113,7 @@ dapr mtls renew-cert -k --valid-until <no of days> --restart
 				} else {
 					print.InfoStatusEvent(os.Stdout, "generating fresh certificates")
 					err = kubernetes.RenewCertificate(kubernetes.RenewCertificateParams{
-						ValidUntil:   time.Hour * time.Duration(validUntil*24),
+						ValidUntil:   time.Hour * time.Duration(validUntil*24), //nolint:gosec
 						Timeout:      timeout,
 						ImageVariant: imageVariant,
 					})
@@ -129,7 +129,7 @@ dapr mtls renew-cert -k --valid-until <no of days> --restart
 				logErrorAndExit(err)
 			}
 			print.SuccessStatusEvent(os.Stdout,
-				fmt.Sprintf("Certificate rotation is successful! Your new certicate is valid through %s", expiry.Format(time.RFC1123)))
+				"Certificate rotation is successful! Your new certicate is valid through "+expiry.Format(time.RFC1123))
 
 			if restartDaprServices {
 				restartControlPlaneService()

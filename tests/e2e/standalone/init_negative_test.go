@@ -1,5 +1,4 @@
 //go:build e2e && !template
-// +build e2e,!template
 
 /*
 Copyright 2022 The Dapr Authors
@@ -33,7 +32,6 @@ func TestStandaloneInitNegatives(t *testing.T) {
 	require.NoError(t, err, "expected no error on querying for os home dir")
 
 	t.Run("run without install", func(t *testing.T) {
-		t.Parallel()
 		output, err := cmdRun("")
 		require.Error(t, err, "expected error status on run without install")
 		path := filepath.Join(homeDir, ".dapr", "components")
@@ -45,21 +43,18 @@ func TestStandaloneInitNegatives(t *testing.T) {
 	})
 
 	t.Run("list without install", func(t *testing.T) {
-		t.Parallel()
 		output, err := cmdList("")
 		require.NoError(t, err, "expected no error status on list without install")
 		require.Equal(t, "No Dapr instances found.\n", output)
 	})
 
 	t.Run("stop without install", func(t *testing.T) {
-		t.Parallel()
 		output, err := cmdStopWithAppID("test")
 		require.NoError(t, err, "expected no error on stop without install")
 		require.Contains(t, output, "failed to stop app id test: couldn't find app id test", "expected output to match")
 	})
 
 	t.Run("uninstall without install", func(t *testing.T) {
-		t.Parallel()
 		output, err := cmdUninstall()
 		require.NoError(t, err, "expected no error on uninstall without install")
 		require.Contains(t, output, "Removing Dapr from your machine...", "expected output to contain message")

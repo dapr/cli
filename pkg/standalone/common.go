@@ -25,8 +25,10 @@ const (
 	DefaultConfigFileName   = "config.yaml"
 	DefaultResourcesDirName = "resources"
 
-	defaultDaprBinDirName    = "bin"
-	defaultComponentsDirName = "components"
+	defaultDaprBinDirName       = "bin"
+	defaultComponentsDirName    = "components"
+	defaultSchedulerDirName     = "scheduler"
+	defaultSchedulerDataDirName = "data"
 )
 
 // GetDaprRuntimePath returns the dapr runtime installation path.

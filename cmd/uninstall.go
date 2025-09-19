@@ -43,7 +43,7 @@ var UninstallCmd = &cobra.Command{
 # Uninstall from self-hosted mode
 dapr uninstall
 
-# Uninstall from self-hosted mode and remove .dapr directory, Redis, Placement and Zipkin containers
+# Uninstall from self-hosted mode and remove .dapr directory, Redis, Placement, Scheduler, and Zipkin containers
 dapr uninstall --all
 
 # Uninstall from Kubernetes
@@ -99,7 +99,7 @@ func init() {
 	UninstallCmd.Flags().BoolVarP(&uninstallKubernetes, "kubernetes", "k", false, "Uninstall Dapr from a Kubernetes cluster")
 	UninstallCmd.Flags().BoolVarP(&uninstallDev, "dev", "", false, "Uninstall Dapr Redis and Zipking installations from Kubernetes cluster")
 	UninstallCmd.Flags().UintVarP(&timeout, "timeout", "", 300, "The timeout for the Kubernetes uninstall")
-	UninstallCmd.Flags().BoolVar(&uninstallAll, "all", false, "Remove .dapr directory, Redis, Placement and Zipkin containers on local machine, and CRDs on a Kubernetes cluster")
+	UninstallCmd.Flags().BoolVar(&uninstallAll, "all", false, "Remove .dapr directory, Redis, Placement, Scheduler (and default volume in self-hosted mode), and Zipkin containers on local machine, and CRDs on a Kubernetes cluster")
 	UninstallCmd.Flags().String("network", "", "The Docker network from which to remove the Dapr runtime")
 	UninstallCmd.Flags().StringVarP(&uninstallNamespace, "namespace", "n", "dapr-system", "The Kubernetes namespace to uninstall Dapr from")
 	UninstallCmd.Flags().BoolP("help", "h", false, "Print this help message")

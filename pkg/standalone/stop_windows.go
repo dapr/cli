@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/dapr/cli/utils"
+
 	"github.com/kolesnikovae/go-winjob"
 	"golang.org/x/sys/windows"
 )

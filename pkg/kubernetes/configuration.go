@@ -43,7 +43,7 @@ func GetDaprControlPlaneCurrentConfig() (*v1alpha1.Configuration, error) {
 	if err != nil {
 		return nil, err
 	}
-	output, err := utils.RunCmdAndWait("kubectl", "get", "configurations/daprsystem", "-n", namespace, "-o", "json")
+	output, err := utils.RunCmdAndWait("kubectl", "get", "configurations.dapr.io/daprsystem", "-n", namespace, "-o", "json")
 	if err != nil {
 		return nil, err
 	}

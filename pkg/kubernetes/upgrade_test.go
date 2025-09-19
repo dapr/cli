@@ -31,10 +31,82 @@ func TestHAMode(t *testing.T) {
 		assert.True(t, r)
 	})
 
+	t.Run("ha mode with scheduler and other services", func(t *testing.T) {
+		s := []StatusOutput{
+			{
+				Name:     "dapr-scheduler-server",
+				Replicas: 3,
+			},
+			{
+				Name:     "dapr-placement-server",
+				Replicas: 3,
+			},
+		}
+
+		r := highAvailabilityEnabled(s)
+		assert.True(t, r)
+	})
+
+	t.Run("non-ha mode with only scheduler image variant", func(t *testing.T) {
+		s := []StatusOutput{
+			{
+				Name:     "dapr-scheduler-server-mariner",
+				Replicas: 3,
+			},
+			{
+				Name:     "dapr-placement-server-mariner",
+				Replicas: 3,
+			},
+		}
+
+		r := highAvailabilityEnabled(s)
+		assert.True(t, r)
+	})
+
 	t.Run("non-ha mode", func(t *testing.T) {
 		s := []StatusOutput{
 			{
 				Replicas: 1,
+			},
+		}
+
+		r := highAvailabilityEnabled(s)
+		assert.False(t, r)
+	})
+
+	t.Run("non-ha mode with scheduler and other services", func(t *testing.T) {
+		s := []StatusOutput{
+			{
+				Name:     "dapr-scheduler-server",
+				Replicas: 3,
+			},
+			{
+				Name:     "dapr-placement-server",
+				Replicas: 1,
+			},
+		}
+
+		r := highAvailabilityEnabled(s)
+		assert.False(t, r)
+	})
+
+	t.Run("non-ha mode with only scheduler", func(t *testing.T) {
+		s := []StatusOutput{
+			{
+				Name:     "dapr-scheduler-server",
+				Replicas: 3,
+			},
+		}
+
+		r := highAvailabilityEnabled(s)
+		assert.False(t, r)
+	})
+
+	t.Run("non-ha mode with only scheduler image variant", func(t *testing.T) {
+		s := []StatusOutput{
+			{
+				Name:     "dapr-scheduler-server-mariner",
+				Replicas: 3,
 			},
 		}
 

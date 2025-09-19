@@ -1,5 +1,4 @@
 //go:build e2e && !template
-// +build e2e,!template
 
 /*
 Copyright 2022 The Dapr Authors
@@ -17,7 +16,6 @@ limitations under the License.
 package standalone_test
 
 import (
-	"context"
 	"encoding/json"
 	"os"
 	"os/exec"
@@ -117,26 +115,6 @@ func TestStandaloneList(t *testing.T) {
 		listOutputCheck(t, output, true)
 		// sleep to wait dapr run exit, in case have effect on other tests
 		time.Sleep(15 * time.Second)
-	})
-
-	t.Run("dashboard instance should not be listed", func(t *testing.T) {
-		// TODO: remove this after figuring out the fix.
-		// The issue is that the dashboard instance does not gets killed when the app is stopped.
-		// This causes issues when uninstalling Dapr, since the .bin folder is not removed on Windows.
-		if runtime.GOOS == "windows" {
-			t.Skip("skip dashboard test on windows")
-		}
-
-		ctx, cancelFunc := context.WithCancel(context.Background())
-		defer cancelFunc()
-
-		err := cmdDashboard(ctx, "5555")
-		require.NoError(t, err, "dapr dashboard failed")
-
-		output, err := cmdList("")
-		t.Log(output)
-		require.NoError(t, err, "expected no error status on list")
-		require.Equal(t, "No Dapr instances found.\n", output)
 	})
 }
 

@@ -50,11 +50,10 @@ jobs:
     name: E2E tests for K8s (KinD)
     runs-on: ubuntu-latest
     env:
-      DAPR_RUNTIME_PINNED_VERSION: 1.13.0-rc.2
+      DAPR_RUNTIME_PINNED_VERSION: 1.14.4
       DAPR_DASHBOARD_PINNED_VERSION: 0.14.0
       DAPR_RUNTIME_LATEST_STABLE_VERSION:
       DAPR_DASHBOARD_LATEST_STABLE_VERSION:
-      DAPR_TGZ: dapr-1.13.0-rc.2.tgz
     strategy:
       fail-fast: false # Keep running if one leg fails.
       matrix:
@@ -80,23 +79,14 @@ jobs:
           kind-image-sha: sha256:9be91e9e9cdf116809841fc77ebdb8845443c4c72fe5218f3ae9eb57fdb4bace
     steps:
     - name: Check out code onto GOPATH
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         path: ./src/github.com/dapr/cli
     - name: Set up Go
-      uses: actions/setup-go@v3
+      uses: actions/setup-go@v5
       id: setup-go
       with:
         go-version-file: './src/github.com/dapr/cli/go.mod'
-    - name: Cache Go modules
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cache/go-build
-          ~/go/pkg/mod
-        key: ${{ matrix.k8s-version }}-${{ matrix.kind-version }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ matrix.k8s-version }}-${{ matrix.kind-version }}-go-${{ steps.setup-go.outputs.go-version }}-
 
     - name: Configure KinD
       # Generate a KinD configuration file that uses:
@@ -183,6 +173,7 @@ jobs:
         export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-kind.json
         echo "TEST_OUTPUT_FILE=$TEST_OUTPUT_FILE" >> $GITHUB_ENV
         export GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+        export TEST_DAPR_HA_MODE=${{ matrix.mode }}
         make e2e-build-run-k8s
       shell: bash
     - name: Run tests with Docker hub
@@ -191,6 +182,7 @@ jobs:
         export TEST_OUTPUT_FILE=$GITHUB_WORKSPACE/test-e2e-kind.json
         echo "TEST_OUTPUT_FILE=$TEST_OUTPUT_FILE" >> $GITHUB_ENV
         export GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+        export TEST_DAPR_HA_MODE=${{ matrix.mode }}
         make e2e-build-run-k8s
       shell: bash
     - name: Upload test results
