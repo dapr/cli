@@ -14,6 +14,7 @@ limitations under the License.
 package standalone
 
 import (
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -30,23 +31,24 @@ import (
 
 // ListOutput represents the application ID, application port and creation time.
 type ListOutput struct {
-	AppID              string `csv:"APP ID"    json:"appId"              yaml:"appId"`
-	HTTPPort           int    `csv:"HTTP PORT" json:"httpPort"           yaml:"httpPort"`
-	GRPCPort           int    `csv:"GRPC PORT" json:"grpcPort"           yaml:"grpcPort"`
-	AppPort            int    `csv:"APP PORT"  json:"appPort"            yaml:"appPort"`
-	MetricsEnabled     bool   `csv:"-"         json:"metricsEnabled"     yaml:"metricsEnabled"` // Not displayed in table, consumed by dashboard.
-	Command            string `csv:"COMMAND"   json:"command"            yaml:"command"`
-	Age                string `csv:"AGE"       json:"age"                yaml:"age"`
-	Created            string `csv:"CREATED"   json:"created"            yaml:"created"`
-	DaprdPID           int    `csv:"DAPRD PID" json:"daprdPid"           yaml:"daprdPid"`
-	CliPID             int    `csv:"CLI PID"   json:"cliPid"             yaml:"cliPid"`
-	AppPID             int    `csv:"APP PID"   json:"appPid"             yaml:"appPid"`
-	MaxRequestBodySize int    `csv:"-"         json:"maxRequestBodySize" yaml:"maxRequestBodySize"` // Additional field, not displayed in table.
-	HTTPReadBufferSize int    `csv:"-"         json:"httpReadBufferSize" yaml:"httpReadBufferSize"` // Additional field, not displayed in table.
-	RunTemplatePath    string `csv:"RUN_TEMPLATE_PATH"  json:"runTemplatePath"            yaml:"runTemplatePath"`
-	AppLogPath         string `csv:"APP_LOG_PATH"  json:"appLogPath"            yaml:"appLogPath"`
-	DaprDLogPath       string `csv:"DAPRD_LOG_PATH"  json:"daprdLogPath"            yaml:"daprdLogPath"`
-	RunTemplateName    string `json:"runTemplateName"            yaml:"runTemplateName"` // specifically omitted in csv output.
+	AppID              string   `csv:"APP ID"    json:"appId"              yaml:"appId"`
+	HTTPPort           int      `csv:"HTTP PORT" json:"httpPort"           yaml:"httpPort"`
+	GRPCPort           int      `csv:"GRPC PORT" json:"grpcPort"           yaml:"grpcPort"`
+	AppPort            int      `csv:"APP PORT"  json:"appPort"            yaml:"appPort"`
+	MetricsEnabled     bool     `csv:"-"         json:"metricsEnabled"     yaml:"metricsEnabled"` // Not displayed in table, consumed by dashboard.
+	Command            string   `csv:"COMMAND"   json:"command"            yaml:"command"`
+	Age                string   `csv:"AGE"       json:"age"                yaml:"age"`
+	Created            string   `csv:"CREATED"   json:"created"            yaml:"created"`
+	DaprdPID           int      `csv:"DAPRD PID" json:"daprdPid"           yaml:"daprdPid"`
+	CliPID             int      `csv:"CLI PID"   json:"cliPid"             yaml:"cliPid"`
+	AppPID             int      `csv:"APP PID"   json:"appPid"             yaml:"appPid"`
+	MaxRequestBodySize int      `csv:"-"         json:"maxRequestBodySize" yaml:"maxRequestBodySize"` // Additional field, not displayed in table.
+	HTTPReadBufferSize int      `csv:"-"         json:"httpReadBufferSize" yaml:"httpReadBufferSize"` // Additional field, not displayed in table.
+	RunTemplatePath    string   `csv:"RUN_TEMPLATE_PATH"  json:"runTemplatePath"            yaml:"runTemplatePath"`
+	AppLogPath         string   `csv:"APP_LOG_PATH"  json:"appLogPath"            yaml:"appLogPath"`
+	DaprDLogPath       string   `csv:"DAPRD_LOG_PATH"  json:"daprdLogPath"            yaml:"daprdLogPath"`
+	RunTemplateName    string   `json:"runTemplateName"            yaml:"runTemplateName"` // specifically omitted in csv output.
+	ResourcePaths      []string `csv:"-"         json:"-"      yaml:"-"`
 }
 
 func (d *daprProcess) List() ([]ListOutput, error) {
@@ -64,7 +66,7 @@ func List() ([]ListOutput, error) {
 
 	// Populates the map if all data is available for the sidecar.
 	for _, proc := range processes {
-		executable := strings.ToLower(proc.Executable())
+		executable := filepath.Base(strings.ToLower(proc.Executable()))
 		if (executable == "daprd") || (executable == "daprd.exe") {
 			procDetails, err := process.NewProcess(int32(proc.Pid())) //nolint:gosec
 			if err != nil {
@@ -81,15 +83,32 @@ func List() ([]ListOutput, error) {
 				continue
 			}
 
+			var resourcePaths []string
+			for _, item := range cmdLineItems {
+				if strings.HasPrefix(item, "--resources-path") {
+					if strings.Contains(item, "=") {
+						resourcePaths = strings.SplitN(item, "=", 2)[1:]
+					} else {
+						resourcePaths = append(resourcePaths, cmdLineItems[1:]...)
+					}
+				}
+			}
+
 			// Parse command line arguments, example format for cmdLine `daprd --flag1 value1 --enable-flag2 --flag3 value3`.
 			argumentsMap := make(map[string]string)
 			for i := 1; i < len(cmdLineItems)-1; {
-				if !strings.HasPrefix(cmdLineItems[i+1], "--") {
-					argumentsMap[cmdLineItems[i]] = cmdLineItems[i+1]
-					i += 2
-				} else {
-					argumentsMap[cmdLineItems[i]] = ""
+				split := strings.Split(cmdLineItems[i], "=")
+				if len(split) > 1 {
+					argumentsMap[split[0]] = split[1]
 					i++
+				} else {
+					if !strings.HasPrefix(cmdLineItems[i+1], "--") {
+						argumentsMap[cmdLineItems[i]] = cmdLineItems[i+1]
+						i += 2
+					} else {
+						argumentsMap[cmdLineItems[i]] = ""
+						i++
+					}
 				}
 			}
 
@@ -167,6 +186,7 @@ func List() ([]ListOutput, error) {
 				RunTemplateName:    runTemplateName,
 				AppLogPath:         appLogPath,
 				DaprDLogPath:       daprdLogPath,
+				ResourcePaths:      resourcePaths,
 			}
 
 			// filter only dashboard instance.

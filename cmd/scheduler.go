@@ -27,7 +27,7 @@ var SchedulerCmd = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(SchedulerCmd)
-	SchedulerCmd.PersistentFlags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "List all Dapr pods in a Kubernetes cluster")
-	SchedulerCmd.PersistentFlags().StringVarP(&schedulerNamespace, "namespace", "n", "", "Kubernetes namespace to list Dapr apps from. If not specified, uses all namespaces")
+	SchedulerCmd.PersistentFlags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Perform scheduler command on a Kubernetes Dapr cluster")
+	SchedulerCmd.PersistentFlags().StringVarP(&schedulerNamespace, "namespace", "n", "", "Kubernetes namespace which scheduler resides, only relevant if --kubernetes is set")
 	SchedulerCmd.PersistentFlags().StringVar(&schedulerSchedulerNamespace, "scheduler-namespace", "dapr-system", "Kubernetes namespace where the scheduler is deployed")
 }
