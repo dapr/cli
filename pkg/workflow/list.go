@@ -22,7 +22,6 @@ import (
 	"github.com/dapr/cli/pkg/workflow/dclient"
 	"github.com/dapr/durabletask-go/workflow"
 	"github.com/dapr/go-sdk/client"
-	"github.com/dapr/kit/ptr"
 	"k8s.io/apimachinery/pkg/util/duration"
 )
 
@@ -45,6 +44,7 @@ type ListOutputShort struct {
 	Name          string `csv:"NAME"    json:"name"     yaml:"name"`
 	RuntimeStatus string `csv:"STATUS"    json:"runtimeStatus"     yaml:"runtimeStatus"`
 	Age           string `csv:"AGE"    json:"age"     yaml:"age"`
+	CustomStatus  string `csv:"CUSTOM STATUS"    json:"customStatus"     yaml:"customStatus"`
 }
 
 type ListOutputWide struct {
@@ -55,9 +55,8 @@ type ListOutputWide struct {
 	Created        time.Time `csv:"CREATED"    json:"created"     yaml:"created"`
 	LastUpdate     time.Time `csv:"LAST UPDATE"    json:"lastUpdate"     yaml:"lastUpdate"`
 	RuntimeStatus  string    `csv:"STATUS"    json:"runtimeStatus"     yaml:"runtimeStatus"`
-	CustomStatus   *string   `csv:"CUSTOM STATUS"    json:"customStatus"     yaml:"customStatus"`
-	FailureMessage *string   `csv:"FAILURE MESSAGE" json:"failureMessage"     yaml:"failureMessage"`
-	FailureType    *string   `csv:"FAILURE TYPE"    json:"failureType"     yaml:"failureType"`
+	CustomStatus   string    `csv:"CUSTOM STATUS"    json:"customStatus"     yaml:"customStatus"`
+	FailureMessage string    `csv:"FAILURE MESSAGE" json:"failureMessage"     yaml:"failureMessage"`
 }
 
 func ListShort(ctx context.Context, opts ListOptions) ([]*ListOutputShort, error) {
@@ -75,6 +74,10 @@ func ListShort(ctx context.Context, opts ListOptions) ([]*ListOutputShort, error
 			InstanceID:    w.InstanceID,
 			Age:           translateTimestampSince(w.Created),
 			RuntimeStatus: w.RuntimeStatus,
+			CustomStatus:  "-",
+		}
+		if len(w.CustomStatus) > 0 {
+			short[i].CustomStatus = w.CustomStatus
 		}
 	}
 
@@ -149,18 +152,23 @@ func list(ctx context.Context, metaKeys []string, cl client.Client, opts ListOpt
 		}
 
 		if resp.CustomStatus != nil {
-			wide.CustomStatus = ptr.Of(resp.CustomStatus.Value)
+			wide.CustomStatus = resp.CustomStatus.Value
 		}
 
 		if resp.FailureDetails != nil {
-			wide.FailureMessage = ptr.Of(resp.FailureDetails.GetErrorMessage())
-			wide.FailureType = ptr.Of(resp.FailureDetails.GetErrorType())
+			wide.FailureMessage = resp.FailureDetails.GetErrorMessage()
 		}
 
 		listOutput = append(listOutput, wide)
 	}
 
 	sort.SliceStable(listOutput, func(i, j int) bool {
+		if listOutput[i].Created.IsZero() {
+			return false
+		}
+		if listOutput[j].Created.IsZero() {
+			return true
+		}
 		return listOutput[i].Created.Before(listOutput[j].Created)
 	})
 
@@ -169,7 +177,7 @@ func list(ctx context.Context, metaKeys []string, cl client.Client, opts ListOpt
 
 func translateTimestampSince(timestamp time.Time) string {
 	if timestamp.IsZero() {
-		return "<unknown>"
+		return "<scheduled>"
 	}
 	return duration.HumanDuration(time.Since(timestamp))
 }

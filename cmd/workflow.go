@@ -17,9 +17,12 @@ package cmd
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/pkg/standalone"
+	"github.com/dapr/kit/ptr"
+	kittime "github.com/dapr/kit/time"
 	"github.com/spf13/cobra"
 )
 
@@ -72,6 +75,23 @@ func getWorkflowAppID(cmd *cobra.Command) (string, error) {
 	}
 
 	return list[0].AppID, nil
+}
+
+func parseWorkflowDurationTimestamp(str string, durationPast bool) (*time.Time, error) {
+	dur, err := time.ParseDuration(str)
+	if err == nil {
+		if durationPast {
+			dur = -dur
+		}
+		return ptr.Of(time.Now().Add(dur)), nil
+	}
+
+	ts, err := kittime.ParseTime(str, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return ptr.Of(ts), nil
 }
 
 func init() {

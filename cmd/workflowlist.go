@@ -18,7 +18,6 @@ import (
 	"os"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/gocarina/gocsv"
 	"github.com/spf13/cobra"
@@ -27,7 +26,6 @@ import (
 	"github.com/dapr/cli/utils"
 	"github.com/dapr/kit/ptr"
 	"github.com/dapr/kit/signals"
-	kittime "github.com/dapr/kit/time"
 )
 
 const (
@@ -100,9 +98,11 @@ var WorkflowListCmd = &cobra.Command{
 			opts.FilterWorkflowStatus = ptr.Of(workflowListFilterStatus)
 		}
 
-		opts.FilterMaxAge, err = parseWorkflowListMaxAge(cmd)
-		if err != nil {
-			return err
+		if cmd.Flags().Changed("filter-max-age") {
+			opts.FilterMaxAge, err = parseWorkflowDurationTimestamp(workflowListFilterMaxAge, true)
+			if err != nil {
+				return err
+			}
 		}
 
 		var list any
@@ -134,24 +134,6 @@ var WorkflowListCmd = &cobra.Command{
 
 		return nil
 	},
-}
-
-func parseWorkflowListMaxAge(cmd *cobra.Command) (*time.Time, error) {
-	if !cmd.Flags().Changed("filter-max-age") {
-		return nil, nil
-	}
-
-	dur, err := time.ParseDuration(workflowListFilterMaxAge)
-	if err == nil {
-		return ptr.Of(time.Now().Add(-dur)), nil
-	}
-
-	ts, err := kittime.ParseTime(workflowListFilterMaxAge, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return ptr.Of(ts), nil
 }
 
 func init() {

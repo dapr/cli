@@ -24,6 +24,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/dapr/cli/pkg/scheduler/stored"
+	"github.com/dapr/cli/utils"
 	schedulerv1 "github.com/dapr/dapr/pkg/proto/scheduler/v1"
 	"github.com/dapr/kit/ptr"
 )
@@ -57,11 +58,9 @@ type ListOutputWide struct {
 }
 
 type ListOutput struct {
-	Namespace   string     `csv:"NAMESPACE" json:"namespace" yaml:"namespace"`
-	AppID       string     `csv:"APP ID"    json:"appId"     yaml:"appId"`
 	Name        string     `csv:"NAME" json:"name"  yaml:"name"`
 	Target      string     `csv:"TARGET" json:"target"  yaml:"target"`
-	Begin       time.Time  `csv:"BEGIN" json:"begin"  yaml:"begin,omitempty"`
+	Begin       string     `csv:"BEGIN" json:"begin"  yaml:"begin,omitempty"`
 	Count       uint32     `csv:"Count" json:"count"  yaml:"count,omitempty"`
 	LastTrigger *time.Time `csv:"LAST TRIGGER" json:"lastTrigger"  yaml:"lastTrigger"`
 }
@@ -78,17 +77,23 @@ func ListJobsAsOutput(ctx context.Context, opts ListJobsOptions) ([]ListOutput, 
 		return nil, err
 	}
 
+	now := time.Now()
 	list := make([]ListOutput, 0, len(listWide))
 	for _, item := range listWide {
-		list = append(list, ListOutput{
-			Namespace:   item.Namespace,
-			AppID:       item.AppID,
+		l := ListOutput{
 			Name:        item.Name,
 			Target:      item.Target,
-			Begin:       item.Begin,
 			Count:       item.Count,
 			LastTrigger: item.LastTrigger,
-		})
+		}
+
+		if item.Begin.After(now) {
+			l.Begin = "+" + utils.HumanizeDuration(item.Begin.Sub(now))
+		} else {
+			l.Begin = "-" + utils.HumanizeDuration(now.Sub(item.Begin))
+		}
+
+		list = append(list, l)
 	}
 
 	return list, nil
@@ -168,7 +173,8 @@ func ListJobsAsOutputWide(ctx context.Context, opts ListJobsOptions) ([]ListOutp
 	sort.SliceStable(list, func(i, j int) bool {
 		return list[i].Namespace < list[j].Namespace &&
 			list[i].AppID < list[j].AppID &&
-			list[i].Name < list[j].Name
+			list[i].Name < list[j].Name &&
+			list[i].Begin.Before(list[j].Begin)
 	})
 
 	return list, nil

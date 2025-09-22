@@ -27,6 +27,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/dapr/cli/pkg/workflow/dclient"
+	"github.com/dapr/cli/utils"
 	"github.com/dapr/durabletask-go/api/protos"
 	"github.com/dapr/durabletask-go/workflow"
 	"github.com/dapr/go-sdk/client"
@@ -163,9 +164,9 @@ func HistoryWide(ctx context.Context, opts HistoryOptions) ([]*HistoryOutputWide
 		}
 
 		if idx == 0 {
-			row.Elapsed = "Age:" + humanize(time.Since(ts))
+			row.Elapsed = "Age:" + utils.HumanizeDuration(time.Since(ts))
 		} else {
-			row.Elapsed = humanize(ts.Sub(prevTs))
+			row.Elapsed = utils.HumanizeDuration(ts.Sub(prevTs))
 		}
 
 		prevTs = ts
@@ -223,10 +224,10 @@ func HistoryWide(ctx context.Context, opts HistoryOptions) ([]*HistoryOutputWide
 			if t.TimerCreated.Name != nil {
 				row.addAttr("timerName", *t.TimerCreated.Name)
 			}
-			row.addAttr("fireAt", t.TimerCreated.FireAt.AsTime().UTC().Format(time.RFC3339))
+			row.addAttr("fireAt", t.TimerCreated.FireAt.AsTime().Format(time.RFC3339))
 		case *protos.HistoryEvent_TimerFired:
 			row.addAttr("timerId", fmt.Sprintf("%d", t.TimerFired.TimerId))
-			row.addAttr("fireAt", t.TimerFired.FireAt.AsTime().UTC().Format(time.RFC3339))
+			row.addAttr("fireAt", t.TimerFired.FireAt.AsTime().Format(time.RFC3339))
 		case *protos.HistoryEvent_EventRaised:
 			row.addAttr("eventName", t.EventRaised.Name)
 			if t.EventRaised.Input != nil {
@@ -437,7 +438,7 @@ func deriveDetails(first *protos.HistoryEvent, h *protos.HistoryEvent) *string {
 		}
 		return ptr.Of(fmt.Sprintf("activity=%s%s", t.TaskScheduled.Name, ver))
 	case *protos.HistoryEvent_TimerCreated:
-		return ptr.Of(fmt.Sprintf("fireAt=%s", t.TimerCreated.FireAt.AsTime().UTC().Format(time.RFC3339)))
+		return ptr.Of(fmt.Sprintf("fireAt=%s", t.TimerCreated.FireAt.AsTime().Format(time.RFC3339)))
 	case *protos.HistoryEvent_EventRaised:
 		return ptr.Of(fmt.Sprintf("event=%s", t.EventRaised.Name))
 	case *protos.HistoryEvent_EventSent:
@@ -449,7 +450,7 @@ func deriveDetails(first *protos.HistoryEvent, h *protos.HistoryEvent) *string {
 	case *protos.HistoryEvent_TaskCompleted:
 		return ptr.Of(fmt.Sprintf("eventId=%d", t.TaskCompleted.TaskScheduledId))
 	case *protos.HistoryEvent_ExecutionCompleted:
-		return ptr.Of(fmt.Sprintf("execDuration=%s", humanize(h.GetTimestamp().AsTime().Sub(first.GetTimestamp().AsTime()))))
+		return ptr.Of(fmt.Sprintf("execDuration=%s", utils.HumanizeDuration(h.GetTimestamp().AsTime().Sub(first.GetTimestamp().AsTime()))))
 	default:
 		return nil
 	}
@@ -492,30 +493,6 @@ func flatTags(tags map[string]string, max int) string {
 		s += ",…"
 	}
 	return s
-}
-
-func humanize(d time.Duration) string {
-	if d == 0 {
-		return ""
-	}
-
-	if d < 0 {
-		d = -d
-	}
-	switch {
-	case d < time.Microsecond:
-		return fmt.Sprintf("%dns", d.Nanoseconds())
-	case d < time.Millisecond:
-		return fmt.Sprintf("%.1fµs", float64(d)/1e3)
-	case d < time.Second:
-		return fmt.Sprintf("%.1fms", float64(d)/1e6)
-	case d < time.Minute:
-		return fmt.Sprintf("%.2fs", d.Seconds())
-	case d < time.Hour:
-		return fmt.Sprintf("%.1fm", d.Minutes())
-	default:
-		return fmt.Sprintf("%.1fh", d.Hours())
-	}
 }
 
 func trim(ww *wrapperspb.StringValue, limit int) string {
