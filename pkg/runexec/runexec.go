@@ -114,7 +114,9 @@ func (c *CmdProcess) StopGracefully() error {
 		c.Command.Process.Wait()
 		close(waitChan)
 	}()
+	defer fmt.Println("ALBERT: StopGracefully done")
 
+	fmt.Println("ALBERT: Sending SIGTERM to process")
 	err := c.Command.Process.Signal(syscall.SIGTERM)
 	if err != nil {
 		return fmt.Errorf("error sending SIGTERM to App: %w", err)
@@ -124,6 +126,7 @@ func (c *CmdProcess) StopGracefully() error {
 		return nil
 	case <-time.After(10 * time.Second):
 	}
+	fmt.Println("ALBERT: Sending SIGKILL to process")
 	err = c.Command.Process.Kill()
 	if err != nil {
 		return fmt.Errorf("error sending SIGKILL to App: %w", err)

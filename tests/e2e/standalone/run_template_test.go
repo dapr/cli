@@ -258,7 +258,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		assert.Contains(t, lines[1], "Started Dapr with app id \"processor\". HTTP Port: 3510.")
 		assert.Contains(t, lines[2], "Writing log files to directory")
 		assert.Contains(t, lines[2], "tests/apps/processor/.dapr/logs")
-		assert.Contains(t, lines[4], "Error starting Dapr and app (\"emit-metrics\"): exec: no command")
+		assert.Contains(t, lines[6], "Error starting Dapr and app (\"emit-metrics\"): exec: no command")
 		appTestOutput := AppTestOutput{
 			appID:          "processor",
 			baseLogDirPath: "../../apps/processor/.dapr/logs",
