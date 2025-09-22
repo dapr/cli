@@ -11,15 +11,20 @@ import (
 	"github.com/dapr/dapr/pkg/apis/components/v1alpha1"
 	"github.com/dapr/dapr/pkg/components/loader"
 	"github.com/dapr/go-sdk/client"
+	"github.com/dapr/kit/ptr"
 )
 
 type Client struct {
 	Dapr             client.Client
 	Cancel           context.CancelFunc
 	StateStoreDriver string
+	ConnectionString *string
+	SQLTableName     *string
 }
 
 func DaprClient(ctx context.Context, kubernetesMode bool, namespace, appID string) (*Client, error) {
+	client.SetLogger(nil)
+
 	var client *Client
 	var err error
 	if kubernetesMode {
@@ -78,10 +83,24 @@ func stand(ctx context.Context, appID string) (*Client, error) {
 		return nil, err
 	}
 
+	// Optimistically use the connection string in self-hosted mode.
+	var connString *string
+	var tableName *string
+	for _, meta := range comp.Spec.Metadata {
+		switch meta.Name {
+		case "connectionString":
+			connString = ptr.Of(meta.Value.String())
+		case "tableName":
+			tableName = ptr.Of(meta.Value.String())
+		}
+	}
+
 	return &Client{
 		Dapr:             client,
 		Cancel:           func() {},
 		StateStoreDriver: driver,
+		ConnectionString: connString,
+		SQLTableName:     tableName,
 	}, nil
 }
 
@@ -164,10 +183,19 @@ func kube(namespace string, appID string) (*Client, error) {
 		return nil, err
 	}
 
+	var tableName *string
+	for _, meta := range comp.Spec.Metadata {
+		switch meta.Name {
+		case "tableName":
+			tableName = ptr.Of(meta.Value.String())
+		}
+	}
+
 	return &Client{
 		Dapr:             client,
 		Cancel:           portForward.Stop,
 		StateStoreDriver: driver,
+		SQLTableName:     tableName,
 	}, nil
 }
 

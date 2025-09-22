@@ -18,11 +18,10 @@ import (
 	"database/sql"
 	"fmt"
 
-	// TODO: @joshvanl, import other sql drivers.
-	//_ "github.com/jackc/pgx/v5/stdlib"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	_ "github.com/mattn/go-sqlite3"
-	//_ "github.com/microsoft/go-mssqldb"
-	//_ "github.com/sijms/go-ora/v2"
+	_ "github.com/microsoft/go-mssqldb"
+	_ "github.com/sijms/go-ora/v2"
 )
 
 type ListOptions struct {
@@ -78,7 +77,6 @@ func ListSQL(ctx context.Context, db *sql.DB, table string, opts ListOptions) ([
 //iter := rdb.Scan(ctx, 0, pattern, 0).Iterator()
 //for iter.Next(ctx) {
 //    key := iter.Val()
-//    fmt.Println("Found key:", key)
 //}
 //if err := iter.Err(); err != nil {
 //    log.Fatal(err)

@@ -18,6 +18,7 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/gocarina/gocsv"
 	"github.com/spf13/cobra"
@@ -26,6 +27,7 @@ import (
 	"github.com/dapr/cli/utils"
 	"github.com/dapr/kit/ptr"
 	"github.com/dapr/kit/signals"
+	kittime "github.com/dapr/kit/time"
 )
 
 const (
@@ -37,12 +39,12 @@ const (
 
 var (
 	workflowListOutputFormat     string
-	workflowListAppID            string
 	workflowListConnectionString string
 	workflowListSQLTable         string
 
 	workflowListFilterWorkflow string
 	workflowListFilterStatus   string
+	workflowListFilterMaxAge   string
 
 	workflowListStatuses = []string{
 		"RUNNING",
@@ -71,10 +73,15 @@ var WorkflowListCmd = &cobra.Command{
 			return errors.New("invalid value for --output. Supported values are 'table', 'wide', 'yaml', 'json'.")
 		}
 
+		appID, err := getWorkflowAppID(cmd)
+		if err != nil {
+			return err
+		}
+
 		opts := workflow.ListOptions{
 			KubernetesMode: kubernetesMode,
 			Namespace:      workflowNamespace,
-			AppID:          workflowListAppID,
+			AppID:          appID,
 		}
 
 		if cmd.Flags().Changed("connection-string") {
@@ -93,8 +100,12 @@ var WorkflowListCmd = &cobra.Command{
 			opts.FilterWorkflowStatus = ptr.Of(workflowListFilterStatus)
 		}
 
+		opts.FilterMaxAge, err = parseWorkflowListMaxAge(cmd)
+		if err != nil {
+			return err
+		}
+
 		var list any
-		var err error
 		if workflowListOutputFormat == workflowListOutputFormatShort {
 			list, err = workflow.ListShort(ctx, opts)
 		} else {
@@ -125,15 +136,32 @@ var WorkflowListCmd = &cobra.Command{
 	},
 }
 
+func parseWorkflowListMaxAge(cmd *cobra.Command) (*time.Time, error) {
+	if !cmd.Flags().Changed("filter-max-age") {
+		return nil, nil
+	}
+
+	dur, err := time.ParseDuration(workflowListFilterMaxAge)
+	if err == nil {
+		return ptr.Of(time.Now().Add(-dur)), nil
+	}
+
+	ts, err := kittime.ParseTime(workflowListFilterMaxAge, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return ptr.Of(ts), nil
+}
+
 func init() {
 	WorkflowListCmd.Flags().StringVarP(&workflowListOutputFormat, "output", "o", workflowListOutputFormatShort, "Output format. One of 'short', 'wide', 'yaml', 'json'")
 	WorkflowListCmd.Flags().StringVarP(&workflowListConnectionString, "connection-string", "c", workflowListConnectionString, "The connection string used to connect and authenticate to the actor state store")
 	WorkflowListCmd.Flags().StringVarP(&workflowListSQLTable, "sql-table-name", "t", workflowListSQLTable, "The name of the table which is used as the actor state store")
-	WorkflowListCmd.Flags().StringVarP(&workflowListAppID, "app-id", "a", "", "The application id")
 
 	WorkflowListCmd.Flags().StringVarP(&workflowListFilterWorkflow, "filter-workflow", "w", "", "List only the workflows with the given name")
 	WorkflowListCmd.Flags().StringVarP(&workflowListFilterStatus, "filter-status", "s", "", "List only the workflows with the given runtime status. One of "+strings.Join(workflowListStatuses, ", "))
+	WorkflowListCmd.Flags().StringVarP(&workflowListFilterMaxAge, "filter-max-age", "m", "", "List only the workflows started within the given duration or timestamp. Examples: 300ms, 1.5h or 2h45m, 2023-01-02T15:04:05 or 2023-01-02")
 
-	WorkflowListCmd.MarkFlagRequired("app-id")
 	WorkflowCmd.AddCommand(WorkflowListCmd)
 }

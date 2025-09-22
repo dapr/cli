@@ -138,7 +138,7 @@ func ListJobsAsOutputWide(ctx context.Context, opts ListJobsOptions) ([]ListOutp
 		case *schedulerv1.JobTargetMetadata_Job:
 			listoutput.Target = "job"
 		case *schedulerv1.JobTargetMetadata_Actor:
-			listoutput.Target = fmt.Sprintf("%s||%s)",
+			listoutput.Target = fmt.Sprintf("%s||%s",
 				meta.GetTarget().GetActor().GetType(),
 				meta.GetTarget().GetActor().GetId(),
 			)

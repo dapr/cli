@@ -15,6 +15,7 @@ package workflow
 
 import (
 	"context"
+	"sort"
 	"strings"
 	"time"
 
@@ -22,9 +23,8 @@ import (
 	"github.com/dapr/durabletask-go/workflow"
 	"github.com/dapr/go-sdk/client"
 	"github.com/dapr/kit/ptr"
+	"k8s.io/apimachinery/pkg/util/duration"
 )
-
-const maxHistoryEntries = 1000
 
 type ListOptions struct {
 	KubernetesMode   bool
@@ -35,22 +35,23 @@ type ListOptions struct {
 
 	FilterWorkflowName   *string
 	FilterWorkflowStatus *string
+	FilterMaxAge         *time.Time
 }
 
 type ListOutputShort struct {
-	Namespace     string    `csv:"NAMESPACE" json:"namespace" yaml:"namespace"`
-	AppID         string    `csv:"APP ID"    json:"appId"     yaml:"appId"`
-	Workflow      string    `csv:"WORKFLOW"    json:"workflow"     yaml:"workflow"`
-	InstanceID    string    `csv:"INSTANCE ID"    json:"instanceID"     yaml:"instanceID"`
-	Created       time.Time `csv:"CREATED"    json:"created"     yaml:"created"`
-	RuntimeStatus string    `csv:"STATUS"    json:"runtimeStatus"     yaml:"runtimeStatus"`
+	Namespace     string `csv:"-" json:"namespace" yaml:"namespace"`
+	AppID         string `csv:"-"    json:"appId"     yaml:"appId"`
+	InstanceID    string `csv:"INSTANCE ID"    json:"instanceID"     yaml:"instanceID"`
+	Name          string `csv:"NAME"    json:"name"     yaml:"name"`
+	RuntimeStatus string `csv:"STATUS"    json:"runtimeStatus"     yaml:"runtimeStatus"`
+	Age           string `csv:"AGE"    json:"age"     yaml:"age"`
 }
 
 type ListOutputWide struct {
 	Namespace      string    `csv:"NAMESPACE" json:"namespace" yaml:"namespace"`
 	AppID          string    `csv:"APP ID"    json:"appId"     yaml:"appId"`
-	Workflow       string    `csv:"WORKFLOW"    json:"workflow"     yaml:"workflow"`
 	InstanceID     string    `csv:"INSTANCE ID"    json:"instanceID"     yaml:"instanceID"`
+	Name           string    `csv:"Name"    json:"name"     yaml:"name"`
 	Created        time.Time `csv:"CREATED"    json:"created"     yaml:"created"`
 	LastUpdate     time.Time `csv:"LAST UPDATE"    json:"lastUpdate"     yaml:"lastUpdate"`
 	RuntimeStatus  string    `csv:"STATUS"    json:"runtimeStatus"     yaml:"runtimeStatus"`
@@ -70,9 +71,9 @@ func ListShort(ctx context.Context, opts ListOptions) ([]*ListOutputShort, error
 		short[i] = &ListOutputShort{
 			Namespace:     w.Namespace,
 			AppID:         w.AppID,
-			Workflow:      w.Workflow,
+			Name:          w.Name,
 			InstanceID:    w.InstanceID,
-			Created:       w.Created,
+			Age:           translateTimestampSince(w.Created),
 			RuntimeStatus: w.RuntimeStatus,
 		}
 	}
@@ -87,12 +88,21 @@ func ListWide(ctx context.Context, opts ListOptions) ([]*ListOutputWide, error) 
 	}
 	defer dclient.Cancel()
 
+	connString := opts.ConnectionString
+	if connString == nil {
+		connString = dclient.ConnectionString
+	}
+	tableName := opts.SQLTableName
+	if tableName == nil {
+		tableName = dclient.SQLTableName
+	}
+
 	metaKeys, err := metakeys(ctx, DBOptions{
 		Namespace:        opts.Namespace,
 		AppID:            opts.AppID,
 		Driver:           dclient.StateStoreDriver,
-		ConnectionString: opts.ConnectionString,
-		SQLTableName:     opts.SQLTableName,
+		ConnectionString: connString,
+		SQLTableName:     tableName,
 	})
 	if err != nil {
 		return nil, err
@@ -124,14 +134,17 @@ func list(ctx context.Context, metaKeys []string, cl client.Client, opts ListOpt
 		if opts.FilterWorkflowStatus != nil && resp.String() != *opts.FilterWorkflowStatus {
 			continue
 		}
+		if opts.FilterMaxAge != nil && resp.CreatedAt.AsTime().Before(*opts.FilterMaxAge) {
+			continue
+		}
 
 		wide := &ListOutputWide{
 			Namespace:     opts.Namespace,
 			AppID:         opts.AppID,
-			Workflow:      resp.Name,
+			Name:          resp.Name,
 			InstanceID:    instanceID,
-			Created:       resp.CreatedAt.AsTime(),
-			LastUpdate:    resp.LastUpdatedAt.AsTime(),
+			Created:       resp.CreatedAt.AsTime().Truncate(time.Second),
+			LastUpdate:    resp.LastUpdatedAt.AsTime().Truncate(time.Second),
 			RuntimeStatus: resp.String(),
 		}
 
@@ -147,98 +160,16 @@ func list(ctx context.Context, metaKeys []string, cl client.Client, opts ListOpt
 		listOutput = append(listOutput, wide)
 	}
 
+	sort.SliceStable(listOutput, func(i, j int) bool {
+		return listOutput[i].Created.Before(listOutput[j].Created)
+	})
+
 	return listOutput, nil
 }
 
-// TODO: @joshvanl: use for `dapr workflow get-history xyz`
-//func fetchHistory(ctx context.Context, cl client.Client, actorType, instanceID string) ([]*protos.HistoryEvent, error) {
-//	var events []*protos.HistoryEvent
-//	// Try starting from index 0, then 1 if no events found at 0
-//	for startIndex := 0; startIndex <= 1; startIndex++ {
-//		if len(events) > 0 {
-//			break // Found events, no need to try next start index
-//		}
-//
-//		for i := startIndex; i < maxHistoryEntries; i++ {
-//			key := fmt.Sprintf("history-%06d", i)
-//
-//			resp, err := cl.GetActorState(ctx, &client.GetActorStateRequest{
-//				ActorType: actorType,
-//				ActorID:   instanceID,
-//				KeyName:   key,
-//			})
-//			if err != nil {
-//				if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
-//					return nil, err
-//				}
-//				break
-//			}
-//
-//			if resp == nil || len(resp.Data) == 0 {
-//				break
-//			}
-//
-//			var event protos.HistoryEvent
-//			if err = decodeKey(resp.Data, &event); err != nil {
-//				return nil, fmt.Errorf("failed to decode history event %s: %w", key, err)
-//			}
-//
-//			events = append(events, &event)
-//		}
-//	}
-//
-//	return events, nil
-//}
-//
-//func decodeKey(data []byte, item proto.Message) error {
-//	if len(data) == 0 {
-//		return fmt.Errorf("empty value")
-//	}
-//
-//	if err := protojson.Unmarshal(data, item); err == nil {
-//		return nil
-//	}
-//
-//	if unquoted, err := unquoteJSON(data); err == nil {
-//		if err := protojson.Unmarshal([]byte(unquoted), item); err == nil {
-//			return nil
-//		}
-//	}
-//
-//	if err := proto.Unmarshal(data, item); err == nil {
-//		return nil
-//	}
-//
-//	return fmt.Errorf("unable to decode history event (len=%d)", len(data))
-//}
-//
-//func unquoteJSON(data []byte) (string, error) {
-//	var s string
-//	if err := json.Unmarshal(data, &s); err != nil {
-//		return "", err
-//	}
-//	return s, nil
-//}
-//
-//func runtimeStatus(status api.OrchestrationStatus) string {
-//	switch status {
-//	case api.RUNTIME_STATUS_RUNNING:
-//		return "RUNNING"
-//	case api.RUNTIME_STATUS_COMPLETED:
-//		return "COMPLETED"
-//	case api.RUNTIME_STATUS_CONTINUED_AS_NEW:
-//		return "CONTINUED_AS_NEW"
-//	case api.RUNTIME_STATUS_FAILED:
-//		return "FAILED"
-//	case api.RUNTIME_STATUS_CANCELED:
-//		return "CANCELED"
-//	case api.RUNTIME_STATUS_TERMINATED:
-//		return "TERMINATED"
-//	case api.RUNTIME_STATUS_PENDING:
-//		return "PENDING"
-//	case api.RUNTIME_STATUS_SUSPENDED:
-//		return "SUSPENDED"
-//	default:
-//		return ""
-//	}
-//}
+func translateTimestampSince(timestamp time.Time) string {
+	if timestamp.IsZero() {
+		return "<unknown>"
+	}
+	return duration.HumanDuration(time.Since(timestamp))
+}
