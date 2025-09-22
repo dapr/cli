@@ -15,9 +15,12 @@ package runexec
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
+	"syscall"
+	"time"
 
 	"github.com/dapr/cli/pkg/runfileconfig"
 	"github.com/dapr/cli/pkg/standalone"
@@ -103,6 +106,30 @@ func (c *CmdProcess) SetStderr() error {
 	}
 	c.Command.Stderr = c.ErrorWriter
 	return nil
+}
+
+func (c *CmdProcess) StopGracefully() error {
+	waitChan := make(chan struct{}, 1)
+	go func() {
+		c.Command.Process.Wait()
+		close(waitChan)
+	}()
+
+	err := c.Command.Process.Signal(syscall.SIGTERM)
+	if err != nil {
+		return fmt.Errorf("error sending SIGTERM to App: %w", err)
+	}
+	select {
+	case <-waitChan:
+		return nil
+	case <-time.After(10 * time.Second):
+	}
+	err = c.Command.Process.Kill()
+	if err != nil {
+		return fmt.Errorf("error sending SIGKILL to App: %w", err)
+	}
+	return nil
+
 }
 
 func NewOutput(config *standalone.RunConfig) (*RunOutput, error) {

@@ -80,6 +80,8 @@ func Command(command string, arguments ...string) (string, error) {
 // CommandExecWithContext runs a command with its arguments, kills the command after context is done
 // and returns the combined stdout, stderr or the error.
 func CommandExecWithContext(ctx context.Context, command string, arguments ...string) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
 	cmd := exec.CommandContext(ctx, command, arguments...)
 	var b bytes.Buffer
 	cmd.Stdout = &b
@@ -101,17 +103,7 @@ func CommandExecWithContext(ctx context.Context, command string, arguments ...st
 			return
 		case <-time.After(20 * time.Second):
 			if cmd.ProcessState == nil || !cmd.ProcessState.Exited() {
-				syscall.Kill(-cmd.Process.Pid, syscall.SIGTERM)
-			}
-		}
-		select {
-		case <-waitFinished:
-			return
-		case <-ctx.Done():
-			return
-		case <-time.After(10 * time.Second):
-			if cmd.ProcessState == nil || !cmd.ProcessState.Exited() {
-				syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+				cmd.Process.Signal(syscall.SIGTERM)
 			}
 		}
 	}()

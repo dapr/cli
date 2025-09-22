@@ -819,6 +819,18 @@ func stopDaprdAndAppProcesses(runState *runExec.RunExec) bool {
 
 	exitWithError := false
 
+	appErr := runState.AppCMD.CommandErr
+
+	if appErr != nil {
+		exitWithError = true
+		print.StatusEvent(runState.AppCMD.ErrorWriter, print.LogFailure, "Error exiting App: %s", appErr)
+	} else if runState.AppCMD.Command != nil && (runState.AppCMD.Command.ProcessState == nil || !runState.AppCMD.Command.ProcessState.Exited()) {
+		err = stopOrKillAppProcess(runState)
+		if err != nil {
+			exitWithError = true
+		}
+	}
+
 	daprErr := runState.DaprCMD.CommandErr
 
 	if daprErr != nil {
@@ -826,17 +838,6 @@ func stopDaprdAndAppProcesses(runState *runExec.RunExec) bool {
 		print.StatusEvent(runState.DaprCMD.ErrorWriter, print.LogFailure, "Error exiting Dapr: %s", daprErr)
 	} else if runState.DaprCMD.Command.ProcessState == nil || !runState.DaprCMD.Command.ProcessState.Exited() {
 		err = killDaprdProcess(runState)
-		if err != nil {
-			exitWithError = true
-		}
-	}
-	appErr := runState.AppCMD.CommandErr
-
-	if appErr != nil {
-		exitWithError = true
-		print.StatusEvent(runState.AppCMD.ErrorWriter, print.LogFailure, "Error exiting App: %s", appErr)
-	} else if runState.AppCMD.Command != nil && (runState.AppCMD.Command.ProcessState == nil || !runState.AppCMD.Command.ProcessState.Exited()) {
-		err = killAppProcess(runState)
 		if err != nil {
 			exitWithError = true
 		}
@@ -992,7 +993,7 @@ func startDaprdProcess(runConfig *standalone.RunConfig, runE *runExec.RunExec,
 
 // killDaprdProcess is used to kill the Daprd process and return error on failure.
 func killDaprdProcess(runE *runExec.RunExec) error {
-	err := runE.DaprCMD.Command.Process.Kill()
+	err := runE.DaprCMD.StopGracefully()
 	if err != nil {
 		print.StatusEvent(runE.DaprCMD.ErrorWriter, print.LogFailure, "Error exiting Dapr: %s", err)
 		return err
@@ -1001,12 +1002,12 @@ func killDaprdProcess(runE *runExec.RunExec) error {
 	return nil
 }
 
-// killAppProcess is used to kill the App process and return error on failure.
-func killAppProcess(runE *runExec.RunExec) error {
+// stopOrKillAppProcess is used to kill the App process and return error on failure.
+func stopOrKillAppProcess(runE *runExec.RunExec) error {
 	if runE.AppCMD.Command == nil {
 		return nil
 	}
-	err := runE.AppCMD.Command.Process.Kill()
+	err := runE.AppCMD.StopGracefully()
 	if err != nil {
 		print.StatusEvent(runE.DaprCMD.ErrorWriter, print.LogFailure, "Error exiting App: %s", err)
 		return err
