@@ -20,8 +20,11 @@ import (
 	"time"
 
 	"github.com/dapr/cli/pkg/workflow/dclient"
+	"github.com/dapr/durabletask-go/api"
+	"github.com/dapr/durabletask-go/api/protos"
 	"github.com/dapr/durabletask-go/workflow"
 	"github.com/dapr/go-sdk/client"
+	"github.com/dapr/kit/ptr"
 	"k8s.io/apimachinery/pkg/util/duration"
 )
 
@@ -35,6 +38,7 @@ type ListOptions struct {
 	FilterWorkflowName   *string
 	FilterWorkflowStatus *string
 	FilterMaxAge         *time.Time
+	FilterTerminal       bool
 }
 
 type ListOutputShort struct {
@@ -138,6 +142,10 @@ func list(ctx context.Context, metaKeys []string, cl client.Client, opts ListOpt
 			continue
 		}
 		if opts.FilterMaxAge != nil && resp.CreatedAt.AsTime().Before(*opts.FilterMaxAge) {
+			continue
+		}
+		// TODO: @joshvanl: add `WorkflowIsCompleted` func to workflow package.
+		if opts.FilterTerminal && !api.OrchestrationMetadataIsComplete(ptr.Of(protos.OrchestrationMetadata(*resp))) {
 			continue
 		}
 

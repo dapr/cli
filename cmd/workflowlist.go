@@ -36,9 +36,7 @@ const (
 )
 
 var (
-	workflowListOutputFormat     string
-	workflowListConnectionString string
-	workflowListSQLTable         string
+	workflowListOutputFormat string
 
 	workflowListFilterWorkflow string
 	workflowListFilterStatus   string
@@ -83,10 +81,10 @@ var WorkflowListCmd = &cobra.Command{
 		}
 
 		if cmd.Flags().Changed("connection-string") {
-			opts.ConnectionString = ptr.Of(workflowListConnectionString)
+			opts.ConnectionString = ptr.Of(workflowConnectionString)
 		}
 		if cmd.Flags().Changed("sql-table-name") {
-			opts.SQLTableName = ptr.Of(workflowListSQLTable)
+			opts.SQLTableName = ptr.Of(workflowSQLTable)
 		}
 		if cmd.Flags().Changed("filter-workflow") {
 			opts.FilterWorkflowName = ptr.Of(workflowListFilterWorkflow)
@@ -138,8 +136,6 @@ var WorkflowListCmd = &cobra.Command{
 
 func init() {
 	WorkflowListCmd.Flags().StringVarP(&workflowListOutputFormat, "output", "o", workflowListOutputFormatShort, "Output format. One of 'short', 'wide', 'yaml', 'json'")
-	WorkflowListCmd.Flags().StringVarP(&workflowListConnectionString, "connection-string", "c", workflowListConnectionString, "The connection string used to connect and authenticate to the actor state store")
-	WorkflowListCmd.Flags().StringVarP(&workflowListSQLTable, "sql-table-name", "t", workflowListSQLTable, "The name of the table which is used as the actor state store")
 
 	WorkflowListCmd.Flags().StringVarP(&workflowListFilterWorkflow, "filter-workflow", "w", "", "List only the workflows with the given name")
 	WorkflowListCmd.Flags().StringVarP(&workflowListFilterStatus, "filter-status", "s", "", "List only the workflows with the given runtime status. One of "+strings.Join(workflowListStatuses, ", "))

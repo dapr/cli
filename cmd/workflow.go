@@ -27,8 +27,10 @@ import (
 )
 
 var (
-	workflowNamespace string
-	workflowAppID     string
+	workflowNamespace        string
+	workflowAppID            string
+	workflowConnectionString string
+	workflowSQLTable         string
 )
 
 var WorkflowCmd = &cobra.Command{
@@ -98,5 +100,8 @@ func init() {
 	WorkflowCmd.PersistentFlags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "Target a Kubernetes dapr installation")
 	WorkflowCmd.PersistentFlags().StringVarP(&workflowNamespace, "namespace", "n", "default", "Namespace to perform workflow operation on")
 	WorkflowCmd.PersistentFlags().StringVarP(&workflowAppID, "app-id", "a", "", "The app ID owner of the workflow instance")
+	WorkflowCmd.PersistentFlags().StringVarP(&workflowConnectionString, "connection-string", "c", workflowConnectionString, "The connection string used to connect and authenticate to the actor state store")
+	WorkflowCmd.PersistentFlags().StringVarP(&workflowSQLTable, "sql-table-name", "t", workflowSQLTable, "The name of the table which is used as the actor state store")
+
 	RootCmd.AddCommand(WorkflowCmd)
 }
