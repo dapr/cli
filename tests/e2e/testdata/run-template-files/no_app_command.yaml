@@ -6,12 +6,12 @@ common:
   configFilePath: appconfig.yaml
 apps:
   - appDirPath: ../../../apps/processor/
-    appPort: 9086
+    appPort: 9081
     daprHTTPPort: 3510
     command: ["go","run", "app.go"]
     appLogDestination: file
     env:
-      APP_PORT: 9086
+      APP_PORT: 9081
   - appID: emit-metrics
     appDirPath: ../../../apps/emit-metrics/
     daprHTTPPort: 3511

@@ -23,7 +23,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -52,7 +51,6 @@ func TestRunWithTemplateFile(t *testing.T) {
 		t.Cleanup(func() {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
 			cleanUpLogs()
-			waitAppsToBeStopped()
 		})
 		args := []string{
 			"-f", runFilePath,
@@ -99,7 +97,6 @@ func TestRunWithTemplateFile(t *testing.T) {
 		t.Cleanup(func() {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
 			cleanUpLogs()
-			waitAppsToBeStopped()
 		})
 		args := []string{
 			"-f", runFilePath,
@@ -153,7 +150,6 @@ func TestRunWithTemplateFile(t *testing.T) {
 		t.Cleanup(func() {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
 			cleanUpLogs()
-			waitAppsToBeStopped()
 		})
 		args := []string{
 			"-f", runFilePath,
@@ -201,7 +197,6 @@ func TestRunWithTemplateFile(t *testing.T) {
 		t.Cleanup(func() {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
 			cleanUpLogs()
-			waitAppsToBeStopped()
 		})
 		args := []string{
 			"-f", runFilePath,
@@ -224,7 +219,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 			appID:          "processor",
 			baseLogDirPath: "../../apps/processor/.dapr/logs",
 			appLogContents: []string{
-				"Starting server in port 9086...",
+				"Starting server in port 9081...",
 				"termination signal received: shutting down",
 			},
 			daprdLogContent: []string{
@@ -250,7 +245,6 @@ func TestRunWithTemplateFile(t *testing.T) {
 		t.Cleanup(func() {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
 			cleanUpLogs()
-			waitAppsToBeStopped()
 		})
 		args := []string{
 			"-f", runFilePath,
@@ -269,7 +263,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 			appID:          "processor",
 			baseLogDirPath: "../../apps/processor/.dapr/logs",
 			appLogContents: []string{
-				"Starting server in port 9084...",
+				"Starting server in port 9081...",
 				"termination signal received: shutting down",
 			},
 			daprdLogContent: []string{
@@ -296,7 +290,6 @@ func TestRunWithTemplateFile(t *testing.T) {
 		t.Cleanup(func() {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
 			cleanUpLogs()
-			waitAppsToBeStopped()
 		})
 		args := []string{
 			"-f", runFilePath,
@@ -407,8 +400,4 @@ func lookUpFileFullName(dirPath, partialFilename string) (string, error) {
 		}
 	}
 	return "", fmt.Errorf("failed to find file with partial name %s in directory %s", partialFilename, dirPath)
-}
-
-func waitAppsToBeStopped() {
-	time.Sleep(15 * time.Second)
 }

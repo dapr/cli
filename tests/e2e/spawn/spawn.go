@@ -80,6 +80,8 @@ func Command(command string, arguments ...string) (string, error) {
 // CommandExecWithContext runs a command with its arguments, kills the command after context is done
 // and returns the combined stdout, stderr or the error.
 func CommandExecWithContext(ctx context.Context, command string, arguments ...string) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
 	cmd := exec.CommandContext(ctx, command, arguments...)
 	var b bytes.Buffer
 	cmd.Stdout = &b
@@ -90,27 +92,21 @@ func CommandExecWithContext(ctx context.Context, command string, arguments ...st
 		return "", fmt.Errorf("error starting command : %w", err)
 	}
 
-	waitErrChan := make(chan error, 1)
-	go func(errChan chan error) {
-		waitErr := cmd.Wait()
-		if waitErr != nil {
-			fmt.Printf("error waiting for command : %s\n", waitErr)
-		}
-		waitErrChan <- waitErr
-	}(waitErrChan)
-	ctx, cancel := context.WithTimeout(ctx, time.Second*20)
-	defer cancel()
-	<-ctx.Done()
-	if cmd.ProcessState == nil || !cmd.ProcessState.Exited() {
-		cmd.Process.Signal(syscall.SIGTERM)
-		time.Sleep(10 * time.Second)
-		if cmd.ProcessState == nil || !cmd.ProcessState.Exited() {
-			err = cmd.Process.Kill()
-			if err != nil {
-				return b.String(), fmt.Errorf("error killing command : %w", err)
+	// Send SIGTERM after 20 seconds for graceful shutdown
+	go func() {
+		select {
+		case <-ctx.Done():
+			// Do nothing, it's already stopped
+		case <-time.After(20 * time.Second):
+			if cmd.ProcessState == nil || !cmd.ProcessState.Exited() {
+				cmd.Process.Signal(syscall.SIGTERM)
 			}
 		}
-	}
+	}()
 
-	return b.String(), <-waitErrChan
+	err = cmd.Wait()
+	if err != nil {
+		return b.String(), fmt.Errorf("error waiting for command : %w", err)
+	}
+	return b.String(), nil
 }
