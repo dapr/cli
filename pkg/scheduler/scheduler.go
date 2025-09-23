@@ -24,14 +24,16 @@ import (
 
 	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/pkg/scheduler/stored"
+	"github.com/dapr/cli/utils"
 	schedulerv1 "github.com/dapr/dapr/pkg/proto/scheduler/v1"
 	"github.com/dapr/kit/ptr"
 )
 
 const (
-	FilterJobsAll   = "all"
-	FilterJobsJob   = "jobs"
-	FilterJobsActor = "actorreminder"
+	FilterJobsAll      = "all"
+	FilterJobsJob      = "jobs"
+	FilterJobsActor    = "actorreminder"
+	FilterJobsWorkflow = "workflow"
 )
 
 type ListJobsOptions struct {
@@ -58,11 +60,9 @@ type ListOutputWide struct {
 }
 
 type ListOutput struct {
-	Namespace   string     `csv:"NAMESPACE" json:"namespace" yaml:"namespace"`
-	AppID       string     `csv:"APP ID"    json:"appId"     yaml:"appId"`
 	Name        string     `csv:"NAME" json:"name"  yaml:"name"`
 	Target      string     `csv:"TARGET" json:"target"  yaml:"target"`
-	Begin       time.Time  `csv:"BEGIN" json:"begin"  yaml:"begin,omitempty"`
+	Begin       string     `csv:"BEGIN" json:"begin"  yaml:"begin,omitempty"`
 	Count       uint32     `csv:"Count" json:"count"  yaml:"count,omitempty"`
 	LastTrigger *time.Time `csv:"LAST TRIGGER" json:"lastTrigger"  yaml:"lastTrigger"`
 }
@@ -79,17 +79,22 @@ func ListJobsAsOutput(ctx context.Context, opts ListJobsOptions) ([]ListOutput, 
 		return nil, err
 	}
 
+	now := time.Now()
 	list := make([]ListOutput, 0, len(listWide))
 	for _, item := range listWide {
-		list = append(list, ListOutput{
-			Namespace:   item.Namespace,
-			AppID:       item.AppID,
+		l := ListOutput{
 			Name:        item.Name,
 			Target:      item.Target,
-			Begin:       item.Begin,
 			Count:       item.Count,
 			LastTrigger: item.LastTrigger,
-		})
+		}
+		if item.Begin.After(now) {
+			l.Begin = "+" + utils.HumanizeDuration(item.Begin.Sub(now))
+		} else {
+			l.Begin = "-" + utils.HumanizeDuration(now.Sub(item.Begin))
+		}
+
+		list = append(list, l)
 	}
 
 	return list, nil
@@ -115,7 +120,18 @@ func ListJobsAsOutputWide(ctx context.Context, opts ListJobsOptions) ([]ListOutp
 					continue
 				}
 			case *schedulerv1.JobTargetMetadata_Actor:
-				if opts.FilterJobType != FilterJobsActor {
+				isWorkflow := strings.HasPrefix(meta.GetTarget().GetActor().GetType(), "dapr.internal.") &&
+					strings.HasSuffix(meta.GetTarget().GetActor().GetType(), ".workflow")
+				switch opts.FilterJobType {
+				case FilterJobsWorkflow:
+					if !isWorkflow {
+						continue
+					}
+				case FilterJobsActor:
+					if isWorkflow {
+						continue
+					}
+				default:
 					continue
 				}
 			}
@@ -139,7 +155,7 @@ func ListJobsAsOutputWide(ctx context.Context, opts ListJobsOptions) ([]ListOutp
 		case *schedulerv1.JobTargetMetadata_Job:
 			listoutput.Target = "job"
 		case *schedulerv1.JobTargetMetadata_Actor:
-			listoutput.Target = fmt.Sprintf("%s||%s)",
+			listoutput.Target = fmt.Sprintf("%s||%s",
 				meta.GetTarget().GetActor().GetType(),
 				meta.GetTarget().GetActor().GetId(),
 			)

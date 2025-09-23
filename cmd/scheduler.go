@@ -56,8 +56,9 @@ var SchedulerListJobsCmd = &cobra.Command{
 			scheduler.FilterJobsAll,
 			scheduler.FilterJobsJob,
 			scheduler.FilterJobsActor,
+			scheduler.FilterJobsWorkflow,
 		}, schedulerListJobsFilterType) {
-			print.FailureStatusEvent(os.Stderr, "invalid value for --filter-type. Supported values are 'all', 'jobs', 'actorreminder'")
+			print.FailureStatusEvent(os.Stderr, "invalid value for --filter-type. Supported values are 'all', 'jobs', 'actorreminder', 'workflow'")
 			os.Exit(1)
 		}
 
@@ -114,7 +115,7 @@ var SchedulerListJobsCmd = &cobra.Command{
 }
 
 func init() {
-	SchedulerListJobsCmd.Flags().StringVar(&schedulerListJobsFilterType, "filter-type", scheduler.FilterJobsAll, "Filter jobs by type. Supported values are 'all', 'jobs', 'actorreminder'")
+	SchedulerListJobsCmd.Flags().StringVar(&schedulerListJobsFilterType, "filter-type", scheduler.FilterJobsAll, "Filter jobs by type. Supported values are 'all', 'jobs', 'actorreminder', 'workflow'")
 	SchedulerListJobsCmd.Flags().StringVarP(&schedulerListJobsOutputFormat, "output", "o", schedulerListJobsOutputFormatShort, "Output format. One of 'short', 'wide', 'yaml', 'json'")
 	SchedulerListJobsCmd.Flags().StringVar(&schedulerSchedulerNamespace, "scheduler-namespace", "dapr-system", "Kubernetes namespace where the scheduler is deployed")
 	SchedulerListJobsCmd.Flags().StringVarP(&schedulerNamespace, "namespace", "n", "", "Kubernetes namespace to list Dapr apps from. If not specified, uses all namespaces")

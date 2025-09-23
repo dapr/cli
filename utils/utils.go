@@ -443,3 +443,27 @@ func AttachJobObjectToProcess(pid string, proc *os.Process) {
 func GetJobObjectNameFromPID(pid string) string {
 	return pid + "-" + windowsDaprAppProcJobName
 }
+
+func HumanizeDuration(d time.Duration) string {
+	if d == 0 {
+		return ""
+	}
+
+	if d < 0 {
+		d = -d
+	}
+	switch {
+	case d < time.Microsecond:
+		return fmt.Sprintf("%dns", d.Nanoseconds())
+	case d < time.Millisecond:
+		return fmt.Sprintf("%.1fµs", float64(d)/1e3)
+	case d < time.Second:
+		return fmt.Sprintf("%.1fms", float64(d)/1e6)
+	case d < time.Minute:
+		return fmt.Sprintf("%.2fs", d.Seconds())
+	case d < time.Hour:
+		return fmt.Sprintf("%.1fm", d.Minutes())
+	default:
+		return fmt.Sprintf("%.1fh", d.Hours())
+	}
+}
