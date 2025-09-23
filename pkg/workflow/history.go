@@ -190,6 +190,9 @@ func HistoryWide(ctx context.Context, opts HistoryOptions) ([]*HistoryOutputWide
 				row.addAttr("tags", flatTags(t.ExecutionStarted.Tags, 6))
 			}
 		case *protos.HistoryEvent_TaskScheduled:
+			if row.EventID == nil {
+				row.EventID = ptr.Of(int32(0))
+			}
 			if t.TaskScheduled.TaskExecutionId != "" {
 				row.ExecutionID = ptr.Of(t.TaskScheduled.TaskExecutionId)
 			}
@@ -221,6 +224,9 @@ func HistoryWide(ctx context.Context, opts HistoryOptions) ([]*HistoryOutputWide
 				}
 			}
 		case *protos.HistoryEvent_TimerCreated:
+			if row.EventID == nil {
+				row.EventID = ptr.Of(int32(0))
+			}
 			if t.TimerCreated.Name != nil {
 				row.addAttr("timerName", *t.TimerCreated.Name)
 			}
