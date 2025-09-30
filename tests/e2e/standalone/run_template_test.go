@@ -18,7 +18,6 @@ limitations under the License.
 package standalone_test
 
 import (
-	"context"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
@@ -58,9 +57,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		args := []string{
 			"-f", runFilePath,
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		output, err := cmdRunWithContext(ctx, "", args...)
+		output, err := cmdRunWithContext(t.Context(), "", args...)
 		t.Logf("%s", output)
 		require.NoError(t, err, "run failed")
 		// Deterministic output for template file, so we can assert line by line
@@ -107,9 +104,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		args := []string{
 			"-f", runFilePath,
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		output, err := cmdRunWithContext(ctx, "", args...)
+		output, err := cmdRunWithContext(t.Context(), "", args...)
 		t.Logf("%s", output)
 		require.NoError(t, err, "run failed")
 		// Deterministic output for template file, so we can assert line by line
@@ -163,9 +158,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		args := []string{
 			"-f", runFilePath,
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		output, err := cmdRunWithContext(ctx, "", args...)
+		output, err := cmdRunWithContext(t.Context(), "", args...)
 		t.Logf("%s", output)
 		require.NoError(t, err, "run failed")
 		// Deterministic output for template file, so we can assert line by line
@@ -213,9 +206,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		args := []string{
 			"-f", runFilePath,
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		output, err := cmdRunWithContext(ctx, "", args...)
+		output, err := cmdRunWithContext(t.Context(), "", args...)
 		t.Logf("%s", output)
 		require.NoError(t, err, "run failed")
 		// Deterministic output for template file, so we can assert line by line
@@ -264,9 +255,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		args := []string{
 			"-f", runFilePath,
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		output, err := cmdRunWithContext(ctx, "", args...)
+		output, err := cmdRunWithContext(t.Context(), "", args...)
 		t.Logf("%s", output)
 		require.Error(t, err, "run must fail")
 		// Deterministic output for template file, so we can assert line by line
@@ -312,9 +301,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		args := []string{
 			"-f", runFilePath,
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		output, err := cmdRunWithContext(ctx, "", args...)
+		output, err := cmdRunWithContext(t.Context(), "", args...)
 		t.Logf("%s", output)
 		require.NoError(t, err, "run failed")
 
@@ -371,9 +358,7 @@ func TestRunTemplateFileWithoutDaprInit(t *testing.T) {
 		args := []string{
 			"-f", "../testdata/run-template-files/no_app_command.yaml",
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		output, err := cmdRunWithContext(ctx, "", args...)
+		output, err := cmdRunWithContext(t.Context(), "", args...)
 		t.Logf("%s", output)
 		require.Error(t, err, "run must fail")
 		assert.Contains(t, output, "Error starting Dapr and app (\"processor\"): fork/exec")
