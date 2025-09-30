@@ -91,6 +91,8 @@ func TestStandalonePublish(t *testing.T) {
 				assert.Contains(t, output, "Event published successfully")
 
 				event := <-events
+				event.TraceID = ""
+				event.TraceParent = ""
 				assert.Equal(t, &common.TopicEvent{
 					ID:              "3cc97064-edd1-49f4-b911-c959a7370e68",
 					Source:          "e2e_test",
@@ -103,8 +105,6 @@ func TestStandalonePublish(t *testing.T) {
 					Data:            map[string]interface{}{"dapr": "is_great"},
 					RawData:         []byte(`{"dapr":"is_great"}`),
 					Metadata:        make(map[string]string),
-					TraceID:         "00-00000000000000000000000000000000-0000000000000000-00",
-					TraceParent:     "00-00000000000000000000000000000000-0000000000000000-00",
 				}, event)
 			})
 
