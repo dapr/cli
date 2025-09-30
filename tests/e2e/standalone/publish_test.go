@@ -103,6 +103,8 @@ func TestStandalonePublish(t *testing.T) {
 					Data:            map[string]interface{}{"dapr": "is_great"},
 					RawData:         []byte(`{"dapr":"is_great"}`),
 					Metadata:        make(map[string]string),
+					TraceID:         "00-00000000000000000000000000000000-0000000000000000-00",
+					TraceParent:     "00-00000000000000000000000000000000-0000000000000000-00",
 				}, event)
 			})
 
