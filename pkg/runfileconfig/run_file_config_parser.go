@@ -39,6 +39,11 @@ func (a *RunFileConfig) parseAppsConfig(runFilePath string) error {
 	if err != nil {
 		return fmt.Errorf("error in parsing the provided app config file: %w", err)
 	}
+
+	err = a.applyEnv()
+	if err != nil {
+		return fmt.Errorf("error in parsing the envfile: %w", err)
+	}
 	return nil
 }
 

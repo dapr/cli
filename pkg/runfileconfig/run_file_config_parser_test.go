@@ -395,6 +395,54 @@ func TestGetBasePathFromAbsPath(t *testing.T) {
 	}
 }
 
+func TestApplyEnvFile(t *testing.T) {
+	// create a temporary .env file
+	tmpDir := t.TempDir()
+	envFilePath := filepath.Join(tmpDir, ".env")
+	envContent := "FOO=bar\nBAZ=qux\nPORT=5000\n"
+	err := os.WriteFile(envFilePath, []byte(envContent), 0o644)
+	assert.NoError(t, err)
+
+	cfg := RunFileConfig{
+		Common: Common{
+			EnvFile: &envFilePath,
+		},
+		Apps: []App{
+			{ // app defines PORT explicitly
+				RunConfig: standalone.RunConfig{
+					SharedRunConfig: standalone.SharedRunConfig{
+						Env: map[string]string{
+							"PORT": "8080",
+						},
+					},
+				},
+			},
+			{ // app with no env defined
+				RunConfig: standalone.RunConfig{},
+			},
+		},
+	}
+
+	err = cfg.applyEnv()
+	assert.NoError(t, err)
+
+	// First app keeps its own PORT, inherits others
+	app1 := cfg.Apps[0].Env
+	assert.Equal(t, "8080", app1["PORT"])
+	assert.Equal(t, "bar", app1["FOO"])
+	assert.Equal(t, "qux", app1["BAZ"])
+
+	// Second app inherits everything from .env
+	app2 := cfg.Apps[1].Env
+	assert.Equal(t, "5000", app2["PORT"])
+	assert.Equal(t, "bar", app2["FOO"])
+	assert.Equal(t, "qux", app2["BAZ"])
+
+	// Global environment is also updated
+	assert.Equal(t, "bar", os.Getenv("FOO"))
+	assert.Equal(t, "5000", os.Getenv("PORT")) // last loaded wins
+}
+
 // getResoucresAndConfigFilePaths returns a list containing resources and config file paths in order.
 func getResourcesAndConfigFilePaths(t *testing.T, daprInstallPath string) []string {
 	t.Helper()
