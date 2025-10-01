@@ -61,22 +61,22 @@ type App struct {
 // Common represents the configuration options for the common section in the run file.
 type Common struct {
 	standalone.SharedRunConfig `yaml:",inline"`
-	EnvFile                    string `yaml:"envFile,omitempty"`
+	EnvFile                    *string `yaml:"envFile,omitempty"`
 }
 
 // ApplyEnv loads the .env file (if specified) and merges it into each app’s RunConfig.Env.
 func (c *RunFileConfig) applyEnv() error {
-	if c.Common.EnvFile == "" {
+	if c.Common.EnvFile == nil {
 		return nil
 	}
 
-	envMap, err := godotenv.Read(c.Common.EnvFile)
+	envMap, err := godotenv.Read(*c.Common.EnvFile)
 	if err != nil {
 		return err
 	}
 
 	// Load into global process environment too
-	err = godotenv.Load(c.Common.EnvFile)
+	err = godotenv.Load(*c.Common.EnvFile)
 	if err != nil {
 		return err
 	}
