@@ -405,7 +405,7 @@ func TestApplyEnvFile(t *testing.T) {
 
 	cfg := RunFileConfig{
 		Common: Common{
-			EnvFile: envFilePath,
+			EnvFile: &envFilePath,
 		},
 		Apps: []App{
 			{ // app defines PORT explicitly
