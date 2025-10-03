@@ -108,7 +108,7 @@ func assertCommonArgs(t *testing.T, basicConfig *standalone.RunConfig, output *R
 	assert.Equal(t, 8000, output.DaprHTTPPort)
 	assert.Equal(t, 50001, output.DaprGRPCPort)
 
-	daprPath, err := standalone.GetDaprRuntimePath("")
+	_, err := standalone.GetDaprRuntimePath("")
 	assert.NoError(t, err)
 
 	assert.Contains(t, output.DaprCMD.Args[0], "daprd")
@@ -119,7 +119,8 @@ func assertCommonArgs(t *testing.T, basicConfig *standalone.RunConfig, output *R
 	assertArgumentEqual(t, "app-max-concurrency", "-1", output.DaprCMD.Args)
 	assertArgumentEqual(t, "app-protocol", "http", output.DaprCMD.Args)
 	assertArgumentEqual(t, "app-port", "3000", output.DaprCMD.Args)
-	assertArgumentEqual(t, "components-path", standalone.GetDaprComponentsPath(daprPath), output.DaprCMD.Args)
+	// Note: components-path is now a processed temporary directory with template substitution
+	assertArgumentContains(t, "components-path", "dapr-resources", output.DaprCMD.Args)
 	assertArgumentEqual(t, "app-ssl", "", output.DaprCMD.Args)
 	assertArgumentEqual(t, "metrics-port", "9001", output.DaprCMD.Args)
 	assertArgumentEqual(t, "max-body-size", "-1", output.DaprCMD.Args)

@@ -210,7 +210,7 @@ dapr run --run-file /path/to/directory -k
 			SchedulerHostAddress: schedulerHostAddress,
 			DaprdInstallPath:     daprRuntimePath,
 		}
-		output, err := runExec.NewOutput(&standalone.RunConfig{
+		runConfig := &standalone.RunConfig{
 			AppID:             appID,
 			AppChannelAddress: appChannelAddress,
 			AppPort:           appPort,
@@ -222,7 +222,8 @@ dapr run --run-file /path/to/directory -k
 			UnixDomainSocket:  unixDomainSocket,
 			InternalGRPCPort:  internalGRPCPort,
 			SharedRunConfig:   *sharedRunConfig,
-		})
+		}
+		output, err := runExec.NewOutput(runConfig)
 		if err != nil {
 			print.FailureStatusEvent(os.Stderr, err.Error())
 			os.Exit(1)
@@ -464,6 +465,12 @@ dapr run --run-file /path/to/directory -k
 			}
 		}
 
+		// Cleanup temporary resources directory if it was created.
+		err = runConfig.CleanupTempResources()
+		if err != nil {
+			print.WarningStatusEvent(os.Stdout, "Failed to cleanup temporary resources: %s", err.Error())
+		}
+
 		if exitWithError {
 			os.Exit(1)
 		}
@@ -656,6 +663,11 @@ func gracefullyShutdownAppsAndCloseResources(runState []*runExec.RunExec, apps [
 			err = hasErr
 		}
 		hasErr = app.CloseDaprdLogFile()
+		if err == nil && hasErr != nil {
+			err = hasErr
+		}
+		// Cleanup temporary resources for each app.
+		hasErr = app.RunConfig.CleanupTempResources()
 		if err == nil && hasErr != nil {
 			err = hasErr
 		}
