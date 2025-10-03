@@ -30,7 +30,7 @@ import (
 )
 
 func main() {
-	const port = 9084
+	const port = 9095
 
 	ctx := signals.Context()
 
@@ -42,10 +42,17 @@ func main() {
 		close(regCh)
 		w.Write([]byte(`{"entities": ["myactortype"]}`))
 	})
-	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {})
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {})
 
 	go func() {
-		<-regCh
+		log.Printf("Waiting for registration call...")
+		select {
+		case <-regCh:
+			log.Printf("Registration call received")
+		case <-ctx.Done():
+			log.Printf("Context done while waiting for registration call")
+			return
+		}
 		register(ctx)
 	}()
 
@@ -55,10 +62,13 @@ func main() {
 func register(ctx context.Context) {
 	log.Printf("Registering jobs, reminders and workflows")
 
-	cl, err := client.NewClient()
+	addr := "127.0.0.1:3510"
+	log.Printf("Creating client to %s", addr)
+	cl, err := client.NewClientWithAddress(addr)
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Println("Client created")
 
 	ds := time.Now().Format(time.RFC3339)
 
@@ -77,6 +87,8 @@ func register(ctx context.Context) {
 		log.Fatal(err)
 	}
 
+	log.Printf("Scheduled job test1")
+
 	if err = cl.ScheduleJobAlpha1(ctx, &client.Job{
 		Name:     "test2",
 		Schedule: ptr.Of("@every 100m"),
@@ -88,6 +100,8 @@ func register(ctx context.Context) {
 		log.Fatal(err)
 	}
 
+	log.Printf("Scheduled job test2")
+
 	if err = cl.RegisterActorReminder(ctx, &client.RegisterActorReminderRequest{
 		ActorType: "myactortype",
 		ActorID:   "actorid1",
@@ -98,6 +112,8 @@ func register(ctx context.Context) {
 		log.Fatal(err)
 	}
 
+	log.Printf("Scheduled actor reminder test1")
+
 	if err = cl.RegisterActorReminder(ctx, &client.RegisterActorReminderRequest{
 		ActorType: "myactortype",
 		ActorID:   "actorid2",
@@ -107,6 +123,8 @@ func register(ctx context.Context) {
 	}); err != nil {
 		log.Fatal(err)
 	}
+
+	log.Printf("Scheduled actor reminder test2")
 
 	r := workflow.NewRegistry()
 
@@ -132,21 +150,35 @@ func register(ctx context.Context) {
 	if _, err = wf.ScheduleWorkflow(ctx, "W1", workflow.WithInstanceID("abc1")); err != nil {
 		log.Fatal(err)
 	}
+
+	log.Printf("Scheduled workflow W1 with id abc1")
+
 	if _, err = wf.ScheduleWorkflow(ctx, "W1", workflow.WithInstanceID("abc2")); err != nil {
 		log.Fatal(err)
 	}
+
+	log.Printf("Scheduled workflow W1 with id abc2")
+
 	if _, err = wf.ScheduleWorkflow(ctx, "W2", workflow.WithInstanceID("xyz1")); err != nil {
 		log.Fatal(err)
 	}
+
+	log.Printf("Scheduled workflow W2 with id xyz1")
+
 	if _, err = wf.ScheduleWorkflow(ctx, "W2", workflow.WithInstanceID("xyz2")); err != nil {
 		log.Fatal(err)
 	}
+
+	log.Printf("Scheduled workflow W2 with id xyz2")
 }
 
 // StartServer starts a HTTP or HTTP2 server
 func StartServer(ctx context.Context, port int, handler http.Handler) {
 	// Create a listener
 	addr := fmt.Sprintf(":%d", port)
+
+	log.Println("Starting server on ", addr)
+
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Fatalf("Failed to create listener: %v", err)
@@ -167,6 +199,7 @@ func StartServer(ctx context.Context, port int, handler http.Handler) {
 		server.Shutdown(ctx)
 	}()
 
+	log.Printf("Server listening on %s", addr)
 	err = server.Serve(ln)
 
 	if err != http.ErrServerClosed {

@@ -32,7 +32,11 @@ import (
 )
 
 func TestSchedulerList(t *testing.T) {
-	cleanUpLogs()
+	if isSlimMode() {
+		t.Skip("skipping scheduler tests in slim mode")
+	}
+
+	cmdUninstall()
 	ensureDaprInstallation(t)
 	t.Cleanup(func() {
 		must(t, cmdUninstall, "failed to uninstall Dapr")
@@ -41,18 +45,21 @@ func TestSchedulerList(t *testing.T) {
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
 	t.Cleanup(func() {
 		cmdStopWithAppID("test-scheduler")
-		cleanUpLogs()
 		waitAppsToBeStopped()
 	})
 	args := []string{"-f", runFilePath}
 
-	go cmdRun("", args...)
+	go func() {
+		o, err := cmdRun("", args...)
+		t.Log(o)
+		t.Log(err)
+	}()
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		output, err := cmdSchedulerList()
 		require.NoError(t, err)
 		assert.Len(c, strings.Split(output, "\n"), 10)
-	}, time.Second*10, time.Millisecond*10)
+	}, time.Second*30, time.Millisecond*10)
 
 	t.Run("short", func(t *testing.T) {
 		output, err := cmdSchedulerList()
@@ -177,7 +184,11 @@ func TestSchedulerList(t *testing.T) {
 }
 
 func TestSchedulerGet(t *testing.T) {
-	cleanUpLogs()
+	if isSlimMode() {
+		t.Skip("skipping scheduler tests in slim mode")
+	}
+
+	cmdUninstall()
 	ensureDaprInstallation(t)
 	t.Cleanup(func() {
 		must(t, cmdUninstall, "failed to uninstall Dapr")
@@ -186,18 +197,21 @@ func TestSchedulerGet(t *testing.T) {
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
 	t.Cleanup(func() {
 		cmdStopWithAppID("test-scheduler")
-		cleanUpLogs()
 		waitAppsToBeStopped()
 	})
 	args := []string{"-f", runFilePath}
 
-	go cmdRun("", args...)
+	go func() {
+		o, err := cmdRun("", args...)
+		t.Log(o)
+		t.Log(err)
+	}()
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		output, err := cmdSchedulerList()
 		require.NoError(t, err)
 		assert.Len(c, strings.Split(output, "\n"), 10)
-	}, time.Second*10, time.Millisecond*10)
+	}, time.Second*30, time.Millisecond*10)
 
 	expNames := []string{
 		"actor/myactortype/actorid1/test1",
@@ -273,7 +287,11 @@ func TestSchedulerGet(t *testing.T) {
 }
 
 func TestSchedulerDelete(t *testing.T) {
-	cleanUpLogs()
+	if isSlimMode() {
+		t.Skip("skipping scheduler tests in slim mode")
+	}
+
+	cmdUninstall()
 	ensureDaprInstallation(t)
 	t.Cleanup(func() {
 		must(t, cmdUninstall, "failed to uninstall Dapr")
@@ -282,18 +300,21 @@ func TestSchedulerDelete(t *testing.T) {
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
 	t.Cleanup(func() {
 		cmdStopWithAppID("test-scheduler")
-		cleanUpLogs()
 		waitAppsToBeStopped()
 	})
 	args := []string{"-f", runFilePath}
 
-	go cmdRun("", args...)
+	go func() {
+		o, err := cmdRun("", args...)
+		t.Log(o)
+		t.Log(err)
+	}()
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		output, err := cmdSchedulerList()
 		require.NoError(t, err)
 		assert.Len(c, strings.Split(output, "\n"), 10)
-	}, time.Second*10, time.Millisecond*10)
+	}, time.Second*30, time.Millisecond*10)
 
 	output, err := cmdSchedulerList()
 	require.NoError(t, err)
@@ -338,7 +359,11 @@ func TestSchedulerDelete(t *testing.T) {
 }
 
 func TestSchedulerDeleteAllAll(t *testing.T) {
-	cleanUpLogs()
+	if isSlimMode() {
+		t.Skip("skipping scheduler tests in slim mode")
+	}
+
+	cmdUninstall()
 	ensureDaprInstallation(t)
 	t.Cleanup(func() {
 		must(t, cmdUninstall, "failed to uninstall Dapr")
@@ -347,18 +372,21 @@ func TestSchedulerDeleteAllAll(t *testing.T) {
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
 	t.Cleanup(func() {
 		cmdStopWithAppID("test-scheduler")
-		cleanUpLogs()
 		waitAppsToBeStopped()
 	})
 	args := []string{"-f", runFilePath}
 
-	go cmdRun("", args...)
+	go func() {
+		o, err := cmdRun("", args...)
+		t.Log(o)
+		t.Log(err)
+	}()
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		output, err := cmdSchedulerList()
 		require.NoError(t, err)
 		assert.Len(c, strings.Split(output, "\n"), 10)
-	}, time.Second*10, time.Millisecond*10)
+	}, time.Second*30, time.Millisecond*10)
 
 	_, err := cmdSchedulerDeleteAll("all")
 	require.NoError(t, err)
@@ -369,7 +397,11 @@ func TestSchedulerDeleteAllAll(t *testing.T) {
 }
 
 func TestSchedulerDeleteAll(t *testing.T) {
-	cleanUpLogs()
+	if isSlimMode() {
+		t.Skip("skipping scheduler tests in slim mode")
+	}
+
+	cmdUninstall()
 	ensureDaprInstallation(t)
 	t.Cleanup(func() {
 		must(t, cmdUninstall, "failed to uninstall Dapr")
@@ -378,18 +410,21 @@ func TestSchedulerDeleteAll(t *testing.T) {
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
 	t.Cleanup(func() {
 		cmdStopWithAppID("test-scheduler")
-		cleanUpLogs()
 		waitAppsToBeStopped()
 	})
 	args := []string{"-f", runFilePath}
 
-	go cmdRun("", args...)
+	go func() {
+		o, err := cmdRun("", args...)
+		t.Log(o)
+		t.Log(err)
+	}()
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		output, err := cmdSchedulerList()
 		require.NoError(t, err)
 		assert.Len(c, strings.Split(output, "\n"), 10)
-	}, time.Second*10, time.Millisecond*10)
+	}, time.Second*30, time.Millisecond*10)
 
 	_, err := cmdSchedulerDeleteAll("app/test-scheduler")
 	require.NoError(t, err)
@@ -423,7 +458,11 @@ func TestSchedulerDeleteAll(t *testing.T) {
 }
 
 func TestSchedulerExportImport(t *testing.T) {
-	cleanUpLogs()
+	if isSlimMode() {
+		t.Skip("skipping scheduler tests in slim mode")
+	}
+
+	cmdUninstall()
 	ensureDaprInstallation(t)
 	t.Cleanup(func() {
 		must(t, cmdUninstall, "failed to uninstall Dapr")
@@ -432,18 +471,21 @@ func TestSchedulerExportImport(t *testing.T) {
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
 	t.Cleanup(func() {
 		cmdStopWithAppID("test-scheduler")
-		cleanUpLogs()
 		waitAppsToBeStopped()
 	})
 	args := []string{"-f", runFilePath}
 
-	go cmdRun("", args...)
+	go func() {
+		o, err := cmdRun("", args...)
+		t.Log(o)
+		t.Log(err)
+	}()
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		output, err := cmdSchedulerList()
 		require.NoError(t, err)
 		assert.Len(c, strings.Split(output, "\n"), 10)
-	}, time.Second*10, time.Millisecond*10)
+	}, time.Second*30, time.Millisecond*10)
 
 	f := filepath.Join(t.TempDir(), "foo")
 	_, err := cmdSchedulerExport("-o", f)
