@@ -32,9 +32,13 @@ spec:
   - name: connectionString
     value: {{REDIS_CONNECTION:redis://localhost:6379}}
   
-  # Empty default - explicitly set to empty if not provided
+  # Numeric default - database index
   - name: redisDB
     value: {{REDIS_DB:0}}
+  
+  # Empty default - explicitly set to empty if not provided
+  - name: optionalTag
+    value: {{OPTIONAL_TAG:}}
   
   # No default - must be set or will remain as template
   - name: redisPassword

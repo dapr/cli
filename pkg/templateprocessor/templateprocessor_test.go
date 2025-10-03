@@ -422,6 +422,79 @@ func TestCleanupEmptyString(t *testing.T) {
 	}
 }
 
+func TestExampleWithDefaultsFile(t *testing.T) {
+	// Test that the example-with-defaults.yaml file is valid and processes correctly
+	exampleFile := filepath.Join("testdata", "example-with-defaults.yaml")
+
+	// Read the example file
+	content, err := os.ReadFile(exampleFile)
+	if err != nil {
+		t.Fatalf("Failed to read example-with-defaults.yaml: %v", err)
+	}
+
+	// Test without setting any env vars (should use defaults)
+	processed, hasTemplates := substituteEnvVars(content)
+	if !hasTemplates {
+		t.Error("Expected templates to be found in example-with-defaults.yaml")
+	}
+
+	processedStr := string(processed)
+
+	// Verify defaults are applied
+	if !contains(processedStr, "localhost") {
+		t.Error("Expected REDIS_HOST default 'localhost' to be applied")
+	}
+	if !contains(processedStr, "6379") {
+		t.Error("Expected REDIS_PORT default '6379' to be applied")
+	}
+	if !contains(processedStr, "false") {
+		t.Error("Expected REDIS_TLS default 'false' to be applied")
+	}
+
+	// Verify empty default is applied for OPTIONAL_TAG
+	// The line should have "value: " with nothing after it (or newline)
+	if !contains(processedStr, "optionalTag\n    value: \n") && !contains(processedStr, "optionalTag\n    value:\n") {
+		t.Error("Expected OPTIONAL_TAG empty default to result in 'value: ' (empty)")
+	}
+
+	// Verify template without default stays as template
+	if !contains(processedStr, "{{REDIS_PASSWORD}}") {
+		t.Error("Expected REDIS_PASSWORD without default to remain as template")
+	}
+
+	// Now test with env vars set
+	os.Setenv("REDIS_HOST", "custom-redis")
+	os.Setenv("REDIS_PASSWORD", "secret123")
+	os.Setenv("OPTIONAL_TAG", "my-tag")
+	defer func() {
+		os.Unsetenv("REDIS_HOST")
+		os.Unsetenv("REDIS_PASSWORD")
+		os.Unsetenv("OPTIONAL_TAG")
+	}()
+
+	processed2, hasTemplates2 := substituteEnvVars(content)
+	if !hasTemplates2 {
+		t.Error("Expected templates to be found in example-with-defaults.yaml")
+	}
+
+	processedStr2 := string(processed2)
+
+	// Verify env vars override defaults
+	if !contains(processedStr2, "custom-redis") {
+		t.Error("Expected REDIS_HOST env var 'custom-redis' to override default")
+	}
+
+	// Verify env var substituted for template without default
+	if !contains(processedStr2, "secret123") {
+		t.Error("Expected REDIS_PASSWORD to be substituted with 'secret123'")
+	}
+
+	// Verify env var overrides empty default
+	if !contains(processedStr2, "my-tag") {
+		t.Error("Expected OPTIONAL_TAG env var 'my-tag' to override empty default")
+	}
+}
+
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && (s == substr || len(substr) == 0 ||
 		(len(s) > 0 && (s[0:len(substr)] == substr || contains(s[1:], substr))))
