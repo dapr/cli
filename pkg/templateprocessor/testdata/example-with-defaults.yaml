@@ -1,0 +1,51 @@
+# Example Component with Default Values
+# This demonstrates the template variable substitution feature with defaults
+#
+# Syntax: {{ENV_VAR_NAME:default_value}}
+#
+# Behavior:
+#   - If ENV_VAR_NAME is set, use its value
+#   - If ENV_VAR_NAME is not set, use default_value
+#   - If no default is provided ({{ENV_VAR_NAME}}), leave unchanged when var is missing
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: redis-statestore
+spec:
+  type: state.redis
+  version: v1
+  metadata:
+  # Basic default - simple value
+  - name: redisHost
+    value: {{REDIS_HOST:localhost}}
+  
+  # Numeric default
+  - name: redisPort
+    value: {{REDIS_PORT:6379}}
+  
+  # Boolean default
+  - name: enableTLS
+    value: {{REDIS_TLS:false}}
+  
+  # URL with protocol and port
+  - name: connectionString
+    value: {{REDIS_CONNECTION:redis://localhost:6379}}
+  
+  # Empty default - explicitly set to empty if not provided
+  - name: redisDB
+    value: {{REDIS_DB:0}}
+  
+  # No default - must be set or will remain as template
+  - name: redisPassword
+    value: {{REDIS_PASSWORD}}
+  
+  # Default with special characters
+  - name: clientName
+    value: {{REDIS_CLIENT_NAME:dapr-app-v1.0}}
+  
+  # Default with spaces
+  - name: description
+    value: {{REDIS_DESCRIPTION:Default Redis State Store}}
+
+

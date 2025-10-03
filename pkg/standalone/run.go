@@ -31,6 +31,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/dapr/cli/pkg/print"
+	"github.com/dapr/cli/pkg/templateprocessor"
 	localloader "github.com/dapr/dapr/pkg/components/loader"
 )
 
@@ -95,6 +96,8 @@ type SharedRunConfig struct {
 	DaprdLogDestination  LogDestType       `yaml:"daprdLogDestination"`
 	AppLogDestination    LogDestType       `yaml:"appLogDestination"`
 	SchedulerHostAddress string            `arg:"scheduler-host-address" yaml:"schedulerHostAddress"`
+	// Internal field to track temporary directory for processed resources. Not exposed to user.
+	tempResourcesDir string
 }
 
 func (meta *DaprMeta) newAppID() string {
@@ -116,11 +119,33 @@ func (config *RunConfig) validateResourcesPaths() error {
 			return fmt.Errorf("error validating resources path %q : %w", dirPath, err)
 		}
 	}
-	localLoader := localloader.NewLocalLoader(config.AppID, dirPath)
-	err := localLoader.Validate(context.Background())
+
+	// Process resources with environment variable substitution.
+	// This creates a temporary directory with processed files.
+	processedResources, err := templateprocessor.ProcessResourcesWithEnvVars(dirPath)
+	if err != nil {
+		return fmt.Errorf("error processing resource templates: %w", err)
+	}
+
+	// Store temp directory for cleanup and use processed paths for validation.
+	config.tempResourcesDir = processedResources.TempDir
+	validationPaths := processedResources.ProcessedPaths
+
+	// Validate the processed resources.
+	localLoader := localloader.NewLocalLoader(config.AppID, validationPaths)
+	err = localLoader.Validate(context.Background())
 	if err != nil {
 		return fmt.Errorf("error validating components in resources path %q : %w", dirPath, err)
 	}
+
+	// Update ResourcesPaths to point to processed resources.
+	// This ensures daprd uses the processed files with substituted values.
+	if len(config.ResourcesPaths) > 0 {
+		config.ResourcesPaths = processedResources.ProcessedPaths
+	} else {
+		config.ComponentsPath = processedResources.ProcessedPaths[0]
+	}
+
 	return nil
 }
 
@@ -380,8 +405,12 @@ func (config *RunConfig) getArgs() []string {
 // This is needed because the config struct has embedded struct.
 func getArgsFromSchema(schema reflect.Value, args []string) []string {
 	for i := range schema.NumField() {
-		valueField := schema.Field(i).Interface()
 		typeField := schema.Type().Field(i)
+		// Skip unexported fields.
+		if !typeField.IsExported() {
+			continue
+		}
+		valueField := schema.Field(i).Interface()
 		key := typeField.Tag.Get("arg")
 		if typeField.Type.Kind() == reflect.Struct {
 			args = getArgsFromSchema(schema.Field(i), args)
@@ -422,8 +451,12 @@ func (config *RunConfig) SetDefaultFromSchema() {
 
 func (config *RunConfig) setDefaultFromSchemaRecursive(schema reflect.Value) {
 	for i := range schema.NumField() {
-		valueField := schema.Field(i)
 		typeField := schema.Type().Field(i)
+		// Skip unexported fields.
+		if !typeField.IsExported() {
+			continue
+		}
+		valueField := schema.Field(i)
 		if typeField.Type.Kind() == reflect.Struct {
 			config.setDefaultFromSchemaRecursive(valueField)
 			continue
@@ -448,8 +481,12 @@ func (config *RunConfig) getEnv() []string {
 	// Handle values from config that have an "env" tag.
 	schema := reflect.ValueOf(*config)
 	for i := range schema.NumField() {
-		valueField := schema.Field(i).Interface()
 		typeField := schema.Type().Field(i)
+		// Skip unexported fields.
+		if !typeField.IsExported() {
+			continue
+		}
+		valueField := schema.Field(i).Interface()
 		key := typeField.Tag.Get("env")
 		if len(key) == 0 {
 			continue
@@ -508,8 +545,12 @@ func (config *RunConfig) GetEnv() map[string]string {
 	env := map[string]string{}
 	schema := reflect.ValueOf(*config)
 	for i := range schema.NumField() {
-		valueField := schema.Field(i).Interface()
 		typeField := schema.Type().Field(i)
+		// Skip unexported fields.
+		if !typeField.IsExported() {
+			continue
+		}
+		valueField := schema.Field(i).Interface()
 		key := typeField.Tag.Get("env")
 		if len(key) == 0 {
 			continue
@@ -532,8 +573,12 @@ func (config *RunConfig) GetAnnotations() map[string]string {
 	annotations := map[string]string{}
 	schema := reflect.ValueOf(*config)
 	for i := range schema.NumField() {
-		valueField := schema.Field(i).Interface()
 		typeField := schema.Type().Field(i)
+		// Skip unexported fields.
+		if !typeField.IsExported() {
+			continue
+		}
+		valueField := schema.Field(i).Interface()
 		key := typeField.Tag.Get("annotation")
 		if len(key) == 0 {
 			continue
@@ -611,4 +656,12 @@ func (l LogDestType) IsValid() error {
 		return nil
 	}
 	return fmt.Errorf("invalid log destination type: %s", l)
+}
+
+// CleanupTempResources removes the temporary directory created for processed resources.
+func (config *RunConfig) CleanupTempResources() error {
+	if config.tempResourcesDir == "" {
+		return nil
+	}
+	return templateprocessor.Cleanup(config.tempResourcesDir)
 }

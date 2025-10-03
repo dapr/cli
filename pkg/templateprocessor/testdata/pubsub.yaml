@@ -1,0 +1,16 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: pubsub
+spec:
+  type: pubsub.redis
+  version: v1
+  metadata:
+  - name: redisHost
+    value: {{PUBSUB_HOST}}
+  - name: redisPort
+    value: "6379"
+  - name: consumerID
+    value: myapp
+
+
