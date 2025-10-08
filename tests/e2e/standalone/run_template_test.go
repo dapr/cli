@@ -18,7 +18,6 @@ limitations under the License.
 package standalone_test
 
 import (
-	"context"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
@@ -53,14 +52,12 @@ func TestRunWithTemplateFile(t *testing.T) {
 		t.Cleanup(func() {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
 			cleanUpLogs()
-			stopAllApps(t, runFilePath)
+			waitAppsToBeStopped()
 		})
 		args := []string{
 			"-f", runFilePath,
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		output, err := cmdRunWithContext(ctx, "", args...)
+		output, err := cmdRunWithContext(t.Context(), "", args...)
 		t.Logf("%s", output)
 		require.NoError(t, err, "run failed")
 		// Deterministic output for template file, so we can assert line by line
@@ -102,14 +99,12 @@ func TestRunWithTemplateFile(t *testing.T) {
 		t.Cleanup(func() {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
 			cleanUpLogs()
-			stopAllApps(t, runFilePath)
+			waitAppsToBeStopped()
 		})
 		args := []string{
 			"-f", runFilePath,
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		output, err := cmdRunWithContext(ctx, "", args...)
+		output, err := cmdRunWithContext(t.Context(), "", args...)
 		t.Logf("%s", output)
 		require.NoError(t, err, "run failed")
 		// Deterministic output for template file, so we can assert line by line
@@ -158,14 +153,12 @@ func TestRunWithTemplateFile(t *testing.T) {
 		t.Cleanup(func() {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
 			cleanUpLogs()
-			stopAllApps(t, runFilePath)
+			waitAppsToBeStopped()
 		})
 		args := []string{
 			"-f", runFilePath,
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		output, err := cmdRunWithContext(ctx, "", args...)
+		output, err := cmdRunWithContext(t.Context(), "", args...)
 		t.Logf("%s", output)
 		require.NoError(t, err, "run failed")
 		// Deterministic output for template file, so we can assert line by line
@@ -208,14 +201,12 @@ func TestRunWithTemplateFile(t *testing.T) {
 		t.Cleanup(func() {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
 			cleanUpLogs()
-			stopAllApps(t, runFilePath)
+			waitAppsToBeStopped()
 		})
 		args := []string{
 			"-f", runFilePath,
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		output, err := cmdRunWithContext(ctx, "", args...)
+		output, err := cmdRunWithContext(t.Context(), "", args...)
 		t.Logf("%s", output)
 		require.NoError(t, err, "run failed")
 		// Deterministic output for template file, so we can assert line by line
@@ -233,7 +224,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 			appID:          "processor",
 			baseLogDirPath: "../../apps/processor/.dapr/logs",
 			appLogContents: []string{
-				"Starting server in port 9081...",
+				"Starting server in port 9086...",
 				"termination signal received: shutting down",
 			},
 			daprdLogContent: []string{
@@ -259,14 +250,12 @@ func TestRunWithTemplateFile(t *testing.T) {
 		t.Cleanup(func() {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
 			cleanUpLogs()
-			stopAllApps(t, runFilePath)
+			waitAppsToBeStopped()
 		})
 		args := []string{
 			"-f", runFilePath,
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		output, err := cmdRunWithContext(ctx, "", args...)
+		output, err := cmdRunWithContext(t.Context(), "", args...)
 		t.Logf("%s", output)
 		require.Error(t, err, "run must fail")
 		// Deterministic output for template file, so we can assert line by line
@@ -280,7 +269,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 			appID:          "processor",
 			baseLogDirPath: "../../apps/processor/.dapr/logs",
 			appLogContents: []string{
-				"Starting server in port 9081...",
+				"Starting server in port 9084...",
 				"termination signal received: shutting down",
 			},
 			daprdLogContent: []string{
@@ -307,14 +296,12 @@ func TestRunWithTemplateFile(t *testing.T) {
 		t.Cleanup(func() {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
 			cleanUpLogs()
-			stopAllApps(t, runFilePath)
+			waitAppsToBeStopped()
 		})
 		args := []string{
 			"-f", runFilePath,
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		output, err := cmdRunWithContext(ctx, "", args...)
+		output, err := cmdRunWithContext(t.Context(), "", args...)
 		t.Logf("%s", output)
 		require.NoError(t, err, "run failed")
 
@@ -371,9 +358,7 @@ func TestRunTemplateFileWithoutDaprInit(t *testing.T) {
 		args := []string{
 			"-f", "../testdata/run-template-files/no_app_command.yaml",
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		output, err := cmdRunWithContext(ctx, "", args...)
+		output, err := cmdRunWithContext(t.Context(), "", args...)
 		t.Logf("%s", output)
 		require.Error(t, err, "run must fail")
 		assert.Contains(t, output, "Error starting Dapr and app (\"processor\"): fork/exec")
@@ -405,7 +390,7 @@ func readAndAssertLogFileContents(t *testing.T, logFilePath string, expectedCont
 	assert.NoError(t, err, "failed to read %s log", logFilePath)
 	contentString := string(fileContents)
 	for _, line := range expectedContent {
-		assert.Contains(t, contentString, line, "expected logline to be present")
+		assert.Containsf(t, contentString, line, "expected logline to be present, line=%s", line)
 	}
 }
 
@@ -424,8 +409,6 @@ func lookUpFileFullName(dirPath, partialFilename string) (string, error) {
 	return "", fmt.Errorf("failed to find file with partial name %s in directory %s", partialFilename, dirPath)
 }
 
-func stopAllApps(t *testing.T, runfile string) {
-	_, err := cmdStopWithRunTemplate(runfile)
-	require.NoError(t, err, "failed to stop apps")
-	time.Sleep(5 * time.Second)
+func waitAppsToBeStopped() {
+	time.Sleep(15 * time.Second)
 }

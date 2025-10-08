@@ -18,6 +18,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -68,8 +69,10 @@ func main() {
 		}
 		defer r.Body.Close()
 		if r.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(r.Body)
 			log.Printf("Error sending metrics with %d to 'processor' app got status code %d\n", i, r.StatusCode)
 			log.Printf("Status %s \n", r.Status)
+			log.Printf("Body %s \n", body)
 			continue
 		}
 		log.Printf("Metrics with ID %d sent \n", i)
