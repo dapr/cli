@@ -34,6 +34,10 @@ const (
 )
 
 func TestWorkflowList(t *testing.T) {
+	if isSlimMode() {
+		t.Skip("skipping workflow tests in slim mode")
+	}
+
 	cmdUninstall()
 	ensureDaprInstallation(t)
 	t.Cleanup(func() {
@@ -98,6 +102,10 @@ func TestWorkflowList(t *testing.T) {
 }
 
 func TestWorkflowRaiseEvent(t *testing.T) {
+	if isSlimMode() {
+		t.Skip("skipping workflow tests in slim mode")
+	}
+
 	cmdUninstall()
 	ensureDaprInstallation(t)
 	t.Cleanup(func() {
@@ -176,6 +184,10 @@ func TestWorkflowRaiseEvent(t *testing.T) {
 }
 
 func TestWorkflowReRun(t *testing.T) {
+	if isSlimMode() {
+		t.Skip("skipping workflow tests in slim mode")
+	}
+
 	cmdUninstall()
 	ensureDaprInstallation(t)
 	t.Cleanup(func() {
@@ -229,6 +241,10 @@ func TestWorkflowReRun(t *testing.T) {
 }
 
 func TestWorkflowPurge(t *testing.T) {
+	if isSlimMode() {
+		t.Skip("skipping workflow tests in slim mode")
+	}
+
 	cmdUninstall()
 	ensureDaprInstallation(t)
 	t.Cleanup(func() {
@@ -319,6 +335,10 @@ func TestWorkflowPurge(t *testing.T) {
 }
 
 func TestWorkflowFilters(t *testing.T) {
+	if isSlimMode() {
+		t.Skip("skipping workflow tests in slim mode")
+	}
+
 	cmdUninstall()
 	ensureDaprInstallation(t)
 	t.Cleanup(func() {
@@ -380,6 +400,10 @@ func TestWorkflowFilters(t *testing.T) {
 }
 
 func TestWorkflowChildCalls(t *testing.T) {
+	if isSlimMode() {
+		t.Skip("skipping workflow tests in slim mode")
+	}
+
 	cmdUninstall()
 	ensureDaprInstallation(t)
 	t.Cleanup(func() {
@@ -496,6 +520,10 @@ func TestWorkflowChildCalls(t *testing.T) {
 }
 
 func TestWorkflowHistory(t *testing.T) {
+	if isSlimMode() {
+		t.Skip("skipping workflow tests in slim mode")
+	}
+
 	cmdUninstall()
 	ensureDaprInstallation(t)
 	t.Cleanup(func() {
@@ -547,6 +575,10 @@ func TestWorkflowHistory(t *testing.T) {
 }
 
 func TestWorkflowSuspendResume(t *testing.T) {
+	if isSlimMode() {
+		t.Skip("skipping workflow tests in slim mode")
+	}
+
 	cmdUninstall()
 	ensureDaprInstallation(t)
 	t.Cleanup(func() {
@@ -622,6 +654,10 @@ func TestWorkflowSuspendResume(t *testing.T) {
 }
 
 func TestWorkflowTerminate(t *testing.T) {
+	if isSlimMode() {
+		t.Skip("skipping workflow tests in slim mode")
+	}
+
 	cmdUninstall()
 	ensureDaprInstallation(t)
 	t.Cleanup(func() {
