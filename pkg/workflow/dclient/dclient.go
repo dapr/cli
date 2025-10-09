@@ -220,7 +220,7 @@ func driverFromType(v string) (string, error) {
 	case "state.mongodb":
 		return "mongodb", nil
 	default:
-		return "", fmt.Errorf("unsupported state store type: %s")
+		return "", fmt.Errorf("unsupported state store type: %s", v)
 	}
 }
 
