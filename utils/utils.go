@@ -15,6 +15,7 @@ package utils
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -92,12 +93,16 @@ func PrintTable(csvContent string) {
 
 // WriteTable writes the csv table to writer.
 func WriteTable(writer io.Writer, csvContent string) {
-	table := tablewriter.NewWriter(writer)
+	var output bytes.Buffer
+
+	table := tablewriter.NewWriter(&output)
 	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
-	table.SetBorder(false)
 	table.SetHeaderLine(false)
-	table.SetRowLine(false)
-	table.SetCenterSeparator("")
+	table.SetBorders(tablewriter.Border{
+		Top:    false,
+		Bottom: false,
+	})
+	table.SetTablePadding("")
 	table.SetRowSeparator("")
 	table.SetColumnSeparator("")
 	table.SetAlignment(tablewriter.ALIGN_LEFT)
@@ -116,6 +121,12 @@ func WriteTable(writer io.Writer, csvContent string) {
 	}
 
 	table.Render()
+
+	b := bufio.NewScanner(&output)
+	for b.Scan() {
+		writer.Write(bytes.TrimLeft(b.Bytes(), " "))
+		writer.Write([]byte("\n"))
+	}
 }
 
 func TruncateString(str string, maxLength int) string {
@@ -429,4 +440,28 @@ func AttachJobObjectToProcess(pid string, proc *os.Process) {
 // GetJobObjectNameFromPID returns the name of the Windows job object that is used to manage the Daprized app's processes on windows.
 func GetJobObjectNameFromPID(pid string) string {
 	return pid + "-" + windowsDaprAppProcJobName
+}
+
+func HumanizeDuration(d time.Duration) string {
+	if d == 0 {
+		return ""
+	}
+
+	if d < 0 {
+		d = -d
+	}
+	switch {
+	case d < time.Microsecond:
+		return fmt.Sprintf("%dns", d.Nanoseconds())
+	case d < time.Millisecond:
+		return fmt.Sprintf("%.1fµs", float64(d)/1e3)
+	case d < time.Second:
+		return fmt.Sprintf("%.1fms", float64(d)/1e6)
+	case d < time.Minute:
+		return fmt.Sprintf("%.2fs", d.Seconds())
+	case d < time.Hour:
+		return fmt.Sprintf("%.1fm", d.Minutes())
+	default:
+		return fmt.Sprintf("%.1fh", d.Hours())
+	}
 }

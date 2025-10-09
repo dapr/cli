@@ -219,3 +219,51 @@ func cmdVersion(output string, args ...string) (string, error) {
 
 	return spawn.Command(common.GetDaprPath(), verArgs...)
 }
+
+func cmdSchedulerList(args ...string) (string, error) {
+	listArgs := []string{"scheduler", "list"}
+
+	listArgs = append(listArgs, args...)
+
+	return spawn.Command(common.GetDaprPath(), listArgs...)
+}
+
+func cmdSchedulerGet(args ...string) (string, error) {
+	listArgs := []string{"scheduler", "get"}
+
+	listArgs = append(listArgs, args...)
+
+	return spawn.Command(common.GetDaprPath(), listArgs...)
+}
+
+func cmdSchedulerDelete(args ...string) (string, error) {
+	deleteArgs := []string{"scheduler", "delete"}
+
+	deleteArgs = append(deleteArgs, args...)
+
+	return spawn.Command(common.GetDaprPath(), deleteArgs...)
+}
+
+func cmdSchedulerDeleteAll(args ...string) (string, error) {
+	deleteArgs := []string{"scheduler", "delete-all"}
+
+	deleteArgs = append(deleteArgs, args...)
+
+	return spawn.Command(common.GetDaprPath(), deleteArgs...)
+}
+
+func cmdSchedulerExport(args ...string) (string, error) {
+	exportArgs := []string{"scheduler", "export"}
+
+	exportArgs = append(exportArgs, args...)
+
+	return spawn.Command(common.GetDaprPath(), exportArgs...)
+}
+
+func cmdSchedulerImport(args ...string) (string, error) {
+	importArgs := []string{"scheduler", "import"}
+
+	importArgs = append(importArgs, args...)
+
+	return spawn.Command(common.GetDaprPath(), importArgs...)
+}
