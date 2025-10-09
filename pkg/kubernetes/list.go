@@ -21,11 +21,13 @@ import (
 
 // ListOutput represents the application ID, application port and creation time.
 type ListOutput struct {
-	Namespace string `csv:"NAMESPACE" json:"namespace" yaml:"namespace"`
-	AppID     string `csv:"APP ID"    json:"appId"     yaml:"appId"`
-	AppPort   string `csv:"APP PORT"  json:"appPort"   yaml:"appPort"`
-	Age       string `csv:"AGE"       json:"age"       yaml:"age"`
-	Created   string `csv:"CREATED"   json:"created"   yaml:"created"`
+	Namespace    string `csv:"NAMESPACE" json:"namespace" yaml:"namespace"`
+	AppID        string `csv:"APP ID"    json:"appId"     yaml:"appId"`
+	AppPort      string `csv:"APP PORT"  json:"appPort"   yaml:"appPort"`
+	Age          string `csv:"AGE"       json:"age"       yaml:"age"`
+	Created      string `csv:"CREATED"   json:"created"   yaml:"created"`
+	DaprGRPCPort string `csv:"-" json:"-" yaml:"-"`
+	PodName      string `csv:"-" json:"-" yaml:"-"`
 }
 
 // List outputs all the applications.
@@ -46,17 +48,22 @@ func List(namespace string) ([]ListOutput, error) {
 			if c.Name == "daprd" {
 				lo := ListOutput{}
 				for i, a := range c.Args {
-					if a == "--app-port" {
+					switch a {
+					case "--app-port":
 						port := c.Args[i+1]
 						lo.AppPort = port
-					} else if a == "--app-id" {
+					case "--app-id":
 						id := c.Args[i+1]
 						lo.AppID = id
+					case "--dapr-grpc-port":
+						port := c.Args[i+1]
+						lo.DaprGRPCPort = port
 					}
 				}
 				lo.Namespace = p.GetNamespace()
 				lo.Created = p.CreationTimestamp.Format("2006-01-02 15:04.05")
 				lo.Age = age.GetAge(p.CreationTimestamp.Time)
+				lo.PodName = p.GetName()
 				l = append(l, lo)
 			}
 		}

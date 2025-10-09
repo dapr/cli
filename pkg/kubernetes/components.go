@@ -47,11 +47,11 @@ func PrintComponents(name, namespace, outputFormat string) error {
 			return nil, err
 		}
 
-		return listComponents(client, namespace)
+		return ListComponents(client, namespace)
 	}, name, outputFormat)
 }
 
-func listComponents(client versioned.Interface, namespace string) (*v1alpha1.ComponentList, error) {
+func ListComponents(client versioned.Interface, namespace string) (*v1alpha1.ComponentList, error) {
 	list, err := client.ComponentsV1alpha1().Components(namespace).List(meta_v1.ListOptions{})
 	// This means that the Dapr Components CRD is not installed and
 	// therefore no component items exist.

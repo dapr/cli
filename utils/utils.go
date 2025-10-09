@@ -17,6 +17,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -98,33 +99,85 @@ func WriteTable(writer io.Writer, csvContent string) {
 	table := tablewriter.NewWriter(&output)
 	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
 	table.SetHeaderLine(false)
-	table.SetBorders(tablewriter.Border{
-		Top:    false,
-		Bottom: false,
-	})
+	table.SetBorders(tablewriter.Border{Top: false, Bottom: false})
 	table.SetTablePadding("")
 	table.SetRowSeparator("")
 	table.SetColumnSeparator("")
 	table.SetAlignment(tablewriter.ALIGN_LEFT)
-	scanner := bufio.NewScanner(strings.NewReader(csvContent))
-	header := true
+	table.SetAutoWrapText(false)
 
-	for scanner.Scan() {
-		text := strings.Split(scanner.Text(), ",")
+	r := csv.NewReader(strings.NewReader(csvContent))
+	r.FieldsPerRecord = -1
 
-		if header {
-			table.SetHeader(text)
-			header = false
-		} else {
-			table.Append(text)
+	var header []string
+	var rows [][]string
+	first := true
+
+	for {
+		rec, err := r.Read()
+		if err == io.EOF {
+			break
 		}
+		if err != nil {
+			continue
+		}
+		for i := range rec {
+			rec[i] = sanitizeCell(rec[i])
+		}
+
+		if first {
+			header = rec
+			first = false
+			continue
+		}
+		rows = append(rows, rec)
+	}
+
+	if len(header) == 0 {
+		return
+	}
+
+	// Pad rows to header len (so indexing is safe)
+	for i := range rows {
+		if len(rows[i]) < len(header) {
+			pad := make([]string, len(header)-len(rows[i]))
+			rows[i] = append(rows[i], pad...)
+		}
+	}
+
+	var keepIdx []int
+	for c := range header {
+		if !allBlank(c, rows) {
+			keepIdx = append(keepIdx, c)
+		}
+	}
+
+	if len(keepIdx) == 0 {
+		for i := range header {
+			keepIdx = append(keepIdx, i)
+		}
+	}
+
+	filter := func(src []string) []string {
+		dst := make([]string, len(keepIdx))
+		for i, c := range keepIdx {
+			if c < len(src) {
+				dst[i] = src[c]
+			}
+		}
+		return dst
+	}
+
+	table.SetHeader(filter(header))
+	for _, rrow := range rows {
+		table.Append(filter(rrow))
 	}
 
 	table.Render()
 
-	b := bufio.NewScanner(&output)
-	for b.Scan() {
-		writer.Write(bytes.TrimLeft(b.Bytes(), " "))
+	sc := bufio.NewScanner(&output)
+	for sc.Scan() {
+		writer.Write(bytes.TrimLeft(sc.Bytes(), " "))
 		writer.Write([]byte("\n"))
 	}
 }
@@ -464,4 +517,21 @@ func HumanizeDuration(d time.Duration) string {
 	default:
 		return fmt.Sprintf("%.1fh", d.Hours())
 	}
+}
+
+func sanitizeCell(s string) string {
+	s = strings.ReplaceAll(s, "\r\n", " ")
+	s = strings.ReplaceAll(s, "\n", " ")
+	s = strings.ReplaceAll(s, "\r", " ")
+	s = strings.TrimSpace(strings.Join(strings.Fields(s), " "))
+	return s
+}
+
+func allBlank(col int, rows [][]string) bool {
+	for _, r := range rows {
+		if col < len(r) && strings.TrimSpace(r[col]) != "" {
+			return false
+		}
+	}
+	return true
 }

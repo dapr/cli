@@ -22,6 +22,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/dapr/cli/cmd/scheduler"
+	"github.com/dapr/cli/cmd/workflow"
 	"github.com/dapr/cli/pkg/api"
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/pkg/standalone"
@@ -111,4 +112,5 @@ func init() {
 	RootCmd.PersistentFlags().BoolVarP(&logAsJSON, "log-as-json", "", false, "Log output in JSON format")
 
 	RootCmd.AddCommand(scheduler.SchedulerCmd)
+	RootCmd.AddCommand(workflow.WorkflowCmd)
 }
