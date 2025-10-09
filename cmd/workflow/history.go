@@ -63,12 +63,16 @@ var HistoryCmd = &cobra.Command{
 		case outputFormatJSON:
 			err = utils.PrintDetail(os.Stdout, "json", list)
 		default:
-			table, err := gocsv.MarshalString(list)
+			var table string
+			table, err = gocsv.MarshalString(list)
 			if err != nil {
 				break
 			}
 
 			utils.PrintTable(table)
+		}
+		if err != nil {
+			return err
 		}
 
 		return nil

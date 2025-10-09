@@ -48,7 +48,8 @@ func Purge(ctx context.Context, opts PurgeOptions) error {
 	if len(opts.InstanceIDs) > 0 {
 		toPurge = opts.InstanceIDs
 	} else {
-		list, err := ListWide(ctx, ListOptions{
+		var list []*ListOutputWide
+		list, err = ListWide(ctx, ListOptions{
 			KubernetesMode:   opts.KubernetesMode,
 			Namespace:        opts.Namespace,
 			AppID:            opts.AppID,

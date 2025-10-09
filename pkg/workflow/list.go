@@ -148,6 +148,7 @@ func list(ctx context.Context, metaKeys []string, cl client.Client, opts ListOpt
 			continue
 		}
 		// TODO: @joshvanl: add `WorkflowIsCompleted` func to workflow package.
+		//nolint:govet
 		if opts.Filter.Terminal && !api.OrchestrationMetadataIsComplete(ptr.Of(protos.OrchestrationMetadata(*resp))) {
 			continue
 		}
