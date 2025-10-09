@@ -88,7 +88,7 @@ const (
 
 	schedulerHealthPort = 58081
 	schedulerMetricPort = 59091
-	schedulerEtcdPort   = 52379
+	schedulerEtcdPort   = 2379
 
 	daprVersionsWithScheduler = ">= 1.14.x"
 )
@@ -693,6 +693,10 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		}
 	}
 
+	if schedulerEtcdClientListenAddress(info) {
+		args = append(args, "--etcd-client-listen-address=0.0.0.0")
+	}
+
 	_, err = utils.RunCmdAndWait(runtimeCmd, args...)
 	if err != nil {
 		runError := isContainerRunError(err)
@@ -719,6 +723,21 @@ func schedulerOverrideHostPort(info initInfo) bool {
 	v115rc5, _ := semver.NewVersion("1.15.0-rc.5")
 
 	return runV.GreaterThan(v115rc5)
+}
+
+func schedulerEtcdClientListenAddress(info initInfo) bool {
+	if info.runtimeVersion == "edge" || info.runtimeVersion == "dev" {
+		return true
+	}
+
+	runV, err := semver.NewVersion(info.runtimeVersion)
+	if err != nil {
+		return true
+	}
+
+	v1160, _ := semver.NewVersion("1.16.0")
+
+	return runV.GreaterThan(v1160)
 }
 
 func moveDashboardFiles(extractedFilePath string, dir string) (string, error) {

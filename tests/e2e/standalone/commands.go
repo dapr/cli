@@ -219,3 +219,105 @@ func cmdVersion(output string, args ...string) (string, error) {
 
 	return spawn.Command(common.GetDaprPath(), verArgs...)
 }
+
+func cmdSchedulerList(args ...string) (string, error) {
+	listArgs := []string{"scheduler", "list"}
+
+	listArgs = append(listArgs, args...)
+
+	return spawn.Command(common.GetDaprPath(), listArgs...)
+}
+
+func cmdSchedulerGet(args ...string) (string, error) {
+	listArgs := []string{"scheduler", "get"}
+
+	listArgs = append(listArgs, args...)
+
+	return spawn.Command(common.GetDaprPath(), listArgs...)
+}
+
+func cmdSchedulerDelete(args ...string) (string, error) {
+	deleteArgs := []string{"scheduler", "delete"}
+
+	deleteArgs = append(deleteArgs, args...)
+
+	return spawn.Command(common.GetDaprPath(), deleteArgs...)
+}
+
+func cmdSchedulerDeleteAll(args ...string) (string, error) {
+	deleteArgs := []string{"scheduler", "delete-all"}
+
+	deleteArgs = append(deleteArgs, args...)
+
+	return spawn.Command(common.GetDaprPath(), deleteArgs...)
+}
+
+func cmdSchedulerExport(args ...string) (string, error) {
+	exportArgs := []string{"scheduler", "export"}
+
+	exportArgs = append(exportArgs, args...)
+
+	return spawn.Command(common.GetDaprPath(), exportArgs...)
+}
+
+func cmdSchedulerImport(args ...string) (string, error) {
+	importArgs := []string{"scheduler", "import"}
+
+	importArgs = append(importArgs, args...)
+
+	return spawn.Command(common.GetDaprPath(), importArgs...)
+}
+
+func cmdWorkflowList(appID string, args ...string) (string, error) {
+	allArgs := []string{"workflow", "list", "-a", appID}
+	allArgs = append(allArgs, args...)
+	return spawn.Command(common.GetDaprPath(), allArgs...)
+}
+
+func cmdWorkflowRun(appID, workflowName string, args ...string) (string, error) {
+	allArgs := []string{"workflow", "run", "-a", appID, workflowName}
+	allArgs = append(allArgs, args...)
+	return spawn.Command(common.GetDaprPath(), allArgs...)
+}
+
+func cmdWorkflowHistory(appID, instanceID string, args ...string) (string, error) {
+	allArgs := []string{"workflow", "history", "-a", appID, instanceID}
+	allArgs = append(allArgs, args...)
+	return spawn.Command(common.GetDaprPath(), allArgs...)
+}
+
+func cmdWorkflowSuspend(appID, instanceID string, args ...string) (string, error) {
+	allArgs := []string{"workflow", "suspend", "-a", appID, instanceID}
+	allArgs = append(allArgs, args...)
+	return spawn.Command(common.GetDaprPath(), allArgs...)
+}
+
+func cmdWorkflowResume(appID, instanceID string, args ...string) (string, error) {
+	allArgs := []string{"workflow", "resume", "-a", appID, instanceID}
+	allArgs = append(allArgs, args...)
+	return spawn.Command(common.GetDaprPath(), allArgs...)
+}
+
+func cmdWorkflowTerminate(appID, instanceID string, args ...string) (string, error) {
+	allArgs := []string{"workflow", "terminate", "-a", appID, instanceID}
+	allArgs = append(allArgs, args...)
+	return spawn.Command(common.GetDaprPath(), allArgs...)
+}
+
+func cmdWorkflowRaiseEvent(appID, eventArg string, args ...string) (string, error) {
+	allArgs := []string{"workflow", "raise-event", "-a", appID, eventArg}
+	allArgs = append(allArgs, args...)
+	return spawn.Command(common.GetDaprPath(), allArgs...)
+}
+
+func cmdWorkflowReRun(appID, instanceID string, args ...string) (string, error) {
+	allArgs := []string{"workflow", "rerun", "-a", appID, instanceID}
+	allArgs = append(allArgs, args...)
+	return spawn.Command(common.GetDaprPath(), allArgs...)
+}
+
+func cmdWorkflowPurge(appID string, args ...string) (string, error) {
+	allArgs := []string{"workflow", "purge", "-a", appID}
+	allArgs = append(allArgs, args...)
+	return spawn.Command(common.GetDaprPath(), allArgs...)
+}

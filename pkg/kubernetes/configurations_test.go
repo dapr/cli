@@ -41,7 +41,7 @@ func TestConfigurations(t *testing.T) {
 			name:           "List one config",
 			configName:     "",
 			outputFormat:   "",
-			expectedOutput: "  NAMESPACE  NAME       TRACING-ENABLED  METRICS-ENABLED  AGE  CREATED              \n  default    appConfig  false            false            0s   " + formattedNow + "  \n",
+			expectedOutput: "NAMESPACE  NAME       TRACING-ENABLED  METRICS-ENABLED  AGE  CREATED              \ndefault    appConfig  false            false            0s   " + formattedNow + "  \n",
 			errString:      "",
 			errorExpected:  false,
 			k8sConfig: []v1alpha1.Configuration{
@@ -68,7 +68,7 @@ func TestConfigurations(t *testing.T) {
 			name:           "Filters out daprsystem",
 			configName:     "",
 			outputFormat:   "",
-			expectedOutput: "  NAMESPACE  NAME       TRACING-ENABLED  METRICS-ENABLED  AGE  CREATED              \n  default    appConfig  false            false            0s   " + formattedNow + "  \n",
+			expectedOutput: "NAMESPACE  NAME       TRACING-ENABLED  METRICS-ENABLED  AGE  CREATED              \ndefault    appConfig  false            false            0s   " + formattedNow + "  \n",
 			errString:      "",
 			errorExpected:  false,
 			k8sConfig: []v1alpha1.Configuration{
@@ -94,7 +94,7 @@ func TestConfigurations(t *testing.T) {
 			name:           "Name does match",
 			configName:     "appConfig",
 			outputFormat:   "list",
-			expectedOutput: "  NAMESPACE  NAME       TRACING-ENABLED  METRICS-ENABLED  AGE  CREATED              \n  default    appConfig  false            false            0s   " + formattedNow + "  \n",
+			expectedOutput: "NAMESPACE  NAME       TRACING-ENABLED  METRICS-ENABLED  AGE  CREATED              \ndefault    appConfig  false            false            0s   " + formattedNow + "  \n",
 			errString:      "",
 			errorExpected:  false,
 			k8sConfig: []v1alpha1.Configuration{
@@ -112,7 +112,7 @@ func TestConfigurations(t *testing.T) {
 			name:           "Name does not match",
 			configName:     "appConfig",
 			outputFormat:   "list",
-			expectedOutput: "  NAMESPACE  NAME  TRACING-ENABLED  METRICS-ENABLED  AGE  CREATED  \n",
+			expectedOutput: "NAMESPACE  NAME  TRACING-ENABLED  METRICS-ENABLED  AGE  CREATED  \n",
 			errString:      "",
 			errorExpected:  false,
 			k8sConfig: []v1alpha1.Configuration{

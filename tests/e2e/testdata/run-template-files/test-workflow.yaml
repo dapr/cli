@@ -1,0 +1,10 @@
+version: 1
+apps:
+- appID: test-workflow
+  appDirPath: ../../../apps/workflow/
+  command: ["go", "run", "app.go"]
+  appLogDestination: console
+  daprdLogDestination: console
+  daprGRPCPort: 3510
+  schedulerHostAddress: 127.0.0.1:50006
+  placementHostAddress: 127.0.0.1:50005
