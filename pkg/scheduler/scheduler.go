@@ -192,7 +192,7 @@ func parseJobKey(key string) (*jobKey, error) {
 	}
 }
 
-func etcdClient(kubernetesMode bool, schedulerNamespace string) (*clientv3.Client, context.CancelFunc, error) {
+func EtcdClient(kubernetesMode bool, schedulerNamespace string) (*clientv3.Client, context.CancelFunc, error) {
 	var etcdClient *clientv3.Client
 	var err error
 	if kubernetesMode {

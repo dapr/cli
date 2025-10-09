@@ -25,7 +25,7 @@ import (
 )
 
 func DeleteAll(ctx context.Context, opts DeleteOptions, key string) error {
-	etcdClient, cancel, err := etcdClient(opts.KubernetesMode, opts.SchedulerNamespace)
+	etcdClient, cancel, err := EtcdClient(opts.KubernetesMode, opts.SchedulerNamespace)
 	if err != nil {
 		return err
 	}
