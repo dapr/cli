@@ -36,11 +36,9 @@ const (
 )
 
 var (
-	flagKubernetesMode   bool
-	flagDaprNamespace    string
-	flagAppID            string
-	flagConnectionString string
-	flagTable            string
+	flagKubernetesMode bool
+	flagDaprNamespace  string
+	flagAppID          string
 )
 
 var WorkflowCmd = &cobra.Command{
@@ -209,15 +207,15 @@ func connectionCmd(cmd *cobra.Command) *connFlag {
 	cmd.Flags().StringVarP(&flagConnectionString, "connection-string", "c", "", "The connection string used to connect and authenticate to the actor state store")
 	cmd.Flags().StringVarP(&flagTableName, "table-name", "t", "", "The name of the table or collection which is used as the actor state store")
 
-	var connFlag connFlag
+	var cflag connFlag
 	pre := cmd.PreRunE
 	cmd.PreRunE = func(cmd *cobra.Command, args []string) error {
 		if cmd.Flags().Changed("connection-string") {
-			connFlag.connectionString = &flagConnectionString
+			cflag.connectionString = &flagConnectionString
 		}
 
 		if cmd.Flags().Changed("table-name") {
-			connFlag.tableName = &flagTableName
+			cflag.tableName = &flagTableName
 		}
 
 		if pre != nil {
@@ -227,7 +225,7 @@ func connectionCmd(cmd *cobra.Command) *connFlag {
 		return nil
 	}
 
-	return &connFlag
+	return &cflag
 }
 
 type instanceIDFlag struct {

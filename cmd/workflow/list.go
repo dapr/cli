@@ -59,7 +59,8 @@ var ListCmd = &cobra.Command{
 
 		switch *listOutputFormat {
 		case outputFormatShort:
-			ll, err := workflow.ListShort(ctx, opts)
+			var ll []*workflow.ListOutputShort
+			ll, err = workflow.ListShort(ctx, opts)
 			if err != nil {
 				return err
 			}
@@ -67,7 +68,8 @@ var ListCmd = &cobra.Command{
 			list = ll
 
 		default:
-			ll, err := workflow.ListWide(ctx, opts)
+			var ll []*workflow.ListOutputWide
+			ll, err = workflow.ListWide(ctx, opts)
 			if err != nil {
 				return err
 			}
@@ -86,12 +88,17 @@ var ListCmd = &cobra.Command{
 		case outputFormatJSON:
 			err = utils.PrintDetail(os.Stdout, "json", list)
 		default:
-			table, err := gocsv.MarshalString(list)
+			var table string
+			table, err = gocsv.MarshalString(list)
 			if err != nil {
 				break
 			}
 
 			utils.PrintTable(table)
+		}
+
+		if err != nil {
+			return err
 		}
 
 		return nil
