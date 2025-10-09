@@ -40,7 +40,7 @@ func TestComponents(t *testing.T) {
 			name:           "List one config",
 			configName:     "",
 			outputFormat:   "",
-			expectedOutput: "NAMESPACE  NAME       TYPE         VERSION  SCOPES  CREATED              AGE  \ndefault    appConfig  state.redis  v1               " + formattedNow + "  0s   \n",
+			expectedOutput: "NAMESPACE  NAME       TYPE         VERSION  CREATED              AGE  \ndefault    appConfig  state.redis  v1       " + formattedNow + "  0s   \n",
 			errString:      "",
 			errorExpected:  false,
 			k8sConfig: []v1alpha1.Component{
@@ -70,7 +70,7 @@ func TestComponents(t *testing.T) {
 			name:           "Filters out daprsystem",
 			configName:     "",
 			outputFormat:   "",
-			expectedOutput: "NAMESPACE  NAME       TYPE         VERSION  SCOPES  CREATED              AGE  \ndefault    appConfig  state.redis  v1               " + formattedNow + "  0s   \n",
+			expectedOutput: "NAMESPACE  NAME       TYPE         VERSION  CREATED              AGE  \ndefault    appConfig  state.redis  v1       " + formattedNow + "  0s   \n",
 			errString:      "",
 			errorExpected:  false,
 			k8sConfig: []v1alpha1.Component{
@@ -98,7 +98,7 @@ func TestComponents(t *testing.T) {
 			name:           "Name does match",
 			configName:     "appConfig",
 			outputFormat:   "list",
-			expectedOutput: "NAMESPACE  NAME       TYPE         VERSION  SCOPES  CREATED              AGE  \ndefault    appConfig  state.redis  v1               " + formattedNow + "  0s   \n",
+			expectedOutput: "NAMESPACE  NAME       TYPE         VERSION  CREATED              AGE  \ndefault    appConfig  state.redis  v1       " + formattedNow + "  0s   \n",
 			errString:      "",
 			errorExpected:  false,
 			k8sConfig: []v1alpha1.Component{
