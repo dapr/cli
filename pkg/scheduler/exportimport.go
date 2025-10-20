@@ -86,14 +86,13 @@ func Export(ctx context.Context, opts ExportImportOptions) error {
 	if err != nil {
 		return fmt.Errorf("open %s: %w", opts.TargetFile, err)
 	}
+	defer f.Close()
 
 	if err := gob.NewEncoder(f).Encode(&out); err != nil {
-		_ = f.Close()
 		_ = os.Remove(opts.TargetFile)
 		return fmt.Errorf("encode export file: %w", err)
 	}
 
-	f.Close()
 	print.InfoStatusEvent(os.Stdout, "Exported %d jobs and %d counters.", len(out.Jobs), len(out.Counters))
 	return nil
 }
