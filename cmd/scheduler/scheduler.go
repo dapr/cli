@@ -81,7 +81,7 @@ func outputFunc(cmd *cobra.Command) *string {
 func filterFunc(cmd *cobra.Command) *string {
 	all := []string{
 		scheduler.FilterAll,
-		scheduler.FilterJob,
+		scheduler.FilterApp,
 		scheduler.FilterActor,
 		scheduler.FilterWorkflow,
 		scheduler.FilterActivity,

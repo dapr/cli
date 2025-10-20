@@ -29,7 +29,7 @@ import (
 
 const (
 	FilterAll      = "all"
-	FilterJob      = "app"
+	FilterApp      = "app"
 	FilterActor    = "actor"
 	FilterWorkflow = "workflow"
 	FilterActivity = "activity"
@@ -61,7 +61,7 @@ func parseJob(jobCounter *JobCount, opts Filter) (*ListOutputWide, error) {
 	if opts.Type != FilterAll {
 		switch meta.GetTarget().GetType().(type) {
 		case *schedulerv1.JobTargetMetadata_Job:
-			if opts.Type != FilterJob {
+			if opts.Type != FilterApp {
 				return nil, nil
 			}
 		case *schedulerv1.JobTargetMetadata_Actor:
