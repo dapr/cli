@@ -47,10 +47,10 @@ type ListOutputWide struct {
 }
 
 type ListOutput struct {
-	Name        string     `csv:"NAME" json:"name"  yaml:"name"`
-	Begin       string     `csv:"BEGIN" json:"begin"  yaml:"begin,omitempty"`
-	Count       uint32     `csv:"COUNT" json:"count"  yaml:"count,omitempty"`
-	LastTrigger *time.Time `csv:"LAST TRIGGER" json:"lastTrigger" yaml:"lastTrigger"`
+	Name        string `csv:"NAME" json:"name"  yaml:"name"`
+	Begin       string `csv:"BEGIN" json:"begin"  yaml:"begin,omitempty"`
+	Count       uint32 `csv:"COUNT" json:"count"  yaml:"count,omitempty"`
+	LastTrigger string `csv:"LAST TRIGGER" json:"lastTrigger" yaml:"lastTrigger"`
 }
 
 type JobCount struct {
@@ -145,9 +145,12 @@ func listWideToShort(listWide []*ListOutputWide) ([]*ListOutput, error) {
 		}
 
 		l := ListOutput{
-			Name:        item.Name,
-			Count:       item.Count,
-			LastTrigger: item.LastTrigger,
+			Name:  item.Name,
+			Count: item.Count,
+		}
+
+		if item.LastTrigger != nil {
+			l.LastTrigger = "-" + utils.HumanizeDuration(now.Sub(*item.LastTrigger))
 		}
 
 		if item.Begin.After(now) {
