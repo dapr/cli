@@ -66,7 +66,7 @@ func outputFunc(cmd *cobra.Command) *string {
 	pre := cmd.PreRunE
 	cmd.PreRunE = func(cmd *cobra.Command, args []string) error {
 		if !slices.Contains(outputs, outputFormat) {
-			return errors.New("invalid value for --output. Supported values are 'table', 'wide', 'yaml', 'json'.")
+			return errors.New("invalid value for --output. Supported values are " + strings.Join(outputs, ", "))
 		}
 
 		if pre != nil {
