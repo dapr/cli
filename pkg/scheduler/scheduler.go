@@ -148,7 +148,7 @@ func parseJobKey(key string) (*jobKey, error) {
 	}
 
 	switch split[0] {
-	case "app":
+	case FilterApp:
 		if len(split) != 3 {
 			return nil, fmt.Errorf("expecting job key to be in format 'app/{app ID}/{job name}', got '%s'", key)
 		}
@@ -157,7 +157,7 @@ func parseJobKey(key string) (*jobKey, error) {
 			name:  split[2],
 		}, nil
 
-	case "actor":
+	case FilterActor:
 		if len(split) != 4 {
 			return nil, fmt.Errorf("expecting actor reminder key to be in format 'actor/{actor type}/{actor id}/{name}', got '%s'", key)
 		}
@@ -167,9 +167,9 @@ func parseJobKey(key string) (*jobKey, error) {
 			name:      split[3],
 		}, nil
 
-	case "workflow":
+	case FilterWorkflow:
 		if len(split) != 4 {
-			return nil, fmt.Errorf("expecting worklow key to be in format 'workflow/{app ID}/{instance ID}/{name}', got '%s'", key)
+			return nil, fmt.Errorf("expecting workflow key to be in format 'workflow/{app ID}/{instance ID}/{name}', got '%s'", key)
 		}
 		return &jobKey{
 			appID:      &split[1],
@@ -177,9 +177,9 @@ func parseJobKey(key string) (*jobKey, error) {
 			name:       split[3],
 		}, nil
 
-	case "activity":
+	case FilterActivity:
 		if len(split) != 3 {
-			return nil, fmt.Errorf("expecting activity key to be in format 'activity/{app ID}/{activity ID}/', got '%s'", key)
+			return nil, fmt.Errorf("expecting activity key to be in format 'activity/{app ID}/{activity ID}', got '%s'", key)
 		}
 		return &jobKey{
 			appID:    &split[1],
@@ -188,7 +188,7 @@ func parseJobKey(key string) (*jobKey, error) {
 		}, nil
 
 	default:
-		return nil, fmt.Errorf("unsupported job type '%s', accepts 'app', 'actor', or 'workflow'", split[0])
+		return nil, fmt.Errorf("unsupported job type '%s', accepts 'app', 'actor', 'workflow', or 'activity'", split[0])
 	}
 }
 

@@ -118,7 +118,6 @@ func Import(ctx context.Context, opts ExportImportOptions) error {
 	ops := make([]clientv3.Op, 0, len(in.Jobs)+len(in.Counters))
 
 	for key, b := range in.Jobs {
-		// Optional: verify bytes are valid before writing
 		var j stored.Job
 		if err := proto.Unmarshal(b, &j); err != nil {
 			return fmt.Errorf("unmarshal job %q: %w", key, err)
@@ -134,19 +133,21 @@ func Import(ctx context.Context, opts ExportImportOptions) error {
 		ops = append(ops, clientv3.OpPut(key, string(b)))
 	}
 
+	var end int
 	for i := 0; i < len(ops); i += 128 {
 		txn := client.Txn(ctx)
-		end := i + 128
+		end = i + 128
 		if end > len(ops) {
 			end = len(ops)
 		}
 		txn.Then(ops[i:end]...)
 		if _, err := txn.Commit(); err != nil {
+			print.FailureStatusEvent(os.Stderr, "Incomplete import with %d items.", end)
 			return fmt.Errorf("commit transaction: %w", err)
 		}
-
-		print.InfoStatusEvent(os.Stdout, "Imported %d items.", end)
 	}
+
+	print.InfoStatusEvent(os.Stdout, "Imported %d items.", end)
 
 	return nil
 }
