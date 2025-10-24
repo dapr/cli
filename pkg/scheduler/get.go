@@ -99,34 +99,37 @@ func getSingle(ctx context.Context, cl *clientv3.Client, key string, opts GetOpt
 }
 
 func pathsFromJobKey(jobKey *jobKey, namespace string) [2]string {
+	const reminderPath = "dapr/jobs/actorreminder"
+	const reminderCounterPath = "dapr/counters/actorreminder"
+
 	var paths [2]string
 	switch {
 	case jobKey.actorType != nil:
-		paths[0] = fmt.Sprintf("dapr/jobs/actorreminder||%s||%s||%s||%s",
-			namespace, *jobKey.actorType, *jobKey.actorID, jobKey.name,
+		paths[0] = fmt.Sprintf("%s||%s||%s||%s||%s",
+			reminderPath, namespace, *jobKey.actorType, *jobKey.actorID, jobKey.name,
 		)
-		paths[1] = fmt.Sprintf("dapr/counters/actorreminder||%s||%s||%s||%s",
-			namespace, *jobKey.actorType, *jobKey.actorID, jobKey.name,
+		paths[1] = fmt.Sprintf("%s||%s||%s||%s||%s",
+			reminderCounterPath, namespace, *jobKey.actorType, *jobKey.actorID, jobKey.name,
 		)
 
 	case jobKey.activity:
 		actorType := fmt.Sprintf("dapr.internal.%s.%s.activity", namespace, *jobKey.appID)
 		actorID := jobKey.name
-		paths[0] = fmt.Sprintf("dapr/jobs/actorreminder||%s||%s||%s||run-activity",
-			namespace, actorType, actorID,
+		paths[0] = fmt.Sprintf("%s||%s||%s||%s||run-activity",
+			reminderPath, namespace, actorType, actorID,
 		)
-		paths[1] = fmt.Sprintf("dapr/counters/actorreminder||%s||%s||%s||run-activity",
-			namespace, actorType, actorID,
+		paths[1] = fmt.Sprintf("%s||%s||%s||%s||run-activity",
+			reminderCounterPath, namespace, actorType, actorID,
 		)
 
 	case jobKey.instanceID != nil:
 		actorType := fmt.Sprintf("dapr.internal.%s.%s.workflow", namespace, *jobKey.appID)
 		actorID := *jobKey.instanceID
-		paths[0] = fmt.Sprintf("dapr/jobs/actorreminder||%s||%s||%s||%s",
-			namespace, actorType, actorID, jobKey.name,
+		paths[0] = fmt.Sprintf("%s||%s||%s||%s||%s",
+			reminderPath, namespace, actorType, actorID, jobKey.name,
 		)
-		paths[1] = fmt.Sprintf("dapr/counters/actorreminder||%s||%s||%s||%s",
-			namespace, actorType, actorID, jobKey.name,
+		paths[1] = fmt.Sprintf("%s||%s||%s||%s||%s",
+			reminderCounterPath, namespace, actorType, actorID, jobKey.name,
 		)
 
 	default:
