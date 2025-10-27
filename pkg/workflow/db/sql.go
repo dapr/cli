@@ -36,7 +36,7 @@ func SQL(ctx context.Context, driver, connString string) (*sql.DB, error) {
 }
 
 func ListSQL(ctx context.Context, db *sql.DB, table string, opts ListOptions) ([]string, error) {
-	query := fmt.Sprintf("SELECT key FROM '%s' WHERE key LIKE ?;", table)
+	query := fmt.Sprintf(`SELECT key FROM "%s" WHERE key LIKE ?;`, table)
 	like := opts.AppID + "||dapr.internal." + opts.Namespace + "." + opts.AppID + ".workflow||%||metadata"
 
 	rows, err := db.QueryContext(ctx, query, like)
