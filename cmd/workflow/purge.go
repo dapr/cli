@@ -25,11 +25,12 @@ var (
 	flagPurgeOlderThan string
 	flagPurgeAll       bool
 	flagPurgeConn      *connFlag
+	schedulerNamespace string
 )
 
 var PurgeCmd = &cobra.Command{
 	Use:   "purge",
-	Short: "Purge one or more workflow instances with a terminal state. Accepts a workflow instance ID argument or flags to purge multiple/all terminal instances.",
+	Short: "Purge one or more workflow instances with a terminal state. Accepts a workflow instance ID argument or flags to purge multiple/all terminal instances. Also deletes all associated scheduler jobs.",
 	Args: func(cmd *cobra.Command, args []string) error {
 		switch {
 		case cmd.Flags().Changed("all-older-than"),
@@ -54,13 +55,14 @@ var PurgeCmd = &cobra.Command{
 		}
 
 		opts := workflow.PurgeOptions{
-			KubernetesMode:   flagKubernetesMode,
-			Namespace:        flagDaprNamespace,
-			AppID:            appID,
-			InstanceIDs:      args,
-			All:              flagPurgeAll,
-			ConnectionString: flagPurgeConn.connectionString,
-			TableName:        flagPurgeConn.tableName,
+			KubernetesMode:     flagKubernetesMode,
+			Namespace:          flagDaprNamespace,
+			SchedulerNamespace: schedulerNamespace,
+			AppID:              appID,
+			InstanceIDs:        args,
+			All:                flagPurgeAll,
+			ConnectionString:   flagPurgeConn.connectionString,
+			TableName:          flagPurgeConn.tableName,
 		}
 
 		if cmd.Flags().Changed("all-older-than") {
@@ -78,6 +80,8 @@ func init() {
 	PurgeCmd.Flags().StringVar(&flagPurgeOlderThan, "all-older-than", "", "Purge workflow instances older than the specified Go duration or timestamp, e.g., '24h' or '2023-01-02T15:04:05Z'.")
 	PurgeCmd.Flags().BoolVar(&flagPurgeAll, "all", false, "Purge all workflow instances in a terminal state. Use with caution.")
 	PurgeCmd.MarkFlagsMutuallyExclusive("all-older-than", "all")
+
+	PurgeCmd.Flags().StringVar(&schedulerNamespace, "scheduler-namespace", "dapr-system", "Kubernetes namespace where the scheduler is deployed, only relevant if --kubernetes is set")
 
 	flagPurgeConn = connectionCmd(PurgeCmd)
 

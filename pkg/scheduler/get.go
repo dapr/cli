@@ -38,7 +38,7 @@ func Get(ctx context.Context, opts GetOptions, keys ...string) ([]*ListOutput, e
 }
 
 func GetWide(ctx context.Context, opts GetOptions, keys ...string) ([]*ListOutputWide, error) {
-	etcdClient, cancel, err := etcdClient(opts.KubernetesMode, opts.SchedulerNamespace)
+	etcdClient, cancel, err := EtcdClient(opts.KubernetesMode, opts.SchedulerNamespace)
 	if err != nil {
 		return nil, err
 	}

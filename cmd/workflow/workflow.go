@@ -44,7 +44,7 @@ var (
 var WorkflowCmd = &cobra.Command{
 	Use:     "workflow",
 	Short:   "Workflow management commands. Use -k to target a Kubernetes Dapr cluster.",
-	Aliases: []string{"work"},
+	Aliases: []string{"wf"},
 }
 
 func init() {

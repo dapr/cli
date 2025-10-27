@@ -332,6 +332,23 @@ func TestWorkflowPurge(t *testing.T) {
 		require.NoError(t, err, output)
 		assert.NotContains(t, output, "purge-older")
 	})
+
+	t.Run("also purge scheduler", func(t *testing.T) {
+		output, err := cmdWorkflowRun(appID, "EventWorkflow",
+			"--instance-id=also-sched")
+		require.NoError(t, err)
+
+		output, err := cmdSchedulerList()
+		require.NoError(t, err)
+		assert.Greater(c, len(strings.Split(output, "\n")), 2)
+
+		output, err = cmdWorkflowPurge(appID, "also-sched")
+		require.NoError(t, err, output)
+
+		output, err = cmdSchedulerList()
+		require.NoError(t, err)
+		assert.Len(c, strings.Split(output, "\n"), 2)
+	})
 }
 
 func TestWorkflowFilters(t *testing.T) {
