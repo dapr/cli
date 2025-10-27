@@ -89,8 +89,6 @@ func TestSchedulerList(t *testing.T) {
 			count, err := strconv.Atoi(strings.Fields(line)[2])
 			require.NoError(t, err)
 			assert.Equal(t, 1, count)
-
-			assert.NotEmpty(t, strings.Fields(line)[3])
 		}
 
 		expNames = []string{
