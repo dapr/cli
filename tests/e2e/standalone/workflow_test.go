@@ -338,6 +338,9 @@ func TestWorkflowPurge(t *testing.T) {
 			"--instance-id=also-sched")
 		require.NoError(t, err)
 
+		output, err = cmdWorkflowTerminate(appID, "also-sched")
+		require.NoError(t, err, output)
+
 		output, err = cmdSchedulerList()
 		require.NoError(t, err)
 		assert.Greater(t, len(strings.Split(output, "\n")), 2)

@@ -229,13 +229,21 @@ func TestSchedulerGet(t *testing.T) {
 			lines := strings.Split(output, "\n")
 			require.Len(t, lines, 3)
 
-			require.Equal(t, []string{
-				"NAME",
-				"BEGIN",
-				"COUNT",
-				"LAST",
-				"TRIGGER",
-			}, strings.Fields(lines[0]))
+			if strings.HasPrefix(name, "activity/") {
+				require.Equal(t, []string{
+					"NAME",
+					"BEGIN",
+					"COUNT",
+				}, strings.Fields(lines[0]), name)
+			} else {
+				require.Equal(t, []string{
+					"NAME",
+					"BEGIN",
+					"COUNT",
+					"LAST",
+					"TRIGGER",
+				}, strings.Fields(lines[0]), name)
+			}
 		}
 	})
 
@@ -246,20 +254,47 @@ func TestSchedulerGet(t *testing.T) {
 			lines := strings.Split(output, "\n")
 			require.Len(t, lines, 3)
 
-			require.Equal(t, []string{
-				"NAMESPACE",
-				"NAME",
-				"BEGIN",
-				"EXPIRATION",
-				"SCHEDULE",
-				"DUE",
-				"TIME",
-				"TTL",
-				"REPEATS",
-				"COUNT",
-				"LAST",
-				"TRIGGER",
-			}, strings.Fields(lines[0]))
+			switch {
+			case name == "app/test-scheduler/test2":
+				require.Equal(t, []string{
+					"NAMESPACE",
+					"NAME",
+					"BEGIN",
+					"EXPIRATION",
+					"SCHEDULE",
+					"DUE",
+					"TIME",
+					"TTL",
+					"REPEATS",
+					"COUNT",
+					"LAST",
+					"TRIGGER",
+				}, strings.Fields(lines[0]), name)
+
+			case strings.HasPrefix(name, "activity/"):
+				require.Equal(t, []string{
+					"NAMESPACE",
+					"NAME",
+					"BEGIN",
+					"DUE",
+					"TIME",
+					"COUNT",
+				}, strings.Fields(lines[0]), name)
+
+			default:
+				require.Equal(t, []string{
+					"NAMESPACE",
+					"NAME",
+					"BEGIN",
+					"SCHEDULE",
+					"DUE",
+					"TIME",
+					"REPEATS",
+					"COUNT",
+					"LAST",
+					"TRIGGER",
+				}, strings.Fields(lines[0]), name)
+			}
 		}
 	})
 
