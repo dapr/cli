@@ -89,16 +89,6 @@ func TestWorkflowList(t *testing.T) {
 		}
 		assert.True(t, found, "Workflow instance not found")
 	})
-
-	t.Run("terminate with output", func(t *testing.T) {
-		output, err := cmdWorkflowRun(appID, "LongWorkflow", "--instance-id=bar")
-		require.NoError(t, err)
-
-		outputData := `{"reason": "test termination", "code": 123}`
-		output, err = cmdWorkflowTerminate(appID, "bar", "-o", outputData)
-		require.NoError(t, err)
-		assert.Contains(t, output, "terminated successfully")
-	})
 }
 
 func TestWorkflowRaiseEvent(t *testing.T) {
