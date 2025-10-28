@@ -392,6 +392,8 @@ func TestWorkflowFilters(t *testing.T) {
 		output, err := cmdWorkflowList(appID, redisConnString, "--filter-status", "SUSPENDED")
 		require.NoError(t, err)
 		assert.Contains(t, output, "suspend-test")
+		assert.NotContains(t, output, "simple-1")
+		assert.NotContains(t, output, "long-1")
 	})
 
 	t.Run("filter by name", func(t *testing.T) {
