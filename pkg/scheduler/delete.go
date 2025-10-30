@@ -30,7 +30,7 @@ type DeleteOptions struct {
 }
 
 func Delete(ctx context.Context, opts DeleteOptions, keys ...string) error {
-	etcdClient, cancel, err := etcdClient(opts.KubernetesMode, opts.SchedulerNamespace)
+	etcdClient, cancel, err := EtcdClient(opts.KubernetesMode, opts.SchedulerNamespace)
 	if err != nil {
 		return err
 	}

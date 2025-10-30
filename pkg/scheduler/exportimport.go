@@ -46,7 +46,7 @@ func Export(ctx context.Context, opts ExportImportOptions) error {
 		return err
 	}
 
-	client, cancel, err := etcdClient(opts.KubernetesMode, opts.SchedulerNamespace)
+	client, cancel, err := EtcdClient(opts.KubernetesMode, opts.SchedulerNamespace)
 	if err != nil {
 		return err
 	}
@@ -98,7 +98,7 @@ func Export(ctx context.Context, opts ExportImportOptions) error {
 }
 
 func Import(ctx context.Context, opts ExportImportOptions) error {
-	client, cancel, err := etcdClient(opts.KubernetesMode, opts.SchedulerNamespace)
+	client, cancel, err := EtcdClient(opts.KubernetesMode, opts.SchedulerNamespace)
 	if err != nil {
 		return err
 	}

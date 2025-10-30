@@ -102,7 +102,7 @@ func ListWide(ctx context.Context, opts ListOptions) ([]*ListOutputWide, error) 
 }
 
 func ListJobs(ctx context.Context, opts ListOptions) ([]*JobCount, error) {
-	etcdClient, cancel, err := etcdClient(opts.KubernetesMode, opts.SchedulerNamespace)
+	etcdClient, cancel, err := EtcdClient(opts.KubernetesMode, opts.SchedulerNamespace)
 	if err != nil {
 		return nil, err
 	}

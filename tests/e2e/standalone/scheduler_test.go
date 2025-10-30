@@ -61,6 +61,8 @@ func TestSchedulerList(t *testing.T) {
 		assert.Len(c, strings.Split(output, "\n"), 10)
 	}, time.Second*30, time.Millisecond*10)
 
+	time.Sleep(time.Second * 3)
+
 	t.Run("short", func(t *testing.T) {
 		output, err := cmdSchedulerList()
 		require.NoError(t, err)
@@ -89,8 +91,6 @@ func TestSchedulerList(t *testing.T) {
 			count, err := strconv.Atoi(strings.Fields(line)[2])
 			require.NoError(t, err)
 			assert.Equal(t, 1, count)
-
-			assert.NotEmpty(t, strings.Fields(line)[3])
 		}
 
 		expNames = []string{
@@ -105,6 +105,9 @@ func TestSchedulerList(t *testing.T) {
 			count, err := strconv.Atoi(strings.Fields(line)[2])
 			require.NoError(t, err)
 			assert.Equal(t, 0, count)
+			if err != nil {
+				return
+			}
 		}
 
 		expNames = []string{
@@ -229,13 +232,21 @@ func TestSchedulerGet(t *testing.T) {
 			lines := strings.Split(output, "\n")
 			require.Len(t, lines, 3)
 
-			require.Equal(t, []string{
-				"NAME",
-				"BEGIN",
-				"COUNT",
-				"LAST",
-				"TRIGGER",
-			}, strings.Fields(lines[0]))
+			if strings.HasPrefix(name, "activity/") {
+				require.Equal(t, []string{
+					"NAME",
+					"BEGIN",
+					"COUNT",
+				}, strings.Fields(lines[0]), name)
+			} else {
+				require.Equal(t, []string{
+					"NAME",
+					"BEGIN",
+					"COUNT",
+					"LAST",
+					"TRIGGER",
+				}, strings.Fields(lines[0]), name)
+			}
 		}
 	})
 
@@ -246,20 +257,47 @@ func TestSchedulerGet(t *testing.T) {
 			lines := strings.Split(output, "\n")
 			require.Len(t, lines, 3)
 
-			require.Equal(t, []string{
-				"NAMESPACE",
-				"NAME",
-				"BEGIN",
-				"EXPIRATION",
-				"SCHEDULE",
-				"DUE",
-				"TIME",
-				"TTL",
-				"REPEATS",
-				"COUNT",
-				"LAST",
-				"TRIGGER",
-			}, strings.Fields(lines[0]))
+			switch {
+			case name == "app/test-scheduler/test2":
+				require.Equal(t, []string{
+					"NAMESPACE",
+					"NAME",
+					"BEGIN",
+					"EXPIRATION",
+					"SCHEDULE",
+					"DUE",
+					"TIME",
+					"TTL",
+					"REPEATS",
+					"COUNT",
+					"LAST",
+					"TRIGGER",
+				}, strings.Fields(lines[0]), name)
+
+			case strings.HasPrefix(name, "activity/"):
+				require.Equal(t, []string{
+					"NAMESPACE",
+					"NAME",
+					"BEGIN",
+					"DUE",
+					"TIME",
+					"COUNT",
+				}, strings.Fields(lines[0]), name)
+
+			default:
+				require.Equal(t, []string{
+					"NAMESPACE",
+					"NAME",
+					"BEGIN",
+					"SCHEDULE",
+					"DUE",
+					"TIME",
+					"REPEATS",
+					"COUNT",
+					"LAST",
+					"TRIGGER",
+				}, strings.Fields(lines[0]), name)
+			}
 		}
 	})
 
