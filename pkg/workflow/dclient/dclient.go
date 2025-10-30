@@ -1,3 +1,16 @@
+/*
+Copyright 2025 The Dapr Authors
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package dclient
 
 import (
@@ -59,51 +72,13 @@ func stand(ctx context.Context, appID string) (*Client, error) {
 		return nil, err
 	}
 
-	var comp *v1alpha1.Component
-	for _, c := range comps {
-		for _, meta := range c.Spec.Metadata {
-			if meta.Name == "actorStateStore" && meta.Value.String() == "true" {
-				comp = &c
-				break
-			}
-		}
-	}
-
-	if comp == nil {
-		return nil, fmt.Errorf("no state store configured for app id %s", appID)
-	}
-
-	client, err := client.NewClientWithAddress("127.0.0.1:" + strconv.Itoa(proc.GRPCPort))
+	c, err := clientFromComponents(comps, appID, strconv.Itoa(proc.GRPCPort))
 	if err != nil {
 		return nil, err
 	}
+	c.Cancel = func() {}
 
-	driver, err := driverFromType(comp.Spec.Type)
-	if err != nil {
-		return nil, err
-	}
-
-	// Optimistically use the connection string in self-hosted mode.
-	var connString *string
-	var tableName *string
-	for _, meta := range comp.Spec.Metadata {
-		switch meta.Name {
-		case "connectionString":
-			connString = ptr.Of(meta.Value.String())
-		case "tableName":
-			tableName = ptr.Of(meta.Value.String())
-		case "collectionName":
-			tableName = ptr.Of(meta.Value.String())
-		}
-	}
-
-	return &Client{
-		Dapr:             client,
-		Cancel:           func() {},
-		StateStoreDriver: driver,
-		ConnectionString: connString,
-		TableName:        tableName,
-	}, nil
+	return c, nil
 }
 
 func kube(namespace string, appID string) (*Client, error) {
@@ -155,13 +130,25 @@ func kube(namespace string, appID string) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	comps, err := kubernetes.ListComponents(kclient, pod.Namespace)
 	if err != nil {
 		return nil, err
 	}
 
+	c, err := clientFromComponents(comps.Items, appID, pod.DaprGRPCPort)
+	if err != nil {
+		portForward.Stop()
+	}
+
+	c.Cancel = portForward.Stop
+
+	return c, nil
+}
+
+func clientFromComponents(comps []v1alpha1.Component, appID string, port string) (*Client, error) {
 	var comp *v1alpha1.Component
-	for _, c := range comps.Items {
+	for _, c := range comps {
 		for _, meta := range c.Spec.Metadata {
 			if meta.Name == "actorStateStore" && meta.Value.String() == "true" {
 				comp = &c
@@ -179,9 +166,8 @@ func kube(namespace string, appID string) (*Client, error) {
 		return nil, err
 	}
 
-	client, err := client.NewClientWithAddress("localhost:" + pod.DaprGRPCPort)
+	client, err := client.NewClientWithAddress("localhost:" + port)
 	if err != nil {
-		portForward.Stop()
 		return nil, err
 	}
 
@@ -195,7 +181,6 @@ func kube(namespace string, appID string) (*Client, error) {
 
 	return &Client{
 		Dapr:             client,
-		Cancel:           portForward.Stop,
 		StateStoreDriver: driver,
 		TableName:        tableName,
 	}, nil
