@@ -91,6 +91,8 @@ func TestStandalonePublish(t *testing.T) {
 				assert.Contains(t, output, "Event published successfully")
 
 				event := <-events
+				event.TraceID = ""
+				event.TraceParent = ""
 				assert.Equal(t, &common.TopicEvent{
 					ID:              "3cc97064-edd1-49f4-b911-c959a7370e68",
 					Source:          "e2e_test",
