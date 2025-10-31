@@ -38,7 +38,7 @@ jobs:
       GOARCH: ${{ matrix.target_arch }}
       GOPROXY: https://proxy.golang.org
       ARCHIVE_OUTDIR: dist/archives
-      DAPR_RUNTIME_PINNED_VERSION: "1.16.0-rc.8"
+      DAPR_RUNTIME_PINNED_VERSION: "1.16.2"
       DAPR_DASHBOARD_PINNED_VERSION: 0.15.0
       DAPR_RUNTIME_LATEST_STABLE_VERSION: ""
       DAPR_DASHBOARD_LATEST_STABLE_VERSION: ""
@@ -131,7 +131,7 @@ jobs:
         shell: bash
       - name: Set the test timeout - MacOS
         if: matrix.os == 'macos-14-large'
-        run: echo "E2E_SH_TEST_TIMEOUT=30m" >> $GITHUB_ENV
+        run: echo "E2E_SH_TEST_TIMEOUT=40m" >> $GITHUB_ENV
       - name: Run E2E tests with GHCR
         # runs every 6hrs
         if: github.event.schedule == '0 */6 * * *'

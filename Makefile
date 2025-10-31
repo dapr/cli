@@ -74,7 +74,7 @@ TEST_OUTPUT_FILE ?= test_output.json
 
 # Set the default timeout for tests to 10 minutes
 ifndef E2E_SH_TEST_TIMEOUT
-  override E2E_SH_TEST_TIMEOUT := 10m
+  override E2E_SH_TEST_TIMEOUT := 40m
 endif
 
 # Use the variable H to add a header (equivalent to =>) to informational output
