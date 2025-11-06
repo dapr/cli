@@ -33,6 +33,7 @@ import (
 
 	daprRuntime "github.com/dapr/dapr/pkg/runtime"
 
+	cmdruntime "github.com/dapr/cli/cmd/runtime"
 	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/pkg/metadata"
 	"github.com/dapr/cli/pkg/print"
@@ -159,7 +160,7 @@ dapr run --run-file /path/to/directory -k
 			fmt.Println(print.WhiteBold("WARNING: no application command found."))
 		}
 
-		daprDirPath, err := standalone.GetDaprRuntimePath(daprRuntimePath)
+		daprDirPath, err := standalone.GetDaprRuntimePath(cmdruntime.GetDaprRuntimePath())
 		if err != nil {
 			print.FailureStatusEvent(os.Stderr, "Failed to get Dapr install directory: %v", err)
 			os.Exit(1)
@@ -206,7 +207,7 @@ dapr run --run-file /path/to/directory -k
 			AppHealthThreshold: appHealthThreshold,
 			EnableAPILogging:   enableAPILogging,
 			APIListenAddresses: apiListenAddresses,
-			DaprdInstallPath:   daprRuntimePath,
+			DaprdInstallPath:   cmdruntime.GetDaprRuntimePath(),
 		}
 
 		// placement-host-address flag handling: only set pointer if flag was explicitly changed
