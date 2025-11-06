@@ -75,7 +75,8 @@ func stand(ctx context.Context, opts Options) (*Client, error) {
 	}
 
 	if len(proc.ResourcePaths) == 0 {
-		daprDirPath, err := standalone.GetDaprRuntimePath(opts.RuntimePath)
+		var daprDirPath string
+		daprDirPath, err = standalone.GetDaprRuntimePath(opts.RuntimePath)
 		if err != nil {
 			return nil, err
 		}
