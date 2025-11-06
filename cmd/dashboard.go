@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 
+	"github.com/dapr/cli/cmd/runtime"
 	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/pkg/standalone"
@@ -83,7 +84,7 @@ dapr dashboard -k -p 0
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		if dashboardVersionCmd {
-			dashboardVer, err := standalone.GetDashboardVersion(daprRuntimePath)
+			dashboardVer, err := standalone.GetDashboardVersion(runtime.GetDaprRuntimePath())
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, "Failed to get Dapr install directory: %v", err)
 				os.Exit(1)
@@ -195,7 +196,7 @@ dapr dashboard -k -p 0
 			<-portForward.GetStop()
 		} else {
 			// Standalone mode.
-			dashboardCmd, err := standalone.NewDashboardCmd(daprRuntimePath, dashboardLocalPort)
+			dashboardCmd, err := standalone.NewDashboardCmd(runtime.GetDaprRuntimePath(), dashboardLocalPort)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, "Failed to get Dapr install	directory: %v", err)
 			} else {

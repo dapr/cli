@@ -16,6 +16,7 @@ package workflow
 import (
 	"context"
 
+	"github.com/dapr/cli/cmd/runtime"
 	"github.com/dapr/cli/pkg/workflow/dclient"
 	"github.com/dapr/durabletask-go/workflow"
 )
@@ -30,7 +31,12 @@ type RaiseEventOptions struct {
 }
 
 func RaiseEvent(ctx context.Context, opts RaiseEventOptions) error {
-	cli, err := dclient.DaprClient(ctx, opts.KubernetesMode, opts.Namespace, opts.AppID)
+	cli, err := dclient.DaprClient(ctx, dclient.Options{
+		KubernetesMode: opts.KubernetesMode,
+		Namespace:      opts.Namespace,
+		AppID:          opts.AppID,
+		RuntimePath:    runtime.GetDaprRuntimePath(),
+	})
 	if err != nil {
 		return err
 	}
@@ -55,7 +61,12 @@ type SuspendOptions struct {
 }
 
 func Suspend(ctx context.Context, opts SuspendOptions) error {
-	cli, err := dclient.DaprClient(ctx, opts.KubernetesMode, opts.Namespace, opts.AppID)
+	cli, err := dclient.DaprClient(ctx, dclient.Options{
+		KubernetesMode: opts.KubernetesMode,
+		Namespace:      opts.Namespace,
+		AppID:          opts.AppID,
+		RuntimePath:    runtime.GetDaprRuntimePath(),
+	})
 	if err != nil {
 		return err
 	}
@@ -75,7 +86,12 @@ type ResumeOptions struct {
 }
 
 func Resume(ctx context.Context, opts ResumeOptions) error {
-	cli, err := dclient.DaprClient(ctx, opts.KubernetesMode, opts.Namespace, opts.AppID)
+	cli, err := dclient.DaprClient(ctx, dclient.Options{
+		KubernetesMode: opts.KubernetesMode,
+		Namespace:      opts.Namespace,
+		AppID:          opts.AppID,
+		RuntimePath:    runtime.GetDaprRuntimePath(),
+	})
 	if err != nil {
 		return err
 	}
@@ -95,7 +111,12 @@ type TerminateOptions struct {
 }
 
 func Terminate(ctx context.Context, opts TerminateOptions) error {
-	cli, err := dclient.DaprClient(ctx, opts.KubernetesMode, opts.Namespace, opts.AppID)
+	cli, err := dclient.DaprClient(ctx, dclient.Options{
+		KubernetesMode: opts.KubernetesMode,
+		Namespace:      opts.Namespace,
+		AppID:          opts.AppID,
+		RuntimePath:    runtime.GetDaprRuntimePath(),
+	})
 	if err != nil {
 		return err
 	}
