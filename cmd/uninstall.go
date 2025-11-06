@@ -21,6 +21,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	cmdruntime "github.com/dapr/cli/cmd/runtime"
 	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/pkg/standalone"
@@ -70,7 +71,7 @@ dapr uninstall --runtime-path <path-to-install-directory>
 		var err error
 
 		if uninstallKubernetes {
-			if len(strings.TrimSpace(daprRuntimePath)) != 0 {
+			if len(strings.TrimSpace(cmdruntime.GetDaprRuntimePath())) != 0 {
 				print.FailureStatusEvent(os.Stderr, "--runtime-path is only valid for self-hosted mode")
 				os.Exit(1)
 			}
@@ -84,7 +85,7 @@ dapr uninstall --runtime-path <path-to-install-directory>
 			}
 			print.InfoStatusEvent(os.Stdout, "Removing Dapr from your machine...")
 			dockerNetwork := viper.GetString("network")
-			err = standalone.Uninstall(uninstallAll, dockerNetwork, uninstallContainerRuntime, daprRuntimePath)
+			err = standalone.Uninstall(uninstallAll, dockerNetwork, uninstallContainerRuntime, cmdruntime.GetDaprRuntimePath())
 		}
 
 		if err != nil {

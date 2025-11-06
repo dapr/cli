@@ -21,6 +21,7 @@ import (
 
 	clientv3 "go.etcd.io/etcd/client/v3"
 
+	"github.com/dapr/cli/cmd/runtime"
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/pkg/scheduler"
 	"github.com/dapr/cli/pkg/workflow/dclient"
@@ -41,7 +42,12 @@ type PurgeOptions struct {
 }
 
 func Purge(ctx context.Context, opts PurgeOptions) error {
-	cli, err := dclient.DaprClient(ctx, opts.KubernetesMode, opts.Namespace, opts.AppID)
+	cli, err := dclient.DaprClient(ctx, dclient.Options{
+		KubernetesMode: opts.KubernetesMode,
+		Namespace:      opts.Namespace,
+		AppID:          opts.AppID,
+		RuntimePath:    runtime.GetDaprRuntimePath(),
+	})
 	if err != nil {
 		return err
 	}
