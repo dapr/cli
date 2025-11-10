@@ -17,6 +17,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/dapr/cli/cmd/runtime"
 	"github.com/dapr/cli/pkg/workflow/dclient"
 	"github.com/dapr/durabletask-go/workflow"
 )
@@ -32,7 +33,12 @@ type RunOptions struct {
 }
 
 func Run(ctx context.Context, opts RunOptions) (string, error) {
-	cli, err := dclient.DaprClient(ctx, opts.KubernetesMode, opts.Namespace, opts.AppID)
+	cli, err := dclient.DaprClient(ctx, dclient.Options{
+		KubernetesMode: opts.KubernetesMode,
+		Namespace:      opts.Namespace,
+		AppID:          opts.AppID,
+		RuntimePath:    runtime.GetDaprRuntimePath(),
+	})
 	if err != nil {
 		return "", err
 	}

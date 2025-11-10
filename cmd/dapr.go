@@ -21,6 +21,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	"github.com/dapr/cli/cmd/runtime"
 	"github.com/dapr/cli/cmd/scheduler"
 	"github.com/dapr/cli/cmd/workflow"
 	"github.com/dapr/cli/pkg/api"
@@ -62,11 +63,10 @@ const (
 )
 
 var (
-	cliVersion      string
-	versionFlag     bool
-	daprVer         daprVersion
-	logAsJSON       bool
-	daprRuntimePath string
+	cliVersion  string
+	versionFlag bool
+	daprVer     daprVersion
+	logAsJSON   bool
 )
 
 // Execute adds all child commands to the root command.
@@ -93,7 +93,7 @@ func initConfig() {
 		print.EnableJSONFormat()
 	}
 	// err intentionally ignored since daprd may not yet be installed.
-	runtimeVer, _ := standalone.GetRuntimeVersion(daprRuntimePath)
+	runtimeVer, _ := standalone.GetRuntimeVersion(runtime.GetDaprRuntimePath())
 
 	daprVer = daprVersion{
 		// Set in Execute() method in this file before initConfig() is called by cmd.Execute().
@@ -108,8 +108,8 @@ func initConfig() {
 
 func init() {
 	RootCmd.Flags().BoolVarP(&versionFlag, "version", "v", false, "version for dapr")
-	RootCmd.PersistentFlags().StringVarP(&daprRuntimePath, "runtime-path", "", "", "The path to the dapr runtime installation directory")
 	RootCmd.PersistentFlags().BoolVarP(&logAsJSON, "log-as-json", "", false, "Log output in JSON format")
+	runtime.Register(RootCmd)
 
 	RootCmd.AddCommand(scheduler.SchedulerCmd)
 	RootCmd.AddCommand(workflow.WorkflowCmd)
