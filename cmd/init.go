@@ -22,6 +22,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	"github.com/dapr/cli/cmd/runtime"
 	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/pkg/standalone"
@@ -107,7 +108,7 @@ dapr init --runtime-path <path-to-install-directory>
 			imageRegistryURI := ""
 			var err error
 
-			if len(strings.TrimSpace(daprRuntimePath)) != 0 {
+			if len(strings.TrimSpace(runtime.GetDaprRuntimePath())) != 0 {
 				print.FailureStatusEvent(os.Stderr, "--runtime-path is only valid for self-hosted mode")
 				os.Exit(1)
 			}
@@ -178,7 +179,7 @@ dapr init --runtime-path <path-to-install-directory>
 				schedulerHostPort = nil
 			}
 
-			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode, imageRegistryURI, fromDir, containerRuntime, imageVariant, daprRuntimePath, &schedulerVolume, schedulerHostPort)
+			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode, imageRegistryURI, fromDir, containerRuntime, imageVariant, runtime.GetDaprRuntimePath(), &schedulerVolume, schedulerHostPort)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)
