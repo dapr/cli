@@ -26,6 +26,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	"github.com/dapr/cli/cmd/runtime"
 	"github.com/dapr/cli/pkg/workflow/dclient"
 	"github.com/dapr/cli/utils"
 	"github.com/dapr/durabletask-go/api/protos"
@@ -104,7 +105,12 @@ func HistoryShort(ctx context.Context, opts HistoryOptions) ([]*HistoryOutputSho
 }
 
 func HistoryWide(ctx context.Context, opts HistoryOptions) ([]*HistoryOutputWide, error) {
-	cli, err := dclient.DaprClient(ctx, opts.KubernetesMode, opts.Namespace, opts.AppID)
+	cli, err := dclient.DaprClient(ctx, dclient.Options{
+		KubernetesMode: opts.KubernetesMode,
+		Namespace:      opts.Namespace,
+		AppID:          opts.AppID,
+		RuntimePath:    runtime.GetDaprRuntimePath(),
+	})
 	if err != nil {
 		return nil, err
 	}

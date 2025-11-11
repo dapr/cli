@@ -20,6 +20,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dapr/cli/cmd/runtime"
 	"github.com/dapr/cli/pkg/workflow/dclient"
 	"github.com/dapr/durabletask-go/api"
 	"github.com/dapr/durabletask-go/api/protos"
@@ -92,7 +93,12 @@ func ListShort(ctx context.Context, opts ListOptions) ([]*ListOutputShort, error
 }
 
 func ListWide(ctx context.Context, opts ListOptions) ([]*ListOutputWide, error) {
-	dclient, err := dclient.DaprClient(ctx, opts.KubernetesMode, opts.Namespace, opts.AppID)
+	dclient, err := dclient.DaprClient(ctx, dclient.Options{
+		KubernetesMode: opts.KubernetesMode,
+		Namespace:      opts.Namespace,
+		AppID:          opts.AppID,
+		RuntimePath:    runtime.GetDaprRuntimePath(),
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Dapr client: %w", err)
 	}

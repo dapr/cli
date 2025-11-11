@@ -27,6 +27,13 @@ import (
 	"github.com/dapr/kit/ptr"
 )
 
+type Options struct {
+	KubernetesMode bool
+	Namespace      string
+	AppID          string
+	RuntimePath    string
+}
+
 type Client struct {
 	Dapr             client.Client
 	Cancel           context.CancelFunc
@@ -35,21 +42,21 @@ type Client struct {
 	TableName        *string
 }
 
-func DaprClient(ctx context.Context, kubernetesMode bool, namespace, appID string) (*Client, error) {
+func DaprClient(ctx context.Context, opts Options) (*Client, error) {
 	client.SetLogger(nil)
 
 	var client *Client
 	var err error
-	if kubernetesMode {
-		client, err = kube(namespace, appID)
+	if opts.KubernetesMode {
+		client, err = kube(opts)
 	} else {
-		client, err = stand(ctx, appID)
+		client, err = stand(ctx, opts)
 	}
 
 	return client, err
 }
 
-func stand(ctx context.Context, appID string) (*Client, error) {
+func stand(ctx context.Context, opts Options) (*Client, error) {
 	list, err := standalone.List()
 	if err != nil {
 		return nil, err
@@ -57,22 +64,32 @@ func stand(ctx context.Context, appID string) (*Client, error) {
 
 	var proc *standalone.ListOutput
 	for _, c := range list {
-		if c.AppID == appID {
+		if c.AppID == opts.AppID {
 			proc = &c
 			break
 		}
 	}
 
 	if proc == nil {
-		return nil, fmt.Errorf("Dapr app with id '%s' not found", appID)
+		return nil, fmt.Errorf("Dapr app with id '%s' not found", opts.AppID)
 	}
 
-	comps, err := loader.NewLocalLoader(appID, proc.ResourcePaths).Load(ctx)
+	if len(proc.ResourcePaths) == 0 {
+		var daprDirPath string
+		daprDirPath, err = standalone.GetDaprRuntimePath(opts.RuntimePath)
+		if err != nil {
+			return nil, err
+		}
+
+		proc.ResourcePaths = []string{standalone.GetDaprComponentsPath(daprDirPath)}
+	}
+
+	comps, err := loader.NewLocalLoader(opts.AppID, proc.ResourcePaths).Load(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	c, err := clientFromComponents(comps, appID, strconv.Itoa(proc.GRPCPort))
+	c, err := clientFromComponents(comps, opts.AppID, strconv.Itoa(proc.GRPCPort))
 	if err != nil {
 		return nil, err
 	}
@@ -81,22 +98,22 @@ func stand(ctx context.Context, appID string) (*Client, error) {
 	return c, nil
 }
 
-func kube(namespace string, appID string) (*Client, error) {
-	list, err := kubernetes.List(namespace)
+func kube(opts Options) (*Client, error) {
+	list, err := kubernetes.List(opts.Namespace)
 	if err != nil {
 		return nil, err
 	}
 
 	var pod *kubernetes.ListOutput
 	for _, p := range list {
-		if p.AppID == appID {
+		if p.AppID == opts.AppID {
 			pod = &p
 			break
 		}
 	}
 
 	if pod == nil {
-		return nil, fmt.Errorf("Dapr app with id '%s' not found in namespace %s", appID, namespace)
+		return nil, fmt.Errorf("Dapr app with id '%s' not found in namespace %s", opts.AppID, opts.Namespace)
 	}
 
 	config, _, err := kubernetes.GetKubeConfigClient()
@@ -111,7 +128,7 @@ func kube(namespace string, appID string) (*Client, error) {
 
 	portForward, err := kubernetes.NewPortForward(
 		config,
-		namespace,
+		opts.Namespace,
 		pod.PodName,
 		"localhost",
 		port,
@@ -136,7 +153,7 @@ func kube(namespace string, appID string) (*Client, error) {
 		return nil, err
 	}
 
-	c, err := clientFromComponents(comps.Items, appID, pod.DaprGRPCPort)
+	c, err := clientFromComponents(comps.Items, opts.AppID, pod.DaprGRPCPort)
 	if err != nil {
 		portForward.Stop()
 	}
