@@ -45,7 +45,7 @@ func TestGetVersionedNumberOfPods(t *testing.T) {
 			name:           "HA disabled with latest version",
 			isHAEnabled:    false,
 			details:        VersionDetails{UseDaprLatestVersion: true},
-			expectedNumber: numNonHAPodsWithScheduler,
+			expectedNumber: numNonHAPodsWithHAScheduler,
 			expectedError:  false,
 		},
 		{
@@ -94,7 +94,7 @@ func TestGetVersionedNumberOfPods(t *testing.T) {
 			name:           "HA disabled with new RC version",
 			isHAEnabled:    false,
 			details:        VersionDetails{UseDaprLatestVersion: false, RuntimeVersion: "1.15.0-rc.1"},
-			expectedNumber: numNonHAPodsWithScheduler,
+			expectedNumber: numNonHAPodsWithHAScheduler,
 			expectedError:  false,
 		},
 	}
