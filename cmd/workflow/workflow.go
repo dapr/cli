@@ -205,7 +205,7 @@ func connectionCmd(cmd *cobra.Command) *connFlag {
 		flagTableName        string
 	)
 
-	cmd.Flags().StringVarP(&flagConnectionString, "connection-string", "c", "", "The connection string used to connect and authenticate to the actor state store")
+	cmd.Flags().StringVarP(&flagConnectionString, "connection-string", "c", "", "Only used for Dapr runtime versions 1.16. The connection string used to connect and authenticate to the actor state store")
 	cmd.Flags().StringVarP(&flagTableName, "table-name", "t", "", "The name of the table or collection which is used as the actor state store")
 
 	var cflag connFlag

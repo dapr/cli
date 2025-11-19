@@ -23,6 +23,8 @@ import (
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/dapr/kit/signals"
 )
 
 type Metrics struct {
@@ -48,8 +50,17 @@ func main() {
 	}
 	finalURL := "http://" + host + ":" + port + "/metrics"
 	log.Println("Sending metrics to ", finalURL)
+
+	ctx := signals.Context()
+
 	for i := 0; i < 2000; i++ {
-		time.Sleep(1 * time.Second)
+		select {
+		case <-ctx.Done():
+			log.Println("Shutting down metrics sender app")
+			return
+		case <-time.After(time.Second):
+		}
+
 		metrics := Metrics{
 			MetricsID: i,
 		}

@@ -48,7 +48,6 @@ func TestWorkflowList(t *testing.T) {
 	appID := "test-workflow"
 	t.Cleanup(func() {
 		cmdStopWithAppID(appID)
-		waitAppsToBeStopped()
 	})
 	args := []string{"-f", runFilePath}
 
@@ -106,7 +105,6 @@ func TestWorkflowRaiseEvent(t *testing.T) {
 	appID := "test-workflow"
 	t.Cleanup(func() {
 		cmdStopWithAppID(appID)
-		waitAppsToBeStopped()
 	})
 	args := []string{"-f", runFilePath}
 
@@ -188,7 +186,6 @@ func TestWorkflowReRun(t *testing.T) {
 	appID := "test-workflow"
 	t.Cleanup(func() {
 		cmdStopWithAppID(appID)
-		waitAppsToBeStopped()
 	})
 	args := []string{"-f", runFilePath}
 
@@ -245,7 +242,6 @@ func TestWorkflowPurge(t *testing.T) {
 	appID := "test-workflow"
 	t.Cleanup(func() {
 		cmdStopWithAppID(appID)
-		waitAppsToBeStopped()
 	})
 	args := []string{"-f", runFilePath}
 
@@ -359,7 +355,6 @@ func TestWorkflowFilters(t *testing.T) {
 	appID := "test-workflow"
 	t.Cleanup(func() {
 		cmdStopWithAppID(appID)
-		waitAppsToBeStopped()
 	})
 	args := []string{"-f", runFilePath}
 
@@ -426,7 +421,6 @@ func TestWorkflowChildCalls(t *testing.T) {
 	appID := "test-workflow"
 	t.Cleanup(func() {
 		cmdStopWithAppID(appID)
-		waitAppsToBeStopped()
 	})
 	args := []string{"-f", runFilePath}
 
@@ -546,7 +540,6 @@ func TestWorkflowHistory(t *testing.T) {
 	appID := "test-workflow"
 	t.Cleanup(func() {
 		cmdStopWithAppID(appID)
-		waitAppsToBeStopped()
 	})
 	args := []string{"-f", runFilePath}
 
@@ -601,7 +594,6 @@ func TestWorkflowSuspendResume(t *testing.T) {
 	appID := "test-workflow"
 	t.Cleanup(func() {
 		cmdStopWithAppID(appID)
-		waitAppsToBeStopped()
 	})
 	args := []string{"-f", runFilePath}
 
@@ -680,7 +672,6 @@ func TestWorkflowTerminate(t *testing.T) {
 	appID := "test-workflow"
 	t.Cleanup(func() {
 		cmdStopWithAppID(appID)
-		waitAppsToBeStopped()
 	})
 	args := []string{"-f", runFilePath}
 

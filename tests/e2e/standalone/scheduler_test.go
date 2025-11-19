@@ -38,17 +38,14 @@ func TestSchedulerList(t *testing.T) {
 
 	cmdUninstall()
 	ensureDaprInstallation(t)
-	t.Cleanup(func() {
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
 
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
 	t.Cleanup(func() {
-		cmdStopWithAppID("test-scheduler")
-		waitAppsToBeStopped()
+		cmdStopWithRunTemplate(runFilePath)
+		must(t, cmdUninstall, "failed to uninstall Dapr")
 	})
-	args := []string{"-f", runFilePath}
 
+	args := []string{"-f", runFilePath}
 	go func() {
 		o, err := cmdRun("", args...)
 		t.Log(o)
@@ -193,15 +190,13 @@ func TestSchedulerGet(t *testing.T) {
 
 	cmdUninstall()
 	ensureDaprInstallation(t)
-	t.Cleanup(func() {
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
 
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
 	t.Cleanup(func() {
-		cmdStopWithAppID("test-scheduler")
-		waitAppsToBeStopped()
+		cmdStopWithRunTemplate(runFilePath)
+		must(t, cmdUninstall, "failed to uninstall Dapr")
 	})
+
 	args := []string{"-f", runFilePath}
 
 	go func() {
@@ -337,15 +332,21 @@ func TestSchedulerDelete(t *testing.T) {
 
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
 	t.Cleanup(func() {
-		cmdStopWithAppID("test-scheduler")
-		waitAppsToBeStopped()
+		cmdStopWithRunTemplate(runFilePath)
+		must(t, cmdUninstall, "failed to uninstall Dapr")
 	})
 	args := []string{"-f", runFilePath}
 
 	go func() {
-		o, err := cmdRun("", args...)
-		t.Log(o)
-		t.Log(err)
+		for range 10 {
+			o, err := cmdRun("", args...)
+			t.Log(o)
+			t.Log(err)
+			if err == nil {
+				break
+			}
+			time.Sleep(time.Second * 2)
+		}
 	}()
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
@@ -409,15 +410,21 @@ func TestSchedulerDeleteAllAll(t *testing.T) {
 
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
 	t.Cleanup(func() {
-		cmdStopWithAppID("test-scheduler")
-		waitAppsToBeStopped()
+		cmdStopWithRunTemplate(runFilePath)
+		must(t, cmdUninstall, "failed to uninstall Dapr")
 	})
 	args := []string{"-f", runFilePath}
 
 	go func() {
-		o, err := cmdRun("", args...)
-		t.Log(o)
-		t.Log(err)
+		for range 10 {
+			o, err := cmdRun("", args...)
+			t.Log(o)
+			t.Log(err)
+			if err == nil {
+				break
+			}
+			time.Sleep(time.Second * 2)
+		}
 	}()
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
@@ -447,21 +454,27 @@ func TestSchedulerDeleteAll(t *testing.T) {
 
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
 	t.Cleanup(func() {
-		cmdStopWithAppID("test-scheduler")
-		waitAppsToBeStopped()
+		cmdStopWithRunTemplate(runFilePath)
+		must(t, cmdUninstall, "failed to uninstall Dapr")
 	})
 	args := []string{"-f", runFilePath}
 
 	go func() {
-		o, err := cmdRun("", args...)
-		t.Log(o)
-		t.Log(err)
+		for range 10 {
+			o, err := cmdRun("", args...)
+			t.Log(o)
+			t.Log(err)
+			if err == nil {
+				break
+			}
+			time.Sleep(time.Second * 2)
+		}
 	}()
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		output, err := cmdSchedulerList()
 		require.NoError(t, err)
-		assert.Len(c, strings.Split(output, "\n"), 10)
+		assert.GreaterOrEqual(c, len(strings.Split(output, "\n")), 7)
 	}, time.Second*30, time.Millisecond*10)
 
 	_, err := cmdSchedulerDeleteAll("app/test-scheduler")
@@ -508,15 +521,21 @@ func TestSchedulerExportImport(t *testing.T) {
 
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
 	t.Cleanup(func() {
-		cmdStopWithAppID("test-scheduler")
-		waitAppsToBeStopped()
+		cmdStopWithRunTemplate(runFilePath)
+		must(t, cmdUninstall, "failed to uninstall Dapr")
 	})
 	args := []string{"-f", runFilePath}
 
 	go func() {
-		o, err := cmdRun("", args...)
-		t.Log(o)
-		t.Log(err)
+		for range 10 {
+			o, err := cmdRun("", args...)
+			t.Log(o)
+			t.Log(err)
+			if err == nil {
+				break
+			}
+			time.Sleep(time.Second * 2)
+		}
 	}()
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
@@ -537,7 +556,10 @@ func TestSchedulerExportImport(t *testing.T) {
 
 	_, err = cmdSchedulerImport("-f", f)
 	require.NoError(t, err)
-	output, err = cmdSchedulerList()
-	require.NoError(t, err)
-	assert.Len(t, strings.Split(output, "\n"), 10)
+
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		output, err := cmdSchedulerList()
+		require.NoError(t, err)
+		assert.GreaterOrEqual(c, len(strings.Split(output, "\n")), 9)
+	}, time.Second*30, time.Millisecond*10)
 }

@@ -184,7 +184,7 @@ func LongRunningActivity(ctx workflow.ActivityContext) (any, error) {
 		stage = "unknown"
 	}
 
-	time.Sleep(time.Second * 2)
+	time.Sleep(time.Second * 6)
 
 	return fmt.Sprintf("Completed %s at %s", stage, time.Now().Format(time.RFC3339)), nil
 }

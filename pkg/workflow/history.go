@@ -15,15 +15,11 @@ package workflow
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"sort"
 	"strings"
 	"time"
 
-	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/dapr/cli/cmd/runtime"
@@ -31,11 +27,8 @@ import (
 	"github.com/dapr/cli/utils"
 	"github.com/dapr/durabletask-go/api/protos"
 	"github.com/dapr/durabletask-go/workflow"
-	"github.com/dapr/go-sdk/client"
 	"github.com/dapr/kit/ptr"
 )
-
-const maxHistoryEntries = 100
 
 type HistoryOptions struct {
 	KubernetesMode bool
@@ -116,27 +109,10 @@ func HistoryWide(ctx context.Context, opts HistoryOptions) ([]*HistoryOutputWide
 	}
 	defer cli.Cancel()
 
-	history, err := fetchHistory(ctx,
-		cli.Dapr,
-		"dapr.internal."+opts.Namespace+"."+opts.AppID+".workflow",
-		opts.InstanceID,
-	)
+	history, err := cli.InstanceHistory(ctx, opts.InstanceID)
 	if err != nil {
 		return nil, err
 	}
-
-	// Sort: EventId if both present, else Timestamp
-	sort.SliceStable(history, func(i, j int) bool {
-		ei, ej := history[i], history[j]
-		if ei.EventId > 0 && ej.EventId > 0 {
-			return ei.EventId < ej.EventId
-		}
-		ti, tj := ei.GetTimestamp().AsTime(), ej.GetTimestamp().AsTime()
-		if !ti.Equal(tj) {
-			return ti.Before(tj)
-		}
-		return ei.EventId < ej.EventId
-	})
 
 	var rows []*HistoryOutputWide
 	var prevTs time.Time
@@ -263,74 +239,6 @@ func HistoryWide(ctx context.Context, opts HistoryOptions) ([]*HistoryOutputWide
 	}
 
 	return rows, nil
-}
-
-func fetchHistory(ctx context.Context, cl client.Client, actorType, instanceID string) ([]*protos.HistoryEvent, error) {
-	var events []*protos.HistoryEvent
-	for startIndex := 0; startIndex <= 1; startIndex++ {
-		if len(events) > 0 {
-			break
-		}
-
-		for i := startIndex; i < maxHistoryEntries; i++ {
-			key := fmt.Sprintf("history-%06d", i)
-
-			resp, err := cl.GetActorState(ctx, &client.GetActorStateRequest{
-				ActorType: actorType,
-				ActorID:   instanceID,
-				KeyName:   key,
-			})
-			if err != nil {
-				if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
-					return nil, err
-				}
-				break
-			}
-
-			if resp == nil || len(resp.Data) == 0 {
-				break
-			}
-
-			var event protos.HistoryEvent
-			if err = decodeKey(resp.Data, &event); err != nil {
-				return nil, fmt.Errorf("failed to decode history event %s: %w", key, err)
-			}
-
-			events = append(events, &event)
-		}
-	}
-
-	return events, nil
-}
-
-func decodeKey(data []byte, item proto.Message) error {
-	if len(data) == 0 {
-		return fmt.Errorf("empty value")
-	}
-
-	if err := protojson.Unmarshal(data, item); err == nil {
-		return nil
-	}
-
-	if unquoted, err := unquoteJSON(data); err == nil {
-		if err := protojson.Unmarshal([]byte(unquoted), item); err == nil {
-			return nil
-		}
-	}
-
-	if err := proto.Unmarshal(data, item); err == nil {
-		return nil
-	}
-
-	return fmt.Errorf("unable to decode history event (len=%d)", len(data))
-}
-
-func unquoteJSON(data []byte) (string, error) {
-	var s string
-	if err := json.Unmarshal(data, &s); err != nil {
-		return "", err
-	}
-	return s, nil
 }
 
 func eventTypeName(h *protos.HistoryEvent) string {
@@ -506,7 +414,7 @@ func trim(ww *wrapperspb.StringValue, limit int) string {
 		return ""
 	}
 
-	s, err := unquoteJSON([]byte(ww.Value))
+	s, err := dclient.UnquoteJSON([]byte(ww.Value))
 	if err != nil {
 		s = ww.Value
 	}
