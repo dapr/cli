@@ -32,7 +32,8 @@ var (
 
 var ReRunCmd = &cobra.Command{
 	Use:   "rerun [instance ID]",
-	Short: "ReRun a workflow instance from the beginning or a specific event. Optionally, a new instance ID and input to the starting event can be provided.",
+	Short: "Re-run a workflow instance.",
+	Long:  "ReRun a workflow instance from the beginning or a specific event. Optionally, a new instance ID and input to the starting event can be provided.",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := signals.Context()

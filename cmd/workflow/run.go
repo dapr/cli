@@ -31,7 +31,8 @@ var (
 
 var RunCmd = &cobra.Command{
 	Use:   "run",
-	Short: "Run a workflow instance based on a given workflow name. Accepts a single argument, the workflow name.",
+	Short: "Run a workflow instance.",
+	Long:  "Run a workflow instance based on a given workflow name. Accepts a single argument, the workflow name.",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := signals.Context()
