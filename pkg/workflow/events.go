@@ -42,14 +42,12 @@ func RaiseEvent(ctx context.Context, opts RaiseEventOptions) error {
 	}
 	defer cli.Cancel()
 
-	wf := workflow.NewClient(cli.Dapr.GrpcClientConn())
-
 	var wopts []workflow.RaiseEventOptions
 	if opts.Input != nil {
 		wopts = append(wopts, workflow.WithEventPayload(*opts.Input))
 	}
 
-	return wf.RaiseEvent(ctx, opts.InstanceID, opts.Name, wopts...)
+	return cli.WF.RaiseEvent(ctx, opts.InstanceID, opts.Name, wopts...)
 }
 
 type SuspendOptions struct {

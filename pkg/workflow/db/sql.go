@@ -18,6 +18,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	_ "github.com/mattn/go-sqlite3"
 	_ "github.com/microsoft/go-mssqldb"
@@ -35,8 +36,8 @@ func SQL(ctx context.Context, driver, connString string) (*sql.DB, error) {
 	return db, nil
 }
 
-func ListSQL(ctx context.Context, db *sql.DB, table string, opts ListOptions) ([]string, error) {
-	query := fmt.Sprintf(`SELECT key FROM "%s" WHERE key LIKE ?;`, table)
+func ListSQL(ctx context.Context, db *sql.DB, table, key string, opts ListOptions) ([]string, error) {
+	query := fmt.Sprintf(`SELECT "%s" FROM "%s" WHERE key LIKE ?;`, key, table)
 	like := opts.AppID + "||dapr.internal." + opts.Namespace + "." + opts.AppID + ".workflow||%||metadata"
 
 	rows, err := db.QueryContext(ctx, query, like)

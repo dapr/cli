@@ -1,20 +1,23 @@
 module github.com/dapr/cli
 
-go 1.24.7
+go 1.24.9
+
+toolchain go1.24.10
 
 require (
 	github.com/Masterminds/semver v1.5.0
 	github.com/Masterminds/semver/v3 v3.3.0
 	github.com/Pallinder/sillyname-go v0.0.0-20130730142914-97aeae9e6ba1
 	github.com/briandowns/spinner v1.19.0
-	github.com/dapr/dapr v1.16.0
-	github.com/dapr/durabletask-go v0.10.0
+	github.com/dapr/dapr v1.16.1-rc.3.0.20251118161632-84fbd05c585c
+	github.com/dapr/durabletask-go v0.10.2-0.20251113171253-87ecdf8f0547
 	github.com/dapr/go-sdk v1.13.0
-	github.com/dapr/kit v0.16.1
-	github.com/diagridio/go-etcd-cron v0.9.1
+	github.com/dapr/kit v0.16.2-0.20251117143824-2fd5d0c93524
+	github.com/diagridio/go-etcd-cron v0.10.0
 	github.com/docker/docker v25.0.6+incompatible
 	github.com/evanphx/json-patch/v5 v5.9.0
 	github.com/fatih/color v1.17.0
+	github.com/go-sql-driver/mysql v1.8.1
 	github.com/gocarina/gocsv v0.0.0-20220927221512-ad3251f9fa25
 	github.com/hashicorp/go-retryablehttp v0.7.7
 	github.com/hashicorp/go-version v1.6.0
@@ -54,6 +57,7 @@ require (
 	cel.dev/expr v0.23.0 // indirect
 	contrib.go.opencensus.io/exporter/prometheus v0.4.2 // indirect
 	dario.cat/mergo v1.0.1 // indirect
+	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/AdaLogics/go-fuzz-headers v0.0.0-20230811130428-ced1acdcaa24 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
 	github.com/BurntSushi/toml v1.4.0 // indirect
@@ -85,7 +89,7 @@ require (
 	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/cyphar/filepath-securejoin v0.3.6 // indirect
-	github.com/dapr/components-contrib v1.16.0 // indirect
+	github.com/dapr/components-contrib v1.16.2-0.20251113171451-b78f056c8491 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect

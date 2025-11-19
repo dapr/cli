@@ -19,11 +19,8 @@ import (
 	"os"
 	"time"
 
-	clientv3 "go.etcd.io/etcd/client/v3"
-
 	"github.com/dapr/cli/cmd/runtime"
 	"github.com/dapr/cli/pkg/print"
-	"github.com/dapr/cli/pkg/scheduler"
 	"github.com/dapr/cli/pkg/workflow/dclient"
 	"github.com/dapr/durabletask-go/workflow"
 )
@@ -36,29 +33,20 @@ type PurgeOptions struct {
 	InstanceIDs        []string
 	AllOlderThan       *time.Time
 	All                bool
+	Force              bool
 
 	ConnectionString *string
 	TableName        *string
 }
 
 func Purge(ctx context.Context, opts PurgeOptions) error {
-	cli, err := dclient.DaprClient(ctx, dclient.Options{
-		KubernetesMode: opts.KubernetesMode,
-		Namespace:      opts.Namespace,
-		AppID:          opts.AppID,
-		RuntimePath:    runtime.GetDaprRuntimePath(),
-	})
-	if err != nil {
-		return err
-	}
-	defer cli.Cancel()
-
 	var toPurge []string
 
 	if len(opts.InstanceIDs) > 0 {
 		toPurge = opts.InstanceIDs
 	} else {
 		var list []*ListOutputWide
+		var err error
 		list, err = ListWide(ctx, ListOptions{
 			KubernetesMode:   opts.KubernetesMode,
 			Namespace:        opts.Namespace,
@@ -88,39 +76,23 @@ func Purge(ctx context.Context, opts PurgeOptions) error {
 		}
 	}
 
-	wf := workflow.NewClient(cli.Dapr.GrpcClientConn())
-
-	etcdClient, cancel, err := scheduler.EtcdClient(opts.KubernetesMode, opts.SchedulerNamespace)
+	cli, err := dclient.DaprClient(ctx, dclient.Options{
+		KubernetesMode:     opts.KubernetesMode,
+		Namespace:          opts.Namespace,
+		AppID:              opts.AppID,
+		RuntimePath:        runtime.GetDaprRuntimePath(),
+		DBConnectionString: opts.ConnectionString,
+	})
 	if err != nil {
 		return err
 	}
-	defer cancel()
+	defer cli.Cancel()
 
 	print.InfoStatusEvent(os.Stdout, "Purging %d workflow instance(s)", len(toPurge))
 
 	for _, id := range toPurge {
-		if err = wf.PurgeWorkflowState(ctx, id); err != nil {
+		if err = cli.WF.PurgeWorkflowState(ctx, id, workflow.WithForcePurge(opts.Force)); err != nil {
 			return fmt.Errorf("%s: %w", id, err)
-		}
-
-		paths := []string{
-			fmt.Sprintf("dapr/jobs/actorreminder||%s||dapr.internal.%s.%s.workflow||%s||", opts.Namespace, opts.Namespace, opts.AppID, id),
-			fmt.Sprintf("dapr/jobs/actorreminder||%s||dapr.internal.%s.%s.activity||%s::", opts.Namespace, opts.Namespace, opts.AppID, id),
-			fmt.Sprintf("dapr/counters/actorreminder||%s||dapr.internal.%s.%s.workflow||%s||", opts.Namespace, opts.Namespace, opts.AppID, id),
-			fmt.Sprintf("dapr/counters/actorreminder||%s||dapr.internal.%s.%s.activity||%s::", opts.Namespace, opts.Namespace, opts.AppID, id),
-		}
-
-		oopts := make([]clientv3.Op, 0, len(paths))
-		for _, path := range paths {
-			oopts = append(oopts, clientv3.OpDelete(path,
-				clientv3.WithPrefix(),
-				clientv3.WithPrevKV(),
-				clientv3.WithKeysOnly(),
-			))
-		}
-
-		if _, err = etcdClient.Txn(ctx).Then(oopts...).Commit(); err != nil {
-			return err
 		}
 
 		print.SuccessStatusEvent(os.Stdout, "Purged workflow instance %q", id)
