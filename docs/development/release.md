@@ -40,7 +40,7 @@ $ git push upstream v1.11.0-rc.0
 
 The Dapr CLI automated release process is triggered by the `create-release` workflow. This workflow is triggered by the `create-release` button in the GitHub Actions UI.
 
-This workflow will create a new release branch and tag, and trigger the Dapr CLI build.
+This workflow will create a new release branch and tag, and trigger the Dapr CLI build. Ensure the new release is set to `latest` and not a `pre-release`
 
 
 ## Release the stable version to users
