@@ -347,13 +347,13 @@ func deriveDetails(first *protos.HistoryEvent, h *protos.HistoryEvent) *string {
 	switch t := h.GetEventType().(type) {
 	case *protos.HistoryEvent_TaskScheduled:
 		if in := t.TaskScheduled.RerunParentInstanceInfo; in != nil {
-			return ptr.Of(fmt.Sprintf("rerun-parent=%s", in.InstanceID))
+			return ptr.Of(fmt.Sprintf("rerunParent=%s", in.InstanceID))
 		}
 		return nil
 	case *protos.HistoryEvent_TimerCreated:
 		det := fmt.Sprintf("fireAt=%s", t.TimerCreated.FireAt.AsTime().Format(time.RFC3339))
 		if in := t.TimerCreated.RerunParentInstanceInfo; in != nil {
-			det += fmt.Sprintf(",rerun-parent=%s", in.InstanceID)
+			det += fmt.Sprintf(",rerunParent=%s", in.InstanceID)
 		}
 		return ptr.Of(det)
 	case *protos.HistoryEvent_EventRaised:
@@ -361,7 +361,11 @@ func deriveDetails(first *protos.HistoryEvent, h *protos.HistoryEvent) *string {
 	case *protos.HistoryEvent_EventSent:
 		return ptr.Of(fmt.Sprintf("event=%s->%s", t.EventSent.Name, t.EventSent.InstanceId))
 	case *protos.HistoryEvent_ExecutionStarted:
-		return ptr.Of("workflow_start")
+		d := ptr.Of("workflowStart")
+		if p := h.GetExecutionStarted().GetParentInstance(); p != nil {
+			*d += fmt.Sprintf(",parent=%s", p.GetOrchestrationInstance().GetInstanceId())
+		}
+		return d
 	case *protos.HistoryEvent_OrchestratorStarted:
 		return ptr.Of("replay")
 	case *protos.HistoryEvent_TaskCompleted:
@@ -370,7 +374,7 @@ func deriveDetails(first *protos.HistoryEvent, h *protos.HistoryEvent) *string {
 		return ptr.Of(fmt.Sprintf("execDuration=%s", utils.HumanizeDuration(h.GetTimestamp().AsTime().Sub(first.GetTimestamp().AsTime()))))
 	case *protos.HistoryEvent_SubOrchestrationInstanceCreated:
 		if in := t.SubOrchestrationInstanceCreated.RerunParentInstanceInfo; in != nil {
-			return ptr.Of(fmt.Sprintf("rerun-parent=%s", in.InstanceID))
+			return ptr.Of(fmt.Sprintf("rerunParent=%s", in.InstanceID))
 		}
 		return nil
 	default:
