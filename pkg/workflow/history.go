@@ -385,6 +385,8 @@ func deriveDetails(first *protos.HistoryEvent, h *protos.HistoryEvent) *string {
 			return ptr.Of(fmt.Sprintf("rerunParent=%s", in.InstanceID))
 		}
 		return nil
+	case *protos.HistoryEvent_SubOrchestrationInstanceCompleted:
+		return ptr.Of(fmt.Sprintf("eventId=%d", t.SubOrchestrationInstanceCompleted.GetTaskScheduledId()))
 	default:
 		return nil
 	}
