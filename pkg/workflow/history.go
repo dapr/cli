@@ -346,25 +346,33 @@ func deriveStatus(h *protos.HistoryEvent) string {
 func deriveDetails(first *protos.HistoryEvent, h *protos.HistoryEvent) *string {
 	switch t := h.GetEventType().(type) {
 	case *protos.HistoryEvent_TaskScheduled:
-		ver := ""
-		if t.TaskScheduled.Version != nil && t.TaskScheduled.Version.Value != "" {
-			ver = " v" + t.TaskScheduled.Version.Value
+		if in := t.TaskScheduled.RerunParentInstanceInfo; in != nil {
+			return ptr.Of(fmt.Sprintf("rerun-parent=%s", in.InstanceID))
 		}
-		return ptr.Of(fmt.Sprintf("activity=%s%s", t.TaskScheduled.Name, ver))
+		return nil
 	case *protos.HistoryEvent_TimerCreated:
-		return ptr.Of(fmt.Sprintf("fireAt=%s", t.TimerCreated.FireAt.AsTime().Format(time.RFC3339)))
+		det := fmt.Sprintf("fireAt=%s", t.TimerCreated.FireAt.AsTime().Format(time.RFC3339))
+		if in := t.TimerCreated.RerunParentInstanceInfo; in != nil {
+			det += fmt.Sprintf(",rerun-parent=%s", in.InstanceID)
+		}
+		return ptr.Of(det)
 	case *protos.HistoryEvent_EventRaised:
 		return ptr.Of(fmt.Sprintf("event=%s", t.EventRaised.Name))
 	case *protos.HistoryEvent_EventSent:
-		return ptr.Of(fmt.Sprintf("event=%s -> %s", t.EventSent.Name, t.EventSent.InstanceId))
+		return ptr.Of(fmt.Sprintf("event=%s->%s", t.EventSent.Name, t.EventSent.InstanceId))
 	case *protos.HistoryEvent_ExecutionStarted:
-		return ptr.Of("orchestration start")
+		return ptr.Of("workflow_start")
 	case *protos.HistoryEvent_OrchestratorStarted:
-		return ptr.Of("replay cycle start")
+		return ptr.Of("replay")
 	case *protos.HistoryEvent_TaskCompleted:
 		return ptr.Of(fmt.Sprintf("eventId=%d", t.TaskCompleted.TaskScheduledId))
 	case *protos.HistoryEvent_ExecutionCompleted:
 		return ptr.Of(fmt.Sprintf("execDuration=%s", utils.HumanizeDuration(h.GetTimestamp().AsTime().Sub(first.GetTimestamp().AsTime()))))
+	case *protos.HistoryEvent_SubOrchestrationInstanceCreated:
+		if in := t.SubOrchestrationInstanceCreated.RerunParentInstanceInfo; in != nil {
+			return ptr.Of(fmt.Sprintf("rerun-parent=%s", in.InstanceID))
+		}
+		return nil
 	default:
 		return nil
 	}
