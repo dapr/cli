@@ -183,6 +183,14 @@ func HistoryWide(ctx context.Context, opts HistoryOptions) ([]*HistoryOutputWide
 			if t.TaskCompleted.Result != nil {
 				row.addAttr("output", trim(t.TaskCompleted.Result, 120))
 			}
+		case *protos.HistoryEvent_SubOrchestrationInstanceCreated:
+			if t.SubOrchestrationInstanceCreated.Input != nil {
+				row.addAttr("input", trim(t.SubOrchestrationInstanceCreated.Input, 120))
+			}
+		case *protos.HistoryEvent_SubOrchestrationInstanceCompleted:
+			if t.SubOrchestrationInstanceCompleted.Result != nil {
+				row.addAttr("output", trim(t.SubOrchestrationInstanceCompleted.Result, 120))
+			}
 		case *protos.HistoryEvent_TaskFailed:
 			row.addAttr("scheduledId", fmt.Sprintf("%d", t.TaskFailed.TaskScheduledId))
 			if t.TaskFailed.TaskExecutionId != "" {
