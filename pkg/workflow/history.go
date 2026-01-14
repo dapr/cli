@@ -181,7 +181,7 @@ func HistoryWide(ctx context.Context, opts HistoryOptions) ([]*HistoryOutputWide
 				row.ExecutionID = ptr.Of(t.TaskCompleted.TaskExecutionId)
 			}
 			if t.TaskCompleted.Result != nil {
-				row.addAttr("result", trim(t.TaskCompleted.Result, 120))
+				row.addAttr("output", trim(t.TaskCompleted.Result, 120))
 			}
 		case *protos.HistoryEvent_TaskFailed:
 			row.addAttr("scheduledId", fmt.Sprintf("%d", t.TaskFailed.TaskScheduledId))
