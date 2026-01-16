@@ -15,15 +15,11 @@ package workflow
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"sort"
 	"strings"
 	"time"
 
-	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/dapr/cli/cmd/runtime"
@@ -31,11 +27,8 @@ import (
 	"github.com/dapr/cli/utils"
 	"github.com/dapr/durabletask-go/api/protos"
 	"github.com/dapr/durabletask-go/workflow"
-	"github.com/dapr/go-sdk/client"
 	"github.com/dapr/kit/ptr"
 )
-
-const maxHistoryEntries = 100
 
 type HistoryOptions struct {
 	KubernetesMode bool
@@ -116,27 +109,10 @@ func HistoryWide(ctx context.Context, opts HistoryOptions) ([]*HistoryOutputWide
 	}
 	defer cli.Cancel()
 
-	history, err := fetchHistory(ctx,
-		cli.Dapr,
-		"dapr.internal."+opts.Namespace+"."+opts.AppID+".workflow",
-		opts.InstanceID,
-	)
+	history, err := cli.InstanceHistory(ctx, opts.InstanceID)
 	if err != nil {
 		return nil, err
 	}
-
-	// Sort: EventId if both present, else Timestamp
-	sort.SliceStable(history, func(i, j int) bool {
-		ei, ej := history[i], history[j]
-		if ei.EventId > 0 && ej.EventId > 0 {
-			return ei.EventId < ej.EventId
-		}
-		ti, tj := ei.GetTimestamp().AsTime(), ej.GetTimestamp().AsTime()
-		if !ti.Equal(tj) {
-			return ti.Before(tj)
-		}
-		return ei.EventId < ej.EventId
-	})
 
 	var rows []*HistoryOutputWide
 	var prevTs time.Time
@@ -205,7 +181,15 @@ func HistoryWide(ctx context.Context, opts HistoryOptions) ([]*HistoryOutputWide
 				row.ExecutionID = ptr.Of(t.TaskCompleted.TaskExecutionId)
 			}
 			if t.TaskCompleted.Result != nil {
-				row.addAttr("result", trim(t.TaskCompleted.Result, 120))
+				row.addAttr("output", trim(t.TaskCompleted.Result, 120))
+			}
+		case *protos.HistoryEvent_SubOrchestrationInstanceCreated:
+			if t.SubOrchestrationInstanceCreated.Input != nil {
+				row.addAttr("input", trim(t.SubOrchestrationInstanceCreated.Input, 120))
+			}
+		case *protos.HistoryEvent_SubOrchestrationInstanceCompleted:
+			if t.SubOrchestrationInstanceCompleted.Result != nil {
+				row.addAttr("output", trim(t.SubOrchestrationInstanceCompleted.Result, 120))
 			}
 		case *protos.HistoryEvent_TaskFailed:
 			row.addAttr("scheduledId", fmt.Sprintf("%d", t.TaskFailed.TaskScheduledId))
@@ -263,74 +247,6 @@ func HistoryWide(ctx context.Context, opts HistoryOptions) ([]*HistoryOutputWide
 	}
 
 	return rows, nil
-}
-
-func fetchHistory(ctx context.Context, cl client.Client, actorType, instanceID string) ([]*protos.HistoryEvent, error) {
-	var events []*protos.HistoryEvent
-	for startIndex := 0; startIndex <= 1; startIndex++ {
-		if len(events) > 0 {
-			break
-		}
-
-		for i := startIndex; i < maxHistoryEntries; i++ {
-			key := fmt.Sprintf("history-%06d", i)
-
-			resp, err := cl.GetActorState(ctx, &client.GetActorStateRequest{
-				ActorType: actorType,
-				ActorID:   instanceID,
-				KeyName:   key,
-			})
-			if err != nil {
-				if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
-					return nil, err
-				}
-				break
-			}
-
-			if resp == nil || len(resp.Data) == 0 {
-				break
-			}
-
-			var event protos.HistoryEvent
-			if err = decodeKey(resp.Data, &event); err != nil {
-				return nil, fmt.Errorf("failed to decode history event %s: %w", key, err)
-			}
-
-			events = append(events, &event)
-		}
-	}
-
-	return events, nil
-}
-
-func decodeKey(data []byte, item proto.Message) error {
-	if len(data) == 0 {
-		return fmt.Errorf("empty value")
-	}
-
-	if err := protojson.Unmarshal(data, item); err == nil {
-		return nil
-	}
-
-	if unquoted, err := unquoteJSON(data); err == nil {
-		if err := protojson.Unmarshal([]byte(unquoted), item); err == nil {
-			return nil
-		}
-	}
-
-	if err := proto.Unmarshal(data, item); err == nil {
-		return nil
-	}
-
-	return fmt.Errorf("unable to decode history event (len=%d)", len(data))
-}
-
-func unquoteJSON(data []byte) (string, error) {
-	var s string
-	if err := json.Unmarshal(data, &s); err != nil {
-		return "", err
-	}
-	return s, nil
 }
 
 func eventTypeName(h *protos.HistoryEvent) string {
@@ -438,25 +354,39 @@ func deriveStatus(h *protos.HistoryEvent) string {
 func deriveDetails(first *protos.HistoryEvent, h *protos.HistoryEvent) *string {
 	switch t := h.GetEventType().(type) {
 	case *protos.HistoryEvent_TaskScheduled:
-		ver := ""
-		if t.TaskScheduled.Version != nil && t.TaskScheduled.Version.Value != "" {
-			ver = " v" + t.TaskScheduled.Version.Value
+		if in := t.TaskScheduled.RerunParentInstanceInfo; in != nil {
+			return ptr.Of(fmt.Sprintf("rerunParent=%s", in.InstanceID))
 		}
-		return ptr.Of(fmt.Sprintf("activity=%s%s", t.TaskScheduled.Name, ver))
+		return nil
 	case *protos.HistoryEvent_TimerCreated:
-		return ptr.Of(fmt.Sprintf("fireAt=%s", t.TimerCreated.FireAt.AsTime().Format(time.RFC3339)))
+		det := fmt.Sprintf("fireAt=%s", t.TimerCreated.FireAt.AsTime().Format(time.RFC3339))
+		if in := t.TimerCreated.RerunParentInstanceInfo; in != nil {
+			det += fmt.Sprintf(",rerunParent=%s", in.InstanceID)
+		}
+		return ptr.Of(det)
 	case *protos.HistoryEvent_EventRaised:
 		return ptr.Of(fmt.Sprintf("event=%s", t.EventRaised.Name))
 	case *protos.HistoryEvent_EventSent:
-		return ptr.Of(fmt.Sprintf("event=%s -> %s", t.EventSent.Name, t.EventSent.InstanceId))
+		return ptr.Of(fmt.Sprintf("event=%s->%s", t.EventSent.Name, t.EventSent.InstanceId))
 	case *protos.HistoryEvent_ExecutionStarted:
-		return ptr.Of("orchestration start")
+		d := ptr.Of("workflowStart")
+		if p := h.GetExecutionStarted().GetParentInstance(); p != nil {
+			*d += fmt.Sprintf(",parent=%s", p.GetOrchestrationInstance().GetInstanceId())
+		}
+		return d
 	case *protos.HistoryEvent_OrchestratorStarted:
-		return ptr.Of("replay cycle start")
+		return ptr.Of("replay")
 	case *protos.HistoryEvent_TaskCompleted:
 		return ptr.Of(fmt.Sprintf("eventId=%d", t.TaskCompleted.TaskScheduledId))
 	case *protos.HistoryEvent_ExecutionCompleted:
 		return ptr.Of(fmt.Sprintf("execDuration=%s", utils.HumanizeDuration(h.GetTimestamp().AsTime().Sub(first.GetTimestamp().AsTime()))))
+	case *protos.HistoryEvent_SubOrchestrationInstanceCreated:
+		if in := t.SubOrchestrationInstanceCreated.RerunParentInstanceInfo; in != nil {
+			return ptr.Of(fmt.Sprintf("rerunParent=%s", in.InstanceID))
+		}
+		return nil
+	case *protos.HistoryEvent_SubOrchestrationInstanceCompleted:
+		return ptr.Of(fmt.Sprintf("eventId=%d", t.SubOrchestrationInstanceCompleted.GetTaskScheduledId()))
 	default:
 		return nil
 	}
@@ -506,7 +436,7 @@ func trim(ww *wrapperspb.StringValue, limit int) string {
 		return ""
 	}
 
-	s, err := unquoteJSON([]byte(ww.Value))
+	s, err := dclient.UnquoteJSON([]byte(ww.Value))
 	if err != nil {
 		s = ww.Value
 	}

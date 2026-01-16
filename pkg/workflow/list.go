@@ -24,8 +24,6 @@ import (
 	"github.com/dapr/cli/pkg/workflow/dclient"
 	"github.com/dapr/durabletask-go/api"
 	"github.com/dapr/durabletask-go/api/protos"
-	"github.com/dapr/durabletask-go/workflow"
-	"github.com/dapr/go-sdk/client"
 	"github.com/dapr/kit/ptr"
 	"k8s.io/apimachinery/pkg/util/duration"
 )
@@ -94,52 +92,29 @@ func ListShort(ctx context.Context, opts ListOptions) ([]*ListOutputShort, error
 
 func ListWide(ctx context.Context, opts ListOptions) ([]*ListOutputWide, error) {
 	dclient, err := dclient.DaprClient(ctx, dclient.Options{
-		KubernetesMode: opts.KubernetesMode,
-		Namespace:      opts.Namespace,
-		AppID:          opts.AppID,
-		RuntimePath:    runtime.GetDaprRuntimePath(),
+		KubernetesMode:     opts.KubernetesMode,
+		Namespace:          opts.Namespace,
+		AppID:              opts.AppID,
+		RuntimePath:        runtime.GetDaprRuntimePath(),
+		DBConnectionString: opts.ConnectionString,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Dapr client: %w", err)
 	}
 	defer dclient.Cancel()
 
-	connString := opts.ConnectionString
-	if connString == nil {
-		connString = dclient.ConnectionString
-	}
-	tableName := opts.TableName
-	if tableName == nil {
-		tableName = dclient.TableName
-	}
-
-	metaKeys, err := metakeys(ctx, DBOptions{
-		Namespace:        opts.Namespace,
-		AppID:            opts.AppID,
-		Driver:           dclient.StateStoreDriver,
-		ConnectionString: connString,
-		TableName:        tableName,
-	})
+	instanceIDs, err := dclient.InstanceIDs(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return list(ctx, metaKeys, dclient.Dapr, opts)
+	return list(ctx, instanceIDs, dclient, opts)
 }
 
-func list(ctx context.Context, metaKeys []string, cl client.Client, opts ListOptions) ([]*ListOutputWide, error) {
-	wf := workflow.NewClient(cl.GrpcClientConn())
-
+func list(ctx context.Context, instanceIDs []string, cl *dclient.Client, opts ListOptions) ([]*ListOutputWide, error) {
 	var listOutput []*ListOutputWide
-	for _, key := range metaKeys {
-		split := strings.Split(key, "||")
-		if len(split) != 4 {
-			continue
-		}
-
-		instanceID := split[2]
-
-		resp, err := wf.FetchWorkflowMetadata(ctx, instanceID)
+	for _, instanceID := range instanceIDs {
+		resp, err := cl.WF.FetchWorkflowMetadata(ctx, instanceID)
 		if err != nil {
 			return nil, err
 		}
@@ -153,6 +128,7 @@ func list(ctx context.Context, metaKeys []string, cl client.Client, opts ListOpt
 		if opts.Filter.MaxAge != nil && resp.CreatedAt.AsTime().Before(*opts.Filter.MaxAge) {
 			continue
 		}
+
 		// TODO: @joshvanl: add `WorkflowIsCompleted` func to workflow package.
 		//nolint:govet
 		if opts.Filter.Terminal && !api.OrchestrationMetadataIsComplete(ptr.Of(protos.OrchestrationMetadata(*resp))) {

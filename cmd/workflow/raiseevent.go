@@ -30,7 +30,8 @@ var (
 
 var RaiseEventCmd = &cobra.Command{
 	Use:   "raise-event",
-	Short: "Raise an event for a workflow waiting for an external event. Expects a single argument '<instance-id>/<event-name>'.",
+	Short: "Raise an event for a workflow waiting for an external event.",
+	Long:  "Raise an event for a workflow waiting for an external event. Expects a single argument '<instance-id>/<event-name>'.",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := signals.Context()

@@ -43,8 +43,6 @@ func ReRun(ctx context.Context, opts ReRunOptions) (string, error) {
 	}
 	defer cli.Cancel()
 
-	wf := workflow.NewClient(cli.Dapr.GrpcClientConn())
-
 	var wopts []workflow.RerunOptions
 	if opts.NewInstanceID != nil {
 		wopts = append(wopts, workflow.WithRerunNewInstanceID(*opts.NewInstanceID))
@@ -53,5 +51,5 @@ func ReRun(ctx context.Context, opts ReRunOptions) (string, error) {
 		wopts = append(wopts, workflow.WithRerunInput(*opts.Input))
 	}
 
-	return wf.RerunWorkflowFromEvent(ctx, opts.InstanceID, opts.EventID, wopts...)
+	return cli.WF.RerunWorkflowFromEvent(ctx, opts.InstanceID, opts.EventID, wopts...)
 }

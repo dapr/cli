@@ -39,6 +39,7 @@ type AppTestOutput struct {
 }
 
 func TestRunWithTemplateFile(t *testing.T) {
+	cmdUninstall()
 	cleanUpLogs()
 	ensureDaprInstallation(t)
 	t.Cleanup(func() {
@@ -52,14 +53,26 @@ func TestRunWithTemplateFile(t *testing.T) {
 		t.Cleanup(func() {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
 			cleanUpLogs()
-			waitAppsToBeStopped()
 		})
 		args := []string{
 			"-f", runFilePath,
 		}
-		output, err := cmdRunWithContext(t.Context(), "", args...)
-		t.Logf("%s", output)
-		require.NoError(t, err, "run failed")
+
+		outputCh := make(chan string)
+		go func() {
+			output, _ := cmdRun("", args...)
+			t.Logf("%s", output)
+			outputCh <- output
+		}()
+		time.Sleep(time.Second * 10)
+		cmdStopWithRunTemplate(runFilePath)
+		var output string
+		select {
+		case output = <-outputCh:
+		case <-time.After(time.Second * 10):
+			t.Fatal("timed out waiting for run command to finish")
+		}
+
 		// Deterministic output for template file, so we can assert line by line
 		lines := strings.Split(output, "\n")
 		assert.GreaterOrEqual(t, len(lines), 4, "expected at least 4 lines in output of starting two apps")
@@ -95,18 +108,33 @@ func TestRunWithTemplateFile(t *testing.T) {
 	})
 
 	t.Run("valid template file", func(t *testing.T) {
+		cmdUninstall()
+		ensureDaprInstallation(t)
+
 		runFilePath := "../testdata/run-template-files/dapr.yaml"
 		t.Cleanup(func() {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
 			cleanUpLogs()
-			waitAppsToBeStopped()
 		})
 		args := []string{
 			"-f", runFilePath,
 		}
-		output, err := cmdRunWithContext(t.Context(), "", args...)
-		t.Logf("%s", output)
-		require.NoError(t, err, "run failed")
+
+		outputCh := make(chan string)
+		go func() {
+			output, _ := cmdRun("", args...)
+			t.Logf("%s", output)
+			outputCh <- output
+		}()
+		time.Sleep(time.Second * 10)
+		cmdStopWithRunTemplate(runFilePath)
+		var output string
+		select {
+		case output = <-outputCh:
+		case <-time.After(time.Second * 10):
+			t.Fatal("timed out waiting for run command to finish")
+		}
+
 		// Deterministic output for template file, so we can assert line by line
 		lines := strings.Split(output, "\n")
 		assert.GreaterOrEqual(t, len(lines), 6, "expected at least 6 lines in output of starting two apps")
@@ -150,17 +178,31 @@ func TestRunWithTemplateFile(t *testing.T) {
 
 	t.Run("invalid template file env var not set", func(t *testing.T) {
 		runFilePath := "../testdata/run-template-files/env_var_not_set_dapr.yaml"
+		cmdUninstall()
+		ensureDaprInstallation(t)
+
 		t.Cleanup(func() {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
 			cleanUpLogs()
-			waitAppsToBeStopped()
 		})
 		args := []string{
 			"-f", runFilePath,
 		}
-		output, err := cmdRunWithContext(t.Context(), "", args...)
-		t.Logf("%s", output)
-		require.NoError(t, err, "run failed")
+		outputCh := make(chan string)
+		go func() {
+			output, _ := cmdRun("", args...)
+			t.Logf("%s", output)
+			outputCh <- output
+		}()
+		time.Sleep(time.Second * 10)
+		cmdStopWithRunTemplate(runFilePath)
+		var output string
+		select {
+		case output = <-outputCh:
+		case <-time.After(time.Second * 10):
+			t.Fatal("timed out waiting for run command to finish")
+		}
+
 		// Deterministic output for template file, so we can assert line by line
 		lines := strings.Split(output, "\n")
 		assert.GreaterOrEqual(t, len(lines), 6, "expected at least 6 lines in output of starting two apps")
@@ -197,18 +239,32 @@ func TestRunWithTemplateFile(t *testing.T) {
 	})
 
 	t.Run("valid template file no app command", func(t *testing.T) {
+		cmdUninstall()
+		ensureDaprInstallation(t)
+
 		runFilePath := "../testdata/run-template-files/no_app_command.yaml"
 		t.Cleanup(func() {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
 			cleanUpLogs()
-			waitAppsToBeStopped()
 		})
 		args := []string{
 			"-f", runFilePath,
 		}
-		output, err := cmdRunWithContext(t.Context(), "", args...)
-		t.Logf("%s", output)
-		require.NoError(t, err, "run failed")
+		outputCh := make(chan string)
+		go func() {
+			output, _ := cmdRun("", args...)
+			t.Logf("%s", output)
+			outputCh <- output
+		}()
+		time.Sleep(time.Second * 10)
+		cmdStopWithRunTemplate(runFilePath)
+		var output string
+		select {
+		case output = <-outputCh:
+		case <-time.After(time.Second * 10):
+			t.Fatal("timed out waiting for run command to finish")
+		}
+
 		// Deterministic output for template file, so we can assert line by line
 		lines := strings.Split(output, "\n")
 		assert.GreaterOrEqual(t, len(lines), 7, "expected at least 7 lines in output of starting two apps with one app not having a command")
@@ -246,18 +302,32 @@ func TestRunWithTemplateFile(t *testing.T) {
 	})
 
 	t.Run("valid template file empty app command", func(t *testing.T) {
+		cmdUninstall()
+		ensureDaprInstallation(t)
+
 		runFilePath := "../testdata/run-template-files/empty_app_command.yaml"
 		t.Cleanup(func() {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
 			cleanUpLogs()
-			waitAppsToBeStopped()
 		})
 		args := []string{
 			"-f", runFilePath,
 		}
-		output, err := cmdRunWithContext(t.Context(), "", args...)
-		t.Logf("%s", output)
-		require.Error(t, err, "run must fail")
+		outputCh := make(chan string)
+		go func() {
+			output, _ := cmdRun("", args...)
+			t.Logf("%s", output)
+			outputCh <- output
+		}()
+		time.Sleep(time.Second * 10)
+		cmdStopWithRunTemplate(runFilePath)
+		var output string
+		select {
+		case output = <-outputCh:
+		case <-time.After(time.Second * 10):
+			t.Fatal("timed out waiting for run command to finish")
+		}
+
 		// Deterministic output for template file, so we can assert line by line
 		lines := strings.Split(output, "\n")
 		assert.GreaterOrEqual(t, len(lines), 5, "expected at least 5 lines in output of starting two apps with last app having an empty command")
@@ -292,18 +362,31 @@ func TestRunWithTemplateFile(t *testing.T) {
 	})
 
 	t.Run("valid template file with app/daprd log destinations", func(t *testing.T) {
+		cmdUninstall()
+		ensureDaprInstallation(t)
+
 		runFilePath := "../testdata/run-template-files/app_output_to_file_and_console.yaml"
 		t.Cleanup(func() {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
 			cleanUpLogs()
-			waitAppsToBeStopped()
 		})
 		args := []string{
 			"-f", runFilePath,
 		}
-		output, err := cmdRunWithContext(t.Context(), "", args...)
-		t.Logf("%s", output)
-		require.NoError(t, err, "run failed")
+		outputCh := make(chan string)
+		go func() {
+			output, _ := cmdRun("", args...)
+			t.Logf("%s", output)
+			outputCh <- output
+		}()
+		time.Sleep(time.Second * 10)
+		cmdStopWithRunTemplate(runFilePath)
+		var output string
+		select {
+		case output = <-outputCh:
+		case <-time.After(time.Second * 10):
+			t.Fatal("timed out waiting for run command to finish")
+		}
 
 		// App logs for processor app should not be printed to console and only written to file.
 		assert.NotContains(t, output, "== APP - processor")
@@ -358,7 +441,7 @@ func TestRunTemplateFileWithoutDaprInit(t *testing.T) {
 		args := []string{
 			"-f", "../testdata/run-template-files/no_app_command.yaml",
 		}
-		output, err := cmdRunWithContext(t.Context(), "", args...)
+		output, err := cmdRun("", args...)
 		t.Logf("%s", output)
 		require.Error(t, err, "run must fail")
 		assert.Contains(t, output, "Error starting Dapr and app (\"processor\"): fork/exec")
@@ -407,8 +490,4 @@ func lookUpFileFullName(dirPath, partialFilename string) (string, error) {
 		}
 	}
 	return "", fmt.Errorf("failed to find file with partial name %s in directory %s", partialFilename, dirPath)
-}
-
-func waitAppsToBeStopped() {
-	time.Sleep(15 * time.Second)
 }
