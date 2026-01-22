@@ -23,7 +23,8 @@ import (
 var DeleteAllCmd = &cobra.Command{
 	Use:     "delete-all",
 	Aliases: []string{"da", "delall"},
-	Short: `Delete all scheduled jobs in the specified namespace of a particular filter.
+	Short:   "Delete all scheduled jobs in the specified namespace of a particular filter.",
+	Long: `Delete all scheduled jobs in the specified namespace of a particular filter.
 Accepts a single key as an argument. Deletes all jobs which match the filter key.
 `,
 	Args: cobra.ExactArgs(1),
