@@ -165,6 +165,11 @@ func HistoryWide(ctx context.Context, opts HistoryOptions) ([]*HistoryOutputWide
 			if len(t.ExecutionStarted.Tags) > 0 {
 				row.addAttr("tags", flatTags(t.ExecutionStarted.Tags, 6))
 			}
+		case *protos.HistoryEvent_ExecutionStalled:
+			row.addAttr("reason", t.ExecutionStalled.GetReason().String())
+			if t.ExecutionStalled.Description != nil {
+				row.addAttr("description", trim(wrapperspb.String(t.ExecutionStalled.GetDescription()), 120))
+			}
 		case *protos.HistoryEvent_TaskScheduled:
 			if row.EventID == nil {
 				row.EventID = ptr.Of(int32(0))
@@ -182,6 +187,16 @@ func HistoryWide(ctx context.Context, opts HistoryOptions) ([]*HistoryOutputWide
 			}
 			if t.TaskCompleted.Result != nil {
 				row.addAttr("output", trim(t.TaskCompleted.Result, 120))
+			}
+		case *protos.HistoryEvent_OrchestratorStarted:
+			if t.OrchestratorStarted.Version != nil {
+				version := t.OrchestratorStarted.GetVersion()
+				if version.Name != nil {
+					row.addAttr("versionName", *version.Name)
+				}
+				if len(version.Patches) > 0 {
+					row.addAttr("versionPatches", strings.Join(version.Patches, ","))
+				}
 			}
 		case *protos.HistoryEvent_SubOrchestrationInstanceCreated:
 			if t.SubOrchestrationInstanceCreated.Input != nil {
@@ -291,6 +306,8 @@ func eventTypeName(h *protos.HistoryEvent) string {
 		return "ExecutionSuspended"
 	case *protos.HistoryEvent_ExecutionResumed:
 		return "ExecutionResumed"
+	case *protos.HistoryEvent_ExecutionStalled:
+		return "ExecutionStalled"
 	case *protos.HistoryEvent_EntityOperationSignaled:
 		return "EntitySignaled"
 	case *protos.HistoryEvent_EntityOperationCalled:
@@ -346,6 +363,8 @@ func deriveStatus(h *protos.HistoryEvent) string {
 		return "SUSPENDED"
 	case *protos.HistoryEvent_ExecutionResumed:
 		return "RESUMED"
+	case *protos.HistoryEvent_ExecutionStalled:
+		return "STALLED"
 	default:
 		return "RUNNING"
 	}
