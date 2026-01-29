@@ -34,6 +34,7 @@ var (
 var ListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List scheduled jobs in Scheduler.",
+	Long:  `List scheduled jobs in Scheduler.`,
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := signals.Context()
