@@ -23,7 +23,8 @@ import (
 var DeleteCmd = &cobra.Command{
 	Use:     "delete",
 	Aliases: []string{"d", "del"},
-	Short: `Delete one of more jobs from scheduler.
+	Short:   "Delete one or more jobs from scheduler.",
+	Long: `Delete one of more jobs from scheduler.
 Job names are formatted by their type, app ID, then identifier.
 Actor reminders require the actor type, actor ID, then reminder name, separated by /.
 Workflow reminders require the app ID, instance ID, then reminder name, separated by /.
