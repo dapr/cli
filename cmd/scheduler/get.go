@@ -31,7 +31,8 @@ var (
 var GetCmd = &cobra.Command{
 	Use:     "get",
 	Aliases: []string{"g", "ge"},
-	Short: `Get a scheduled app job or actor reminder in Scheduler.
+	Short:   "Get scheduled app job or actor reminder in Scheduler.",
+	Long: `Get a scheduled app job or actor reminder in Scheduler.
 Job names are formatted by their type, app ID, then identifier.
 Actor reminders require the actor type, actor ID, then reminder name, separated by /.
 Workflow reminders require the app ID, instance ID, then reminder name, separated by /.
