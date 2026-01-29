@@ -380,10 +380,11 @@ dapr run --run-file /path/to/directory -k
 			// Use ForkExec to fork a child, then exec python in the child.
 			// NOTE: This is needed bc forking a python app with async python running (ie everything in durabletask-python) will cause random hangs, no matter the python version.
 			// Doing this this way makes python not sees the fork, starts via exec, so it doesn't cause random hangs due to when forking async python apps where locks and such get corrupted in forking.
-			// File descriptors are inherited from parent, so stdout/stderr go to terminal
 			pid, err := syscall.ForkExec(binary, args, &syscall.ProcAttr{
 				Env: env,
-				// stdin, stdout, stderr
+				// stdin, stdout, and stderr inherit directly from the parent
+				// This prevents Python from detecting pipes because if the app is Python then it will detect the pipes and think
+				// it's a fork and will cause random hangs due to async python in durabletask-python.
 				Files: []uintptr{0, 1, 2},
 				Sys: &syscall.SysProcAttr{
 					Setpgid: true,
