@@ -162,9 +162,9 @@ dapr run --run-file /path/to/directory -k
 			fmt.Println(print.WhiteBold("WARNING: no application command found."))
 		}
 
-		daprDirPath, err := standalone.GetDaprRuntimePath(cmdruntime.GetDaprRuntimePath())
-		if err != nil {
-			print.FailureStatusEvent(os.Stderr, "Failed to get Dapr install directory: %v", err)
+		daprDirPath, pathErr := standalone.GetDaprRuntimePath(cmdruntime.GetDaprRuntimePath())
+		if pathErr != nil {
+			print.FailureStatusEvent(os.Stderr, "Failed to get Dapr install directory: %v", pathErr)
 			os.Exit(1)
 		}
 
