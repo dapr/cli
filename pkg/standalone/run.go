@@ -619,10 +619,16 @@ func GetAppCommand(config *RunConfig) *exec.Cmd {
 		args = config.Command[1:]
 	}
 
-	cmd := exec.Command(command, args...)
+	// Use shell exec to avoid forking, which breaks Python threading
+	allArgs := append([]string{command}, args...)
+	quotedArgs := make([]string, len(allArgs))
+	for i, arg := range allArgs {
+		quotedArgs[i] = fmt.Sprintf("%q", arg)
+	}
+	shellCmd := fmt.Sprintf("exec %s", strings.Join(quotedArgs, " "))
+	cmd := exec.Command("/bin/sh", "-c", shellCmd)
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, config.getEnv()...)
-
 	return cmd
 }
 

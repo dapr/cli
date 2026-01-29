@@ -18,11 +18,13 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"slices"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"golang.org/x/mod/semver"
@@ -227,7 +229,7 @@ dapr run --run-file /path/to/directory -k
 				sharedRunConfig.SchedulerHostAddress = &addr
 			}
 		}
-		output, err := runExec.NewOutput(&standalone.RunConfig{
+		appConfig := &standalone.RunConfig{
 			AppID:             appID,
 			AppChannelAddress: appChannelAddress,
 			AppPort:           appPort,
@@ -239,7 +241,8 @@ dapr run --run-file /path/to/directory -k
 			UnixDomainSocket:  unixDomainSocket,
 			InternalGRPCPort:  internalGRPCPort,
 			SharedRunConfig:   *sharedRunConfig,
-		})
+		}
+		output, err := runExec.NewOutput(appConfig)
 		if err != nil {
 			print.FailureStatusEvent(os.Stderr, err.Error())
 			os.Exit(1)
@@ -280,6 +283,10 @@ dapr run --run-file /path/to/directory -k
 
 			output.DaprCMD.Stdout = os.Stdout
 			output.DaprCMD.Stderr = os.Stderr
+			// Set process group so sidecar survives when we exec the app
+			output.DaprCMD.SysProcAttr = &syscall.SysProcAttr{
+				Setpgid: true,
+			}
 
 			err = output.DaprCMD.Start()
 			if err != nil {
@@ -355,47 +362,51 @@ dapr run --run-file /path/to/directory -k
 				return
 			}
 
-			stdErrPipe, pipeErr := output.AppCMD.StderrPipe()
-			if pipeErr != nil {
-				print.FailureStatusEvent(os.Stderr, "Error creating stderr for App: "+err.Error())
-				appRunning <- false
-				return
-			}
-
-			stdOutPipe, pipeErr := output.AppCMD.StdoutPipe()
-			if pipeErr != nil {
-				print.FailureStatusEvent(os.Stderr, "Error creating stdout for App: "+err.Error())
-				appRunning <- false
-				return
-			}
-
-			errScanner := bufio.NewScanner(stdErrPipe)
-			outScanner := bufio.NewScanner(stdOutPipe)
-			go func() {
-				for errScanner.Scan() {
-					fmt.Println(print.Blue("== APP == " + errScanner.Text()))
-				}
-			}()
-
-			go func() {
-				for outScanner.Scan() {
-					fmt.Println(print.Blue("== APP == " + outScanner.Text()))
-				}
-			}()
-
-			err = output.AppCMD.Start()
+			command := args[0]
+			binary, err := exec.LookPath(command)
 			if err != nil {
-				print.FailureStatusEvent(os.Stderr, err.Error())
+				print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Failed to find command %s: %v", command, err))
 				appRunning <- false
 				return
 			}
+			envMap := appConfig.GetEnv()
+			env := os.Environ()
+			for k, v := range envMap {
+				env = append(env, fmt.Sprintf("%s=%s", k, v))
+			}
+			env = append(env, fmt.Sprintf("DAPR_HTTP_PORT=%d", output.DaprHTTPPort))
+			env = append(env, fmt.Sprintf("DAPR_GRPC_PORT=%d", output.DaprGRPCPort))
+
+			// Use ForkExec to fork a child, then exec python in the child.
+			// NOTE: This is needed bc forking a python app with async python running (ie everything in durabletask-python) will cause random hangs, no matter the python version.
+			// Doing this this way makes python not sees the fork, starts via exec, so it doesn't cause random hangs due to when forking async python apps where locks and such get corrupted in forking.
+			// File descriptors are inherited from parent, so stdout/stderr go to terminal
+			pid, err := syscall.ForkExec(binary, args, &syscall.ProcAttr{
+				Env: env,
+				// stdin, stdout, stderr
+				Files: []uintptr{0, 1, 2},
+				Sys: &syscall.SysProcAttr{
+					Setpgid: true,
+				},
+			})
+			if err != nil {
+				print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Failed to fork/exec app: %v", err))
+				appRunning <- false
+				return
+			}
+			output.AppCMD.Process = &os.Process{Pid: pid}
 
 			go func() {
-				appErr := output.AppCMD.Wait()
-
-				if appErr != nil {
-					output.AppErr = appErr
-					print.FailureStatusEvent(os.Stderr, "The App process exited with error code: %s", appErr.Error())
+				var waitStatus syscall.WaitStatus
+				_, err := syscall.Wait4(pid, &waitStatus, 0, nil)
+				if err != nil {
+					output.AppErr = err
+					print.FailureStatusEvent(os.Stderr, "The App process exited with error: %s", err.Error())
+				} else if !waitStatus.Exited() || waitStatus.ExitStatus() != 0 {
+					output.AppErr = fmt.Errorf("app exited with status %d", waitStatus.ExitStatus())
+					if waitStatus.ExitStatus() != 0 {
+						print.FailureStatusEvent(os.Stderr, "The App process exited with error code: %d", waitStatus.ExitStatus())
+					}
 				} else {
 					print.SuccessStatusEvent(os.Stdout, "Exited App successfully")
 				}
