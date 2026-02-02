@@ -36,6 +36,7 @@ import (
 )
 
 type LogDestType string
+type osType string
 
 const (
 	Console             LogDestType = "console"
@@ -46,6 +47,8 @@ const (
 
 	sentryDefaultAddress = "localhost:50001"
 	defaultStructTagKey  = "default"
+
+	windowsOsType osType = "windows"
 )
 
 // RunConfig represents the application configuration parameters.
@@ -630,8 +633,10 @@ func GetAppCommand(config *RunConfig) *exec.Cmd {
 	cmd := exec.Command("/bin/sh", "-c", shellCmd)
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, config.getEnv()...)
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Setpgid: true,
+	if runtime.GOOS != string(windowsOsType) {
+		cmd.SysProcAttr = &syscall.SysProcAttr{
+			Setpgid: true,
+		}
 	}
 
 	return cmd
