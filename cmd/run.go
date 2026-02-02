@@ -365,7 +365,8 @@ dapr run --run-file /path/to/directory -k
 			}
 
 			command := args[0]
-			binary, err := exec.LookPath(command)
+			var binary string
+			binary, err = exec.LookPath(command)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Failed to find command %s: %v", command, err))
 				appRunning <- false
