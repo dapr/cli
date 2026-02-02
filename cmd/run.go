@@ -396,7 +396,8 @@ dapr run --run-file /path/to/directory -k
 			// Use ForkExec to fork a child, then exec python in the child.
 			// NOTE: This is needed bc forking a python app with async python running (ie everything in durabletask-python) will cause random hangs, no matter the python version.
 			// Doing this this way makes python not sees the fork, starts via exec, so it doesn't cause random hangs due to when forking async python apps where locks and such get corrupted in forking.
-			pid, err := syscall.ForkExec(binary, args, procAttr)
+			var pid int
+			pid, err = syscall.ForkExec(binary, args, procAttr)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Failed to fork/exec app: %v", err))
 				appRunning <- false
@@ -406,7 +407,7 @@ dapr run --run-file /path/to/directory -k
 
 			go func() {
 				var waitStatus syscall.WaitStatus
-				_, err := syscall.Wait4(pid, &waitStatus, 0, nil)
+				_, err = syscall.Wait4(pid, &waitStatus, 0, nil)
 				if err != nil {
 					output.AppErr = err
 					print.FailureStatusEvent(os.Stderr, "The App process exited with error: %s", err.Error())
