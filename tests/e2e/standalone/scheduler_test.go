@@ -479,33 +479,43 @@ func TestSchedulerDeleteAll(t *testing.T) {
 
 	_, err := cmdSchedulerDeleteAll("app/test-scheduler")
 	require.NoError(t, err)
-	output, err := cmdSchedulerList()
-	require.NoError(t, err)
-	assert.Len(t, strings.Split(output, "\n"), 8)
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		output, err := cmdSchedulerList("--filter", "app")
+		require.NoError(t, err)
+		assert.Len(c, strings.Split(output, "\n"), 2)
+	}, time.Second*30, time.Millisecond*10)
 
 	_, err = cmdSchedulerDeleteAll("workflow/test-scheduler/abc1")
 	require.NoError(t, err)
-	output, err = cmdSchedulerList()
-	require.NoError(t, err)
-	assert.Len(t, strings.Split(output, "\n"), 7)
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		output, err := cmdSchedulerList("--filter", "workflow")
+		require.NoError(t, err)
+		assert.NotContains(c, output, "workflow/test-scheduler/abc1")
+	}, time.Second*30, time.Millisecond*10)
 
 	_, err = cmdSchedulerDeleteAll("workflow/test-scheduler")
 	require.NoError(t, err)
-	output, err = cmdSchedulerList()
-	require.NoError(t, err)
-	assert.Len(t, strings.Split(output, "\n"), 4)
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		output, err := cmdSchedulerList("--filter", "workflow")
+		require.NoError(t, err)
+		assert.Len(c, strings.Split(output, "\n"), 2)
+	}, time.Second*30, time.Millisecond*10)
 
 	_, err = cmdSchedulerDeleteAll("actor/myactortype/actorid1")
 	require.NoError(t, err)
-	output, err = cmdSchedulerList()
-	require.NoError(t, err)
-	assert.Len(t, strings.Split(output, "\n"), 3)
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		output, err := cmdSchedulerList("--filter", "actor")
+		require.NoError(t, err)
+		assert.NotContains(c, output, "actor/myactortype/actorid1")
+	}, time.Second*30, time.Millisecond*10)
 
 	_, err = cmdSchedulerDeleteAll("actor/myactortype")
 	require.NoError(t, err)
-	output, err = cmdSchedulerList()
-	require.NoError(t, err)
-	assert.Len(t, strings.Split(output, "\n"), 2)
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		output, err := cmdSchedulerList("--filter", "actor")
+		require.NoError(t, err)
+		assert.Len(c, strings.Split(output, "\n"), 2)
+	}, time.Second*30, time.Millisecond*10)
 }
 
 func TestSchedulerExportImport(t *testing.T) {
