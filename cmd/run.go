@@ -772,6 +772,13 @@ func startDaprdAndAppProcesses(runConfig *standalone.RunConfig, commandDir strin
 		return runState, nil
 	}
 
+	if len(runConfig.Command) == 0 || strings.TrimSpace(runConfig.Command[0]) == "" {
+		noCmdErr := errors.New("exec: no command")
+		print.StatusEvent(appErrorWriter, print.LogFailure, "Error starting app process: %s", noCmdErr.Error())
+		_ = killDaprdProcess(runState)
+		return nil, noCmdErr
+	}
+
 	// Start App process.
 	go startAppProcess(runConfig, runState, appRunning, sigCh, startErrChan)
 
