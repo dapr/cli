@@ -23,7 +23,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"syscall"
 
 	"k8s.io/apimachinery/pkg/api/resource"
 
@@ -633,11 +632,7 @@ func GetAppCommand(config *RunConfig) *exec.Cmd {
 	cmd := exec.Command("/bin/sh", "-c", shellCmd)
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, config.getEnv()...)
-	if runtime.GOOS != string(windowsOsType) {
-		cmd.SysProcAttr = &syscall.SysProcAttr{
-			Setpgid: true,
-		}
-	}
+	setProcessGroup(cmd)
 
 	return cmd
 }
