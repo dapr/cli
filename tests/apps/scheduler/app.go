@@ -19,7 +19,6 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/dapr/durabletask-go/workflow"
@@ -63,11 +62,7 @@ func main() {
 func register(ctx context.Context) {
 	log.Printf("Registering jobs, reminders and workflows")
 
-	grpcPort := os.Getenv("DAPR_GRPC_PORT")
-	if grpcPort == "" {
-		grpcPort = "3510"
-	}
-	addr := "127.0.0.1:" + grpcPort
+	addr := "127.0.0.1:3510"
 	log.Printf("Creating client to %s", addr)
 	cl, err := client.NewClientWithAddress(addr)
 	if err != nil {
