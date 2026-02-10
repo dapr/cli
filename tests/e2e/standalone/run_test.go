@@ -19,6 +19,7 @@ import (
 	"context"
 	"fmt"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/dapr/cli/tests/e2e/common"
@@ -70,7 +71,11 @@ func TestStandaloneRun(t *testing.T) {
 			output, err := cmdRun(path, args...)
 			t.Log(output)
 			require.Error(t, err, "run failed")
-			assert.Contains(t, output, "The App process exited with error code: exit status 1")
+			// CLI may print "exit status 1" or "1"
+			assert.True(t,
+				strings.Contains(output, "The App process exited with error code: exit status 1") ||
+					strings.Contains(output, "The App process exited with error code: 1"),
+				"expected app error exit message in output: %s", output)
 			assert.Contains(t, output, "Exited Dapr successfully")
 			assert.NotContains(t, output, "Could not update sidecar metadata for cliPID")
 		})
