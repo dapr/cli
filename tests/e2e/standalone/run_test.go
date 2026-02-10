@@ -52,7 +52,7 @@ func TestStandaloneRun(t *testing.T) {
 	})
 	for _, path := range getSocketCases() {
 		t.Run(fmt.Sprintf("normal exit, socket: %s", path), func(t *testing.T) {
-			output, err := cmdRun(path, "--", "bash", "-c", "echo test")
+			output, err := cmdRun(path, "--", echoTestAppArgs()...)
 			t.Log(output)
 			require.NoError(t, err, "run failed")
 			assert.Contains(t, output, "Exited App successfully")
@@ -61,7 +61,7 @@ func TestStandaloneRun(t *testing.T) {
 		})
 
 		t.Run(fmt.Sprintf("error exit, socket: %s", path), func(t *testing.T) {
-			output, err := cmdRun(path, "--", "bash", "-c", "exit 1")
+			output, err := cmdRun(path, "--", echoTestAppArgs()..., "exit 1")
 			t.Log(output)
 			require.Error(t, err, "run failed")
 			assert.Contains(t, output, "The App process exited with error code: exit status 1")
@@ -70,7 +70,7 @@ func TestStandaloneRun(t *testing.T) {
 		})
 
 		t.Run("Use internal gRPC port if specified", func(t *testing.T) {
-			output, err := cmdRun(path, "--dapr-internal-grpc-port", "9999", "--", "bash", "-c", "echo test")
+			output, err := cmdRun(path, "--dapr-internal-grpc-port", "9999", "--", echoTestAppArgs()...)
 			t.Log(output)
 			require.NoError(t, err, "run failed")
 			if common.GetRuntimeVersion(t, false).GreaterThan(common.VersionWithScheduler) {
@@ -86,7 +86,7 @@ func TestStandaloneRun(t *testing.T) {
 
 	t.Run("API shutdown without socket", func(t *testing.T) {
 		// Test that the CLI exits on a daprd shutdown.
-		output, err := cmdRun("", "--dapr-http-port", "9999", "--", "bash", "-c", "curl -v -X POST http://localhost:9999/v1.0/shutdown; sleep 10; exit 1")
+		output, err := cmdRun("", "--dapr-http-port", "9999", "--", echoTestAppArgs()..., "curl -v -X POST http://localhost:9999/v1.0/shutdown; sleep 10; exit 1")
 		t.Log(output)
 		require.NoError(t, err, "run failed")
 		assert.Contains(t, output, "Exited App successfully", "App should be shutdown before it has a chance to return non-zero")
@@ -100,7 +100,7 @@ func TestStandaloneRun(t *testing.T) {
 		}
 
 		// Test that the CLI exits on a daprd shutdown.
-		output, err := cmdRun("/tmp", "--app-id", "testapp", "--", "bash", "-c", "curl --unix-socket /tmp/dapr-testapp-http.socket -v -X POST http://unix/v1.0/shutdown; sleep 10; exit 1")
+		output, err := cmdRun("/tmp", "--app-id", "testapp", "--", echoTestAppArgs()..., "curl --unix-socket /tmp/dapr-testapp-http.socket -v -X POST http://unix/v1.0/shutdown; sleep 10; exit 1")
 		t.Log(output)
 		require.NoError(t, err, "run failed")
 		assert.Contains(t, output, "Exited Dapr successfully")
@@ -112,7 +112,7 @@ func TestStandaloneRun(t *testing.T) {
 			"--app-id", "enableApiLogging_info",
 			"--enable-api-logging",
 			"--log-level", "info",
-			"--", "bash", "-c", "echo 'test'",
+			"--", echoTestAppArgs()...,
 		}
 
 		output, err := cmdRun("", args...)
@@ -129,7 +129,7 @@ func TestStandaloneRun(t *testing.T) {
 	t.Run(fmt.Sprintf("check enableAPILogging flag in disabled mode"), func(t *testing.T) {
 		args := []string{
 			"--app-id", "enableApiLogging_info",
-			"--", "bash", "-c", "echo 'test'",
+			"--", echoTestAppArgs()...,
 		}
 
 		output, err := cmdRun("", args...)
@@ -147,7 +147,7 @@ func TestStandaloneRun(t *testing.T) {
 		args := []string{
 			"--app-id", "enableApiLogging_info",
 			"--config", "../testdata/config.yaml",
-			"--", "bash", "-c", "echo 'test'",
+			"--", echoTestAppArgs()...,
 		}
 
 		output, err := cmdRun("", args...)
@@ -164,7 +164,7 @@ func TestStandaloneRun(t *testing.T) {
 		args := []string{
 			"--app-id", "logjson",
 			"--log-as-json",
-			"--", "bash", "-c", "echo 'test'",
+			"--", echoTestAppArgs()...,
 		}
 		output, err := cmdRun("", args...)
 		t.Log(output)
@@ -179,7 +179,7 @@ func TestStandaloneRun(t *testing.T) {
 		args := []string{
 			"--app-id", "testapp",
 			"--resources-path", "../testdata/nonexistentdir",
-			"--", "bash", "-c", "echo 'test'",
+			"--", echoTestAppArgs()...,
 		}
 		output, err := cmdRun("", args...)
 		t.Log(output)
@@ -190,7 +190,7 @@ func TestStandaloneRun(t *testing.T) {
 		args := []string{
 			"--app-id", "testapp",
 			"--resources-path", "../testdata/resources",
-			"--", "bash", "-c", "echo 'test'",
+			"--", echoTestAppArgs()...,
 		}
 		output, err := cmdRun("", args...)
 		t.Log(output)
@@ -205,7 +205,7 @@ func TestStandaloneRun(t *testing.T) {
 			"--app-id", "testapp",
 			"--resources-path", "../testdata/resources",
 			"--resources-path", "../testdata/additional_resources",
-			"--", "bash", "-c", "echo 'test'",
+			"--", echoTestAppArgs()...,
 		}
 		output, err := cmdRun("", args...)
 		t.Log(output)

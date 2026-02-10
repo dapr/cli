@@ -27,6 +27,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// echoTestAppArgs returns platform-specific args for running a simple "echo test" app (after "--").
+func echoTestAppArgs() []string {
+	if runtime.GOOS == "windows" {
+		return []string{"cmd", "/c", "echo test"}
+	}
+	return []string{"bash", "-c", "echo 'test'"}
+}
+
 // TestStandaloneInitRunUninstallNonDefaultDaprPath covers init, version, run and uninstall with --runtime-path flag.
 func TestStandaloneInitRunUninstallNonDefaultDaprPath(t *testing.T) {
 	// Ensure a clean environment
@@ -61,7 +69,7 @@ func TestStandaloneInitRunUninstallNonDefaultDaprPath(t *testing.T) {
 		args = []string{
 			"--runtime-path", daprPath,
 			"--app-id", "run_with_dapr_runtime_path_flag",
-			"--", "bash", "-c", "echo 'test'",
+			"--", echoTestAppArgs()...,
 		}
 
 		output, err = cmdRun("", args...)
@@ -117,7 +125,7 @@ func TestStandaloneInitRunUninstallNonDefaultDaprPath(t *testing.T) {
 
 		args = []string{
 			"--app-id", "run_with_dapr_runtime_path_flag",
-			"--", "bash", "-c", "echo 'test'",
+			"--", echoTestAppArgs()...,
 		}
 
 		output, err = cmdRun("", args...)
@@ -179,7 +187,7 @@ func TestStandaloneInitRunUninstallNonDefaultDaprPath(t *testing.T) {
 		args = []string{
 			"--runtime-path", daprPathFlag,
 			"--app-id", "run_with_dapr_runtime_path_flag",
-			"--", "bash", "-c", "echo 'test'",
+			"--", echoTestAppArgs()...,
 		}
 
 		flagDaprdBinPath := filepath.Join(daprPathFlag, ".dapr", "bin", "daprd")
