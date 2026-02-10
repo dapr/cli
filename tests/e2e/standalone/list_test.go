@@ -120,6 +120,7 @@ func TestStandaloneList(t *testing.T) {
 
 func listOutputCheck(t *testing.T, output string, isCli bool) {
 	lines := strings.Split(output, "\n")[1:] // remove header
+	require.NotEmpty(t, lines, "dapr list returned no instance rows (expected at least one running instance). Output: %s", output)
 	// only one app is runnning at this time
 	fields := strings.Fields(lines[0])
 	// Fields splits on space, so Created time field might be split again
