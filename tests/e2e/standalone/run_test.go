@@ -61,7 +61,11 @@ func TestStandaloneRun(t *testing.T) {
 		})
 
 		t.Run(fmt.Sprintf("error exit, socket: %s", path), func(t *testing.T) {
-			output, err := cmdRun(path, "--", echoTestAppArgs()..., "exit 1")
+			args := []string{
+				"--",
+			}
+			args = append(args, echoTestAppArgs()..., "exit 1")
+			output, err := cmdRun(path, args...)
 			t.Log(output)
 			require.Error(t, err, "run failed")
 			assert.Contains(t, output, "The App process exited with error code: exit status 1")
@@ -112,8 +116,9 @@ func TestStandaloneRun(t *testing.T) {
 			"--app-id", "enableApiLogging_info",
 			"--enable-api-logging",
 			"--log-level", "info",
-			"--", echoTestAppArgs()...,
+			"--",
 		}
+		args = append(args, echoTestAppArgs()...)
 
 		output, err := cmdRun("", args...)
 		t.Log(output)
@@ -129,8 +134,9 @@ func TestStandaloneRun(t *testing.T) {
 	t.Run(fmt.Sprintf("check enableAPILogging flag in disabled mode"), func(t *testing.T) {
 		args := []string{
 			"--app-id", "enableApiLogging_info",
-			"--", echoTestAppArgs()...,
+			"--",
 		}
+		args = append(args, echoTestAppArgs()...)
 
 		output, err := cmdRun("", args...)
 		t.Log(output)
@@ -147,8 +153,9 @@ func TestStandaloneRun(t *testing.T) {
 		args := []string{
 			"--app-id", "enableApiLogging_info",
 			"--config", "../testdata/config.yaml",
-			"--", echoTestAppArgs()...,
+			"--",
 		}
+		args = append(args, echoTestAppArgs()...)
 
 		output, err := cmdRun("", args...)
 		t.Log(output)
@@ -164,7 +171,9 @@ func TestStandaloneRun(t *testing.T) {
 		args := []string{
 			"--app-id", "logjson",
 			"--log-as-json",
-			"--", echoTestAppArgs()...,
+			"--",
+		}
+		args = append(args, echoTestAppArgs()...)
 		}
 		output, err := cmdRun("", args...)
 		t.Log(output)
@@ -179,7 +188,9 @@ func TestStandaloneRun(t *testing.T) {
 		args := []string{
 			"--app-id", "testapp",
 			"--resources-path", "../testdata/nonexistentdir",
-			"--", echoTestAppArgs()...,
+			"--",
+		}
+		args = append(args, echoTestAppArgs()...)
 		}
 		output, err := cmdRun("", args...)
 		t.Log(output)
@@ -190,7 +201,9 @@ func TestStandaloneRun(t *testing.T) {
 		args := []string{
 			"--app-id", "testapp",
 			"--resources-path", "../testdata/resources",
-			"--", echoTestAppArgs()...,
+			"--",
+		}
+		args = append(args, echoTestAppArgs()...)
 		}
 		output, err := cmdRun("", args...)
 		t.Log(output)
@@ -205,8 +218,9 @@ func TestStandaloneRun(t *testing.T) {
 			"--app-id", "testapp",
 			"--resources-path", "../testdata/resources",
 			"--resources-path", "../testdata/additional_resources",
-			"--", echoTestAppArgs()...,
+			"--",
 		}
+		args = append(args, echoTestAppArgs()...)
 		output, err := cmdRun("", args...)
 		t.Log(output)
 		require.NoError(t, err, "run failed")

@@ -69,8 +69,9 @@ func TestStandaloneInitRunUninstallNonDefaultDaprPath(t *testing.T) {
 		args = []string{
 			"--runtime-path", daprPath,
 			"--app-id", "run_with_dapr_runtime_path_flag",
-			"--", echoTestAppArgs()...,
+			"--",
 		}
+		args = append(args, echoTestAppArgs()...)
 
 		output, err = cmdRun("", args...)
 		t.Log(output)
@@ -125,8 +126,9 @@ func TestStandaloneInitRunUninstallNonDefaultDaprPath(t *testing.T) {
 
 		args = []string{
 			"--app-id", "run_with_dapr_runtime_path_flag",
-			"--", echoTestAppArgs()...,
+			"--",
 		}
+		args = append(args, echoTestAppArgs()...)
 
 		output, err = cmdRun("", args...)
 		t.Log(output)
@@ -187,8 +189,9 @@ func TestStandaloneInitRunUninstallNonDefaultDaprPath(t *testing.T) {
 		args = []string{
 			"--runtime-path", daprPathFlag,
 			"--app-id", "run_with_dapr_runtime_path_flag",
-			"--", echoTestAppArgs()...,
+			"--",
 		}
+		args = append(args, echoTestAppArgs()...)
 
 		flagDaprdBinPath := filepath.Join(daprPathFlag, ".dapr", "bin", "daprd")
 		if runtime.GOOS == "windows" {
