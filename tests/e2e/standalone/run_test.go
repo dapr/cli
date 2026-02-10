@@ -91,7 +91,10 @@ func TestStandaloneRun(t *testing.T) {
 
 	t.Run("API shutdown without socket", func(t *testing.T) {
 		// Test that the CLI exits on a daprd shutdown.
-		output, err := cmdRun("", "--dapr-http-port", "9999", "--", echoTestAppArgs()..., "curl -v -X POST http://localhost:9999/v1.0/shutdown; sleep 10; exit 1")
+		args := []string{"--dapr-http-port", "9999", "--"}
+		args = append(args, echoTestAppArgs()...)
+		args = append(args, "curl -v -X POST http://localhost:9999/v1.0/shutdown; sleep 10; exit 1")
+		output, err := cmdRun("", args...)
 		t.Log(output)
 		require.NoError(t, err, "run failed")
 		assert.Contains(t, output, "Exited App successfully", "App should be shutdown before it has a chance to return non-zero")
@@ -105,7 +108,10 @@ func TestStandaloneRun(t *testing.T) {
 		}
 
 		// Test that the CLI exits on a daprd shutdown.
-		output, err := cmdRun("/tmp", "--app-id", "testapp", "--", echoTestAppArgs()..., "curl --unix-socket /tmp/dapr-testapp-http.socket -v -X POST http://unix/v1.0/shutdown; sleep 10; exit 1")
+		args := []string{"--app-id", "testapp", "--"}
+		args = append(args, echoTestAppArgs()...)
+		args = append(args, "curl --unix-socket /tmp/dapr-testapp-http.socket -v -X POST http://unix/v1.0/shutdown; sleep 10; exit 1")
+		output, err := cmdRun("/tmp", args...)
 		t.Log(output)
 		require.NoError(t, err, "run failed")
 		assert.Contains(t, output, "Exited Dapr successfully")
