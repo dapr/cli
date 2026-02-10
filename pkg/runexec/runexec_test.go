@@ -205,8 +205,15 @@ func TestRun(t *testing.T) {
 		assert.NoError(t, err)
 
 		assertCommonArgs(t, basicConfig, output)
-		assert.Equal(t, "MyCommand", output.AppCMD.Args[0])
-		assert.Equal(t, "--my-arg", output.AppCMD.Args[1])
+		// The app command is executed via a shell wrapper (/bin/sh -c "exec MyCommand --my-arg").
+		require.NotNil(t, output.AppCMD)
+		require.GreaterOrEqual(t, len(output.AppCMD.Args), 3)
+		assert.Equal(t, "/bin/sh", output.AppCMD.Args[0])
+		assert.Equal(t, "-c", output.AppCMD.Args[1])
+		shellCmd := output.AppCMD.Args[2]
+		assert.Contains(t, shellCmd, "MyCommand")
+		assert.Contains(t, shellCmd, "--my-arg")
+
 		assertArgumentEqual(t, "app-channel-address", "localhost", output.DaprCMD.Args)
 		assertAppEnv(t, basicConfig, output)
 	})
