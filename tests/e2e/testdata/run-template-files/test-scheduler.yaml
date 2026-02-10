@@ -3,7 +3,7 @@ apps:
 - appID: test-scheduler
   appDirPath: ../../../apps/scheduler/
   appPort: 9095
-  daprGRPCPort: 3510
+  daprGRPCPort: -1
   command: ["go", "run", "app.go"]
   appLogDestination: console
   daprdLogDestination: console
