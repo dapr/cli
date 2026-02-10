@@ -25,7 +25,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	"golang.org/x/mod/semver"
@@ -284,12 +283,8 @@ dapr run --run-file /path/to/directory -k
 
 			output.DaprCMD.Stdout = os.Stdout
 			output.DaprCMD.Stderr = os.Stderr
-			// Set process group so sidecar survives when we exec the
-			if runtime.GOOS != string(windowsOsType) {
-				output.DaprCMD.SysProcAttr = &syscall.SysProcAttr{
-					Setpgid: true,
-				}
-			}
+			// Set process group so sidecar survives when we exec the app process.
+			setDaprProcessGroupForRun(output.DaprCMD)
 
 			err = output.DaprCMD.Start()
 			if err != nil {
@@ -381,48 +376,11 @@ dapr run --run-file /path/to/directory -k
 			env = append(env, fmt.Sprintf("DAPR_HTTP_PORT=%d", output.DaprHTTPPort))
 			env = append(env, fmt.Sprintf("DAPR_GRPC_PORT=%d", output.DaprGRPCPort))
 
-			procAttr := &syscall.ProcAttr{
-				Env: env,
-				// stdin, stdout, and stderr inherit directly from the parent
-				// This prevents Python from detecting pipes because if the app is Python then it will detect the pipes and think
-				// it's a fork and will cause random hangs due to async python in durabletask-python.
-				Files: []uintptr{0, 1, 2},
-			}
-			if runtime.GOOS != string(windowsOsType) {
-				procAttr.Sys = &syscall.SysProcAttr{
-					Setpgid: true,
-				}
-			}
-
-			// Use ForkExec to fork a child, then exec python in the child.
-			// NOTE: This is needed bc forking a python app with async python running (ie everything in durabletask-python) will cause random hangs, no matter the python version.
-			// Doing this this way makes python not sees the fork, starts via exec, so it doesn't cause random hangs due to when forking async python apps where locks and such get corrupted in forking.
-			var pid int
-			pid, err = syscall.ForkExec(binary, args, procAttr)
-			if err != nil {
-				print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Failed to fork/exec app: %v", err))
+			if err := startAppProcessInBackground(output, binary, args, env, sigCh); err != nil {
+				print.FailureStatusEvent(os.Stderr, err.Error())
 				appRunning <- false
 				return
 			}
-			output.AppCMD.Process = &os.Process{Pid: pid}
-
-			go func() {
-				var waitStatus syscall.WaitStatus
-				_, err = syscall.Wait4(pid, &waitStatus, 0, nil)
-				if err != nil {
-					output.AppErr = err
-					print.FailureStatusEvent(os.Stderr, "The App process exited with error: %s", err.Error())
-				} else if !waitStatus.Exited() || waitStatus.ExitStatus() != 0 {
-					output.AppErr = fmt.Errorf("app exited with status %d", waitStatus.ExitStatus())
-					if waitStatus.ExitStatus() != 0 {
-						print.FailureStatusEvent(os.Stderr, "The App process exited with error code: %d", waitStatus.ExitStatus())
-					}
-				} else {
-					print.SuccessStatusEvent(os.Stdout, "Exited App successfully")
-				}
-				sigCh <- os.Interrupt
-			}()
-
 			appRunning <- true
 		}()
 
