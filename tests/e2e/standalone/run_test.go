@@ -61,11 +61,12 @@ func TestStandaloneRun(t *testing.T) {
 		})
 
 		t.Run(fmt.Sprintf("error exit, socket: %s", path), func(t *testing.T) {
-			args := []string{
-				"--",
+			args := []string{"--"}
+			if runtime.GOOS == "windows" {
+				args = append(args, "cmd", "/c", "echo test & exit /b 1")
+			} else {
+				args = append(args, "bash", "-c", "echo 'test'; exit 1")
 			}
-			args = append(args, echoTestAppArgs()...)
-			args = append(args, "exit 1")
 			output, err := cmdRun(path, args...)
 			t.Log(output)
 			require.Error(t, err, "run failed")
