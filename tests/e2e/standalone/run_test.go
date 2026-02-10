@@ -64,7 +64,8 @@ func TestStandaloneRun(t *testing.T) {
 			args := []string{
 				"--",
 			}
-			args = append(args, echoTestAppArgs()..., "exit 1")
+			args = append(args, echoTestAppArgs()...)
+			args = append(args, "exit 1")
 			output, err := cmdRun(path, args...)
 			t.Log(output)
 			require.Error(t, err, "run failed")
