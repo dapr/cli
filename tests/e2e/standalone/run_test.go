@@ -52,7 +52,7 @@ func TestStandaloneRun(t *testing.T) {
 	})
 	for _, path := range getSocketCases() {
 		t.Run(fmt.Sprintf("normal exit, socket: %s", path), func(t *testing.T) {
-			output, err := cmdRun(path, "--", echoTestAppArgs()...)
+			output, err := cmdRun(path, append([]string{"--"}, echoTestAppArgs()...)...)
 			t.Log(output)
 			require.NoError(t, err, "run failed")
 			assert.Contains(t, output, "Exited App successfully")
@@ -75,7 +75,7 @@ func TestStandaloneRun(t *testing.T) {
 		})
 
 		t.Run("Use internal gRPC port if specified", func(t *testing.T) {
-			output, err := cmdRun(path, "--dapr-internal-grpc-port", "9999", "--", echoTestAppArgs()...)
+			output, err := cmdRun(path, append([]string{"--dapr-internal-grpc-port", "9999", "--"}, echoTestAppArgs()...)...)
 			t.Log(output)
 			require.NoError(t, err, "run failed")
 			if common.GetRuntimeVersion(t, false).GreaterThan(common.VersionWithScheduler) {
