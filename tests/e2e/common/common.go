@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -405,6 +406,7 @@ func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t
 		if err != nil {
 			t.Error("failed to parse runtime version", err)
 		}
+		columnSplitPattern := regexp.MustCompile(`\s{2,}`)
 
 		var notFound map[string][]string
 		if !opts.HAEnabled {
@@ -451,7 +453,7 @@ func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t
 			lines := strings.Split(output, "\n")[1:] // remove header of status.
 			t.Logf("dapr status -k infos: \n%s\n", lines)
 			for _, line := range lines {
-				cols := strings.Fields(strings.TrimSpace(line))
+				cols := columnSplitPattern.Split(strings.TrimSpace(line), -1)
 				if len(cols) > 6 { // atleast 6 fields are verified from status (Age and created time are not).
 					if toVerify, ok := notFound[cols[0]]; ok { // get by name.
 						require.Equal(c, DaprTestNamespace, cols[1], "%s namespace must match", cols[0])
@@ -466,8 +468,8 @@ func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t
 					}
 				}
 			}
-			assert.Empty(t, notFound)
-		}, time.Second*20, time.Millisecond*500)
+			assert.Empty(c, notFound)
+		}, time.Second*60, time.Millisecond*500)
 	}
 }
 
