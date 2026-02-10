@@ -376,8 +376,8 @@ dapr run --run-file /path/to/directory -k
 			env = append(env, fmt.Sprintf("DAPR_HTTP_PORT=%d", output.DaprHTTPPort))
 			env = append(env, fmt.Sprintf("DAPR_GRPC_PORT=%d", output.DaprGRPCPort))
 
-			if err := startAppProcessInBackground(output, binary, args, env, sigCh); err != nil {
-				print.FailureStatusEvent(os.Stderr, err.Error())
+			if startErr := startAppProcessInBackground(output, binary, args, env, sigCh); startErr != nil {
+				print.FailureStatusEvent(os.Stderr, startErr.Error())
 				appRunning <- false
 				return
 			}

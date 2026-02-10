@@ -133,7 +133,7 @@ func (config *RunConfig) validatePlacementHostAddr() error {
 	// nil => default localhost:port; empty => disable; non-empty => ensure port
 	if config.PlacementHostAddr == nil {
 		addr := "localhost"
-		if runtime.GOOS == daprWindowsOS {
+		if runtime.GOOS == string(windowsOsType) {
 			addr += ":6050"
 		} else {
 			addr += ":50005"
@@ -148,7 +148,7 @@ func (config *RunConfig) validatePlacementHostAddr() error {
 		return nil
 	}
 	if indx := strings.Index(placementHostAddr, ":"); indx == -1 {
-		if runtime.GOOS == daprWindowsOS {
+		if runtime.GOOS == string(windowsOsType) {
 			placementHostAddr += ":6050"
 		} else {
 			placementHostAddr += ":50005"
@@ -170,7 +170,7 @@ func (config *RunConfig) validateSchedulerHostAddr() error {
 		return nil
 	}
 	if indx := strings.Index(schedulerHostAddr, ":"); indx == -1 {
-		if runtime.GOOS == daprWindowsOS {
+		if runtime.GOOS == string(windowsOsType) {
 			schedulerHostAddr += ":6060"
 		} else {
 			schedulerHostAddr += ":50006"

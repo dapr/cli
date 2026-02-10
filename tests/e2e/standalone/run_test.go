@@ -181,7 +181,7 @@ func TestStandaloneRun(t *testing.T) {
 			"--",
 		}
 		args = append(args, echoTestAppArgs()...)
-		}
+
 		output, err := cmdRun("", args...)
 		t.Log(output)
 		require.NoError(t, err, "run failed")
@@ -198,7 +198,7 @@ func TestStandaloneRun(t *testing.T) {
 			"--",
 		}
 		args = append(args, echoTestAppArgs()...)
-		}
+
 		output, err := cmdRun("", args...)
 		t.Log(output)
 		require.Error(t, err, "run did not fail")
@@ -211,7 +211,7 @@ func TestStandaloneRun(t *testing.T) {
 			"--",
 		}
 		args = append(args, echoTestAppArgs()...)
-		}
+
 		output, err := cmdRun("", args...)
 		t.Log(output)
 		require.NoError(t, err, "run failed")
