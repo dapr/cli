@@ -15,6 +15,7 @@ package cmd
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -488,8 +489,13 @@ dapr run --run-file /path/to/directory -k
 		} else if output.AppCMD != nil && (output.AppCMD.ProcessState == nil || !output.AppCMD.ProcessState.Exited()) {
 			err = output.AppCMD.Process.Kill()
 			if err != nil {
-				exitWithError = true
-				print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Error exiting App: %s", err))
+				// If the process already exited on its own, treat this as a clean shutdown.
+				if errors.Is(err, os.ErrProcessDone) {
+					print.SuccessStatusEvent(os.Stdout, "Exited App successfully")
+				} else {
+					exitWithError = true
+					print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Error exiting App: %s", err))
+				}
 			} else {
 				print.SuccessStatusEvent(os.Stdout, "Exited App successfully")
 			}
