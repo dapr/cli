@@ -123,8 +123,7 @@ func listOutputCheck(t *testing.T, output string, isCli bool) {
 	require.NotEmpty(t, lines, "dapr list returned no instance rows (expected at least one running instance). Output: %s", output)
 	// only one app is runnning at this time
 	fields := strings.Fields(lines[0])
-	// Fields splits on space, so Created time field might be split again
-	assert.GreaterOrEqual(t, len(fields), 10, "expected at least 10 fields in components output")
+	require.GreaterOrEqual(t, len(fields), 10, "expected at least 10 fields in list output (got %d). Output: %s", len(fields), output)
 	if isCli {
 		assert.Equal(t, "dapr_e2e_list", fields[0], "expected name to match")
 	} else {
