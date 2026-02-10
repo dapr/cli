@@ -929,6 +929,11 @@ func startDaprdProcess(runConfig *standalone.RunConfig, runE *runExec.RunExec,
 	}
 	print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogInfo, startInfo)
 
+	// If DAPR_HOST_IP is not set, set to localhost.
+	if _, ok := os.LookupEnv("DAPR_HOST_IP"); !ok {
+		runE.DaprCMD.Command.Env = append(runE.DaprCMD.Command.Environ(), "DAPR_HOST_IP=127.0.0.1")
+	}
+
 	err := runE.DaprCMD.Command.Start()
 	if err != nil {
 		errorChan <- err
