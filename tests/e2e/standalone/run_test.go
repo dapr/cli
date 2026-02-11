@@ -74,7 +74,9 @@ func TestStandaloneRun(t *testing.T) {
 			// CLI may print "exit status 1" or "1"
 			assert.True(t,
 				strings.Contains(output, "The App process exited with error code: exit status 1") ||
-					strings.Contains(output, "The App process exited with error code: 1"),
+					strings.Contains(output, "The App process exited with error code: 1") ||
+					strings.Contains(output, "The App process exited with error: exit status 1") ||
+					strings.Contains(output, "The App process exited with error: 1"),
 				"expected app error exit message in output: %s", output)
 			assert.Contains(t, output, "Exited Dapr successfully")
 			assert.NotContains(t, output, "Could not update sidecar metadata for cliPID")
