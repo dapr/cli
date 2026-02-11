@@ -16,6 +16,7 @@ limitations under the License.
 package standalone_test
 
 import (
+	"runtime"
 	"testing"
 	"time"
 
@@ -33,6 +34,12 @@ func TestStandaloneStop(t *testing.T) {
 		must(t, cmdUninstall, "failed to uninstall Dapr")
 	})
 
+	runArgs := []string{"run", "--app-id", "dapr_e2e_stop", "--"}
+	if runtime.GOOS == "windows" {
+		runArgs = append(runArgs, "cmd", "/c", "ping -n 61 127.0.0.1 >nul")
+	} else {
+		runArgs = append(runArgs, "bash", "-c", "sleep 60 ; exit 1")
+	}
 	executeAgainstRunningDapr(t, func() {
 		t.Run("stop", func(t *testing.T) {
 			output, err := cmdStopWithAppID("dapr_e2e_stop")
@@ -40,7 +47,7 @@ func TestStandaloneStop(t *testing.T) {
 			require.NoError(t, err, "dapr stop failed")
 			assert.Contains(t, output, "app stopped successfully: dapr_e2e_stop")
 		})
-	}, "run", "--app-id", "dapr_e2e_stop", "--", "bash", "-c", "sleep 60 ; exit 1")
+	}, runArgs...)
 
 	t.Run("stop with unknown flag", func(t *testing.T) {
 		output, err := cmdStopWithAppID("dapr_e2e_stop", "-p", "test")
