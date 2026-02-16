@@ -35,7 +35,6 @@ import (
 )
 
 type LogDestType string
-type osType string
 
 const (
 	Console             LogDestType = "console"
@@ -46,8 +45,6 @@ const (
 
 	sentryDefaultAddress = "localhost:50001"
 	defaultStructTagKey  = "default"
-
-	windowsOsType osType = "windows"
 )
 
 // RunConfig represents the application configuration parameters.
@@ -133,7 +130,7 @@ func (config *RunConfig) validatePlacementHostAddr() error {
 	// nil => default localhost:port; empty => disable; non-empty => ensure port
 	if config.PlacementHostAddr == nil {
 		addr := "localhost"
-		if runtime.GOOS == string(windowsOsType) {
+		if runtime.GOOS == daprWindowsOS {
 			addr += ":6050"
 		} else {
 			addr += ":50005"
@@ -148,7 +145,7 @@ func (config *RunConfig) validatePlacementHostAddr() error {
 		return nil
 	}
 	if indx := strings.Index(placementHostAddr, ":"); indx == -1 {
-		if runtime.GOOS == string(windowsOsType) {
+		if runtime.GOOS == daprWindowsOS {
 			placementHostAddr += ":6050"
 		} else {
 			placementHostAddr += ":50005"
@@ -170,7 +167,7 @@ func (config *RunConfig) validateSchedulerHostAddr() error {
 		return nil
 	}
 	if indx := strings.Index(schedulerHostAddr, ":"); indx == -1 {
-		if runtime.GOOS == string(windowsOsType) {
+		if runtime.GOOS == daprWindowsOS {
 			schedulerHostAddr += ":6060"
 		} else {
 			schedulerHostAddr += ":50006"
@@ -622,7 +619,7 @@ func GetAppCommand(config *RunConfig) *exec.Cmd {
 		args = config.Command[1:]
 	}
 
-	if runtime.GOOS == string(windowsOsType) {
+	if runtime.GOOS == daprWindowsOS {
 		// On Windows, run the executable directly (no shell).
 		// TODO: In future this will likely need updates if Window faces the same Python threading issues.
 		cmd := exec.Command(command, args...)
