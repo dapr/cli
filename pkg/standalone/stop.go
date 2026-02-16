@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"strconv"
 	"syscall"
-	"time"
 
 	"github.com/dapr/cli/utils"
 )
@@ -58,6 +57,10 @@ func StopAppsWithRunFile(runTemplatePath string) error {
 			// Get the process group id of the CLI process.
 			pgid, err := syscall.Getpgid(a.CliPID)
 			if err != nil {
+				// If the process doesn't exist (ESRCH), treat it as already stopped.
+				if err == syscall.ESRCH {
+					return nil
+				}
 				// Fall back to cliPID if pgid is not available.
 				_, err = utils.RunCmdAndWait("kill", "-TERM", fmt.Sprintf("%v", a.CliPID)) //nolint:perfsprint
 				if err != nil {
@@ -66,28 +69,27 @@ func StopAppsWithRunFile(runTemplatePath string) error {
 						return errKill
 					}
 				}
-				// Give the OS time to release ports after killing the process.
-				time.Sleep(1 * time.Second)
 				return nil
 			}
 			// Kill the whole process group.
 			err = syscall.Kill(-pgid, syscall.SIGTERM)
 			if err != nil {
+				// If process group doesn't exist (ESRCH), treat it as already stopped.
+				if err == syscall.ESRCH {
+					return nil
+				}
 				errKill := syscall.Kill(-pgid, syscall.SIGKILL)
-				if errKill != nil {
+				// If process group doesn't exist, treat it as already stopped.
+				if errKill != nil && errKill != syscall.ESRCH {
 					return errKill
 				}
 			} else {
-				time.Sleep(500 * time.Millisecond)
 				errKill := syscall.Kill(-pgid, syscall.SIGKILL)
-				if errKill != nil {
+				// If process group doesn't exist, treat it as already stopped.
+				if errKill != nil && errKill != syscall.ESRCH {
 					return errKill
 				}
 			}
-			// Give the OS time to release ports after killing the process group.
-			// This is especially important when processes are launched via shell exec,
-			// IE due to changes for Python threading so port cleanup may take slightly longer.
-			time.Sleep(1 * time.Second)
 			return nil
 		}
 	}
