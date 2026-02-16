@@ -74,7 +74,7 @@ func TestSchedulerList(t *testing.T) {
 			"TRIGGER",
 		}, strings.Fields(lines[0]))
 
-		// Parse scheduler items into a map for order-independent checking
+		// use map for order-independent checking
 		schedulerCounts := make(map[string]int)
 		for _, line := range lines[1:] {
 			if strings.TrimSpace(line) == "" {
