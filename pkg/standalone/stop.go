@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"strconv"
 	"syscall"
+	"time"
 
 	"github.com/dapr/cli/utils"
 )
@@ -84,6 +85,7 @@ func StopAppsWithRunFile(runTemplatePath string) error {
 					return errKill
 				}
 			} else {
+				time.Sleep(500 * time.Millisecond)
 				errKill := syscall.Kill(-pgid, syscall.SIGKILL)
 				// If process group doesn't exist, treat it as already stopped.
 				if errKill != nil && errKill != syscall.ESRCH {
