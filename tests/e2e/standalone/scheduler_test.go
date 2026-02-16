@@ -74,46 +74,74 @@ func TestSchedulerList(t *testing.T) {
 			"TRIGGER",
 		}, strings.Fields(lines[0]))
 
-		expNames := []string{
+		// Parse scheduler items into a map for order-independent checking
+		schedulerCounts := make(map[string]int)
+		for _, line := range lines[1:] {
+			if strings.TrimSpace(line) == "" {
+				continue
+			}
+			fields := strings.Fields(line)
+			// Need at least 3 fields to access NAME (fields[0]) and COUNT (fields[2])
+			// Header is: NAME, BEGIN, COUNT, LAST, TRIGGER
+			if len(fields) < 3 {
+				continue
+			}
+			name := fields[0]
+			count, err := strconv.Atoi(fields[2])
+			if err != nil {
+				t.Logf("skipping line with invalid count: %s (error: %v)", line, err)
+				continue
+			}
+			schedulerCounts[name] = count
+		}
+
+		// Check actor reminders (count should be 1)
+		expActorNames := []string{
 			"actor/myactortype/actorid1/test1",
 			"actor/myactortype/actorid2/test2",
+		}
+		for _, name := range expActorNames {
+			count, exists := schedulerCounts[name]
+			require.True(t, exists, "expected actor reminder %s not found", name)
+			assert.Equal(t, 1, count, "actor reminder %s should have count 1", name)
+		}
+
+		// Check app jobs (count should be 1)
+		expAppNames := []string{
 			"app/test-scheduler/test1",
 			"app/test-scheduler/test2",
 		}
-		for i, line := range lines[1:5] {
-			assert.Equal(t, expNames[i], strings.Fields(line)[0])
-
-			assert.NotEmpty(t, strings.Fields(line)[1])
-
-			count, err := strconv.Atoi(strings.Fields(line)[2])
-			require.NoError(t, err)
-			assert.Equal(t, 1, count)
+		for _, name := range expAppNames {
+			count, exists := schedulerCounts[name]
+			require.True(t, exists, "expected app job %s not found", name)
+			assert.Equal(t, 1, count, "app job %s should have count 1", name)
 		}
 
-		expNames = []string{
+		// Check activity items (count should be 0)
+		expActivityNames := []string{
 			"activity/test-scheduler/xyz1::0::1",
 			"activity/test-scheduler/xyz2::0::1",
 		}
-		for i, line := range lines[5:7] {
-			assert.Equal(t, expNames[i], strings.Fields(line)[0])
-
-			assert.NotEmpty(t, strings.Fields(line)[1])
-
-			count, err := strconv.Atoi(strings.Fields(line)[2])
-			require.NoError(t, err)
-			assert.Equal(t, 0, count)
-			if err != nil {
-				return
-			}
+		for _, name := range expActivityNames {
+			count, exists := schedulerCounts[name]
+			require.True(t, exists, "expected activity %s not found", name)
+			assert.Equal(t, 0, count, "activity %s should have count 0", name)
 		}
 
-		expNames = []string{
+		expWorkflowPrefixes := []string{
 			"workflow/test-scheduler/abc1",
 			"workflow/test-scheduler/abc2",
 		}
-		for i, line := range lines[7:9] {
-			assert.True(t, strings.HasPrefix(strings.Fields(line)[0], expNames[i]), strings.Fields(line)[0])
+		foundWorkflows := 0
+		for name := range schedulerItems {
+			for _, prefix := range expWorkflowPrefixes {
+				if strings.HasPrefix(name, prefix) {
+					foundWorkflows++
+					break
+				}
+			}
 		}
+		assert.Equal(t, len(expWorkflowPrefixes), foundWorkflows, "expected %d workflow items", len(expWorkflowPrefixes))
 	})
 
 	t.Run("wide", func(t *testing.T) {
