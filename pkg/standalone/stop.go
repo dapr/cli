@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"strconv"
 	"syscall"
+	"time"
 
 	"github.com/dapr/cli/utils"
 )
@@ -59,11 +60,23 @@ func StopAppsWithRunFile(runTemplatePath string) error {
 			if err != nil {
 				// Fall back to cliPID if pgid is not available.
 				_, err = utils.RunCmdAndWait("kill", fmt.Sprintf("%v", a.CliPID)) //nolint:perfsprint
-				return err
+				if err != nil {
+					return err
+				}
+				// Give the OS time to release ports after killing the process
+				time.Sleep(500 * time.Millisecond)
+				return nil
 			}
 			// Kill the whole process group.
 			err = syscall.Kill(-pgid, syscall.SIGINT)
-			return err
+			if err != nil {
+				return err
+			}
+			// Give the OS time to release ports after killing the process group.
+			// This is especially important when processes are launched via shell exec,
+			// IE due to changes for Python threading so port cleanup may take slightly longer.
+			time.Sleep(500 * time.Millisecond)
+			return nil
 		}
 	}
 	return fmt.Errorf("couldn't find apps with run file %q", runTemplatePath)
