@@ -59,23 +59,35 @@ func StopAppsWithRunFile(runTemplatePath string) error {
 			pgid, err := syscall.Getpgid(a.CliPID)
 			if err != nil {
 				// Fall back to cliPID if pgid is not available.
-				_, err = utils.RunCmdAndWait("kill", fmt.Sprintf("%v", a.CliPID)) //nolint:perfsprint
+				_, err = utils.RunCmdAndWait("kill", "-TERM", fmt.Sprintf("%v", a.CliPID)) //nolint:perfsprint
 				if err != nil {
-					return err
+					_, errKill := utils.RunCmdAndWait("kill", "-KILL", fmt.Sprintf("%v", a.CliPID)) //nolint:perfsprint
+					if errKill != nil {
+						return errKill
+					}
 				}
-				// Give the OS time to release ports after killing the process
-				time.Sleep(500 * time.Millisecond)
+				// Give the OS time to release ports after killing the process.
+				time.Sleep(1 * time.Second)
 				return nil
 			}
 			// Kill the whole process group.
-			err = syscall.Kill(-pgid, syscall.SIGINT)
+			err = syscall.Kill(-pgid, syscall.SIGTERM)
 			if err != nil {
-				return err
+				errKill := syscall.Kill(-pgid, syscall.SIGKILL)
+				if errKill != nil {
+					return errKill
+				}
+			} else {
+				time.Sleep(500 * time.Millisecond)
+				errKill := syscall.Kill(-pgid, syscall.SIGKILL)
+				if errKill != nil {
+					return errKill
+				}
 			}
 			// Give the OS time to release ports after killing the process group.
 			// This is especially important when processes are launched via shell exec,
 			// IE due to changes for Python threading so port cleanup may take slightly longer.
-			time.Sleep(500 * time.Millisecond)
+			time.Sleep(1 * time.Second)
 			return nil
 		}
 	}
