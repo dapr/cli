@@ -1003,8 +1003,17 @@ func killAppProcess(runE *runExec.RunExec) error {
 	if runE.AppCMD.Command == nil {
 		return nil
 	}
+	// Check if the process has already exited on its own.
+	if runE.AppCMD.Command.ProcessState != nil && runE.AppCMD.Command.ProcessState.Exited() {
+		// Process already exited, no need to kill it.
+		return nil
+	}
 	err := runE.AppCMD.Command.Process.Kill()
 	if err != nil {
+		// If the process already exited on its own
+		if errors.Is(err, os.ErrProcessDone) {
+			return nil
+		}
 		print.StatusEvent(runE.DaprCMD.ErrorWriter, print.LogFailure, "Error exiting App: %s", err)
 		return err
 	}
