@@ -22,7 +22,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	dockerClient "github.com/docker/docker/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -64,7 +64,7 @@ func verifyNoContainers(t *testing.T) {
 	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv)
 	require.NoError(t, err)
 
-	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{})
+	containers, err := cli.ContainerList(context.Background(), container.ListOptions{})
 	require.NoError(t, err)
 
 	// this is being stored as a map to allow easier deletes.
