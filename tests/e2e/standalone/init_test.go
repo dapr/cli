@@ -30,7 +30,7 @@ import (
 	"github.com/dapr/cli/pkg/version"
 	"github.com/dapr/cli/tests/e2e/common"
 	"github.com/dapr/cli/tests/e2e/spawn"
-	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	dockerClient "github.com/docker/docker/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -272,7 +272,7 @@ func verifyContainers(t *testing.T, daprRuntimeVersion string) {
 		cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv)
 		require.NoError(t, err)
 
-		containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{})
+		containers, err := cli.ContainerList(context.Background(), container.ListOptions{})
 		require.NoError(t, err)
 
 		daprContainers := map[string]string{

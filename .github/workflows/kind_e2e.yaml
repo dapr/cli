@@ -50,7 +50,7 @@ jobs:
     name: E2E tests for K8s (KinD)
     runs-on: ubuntu-latest
     env:
-      DAPR_RUNTIME_PINNED_VERSION: 1.17.0-rc.1
+      DAPR_RUNTIME_PINNED_VERSION: 1.17.0-rc.8
       DAPR_DASHBOARD_PINNED_VERSION: 0.15.0
       DAPR_RUNTIME_LATEST_STABLE_VERSION:
       DAPR_DASHBOARD_LATEST_STABLE_VERSION:
