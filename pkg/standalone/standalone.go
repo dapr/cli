@@ -91,12 +91,27 @@ const (
 	schedulerEtcdPort   = 2379
 
 	daprVersionsWithScheduler = ">= 1.14.x"
+
+	portInUseHint = "Stop the process/container using that port or use `dapr init --network <name>` to avoid host port mapping."
 )
 
 var (
 	defaultImageRegistryName string
 	isAirGapInit             bool
 )
+
+func ensureHostPortsAvailable(component string, ports []int, extraHint string) error {
+	for _, port := range ports {
+		if err := utils.CheckIfPortAvailable(port); err != nil {
+			message := fmt.Sprintf("cannot start %s because host port %d is already in use", component, port)
+			if extraHint != "" {
+				message = fmt.Sprintf("%s. %s", message, extraHint)
+			}
+			return errors.New(message)
+		}
+	}
+	return nil
+}
 
 type configuration struct {
 	APIVersion string `yaml:"apiVersion"`
@@ -387,6 +402,14 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 		// do not create container again if it exists.
 		args = append(args, "start", zipkinContainerName)
 	} else {
+		if info.dockerNetwork == "" {
+			err = ensureHostPortsAvailable("Zipkin tracing", []int{9411}, portInUseHint+" To skip Zipkin, use `dapr init --slim`.")
+			if err != nil {
+				errorChan <- err
+				return
+			}
+		}
+
 		imageName, err = resolveImageURI(daprImageInfo{
 			ghcrImageName:      zipkinGhcrImageName,
 			dockerHubImageName: zipkinDockerImageName,
@@ -453,6 +476,14 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 		// do not create container again if it exists.
 		args = append(args, "start", redisContainerName)
 	} else {
+		if info.dockerNetwork == "" {
+			err = ensureHostPortsAvailable("Redis state store", []int{6379}, portInUseHint+" To skip Redis, use `dapr init --slim`.")
+			if err != nil {
+				errorChan <- err
+				return
+			}
+		}
+
 		imageName, err = resolveImageURI(daprImageInfo{
 			ghcrImageName:      redisGhcrImageName,
 			dockerHubImageName: redisDockerImageName,
@@ -514,6 +545,18 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 	} else if exists {
 		errorChan <- fmt.Errorf("%s container exists or is running. %s", placementContainerName, errInstallTemplate)
 		return
+	}
+
+	if info.dockerNetwork == "" {
+		osPort := 50005
+		if runtime.GOOS == daprWindowsOS {
+			osPort = 6050
+		}
+		err = ensureHostPortsAvailable("placement service", []int{osPort, healthPort, metricPort}, portInUseHint)
+		if err != nil {
+			errorChan <- err
+			return
+		}
 	}
 	var image string
 
@@ -609,6 +652,18 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 	} else if exists {
 		errorChan <- fmt.Errorf("%s container exists or is running. %s", schedulerContainerName, errInstallTemplate)
 		return
+	}
+
+	if info.dockerNetwork == "" {
+		osPort := 50006
+		if runtime.GOOS == daprWindowsOS {
+			osPort = 6060
+		}
+		err = ensureHostPortsAvailable("scheduler service", []int{osPort, schedulerEtcdPort, schedulerHealthPort, schedulerMetricPort}, portInUseHint)
+		if err != nil {
+			errorChan <- err
+			return
+		}
 	}
 	var image string
 
