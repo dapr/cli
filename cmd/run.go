@@ -15,9 +15,11 @@ package cmd
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"slices"
@@ -160,9 +162,9 @@ dapr run --run-file /path/to/directory -k
 			fmt.Println(print.WhiteBold("WARNING: no application command found."))
 		}
 
-		daprDirPath, err := standalone.GetDaprRuntimePath(cmdruntime.GetDaprRuntimePath())
-		if err != nil {
-			print.FailureStatusEvent(os.Stderr, "Failed to get Dapr install directory: %v", err)
+		daprDirPath, pathErr := standalone.GetDaprRuntimePath(cmdruntime.GetDaprRuntimePath())
+		if pathErr != nil {
+			print.FailureStatusEvent(os.Stderr, "Failed to get Dapr install directory: %v", pathErr)
 			os.Exit(1)
 		}
 
@@ -227,7 +229,7 @@ dapr run --run-file /path/to/directory -k
 				sharedRunConfig.SchedulerHostAddress = &addr
 			}
 		}
-		output, err := runExec.NewOutput(&standalone.RunConfig{
+		appConfig := &standalone.RunConfig{
 			AppID:             appID,
 			AppChannelAddress: appChannelAddress,
 			AppPort:           appPort,
@@ -239,7 +241,8 @@ dapr run --run-file /path/to/directory -k
 			UnixDomainSocket:  unixDomainSocket,
 			InternalGRPCPort:  internalGRPCPort,
 			SharedRunConfig:   *sharedRunConfig,
-		})
+		}
+		output, err := runExec.NewOutput(appConfig)
 		if err != nil {
 			print.FailureStatusEvent(os.Stderr, err.Error())
 			os.Exit(1)
@@ -280,6 +283,8 @@ dapr run --run-file /path/to/directory -k
 
 			output.DaprCMD.Stdout = os.Stdout
 			output.DaprCMD.Stderr = os.Stderr
+			// Set process group so sidecar survives when we exec the app process.
+			setDaprProcessGroupForRun(output.DaprCMD)
 
 			err = output.DaprCMD.Start()
 			if err != nil {
@@ -355,53 +360,27 @@ dapr run --run-file /path/to/directory -k
 				return
 			}
 
-			stdErrPipe, pipeErr := output.AppCMD.StderrPipe()
-			if pipeErr != nil {
-				print.FailureStatusEvent(os.Stderr, "Error creating stderr for App: "+err.Error())
-				appRunning <- false
-				return
-			}
-
-			stdOutPipe, pipeErr := output.AppCMD.StdoutPipe()
-			if pipeErr != nil {
-				print.FailureStatusEvent(os.Stderr, "Error creating stdout for App: "+err.Error())
-				appRunning <- false
-				return
-			}
-
-			errScanner := bufio.NewScanner(stdErrPipe)
-			outScanner := bufio.NewScanner(stdOutPipe)
-			go func() {
-				for errScanner.Scan() {
-					fmt.Println(print.Blue("== APP == " + errScanner.Text()))
-				}
-			}()
-
-			go func() {
-				for outScanner.Scan() {
-					fmt.Println(print.Blue("== APP == " + outScanner.Text()))
-				}
-			}()
-
-			err = output.AppCMD.Start()
+			command := args[0]
+			var binary string
+			binary, err = exec.LookPath(command)
 			if err != nil {
-				print.FailureStatusEvent(os.Stderr, err.Error())
+				print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Failed to find command %s: %v", command, err))
 				appRunning <- false
 				return
 			}
+			envMap := appConfig.GetEnv()
+			env := os.Environ()
+			for k, v := range envMap {
+				env = append(env, fmt.Sprintf("%s=%s", k, v))
+			}
+			env = append(env, fmt.Sprintf("DAPR_HTTP_PORT=%d", output.DaprHTTPPort))
+			env = append(env, fmt.Sprintf("DAPR_GRPC_PORT=%d", output.DaprGRPCPort))
 
-			go func() {
-				appErr := output.AppCMD.Wait()
-
-				if appErr != nil {
-					output.AppErr = appErr
-					print.FailureStatusEvent(os.Stderr, "The App process exited with error code: %s", appErr.Error())
-				} else {
-					print.SuccessStatusEvent(os.Stdout, "Exited App successfully")
-				}
-				sigCh <- os.Interrupt
-			}()
-
+			if startErr := startAppProcessInBackground(output, binary, args, env, sigCh); startErr != nil {
+				print.FailureStatusEvent(os.Stderr, startErr.Error())
+				appRunning <- false
+				return
+			}
 			appRunning <- true
 		}()
 
@@ -468,8 +447,13 @@ dapr run --run-file /path/to/directory -k
 		} else if output.AppCMD != nil && (output.AppCMD.ProcessState == nil || !output.AppCMD.ProcessState.Exited()) {
 			err = output.AppCMD.Process.Kill()
 			if err != nil {
-				exitWithError = true
-				print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Error exiting App: %s", err))
+				// If the process already exited on its own, treat this as a clean shutdown.
+				if errors.Is(err, os.ErrProcessDone) {
+					print.SuccessStatusEvent(os.Stdout, "Exited App successfully")
+				} else {
+					exitWithError = true
+					print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Error exiting App: %s", err))
+				}
 			} else {
 				print.SuccessStatusEvent(os.Stdout, "Exited App successfully")
 			}
@@ -788,6 +772,13 @@ func startDaprdAndAppProcesses(runConfig *standalone.RunConfig, commandDir strin
 		return runState, nil
 	}
 
+	if len(runConfig.Command) == 0 || strings.TrimSpace(runConfig.Command[0]) == "" {
+		noCmdErr := errors.New("exec: no command")
+		print.StatusEvent(appErrorWriter, print.LogFailure, "Error starting app process: %s", noCmdErr.Error())
+		_ = killDaprdProcess(runState)
+		return nil, noCmdErr
+	}
+
 	// Start App process.
 	go startAppProcess(runConfig, runState, appRunning, sigCh, startErrChan)
 
@@ -1012,8 +1003,17 @@ func killAppProcess(runE *runExec.RunExec) error {
 	if runE.AppCMD.Command == nil {
 		return nil
 	}
+	// Check if the process has already exited on its own.
+	if runE.AppCMD.Command.ProcessState != nil && runE.AppCMD.Command.ProcessState.Exited() {
+		// Process already exited, no need to kill it.
+		return nil
+	}
 	err := runE.AppCMD.Command.Process.Kill()
 	if err != nil {
+		// If the process already exited on its own
+		if errors.Is(err, os.ErrProcessDone) {
+			return nil
+		}
 		print.StatusEvent(runE.DaprCMD.ErrorWriter, print.LogFailure, "Error exiting App: %s", err)
 		return err
 	}

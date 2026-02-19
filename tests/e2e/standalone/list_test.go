@@ -32,6 +32,13 @@ import (
 
 func TestStandaloneList(t *testing.T) {
 	ensureDaprInstallation(t)
+	// Use a long-running app so we can test list and stop. Windows has no bash, so use cmd.
+	runArgs := []string{"run", "--app-id", "dapr_e2e_list", "-H", "3555", "-G", "4555", "--"}
+	if runtime.GOOS == "windows" {
+		runArgs = append(runArgs, "cmd", "/c", "ping -n 11 127.0.0.1 >nul")
+	} else {
+		runArgs = append(runArgs, "bash", "-c", "sleep 10 ; exit 0")
+	}
 	executeAgainstRunningDapr(t, func() {
 		output, err := cmdList("")
 		t.Log(output)
@@ -62,7 +69,7 @@ func TestStandaloneList(t *testing.T) {
 		t.Log(output)
 		require.NoError(t, err, "dapr stop failed")
 		assert.Contains(t, output, "app stopped successfully: dapr_e2e_list")
-	}, "run", "--app-id", "dapr_e2e_list", "-H", "3555", "-G", "4555", "--", "bash", "-c", "sleep 10 ; exit 0")
+	}, runArgs...)
 
 	t.Run("daprd instance in list", func(t *testing.T) {
 		homeDir, err := os.UserHomeDir()
@@ -99,7 +106,13 @@ func TestStandaloneList(t *testing.T) {
 	t.Run("daprd instance started by run in list", func(t *testing.T) {
 		go func() {
 			// starts dapr run in a goroutine
-			runoutput, err := cmdRun("", "--app-id", "dapr_e2e_list", "--dapr-http-port", "3555", "--dapr-grpc-port", "4555", "--app-port", "0", "--enable-app-health-check", "--", "bash", "-c", "sleep 15; exit 0")
+			runArgs := []string{"--app-id", "dapr_e2e_list", "--dapr-http-port", "3555", "--dapr-grpc-port", "4555", "--app-port", "0", "--enable-app-health-check", "--"}
+			if runtime.GOOS == "windows" {
+				runArgs = append(runArgs, "cmd", "/c", "ping -n 16 127.0.0.1 >nul")
+			} else {
+				runArgs = append(runArgs, "bash", "-c", "sleep 15; exit 0")
+			}
+			runoutput, err := cmdRun("", runArgs...)
 			t.Log(runoutput)
 			require.NoError(t, err, "run failed")
 			// daprd starts and sleep for 50s, this ensures daprd started by `dapr run ...` is stopped
@@ -120,10 +133,10 @@ func TestStandaloneList(t *testing.T) {
 
 func listOutputCheck(t *testing.T, output string, isCli bool) {
 	lines := strings.Split(output, "\n")[1:] // remove header
+	require.NotEmpty(t, lines, "dapr list returned no instance rows (expected at least one running instance). Output: %s", output)
 	// only one app is runnning at this time
 	fields := strings.Fields(lines[0])
-	// Fields splits on space, so Created time field might be split again
-	assert.GreaterOrEqual(t, len(fields), 10, "expected at least 10 fields in components output")
+	require.GreaterOrEqual(t, len(fields), 10, "expected at least 10 fields in list output (got %d). Output: %s", len(fields), output)
 	if isCli {
 		assert.Equal(t, "dapr_e2e_list", fields[0], "expected name to match")
 	} else {
