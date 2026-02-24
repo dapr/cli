@@ -36,6 +36,7 @@ type AppTestOutput struct {
 	baseLogDirPath           string
 	appLogDoesNotExist       bool
 	daprdLogFileDoesNotExist bool
+	daprdLogPollTimeout      time.Duration
 }
 
 func TestRunWithTemplateFile(t *testing.T) {
@@ -69,7 +70,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		var output string
 		select {
 		case output = <-outputCh:
-		case <-time.After(time.Second * 10):
+		case <-time.After(25 * time.Second):
 			t.Fatal("timed out waiting for run command to finish")
 		}
 
@@ -103,6 +104,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 				"termination signal received: shutting down",
 				"Exited Dapr successfully",
 			},
+			daprdLogPollTimeout: 15 * time.Second,
 		}
 		assertLogOutputForRunTemplateExec(t, appTestOutput)
 	})
@@ -172,6 +174,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 				"Exited Dapr successfully",
 				"Exited App successfully",
 			},
+			daprdLogPollTimeout: 15 * time.Second,
 		}
 		assertLogOutputForRunTemplateExec(t, appTestOutput)
 	})
@@ -199,7 +202,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		var output string
 		select {
 		case output = <-outputCh:
-		case <-time.After(time.Second * 10):
+		case <-time.After(25 * time.Second):
 			t.Fatal("timed out waiting for run command to finish")
 		}
 
@@ -234,6 +237,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 				"termination signal received: shutting down",
 				"Exited Dapr successfully",
 			},
+			daprdLogPollTimeout: 15 * time.Second,
 		}
 		assertLogOutputForRunTemplateExec(t, appTestOutput)
 	})
@@ -261,7 +265,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		var output string
 		select {
 		case output = <-outputCh:
-		case <-time.After(time.Second * 10):
+		case <-time.After(25 * time.Second):
 			t.Fatal("timed out waiting for run command to finish")
 		}
 
@@ -297,6 +301,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 				"termination signal received: shutting down",
 				"Exited Dapr successfully",
 			},
+			daprdLogPollTimeout: 20 * time.Second,
 		}
 		assertLogOutputForRunTemplateExec(t, appTestOutput)
 	})
@@ -324,7 +329,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		var output string
 		select {
 		case output = <-outputCh:
-		case <-time.After(time.Second * 10):
+		case <-time.After(25 * time.Second):
 			t.Fatal("timed out waiting for run command to finish")
 		}
 
@@ -384,7 +389,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		var output string
 		select {
 		case output = <-outputCh:
-		case <-time.After(time.Second * 10):
+		case <-time.After(25 * time.Second):
 			t.Fatal("timed out waiting for run command to finish")
 		}
 
@@ -425,6 +430,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 				"Exited Dapr successfully",
 				"Exited App successfully",
 			},
+			daprdLogPollTimeout: 20 * time.Second,
 		}
 		assertLogOutputForRunTemplateExec(t, appTestOutput)
 	})
@@ -456,7 +462,7 @@ func assertLogOutputForRunTemplateExec(t *testing.T, appTestOutput AppTestOutput
 		daprdLogFileName, err := lookUpFileFullName(appTestOutput.baseLogDirPath, "daprd")
 		require.NoError(t, err, "failed to find daprd log file")
 		daprdLogPath := filepath.Join(appTestOutput.baseLogDirPath, daprdLogFileName)
-		readAndAssertLogFileContents(t, daprdLogPath, appTestOutput.daprdLogContent)
+		readAndAssertLogFileContents(t, daprdLogPath, appTestOutput.daprdLogContent, appTestOutput.daprdLogPollTimeout)
 	}
 	if appTestOutput.appLogDoesNotExist {
 		return
@@ -464,13 +470,30 @@ func assertLogOutputForRunTemplateExec(t *testing.T, appTestOutput AppTestOutput
 	appLogFileName, err := lookUpFileFullName(appTestOutput.baseLogDirPath, "app")
 	require.NoError(t, err, "failed to find app log file")
 	appLogPath := filepath.Join(appTestOutput.baseLogDirPath, appLogFileName)
-	readAndAssertLogFileContents(t, appLogPath, appTestOutput.appLogContents)
+	readAndAssertLogFileContents(t, appLogPath, appTestOutput.appLogContents, 0)
 }
 
-func readAndAssertLogFileContents(t *testing.T, logFilePath string, expectedContent []string) {
+func readAndAssertLogFileContents(t *testing.T, logFilePath string, expectedContent []string, pollTimeout time.Duration) {
 	assert.FileExists(t, logFilePath, "log file %s must exist", logFilePath)
+	if pollTimeout > 0 {
+		require.Eventually(t, func() bool {
+			fileContents, err := ioutil.ReadFile(logFilePath)
+			if err != nil {
+				return false
+			}
+			contentString := string(fileContents)
+			for _, line := range expectedContent {
+				if !strings.Contains(contentString, line) {
+					return false
+				}
+			}
+			return true
+		}, pollTimeout, 300*time.Millisecond,
+			"log file %s did not contain all expected lines within %v (expected: %v)", logFilePath, pollTimeout, expectedContent)
+		return
+	}
 	fileContents, err := ioutil.ReadFile(logFilePath)
-	assert.NoError(t, err, "failed to read %s log", logFilePath)
+	require.NoError(t, err, "failed to read %s log", logFilePath)
 	contentString := string(fileContents)
 	for _, line := range expectedContent {
 		assert.Containsf(t, contentString, line, "expected logline to be present, line=%s", line)

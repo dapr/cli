@@ -269,7 +269,7 @@ func verifyContainers(t *testing.T, daprRuntimeVersion string) {
 			t.Skip("Skipping container verification because of slim installation")
 		}
 
-		cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv)
+		cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv, dockerClient.WithVersion("1.48"))
 		require.NoError(t, err)
 
 		containers, err := cli.ContainerList(context.Background(), container.ListOptions{})
@@ -465,7 +465,7 @@ func verifyTCPLocalhost(t *testing.T, port int) {
 func verifySchedulerBroadcastHostPort(t *testing.T, expectedBroadcastHostPort string) {
 	t.Helper()
 
-	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv)
+	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv, dockerClient.WithVersion("1.48"))
 	require.NoError(t, err)
 
 	containerInfo, err := cli.ContainerInspect(context.Background(), "dapr_scheduler")
