@@ -20,6 +20,7 @@ package standalone_test
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -101,7 +102,19 @@ func ensureAllAppsStartedWithRunTemplate(t *testing.T) {
 		"-f", "../testdata/run-template-files/dapr.yaml",
 	}
 	_, err := cmdRun("", args...)
-	require.NoError(t, err, "run failed")
+	// When stop is called, the run process receives SIGTERM and exits with a signal.
+	if err != nil && !isExitBySignal(err) {
+		require.NoError(t, err, "run failed")
+	}
+}
+
+// isExitBySignal returns true if the error indicates the process exited due to a signal (e.g. SIGTERM from stop).
+func isExitBySignal(err error) bool {
+	if err == nil {
+		return false
+	}
+	s := err.Error()
+	return strings.Contains(s, "signal:") || strings.Contains(s, "Signal ")
 }
 
 func tearDownTestSetup(t *testing.T) {
@@ -120,10 +133,14 @@ func getCLIPID(t *testing.T) string {
 }
 
 func verifyCLIPIDNotExist(t *testing.T, pid string) {
-	time.Sleep(5 * time.Second)
-	output, err := cmdList("")
-	require.NoError(t, err, "failed to list apps")
-	assert.NotContains(t, output, pid)
+	require.Eventually(t, func() bool {
+		output, err := cmdList("")
+		if err != nil {
+			return false
+		}
+		return !strings.Contains(output, pid)
+	}, 20*time.Second, 300*time.Millisecond,
+		"CLI process (pid %s) still present in list after 20s", pid)
 }
 
 func assertTemplateListOutput(t *testing.T, name string) {

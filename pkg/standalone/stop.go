@@ -57,13 +57,39 @@ func StopAppsWithRunFile(runTemplatePath string) error {
 			// Get the process group id of the CLI process.
 			pgid, err := syscall.Getpgid(a.CliPID)
 			if err != nil {
+				// If the process doesn't exist (ESRCH), treat it as already stopped.
+				if err == syscall.ESRCH {
+					return nil
+				}
 				// Fall back to cliPID if pgid is not available.
-				_, err = utils.RunCmdAndWait("kill", fmt.Sprintf("%v", a.CliPID)) //nolint:perfsprint
-				return err
+				err = syscall.Kill(a.CliPID, syscall.SIGTERM)
+				if err != nil {
+					// If process doesn't exist (ESRCH), treat it as already stopped.
+					if err == syscall.ESRCH {
+						return nil
+					}
+					errKill := syscall.Kill(a.CliPID, syscall.SIGKILL)
+					// If process doesn't exist, treat it as already stopped.
+					if errKill != nil && errKill != syscall.ESRCH {
+						return errKill
+					}
+				}
+				return nil
 			}
 			// Kill the whole process group.
-			err = syscall.Kill(-pgid, syscall.SIGINT)
-			return err
+			err = syscall.Kill(-pgid, syscall.SIGTERM)
+			if err != nil {
+				// If process group doesn't exist (ESRCH), treat it as already stopped.
+				if err == syscall.ESRCH {
+					return nil
+				}
+				errKill := syscall.Kill(-pgid, syscall.SIGKILL)
+				// If process group doesn't exist, treat it as already stopped.
+				if errKill != nil && errKill != syscall.ESRCH {
+					return errKill
+				}
+			}
+			return nil
 		}
 	}
 	return fmt.Errorf("couldn't find apps with run file %q", runTemplatePath)

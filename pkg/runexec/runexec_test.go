@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -26,6 +27,8 @@ import (
 
 	"github.com/dapr/cli/pkg/standalone"
 )
+
+const windowsOsType = "windows"
 
 func assertArgumentEqual(t *testing.T, key string, expectedValue string, args []string) {
 	var value string
@@ -205,8 +208,23 @@ func TestRun(t *testing.T) {
 		assert.NoError(t, err)
 
 		assertCommonArgs(t, basicConfig, output)
-		assert.Equal(t, "MyCommand", output.AppCMD.Args[0])
-		assert.Equal(t, "--my-arg", output.AppCMD.Args[1])
+		require.NotNil(t, output.AppCMD)
+		if runtime.GOOS == windowsOsType {
+			// On Windows the app is run directly (no shell).
+			require.GreaterOrEqual(t, len(output.AppCMD.Args), 2)
+			assert.Equal(t, "MyCommand", output.AppCMD.Args[0])
+			assert.Equal(t, "--my-arg", output.AppCMD.Args[1])
+		} else {
+			// On Unix the app command is executed via a shell wrapper
+			require.GreaterOrEqual(t, len(output.AppCMD.Args), 5)
+			assert.Equal(t, "sh", output.AppCMD.Args[0])
+			assert.Equal(t, "-c", output.AppCMD.Args[1])
+			assert.Equal(t, "exec \"$@\"", output.AppCMD.Args[2])
+			assert.Equal(t, "sh", output.AppCMD.Args[3])
+			assert.Equal(t, "MyCommand", output.AppCMD.Args[4])
+			assert.Equal(t, "--my-arg", output.AppCMD.Args[5])
+		}
+
 		assertArgumentEqual(t, "app-channel-address", "localhost", output.DaprCMD.Args)
 		assertAppEnv(t, basicConfig, output)
 	})

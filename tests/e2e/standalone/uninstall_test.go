@@ -61,7 +61,7 @@ func verifyNoContainers(t *testing.T) {
 		return
 	}
 
-	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv)
+	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv, dockerClient.WithVersion("1.48"))
 	require.NoError(t, err)
 
 	containers, err := cli.ContainerList(context.Background(), container.ListOptions{})
