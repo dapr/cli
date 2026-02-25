@@ -7,7 +7,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.3.0
 	github.com/Pallinder/sillyname-go v0.0.0-20130730142914-97aeae9e6ba1
 	github.com/briandowns/spinner v1.19.0
-	github.com/dapr/dapr v1.17.0-rc.10
+	github.com/dapr/dapr v1.17.0-rc.11
 	github.com/dapr/durabletask-go v0.11.0
 	github.com/dapr/go-sdk v1.13.0
 	github.com/dapr/kit v0.16.2-0.20251124175541-3ac186dff64d
