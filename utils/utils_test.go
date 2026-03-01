@@ -504,6 +504,53 @@ func cleanupTempDir(t *testing.T, fileName string) {
 	assert.NoError(t, err)
 }
 
+func TestRunCmdAndWait(t *testing.T) {
+	t.Run("successful command returns stdout", func(t *testing.T) {
+		t.Parallel()
+		var out string
+		var err error
+		if runtime.GOOS == "windows" {
+			out, err = RunCmdAndWait("cmd", "/c", "echo", "hello")
+		} else {
+			out, err = RunCmdAndWait("echo", "hello")
+		}
+		assert.NoError(t, err)
+		assert.Contains(t, out, "hello")
+	})
+
+	t.Run("failed command with stderr includes command name and stderr in error", func(t *testing.T) {
+		if runtime.GOOS == "windows" {
+			t.Skip("skipping on Windows")
+		}
+		t.Parallel()
+		_, err := RunCmdAndWait("sh", "-c", "echo myerror >&2; exit 1")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), `error running "sh -c echo myerror >&2; exit 1" (exit code 1)`)
+		assert.Contains(t, err.Error(), "myerror")
+	})
+
+	t.Run("failed command with no stderr falls back to stdout in error", func(t *testing.T) {
+		if runtime.GOOS == "windows" {
+			t.Skip("skipping on Windows")
+		}
+		t.Parallel()
+		_, err := RunCmdAndWait("sh", "-c", "echo myoutput; exit 1")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), `error running "sh -c echo myoutput; exit 1" (exit code 1)`)
+		assert.Contains(t, err.Error(), "myoutput")
+	})
+
+	t.Run("failed command with no output wraps original error with command name", func(t *testing.T) {
+		if runtime.GOOS == "windows" {
+			t.Skip("skipping on Windows")
+		}
+		t.Parallel()
+		_, err := RunCmdAndWait("sh", "-c", "exit 1")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), `error running "sh -c exit 1"`)
+	})
+}
+
 func TestSanitizeDir(t *testing.T) {
 	testcases := []struct {
 		name     string
