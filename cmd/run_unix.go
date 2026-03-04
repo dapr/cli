@@ -16,10 +16,12 @@ limitations under the License.
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"syscall"
+	"time"
 
 	"github.com/dapr/cli/pkg/print"
 	runExec "github.com/dapr/cli/pkg/runexec"
@@ -27,18 +29,37 @@ import (
 
 // killProcessGroup kills the entire process group of the given process so that
 // grandchild processes (e.g. the compiled binary spawned by `go run`) are also
-// terminated. It sends SIGTERM first and falls back to SIGKILL on failure.
+// terminated. It sends SIGTERM first; if the process group is still alive after
+// a 5-second grace period, it sends SIGKILL.
 func killProcessGroup(process *os.Process) error {
 	pgid, err := syscall.Getpgid(process.Pid)
 	if err != nil {
-		return process.Kill() // fallback: can't determine pgid
+		if err == syscall.ESRCH {
+			return nil // process already gone
+		}
+		// Can't determine pgid for some other reason — fall back to single-process kill.
+		if killErr := process.Kill(); errors.Is(killErr, os.ErrProcessDone) {
+			return nil
+		} else {
+			return killErr
+		}
 	}
-	err = syscall.Kill(-pgid, syscall.SIGTERM)
-	if err != nil && err != syscall.ESRCH {
-		err = syscall.Kill(-pgid, syscall.SIGKILL)
-	}
-	if err == syscall.ESRCH {
+
+	if err := syscall.Kill(-pgid, syscall.SIGTERM); err == syscall.ESRCH {
 		return nil // process group already gone
+	}
+
+	const gracePeriod = 5 * time.Second
+	deadline := time.Now().Add(gracePeriod)
+	for time.Now().Before(deadline) {
+		if err := syscall.Kill(-pgid, 0); err == syscall.ESRCH {
+			return nil // process group gone
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	// Grace period elapsed — force kill.
+	if err := syscall.Kill(-pgid, syscall.SIGKILL); err == syscall.ESRCH {
+		return nil
 	}
 	return err
 }

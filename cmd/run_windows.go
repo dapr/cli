@@ -24,7 +24,8 @@ import (
 	runExec "github.com/dapr/cli/pkg/runexec"
 )
 
-// killProcessGroup on Windows delegates to Process.Kill; job objects already handle child cleanup.
+// killProcessGroup on Windows delegates to Process.Kill; this helper does not manage
+// child processes via job objects in the single-app run path.
 func killProcessGroup(process *os.Process) error {
 	return process.Kill()
 }
