@@ -36,8 +36,11 @@ func killProcessGroup(process *os.Process) error {
 	jobName := utils.GetJobObjectNameFromPID(strconv.Itoa(os.Getpid()))
 	jbobj, err := winjob.Open(jobName)
 	if err != nil {
-		// No job object found — fall back to single-process kill.
-		return process.Kill()
+		if os.IsNotExist(err) {
+			// Job object not found — process was never attached. Fall back to single-process kill.
+			return process.Kill()
+		}
+		return fmt.Errorf("failed to open job object %q: %w", jobName, err)
 	}
 	defer jbobj.Close()
 	return jbobj.TerminateWithExitCode(0)
