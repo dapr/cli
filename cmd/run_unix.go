@@ -38,27 +38,33 @@ func killProcessGroup(process *os.Process) error {
 			return nil // process already gone
 		}
 		// Can't determine pgid for some other reason — fall back to single-process kill.
-		if killErr := process.Kill(); errors.Is(killErr, os.ErrProcessDone) {
+		killErr := process.Kill()
+		if errors.Is(killErr, os.ErrProcessDone) {
 			return nil
-		} else {
-			return killErr
 		}
+		return killErr
 	}
 
-	if err := syscall.Kill(-pgid, syscall.SIGTERM); err == syscall.ESRCH {
-		return nil // process group already gone
+	err = syscall.Kill(-pgid, syscall.SIGTERM)
+	if err != nil {
+		if err == syscall.ESRCH {
+			return nil // process group already gone
+		}
+		return fmt.Errorf("failed to send SIGTERM to process group %d: %w", pgid, err)
 	}
 
 	const gracePeriod = 5 * time.Second
 	deadline := time.Now().Add(gracePeriod)
 	for time.Now().Before(deadline) {
-		if err := syscall.Kill(-pgid, 0); err == syscall.ESRCH {
+		err = syscall.Kill(-pgid, 0)
+		if err == syscall.ESRCH {
 			return nil // process group gone
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
 	// Grace period elapsed — force kill.
-	if err := syscall.Kill(-pgid, syscall.SIGKILL); err == syscall.ESRCH {
+	err = syscall.Kill(-pgid, syscall.SIGKILL)
+	if err == syscall.ESRCH {
 		return nil
 	}
 	return err
