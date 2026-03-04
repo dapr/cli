@@ -32,17 +32,27 @@ import (
 // terminated. It sends SIGTERM first; if the process group is still alive after
 // a 5-second grace period, it sends SIGKILL.
 func killProcessGroup(process *os.Process) error {
-	pgid, err := syscall.Getpgid(process.Pid)
+	var (
+		pgid int
+		err  error
+	)
+
+	pgid, err = syscall.Getpgid(process.Pid)
 	if err != nil {
-		if err == syscall.ESRCH {
-			return nil // process already gone
+		if errors.Is(err, syscall.ESRCH) {
+			// The group leader may have already exited (e.g. when using `go run`),
+			// but other processes in the same process group can still be alive.
+			// Since the app is started with Setpgid=true, the PGID equals the leader
+			// PID, so fall back to using process.Pid as the PGID.
+			pgid = process.Pid
+		} else {
+			// Can't determine pgid for some other reason — fall back to single-process kill.
+			killErr := process.Kill()
+			if errors.Is(killErr, os.ErrProcessDone) {
+				return nil
+			}
+			return killErr
 		}
-		// Can't determine pgid for some other reason — fall back to single-process kill.
-		killErr := process.Kill()
-		if errors.Is(killErr, os.ErrProcessDone) {
-			return nil
-		}
-		return killErr
 	}
 
 	err = syscall.Kill(-pgid, syscall.SIGTERM)

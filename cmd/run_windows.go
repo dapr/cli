@@ -38,6 +38,7 @@ func killProcessGroup(process *os.Process) error {
 		// No job object found — fall back to single-process kill.
 		return process.Kill()
 	}
+	defer jbobj.Close()
 	return jbobj.TerminateWithExitCode(0)
 }
 
