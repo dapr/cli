@@ -19,10 +19,32 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
+
+	"github.com/kolesnikovae/go-winjob"
 
 	"github.com/dapr/cli/pkg/print"
 	runExec "github.com/dapr/cli/pkg/runexec"
+	"github.com/dapr/cli/utils"
 )
+
+// killProcessGroup on Windows terminates the entire process tree by terminating the
+// job object associated with the current CLI process (keyed by os.Getpid()). The
+// process argument is only used for the fallback path when no job object can be
+// opened (e.g. the process was never attached to one).
+func killProcessGroup(process *os.Process) error {
+	jobName := utils.GetJobObjectNameFromPID(strconv.Itoa(os.Getpid()))
+	jbobj, err := winjob.Open(jobName)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// Job object not found — process was never attached. Fall back to single-process kill.
+			return process.Kill()
+		}
+		return fmt.Errorf("failed to open job object %q: %w", jobName, err)
+	}
+	defer jbobj.Close()
+	return jbobj.TerminateWithExitCode(0)
+}
 
 // setDaprProcessGroupForRun is a no-op on Windows (SysProcAttr.Setpgid does not exist).
 func setDaprProcessGroupForRun(cmd *exec.Cmd) {
@@ -48,6 +70,7 @@ func startAppProcessInBackground(output *runExec.RunOutput, binary string, args 
 	if err := output.AppCMD.Start(); err != nil {
 		return fmt.Errorf("failed to start app: %w", err)
 	}
+	utils.AttachJobObjectToProcess(strconv.Itoa(os.Getpid()), output.AppCMD.Process)
 
 	go func() {
 		waitErr := output.AppCMD.Wait()
