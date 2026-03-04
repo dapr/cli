@@ -25,6 +25,24 @@ import (
 	runExec "github.com/dapr/cli/pkg/runexec"
 )
 
+// killProcessGroup kills the entire process group of the given process so that
+// grandchild processes (e.g. the compiled binary spawned by `go run`) are also
+// terminated. It sends SIGTERM first and falls back to SIGKILL on failure.
+func killProcessGroup(process *os.Process) error {
+	pgid, err := syscall.Getpgid(process.Pid)
+	if err != nil {
+		return process.Kill() // fallback: can't determine pgid
+	}
+	err = syscall.Kill(-pgid, syscall.SIGTERM)
+	if err != nil && err != syscall.ESRCH {
+		err = syscall.Kill(-pgid, syscall.SIGKILL)
+	}
+	if err == syscall.ESRCH {
+		return nil // process group already gone
+	}
+	return err
+}
+
 // setDaprProcessGroupForRun sets the process group on the daprd command so the
 // sidecar can be managed independently (e.g. when the app is started via exec).
 func setDaprProcessGroupForRun(cmd *exec.Cmd) {

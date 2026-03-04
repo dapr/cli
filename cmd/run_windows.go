@@ -24,6 +24,11 @@ import (
 	runExec "github.com/dapr/cli/pkg/runexec"
 )
 
+// killProcessGroup on Windows delegates to Process.Kill; job objects already handle child cleanup.
+func killProcessGroup(process *os.Process) error {
+	return process.Kill()
+}
+
 // setDaprProcessGroupForRun is a no-op on Windows (SysProcAttr.Setpgid does not exist).
 func setDaprProcessGroupForRun(cmd *exec.Cmd) {
 	// no-op on Windows

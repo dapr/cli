@@ -444,7 +444,7 @@ dapr run --run-file /path/to/directory -k
 			exitWithError = true
 			print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Error exiting App: %s", output.AppErr))
 		} else if output.AppCMD != nil && output.AppCMD.Process != nil && (output.AppCMD.ProcessState == nil || !output.AppCMD.ProcessState.Exited()) {
-			err = output.AppCMD.Process.Kill()
+			err = killProcessGroup(output.AppCMD.Process)
 			if err != nil {
 				// If the process already exited on its own, treat this as a clean shutdown.
 				if errors.Is(err, os.ErrProcessDone) {
@@ -1007,7 +1007,7 @@ func killAppProcess(runE *runExec.RunExec) error {
 		// Process already exited, no need to kill it.
 		return nil
 	}
-	err := runE.AppCMD.Command.Process.Kill()
+	err := killProcessGroup(runE.AppCMD.Command.Process)
 	if err != nil {
 		// If the process already exited on its own
 		if errors.Is(err, os.ErrProcessDone) {
