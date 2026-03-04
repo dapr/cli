@@ -194,7 +194,7 @@ func RunCmdAndWait(name string, args ...string) (string, error) {
 	cmd := exec.Command(name, args...)
 	resp, err := cmd.Output()
 	if err != nil {
-		cmdStr := name + " " + strings.Join(args, " ")
+		cmdStr := strings.Join(append([]string{name}, args...), " ")
 		output := ""
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) {
@@ -208,6 +208,9 @@ func RunCmdAndWait(name string, args ...string) (string, error) {
 				return "", fmt.Errorf("error running \"%s\" (exit code %d): %s", cmdStr, exitErr.ExitCode(), output)
 			}
 			return "", fmt.Errorf("error running \"%s\": %s", cmdStr, output)
+		}
+		if exitErr != nil {
+			return "", fmt.Errorf("error running \"%s\" (exit code %d): %w", cmdStr, exitErr.ExitCode(), err)
 		}
 		return "", fmt.Errorf("error running \"%s\": %w", cmdStr, err)
 	}
