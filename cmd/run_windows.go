@@ -28,9 +28,10 @@ import (
 	"github.com/dapr/cli/utils"
 )
 
-// killProcessGroup on Windows terminates the entire process tree by closing the job
-// object the app was attached to at start-up. Falls back to Process.Kill if the job
-// object cannot be found (e.g. the process was never attached).
+// killProcessGroup on Windows terminates the entire process tree by terminating the
+// job object associated with the current CLI process (keyed by os.Getpid()). The
+// process argument is only used for the fallback path when no job object can be
+// opened (e.g. the process was never attached to one).
 func killProcessGroup(process *os.Process) error {
 	jobName := utils.GetJobObjectNameFromPID(strconv.Itoa(os.Getpid()))
 	jbobj, err := winjob.Open(jobName)

@@ -67,17 +67,24 @@ func killProcessGroup(process *os.Process) error {
 	deadline := time.Now().Add(gracePeriod)
 	for time.Now().Before(deadline) {
 		err = syscall.Kill(-pgid, 0)
-		if err == syscall.ESRCH {
+		if err == nil {
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
+		if errors.Is(err, syscall.ESRCH) {
 			return nil // process group gone
 		}
-		time.Sleep(100 * time.Millisecond)
+		return fmt.Errorf("failed to check status of process group %d: %w", pgid, err)
 	}
 	// Grace period elapsed — force kill.
 	err = syscall.Kill(-pgid, syscall.SIGKILL)
 	if err == syscall.ESRCH {
 		return nil
 	}
-	return err
+	if err != nil {
+		return fmt.Errorf("failed to send SIGKILL to process group %d: %w", pgid, err)
+	}
+	return nil
 }
 
 // setDaprProcessGroupForRun sets the process group on the daprd command so the
