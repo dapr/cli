@@ -443,7 +443,7 @@ dapr run --run-file /path/to/directory -k
 		if output.AppErr != nil {
 			exitWithError = true
 			print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Error exiting App: %s", output.AppErr))
-		} else if output.AppCMD != nil && output.AppCMD.Process != nil && (output.AppCMD.ProcessState == nil || !output.AppCMD.ProcessState.Exited()) {
+		} else if output.AppCMD != nil && output.AppCMD.Process != nil {
 			err = killProcessGroup(output.AppCMD.Process)
 			if err != nil {
 				// If the process already exited on its own, treat this as a clean shutdown.
@@ -826,7 +826,7 @@ func stopDaprdAndAppProcesses(runState *runExec.RunExec) bool {
 	if appErr != nil {
 		exitWithError = true
 		print.StatusEvent(runState.AppCMD.ErrorWriter, print.LogFailure, "Error exiting App: %s", appErr)
-	} else if runState.AppCMD.Command != nil && runState.AppCMD.Command.Process != nil && (runState.AppCMD.Command.ProcessState == nil || !runState.AppCMD.Command.ProcessState.Exited()) {
+	} else if runState.AppCMD.Command != nil && runState.AppCMD.Command.Process != nil {
 		err = killAppProcess(runState)
 		if err != nil {
 			exitWithError = true
@@ -1000,11 +1000,6 @@ func killDaprdProcess(runE *runExec.RunExec) error {
 // killAppProcess is used to kill the App process and return error on failure.
 func killAppProcess(runE *runExec.RunExec) error {
 	if runE.AppCMD.Command == nil || runE.AppCMD.Command.Process == nil {
-		return nil
-	}
-	// Check if the process has already exited on its own.
-	if runE.AppCMD.Command.ProcessState != nil && runE.AppCMD.Command.ProcessState.Exited() {
-		// Process already exited, no need to kill it.
 		return nil
 	}
 	err := killProcessGroup(runE.AppCMD.Command.Process)
