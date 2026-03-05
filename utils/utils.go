@@ -192,40 +192,19 @@ func TruncateString(str string, maxLength int) string {
 
 func RunCmdAndWait(name string, args ...string) (string, error) {
 	cmd := exec.Command(name, args...)
-
-	stdout, err := cmd.StdoutPipe()
+	resp, err := cmd.Output()
 	if err != nil {
-		return "", err
-	}
-	stderr, err := cmd.StderrPipe()
-	if err != nil {
-		return "", err
-	}
-
-	err = cmd.Start()
-	if err != nil {
-		return "", err
-	}
-
-	resp, err := io.ReadAll(stdout)
-	if err != nil {
-		return "", err
-	}
-	errB, err := io.ReadAll(stderr)
-	if err != nil {
-		//nolint
-		return "", nil
-	}
-
-	err = cmd.Wait()
-	if err != nil {
-		// in case of error, capture the exact message.
-		if len(errB) > 0 {
-			return "", errors.New(string(errB))
+		cmdStr := strings.Join(append([]string{name}, args...), " ")
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			output := strings.TrimSpace(string(exitErr.Stderr))
+			if output == "" {
+				output = err.Error()
+			}
+			return "", fmt.Errorf("error running \"%s\" (exit code %d): %s", cmdStr, exitErr.ExitCode(), output)
 		}
-		return "", err
+		return "", fmt.Errorf("error running \"%s\": %w", cmdStr, err)
 	}
-
 	return string(resp), nil
 }
 
