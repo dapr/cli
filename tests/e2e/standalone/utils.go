@@ -102,11 +102,14 @@ func executeAgainstRunningDapr(t *testing.T, f func(), daprArgs ...string) {
 	daprPath := common.GetDaprPath()
 
 	cmd := exec.Command(daprPath, daprArgs...)
-	stdoutReader, _ := cmd.StdoutPipe()
-	stderrReader, _ := cmd.StderrPipe()
+	stdoutReader, err := cmd.StdoutPipe()
+	require.NoError(t, err, "failed to get stdout pipe for dapr")
+	stderrReader, err := cmd.StderrPipe()
+	require.NoError(t, err, "failed to get stderr pipe for dapr")
 	scanner := bufio.NewScanner(stdoutReader)
 
-	cmd.Start()
+	err = cmd.Start()
+	require.NoError(t, err, "failed to start dapr")
 
 	var wg sync.WaitGroup
 	var stderrOutput strings.Builder
@@ -119,7 +122,15 @@ func executeAgainstRunningDapr(t *testing.T, f func(), daprArgs ...string) {
 			t.Log(line)
 			stderrOutput.WriteString(line)
 		}
+		if err := stderrScanner.Err(); err != nil {
+			t.Errorf("error while reading dapr stderr: %v", err)
+		}
 	}()
+
+	t.Cleanup(func() {
+		cmd.Process.Kill() //nolint:errcheck
+		wg.Wait()
+	})
 
 	daprOutput := ""
 	for scanner.Scan() {
@@ -134,7 +145,7 @@ func executeAgainstRunningDapr(t *testing.T, f func(), daprArgs ...string) {
 	wg.Wait()
 	daprOutput += stderrOutput.String()
 
-	err := cmd.Wait()
+	err = cmd.Wait()
 	if err != nil {
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 &&
