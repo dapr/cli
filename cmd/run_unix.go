@@ -16,14 +16,76 @@ limitations under the License.
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"syscall"
+	"time"
 
 	"github.com/dapr/cli/pkg/print"
 	runExec "github.com/dapr/cli/pkg/runexec"
 )
+
+// killProcessGroup kills the entire process group of the given process so that
+// grandchild processes (e.g. the compiled binary spawned by `go run`) are also
+// terminated. It sends SIGTERM first; if the process group is still alive after
+// a 5-second grace period, it sends SIGKILL.
+func killProcessGroup(process *os.Process) error {
+	var (
+		pgid int
+		err  error
+	)
+
+	pgid, err = syscall.Getpgid(process.Pid)
+	if err != nil {
+		if errors.Is(err, syscall.ESRCH) {
+			// The group leader may have already exited (e.g. when using `go run`),
+			// but other processes in the same process group can still be alive.
+			// Since the app is started with Setpgid=true, the PGID equals the leader
+			// PID, so fall back to using process.Pid as the PGID.
+			pgid = process.Pid
+		} else {
+			// Can't determine pgid for some other reason — fall back to single-process kill.
+			killErr := process.Kill()
+			if errors.Is(killErr, os.ErrProcessDone) {
+				return nil
+			}
+			return killErr
+		}
+	}
+
+	err = syscall.Kill(-pgid, syscall.SIGTERM)
+	if err != nil {
+		if err == syscall.ESRCH {
+			return nil // process group already gone
+		}
+		return fmt.Errorf("failed to send SIGTERM to process group %d: %w", pgid, err)
+	}
+
+	const gracePeriod = 5 * time.Second
+	deadline := time.Now().Add(gracePeriod)
+	for time.Now().Before(deadline) {
+		err = syscall.Kill(-pgid, 0)
+		if err == nil {
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
+		if errors.Is(err, syscall.ESRCH) {
+			return nil // process group gone
+		}
+		return fmt.Errorf("failed to check status of process group %d: %w", pgid, err)
+	}
+	// Grace period elapsed — force kill.
+	err = syscall.Kill(-pgid, syscall.SIGKILL)
+	if err == syscall.ESRCH {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("failed to send SIGKILL to process group %d: %w", pgid, err)
+	}
+	return nil
+}
 
 // setDaprProcessGroupForRun sets the process group on the daprd command so the
 // sidecar can be managed independently (e.g. when the app is started via exec).
