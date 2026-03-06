@@ -144,6 +144,9 @@ func executeAgainstRunningDapr(t *testing.T, f func(), daprArgs ...string) {
 		}
 		daprOutput += outputChunk + "\n"
 	}
+	if err := scanner.Err(); err != nil {
+		t.Errorf("error while reading dapr stdout: %v", err)
+	}
 
 	wg.Wait()
 	daprOutput += stderrOutput.String()
