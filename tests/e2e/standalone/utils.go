@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -101,10 +102,24 @@ func executeAgainstRunningDapr(t *testing.T, f func(), daprArgs ...string) {
 	daprPath := common.GetDaprPath()
 
 	cmd := exec.Command(daprPath, daprArgs...)
-	reader, _ := cmd.StdoutPipe()
-	scanner := bufio.NewScanner(reader)
+	stdoutReader, _ := cmd.StdoutPipe()
+	stderrReader, _ := cmd.StderrPipe()
+	scanner := bufio.NewScanner(stdoutReader)
 
 	cmd.Start()
+
+	var wg sync.WaitGroup
+	var stderrOutput strings.Builder
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		stderrScanner := bufio.NewScanner(stderrReader)
+		for stderrScanner.Scan() {
+			line := stderrScanner.Text()
+			t.Log(line)
+			stderrOutput.WriteString(line)
+		}
+	}()
 
 	daprOutput := ""
 	for scanner.Scan() {
@@ -116,17 +131,20 @@ func executeAgainstRunningDapr(t *testing.T, f func(), daprArgs ...string) {
 		daprOutput += outputChunk
 	}
 
+	wg.Wait()
+	daprOutput += stderrOutput.String()
+
 	err := cmd.Wait()
 	if err != nil {
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 &&
 			strings.Contains(daprOutput, "Exited Dapr successfully") &&
-			!strings.Contains(daprOutput, "The App process exited with error code: exit status") {
+			!strings.Contains(daprOutput, "The App process exited with error") {
 			err = nil
 		}
 	}
 	require.NoError(t, err, "dapr didn't exit cleanly")
-	assert.NotContains(t, daprOutput, "The App process exited with error code: exit status", "Stop command should have been called before the app had a chance to exit")
+	assert.NotContains(t, daprOutput, "The App process exited with error", "Stop command should have been called before the app had a chance to exit")
 	assert.Contains(t, daprOutput, "Exited Dapr successfully")
 }
 
