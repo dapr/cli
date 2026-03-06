@@ -120,7 +120,7 @@ func executeAgainstRunningDapr(t *testing.T, f func(), daprArgs ...string) {
 		for stderrScanner.Scan() {
 			line := stderrScanner.Text()
 			t.Log(line)
-			stderrOutput.WriteString(line)
+			stderrOutput.WriteString(line + "\n")
 		}
 		if err := stderrScanner.Err(); err != nil {
 			t.Errorf("error while reading dapr stderr: %v", err)
@@ -128,7 +128,10 @@ func executeAgainstRunningDapr(t *testing.T, f func(), daprArgs ...string) {
 	}()
 
 	t.Cleanup(func() {
-		cmd.Process.Kill() //nolint:errcheck
+		if cmd.Process != nil {
+			_ = cmd.Process.Kill()
+			_ = cmd.Wait()
+		}
 		wg.Wait()
 	})
 
@@ -139,7 +142,7 @@ func executeAgainstRunningDapr(t *testing.T, f func(), daprArgs ...string) {
 		if strings.Contains(outputChunk, "You're up and running!") {
 			f()
 		}
-		daprOutput += outputChunk
+		daprOutput += outputChunk + "\n"
 	}
 
 	wg.Wait()
