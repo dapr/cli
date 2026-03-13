@@ -39,8 +39,8 @@ func TestListMongo(t *testing.T) {
 			Namespace: "default",
 			AppID:     "myapp",
 		})
-		require.NoError(t, err)
-		assert.Equal(t, []string{key1, key2}, keys)
+		require.NoError(mt, err)
+		assert.Equal(mt, []string{key1, key2}, keys)
 	})
 
 	mt.Run("returns nil when no documents match", func(mt *mtest.T) {
@@ -50,8 +50,8 @@ func TestListMongo(t *testing.T) {
 			Namespace: "default",
 			AppID:     "myapp",
 		})
-		require.NoError(t, err)
-		assert.Nil(t, keys)
+		require.NoError(mt, err)
+		assert.Nil(mt, keys)
 	})
 
 	mt.Run("filter uses _id field with correct regex", func(mt *mtest.T) {
@@ -61,7 +61,7 @@ func TestListMongo(t *testing.T) {
 			Namespace: "default",
 			AppID:     "myapp",
 		})
-		require.NoError(t, err)
+		require.NoError(mt, err)
 
 		// Verify the find command was sent with _id filter.
 		cmd := mt.GetStartedEvent().Command
@@ -69,9 +69,18 @@ func TestListMongo(t *testing.T) {
 		filterDoc := filterVal.Document()
 
 		// The filter should contain an "_id" field, not "key".
-		_, err = filterDoc.LookupErr("_id")
-		assert.NoError(t, err, "filter should query on _id field")
+		idVal, err := filterDoc.LookupErr("_id")
+		assert.NoError(mt, err, "filter should query on _id field")
 		_, err = filterDoc.LookupErr("key")
-		assert.Error(t, err, "filter should not query on key field")
+		assert.Error(mt, err, "filter should not query on key field")
+
+		// Verify the $regex value matches the expected workflow metadata pattern.
+		idDoc := idVal.Document()
+		regexVal, err := idDoc.LookupErr("$regex")
+		require.NoError(mt, err, "filter on _id should use $regex")
+		assert.Equal(mt,
+			`^myapp\|\|dapr\.internal\.default\.myapp\.workflow\|\|.*\|\|metadata$`,
+			regexVal.StringValue(),
+		)
 	})
 }
