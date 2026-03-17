@@ -15,11 +15,13 @@ package version
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetVersionsGithub(t *testing.T) {
@@ -209,7 +211,7 @@ func TestGetVersionsGithub(t *testing.T) {
 		},
 	}
 	m := http.NewServeMux()
-	s := http.Server{Addr: ":12345", Handler: m, ReadHeaderTimeout: time.Duration(5) * time.Second}
+	s := http.Server{Handler: m, ReadHeaderTimeout: time.Duration(5) * time.Second}
 
 	for _, tc := range tests {
 		body := tc.ResponseBody
@@ -218,13 +220,15 @@ func TestGetVersionsGithub(t *testing.T) {
 		})
 	}
 
-	go func() {
-		s.ListenAndServe()
-	}()
+	ln, err := net.Listen("tcp", ":0")
+	require.NoError(t, err)
+	t.Cleanup(func() { s.Shutdown(t.Context()) })
+	go func() { s.Serve(ln) }()
+	addr := fmt.Sprintf("http://localhost:%d", ln.Addr().(*net.TCPAddr).Port)
 
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) {
-			version, err := GetLatestReleaseGithub("http://localhost:12345" + tc.Path)
+			version, err := GetLatestReleaseGithub(addr + tc.Path)
 			assert.Equal(t, tc.ExpectedVer, version)
 			if tc.ExpectedErr != "" {
 				assert.EqualError(t, err, tc.ExpectedErr)
@@ -233,9 +237,9 @@ func TestGetVersionsGithub(t *testing.T) {
 	}
 
 	t.Run("error on 404", func(t *testing.T) {
-		version, err := GetLatestReleaseGithub("http://localhost:12345/non-existant/path")
+		version, err := GetLatestReleaseGithub(addr + "/non-existant/path")
 		assert.Equal(t, "", version)
-		assert.EqualError(t, err, "http://localhost:12345/non-existant/path - 404 Not Found")
+		assert.EqualError(t, err, addr+"/non-existant/path - 404 Not Found")
 	})
 
 	t.Run("error on bad addr", func(t *testing.T) {
@@ -243,8 +247,6 @@ func TestGetVersionsGithub(t *testing.T) {
 		assert.Equal(t, "", version)
 		assert.Error(t, err)
 	})
-
-	s.Shutdown(t.Context())
 }
 
 func TestGetVersionsHelm(t *testing.T) {
@@ -318,7 +320,7 @@ entries:
 		},
 	}
 	m := http.NewServeMux()
-	s := http.Server{Addr: ":12346", Handler: m, ReadHeaderTimeout: time.Duration(5) * time.Second}
+	s := http.Server{Handler: m, ReadHeaderTimeout: time.Duration(5) * time.Second}
 
 	for _, tc := range tests {
 		body := tc.ResponseBody
@@ -327,19 +329,19 @@ entries:
 		})
 	}
 
-	go func() {
-		s.ListenAndServe()
-	}()
+	ln, err := net.Listen("tcp", ":0")
+	require.NoError(t, err)
+	t.Cleanup(func() { s.Shutdown(t.Context()) })
+	go func() { s.Serve(ln) }()
+	addr := fmt.Sprintf("http://localhost:%d", ln.Addr().(*net.TCPAddr).Port)
 
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) {
-			version, err := GetLatestReleaseHelmChart("http://localhost:12346" + tc.Path)
+			version, err := GetLatestReleaseHelmChart(addr + tc.Path)
 			assert.Equal(t, tc.ExpectedVer, version)
 			if tc.ExpectedErr != "" {
 				assert.EqualError(t, err, tc.ExpectedErr)
 			}
 		})
 	}
-
-	s.Shutdown(t.Context())
 }

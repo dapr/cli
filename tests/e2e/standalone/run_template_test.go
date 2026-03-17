@@ -18,6 +18,7 @@ limitations under the License.
 package standalone_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
@@ -28,6 +29,22 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// waitForAppsInList polls dapr list until at least minApps apps are running.
+func waitForAppsInList(t *testing.T, minApps int) {
+	t.Helper()
+	require.Eventually(t, func() bool {
+		output, err := cmdList("json")
+		if err != nil {
+			return false
+		}
+		var result []map[string]interface{}
+		if err := json.Unmarshal([]byte(output), &result); err != nil {
+			return false
+		}
+		return len(result) >= minApps
+	}, 30*time.Second, time.Second, "expected at least %d app(s) in dapr list", minApps)
+}
 
 type AppTestOutput struct {
 	appID                    string
@@ -65,12 +82,12 @@ func TestRunWithTemplateFile(t *testing.T) {
 			t.Logf("%s", output)
 			outputCh <- output
 		}()
-		time.Sleep(time.Second * 10)
+		waitForAppsInList(t, 1)
 		cmdStopWithRunTemplate(runFilePath)
 		var output string
 		select {
 		case output = <-outputCh:
-		case <-time.After(25 * time.Second):
+		case <-time.After(30 * time.Second):
 			t.Fatal("timed out waiting for run command to finish")
 		}
 
@@ -128,12 +145,12 @@ func TestRunWithTemplateFile(t *testing.T) {
 			t.Logf("%s", output)
 			outputCh <- output
 		}()
-		time.Sleep(time.Second * 10)
+		waitForAppsInList(t, 1)
 		cmdStopWithRunTemplate(runFilePath)
 		var output string
 		select {
 		case output = <-outputCh:
-		case <-time.After(time.Second * 10):
+		case <-time.After(30 * time.Second):
 			t.Fatal("timed out waiting for run command to finish")
 		}
 
@@ -197,12 +214,12 @@ func TestRunWithTemplateFile(t *testing.T) {
 			t.Logf("%s", output)
 			outputCh <- output
 		}()
-		time.Sleep(time.Second * 10)
+		waitForAppsInList(t, 1)
 		cmdStopWithRunTemplate(runFilePath)
 		var output string
 		select {
 		case output = <-outputCh:
-		case <-time.After(25 * time.Second):
+		case <-time.After(30 * time.Second):
 			t.Fatal("timed out waiting for run command to finish")
 		}
 
@@ -260,12 +277,12 @@ func TestRunWithTemplateFile(t *testing.T) {
 			t.Logf("%s", output)
 			outputCh <- output
 		}()
-		time.Sleep(time.Second * 10)
+		waitForAppsInList(t, 1)
 		cmdStopWithRunTemplate(runFilePath)
 		var output string
 		select {
 		case output = <-outputCh:
-		case <-time.After(25 * time.Second):
+		case <-time.After(30 * time.Second):
 			t.Fatal("timed out waiting for run command to finish")
 		}
 
@@ -324,12 +341,12 @@ func TestRunWithTemplateFile(t *testing.T) {
 			t.Logf("%s", output)
 			outputCh <- output
 		}()
-		time.Sleep(time.Second * 10)
+		waitForAppsInList(t, 1)
 		cmdStopWithRunTemplate(runFilePath)
 		var output string
 		select {
 		case output = <-outputCh:
-		case <-time.After(25 * time.Second):
+		case <-time.After(30 * time.Second):
 			t.Fatal("timed out waiting for run command to finish")
 		}
 
@@ -384,12 +401,12 @@ func TestRunWithTemplateFile(t *testing.T) {
 			t.Logf("%s", output)
 			outputCh <- output
 		}()
-		time.Sleep(time.Second * 10)
+		waitForAppsInList(t, 1)
 		cmdStopWithRunTemplate(runFilePath)
 		var output string
 		select {
 		case output = <-outputCh:
-		case <-time.After(25 * time.Second):
+		case <-time.After(30 * time.Second):
 			t.Fatal("timed out waiting for run command to finish")
 		}
 
