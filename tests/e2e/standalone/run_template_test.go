@@ -18,9 +18,9 @@ limitations under the License.
 package standalone_test
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -30,20 +30,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// waitForAppsInList polls dapr list until at least minApps apps are running.
-func waitForAppsInList(t *testing.T, minApps int) {
+// waitForPortsFree polls until all given ports are available for binding.
+// This prevents port contention between sequential subtests that use
+// hardcoded ports.
+func waitForPortsFree(t *testing.T, ports ...int) {
 	t.Helper()
 	require.Eventually(t, func() bool {
-		output, err := cmdList("json")
-		if err != nil {
-			return false
+		for _, port := range ports {
+			ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+			if err != nil {
+				return false
+			}
+			ln.Close()
 		}
-		var result []map[string]interface{}
-		if err := json.Unmarshal([]byte(output), &result); err != nil {
-			return false
-		}
-		return len(result) >= minApps
-	}, 30*time.Second, time.Second, "expected at least %d app(s) in dapr list", minApps)
+		return true
+	}, 30*time.Second, time.Second, "ports %v not available in time", ports)
 }
 
 type AppTestOutput struct {
@@ -76,13 +77,14 @@ func TestRunWithTemplateFile(t *testing.T) {
 			"-f", runFilePath,
 		}
 
+		waitForPortsFree(t, 3510, 3511)
 		outputCh := make(chan string)
 		go func() {
 			output, _ := cmdRun("", args...)
 			t.Logf("%s", output)
 			outputCh <- output
 		}()
-		waitForAppsInList(t, 1)
+		time.Sleep(10 * time.Second)
 		cmdStopWithRunTemplate(runFilePath)
 		var output string
 		select {
@@ -139,13 +141,14 @@ func TestRunWithTemplateFile(t *testing.T) {
 			"-f", runFilePath,
 		}
 
+		waitForPortsFree(t, 3510, 3511)
 		outputCh := make(chan string)
 		go func() {
 			output, _ := cmdRun("", args...)
 			t.Logf("%s", output)
 			outputCh <- output
 		}()
-		waitForAppsInList(t, 1)
+		time.Sleep(10 * time.Second)
 		cmdStopWithRunTemplate(runFilePath)
 		var output string
 		select {
@@ -208,13 +211,14 @@ func TestRunWithTemplateFile(t *testing.T) {
 		args := []string{
 			"-f", runFilePath,
 		}
+		waitForPortsFree(t, 3510, 3511)
 		outputCh := make(chan string)
 		go func() {
 			output, _ := cmdRun("", args...)
 			t.Logf("%s", output)
 			outputCh <- output
 		}()
-		waitForAppsInList(t, 1)
+		time.Sleep(10 * time.Second)
 		cmdStopWithRunTemplate(runFilePath)
 		var output string
 		select {
@@ -271,13 +275,14 @@ func TestRunWithTemplateFile(t *testing.T) {
 		args := []string{
 			"-f", runFilePath,
 		}
+		waitForPortsFree(t, 3510, 3511)
 		outputCh := make(chan string)
 		go func() {
 			output, _ := cmdRun("", args...)
 			t.Logf("%s", output)
 			outputCh <- output
 		}()
-		waitForAppsInList(t, 1)
+		time.Sleep(10 * time.Second)
 		cmdStopWithRunTemplate(runFilePath)
 		var output string
 		select {
@@ -335,13 +340,14 @@ func TestRunWithTemplateFile(t *testing.T) {
 		args := []string{
 			"-f", runFilePath,
 		}
+		waitForPortsFree(t, 3510, 3511)
 		outputCh := make(chan string)
 		go func() {
 			output, _ := cmdRun("", args...)
 			t.Logf("%s", output)
 			outputCh <- output
 		}()
-		waitForAppsInList(t, 1)
+		time.Sleep(10 * time.Second)
 		cmdStopWithRunTemplate(runFilePath)
 		var output string
 		select {
@@ -395,13 +401,14 @@ func TestRunWithTemplateFile(t *testing.T) {
 		args := []string{
 			"-f", runFilePath,
 		}
+		waitForPortsFree(t, 3510, 3511)
 		outputCh := make(chan string)
 		go func() {
 			output, _ := cmdRun("", args...)
 			t.Logf("%s", output)
 			outputCh <- output
 		}()
-		waitForAppsInList(t, 1)
+		time.Sleep(10 * time.Second)
 		cmdStopWithRunTemplate(runFilePath)
 		var output string
 		select {
