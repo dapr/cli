@@ -352,7 +352,10 @@ func TestWorkflowPurge(t *testing.T) {
 		assert.Contains(t, output, "filter-terminated")
 
 		// Clean up the remaining instance.
-		_, _ = cmdWorkflowPurge(appID, "filter-terminated")
+		t.Cleanup(func() {
+			_, err := cmdWorkflowPurge(appID, "filter-terminated")
+			assert.NoError(t, err)
+		})
 	})
 
 	t.Run("purge older than with filter status TERMINATED", func(t *testing.T) {
@@ -385,7 +388,10 @@ func TestWorkflowPurge(t *testing.T) {
 		assert.NotContains(t, output, "fs-terminated")
 
 		// Clean up.
-		_, _ = cmdWorkflowPurge(appID, "fs-completed")
+		t.Cleanup(func() {
+			_, err := cmdWorkflowPurge(appID, "fs-completed")
+			assert.NoError(t, err)
+		})
 	})
 
 	t.Run("all-filter-status without all-older-than errors", func(t *testing.T) {

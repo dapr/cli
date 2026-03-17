@@ -40,19 +40,27 @@ type PurgeOptions struct {
 	TableName        *string
 }
 
+// BuildPurgeFilter constructs the Filter used when listing workflow instances
+// for bulk purge. When AllFilterStatus is set, it filters by that status
+// instead of using the default terminal-only filter.
+func BuildPurgeFilter(allFilterStatus *string) Filter {
+	filter := Filter{
+		Terminal: true,
+	}
+	if allFilterStatus != nil {
+		filter.Terminal = false
+		filter.Status = allFilterStatus
+	}
+	return filter
+}
+
 func Purge(ctx context.Context, opts PurgeOptions) error {
 	var toPurge []string
 
 	if len(opts.InstanceIDs) > 0 {
 		toPurge = opts.InstanceIDs
 	} else {
-		filter := Filter{
-			Terminal: true,
-		}
-		if opts.AllFilterStatus != nil {
-			filter.Terminal = false
-			filter.Status = opts.AllFilterStatus
-		}
+		filter := BuildPurgeFilter(opts.AllFilterStatus)
 
 		var list []*ListOutputWide
 		var err error

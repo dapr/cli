@@ -15,110 +15,34 @@ package workflow
 
 import (
 	"testing"
-	"time"
 
 	"github.com/dapr/kit/ptr"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestPurgeOptions_AllFilterStatus(t *testing.T) {
-	t.Run("AllFilterStatus sets filter status instead of terminal", func(t *testing.T) {
-		opts := PurgeOptions{
-			AllOlderThan:    ptr.Of(time.Now()),
-			AllFilterStatus: ptr.Of("COMPLETED"),
-		}
-
-		assert.NotNil(t, opts.AllFilterStatus)
-		assert.Equal(t, "COMPLETED", *opts.AllFilterStatus)
-		assert.NotNil(t, opts.AllOlderThan)
-	})
-
-	t.Run("nil AllFilterStatus defaults to terminal filtering", func(t *testing.T) {
-		opts := PurgeOptions{
-			AllOlderThan: ptr.Of(time.Now()),
-		}
-
-		assert.Nil(t, opts.AllFilterStatus)
-	})
-
-	t.Run("AllFilterStatus with various statuses", func(t *testing.T) {
-		statuses := []string{
-			"RUNNING", "COMPLETED", "CONTINUED_AS_NEW",
-			"FAILED", "CANCELED", "TERMINATED",
-			"PENDING", "SUSPENDED",
-		}
-
-		for _, status := range statuses {
-			t.Run(status, func(t *testing.T) {
-				opts := PurgeOptions{
-					AllOlderThan:    ptr.Of(time.Now()),
-					AllFilterStatus: ptr.Of(status),
-				}
-				assert.Equal(t, status, *opts.AllFilterStatus)
-			})
-		}
-	})
-}
-
-func TestPurgeFilterBuildLogic(t *testing.T) {
-	// Tests the filter construction logic that Purge uses internally.
-	// When AllFilterStatus is set, Terminal should be false and Status should
-	// be the provided value. When AllFilterStatus is nil, Terminal should be true.
-
-	t.Run("without AllFilterStatus uses terminal filter", func(t *testing.T) {
-		opts := PurgeOptions{
-			All: true,
-		}
-
-		filter := Filter{Terminal: true}
-		if opts.AllFilterStatus != nil {
-			filter.Terminal = false
-			filter.Status = opts.AllFilterStatus
-		}
-
+func TestBuildPurgeFilter(t *testing.T) {
+	t.Run("nil status uses terminal filter", func(t *testing.T) {
+		filter := BuildPurgeFilter(nil)
 		assert.True(t, filter.Terminal)
 		assert.Nil(t, filter.Status)
 	})
 
-	t.Run("with AllFilterStatus uses status filter", func(t *testing.T) {
-		opts := PurgeOptions{
-			AllOlderThan:    ptr.Of(time.Now()),
-			AllFilterStatus: ptr.Of("FAILED"),
-		}
-
-		filter := Filter{Terminal: true}
-		if opts.AllFilterStatus != nil {
-			filter.Terminal = false
-			filter.Status = opts.AllFilterStatus
-		}
-
+	t.Run("with status uses status filter instead of terminal", func(t *testing.T) {
+		filter := BuildPurgeFilter(ptr.Of("FAILED"))
 		assert.False(t, filter.Terminal)
 		assert.NotNil(t, filter.Status)
 		assert.Equal(t, "FAILED", *filter.Status)
 	})
 
-	t.Run("AllOlderThan filters by created time", func(t *testing.T) {
-		now := time.Now()
-		cutoff := now.Add(-1 * time.Hour)
-		opts := PurgeOptions{
-			AllOlderThan:    &cutoff,
-			AllFilterStatus: ptr.Of("COMPLETED"),
-		}
+	t.Run("with COMPLETED status", func(t *testing.T) {
+		filter := BuildPurgeFilter(ptr.Of("COMPLETED"))
+		assert.False(t, filter.Terminal)
+		assert.Equal(t, "COMPLETED", *filter.Status)
+	})
 
-		// Simulate the filtering logic from Purge
-		list := []*ListOutputWide{
-			{InstanceID: "old-1", Created: now.Add(-2 * time.Hour), RuntimeStatus: "COMPLETED"},
-			{InstanceID: "new-1", Created: now.Add(-30 * time.Minute), RuntimeStatus: "COMPLETED"},
-			{InstanceID: "old-2", Created: now.Add(-3 * time.Hour), RuntimeStatus: "COMPLETED"},
-		}
-
-		var toPurge []string
-		for _, w := range list {
-			if w.Created.Before(*opts.AllOlderThan) {
-				toPurge = append(toPurge, w.InstanceID)
-			}
-		}
-
-		assert.Equal(t, []string{"old-1", "old-2"}, toPurge)
+	t.Run("with RUNNING status", func(t *testing.T) {
+		filter := BuildPurgeFilter(ptr.Of("RUNNING"))
+		assert.False(t, filter.Terminal)
+		assert.Equal(t, "RUNNING", *filter.Status)
 	})
 }

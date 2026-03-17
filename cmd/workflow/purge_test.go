@@ -16,21 +16,13 @@ package workflow
 import (
 	"testing"
 
+	"github.com/dapr/cli/pkg/workflow"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPurgeFilterStatuses(t *testing.T) {
-	expected := []string{
-		"RUNNING",
-		"COMPLETED",
-		"CONTINUED_AS_NEW",
-		"FAILED",
-		"CANCELED",
-		"TERMINATED",
-		"PENDING",
-		"SUSPENDED",
-	}
-	assert.Equal(t, expected, purgeFilterStatuses)
+	assert.Equal(t, workflow.RuntimeStatuses, purgeFilterStatuses)
 }
 
 func TestPurgeCmdFlags(t *testing.T) {
@@ -42,13 +34,10 @@ func TestPurgeCmdFlags(t *testing.T) {
 	})
 
 	t.Run("all-filter-status and all are mutually exclusive", func(t *testing.T) {
-		// The mutual exclusivity is registered via MarkFlagsMutuallyExclusive.
-		// We verify the flag group exists by checking that the command
-		// has both flags and that they are correctly configured.
-		allFlag := PurgeCmd.Flags().Lookup("all")
-		assert.NotNil(t, allFlag)
-		filterFlag := PurgeCmd.Flags().Lookup("all-filter-status")
-		assert.NotNil(t, filterFlag)
+		WorkflowCmd.SetArgs([]string{"purge", "--all", "--all-filter-status", "COMPLETED"})
+		err := WorkflowCmd.Execute()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "if any flags in the group [all-filter-status all] are set none of the others can be")
 	})
 
 	t.Run("all-older-than flag is registered", func(t *testing.T) {

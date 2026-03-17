@@ -89,16 +89,7 @@ var PurgeCmd = &cobra.Command{
 	},
 }
 
-var purgeFilterStatuses = []string{
-	"RUNNING",
-	"COMPLETED",
-	"CONTINUED_AS_NEW",
-	"FAILED",
-	"CANCELED",
-	"TERMINATED",
-	"PENDING",
-	"SUSPENDED",
-}
+var purgeFilterStatuses = workflow.RuntimeStatuses
 
 func init() {
 	PurgeCmd.Flags().StringVar(&flagPurgeOlderThan, "all-older-than", "", "Purge workflow instances older than the specified Go duration or timestamp, e.g., '24h' or '2023-01-02T15:04:05Z'.")
