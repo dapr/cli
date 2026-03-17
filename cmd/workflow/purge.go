@@ -15,6 +15,8 @@ package workflow
 
 import (
 	"errors"
+	"slices"
+	"strings"
 
 	"github.com/dapr/cli/pkg/workflow"
 	"github.com/dapr/kit/signals"
@@ -22,11 +24,12 @@ import (
 )
 
 var (
-	flagPurgeOlderThan string
-	flagPurgeAll       bool
-	flagPurgeConn      *connFlag
-	flagPurgeForce     bool
-	schedulerNamespace string
+	flagPurgeOlderThan    string
+	flagPurgeAll          bool
+	flagPurgeConn         *connFlag
+	flagPurgeForce        bool
+	flagPurgeFilterStatus string
+	schedulerNamespace    string
 )
 
 var PurgeCmd = &cobra.Command{
@@ -41,6 +44,9 @@ var PurgeCmd = &cobra.Command{
 				return errors.New("no arguments are accepted when using purge all flags")
 			}
 		default:
+			if cmd.Flags().Changed("all-filter-status") {
+				return errors.New("--all-filter-status can only be used with --all-older-than")
+			}
 			if len(args) == 0 {
 				return errors.New("one or more workflow instance ID arguments are required when not using purge all flags")
 			}
@@ -75,14 +81,44 @@ var PurgeCmd = &cobra.Command{
 			}
 		}
 
+		if cmd.Flags().Changed("all-filter-status") {
+			opts.AllFilterStatus = &flagPurgeFilterStatus
+		}
+
 		return workflow.Purge(ctx, opts)
 	},
+}
+
+var purgeFilterStatuses = []string{
+	"RUNNING",
+	"COMPLETED",
+	"CONTINUED_AS_NEW",
+	"FAILED",
+	"CANCELED",
+	"TERMINATED",
+	"PENDING",
+	"SUSPENDED",
 }
 
 func init() {
 	PurgeCmd.Flags().StringVar(&flagPurgeOlderThan, "all-older-than", "", "Purge workflow instances older than the specified Go duration or timestamp, e.g., '24h' or '2023-01-02T15:04:05Z'.")
 	PurgeCmd.Flags().BoolVar(&flagPurgeAll, "all", false, "Purge all workflow instances in a terminal state. Use with caution.")
+	PurgeCmd.Flags().StringVar(&flagPurgeFilterStatus, "all-filter-status", "", "Filter purge to only workflow instances with the given runtime status. Must be used with --all-older-than. One of "+strings.Join(purgeFilterStatuses, ", "))
 	PurgeCmd.MarkFlagsMutuallyExclusive("all-older-than", "all")
+	PurgeCmd.MarkFlagsMutuallyExclusive("all-filter-status", "all")
+
+	pre := PurgeCmd.PreRunE
+	PurgeCmd.PreRunE = func(cmd *cobra.Command, args []string) error {
+		if cmd.Flags().Changed("all-filter-status") {
+			if !slices.Contains(purgeFilterStatuses, flagPurgeFilterStatus) {
+				return errors.New("invalid value for --all-filter-status. Supported values are " + strings.Join(purgeFilterStatuses, ", "))
+			}
+		}
+		if pre != nil {
+			return pre(cmd, args)
+		}
+		return nil
+	}
 	PurgeCmd.Flags().BoolVar(&flagPurgeForce, "force", false, "force will force a purge of a workflow, regardless of its current runtime state, or whether an active worker can process it, the backend will attempt to delete it anyway. This necessarily means the purging is executed out side of the workflow state machine, and therefore, can lead to corrupt state or broken workflow execution. Usage of this should _only_ be used when you know the workflow is not being currently processed. It is highly recommended to avoid using this flag unless absolutely necessary.")
 
 	PurgeCmd.Flags().StringVar(&schedulerNamespace, "scheduler-namespace", "dapr-system", "Kubernetes namespace where the scheduler is deployed, only relevant if --kubernetes is set")

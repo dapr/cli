@@ -32,6 +32,7 @@ type PurgeOptions struct {
 	AppID              string
 	InstanceIDs        []string
 	AllOlderThan       *time.Time
+	AllFilterStatus    *string
 	All                bool
 	Force              bool
 
@@ -45,6 +46,14 @@ func Purge(ctx context.Context, opts PurgeOptions) error {
 	if len(opts.InstanceIDs) > 0 {
 		toPurge = opts.InstanceIDs
 	} else {
+		filter := Filter{
+			Terminal: true,
+		}
+		if opts.AllFilterStatus != nil {
+			filter.Terminal = false
+			filter.Status = opts.AllFilterStatus
+		}
+
 		var list []*ListOutputWide
 		var err error
 		list, err = ListWide(ctx, ListOptions{
@@ -53,9 +62,7 @@ func Purge(ctx context.Context, opts PurgeOptions) error {
 			AppID:            opts.AppID,
 			ConnectionString: opts.ConnectionString,
 			TableName:        opts.TableName,
-			Filter: Filter{
-				Terminal: true,
-			},
+			Filter:           filter,
 		})
 		if err != nil {
 			return err
