@@ -43,7 +43,6 @@ func TestStopAppsStartedWithRunTemplate(t *testing.T) {
 			cleanUpLogs()
 		})
 		go ensureAllAppsStartedWithRunTemplate(t)
-		time.Sleep(10 * time.Second)
 		cliPID := getCLIPID(t)
 		// Assert dapr list contains template name
 		assertTemplateListOutput(t, "test_dapr_template")
@@ -58,7 +57,6 @@ func TestStopAppsStartedWithRunTemplate(t *testing.T) {
 			cleanUpLogs()
 		})
 		go ensureAllAppsStartedWithRunTemplate(t)
-		time.Sleep(10 * time.Second)
 		cliPID := getCLIPID(t)
 		output, err := cmdStopWithRunTemplate("../testdata/run-template-files")
 		assert.NoError(t, err, "failed to stop apps started with run template")
@@ -86,7 +84,6 @@ func TestStopAppsStartedWithRunTemplate(t *testing.T) {
 			cleanUpLogs()
 		})
 		go ensureAllAppsStartedWithRunTemplate(t)
-		time.Sleep(10 * time.Second)
 		cliPID := getCLIPID(t)
 		output, err := cmdStopWithAppID("emit-metrics", "processor")
 		assert.NoError(t, err, "failed to stop apps started with run template")
@@ -124,11 +121,18 @@ func tearDownTestSetup(t *testing.T) {
 }
 
 func getCLIPID(t *testing.T) string {
-	output, err := cmdList("json")
-	require.NoError(t, err, "failed to list apps")
-	result := []map[string]interface{}{}
-	err = json.Unmarshal([]byte(output), &result)
-	assert.Equal(t, 2, len(result))
+	var result []map[string]interface{}
+	require.Eventually(t, func() bool {
+		output, err := cmdList("json")
+		if err != nil {
+			return false
+		}
+		result = nil
+		if err := json.Unmarshal([]byte(output), &result); err != nil {
+			return false
+		}
+		return len(result) == 2
+	}, 30*time.Second, time.Second, "expected 2 apps in list")
 	return fmt.Sprintf("%v", result[0]["cliPid"])
 }
 

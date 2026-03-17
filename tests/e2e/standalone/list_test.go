@@ -86,9 +86,13 @@ func TestStandaloneList(t *testing.T) {
 		cmd := exec.Command(daprdPath, "--app-id", "daprd_e2e_list", "--dapr-http-port", "3555", "--dapr-grpc-port", "4555", "--app-port", "0")
 		cmd.Start()
 
-		output, err := cmdList("")
+		// Wait for daprd to register and appear in the list.
+		var output string
+		require.Eventually(t, func() bool {
+			output, err = cmdList("")
+			return err == nil && !strings.Contains(output, "No Dapr instances found")
+		}, 30*time.Second, time.Second, "daprd instance did not appear in list")
 		t.Log(output)
-		require.NoError(t, err, "dapr list failed with daprd instance")
 		listOutputCheck(t, output, false)
 
 		// TODO: remove this condition when `dapr stop` starts working for Windows.
