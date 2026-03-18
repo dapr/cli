@@ -14,6 +14,7 @@ limitations under the License.
 package version
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -222,7 +223,11 @@ func TestGetVersionsGithub(t *testing.T) {
 
 	ln, err := net.Listen("tcp", ":0")
 	require.NoError(t, err)
-	t.Cleanup(func() { s.Shutdown(t.Context()) })
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		s.Shutdown(ctx)
+	})
 	go func() { s.Serve(ln) }()
 	addr := fmt.Sprintf("http://localhost:%d", ln.Addr().(*net.TCPAddr).Port)
 
@@ -331,7 +336,11 @@ entries:
 
 	ln, err := net.Listen("tcp", ":0")
 	require.NoError(t, err)
-	t.Cleanup(func() { s.Shutdown(t.Context()) })
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		s.Shutdown(ctx)
+	})
 	go func() { s.Serve(ln) }()
 	addr := fmt.Sprintf("http://localhost:%d", ln.Addr().(*net.TCPAddr).Port)
 
