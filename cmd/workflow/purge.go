@@ -104,6 +104,9 @@ func init() {
 			if !slices.Contains(purgeFilterStatuses, flagPurgeFilterStatus) {
 				return errors.New("invalid value for --all-filter-status. Supported values are " + strings.Join(purgeFilterStatuses, ", "))
 			}
+			if !slices.Contains(workflow.TerminalStatuses, flagPurgeFilterStatus) && !flagPurgeForce {
+				return errors.New("--force is required when using --all-filter-status with a non-terminal status (" + flagPurgeFilterStatus + ")")
+			}
 		}
 		if pre != nil {
 			return pre(cmd, args)

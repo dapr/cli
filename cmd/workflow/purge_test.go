@@ -1,5 +1,5 @@
 /*
-Copyright 2025 The Dapr Authors
+Copyright 2026 The Dapr Authors
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -43,5 +43,12 @@ func TestPurgeCmdFlags(t *testing.T) {
 	t.Run("all-older-than flag is registered", func(t *testing.T) {
 		f := PurgeCmd.Flags().Lookup("all-older-than")
 		assert.NotNil(t, f)
+	})
+
+	t.Run("non-terminal status without force errors", func(t *testing.T) {
+		WorkflowCmd.SetArgs([]string{"purge", "--all-older-than", "1s", "--all-filter-status", "RUNNING"})
+		err := WorkflowCmd.Execute()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "--force is required when using --all-filter-status with a non-terminal status")
 	})
 }
