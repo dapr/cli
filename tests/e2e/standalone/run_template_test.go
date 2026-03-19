@@ -70,6 +70,24 @@ func waitForPortsFree(t *testing.T, ports ...int) {
 	}, 60*time.Second, time.Second, "ports %v not available in time", ports)
 }
 
+// waitForLogContent polls until the log file matching partialFileName in
+// dirPath contains the expected substring. This is used to wait for slow
+// app startup (e.g. `go run` compilation) before proceeding with the test.
+func waitForLogContent(t *testing.T, dirPath, partialFileName, expected string, timeout time.Duration) {
+	t.Helper()
+	require.Eventually(t, func() bool {
+		fileName, err := lookUpFileFullName(dirPath, partialFileName)
+		if err != nil {
+			return false
+		}
+		contents, err := ioutil.ReadFile(filepath.Join(dirPath, fileName))
+		if err != nil {
+			return false
+		}
+		return strings.Contains(string(contents), expected)
+	}, timeout, time.Second, "log file matching %q in %s did not contain %q within %v", partialFileName, dirPath, expected, timeout)
+}
+
 type AppTestOutput struct {
 	appID                    string
 	appLogContents           []string
@@ -152,6 +170,9 @@ func TestRunWithTemplateFile(t *testing.T) {
 	})
 
 	t.Run("valid template file", func(t *testing.T) {
+		if isSlimMode() {
+			t.Skip("skipping: slim mode has no placement/scheduler so daprd cannot become healthy")
+		}
 		cmdUninstall()
 		ensureDaprInstallation(t)
 
@@ -172,7 +193,9 @@ func TestRunWithTemplateFile(t *testing.T) {
 			outputCh <- output
 		}()
 		waitForDaprHealth(t, 60*time.Second, 3510, 3511)
-		time.Sleep(5 * time.Second)
+		// Wait for the emit-metrics app to finish compiling (go run) and
+		// successfully send at least one metric to the processor app.
+		waitForLogContent(t, "../../apps/emit-metrics/.dapr/logs", "app", "Metrics with ID 1 sent", 60*time.Second)
 		cmdStopWithRunTemplate(runFilePath)
 		var output string
 		select {
@@ -414,6 +437,9 @@ func TestRunWithTemplateFile(t *testing.T) {
 	})
 
 	t.Run("valid template file with app/daprd log destinations", func(t *testing.T) {
+		if isSlimMode() {
+			t.Skip("skipping: slim mode has no placement/scheduler so daprd cannot become healthy")
+		}
 		cmdUninstall()
 		ensureDaprInstallation(t)
 
@@ -433,7 +459,9 @@ func TestRunWithTemplateFile(t *testing.T) {
 			outputCh <- output
 		}()
 		waitForDaprHealth(t, 60*time.Second, 3510, 3511)
-		time.Sleep(5 * time.Second)
+		// Wait for the emit-metrics app to finish compiling (go run) and
+		// successfully send at least one metric to the processor app.
+		waitForLogContent(t, "../../apps/emit-metrics/.dapr/logs", "app", "Metrics with ID 1 sent", 60*time.Second)
 		cmdStopWithRunTemplate(runFilePath)
 		var output string
 		select {

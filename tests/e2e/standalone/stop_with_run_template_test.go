@@ -29,6 +29,10 @@ import (
 )
 
 func TestStopAppsStartedWithRunTemplate(t *testing.T) {
+	if isSlimMode() {
+		t.Skip("skipping: slim mode has no placement/scheduler so template apps cannot start fully")
+	}
+
 	// clean up logs before starting the tests
 	cleanUpLogs()
 
