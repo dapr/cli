@@ -324,9 +324,7 @@ func TestWorkflowPurge(t *testing.T) {
 			"--instance-id=also-sched")
 		require.NoError(t, err)
 
-		output, err = cmdWorkflowTerminate(appID, "also-sched")
-		require.NoError(t, err, output)
-
+		// Wait for scheduler entries to appear while workflow is still running.
 		require.Eventually(t, func() bool {
 			output, err := cmdSchedulerList()
 			if err != nil {
@@ -334,6 +332,9 @@ func TestWorkflowPurge(t *testing.T) {
 			}
 			return len(strings.Split(output, "\n")) > 2
 		}, 30*time.Second, time.Second, "expected scheduler entries to appear")
+
+		output, err = cmdWorkflowTerminate(appID, "also-sched")
+		require.NoError(t, err, output)
 
 		output, err = cmdWorkflowPurge(appID, "also-sched")
 		require.NoError(t, err, output)

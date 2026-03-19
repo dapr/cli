@@ -67,7 +67,7 @@ func waitForPortsFree(t *testing.T, ports ...int) {
 			ln.Close()
 		}
 		return true
-	}, 30*time.Second, time.Second, "ports %v not available in time", ports)
+	}, 60*time.Second, time.Second, "ports %v not available in time", ports)
 }
 
 type AppTestOutput struct {
@@ -493,6 +493,7 @@ func TestRunTemplateFileWithoutDaprInit(t *testing.T) {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
 			cleanUpLogs()
 		})
+		waitForPortsFree(t, 3510, 3511)
 		args := []string{
 			"-f", "../testdata/run-template-files/no_app_command.yaml",
 		}

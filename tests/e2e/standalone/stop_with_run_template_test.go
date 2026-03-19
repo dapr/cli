@@ -42,6 +42,7 @@ func TestStopAppsStartedWithRunTemplate(t *testing.T) {
 		t.Cleanup(func() {
 			cleanUpLogs()
 		})
+		waitForPortsFree(t, 3510, 3511)
 		go ensureAllAppsStartedWithRunTemplate(t)
 		cliPID := getCLIPID(t)
 		// Assert dapr list contains template name
@@ -56,6 +57,7 @@ func TestStopAppsStartedWithRunTemplate(t *testing.T) {
 		t.Cleanup(func() {
 			cleanUpLogs()
 		})
+		waitForPortsFree(t, 3510, 3511)
 		go ensureAllAppsStartedWithRunTemplate(t)
 		cliPID := getCLIPID(t)
 		output, err := cmdStopWithRunTemplate("../testdata/run-template-files")
@@ -68,6 +70,7 @@ func TestStopAppsStartedWithRunTemplate(t *testing.T) {
 		t.Cleanup(func() {
 			cleanUpLogs()
 		})
+		waitForPortsFree(t, 3510, 3511)
 		go ensureAllAppsStartedWithRunTemplate(t)
 		time.Sleep(10 * time.Second)
 		output, err := cmdStopWithRunTemplate("../testdata/invalid-dir")
@@ -83,6 +86,7 @@ func TestStopAppsStartedWithRunTemplate(t *testing.T) {
 		t.Cleanup(func() {
 			cleanUpLogs()
 		})
+		waitForPortsFree(t, 3510, 3511)
 		go ensureAllAppsStartedWithRunTemplate(t)
 		cliPID := getCLIPID(t)
 		output, err := cmdStopWithAppID("emit-metrics", "processor")
