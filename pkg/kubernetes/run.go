@@ -120,28 +120,28 @@ func Run(runFilePath string, config runfileconfig.RunFileConfig) (bool, error) {
 	print.InfoStatusEvent(os.Stdout, "This is a preview feature and subject to change in future releases.")
 
 	for _, app := range config.Apps {
-		print.StatusEvent(os.Stdout, print.LogInfo, "Validating config and starting app %q", app.RunConfig.AppID)
+		print.StatusEvent(os.Stdout, print.LogInfo, "Validating config and starting app %q", app.AppID)
 		// Set defaults if zero value provided in config yaml.
-		app.RunConfig.SetDefaultFromSchema()
+		app.SetDefaultFromSchema()
 
 		// Validate validates the configs for k8s and modifies appId etc.
-		err := app.RunConfig.ValidateK8s()
+		err := app.ValidateK8s()
 		if err != nil {
-			print.FailureStatusEvent(os.Stderr, "Error validating run config for app %q present in %s: %s", app.RunConfig.AppID, runFilePath, err.Error())
+			print.FailureStatusEvent(os.Stderr, "Error validating run config for app %q present in %s: %s", app.AppID, runFilePath, err.Error())
 			exitWithError = true
 			break
 		}
 
 		var svc serviceConfig
 		// create default service config.
-		if app.ContainerConfiguration.CreateService {
+		if app.CreateService {
 			svc = createServiceConfig(app)
 		}
 
 		// create default deployment config.
 		dep := createDeploymentConfig(daprClient, app)
 		if err != nil {
-			print.FailureStatusEvent(os.Stderr, "Error creating deployment file for app %q present in %s: %s", app.RunConfig.AppID, runFilePath, err.Error())
+			print.FailureStatusEvent(os.Stderr, "Error creating deployment file for app %q present in %s: %s", app.AppID, runFilePath, err.Error())
 			exitWithError = true
 			break
 		}
@@ -245,7 +245,7 @@ func createServiceConfig(app runfileconfig.App) serviceConfig {
 		Kind:       serviceKind,
 		APIVersion: serviceAPIVersion,
 		Metadata: map[string]any{
-			nameKey: app.RunConfig.AppID,
+			nameKey: app.AppID,
 			labelsKey: map[string]string{
 				appLabelKey: app.AppID,
 			},
@@ -289,7 +289,7 @@ func createDeploymentConfig(client versioned.Interface, app runfileconfig.App) d
 				Labels: map[string]string{
 					appLabelKey: app.AppID,
 				},
-				Annotations: app.RunConfig.GetAnnotations(),
+				Annotations: app.GetAnnotations(),
 			},
 			Spec: corev1.PodSpec{
 				Containers: []corev1.Container{
@@ -304,11 +304,11 @@ func createDeploymentConfig(client versioned.Interface, app runfileconfig.App) d
 		},
 	}
 	// Set dapr.io/enable annotation.
-	dep.Spec.Template.ObjectMeta.Annotations[daprEnableAnnotationKey] = "true"
+	dep.Spec.Template.Annotations[daprEnableAnnotationKey] = "true"
 
 	if ok, _ := isConfigurationPresent(client, corev1.NamespaceDefault, daprConfigAnnotationValue); ok {
 		// Set dapr.io/config annotation only if present.
-		dep.Spec.Template.ObjectMeta.Annotations[daprConfigAnnotationKey] = daprConfigAnnotationValue
+		dep.Spec.Template.Annotations[daprConfigAnnotationKey] = daprConfigAnnotationValue
 	} else {
 		print.WarningStatusEvent(os.Stderr, "Dapr configuration %q not found in namespace %q. Skipping annotation %q", daprConfigAnnotationValue, corev1.NamespaceDefault, daprConfigAnnotationKey)
 	}
