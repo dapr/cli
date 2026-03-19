@@ -93,7 +93,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 	t.Run("invalid template file wrong emit metrics app run", func(t *testing.T) {
 		runFilePath := "../testdata/run-template-files/wrong_emit_metrics_app_dapr.yaml"
 		t.Cleanup(func() {
-			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
+			cmdStopWithRunTemplate(runFilePath)
 			cleanUpLogs()
 		})
 		args := []string{
@@ -118,7 +118,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 
 		// Deterministic output for template file, so we can assert line by line
 		lines := strings.Split(output, "\n")
-		assert.GreaterOrEqual(t, len(lines), 4, "expected at least 4 lines in output of starting two apps")
+		require.GreaterOrEqual(t, len(lines), 6, "expected at least 6 lines in output of starting two apps")
 		assert.Contains(t, lines[1], "Started Dapr with app id \"processor\". HTTP Port: 3510.")
 		assert.Contains(t, lines[2], "Writing log files to directory")
 		assert.Contains(t, lines[2], "tests/apps/processor/.dapr/logs")
@@ -157,7 +157,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 
 		runFilePath := "../testdata/run-template-files/dapr.yaml"
 		t.Cleanup(func() {
-			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
+			cmdStopWithRunTemplate(runFilePath)
 			cleanUpLogs()
 		})
 		args := []string{
@@ -183,7 +183,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 
 		// Deterministic output for template file, so we can assert line by line
 		lines := strings.Split(output, "\n")
-		assert.GreaterOrEqual(t, len(lines), 6, "expected at least 6 lines in output of starting two apps")
+		require.GreaterOrEqual(t, len(lines), 6, "expected at least 6 lines in output of starting two apps")
 		assert.Contains(t, lines[0], "Validating config and starting app \"processor\"")
 		assert.Contains(t, lines[1], "Started Dapr with app id \"processor\". HTTP Port: 3510.")
 		assert.Contains(t, lines[2], "Writing log files to directory")
@@ -229,7 +229,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		ensureDaprInstallation(t)
 
 		t.Cleanup(func() {
-			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
+			cmdStopWithRunTemplate(runFilePath)
 			cleanUpLogs()
 		})
 		args := []string{
@@ -253,7 +253,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 
 		// Deterministic output for template file, so we can assert line by line
 		lines := strings.Split(output, "\n")
-		assert.GreaterOrEqual(t, len(lines), 6, "expected at least 6 lines in output of starting two apps")
+		require.GreaterOrEqual(t, len(lines), 6, "expected at least 6 lines in output of starting two apps")
 		assert.Contains(t, lines[1], "Started Dapr with app id \"processor\". HTTP Port: 3510.")
 		assert.Contains(t, lines[2], "Writing log files to directory")
 		assert.Contains(t, lines[2], "tests/apps/processor/.dapr/logs")
@@ -293,7 +293,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 
 		runFilePath := "../testdata/run-template-files/no_app_command.yaml"
 		t.Cleanup(func() {
-			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
+			cmdStopWithRunTemplate(runFilePath)
 			cleanUpLogs()
 		})
 		args := []string{
@@ -317,7 +317,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 
 		// Deterministic output for template file, so we can assert line by line
 		lines := strings.Split(output, "\n")
-		assert.GreaterOrEqual(t, len(lines), 7, "expected at least 7 lines in output of starting two apps with one app not having a command")
+		require.GreaterOrEqual(t, len(lines), 7, "expected at least 7 lines in output of starting two apps with one app not having a command")
 		assert.Contains(t, lines[1], "Started Dapr with app id \"processor\". HTTP Port: 3510.")
 		assert.Contains(t, lines[2], "Writing log files to directory")
 		assert.Contains(t, lines[2], "tests/apps/processor/.dapr/logs")
@@ -358,7 +358,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 
 		runFilePath := "../testdata/run-template-files/empty_app_command.yaml"
 		t.Cleanup(func() {
-			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
+			cmdStopWithRunTemplate(runFilePath)
 			cleanUpLogs()
 		})
 		args := []string{
@@ -382,7 +382,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 
 		// Deterministic output for template file, so we can assert line by line
 		lines := strings.Split(output, "\n")
-		assert.GreaterOrEqual(t, len(lines), 5, "expected at least 5 lines in output of starting two apps with last app having an empty command")
+		require.GreaterOrEqual(t, len(lines), 5, "expected at least 5 lines in output of starting two apps with last app having an empty command")
 		assert.Contains(t, lines[1], "Started Dapr with app id \"processor\". HTTP Port: 3510.")
 		assert.Contains(t, lines[2], "Writing log files to directory")
 		assert.Contains(t, lines[2], "tests/apps/processor/.dapr/logs")
@@ -419,7 +419,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 
 		runFilePath := "../testdata/run-template-files/app_output_to_file_and_console.yaml"
 		t.Cleanup(func() {
-			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
+			cmdStopWithRunTemplate(runFilePath)
 			cleanUpLogs()
 		})
 		args := []string{
