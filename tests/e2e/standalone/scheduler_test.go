@@ -525,7 +525,7 @@ func TestSchedulerDeleteAll(t *testing.T) {
 
 	// Stop any existing instance before starting to ensure port is free
 	cmdStopWithRunTemplate(runFilePath)
-	time.Sleep(time.Millisecond * 500)
+	waitForPortsFree(t, 3510)
 
 	args := []string{"-f", runFilePath}
 
@@ -541,21 +541,28 @@ func TestSchedulerDeleteAll(t *testing.T) {
 		}
 	}()
 
+	// Wait for all 8 scheduler entries to appear (8 data + header +
+	// trailing newline = 10 lines): 2 app jobs, 2 actor reminders,
+	// 4 workflow entries. Using a higher threshold prevents deleting
+	// before slow entries (e.g. app jobs via `go run`) have registered.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		output, err := cmdSchedulerList()
 		require.NoError(t, err)
-		assert.GreaterOrEqual(c, len(strings.Split(output, "\n")), 7)
-	}, time.Second*30, time.Millisecond*10)
+		assert.GreaterOrEqual(c, len(strings.Split(output, "\n")), 10)
+	}, 60*time.Second, time.Second)
 
 	_, err := cmdSchedulerDeleteAll("app/test-scheduler")
 	require.NoError(t, err)
-	output, err := cmdSchedulerList()
-	require.NoError(t, err)
-	assert.Len(t, strings.Split(output, "\n"), 8)
+
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		output, err := cmdSchedulerList()
+		require.NoError(t, err)
+		assert.Len(c, strings.Split(output, "\n"), 8)
+	}, 10*time.Second, 500*time.Millisecond)
 
 	_, err = cmdSchedulerDeleteAll("workflow/test-scheduler/abc1")
 	require.NoError(t, err)
-	output, err = cmdSchedulerList()
+	output, err := cmdSchedulerList()
 	require.NoError(t, err)
 	assert.Len(t, strings.Split(output, "\n"), 7)
 

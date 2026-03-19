@@ -19,7 +19,7 @@ package standalone_test
 
 import (
 	"encoding/json"
-	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -129,19 +129,29 @@ func tearDownTestSetup(t *testing.T) {
 }
 
 func getCLIPID(t *testing.T) string {
-	var result []map[string]interface{}
+	var pid string
 	require.Eventually(t, func() bool {
 		output, err := cmdList("json")
 		if err != nil {
 			return false
 		}
-		result = nil
+		var result []map[string]interface{}
 		if err := json.Unmarshal([]byte(output), &result); err != nil {
 			return false
 		}
-		return len(result) == 2
-	}, 30*time.Second, time.Second, "expected 2 apps in list")
-	return fmt.Sprintf("%v", result[0]["cliPid"])
+		if len(result) != 2 {
+			return false
+		}
+		// cliPid is a JSON number unmarshaled as float64; wait until it
+		// is a positive value so verifyCLIPIDNotExist can match reliably.
+		v, _ := result[0]["cliPid"].(float64)
+		if v <= 0 {
+			return false
+		}
+		pid = strconv.Itoa(int(v))
+		return true
+	}, 30*time.Second, time.Second, "expected 2 apps with valid cliPid in list")
+	return pid
 }
 
 func verifyCLIPIDNotExist(t *testing.T, pid string) {
