@@ -256,10 +256,8 @@ func deleteSchedulerPods(namespace string, currentVersion *semver.Version, targe
 	// wait for at least one pod of the target version to be in the list before deleting the rest
 	// check the label app.kubernetes.io/version to determine the version of the pod
 	foundTargetVersion := false
-	for {
-		if foundTargetVersion {
-			break
-		}
+	for !foundTargetVersion {
+
 		k8sClient, err := Client()
 		if err != nil {
 			return err
