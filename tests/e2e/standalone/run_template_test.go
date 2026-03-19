@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"net/http"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -29,6 +30,28 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+var httpClient = &http.Client{Timeout: 500 * time.Millisecond}
+
+// waitForDaprHealth polls the Dapr HTTP healthz endpoints until all
+// sidecars report healthy. This confirms both the sidecar and its app
+// are running, independent of log output timing.
+func waitForDaprHealth(t *testing.T, timeout time.Duration, httpPorts ...int) {
+	t.Helper()
+	require.Eventually(t, func() bool {
+		for _, port := range httpPorts {
+			resp, err := httpClient.Get(fmt.Sprintf("http://localhost:%d/v1.0/healthz", port))
+			if err != nil {
+				return false
+			}
+			resp.Body.Close()
+			if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+				return false
+			}
+		}
+		return true
+	}, timeout, 500*time.Millisecond, "dapr sidecars on ports %v not healthy within %v", httpPorts, timeout)
+}
 
 // waitForPortsFree polls until all given ports are available for binding.
 // This prevents port contention between sequential subtests that use
@@ -148,7 +171,8 @@ func TestRunWithTemplateFile(t *testing.T) {
 			t.Logf("%s", output)
 			outputCh <- output
 		}()
-		time.Sleep(10 * time.Second)
+		waitForDaprHealth(t, 60*time.Second, 3510, 3511)
+		time.Sleep(5 * time.Second)
 		cmdStopWithRunTemplate(runFilePath)
 		var output string
 		select {
@@ -408,7 +432,8 @@ func TestRunWithTemplateFile(t *testing.T) {
 			t.Logf("%s", output)
 			outputCh <- output
 		}()
-		time.Sleep(10 * time.Second)
+		waitForDaprHealth(t, 60*time.Second, 3510, 3511)
+		time.Sleep(5 * time.Second)
 		cmdStopWithRunTemplate(runFilePath)
 		var output string
 		select {

@@ -327,16 +327,24 @@ func TestWorkflowPurge(t *testing.T) {
 		output, err = cmdWorkflowTerminate(appID, "also-sched")
 		require.NoError(t, err, output)
 
-		output, err = cmdSchedulerList()
-		require.NoError(t, err)
-		assert.Greater(t, len(strings.Split(output, "\n")), 2)
+		require.Eventually(t, func() bool {
+			output, err := cmdSchedulerList()
+			if err != nil {
+				return false
+			}
+			return len(strings.Split(output, "\n")) > 2
+		}, 30*time.Second, time.Second, "expected scheduler entries to appear")
 
 		output, err = cmdWorkflowPurge(appID, "also-sched")
 		require.NoError(t, err, output)
 
-		output, err = cmdSchedulerList()
-		require.NoError(t, err)
-		assert.Len(t, strings.Split(output, "\n"), 2)
+		require.Eventually(t, func() bool {
+			output, err := cmdSchedulerList()
+			if err != nil {
+				return false
+			}
+			return len(strings.Split(output, "\n")) == 2
+		}, 30*time.Second, time.Second, "expected scheduler entries to be purged")
 	})
 }
 

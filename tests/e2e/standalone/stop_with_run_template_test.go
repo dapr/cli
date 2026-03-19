@@ -148,17 +148,20 @@ func verifyCLIPIDNotExist(t *testing.T, pid string) {
 }
 
 func assertTemplateListOutput(t *testing.T, name string) {
-	output, err := cmdList("json")
-	t.Log(output)
-	require.NoError(t, err, "dapr list failed")
-	var result []map[string]interface{}
-
-	err = json.Unmarshal([]byte(output), &result)
-
-	assert.NoError(t, err, "output was not valid JSON")
-
-	assert.Len(t, result, 2, "expected two apps to be running")
-	assert.Equal(t, name, result[0]["runTemplateName"], "expected run template name to be %s", name)
-	assert.NotEmpty(t, result[0]["appLogPath"], "expected appLogPath to be non-empty")
-	assert.NotEmpty(t, result[0]["daprdLogPath"], "expected daprdLogPath to be non-empty")
+	require.Eventually(t, func() bool {
+		output, err := cmdList("json")
+		if err != nil {
+			return false
+		}
+		var result []map[string]interface{}
+		if err := json.Unmarshal([]byte(output), &result); err != nil {
+			return false
+		}
+		if len(result) != 2 {
+			return false
+		}
+		return result[0]["runTemplateName"] == name &&
+			result[0]["appLogPath"] != nil && result[0]["appLogPath"] != "" &&
+			result[0]["daprdLogPath"] != nil && result[0]["daprdLogPath"] != ""
+	}, 30*time.Second, time.Second, "expected 2 apps with template name %q and non-empty log paths", name)
 }
