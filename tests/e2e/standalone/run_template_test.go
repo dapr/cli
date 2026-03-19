@@ -18,6 +18,7 @@ limitations under the License.
 package standalone_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -51,6 +52,39 @@ func waitForDaprHealth(t *testing.T, timeout time.Duration, httpPorts ...int) {
 		}
 		return true
 	}, timeout, 500*time.Millisecond, "dapr sidecars on ports %v not healthy within %v", httpPorts, timeout)
+}
+
+// waitForAppHealthy polls dapr list to discover the HTTP port for the
+// given appID, then health-checks it. Use this when the HTTP port is
+// auto-assigned and not known in advance.
+func waitForAppHealthy(t *testing.T, timeout time.Duration, appID string) {
+	t.Helper()
+	require.Eventually(t, func() bool {
+		output, err := cmdList("json")
+		if err != nil {
+			return false
+		}
+		var result []map[string]interface{}
+		if err := json.Unmarshal([]byte(output), &result); err != nil {
+			return false
+		}
+		for _, entry := range result {
+			if entry["appId"] != appID {
+				continue
+			}
+			httpPort, _ := entry["httpPort"].(float64)
+			if httpPort <= 0 {
+				return false
+			}
+			resp, err := httpClient.Get(fmt.Sprintf("http://localhost:%d/v1.0/healthz", int(httpPort)))
+			if err != nil {
+				return false
+			}
+			resp.Body.Close()
+			return resp.StatusCode >= 200 && resp.StatusCode < 300
+		}
+		return false
+	}, timeout, time.Second, "dapr app %q not healthy within %v", appID, timeout)
 }
 
 // waitForPortsFree polls until all given ports are available for binding.

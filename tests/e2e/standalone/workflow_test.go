@@ -57,7 +57,7 @@ func TestWorkflowList(t *testing.T) {
 		t.Log(o)
 	}()
 
-	waitForDaprHealth(t, 60*time.Second, 3510)
+	waitForAppHealthy(t, 60*time.Second, "test-workflow")
 	output, err := cmdWorkflowList(appID, redisConnString)
 	require.NoError(t, err)
 	assert.Equal(t, `❌  No workflow found in namespace "default" for app ID "test-workflow"
@@ -115,7 +115,7 @@ func TestWorkflowRaiseEvent(t *testing.T) {
 		t.Log(o)
 	}()
 
-	waitForDaprHealth(t, 60*time.Second, 3510)
+	waitForAppHealthy(t, 60*time.Second, "test-workflow")
 	output, err := cmdWorkflowRun(appID, "EventWorkflow", "--instance-id=foo")
 	require.NoError(t, err, output)
 
@@ -197,7 +197,7 @@ func TestWorkflowReRun(t *testing.T) {
 		t.Log(o)
 	}()
 
-	waitForDaprHealth(t, 60*time.Second, 3510)
+	waitForAppHealthy(t, 60*time.Second, "test-workflow")
 
 	output, err := cmdWorkflowRun(appID, "SimpleWorkflow", "--instance-id=foo")
 	require.NoError(t, err, output)
