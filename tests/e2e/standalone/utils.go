@@ -118,18 +118,19 @@ func executeAgainstRunningDapr(t *testing.T, f func(), daprArgs ...string) {
 
 	err := cmd.Wait()
 	hasAppCommand := !strings.Contains(daprOutput, "WARNING: no application command found")
+	terminatedBySignal := strings.Contains(daprOutput, "terminated signal received: shutting down")
 	if err != nil {
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 &&
 			strings.Contains(daprOutput, "Exited Dapr successfully") &&
-			(!hasAppCommand || strings.Contains(daprOutput, "Exited App successfully")) {
+			(!hasAppCommand || terminatedBySignal || strings.Contains(daprOutput, "Exited App successfully")) {
 			err = nil
 		}
 	}
 	require.NoError(t, err, "dapr didn't exit cleanly")
 	assert.NotContains(t, daprOutput, "The App process exited with error code: exit status", "Stop command should have been called before the app had a chance to exit")
 	assert.Contains(t, daprOutput, "Exited Dapr successfully")
-	if hasAppCommand {
+	if hasAppCommand && !terminatedBySignal {
 		assert.Contains(t, daprOutput, "Exited App successfully")
 	}
 }

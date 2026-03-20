@@ -51,12 +51,13 @@ func TestWorkflowList(t *testing.T) {
 	})
 	args := []string{"-f", runFilePath}
 
+	waitForPortsFree(t, 3510)
 	go func() {
 		o, _ := cmdRun("", args...)
 		t.Log(o)
 	}()
 
-	time.Sleep(time.Second * 5)
+	waitForAppHealthy(t, 60*time.Second, "test-workflow")
 	output, err := cmdWorkflowList(appID, redisConnString)
 	require.NoError(t, err)
 	assert.Equal(t, `❌  No workflow found in namespace "default" for app ID "test-workflow"
@@ -108,12 +109,13 @@ func TestWorkflowRaiseEvent(t *testing.T) {
 	})
 	args := []string{"-f", runFilePath}
 
+	waitForPortsFree(t, 3510)
 	go func() {
 		o, _ := cmdRun("", args...)
 		t.Log(o)
 	}()
 
-	time.Sleep(time.Second * 5)
+	waitForAppHealthy(t, 60*time.Second, "test-workflow")
 	output, err := cmdWorkflowRun(appID, "EventWorkflow", "--instance-id=foo")
 	require.NoError(t, err, output)
 
@@ -189,12 +191,13 @@ func TestWorkflowReRun(t *testing.T) {
 	})
 	args := []string{"-f", runFilePath}
 
+	waitForPortsFree(t, 3510)
 	go func() {
 		o, _ := cmdRun("", args...)
 		t.Log(o)
 	}()
 
-	time.Sleep(time.Second * 5)
+	waitForAppHealthy(t, 60*time.Second, "test-workflow")
 
 	output, err := cmdWorkflowRun(appID, "SimpleWorkflow", "--instance-id=foo")
 	require.NoError(t, err, output)
@@ -324,19 +327,28 @@ func TestWorkflowPurge(t *testing.T) {
 			"--instance-id=also-sched")
 		require.NoError(t, err)
 
+		// Wait for scheduler entries to appear while workflow is still running.
+		require.Eventually(t, func() bool {
+			output, err := cmdSchedulerList()
+			if err != nil {
+				return false
+			}
+			return len(strings.Split(output, "\n")) > 2
+		}, 30*time.Second, time.Second, "expected scheduler entries to appear")
+
 		output, err = cmdWorkflowTerminate(appID, "also-sched")
 		require.NoError(t, err, output)
-
-		output, err = cmdSchedulerList()
-		require.NoError(t, err)
-		assert.Greater(t, len(strings.Split(output, "\n")), 2)
 
 		output, err = cmdWorkflowPurge(appID, "also-sched")
 		require.NoError(t, err, output)
 
-		output, err = cmdSchedulerList()
-		require.NoError(t, err)
-		assert.Len(t, strings.Split(output, "\n"), 2)
+		require.Eventually(t, func() bool {
+			output, err := cmdSchedulerList()
+			if err != nil {
+				return false
+			}
+			return len(strings.Split(output, "\n")) == 2
+		}, 30*time.Second, time.Second, "expected scheduler entries to be purged")
 	})
 }
 

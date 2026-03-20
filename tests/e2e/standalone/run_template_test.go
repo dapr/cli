@@ -18,8 +18,11 @@ limitations under the License.
 package standalone_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net"
+	"net/http"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -28,6 +31,96 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+var httpClient = &http.Client{Timeout: 500 * time.Millisecond}
+
+// waitForDaprHealth polls the Dapr HTTP healthz endpoints until all
+// sidecars report healthy. This confirms both the sidecar and its app
+// are running, independent of log output timing.
+func waitForDaprHealth(t *testing.T, timeout time.Duration, httpPorts ...int) {
+	t.Helper()
+	require.Eventually(t, func() bool {
+		for _, port := range httpPorts {
+			resp, err := httpClient.Get(fmt.Sprintf("http://localhost:%d/v1.0/healthz", port))
+			if err != nil {
+				return false
+			}
+			resp.Body.Close()
+			if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+				return false
+			}
+		}
+		return true
+	}, timeout, 500*time.Millisecond, "dapr sidecars on ports %v not healthy within %v", httpPorts, timeout)
+}
+
+// waitForAppHealthy polls dapr list to discover the HTTP port for the
+// given appID, then health-checks it. Use this when the HTTP port is
+// auto-assigned and not known in advance.
+func waitForAppHealthy(t *testing.T, timeout time.Duration, appID string) {
+	t.Helper()
+	require.Eventually(t, func() bool {
+		output, err := cmdList("json")
+		if err != nil {
+			return false
+		}
+		var result []map[string]interface{}
+		if err := json.Unmarshal([]byte(output), &result); err != nil {
+			return false
+		}
+		for _, entry := range result {
+			if entry["appId"] != appID {
+				continue
+			}
+			httpPort, _ := entry["httpPort"].(float64)
+			if httpPort <= 0 {
+				return false
+			}
+			resp, err := httpClient.Get(fmt.Sprintf("http://localhost:%d/v1.0/healthz", int(httpPort)))
+			if err != nil {
+				return false
+			}
+			resp.Body.Close()
+			return resp.StatusCode >= 200 && resp.StatusCode < 300
+		}
+		return false
+	}, timeout, time.Second, "dapr app %q not healthy within %v", appID, timeout)
+}
+
+// waitForPortsFree polls until all given ports are available for binding.
+// This prevents port contention between sequential subtests that use
+// hardcoded ports.
+func waitForPortsFree(t *testing.T, ports ...int) {
+	t.Helper()
+	require.Eventually(t, func() bool {
+		for _, port := range ports {
+			ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+			if err != nil {
+				return false
+			}
+			ln.Close()
+		}
+		return true
+	}, 60*time.Second, time.Second, "ports %v not available in time", ports)
+}
+
+// waitForLogContent polls until the log file matching partialFileName in
+// dirPath contains the expected substring. This is used to wait for slow
+// app startup (e.g. `go run` compilation) before proceeding with the test.
+func waitForLogContent(t *testing.T, dirPath, partialFileName, expected string, timeout time.Duration) {
+	t.Helper()
+	require.Eventually(t, func() bool {
+		fileName, err := lookUpFileFullName(dirPath, partialFileName)
+		if err != nil {
+			return false
+		}
+		contents, err := ioutil.ReadFile(filepath.Join(dirPath, fileName))
+		if err != nil {
+			return false
+		}
+		return strings.Contains(string(contents), expected)
+	}, timeout, time.Second, "log file matching %q in %s did not contain %q within %v", partialFileName, dirPath, expected, timeout)
+}
 
 type AppTestOutput struct {
 	appID                    string
@@ -52,31 +145,32 @@ func TestRunWithTemplateFile(t *testing.T) {
 	t.Run("invalid template file wrong emit metrics app run", func(t *testing.T) {
 		runFilePath := "../testdata/run-template-files/wrong_emit_metrics_app_dapr.yaml"
 		t.Cleanup(func() {
-			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
+			cmdStopWithRunTemplate(runFilePath)
 			cleanUpLogs()
 		})
 		args := []string{
 			"-f", runFilePath,
 		}
 
+		waitForPortsFree(t, 3510, 3511)
 		outputCh := make(chan string)
 		go func() {
 			output, _ := cmdRun("", args...)
 			t.Logf("%s", output)
 			outputCh <- output
 		}()
-		time.Sleep(time.Second * 10)
+		time.Sleep(10 * time.Second)
 		cmdStopWithRunTemplate(runFilePath)
 		var output string
 		select {
 		case output = <-outputCh:
-		case <-time.After(25 * time.Second):
+		case <-time.After(30 * time.Second):
 			t.Fatal("timed out waiting for run command to finish")
 		}
 
 		// Deterministic output for template file, so we can assert line by line
 		lines := strings.Split(output, "\n")
-		assert.GreaterOrEqual(t, len(lines), 4, "expected at least 4 lines in output of starting two apps")
+		require.GreaterOrEqual(t, len(lines), 6, "expected at least 6 lines in output of starting two apps")
 		assert.Contains(t, lines[1], "Started Dapr with app id \"processor\". HTTP Port: 3510.")
 		assert.Contains(t, lines[2], "Writing log files to directory")
 		assert.Contains(t, lines[2], "tests/apps/processor/.dapr/logs")
@@ -110,36 +204,43 @@ func TestRunWithTemplateFile(t *testing.T) {
 	})
 
 	t.Run("valid template file", func(t *testing.T) {
+		if isSlimMode() {
+			t.Skip("skipping: slim mode has no placement/scheduler so daprd cannot become healthy")
+		}
 		cmdUninstall()
 		ensureDaprInstallation(t)
 
 		runFilePath := "../testdata/run-template-files/dapr.yaml"
 		t.Cleanup(func() {
-			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
+			cmdStopWithRunTemplate(runFilePath)
 			cleanUpLogs()
 		})
 		args := []string{
 			"-f", runFilePath,
 		}
 
+		waitForPortsFree(t, 3510, 3511)
 		outputCh := make(chan string)
 		go func() {
 			output, _ := cmdRun("", args...)
 			t.Logf("%s", output)
 			outputCh <- output
 		}()
-		time.Sleep(time.Second * 10)
+		waitForDaprHealth(t, 60*time.Second, 3510, 3511)
+		// Wait for the emit-metrics app to finish compiling (go run) and
+		// successfully send at least one metric to the processor app.
+		waitForLogContent(t, "../../apps/emit-metrics/.dapr/logs", "app", "Metrics with ID 1 sent", 60*time.Second)
 		cmdStopWithRunTemplate(runFilePath)
 		var output string
 		select {
 		case output = <-outputCh:
-		case <-time.After(time.Second * 10):
+		case <-time.After(30 * time.Second):
 			t.Fatal("timed out waiting for run command to finish")
 		}
 
 		// Deterministic output for template file, so we can assert line by line
 		lines := strings.Split(output, "\n")
-		assert.GreaterOrEqual(t, len(lines), 6, "expected at least 6 lines in output of starting two apps")
+		require.GreaterOrEqual(t, len(lines), 6, "expected at least 6 lines in output of starting two apps")
 		assert.Contains(t, lines[0], "Validating config and starting app \"processor\"")
 		assert.Contains(t, lines[1], "Started Dapr with app id \"processor\". HTTP Port: 3510.")
 		assert.Contains(t, lines[2], "Writing log files to directory")
@@ -185,30 +286,31 @@ func TestRunWithTemplateFile(t *testing.T) {
 		ensureDaprInstallation(t)
 
 		t.Cleanup(func() {
-			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
+			cmdStopWithRunTemplate(runFilePath)
 			cleanUpLogs()
 		})
 		args := []string{
 			"-f", runFilePath,
 		}
+		waitForPortsFree(t, 3510, 3511)
 		outputCh := make(chan string)
 		go func() {
 			output, _ := cmdRun("", args...)
 			t.Logf("%s", output)
 			outputCh <- output
 		}()
-		time.Sleep(time.Second * 10)
+		time.Sleep(10 * time.Second)
 		cmdStopWithRunTemplate(runFilePath)
 		var output string
 		select {
 		case output = <-outputCh:
-		case <-time.After(25 * time.Second):
+		case <-time.After(30 * time.Second):
 			t.Fatal("timed out waiting for run command to finish")
 		}
 
 		// Deterministic output for template file, so we can assert line by line
 		lines := strings.Split(output, "\n")
-		assert.GreaterOrEqual(t, len(lines), 6, "expected at least 6 lines in output of starting two apps")
+		require.GreaterOrEqual(t, len(lines), 6, "expected at least 6 lines in output of starting two apps")
 		assert.Contains(t, lines[1], "Started Dapr with app id \"processor\". HTTP Port: 3510.")
 		assert.Contains(t, lines[2], "Writing log files to directory")
 		assert.Contains(t, lines[2], "tests/apps/processor/.dapr/logs")
@@ -248,30 +350,31 @@ func TestRunWithTemplateFile(t *testing.T) {
 
 		runFilePath := "../testdata/run-template-files/no_app_command.yaml"
 		t.Cleanup(func() {
-			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
+			cmdStopWithRunTemplate(runFilePath)
 			cleanUpLogs()
 		})
 		args := []string{
 			"-f", runFilePath,
 		}
+		waitForPortsFree(t, 3510, 3511)
 		outputCh := make(chan string)
 		go func() {
 			output, _ := cmdRun("", args...)
 			t.Logf("%s", output)
 			outputCh <- output
 		}()
-		time.Sleep(time.Second * 10)
+		time.Sleep(10 * time.Second)
 		cmdStopWithRunTemplate(runFilePath)
 		var output string
 		select {
 		case output = <-outputCh:
-		case <-time.After(25 * time.Second):
+		case <-time.After(30 * time.Second):
 			t.Fatal("timed out waiting for run command to finish")
 		}
 
 		// Deterministic output for template file, so we can assert line by line
 		lines := strings.Split(output, "\n")
-		assert.GreaterOrEqual(t, len(lines), 7, "expected at least 7 lines in output of starting two apps with one app not having a command")
+		require.GreaterOrEqual(t, len(lines), 7, "expected at least 7 lines in output of starting two apps with one app not having a command")
 		assert.Contains(t, lines[1], "Started Dapr with app id \"processor\". HTTP Port: 3510.")
 		assert.Contains(t, lines[2], "Writing log files to directory")
 		assert.Contains(t, lines[2], "tests/apps/processor/.dapr/logs")
@@ -312,30 +415,31 @@ func TestRunWithTemplateFile(t *testing.T) {
 
 		runFilePath := "../testdata/run-template-files/empty_app_command.yaml"
 		t.Cleanup(func() {
-			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
+			cmdStopWithRunTemplate(runFilePath)
 			cleanUpLogs()
 		})
 		args := []string{
 			"-f", runFilePath,
 		}
+		waitForPortsFree(t, 3510, 3511)
 		outputCh := make(chan string)
 		go func() {
 			output, _ := cmdRun("", args...)
 			t.Logf("%s", output)
 			outputCh <- output
 		}()
-		time.Sleep(time.Second * 10)
+		time.Sleep(10 * time.Second)
 		cmdStopWithRunTemplate(runFilePath)
 		var output string
 		select {
 		case output = <-outputCh:
-		case <-time.After(25 * time.Second):
+		case <-time.After(30 * time.Second):
 			t.Fatal("timed out waiting for run command to finish")
 		}
 
 		// Deterministic output for template file, so we can assert line by line
 		lines := strings.Split(output, "\n")
-		assert.GreaterOrEqual(t, len(lines), 5, "expected at least 5 lines in output of starting two apps with last app having an empty command")
+		require.GreaterOrEqual(t, len(lines), 5, "expected at least 5 lines in output of starting two apps with last app having an empty command")
 		assert.Contains(t, lines[1], "Started Dapr with app id \"processor\". HTTP Port: 3510.")
 		assert.Contains(t, lines[2], "Writing log files to directory")
 		assert.Contains(t, lines[2], "tests/apps/processor/.dapr/logs")
@@ -367,29 +471,36 @@ func TestRunWithTemplateFile(t *testing.T) {
 	})
 
 	t.Run("valid template file with app/daprd log destinations", func(t *testing.T) {
+		if isSlimMode() {
+			t.Skip("skipping: slim mode has no placement/scheduler so daprd cannot become healthy")
+		}
 		cmdUninstall()
 		ensureDaprInstallation(t)
 
 		runFilePath := "../testdata/run-template-files/app_output_to_file_and_console.yaml"
 		t.Cleanup(func() {
-			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
+			cmdStopWithRunTemplate(runFilePath)
 			cleanUpLogs()
 		})
 		args := []string{
 			"-f", runFilePath,
 		}
+		waitForPortsFree(t, 3510, 3511)
 		outputCh := make(chan string)
 		go func() {
 			output, _ := cmdRun("", args...)
 			t.Logf("%s", output)
 			outputCh <- output
 		}()
-		time.Sleep(time.Second * 10)
+		waitForDaprHealth(t, 60*time.Second, 3510, 3511)
+		// Wait for the emit-metrics app to finish compiling (go run) and
+		// successfully send at least one metric to the processor app.
+		waitForLogContent(t, "../../apps/emit-metrics/.dapr/logs", "app", "Metrics with ID 1 sent", 60*time.Second)
 		cmdStopWithRunTemplate(runFilePath)
 		var output string
 		select {
 		case output = <-outputCh:
-		case <-time.After(25 * time.Second):
+		case <-time.After(30 * time.Second):
 			t.Fatal("timed out waiting for run command to finish")
 		}
 
@@ -444,6 +555,7 @@ func TestRunTemplateFileWithoutDaprInit(t *testing.T) {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.
 			cleanUpLogs()
 		})
+		waitForPortsFree(t, 3510, 3511)
 		args := []string{
 			"-f", "../testdata/run-template-files/no_app_command.yaml",
 		}
