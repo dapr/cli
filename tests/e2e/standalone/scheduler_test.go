@@ -31,6 +31,23 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// countSchedulerEntries parses the tabular output from `dapr scheduler list`
+// and returns the number of data rows (skipping the header and empty lines).
+// This avoids hard-coding total line counts that break when the output format
+// changes (e.g. extra trailing newlines or header adjustments).
+func countSchedulerEntries(output string) int {
+	count := 0
+	for i, line := range strings.Split(output, "\n") {
+		if i == 0 { // skip header
+			continue
+		}
+		if strings.TrimSpace(line) != "" {
+			count++
+		}
+	}
+	return count
+}
+
 func TestSchedulerList(t *testing.T) {
 	if isSlimMode() {
 		t.Skip("skipping scheduler tests in slim mode")
@@ -541,14 +558,13 @@ func TestSchedulerDeleteAll(t *testing.T) {
 		}
 	}()
 
-	// Wait for all 8 scheduler entries to appear (8 data + header +
-	// trailing newline = 10 lines): 2 app jobs, 2 actor reminders,
-	// 4 workflow entries. Using a higher threshold prevents deleting
-	// before slow entries (e.g. app jobs via `go run`) have registered.
+	// Wait for all 8 scheduler entries to appear: 2 app jobs, 2 actor
+	// reminders, 4 workflow/activity entries. Using countSchedulerEntries
+	// avoids hard-coding a line count that breaks if the output format changes.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		output, err := cmdSchedulerList()
 		require.NoError(t, err)
-		assert.GreaterOrEqual(c, len(strings.Split(output, "\n")), 10)
+		assert.GreaterOrEqual(c, countSchedulerEntries(output), 8)
 	}, 60*time.Second, time.Second)
 
 	_, err := cmdSchedulerDeleteAll("app/test-scheduler")
@@ -557,32 +573,32 @@ func TestSchedulerDeleteAll(t *testing.T) {
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		output, err := cmdSchedulerList()
 		require.NoError(t, err)
-		assert.Len(c, strings.Split(output, "\n"), 8)
+		assert.Equal(c, 6, countSchedulerEntries(output))
 	}, 10*time.Second, 500*time.Millisecond)
 
 	_, err = cmdSchedulerDeleteAll("workflow/test-scheduler/abc1")
 	require.NoError(t, err)
 	output, err := cmdSchedulerList()
 	require.NoError(t, err)
-	assert.Len(t, strings.Split(output, "\n"), 7)
+	assert.Equal(t, 5, countSchedulerEntries(output))
 
 	_, err = cmdSchedulerDeleteAll("workflow/test-scheduler")
 	require.NoError(t, err)
 	output, err = cmdSchedulerList()
 	require.NoError(t, err)
-	assert.Len(t, strings.Split(output, "\n"), 4)
+	assert.Equal(t, 2, countSchedulerEntries(output))
 
 	_, err = cmdSchedulerDeleteAll("actor/myactortype/actorid1")
 	require.NoError(t, err)
 	output, err = cmdSchedulerList()
 	require.NoError(t, err)
-	assert.Len(t, strings.Split(output, "\n"), 3)
+	assert.Equal(t, 1, countSchedulerEntries(output))
 
 	_, err = cmdSchedulerDeleteAll("actor/myactortype")
 	require.NoError(t, err)
 	output, err = cmdSchedulerList()
 	require.NoError(t, err)
-	assert.Len(t, strings.Split(output, "\n"), 2)
+	assert.Equal(t, 0, countSchedulerEntries(output))
 }
 
 func TestSchedulerExportImport(t *testing.T) {
