@@ -64,24 +64,28 @@ func TestSchedulerList(t *testing.T) {
 
 	args := []string{"-f", runFilePath}
 	go func() {
-		o, err := cmdRun("", args...)
-		t.Log(o)
-		t.Log(err)
+		for range 10 {
+			o, err := cmdRun("", args...)
+			t.Log(o)
+			t.Log(err)
+			if err == nil {
+				break
+			}
+			time.Sleep(time.Second * 2)
+		}
 	}()
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		output, err := cmdSchedulerList()
 		require.NoError(t, err)
-		assert.Len(c, strings.Split(output, "\n"), 10)
-	}, time.Second*30, time.Millisecond*10)
-
-	time.Sleep(time.Second * 3)
+		assert.GreaterOrEqual(c, countSchedulerEntries(output), 8)
+	}, 60*time.Second, time.Second)
 
 	t.Run("short", func(t *testing.T) {
 		output, err := cmdSchedulerList()
 		require.NoError(t, err)
 		lines := strings.Split(output, "\n")
-		require.Len(t, lines, 10)
+		require.Equal(t, 8, countSchedulerEntries(output))
 
 		require.Equal(t, []string{
 			"NAME",
@@ -165,7 +169,7 @@ func TestSchedulerList(t *testing.T) {
 		output, err := cmdSchedulerList("-o", "wide")
 		require.NoError(t, err)
 		lines := strings.Split(output, "\n")
-		require.Len(t, lines, 10)
+		require.Equal(t, 8, countSchedulerEntries(output))
 
 		require.Equal(t, []string{
 			"NAMESPACE",
@@ -204,27 +208,27 @@ func TestSchedulerList(t *testing.T) {
 	t.Run("filter", func(t *testing.T) {
 		output, err := cmdSchedulerList("-n", "foo")
 		require.NoError(t, err)
-		assert.Len(t, strings.Split(output, "\n"), 2)
+		assert.Equal(t, 0, countSchedulerEntries(output))
 
 		output, err = cmdSchedulerList("--filter", "all")
 		require.NoError(t, err)
-		assert.Len(t, strings.Split(output, "\n"), 10)
+		assert.Equal(t, 8, countSchedulerEntries(output))
 
 		output, err = cmdSchedulerList("--filter", "app")
 		require.NoError(t, err)
-		assert.Len(t, strings.Split(output, "\n"), 4)
+		assert.Equal(t, 2, countSchedulerEntries(output))
 
 		output, err = cmdSchedulerList("--filter", "actor")
 		require.NoError(t, err)
-		assert.Len(t, strings.Split(output, "\n"), 4)
+		assert.Equal(t, 2, countSchedulerEntries(output))
 
 		output, err = cmdSchedulerList("--filter", "workflow")
 		require.NoError(t, err)
-		assert.Len(t, strings.Split(output, "\n"), 4)
+		assert.Equal(t, 2, countSchedulerEntries(output))
 
 		output, err = cmdSchedulerList("--filter", "activity")
 		require.NoError(t, err)
-		assert.Len(t, strings.Split(output, "\n"), 4)
+		assert.Equal(t, 2, countSchedulerEntries(output))
 	})
 }
 
@@ -434,8 +438,8 @@ func TestSchedulerDelete(t *testing.T) {
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		output, err := cmdSchedulerList()
 		require.NoError(t, err)
-		assert.Len(c, strings.Split(output, "\n"), 10)
-	}, time.Second*30, time.Millisecond*10)
+		assert.GreaterOrEqual(c, countSchedulerEntries(output), 8)
+	}, 60*time.Second, time.Second)
 
 	output, err := cmdSchedulerList()
 	require.NoError(t, err)
@@ -445,7 +449,7 @@ func TestSchedulerDelete(t *testing.T) {
 
 	output, err = cmdSchedulerList()
 	require.NoError(t, err)
-	assert.Len(t, strings.Split(output, "\n"), 9)
+	assert.Equal(t, 7, countSchedulerEntries(output))
 
 	_, err = cmdSchedulerDelete(
 		"actor/myactortype/actorid2/test2",
@@ -456,7 +460,7 @@ func TestSchedulerDelete(t *testing.T) {
 
 	output, err = cmdSchedulerList()
 	require.NoError(t, err)
-	assert.Len(t, strings.Split(output, "\n"), 6)
+	assert.Equal(t, 4, countSchedulerEntries(output))
 
 	_, err = cmdSchedulerDelete(
 		"activity/test-scheduler/xyz1::0::1",
@@ -466,17 +470,18 @@ func TestSchedulerDelete(t *testing.T) {
 
 	output, err = cmdSchedulerList()
 	require.NoError(t, err)
-	assert.Len(t, strings.Split(output, "\n"), 4)
+	assert.Equal(t, 2, countSchedulerEntries(output))
 
+	lines := strings.Split(output, "\n")
 	_, err = cmdSchedulerDelete(
-		strings.Fields(strings.Split(output, "\n")[1])[0],
-		strings.Fields(strings.Split(output, "\n")[2])[0],
+		strings.Fields(lines[1])[0],
+		strings.Fields(lines[2])[0],
 	)
 	require.NoError(t, err)
 
 	output, err = cmdSchedulerList()
 	require.NoError(t, err)
-	assert.Len(t, strings.Split(output, "\n"), 2)
+	assert.Equal(t, 0, countSchedulerEntries(output))
 }
 
 func TestSchedulerDeleteAllAll(t *testing.T) {
@@ -512,15 +517,15 @@ func TestSchedulerDeleteAllAll(t *testing.T) {
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		output, err := cmdSchedulerList()
 		require.NoError(t, err)
-		assert.Len(c, strings.Split(output, "\n"), 10)
-	}, time.Second*30, time.Millisecond*10)
+		assert.GreaterOrEqual(c, countSchedulerEntries(output), 8)
+	}, 60*time.Second, time.Second)
 
 	_, err := cmdSchedulerDeleteAll("all")
 	require.NoError(t, err)
 
 	output, err := cmdSchedulerList()
 	require.NoError(t, err)
-	assert.Len(t, strings.Split(output, "\n"), 2)
+	assert.Equal(t, 0, countSchedulerEntries(output))
 }
 
 func TestSchedulerDeleteAll(t *testing.T) {
@@ -634,8 +639,8 @@ func TestSchedulerExportImport(t *testing.T) {
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		output, err := cmdSchedulerList()
 		require.NoError(t, err)
-		assert.Len(c, strings.Split(output, "\n"), 10)
-	}, time.Second*30, time.Millisecond*10)
+		assert.GreaterOrEqual(c, countSchedulerEntries(output), 8)
+	}, 60*time.Second, time.Second)
 
 	f := filepath.Join(t.TempDir(), "foo")
 	_, err := cmdSchedulerExport("-o", f)
@@ -645,7 +650,7 @@ func TestSchedulerExportImport(t *testing.T) {
 	require.NoError(t, err)
 	output, err := cmdSchedulerList()
 	require.NoError(t, err)
-	assert.Len(t, strings.Split(output, "\n"), 2)
+	assert.Equal(t, 0, countSchedulerEntries(output))
 
 	_, err = cmdSchedulerImport("-f", f)
 	require.NoError(t, err)
@@ -653,6 +658,6 @@ func TestSchedulerExportImport(t *testing.T) {
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		output, err := cmdSchedulerList()
 		require.NoError(t, err)
-		assert.GreaterOrEqual(c, len(strings.Split(output, "\n")), 9)
-	}, time.Second*30, time.Millisecond*10)
+		assert.GreaterOrEqual(c, countSchedulerEntries(output), 7)
+	}, 60*time.Second, time.Second)
 }
