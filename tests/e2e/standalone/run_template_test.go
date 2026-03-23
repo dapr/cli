@@ -155,6 +155,27 @@ func waitForLogContent(t *testing.T, dirPath, partialFileName, expected string, 
 	}, timeout, time.Second, "log file matching %q in %s did not contain %q within %v", partialFileName, dirPath, expected, timeout)
 }
 
+// collectOutput waits for the CLI process output from outputCh. If the
+// output does not arrive within timeout, the context is canceled (which
+// SIGKILL's the CLI via exec.CommandContext) and we wait a further 20s
+// for WaitDelay to close pipes and CombinedOutput to return.
+func collectOutput(t *testing.T, outputCh <-chan string, cancel context.CancelFunc, timeout time.Duration) string {
+	t.Helper()
+	select {
+	case output := <-outputCh:
+		return output
+	case <-time.After(timeout):
+		cancel()
+		select {
+		case output := <-outputCh:
+			return output
+		case <-time.After(20 * time.Second):
+			t.Fatal("timed out waiting for run command to finish")
+			return ""
+		}
+	}
+}
+
 type AppTestOutput struct {
 	appID                    string
 	appLogContents           []string
@@ -177,15 +198,10 @@ func TestRunWithTemplateFile(t *testing.T) {
 
 	t.Run("invalid template file wrong emit metrics app run", func(t *testing.T) {
 		runFilePath := "../testdata/run-template-files/wrong_emit_metrics_app_dapr.yaml"
-		// Context acts as a safety net: if the process hangs (e.g. orphaned
-		// child holds pipe open on macOS), the context deadline kills it and
-		// WaitDelay in CommandExecWithContext closes the pipes.
-		ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
 		defer cancel()
 		t.Cleanup(func() {
 			cmdStopWithRunTemplate(runFilePath)
-			// Fallback: kill individual daprd processes in case cancel()
-			// killed the CLI but left daprd orphaned.
 			cmdStopWithAppID("processor")
 			cmdStopWithAppID("emit-metrics")
 			cleanUpLogs()
@@ -195,7 +211,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		}
 
 		waitForPortsFree(t, 3510, 3511)
-		outputCh := make(chan string)
+		outputCh := make(chan string, 1)
 		go func() {
 			output, _ := cmdRunWithContext(ctx, "", args...)
 			t.Logf("%s", output)
@@ -203,22 +219,13 @@ func TestRunWithTemplateFile(t *testing.T) {
 		}()
 		// Wait for the emit-metrics app to fail (wrong file name). The app
 		// log gets written quickly since `go run wrongappname.go` fails
-		// immediately. Then send stop and cancel the context so WaitDelay
-		// closes pipes held by orphaned children.
+		// immediately. Then send stop so the CLI shuts down gracefully.
 		waitForLogContent(t, "../../apps/emit-metrics/.dapr/logs", "app", "exit status 1", 60*time.Second)
 		cmdStopWithRunTemplate(runFilePath)
-		var output string
-		select {
-		case output = <-outputCh:
-		case <-time.After(30 * time.Second):
-			// Graceful shutdown took too long; force kill via context cancel.
-			cancel()
-			select {
-			case output = <-outputCh:
-			case <-time.After(20 * time.Second):
-				t.Fatal("timed out waiting for run command to finish")
-			}
-		}
+		// Give the CLI time to gracefully shut down. The CLI must process
+		// the SIGTERM from stop, then kill daprd/app processes (up to 5s
+		// grace period each). 60s is generous.
+		output := collectOutput(t, outputCh, cancel, 60*time.Second)
 
 		assert.Contains(t, output, "Started Dapr with app id \"processor\". HTTP Port: 3510.")
 		assert.Contains(t, output, "Writing log files to directory")
@@ -272,28 +279,16 @@ func TestRunWithTemplateFile(t *testing.T) {
 		}
 
 		waitForPortsFree(t, 3510, 3511)
-		outputCh := make(chan string)
+		outputCh := make(chan string, 1)
 		go func() {
 			output, _ := cmdRunWithContext(ctx, "", args...)
 			t.Logf("%s", output)
 			outputCh <- output
 		}()
 		waitForDaprHealth(t, 60*time.Second, 3510, 3511)
-		// Wait for the emit-metrics app to finish compiling (go run) and
-		// successfully send at least one metric to the processor app.
 		waitForLogContent(t, "../../apps/emit-metrics/.dapr/logs", "app", "Metrics with ID 1 sent", 60*time.Second)
 		cmdStopWithRunTemplate(runFilePath)
-		var output string
-		select {
-		case output = <-outputCh:
-		case <-time.After(30 * time.Second):
-			cancel()
-			select {
-			case output = <-outputCh:
-			case <-time.After(20 * time.Second):
-				t.Fatal("timed out waiting for run command to finish")
-			}
-		}
+		output := collectOutput(t, outputCh, cancel, 60*time.Second)
 
 		// Deterministic output for template file, so we can assert line by line
 		lines := strings.Split(output, "\n")
@@ -342,7 +337,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		cmdUninstall()
 		ensureDaprInstallation(t)
 
-		ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
 		defer cancel()
 		t.Cleanup(func() {
 			cmdStopWithRunTemplate(runFilePath)
@@ -354,7 +349,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 			"-f", runFilePath,
 		}
 		waitForPortsFree(t, 3510, 3511)
-		outputCh := make(chan string)
+		outputCh := make(chan string, 1)
 		go func() {
 			output, _ := cmdRunWithContext(ctx, "", args...)
 			t.Logf("%s", output)
@@ -367,17 +362,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		// produce the expected error output.
 		waitForLogContent(t, "../../apps/emit-metrics/.dapr/logs", "app", "exit status 1", 90*time.Second)
 		cmdStopWithRunTemplate(runFilePath)
-		var output string
-		select {
-		case output = <-outputCh:
-		case <-time.After(30 * time.Second):
-			cancel()
-			select {
-			case output = <-outputCh:
-			case <-time.After(20 * time.Second):
-				t.Fatal("timed out waiting for run command to finish")
-			}
-		}
+		output := collectOutput(t, outputCh, cancel, 60*time.Second)
 
 		assert.Contains(t, output, "Started Dapr with app id \"processor\". HTTP Port: 3510.")
 		assert.Contains(t, output, "Writing log files to directory")
@@ -416,7 +401,10 @@ func TestRunWithTemplateFile(t *testing.T) {
 		ensureDaprInstallation(t)
 
 		runFilePath := "../testdata/run-template-files/no_app_command.yaml"
-		ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+		// The CLI performs daprd health checks (IsDaprListeningOnPort) for
+		// apps with appPort=0. Each check can take up to 60s. With two
+		// ports (HTTP + gRPC) per app, the total startup can take >120s.
+		ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
 		defer cancel()
 		t.Cleanup(func() {
 			cmdStopWithRunTemplate(runFilePath)
@@ -428,25 +416,18 @@ func TestRunWithTemplateFile(t *testing.T) {
 			"-f", runFilePath,
 		}
 		waitForPortsFree(t, 3510, 3511)
-		outputCh := make(chan string)
+		outputCh := make(chan string, 1)
 		go func() {
 			output, _ := cmdRunWithContext(ctx, "", args...)
 			t.Logf("%s", output)
 			outputCh <- output
 		}()
-		waitForAppsListed(t, 60*time.Second, "processor", "emit-metrics")
+		// Wait for BOTH apps to appear in dapr list. emit-metrics has
+		// appPort=0 so the CLI runs daprd health checks which can take
+		// up to 120s on slow CI runners. Use a generous timeout.
+		waitForAppsListed(t, 180*time.Second, "processor", "emit-metrics")
 		cmdStopWithRunTemplate(runFilePath)
-		var output string
-		select {
-		case output = <-outputCh:
-		case <-time.After(30 * time.Second):
-			cancel()
-			select {
-			case output = <-outputCh:
-			case <-time.After(20 * time.Second):
-				t.Fatal("timed out waiting for run command to finish")
-			}
-		}
+		output := collectOutput(t, outputCh, cancel, 60*time.Second)
 
 		assert.Contains(t, output, "Started Dapr with app id \"processor\". HTTP Port: 3510.")
 		assert.Contains(t, output, "Writing log files to directory")
@@ -486,7 +467,11 @@ func TestRunWithTemplateFile(t *testing.T) {
 		ensureDaprInstallation(t)
 
 		runFilePath := "../testdata/run-template-files/empty_app_command.yaml"
-		ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+		// The CLI starts daprd for emit-metrics, runs health checks (up
+		// to 60s each for HTTP and gRPC ports since appPort=0), detects
+		// the empty command, kills daprd, and exits with error. The whole
+		// process can take >120s on slow runners.
+		ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
 		defer cancel()
 		t.Cleanup(func() {
 			cmdStopWithRunTemplate(runFilePath)
@@ -498,27 +483,17 @@ func TestRunWithTemplateFile(t *testing.T) {
 			"-f", runFilePath,
 		}
 		waitForPortsFree(t, 3510, 3511)
-		outputCh := make(chan string)
+		outputCh := make(chan string, 1)
 		go func() {
 			output, _ := cmdRunWithContext(ctx, "", args...)
 			t.Logf("%s", output)
 			outputCh <- output
 		}()
-		// Only wait for processor — emit-metrics fails immediately due to
-		// empty command so its daprd never starts.
-		waitForAppsListed(t, 60*time.Second, "processor")
-		cmdStopWithRunTemplate(runFilePath)
-		var output string
-		select {
-		case output = <-outputCh:
-		case <-time.After(30 * time.Second):
-			cancel()
-			select {
-			case output = <-outputCh:
-			case <-time.After(20 * time.Second):
-				t.Fatal("timed out waiting for run command to finish")
-			}
-		}
+		// The CLI exits on its own after detecting the empty command
+		// (exitWithError=true). Do NOT send cmdStopWithRunTemplate here:
+		// the SIGTERM would sit in sigCh unread while the CLI is blocked
+		// in daprd health checks. Just wait for the CLI to finish.
+		output := collectOutput(t, outputCh, cancel, 180*time.Second)
 
 		assert.Contains(t, output, "Started Dapr with app id \"processor\". HTTP Port: 3510.")
 		assert.Contains(t, output, "Writing log files to directory")
@@ -570,28 +545,16 @@ func TestRunWithTemplateFile(t *testing.T) {
 			"-f", runFilePath,
 		}
 		waitForPortsFree(t, 3510, 3511)
-		outputCh := make(chan string)
+		outputCh := make(chan string, 1)
 		go func() {
 			output, _ := cmdRunWithContext(ctx, "", args...)
 			t.Logf("%s", output)
 			outputCh <- output
 		}()
 		waitForDaprHealth(t, 60*time.Second, 3510, 3511)
-		// Wait for the emit-metrics app to finish compiling (go run) and
-		// successfully send at least one metric to the processor app.
 		waitForLogContent(t, "../../apps/emit-metrics/.dapr/logs", "app", "Metrics with ID 1 sent", 60*time.Second)
 		cmdStopWithRunTemplate(runFilePath)
-		var output string
-		select {
-		case output = <-outputCh:
-		case <-time.After(30 * time.Second):
-			cancel()
-			select {
-			case output = <-outputCh:
-			case <-time.After(20 * time.Second):
-				t.Fatal("timed out waiting for run command to finish")
-			}
-		}
+		output := collectOutput(t, outputCh, cancel, 60*time.Second)
 
 		// App logs for processor app should not be printed to console and only written to file.
 		assert.NotContains(t, output, "== APP - processor")
