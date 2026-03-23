@@ -18,6 +18,7 @@ limitations under the License.
 package standalone_test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -176,6 +177,11 @@ func TestRunWithTemplateFile(t *testing.T) {
 
 	t.Run("invalid template file wrong emit metrics app run", func(t *testing.T) {
 		runFilePath := "../testdata/run-template-files/wrong_emit_metrics_app_dapr.yaml"
+		// Context acts as a safety net: if the process hangs (e.g. orphaned
+		// child holds pipe open on macOS), the context deadline kills it and
+		// WaitDelay in CommandExecWithContext closes the pipes.
+		ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+		defer cancel()
 		t.Cleanup(func() {
 			cmdStopWithRunTemplate(runFilePath)
 			cleanUpLogs()
@@ -187,7 +193,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		waitForPortsFree(t, 3510, 3511)
 		outputCh := make(chan string)
 		go func() {
-			output, _ := cmdRun("", args...)
+			output, _ := cmdRunWithContext(ctx, "", args...)
 			t.Logf("%s", output)
 			outputCh <- output
 		}()
@@ -242,6 +248,8 @@ func TestRunWithTemplateFile(t *testing.T) {
 		ensureDaprInstallation(t)
 
 		runFilePath := "../testdata/run-template-files/dapr.yaml"
+		ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
+		defer cancel()
 		t.Cleanup(func() {
 			cmdStopWithRunTemplate(runFilePath)
 			cleanUpLogs()
@@ -253,7 +261,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		waitForPortsFree(t, 3510, 3511)
 		outputCh := make(chan string)
 		go func() {
-			output, _ := cmdRun("", args...)
+			output, _ := cmdRunWithContext(ctx, "", args...)
 			t.Logf("%s", output)
 			outputCh <- output
 		}()
@@ -316,6 +324,8 @@ func TestRunWithTemplateFile(t *testing.T) {
 		cmdUninstall()
 		ensureDaprInstallation(t)
 
+		ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+		defer cancel()
 		t.Cleanup(func() {
 			cmdStopWithRunTemplate(runFilePath)
 			cleanUpLogs()
@@ -326,7 +336,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		waitForPortsFree(t, 3510, 3511)
 		outputCh := make(chan string)
 		go func() {
-			output, _ := cmdRun("", args...)
+			output, _ := cmdRunWithContext(ctx, "", args...)
 			t.Logf("%s", output)
 			outputCh <- output
 		}()
@@ -376,6 +386,8 @@ func TestRunWithTemplateFile(t *testing.T) {
 		ensureDaprInstallation(t)
 
 		runFilePath := "../testdata/run-template-files/no_app_command.yaml"
+		ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+		defer cancel()
 		t.Cleanup(func() {
 			cmdStopWithRunTemplate(runFilePath)
 			cleanUpLogs()
@@ -386,7 +398,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		waitForPortsFree(t, 3510, 3511)
 		outputCh := make(chan string)
 		go func() {
-			output, _ := cmdRun("", args...)
+			output, _ := cmdRunWithContext(ctx, "", args...)
 			t.Logf("%s", output)
 			outputCh <- output
 		}()
@@ -437,6 +449,8 @@ func TestRunWithTemplateFile(t *testing.T) {
 		ensureDaprInstallation(t)
 
 		runFilePath := "../testdata/run-template-files/empty_app_command.yaml"
+		ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+		defer cancel()
 		t.Cleanup(func() {
 			cmdStopWithRunTemplate(runFilePath)
 			cleanUpLogs()
@@ -447,7 +461,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		waitForPortsFree(t, 3510, 3511)
 		outputCh := make(chan string)
 		go func() {
-			output, _ := cmdRun("", args...)
+			output, _ := cmdRunWithContext(ctx, "", args...)
 			t.Logf("%s", output)
 			outputCh <- output
 		}()
@@ -500,6 +514,8 @@ func TestRunWithTemplateFile(t *testing.T) {
 		ensureDaprInstallation(t)
 
 		runFilePath := "../testdata/run-template-files/app_output_to_file_and_console.yaml"
+		ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
+		defer cancel()
 		t.Cleanup(func() {
 			cmdStopWithRunTemplate(runFilePath)
 			cleanUpLogs()
@@ -510,7 +526,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		waitForPortsFree(t, 3510, 3511)
 		outputCh := make(chan string)
 		go func() {
-			output, _ := cmdRun("", args...)
+			output, _ := cmdRunWithContext(ctx, "", args...)
 			t.Logf("%s", output)
 			outputCh <- output
 		}()
