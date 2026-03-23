@@ -197,15 +197,16 @@ func TestRunWithTemplateFile(t *testing.T) {
 			t.Logf("%s", output)
 			outputCh <- output
 		}()
-		// Wait for both sidecars to be registered in metadata so that
-		// `dapr stop -f` can locate the CLI process. This replaces a
-		// blind time.Sleep that was too short on slow macOS CI runners.
-		waitForAppsListed(t, 60*time.Second, "processor", "emit-metrics")
-		cmdStopWithRunTemplate(runFilePath)
+		// The emit-metrics app fails immediately (wrong file name),
+		// which triggers the CLI to shut down on its own. Wait for the
+		// daprd log to confirm shutdown happened, then cancel the context
+		// to force CombinedOutput to return (WaitDelay handles orphaned pipes).
+		waitForLogContent(t, "../../apps/emit-metrics/.dapr/logs", "daprd", "Exited Dapr successfully", 60*time.Second)
+		cancel()
 		var output string
 		select {
 		case output = <-outputCh:
-		case <-time.After(30 * time.Second):
+		case <-time.After(20 * time.Second):
 			t.Fatal("timed out waiting for run command to finish")
 		}
 
@@ -270,10 +271,12 @@ func TestRunWithTemplateFile(t *testing.T) {
 		// successfully send at least one metric to the processor app.
 		waitForLogContent(t, "../../apps/emit-metrics/.dapr/logs", "app", "Metrics with ID 1 sent", 60*time.Second)
 		cmdStopWithRunTemplate(runFilePath)
+		// Cancel the context so WaitDelay closes pipes held by orphaned children.
+		cancel()
 		var output string
 		select {
 		case output = <-outputCh:
-		case <-time.After(30 * time.Second):
+		case <-time.After(20 * time.Second):
 			t.Fatal("timed out waiting for run command to finish")
 		}
 
@@ -324,7 +327,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		cmdUninstall()
 		ensureDaprInstallation(t)
 
-		ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 		defer cancel()
 		t.Cleanup(func() {
 			cmdStopWithRunTemplate(runFilePath)
@@ -340,12 +343,16 @@ func TestRunWithTemplateFile(t *testing.T) {
 			t.Logf("%s", output)
 			outputCh <- output
 		}()
-		waitForAppsListed(t, 60*time.Second, "processor", "emit-metrics")
-		cmdStopWithRunTemplate(runFilePath)
+		// The emit-metrics app must compile (go run) and then fail because
+		// the env var is not set. This can be slow on CI (downloading deps,
+		// compiling). Wait for the daprd log to confirm shutdown completed
+		// after the app crash, rather than sending stop prematurely.
+		waitForLogContent(t, "../../apps/emit-metrics/.dapr/logs", "daprd", "Exited Dapr successfully", 90*time.Second)
+		cancel()
 		var output string
 		select {
 		case output = <-outputCh:
-		case <-time.After(30 * time.Second):
+		case <-time.After(20 * time.Second):
 			t.Fatal("timed out waiting for run command to finish")
 		}
 
@@ -404,10 +411,11 @@ func TestRunWithTemplateFile(t *testing.T) {
 		}()
 		waitForAppsListed(t, 60*time.Second, "processor", "emit-metrics")
 		cmdStopWithRunTemplate(runFilePath)
+		cancel()
 		var output string
 		select {
 		case output = <-outputCh:
-		case <-time.After(30 * time.Second):
+		case <-time.After(20 * time.Second):
 			t.Fatal("timed out waiting for run command to finish")
 		}
 
@@ -469,10 +477,11 @@ func TestRunWithTemplateFile(t *testing.T) {
 		// empty command so its daprd never starts.
 		waitForAppsListed(t, 60*time.Second, "processor")
 		cmdStopWithRunTemplate(runFilePath)
+		cancel()
 		var output string
 		select {
 		case output = <-outputCh:
-		case <-time.After(30 * time.Second):
+		case <-time.After(20 * time.Second):
 			t.Fatal("timed out waiting for run command to finish")
 		}
 
@@ -535,10 +544,11 @@ func TestRunWithTemplateFile(t *testing.T) {
 		// successfully send at least one metric to the processor app.
 		waitForLogContent(t, "../../apps/emit-metrics/.dapr/logs", "app", "Metrics with ID 1 sent", 60*time.Second)
 		cmdStopWithRunTemplate(runFilePath)
+		cancel()
 		var output string
 		select {
 		case output = <-outputCh:
-		case <-time.After(30 * time.Second):
+		case <-time.After(20 * time.Second):
 			t.Fatal("timed out waiting for run command to finish")
 		}
 
