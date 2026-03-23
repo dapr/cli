@@ -422,10 +422,14 @@ func TestRunWithTemplateFile(t *testing.T) {
 			t.Logf("%s", output)
 			outputCh <- output
 		}()
-		// Wait for BOTH apps to appear in dapr list. emit-metrics has
-		// appPort=0 so the CLI runs daprd health checks which can take
-		// up to 120s on slow CI runners. Use a generous timeout.
-		waitForAppsListed(t, 180*time.Second, "processor", "emit-metrics")
+		// Wait for the CLI to fully process emit-metrics by checking
+		// the daprd log for "You're up and running!". This is written
+		// AFTER health checks complete (which can take 60s+ per port)
+		// and AFTER "Started Dapr..." is written to stdout.
+		// NOTE: Do NOT use waitForAppsListed here — dapr list detects
+		// the daprd process running BEFORE the CLI finishes health
+		// checks, causing a race where stop is sent too early.
+		waitForLogContent(t, "../../apps/emit-metrics/.dapr/logs", "daprd", "You're up and running!", 180*time.Second)
 		cmdStopWithRunTemplate(runFilePath)
 		output := collectOutput(t, outputCh, cancel, 60*time.Second)
 
