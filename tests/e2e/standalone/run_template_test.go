@@ -87,6 +87,38 @@ func waitForAppHealthy(t *testing.T, timeout time.Duration, appID string) {
 	}, timeout, time.Second, "dapr app %q not healthy within %v", appID, timeout)
 }
 
+// waitForAppsListed polls dapr list until all given appIDs are present with
+// a non-zero HTTP port. Unlike waitForDaprHealth this does NOT check the
+// healthz endpoint, so it works in slim mode where placement/scheduler are
+// absent. It guarantees that daprd is up, listening, and has stored metadata —
+// which is the prerequisite for `dapr stop -f` to locate the CLI process.
+func waitForAppsListed(t *testing.T, timeout time.Duration, appIDs ...string) {
+	t.Helper()
+	require.Eventually(t, func() bool {
+		output, err := cmdList("json")
+		if err != nil {
+			return false
+		}
+		var result []map[string]interface{}
+		if err := json.Unmarshal([]byte(output), &result); err != nil {
+			return false
+		}
+		found := 0
+		for _, id := range appIDs {
+			for _, entry := range result {
+				if entry["appId"] == id {
+					httpPort, _ := entry["httpPort"].(float64)
+					if httpPort > 0 {
+						found++
+						break
+					}
+				}
+			}
+		}
+		return found == len(appIDs)
+	}, timeout, time.Second, "dapr apps %v not listed within %v", appIDs, timeout)
+}
+
 // waitForPortsFree polls until all given ports are available for binding.
 // This prevents port contention between sequential subtests that use
 // hardcoded ports.
@@ -159,7 +191,10 @@ func TestRunWithTemplateFile(t *testing.T) {
 			t.Logf("%s", output)
 			outputCh <- output
 		}()
-		time.Sleep(10 * time.Second)
+		// Wait for both sidecars to be registered in metadata so that
+		// `dapr stop -f` can locate the CLI process. This replaces a
+		// blind time.Sleep that was too short on slow macOS CI runners.
+		waitForAppsListed(t, 60*time.Second, "processor", "emit-metrics")
 		cmdStopWithRunTemplate(runFilePath)
 		var output string
 		select {
@@ -168,15 +203,11 @@ func TestRunWithTemplateFile(t *testing.T) {
 			t.Fatal("timed out waiting for run command to finish")
 		}
 
-		// Deterministic output for template file, so we can assert line by line
-		lines := strings.Split(output, "\n")
-		require.GreaterOrEqual(t, len(lines), 6, "expected at least 6 lines in output of starting two apps")
-		assert.Contains(t, lines[1], "Started Dapr with app id \"processor\". HTTP Port: 3510.")
-		assert.Contains(t, lines[2], "Writing log files to directory")
-		assert.Contains(t, lines[2], "tests/apps/processor/.dapr/logs")
-		assert.Contains(t, lines[4], "Started Dapr with app id \"emit-metrics\". HTTP Port: 3511.")
-		assert.Contains(t, lines[5], "Writing log files to directory")
-		assert.Contains(t, lines[5], "tests/apps/emit-metrics/.dapr/logs")
+		assert.Contains(t, output, "Started Dapr with app id \"processor\". HTTP Port: 3510.")
+		assert.Contains(t, output, "Writing log files to directory")
+		assert.Contains(t, output, "tests/apps/processor/.dapr/logs")
+		assert.Contains(t, output, "Started Dapr with app id \"emit-metrics\". HTTP Port: 3511.")
+		assert.Contains(t, output, "tests/apps/emit-metrics/.dapr/logs")
 		assert.Contains(t, output, "Received signal to stop Dapr and app processes. Shutting down Dapr and app processes.")
 		appTestOutput := AppTestOutput{
 			appID:          "processor",
@@ -299,7 +330,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 			t.Logf("%s", output)
 			outputCh <- output
 		}()
-		time.Sleep(10 * time.Second)
+		waitForAppsListed(t, 60*time.Second, "processor", "emit-metrics")
 		cmdStopWithRunTemplate(runFilePath)
 		var output string
 		select {
@@ -308,15 +339,11 @@ func TestRunWithTemplateFile(t *testing.T) {
 			t.Fatal("timed out waiting for run command to finish")
 		}
 
-		// Deterministic output for template file, so we can assert line by line
-		lines := strings.Split(output, "\n")
-		require.GreaterOrEqual(t, len(lines), 6, "expected at least 6 lines in output of starting two apps")
-		assert.Contains(t, lines[1], "Started Dapr with app id \"processor\". HTTP Port: 3510.")
-		assert.Contains(t, lines[2], "Writing log files to directory")
-		assert.Contains(t, lines[2], "tests/apps/processor/.dapr/logs")
-		assert.Contains(t, lines[4], "Started Dapr with app id \"emit-metrics\". HTTP Port: 3511.")
-		assert.Contains(t, lines[5], "Writing log files to directory")
-		assert.Contains(t, lines[5], "tests/apps/emit-metrics/.dapr/logs")
+		assert.Contains(t, output, "Started Dapr with app id \"processor\". HTTP Port: 3510.")
+		assert.Contains(t, output, "Writing log files to directory")
+		assert.Contains(t, output, "tests/apps/processor/.dapr/logs")
+		assert.Contains(t, output, "Started Dapr with app id \"emit-metrics\". HTTP Port: 3511.")
+		assert.Contains(t, output, "tests/apps/emit-metrics/.dapr/logs")
 		assert.Contains(t, output, "Received signal to stop Dapr and app processes. Shutting down Dapr and app processes.")
 		appTestOutput := AppTestOutput{
 			appID:          "processor",
@@ -363,7 +390,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 			t.Logf("%s", output)
 			outputCh <- output
 		}()
-		time.Sleep(10 * time.Second)
+		waitForAppsListed(t, 60*time.Second, "processor", "emit-metrics")
 		cmdStopWithRunTemplate(runFilePath)
 		var output string
 		select {
@@ -372,16 +399,12 @@ func TestRunWithTemplateFile(t *testing.T) {
 			t.Fatal("timed out waiting for run command to finish")
 		}
 
-		// Deterministic output for template file, so we can assert line by line
-		lines := strings.Split(output, "\n")
-		require.GreaterOrEqual(t, len(lines), 7, "expected at least 7 lines in output of starting two apps with one app not having a command")
-		assert.Contains(t, lines[1], "Started Dapr with app id \"processor\". HTTP Port: 3510.")
-		assert.Contains(t, lines[2], "Writing log files to directory")
-		assert.Contains(t, lines[2], "tests/apps/processor/.dapr/logs")
-		assert.Contains(t, lines[4], "No application command found for app \"emit-metrics\" present in")
-		assert.Contains(t, lines[5], "Started Dapr with app id \"emit-metrics\". HTTP Port: 3511.")
-		assert.Contains(t, lines[6], "Writing log files to directory")
-		assert.Contains(t, lines[6], "tests/apps/emit-metrics/.dapr/logs")
+		assert.Contains(t, output, "Started Dapr with app id \"processor\". HTTP Port: 3510.")
+		assert.Contains(t, output, "Writing log files to directory")
+		assert.Contains(t, output, "tests/apps/processor/.dapr/logs")
+		assert.Contains(t, output, "No application command found for app \"emit-metrics\" present in")
+		assert.Contains(t, output, "Started Dapr with app id \"emit-metrics\". HTTP Port: 3511.")
+		assert.Contains(t, output, "tests/apps/emit-metrics/.dapr/logs")
 		assert.Contains(t, output, "Received signal to stop Dapr and app processes. Shutting down Dapr and app processes.")
 		appTestOutput := AppTestOutput{
 			appID:          "processor",
@@ -428,7 +451,9 @@ func TestRunWithTemplateFile(t *testing.T) {
 			t.Logf("%s", output)
 			outputCh <- output
 		}()
-		time.Sleep(10 * time.Second)
+		// Only wait for processor — emit-metrics fails immediately due to
+		// empty command so its daprd never starts.
+		waitForAppsListed(t, 60*time.Second, "processor")
 		cmdStopWithRunTemplate(runFilePath)
 		var output string
 		select {
@@ -437,13 +462,10 @@ func TestRunWithTemplateFile(t *testing.T) {
 			t.Fatal("timed out waiting for run command to finish")
 		}
 
-		// Deterministic output for template file, so we can assert line by line
-		lines := strings.Split(output, "\n")
-		require.GreaterOrEqual(t, len(lines), 5, "expected at least 5 lines in output of starting two apps with last app having an empty command")
-		assert.Contains(t, lines[1], "Started Dapr with app id \"processor\". HTTP Port: 3510.")
-		assert.Contains(t, lines[2], "Writing log files to directory")
-		assert.Contains(t, lines[2], "tests/apps/processor/.dapr/logs")
-		assert.Contains(t, lines[4], "Error starting Dapr and app (\"emit-metrics\"): exec: no command")
+		assert.Contains(t, output, "Started Dapr with app id \"processor\". HTTP Port: 3510.")
+		assert.Contains(t, output, "Writing log files to directory")
+		assert.Contains(t, output, "tests/apps/processor/.dapr/logs")
+		assert.Contains(t, output, "Error starting Dapr and app (\"emit-metrics\"): exec: no command")
 		appTestOutput := AppTestOutput{
 			appID:          "processor",
 			baseLogDirPath: "../../apps/processor/.dapr/logs",

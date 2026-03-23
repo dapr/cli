@@ -987,9 +987,16 @@ func startDaprdProcess(runConfig *standalone.RunConfig, runE *runExec.RunExec,
 }
 
 // killDaprdProcess is used to kill the Daprd process and return error on failure.
+// It kills the entire process group (not just the leader) so that any child
+// processes spawned by daprd are also cleaned up. This mirrors killAppProcess
+// and is especially important on macOS where zombie process groups can return
+// EPERM instead of ESRCH, causing the parent `dapr run` to hang.
 func killDaprdProcess(runE *runExec.RunExec) error {
-	err := runE.DaprCMD.Command.Process.Kill()
+	err := killProcessGroup(runE.DaprCMD.Command.Process)
 	if err != nil {
+		if errors.Is(err, os.ErrProcessDone) {
+			return nil
+		}
 		print.StatusEvent(runE.DaprCMD.ErrorWriter, print.LogFailure, "Error exiting Dapr: %s", err)
 		return err
 	}
