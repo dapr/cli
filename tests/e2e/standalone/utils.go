@@ -25,6 +25,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -153,6 +154,64 @@ func waitForPortsFree(t *testing.T, ports ...int) {
 		}
 		return true
 	}, 60*time.Second, time.Second, "ports %v not available in time", ports)
+}
+
+// startDaprRun starts `dapr run` in a background goroutine and registers
+// cleanup handlers that stop the app and wait for the goroutine to finish.
+// This prevents "Log in goroutine after Test has completed" panics that
+// occur when the cmdRun goroutine outlives the test.
+//
+// stopArgs is passed to cmdStopWithAppID or cmdStopWithRunTemplate depending
+// on whether it looks like a file path (contains "/" or ".yaml").
+func startDaprRun(t *testing.T, ports []int, stopFn func(), runArgs ...string) {
+	t.Helper()
+
+	if len(ports) > 0 {
+		waitForPortsFree(t, ports...)
+	}
+
+	var wg sync.WaitGroup
+	// Register wg.Wait first so it runs last (LIFO cleanup order).
+	t.Cleanup(func() { wg.Wait() })
+	t.Cleanup(stopFn)
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		o, _ := cmdRun("", runArgs...)
+		// Only safe to call t.Log here because cleanup waits for us
+		// via wg.Wait().
+		t.Log(o)
+	}()
+}
+
+// startDaprRunRetry is like startDaprRun but retries cmdRun up to 10 times
+// on failure. Used by scheduler tests where port contention can cause
+// transient startup failures.
+func startDaprRunRetry(t *testing.T, ports []int, stopFn func(), runArgs ...string) {
+	t.Helper()
+
+	if len(ports) > 0 {
+		waitForPortsFree(t, ports...)
+	}
+
+	var wg sync.WaitGroup
+	t.Cleanup(func() { wg.Wait() })
+	t.Cleanup(stopFn)
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for range 10 {
+			o, err := cmdRun("", runArgs...)
+			t.Log(o)
+			if err == nil {
+				break
+			}
+			t.Log(err)
+			time.Sleep(time.Second * 2)
+		}
+	}()
 }
 
 // ensureDaprInstallation ensures that Dapr is installed.

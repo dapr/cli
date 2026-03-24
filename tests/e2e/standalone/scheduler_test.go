@@ -54,22 +54,7 @@ func TestSchedulerList(t *testing.T) {
 	}
 
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
-	t.Cleanup(func() {
-		cmdStopWithRunTemplate(runFilePath)
-	})
-
-	args := []string{"-f", runFilePath}
-	go func() {
-		for range 10 {
-			o, err := cmdRun("", args...)
-			t.Log(o)
-			t.Log(err)
-			if err == nil {
-				break
-			}
-			time.Sleep(time.Second * 2)
-		}
-	}()
+	startDaprRunRetry(t, []int{3510}, func() { cmdStopWithRunTemplate(runFilePath) }, "-f", runFilePath)
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		output, err := cmdSchedulerList()
@@ -234,17 +219,7 @@ func TestSchedulerGet(t *testing.T) {
 	}
 
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
-	t.Cleanup(func() {
-		cmdStopWithRunTemplate(runFilePath)
-	})
-
-	args := []string{"-f", runFilePath}
-
-	go func() {
-		o, err := cmdRun("", args...)
-		t.Log(o)
-		t.Log(err)
-	}()
+	startDaprRun(t, []int{3510}, func() { cmdStopWithRunTemplate(runFilePath) }, "-f", runFilePath)
 
 	expNames := []string{
 		"actor/myactortype/actorid1/test1",
@@ -403,22 +378,7 @@ func TestSchedulerDelete(t *testing.T) {
 	}
 
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
-	t.Cleanup(func() {
-		cmdStopWithRunTemplate(runFilePath)
-	})
-	args := []string{"-f", runFilePath}
-
-	go func() {
-		for range 10 {
-			o, err := cmdRun("", args...)
-			t.Log(o)
-			t.Log(err)
-			if err == nil {
-				break
-			}
-			time.Sleep(time.Second * 2)
-		}
-	}()
+	startDaprRunRetry(t, []int{3510}, func() { cmdStopWithRunTemplate(runFilePath) }, "-f", runFilePath)
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		output, err := cmdSchedulerList()
@@ -475,22 +435,7 @@ func TestSchedulerDeleteAllAll(t *testing.T) {
 	}
 
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
-	t.Cleanup(func() {
-		cmdStopWithRunTemplate(runFilePath)
-	})
-	args := []string{"-f", runFilePath}
-
-	go func() {
-		for range 10 {
-			o, err := cmdRun("", args...)
-			t.Log(o)
-			t.Log(err)
-			if err == nil {
-				break
-			}
-			time.Sleep(time.Second * 2)
-		}
-	}()
+	startDaprRunRetry(t, []int{3510}, func() { cmdStopWithRunTemplate(runFilePath) }, "-f", runFilePath)
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		output, err := cmdSchedulerList()
@@ -512,27 +457,7 @@ func TestSchedulerDeleteAll(t *testing.T) {
 	}
 
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
-	t.Cleanup(func() {
-		cmdStopWithRunTemplate(runFilePath)
-	})
-
-	// Stop any existing instance before starting to ensure port is free
-	cmdStopWithRunTemplate(runFilePath)
-	waitForPortsFree(t, 3510)
-
-	args := []string{"-f", runFilePath}
-
-	go func() {
-		for range 10 {
-			o, err := cmdRun("", args...)
-			t.Log(o)
-			t.Log(err)
-			if err == nil {
-				break
-			}
-			time.Sleep(time.Second * 2)
-		}
-	}()
+	startDaprRunRetry(t, []int{3510}, func() { cmdStopWithRunTemplate(runFilePath) }, "-f", runFilePath)
 
 	// Wait for all 8 scheduler entries to appear: 2 app jobs, 2 actor
 	// reminders, 4 workflow/activity entries. Using countSchedulerEntries
@@ -585,22 +510,7 @@ func TestSchedulerExportImport(t *testing.T) {
 	}
 
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
-	t.Cleanup(func() {
-		cmdStopWithRunTemplate(runFilePath)
-	})
-	args := []string{"-f", runFilePath}
-
-	go func() {
-		for range 10 {
-			o, err := cmdRun("", args...)
-			t.Log(o)
-			t.Log(err)
-			if err == nil {
-				break
-			}
-			time.Sleep(time.Second * 2)
-		}
-	}()
+	startDaprRunRetry(t, []int{3510}, func() { cmdStopWithRunTemplate(runFilePath) }, "-f", runFilePath)
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		output, err := cmdSchedulerList()

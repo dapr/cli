@@ -40,18 +40,13 @@ func TestWorkflowList(t *testing.T) {
 
 	runFilePath := "../testdata/run-template-files/test-workflow.yaml"
 	appID := "test-workflow"
-	t.Cleanup(func() {
-		cmdStopWithAppID(appID)
-	})
-	args := []string{"-f", runFilePath}
-
-	waitForPortsFree(t, 3510)
-	go func() {
-		o, _ := cmdRun("", args...)
-		t.Log(o)
-	}()
+	startDaprRun(t, []int{3510}, func() { cmdStopWithAppID(appID) }, "-f", runFilePath)
 
 	waitForAppHealthy(t, 60*time.Second, "test-workflow")
+
+	// Purge any leftover workflow instances from previous test runs.
+	cmdWorkflowPurge(appID, redisConnString, "--all")
+
 	output, err := cmdWorkflowList(appID, redisConnString)
 	require.NoError(t, err)
 	assert.Equal(t, `❌  No workflow found in namespace "default" for app ID "test-workflow"
@@ -92,18 +87,11 @@ func TestWorkflowRaiseEvent(t *testing.T) {
 
 	runFilePath := "../testdata/run-template-files/test-workflow.yaml"
 	appID := "test-workflow"
-	t.Cleanup(func() {
-		cmdStopWithAppID(appID)
-	})
-	args := []string{"-f", runFilePath}
-
-	waitForPortsFree(t, 3510)
-	go func() {
-		o, _ := cmdRun("", args...)
-		t.Log(o)
-	}()
+	startDaprRun(t, []int{3510}, func() { cmdStopWithAppID(appID) }, "-f", runFilePath)
 
 	waitForAppHealthy(t, 60*time.Second, "test-workflow")
+	cmdWorkflowPurge(appID, redisConnString, "--all")
+
 	output, err := cmdWorkflowRun(appID, "EventWorkflow", "--instance-id=foo")
 	require.NoError(t, err, output)
 
@@ -168,18 +156,11 @@ func TestWorkflowReRun(t *testing.T) {
 
 	runFilePath := "../testdata/run-template-files/test-workflow.yaml"
 	appID := "test-workflow"
-	t.Cleanup(func() {
-		cmdStopWithAppID(appID)
-	})
-	args := []string{"-f", runFilePath}
-
-	waitForPortsFree(t, 3510)
-	go func() {
-		o, _ := cmdRun("", args...)
-		t.Log(o)
-	}()
+	startDaprRun(t, []int{3510}, func() { cmdStopWithAppID(appID) }, "-f", runFilePath)
 
 	waitForAppHealthy(t, 60*time.Second, "test-workflow")
+
+	cmdWorkflowPurge(appID, redisConnString, "--all")
 
 	output, err := cmdWorkflowRun(appID, "SimpleWorkflow", "--instance-id=foo")
 	require.NoError(t, err, output)
@@ -238,18 +219,10 @@ func TestWorkflowPurge(t *testing.T) {
 
 	runFilePath := "../testdata/run-template-files/test-workflow.yaml"
 	appID := "test-workflow"
-	t.Cleanup(func() {
-		cmdStopWithAppID(appID)
-	})
-	args := []string{"-f", runFilePath}
-
-	waitForPortsFree(t, 3510)
-	go func() {
-		o, _ := cmdRun("", args...)
-		t.Log(o)
-	}()
+	startDaprRun(t, []int{3510}, func() { cmdStopWithAppID(appID) }, "-f", runFilePath)
 
 	waitForAppHealthy(t, 60*time.Second, "test-workflow")
+	cmdWorkflowPurge(appID, redisConnString, "--all")
 
 	for i := 0; i < 3; i++ {
 		output, err := cmdWorkflowRun(appID, "SimpleWorkflow",
@@ -355,18 +328,10 @@ func TestWorkflowFilters(t *testing.T) {
 
 	runFilePath := "../testdata/run-template-files/test-workflow.yaml"
 	appID := "test-workflow"
-	t.Cleanup(func() {
-		cmdStopWithAppID(appID)
-	})
-	args := []string{"-f", runFilePath}
-
-	waitForPortsFree(t, 3510)
-	go func() {
-		o, _ := cmdRun("", args...)
-		t.Log(o)
-	}()
+	startDaprRun(t, []int{3510}, func() { cmdStopWithAppID(appID) }, "-f", runFilePath)
 
 	waitForAppHealthy(t, 60*time.Second, "test-workflow")
+	cmdWorkflowPurge(appID, redisConnString, "--all")
 
 	_, _ = cmdWorkflowRun(appID, "SimpleWorkflow", "--instance-id=simple-1")
 	_, _ = cmdWorkflowRun(appID, "LongWorkflow", "--instance-id=long-1")
@@ -416,18 +381,10 @@ func TestWorkflowChildCalls(t *testing.T) {
 
 	runFilePath := "../testdata/run-template-files/test-workflow.yaml"
 	appID := "test-workflow"
-	t.Cleanup(func() {
-		cmdStopWithAppID(appID)
-	})
-	args := []string{"-f", runFilePath}
-
-	waitForPortsFree(t, 3510)
-	go func() {
-		o, _ := cmdRun("", args...)
-		t.Log(o)
-	}()
+	startDaprRun(t, []int{3510}, func() { cmdStopWithAppID(appID) }, "-f", runFilePath)
 
 	waitForAppHealthy(t, 60*time.Second, "test-workflow")
+	cmdWorkflowPurge(appID, redisConnString, "--all")
 
 	t.Run("parent child workflow", func(t *testing.T) {
 		input := `{"test": "parent-child", "value": 42}`
@@ -589,18 +546,11 @@ func TestWorkflowHistory(t *testing.T) {
 
 	runFilePath := "../testdata/run-template-files/test-workflow.yaml"
 	appID := "test-workflow"
-	t.Cleanup(func() {
-		cmdStopWithAppID(appID)
-	})
-	args := []string{"-f", runFilePath}
-
-	waitForPortsFree(t, 3510)
-	go func() {
-		o, _ := cmdRun("", args...)
-		t.Log(o)
-	}()
+	startDaprRun(t, []int{3510}, func() { cmdStopWithAppID(appID) }, "-f", runFilePath)
 
 	waitForAppHealthy(t, 60*time.Second, "test-workflow")
+	cmdWorkflowPurge(appID, redisConnString, "--all")
+
 	output, err := cmdWorkflowRun(appID, "SimpleWorkflow", "--instance-id=history-test")
 	require.NoError(t, err, output)
 
@@ -637,18 +587,11 @@ func TestWorkflowSuspendResume(t *testing.T) {
 
 	runFilePath := "../testdata/run-template-files/test-workflow.yaml"
 	appID := "test-workflow"
-	t.Cleanup(func() {
-		cmdStopWithAppID(appID)
-	})
-	args := []string{"-f", runFilePath}
-
-	waitForPortsFree(t, 3510)
-	go func() {
-		o, _ := cmdRun("", args...)
-		t.Log(o)
-	}()
+	startDaprRun(t, []int{3510}, func() { cmdStopWithAppID(appID) }, "-f", runFilePath)
 
 	waitForAppHealthy(t, 60*time.Second, "test-workflow")
+	cmdWorkflowPurge(appID, redisConnString, "--all")
+
 	output, err := cmdWorkflowRun(appID, "LongWorkflow", "--instance-id=suspend-resume-test")
 	require.NoError(t, err, output)
 
@@ -709,18 +652,11 @@ func TestWorkflowTerminate(t *testing.T) {
 
 	runFilePath := "../testdata/run-template-files/test-workflow.yaml"
 	appID := "test-workflow"
-	t.Cleanup(func() {
-		cmdStopWithAppID(appID)
-	})
-	args := []string{"-f", runFilePath}
-
-	waitForPortsFree(t, 3510)
-	go func() {
-		o, _ := cmdRun("", args...)
-		t.Log(o)
-	}()
+	startDaprRun(t, []int{3510}, func() { cmdStopWithAppID(appID) }, "-f", runFilePath)
 
 	waitForAppHealthy(t, 60*time.Second, "test-workflow")
+	cmdWorkflowPurge(appID, redisConnString, "--all")
+
 	output, err := cmdWorkflowRun(appID, "LongWorkflow", "--instance-id=terminate-test")
 	require.NoError(t, err, output)
 
