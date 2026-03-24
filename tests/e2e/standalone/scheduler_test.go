@@ -566,11 +566,13 @@ func TestSchedulerDeleteAll(t *testing.T) {
 	// Wait for all 8 scheduler entries to appear: 2 app jobs, 2 actor
 	// reminders, 4 workflow/activity entries. Using countSchedulerEntries
 	// avoids hard-coding a line count that breaks if the output format changes.
+	// On slow macOS CI runners, workflow/activity entries can take over 60s to
+	// register, so use a 120s timeout.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		output, err := cmdSchedulerList()
 		require.NoError(t, err)
 		assert.GreaterOrEqual(c, countSchedulerEntries(output), 8)
-	}, 60*time.Second, time.Second)
+	}, 120*time.Second, time.Second)
 
 	_, err := cmdSchedulerDeleteAll("app/test-scheduler")
 	require.NoError(t, err)

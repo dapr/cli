@@ -202,15 +202,26 @@ func TestWorkflowReRun(t *testing.T) {
 	output, err := cmdWorkflowRun(appID, "SimpleWorkflow", "--instance-id=foo")
 	require.NoError(t, err, output)
 
-	// Wait for the workflow instance to be registered and queryable before
-	// attempting rerun operations. On slow CI runners 3s is not enough.
+	// Wait for the workflow instance to reach a terminal state before
+	// attempting rerun operations. Rerun requires the instance to be in a
+	// terminal state (COMPLETED/FAILED/TERMINATED).
 	require.Eventually(t, func() bool {
 		out, err := cmdWorkflowList(appID, redisConnString, "-o", "json")
 		if err != nil {
 			return false
 		}
-		return strings.Contains(out, "foo")
-	}, 30*time.Second, time.Second, "workflow instance 'foo' did not appear in list")
+		var list []map[string]interface{}
+		if err := json.Unmarshal([]byte(out), &list); err != nil {
+			return false
+		}
+		for _, item := range list {
+			if item["instanceID"] == "foo" {
+				status, _ := item["runtimeStatus"].(string)
+				return status == "COMPLETED" || status == "FAILED" || status == "TERMINATED"
+			}
+		}
+		return false
+	}, 60*time.Second, time.Second, "workflow instance 'foo' did not reach terminal state")
 
 	t.Run("rerun from beginning", func(t *testing.T) {
 		output, err := cmdWorkflowReRun(appID, "foo")
