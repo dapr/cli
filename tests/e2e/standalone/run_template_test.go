@@ -22,7 +22,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -118,23 +117,6 @@ func waitForAppsListed(t *testing.T, timeout time.Duration, appIDs ...string) {
 		}
 		return found == len(appIDs)
 	}, timeout, time.Second, "dapr apps %v not listed within %v", appIDs, timeout)
-}
-
-// waitForPortsFree polls until all given ports are available for binding.
-// This prevents port contention between sequential subtests that use
-// hardcoded ports.
-func waitForPortsFree(t *testing.T, ports ...int) {
-	t.Helper()
-	require.Eventually(t, func() bool {
-		for _, port := range ports {
-			ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
-			if err != nil {
-				return false
-			}
-			ln.Close()
-		}
-		return true
-	}, 60*time.Second, time.Second, "ports %v not available in time", ports)
 }
 
 // waitForLogContent polls until the log file matching partialFileName in

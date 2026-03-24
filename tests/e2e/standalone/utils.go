@@ -18,12 +18,15 @@ package standalone_test
 import (
 	"bufio"
 	"errors"
+	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -135,6 +138,23 @@ func executeAgainstRunningDapr(t *testing.T, f func(), daprArgs ...string) {
 	}
 }
 
+// waitForPortsFree polls until all given ports are available for binding.
+// This prevents port contention between sequential tests that reuse
+// hardcoded ports (e.g. container ports from dapr init).
+func waitForPortsFree(t *testing.T, ports ...int) {
+	t.Helper()
+	require.Eventually(t, func() bool {
+		for _, port := range ports {
+			ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+			if err != nil {
+				return false
+			}
+			ln.Close()
+		}
+		return true
+	}, 60*time.Second, time.Second, "ports %v not available in time", ports)
+}
+
 // ensureDaprInstallation ensures that Dapr is installed.
 // If Dapr is not installed, a new installation is attempted.
 func ensureDaprInstallation(t *testing.T) {
@@ -145,6 +165,16 @@ func ensureDaprInstallation(t *testing.T) {
 	daprPath := filepath.Join(homeDir, ".dapr")
 	_, err = os.Stat(daprPath)
 	if os.IsNotExist(err) {
+		// Wait for container ports from a previous dapr installation to
+		// be fully released. On macOS, container port bindings can linger
+		// briefly after `dapr uninstall` removes the containers.
+		if !isSlimMode() {
+			waitForPortsFree(t,
+				58080, // placement health
+				58081, // scheduler health
+				50005, // placement gRPC
+			)
+		}
 		args := []string{
 			"--runtime-version", daprRuntimeVersion,
 			"--dashboard-version", daprDashboardVersion,
