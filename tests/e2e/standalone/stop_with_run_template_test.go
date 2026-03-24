@@ -36,10 +36,8 @@ func TestStopAppsStartedWithRunTemplate(t *testing.T) {
 	// clean up logs before starting the tests
 	cleanUpLogs()
 
-	ensureDaprInstallation(t)
 	t.Cleanup(func() {
-		// remove dapr installation after all tests in this function.
-		tearDownTestSetup(t)
+		cleanUpLogs()
 	})
 
 	t.Run("stop apps by passing run template file", func(t *testing.T) {

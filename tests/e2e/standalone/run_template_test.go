@@ -169,13 +169,7 @@ type AppTestOutput struct {
 }
 
 func TestRunWithTemplateFile(t *testing.T) {
-	cmdUninstall()
 	cleanUpLogs()
-	ensureDaprInstallation(t)
-	t.Cleanup(func() {
-		// remove dapr installation after all tests in this function.
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
 	// These tests are dependent on run template files in ../testdata/run-template-files folder.
 
 	t.Run("invalid template file wrong emit metrics app run", func(t *testing.T) {
@@ -244,8 +238,6 @@ func TestRunWithTemplateFile(t *testing.T) {
 		if isSlimMode() {
 			t.Skip("skipping: slim mode has no placement/scheduler so daprd cannot become healthy")
 		}
-		cmdUninstall()
-		ensureDaprInstallation(t)
 
 		runFilePath := "../testdata/run-template-files/dapr.yaml"
 		ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
@@ -316,8 +308,6 @@ func TestRunWithTemplateFile(t *testing.T) {
 
 	t.Run("invalid template file env var not set", func(t *testing.T) {
 		runFilePath := "../testdata/run-template-files/env_var_not_set_dapr.yaml"
-		cmdUninstall()
-		ensureDaprInstallation(t)
 
 		ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
 		defer cancel()
@@ -379,9 +369,6 @@ func TestRunWithTemplateFile(t *testing.T) {
 	})
 
 	t.Run("valid template file no app command", func(t *testing.T) {
-		cmdUninstall()
-		ensureDaprInstallation(t)
-
 		runFilePath := "../testdata/run-template-files/no_app_command.yaml"
 		// The CLI performs daprd health checks (IsDaprListeningOnPort) for
 		// apps with appPort=0. Each check can take up to 60s. With two
@@ -449,9 +436,6 @@ func TestRunWithTemplateFile(t *testing.T) {
 	})
 
 	t.Run("valid template file empty app command", func(t *testing.T) {
-		cmdUninstall()
-		ensureDaprInstallation(t)
-
 		runFilePath := "../testdata/run-template-files/empty_app_command.yaml"
 		// The CLI starts daprd for emit-metrics, runs health checks (up
 		// to 60s each for HTTP and gRPC ports since appPort=0), detects
@@ -515,8 +499,6 @@ func TestRunWithTemplateFile(t *testing.T) {
 		if isSlimMode() {
 			t.Skip("skipping: slim mode has no placement/scheduler so daprd cannot become healthy")
 		}
-		cmdUninstall()
-		ensureDaprInstallation(t)
 
 		runFilePath := "../testdata/run-template-files/app_output_to_file_and_console.yaml"
 		ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
@@ -586,8 +568,12 @@ func TestRunWithTemplateFile(t *testing.T) {
 }
 
 func TestRunTemplateFileWithoutDaprInit(t *testing.T) {
-	// remove any dapr installation before this test.
+	// Remove dapr installation so we can test running without init.
 	must(t, cmdUninstall, "failed to uninstall Dapr")
+	// Reinstall Dapr when done so subsequent tests still work.
+	t.Cleanup(func() {
+		ensureDaprInstallation(t)
+	})
 	t.Run("valid template file without dapr init", func(t *testing.T) {
 		t.Cleanup(func() {
 			// assumption in the test is that there is only one set of app and daprd logs in the logs directory.

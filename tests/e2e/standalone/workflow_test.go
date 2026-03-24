@@ -38,12 +38,6 @@ func TestWorkflowList(t *testing.T) {
 		t.Skip("skipping workflow tests in slim mode")
 	}
 
-	cmdUninstall()
-	ensureDaprInstallation(t)
-	t.Cleanup(func() {
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
-
 	runFilePath := "../testdata/run-template-files/test-workflow.yaml"
 	appID := "test-workflow"
 	t.Cleanup(func() {
@@ -95,12 +89,6 @@ func TestWorkflowRaiseEvent(t *testing.T) {
 	if isSlimMode() {
 		t.Skip("skipping workflow tests in slim mode")
 	}
-
-	cmdUninstall()
-	ensureDaprInstallation(t)
-	t.Cleanup(func() {
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
 
 	runFilePath := "../testdata/run-template-files/test-workflow.yaml"
 	appID := "test-workflow"
@@ -178,12 +166,6 @@ func TestWorkflowReRun(t *testing.T) {
 		t.Skip("skipping workflow tests in slim mode")
 	}
 
-	cmdUninstall()
-	ensureDaprInstallation(t)
-	t.Cleanup(func() {
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
-
 	runFilePath := "../testdata/run-template-files/test-workflow.yaml"
 	appID := "test-workflow"
 	t.Cleanup(func() {
@@ -254,12 +236,6 @@ func TestWorkflowPurge(t *testing.T) {
 		t.Skip("skipping workflow tests in slim mode")
 	}
 
-	cmdUninstall()
-	ensureDaprInstallation(t)
-	t.Cleanup(func() {
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
-
 	runFilePath := "../testdata/run-template-files/test-workflow.yaml"
 	appID := "test-workflow"
 	t.Cleanup(func() {
@@ -267,12 +243,13 @@ func TestWorkflowPurge(t *testing.T) {
 	})
 	args := []string{"-f", runFilePath}
 
+	waitForPortsFree(t, 3510)
 	go func() {
 		o, _ := cmdRun("", args...)
 		t.Log(o)
 	}()
 
-	time.Sleep(5 * time.Second)
+	waitForAppHealthy(t, 60*time.Second, "test-workflow")
 
 	for i := 0; i < 3; i++ {
 		output, err := cmdWorkflowRun(appID, "SimpleWorkflow",
@@ -376,12 +353,6 @@ func TestWorkflowFilters(t *testing.T) {
 		t.Skip("skipping workflow tests in slim mode")
 	}
 
-	cmdUninstall()
-	ensureDaprInstallation(t)
-	t.Cleanup(func() {
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
-
 	runFilePath := "../testdata/run-template-files/test-workflow.yaml"
 	appID := "test-workflow"
 	t.Cleanup(func() {
@@ -389,12 +360,13 @@ func TestWorkflowFilters(t *testing.T) {
 	})
 	args := []string{"-f", runFilePath}
 
+	waitForPortsFree(t, 3510)
 	go func() {
 		o, _ := cmdRun("", args...)
 		t.Log(o)
 	}()
 
-	time.Sleep(5 * time.Second)
+	waitForAppHealthy(t, 60*time.Second, "test-workflow")
 
 	_, _ = cmdWorkflowRun(appID, "SimpleWorkflow", "--instance-id=simple-1")
 	_, _ = cmdWorkflowRun(appID, "LongWorkflow", "--instance-id=long-1")
@@ -441,12 +413,6 @@ func TestWorkflowChildCalls(t *testing.T) {
 	if isSlimMode() {
 		t.Skip("skipping workflow tests in slim mode")
 	}
-
-	cmdUninstall()
-	ensureDaprInstallation(t)
-	t.Cleanup(func() {
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
 
 	runFilePath := "../testdata/run-template-files/test-workflow.yaml"
 	appID := "test-workflow"
@@ -621,12 +587,6 @@ func TestWorkflowHistory(t *testing.T) {
 		t.Skip("skipping workflow tests in slim mode")
 	}
 
-	cmdUninstall()
-	ensureDaprInstallation(t)
-	t.Cleanup(func() {
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
-
 	runFilePath := "../testdata/run-template-files/test-workflow.yaml"
 	appID := "test-workflow"
 	t.Cleanup(func() {
@@ -634,13 +594,13 @@ func TestWorkflowHistory(t *testing.T) {
 	})
 	args := []string{"-f", runFilePath}
 
+	waitForPortsFree(t, 3510)
 	go func() {
 		o, _ := cmdRun("", args...)
 		t.Log(o)
 	}()
 
-	// Wait and create a workflow
-	time.Sleep(5 * time.Second)
+	waitForAppHealthy(t, 60*time.Second, "test-workflow")
 	output, err := cmdWorkflowRun(appID, "SimpleWorkflow", "--instance-id=history-test")
 	require.NoError(t, err, output)
 
@@ -675,12 +635,6 @@ func TestWorkflowSuspendResume(t *testing.T) {
 		t.Skip("skipping workflow tests in slim mode")
 	}
 
-	cmdUninstall()
-	ensureDaprInstallation(t)
-	t.Cleanup(func() {
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
-
 	runFilePath := "../testdata/run-template-files/test-workflow.yaml"
 	appID := "test-workflow"
 	t.Cleanup(func() {
@@ -688,13 +642,13 @@ func TestWorkflowSuspendResume(t *testing.T) {
 	})
 	args := []string{"-f", runFilePath}
 
+	waitForPortsFree(t, 3510)
 	go func() {
 		o, _ := cmdRun("", args...)
 		t.Log(o)
 	}()
 
-	// Wait and create a long-running workflow
-	time.Sleep(5 * time.Second)
+	waitForAppHealthy(t, 60*time.Second, "test-workflow")
 	output, err := cmdWorkflowRun(appID, "LongWorkflow", "--instance-id=suspend-resume-test")
 	require.NoError(t, err, output)
 
@@ -753,12 +707,6 @@ func TestWorkflowTerminate(t *testing.T) {
 		t.Skip("skipping workflow tests in slim mode")
 	}
 
-	cmdUninstall()
-	ensureDaprInstallation(t)
-	t.Cleanup(func() {
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
-
 	runFilePath := "../testdata/run-template-files/test-workflow.yaml"
 	appID := "test-workflow"
 	t.Cleanup(func() {
@@ -766,13 +714,13 @@ func TestWorkflowTerminate(t *testing.T) {
 	})
 	args := []string{"-f", runFilePath}
 
+	waitForPortsFree(t, 3510)
 	go func() {
 		o, _ := cmdRun("", args...)
 		t.Log(o)
 	}()
 
-	// Wait and create a workflow for testing
-	time.Sleep(5 * time.Second)
+	waitForAppHealthy(t, 60*time.Second, "test-workflow")
 	output, err := cmdWorkflowRun(appID, "LongWorkflow", "--instance-id=terminate-test")
 	require.NoError(t, err, output)
 

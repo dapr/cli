@@ -31,7 +31,6 @@ import (
 )
 
 func TestStandaloneList(t *testing.T) {
-	ensureDaprInstallation(t)
 	// Use a long-running app so we can test list and stop. Windows has no bash, so use cmd.
 	runArgs := []string{"run", "--app-id", "dapr_e2e_list", "-H", "3555", "-G", "4555", "--"}
 	if runtime.GOOS == "windows" {

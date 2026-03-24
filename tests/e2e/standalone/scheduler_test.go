@@ -53,13 +53,9 @@ func TestSchedulerList(t *testing.T) {
 		t.Skip("skipping scheduler tests in slim mode")
 	}
 
-	cmdUninstall()
-	ensureDaprInstallation(t)
-
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
 	t.Cleanup(func() {
 		cmdStopWithRunTemplate(runFilePath)
-		must(t, cmdUninstall, "failed to uninstall Dapr")
 	})
 
 	args := []string{"-f", runFilePath}
@@ -237,13 +233,9 @@ func TestSchedulerGet(t *testing.T) {
 		t.Skip("skipping scheduler tests in slim mode")
 	}
 
-	cmdUninstall()
-	ensureDaprInstallation(t)
-
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
 	t.Cleanup(func() {
 		cmdStopWithRunTemplate(runFilePath)
-		must(t, cmdUninstall, "failed to uninstall Dapr")
 	})
 
 	args := []string{"-f", runFilePath}
@@ -410,16 +402,9 @@ func TestSchedulerDelete(t *testing.T) {
 		t.Skip("skipping scheduler tests in slim mode")
 	}
 
-	cmdUninstall()
-	ensureDaprInstallation(t)
-	t.Cleanup(func() {
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
-
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
 	t.Cleanup(func() {
 		cmdStopWithRunTemplate(runFilePath)
-		must(t, cmdUninstall, "failed to uninstall Dapr")
 	})
 	args := []string{"-f", runFilePath}
 
@@ -489,16 +474,9 @@ func TestSchedulerDeleteAllAll(t *testing.T) {
 		t.Skip("skipping scheduler tests in slim mode")
 	}
 
-	cmdUninstall()
-	ensureDaprInstallation(t)
-	t.Cleanup(func() {
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
-
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
 	t.Cleanup(func() {
 		cmdStopWithRunTemplate(runFilePath)
-		must(t, cmdUninstall, "failed to uninstall Dapr")
 	})
 	args := []string{"-f", runFilePath}
 
@@ -533,16 +511,9 @@ func TestSchedulerDeleteAll(t *testing.T) {
 		t.Skip("skipping scheduler tests in slim mode")
 	}
 
-	cmdUninstall()
-	ensureDaprInstallation(t)
-	t.Cleanup(func() {
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
-
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
 	t.Cleanup(func() {
 		cmdStopWithRunTemplate(runFilePath)
-		must(t, cmdUninstall, "failed to uninstall Dapr")
 	})
 
 	// Stop any existing instance before starting to ensure port is free
@@ -613,16 +584,9 @@ func TestSchedulerExportImport(t *testing.T) {
 		t.Skip("skipping scheduler tests in slim mode")
 	}
 
-	cmdUninstall()
-	ensureDaprInstallation(t)
-	t.Cleanup(func() {
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
-
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
 	t.Cleanup(func() {
 		cmdStopWithRunTemplate(runFilePath)
-		must(t, cmdUninstall, "failed to uninstall Dapr")
 	})
 	args := []string{"-f", runFilePath}
 
