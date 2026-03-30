@@ -213,14 +213,14 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 	// Set runtime version.
 
 	if runtimeVersion == latestVersion && !isAirGapInit {
-		runtimeVersion, err = cli_ver.GetDaprVersion()
+		runtimeVersion, err = cli_ver.GetLatestVersion(cli_ver.DaprImageRef(imageRegistryURL))
 		if err != nil {
 			return fmt.Errorf("cannot get the latest release version: '%w'. Try specifying --runtime-version=<desired_version>", err)
 		}
 	}
 
 	if dashboardVersion == latestVersion && !isAirGapInit {
-		dashboardVersion, err = cli_ver.GetDashboardVersion()
+		dashboardVersion, err = cli_ver.GetLatestVersion(cli_ver.DashboardImageRef(imageRegistryURL))
 		if err != nil {
 			print.WarningStatusEvent(os.Stdout, "cannot get the latest dashboard version: '%s'. Try specifying --dashboard-version=<desired_version>", err)
 			print.WarningStatusEvent(os.Stdout, "continuing, but dashboard will be unavailable")

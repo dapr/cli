@@ -157,9 +157,9 @@ func TestStandaloneInit(t *testing.T) {
 		daprPath := filepath.Join(homeDir, ".dapr")
 		require.DirExists(t, daprPath, "Directory %s does not exist", daprPath)
 
-		latestDaprRuntimeVersion, err := version.GetDaprVersion()
+		latestDaprRuntimeVersion, err := version.GetLatestVersion(version.DaprDefaultImage)
 		require.NoError(t, err)
-		latestDaprDashboardVersion, err := version.GetDashboardVersion()
+		latestDaprDashboardVersion, err := version.GetLatestVersion(version.DashboardDefaultImage)
 		require.NoError(t, err)
 
 		verifyContainers(t, latestDaprRuntimeVersion)
@@ -247,9 +247,9 @@ func TestStandaloneInit(t *testing.T) {
 		daprPath := filepath.Join(homeDir, ".dapr")
 		require.DirExists(t, daprPath, "Directory %s does not exist", daprPath)
 
-		latestDaprRuntimeVersion, err := version.GetDaprVersion()
+		latestDaprRuntimeVersion, err := version.GetLatestVersion(version.DaprDefaultImage)
 		require.NoError(t, err)
-		latestDaprDashboardVersion, err := version.GetDashboardVersion()
+		latestDaprDashboardVersion, err := version.GetLatestVersion(version.DashboardDefaultImage)
 		require.NoError(t, err)
 
 		verifyContainers(t, latestDaprRuntimeVersion+"-mariner")
