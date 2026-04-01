@@ -53,6 +53,12 @@ func TestSchedulerList(t *testing.T) {
 		t.Skip("skipping scheduler tests in slim mode")
 	}
 
+	// Reinstall Dapr to get a fresh scheduler container. Without this,
+	// stale workflow registrations from previous tests cause
+	// wf.StartWorker to hang when reconnecting with the same types/IDs.
+	cmdUninstall()
+	ensureDaprInstallation(t)
+
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
 	startDaprRunRetry(t, []int{3510}, func() { cmdStopWithRunTemplate(runFilePath) }, "-f", runFilePath)
 
