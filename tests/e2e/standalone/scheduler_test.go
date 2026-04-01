@@ -218,6 +218,9 @@ func TestSchedulerGet(t *testing.T) {
 		t.Skip("skipping scheduler tests in slim mode")
 	}
 
+	cmdUninstall()
+	ensureDaprInstallation(t)
+
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
 	startDaprRun(t, []int{3510}, func() { cmdStopWithRunTemplate(runFilePath) }, "-f", runFilePath)
 
@@ -377,6 +380,12 @@ func TestSchedulerDelete(t *testing.T) {
 		t.Skip("skipping scheduler tests in slim mode")
 	}
 
+	// Reinstall Dapr to clear any stale scheduler state (workflow entries)
+	// from previous tests. Without this, wf.StartWorker hangs because the
+	// scheduler container still holds old workflow registrations.
+	cmdUninstall()
+	ensureDaprInstallation(t)
+
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
 	startDaprRunRetry(t, []int{3510}, func() { cmdStopWithRunTemplate(runFilePath) }, "-f", runFilePath)
 
@@ -434,6 +443,9 @@ func TestSchedulerDeleteAllAll(t *testing.T) {
 		t.Skip("skipping scheduler tests in slim mode")
 	}
 
+	cmdUninstall()
+	ensureDaprInstallation(t)
+
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
 	startDaprRunRetry(t, []int{3510}, func() { cmdStopWithRunTemplate(runFilePath) }, "-f", runFilePath)
 
@@ -457,6 +469,9 @@ func TestSchedulerDeleteAll(t *testing.T) {
 	if isSlimMode() {
 		t.Skip("skipping scheduler tests in slim mode")
 	}
+
+	cmdUninstall()
+	ensureDaprInstallation(t)
 
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
 	startDaprRunRetry(t, []int{3510}, func() { cmdStopWithRunTemplate(runFilePath) }, "-f", runFilePath)
@@ -510,6 +525,9 @@ func TestSchedulerExportImport(t *testing.T) {
 	if isSlimMode() {
 		t.Skip("skipping scheduler tests in slim mode")
 	}
+
+	cmdUninstall()
+	ensureDaprInstallation(t)
 
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
 	startDaprRunRetry(t, []int{3510}, func() { cmdStopWithRunTemplate(runFilePath) }, "-f", runFilePath)
