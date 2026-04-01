@@ -437,11 +437,13 @@ func TestSchedulerDeleteAllAll(t *testing.T) {
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
 	startDaprRunRetry(t, []int{3510}, func() { cmdStopWithRunTemplate(runFilePath) }, "-f", runFilePath)
 
+	// On slow macOS CI runners, workflow/activity entries can take over 60s to
+	// register, so use a 120s timeout.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		output, err := cmdSchedulerList()
 		require.NoError(t, err)
 		assert.GreaterOrEqual(c, countSchedulerEntries(output), 8)
-	}, 60*time.Second, time.Second)
+	}, 120*time.Second, time.Second)
 
 	_, err := cmdSchedulerDeleteAll("all")
 	require.NoError(t, err)
@@ -512,11 +514,13 @@ func TestSchedulerExportImport(t *testing.T) {
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
 	startDaprRunRetry(t, []int{3510}, func() { cmdStopWithRunTemplate(runFilePath) }, "-f", runFilePath)
 
+	// On slow macOS CI runners, workflow/activity entries can take over 60s to
+	// register, so use a 120s timeout.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		output, err := cmdSchedulerList()
 		require.NoError(t, err)
 		assert.GreaterOrEqual(c, countSchedulerEntries(output), 8)
-	}, 60*time.Second, time.Second)
+	}, 120*time.Second, time.Second)
 
 	f := filepath.Join(t.TempDir(), "foo")
 	_, err := cmdSchedulerExport("-o", f)

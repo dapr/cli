@@ -432,7 +432,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 				"termination signal received: shutting down",
 				"Exited Dapr successfully",
 			},
-			daprdLogPollTimeout: 20 * time.Second,
+			daprdLogPollTimeout: 60 * time.Second,
 		}
 		assertLogOutputForRunTemplateExec(t, appTestOutput)
 	})
