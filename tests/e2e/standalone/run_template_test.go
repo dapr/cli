@@ -391,14 +391,12 @@ func TestRunWithTemplateFile(t *testing.T) {
 			t.Logf("%s", output)
 			outputCh <- output
 		}()
-		// Wait for the CLI to fully process emit-metrics by checking
-		// the daprd log for "You're up and running!". This is written
-		// AFTER health checks complete (which can take 60s+ per port)
-		// and AFTER "Started Dapr..." is written to stdout.
-		// NOTE: Do NOT use waitForAppsListed here — dapr list detects
-		// the daprd process running BEFORE the CLI finishes health
-		// checks, causing a race where stop is sent too early.
-		waitForLogContent(t, "../../apps/emit-metrics/.dapr/logs", "daprd", "You're up and running!", 180*time.Second)
+		// Wait for emit-metrics to be fully healthy before stopping.
+		// NOTE: Do NOT use waitForAppsListed here — it detects the
+		// daprd process BEFORE the CLI finishes health checks, causing
+		// a race where stop is sent too early. waitForAppHealthy also
+		// checks the healthz endpoint, confirming the sidecar is ready.
+		waitForAppHealthy(t, 180*time.Second, "emit-metrics")
 		cmdStopWithRunTemplate(runFilePath)
 		output := collectOutput(t, outputCh, cancel, 60*time.Second)
 
