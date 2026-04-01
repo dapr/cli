@@ -525,24 +525,24 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 	daprsyscall.CreateProcessGroupID()
 
 	for _, app := range apps {
-		print.StatusEvent(os.Stdout, print.LogInfo, "Validating config and starting app %q", app.RunConfig.AppID)
+		print.StatusEvent(os.Stdout, print.LogInfo, "Validating config and starting app %q", app.AppID)
 		// Set defaults if zero value provided in config yaml.
-		app.RunConfig.SetDefaultFromSchema()
+		app.SetDefaultFromSchema()
 
 		// Adjust scheduler host address defaults for run-file apps (pointer-aware)
 		var schedIn string
-		if app.RunConfig.SchedulerHostAddress != nil {
-			schedIn = *app.RunConfig.SchedulerHostAddress
+		if app.SchedulerHostAddress != nil {
+			schedIn = *app.SchedulerHostAddress
 		}
 		schedOut := validateSchedulerHostAddress(daprVer.RuntimeVersion, schedIn)
 		if schedOut != "" {
-			app.RunConfig.SchedulerHostAddress = &schedOut
+			app.SchedulerHostAddress = &schedOut
 		}
 
 		// Validate validates the configs and modifies the ports to free ports, appId etc.
-		err := app.RunConfig.Validate()
+		err := app.Validate()
 		if err != nil {
-			print.FailureStatusEvent(os.Stderr, "Error validating run config for app %q present in %s: %s", app.RunConfig.AppID, runFilePath, err.Error())
+			print.FailureStatusEvent(os.Stderr, "Error validating run config for app %q present in %s: %s", app.AppID, runFilePath, err.Error())
 			exitWithError = true
 			break
 		}
@@ -648,7 +648,7 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 
 func logInformationalStatusToStdout(app runfileconfig.App) {
 	print.InfoStatusEvent(os.Stdout, "Started Dapr with app id %q. HTTP Port: %d. gRPC Port: %d",
-		app.AppID, app.RunConfig.HTTPPort, app.RunConfig.GRPCPort)
+		app.AppID, app.HTTPPort, app.GRPCPort)
 	print.InfoStatusEvent(os.Stdout, "Writing log files to directory : %s", app.GetLogsDir())
 }
 
