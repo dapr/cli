@@ -7,11 +7,11 @@ require (
 	github.com/Masterminds/semver/v3 v3.3.0
 	github.com/Pallinder/sillyname-go v0.0.0-20130730142914-97aeae9e6ba1
 	github.com/briandowns/spinner v1.19.0
-	github.com/dapr/dapr v1.17.0-rc.8
-	github.com/dapr/durabletask-go v0.11.0
-	github.com/dapr/go-sdk v1.13.0
-	github.com/dapr/kit v0.16.2-0.20251124175541-3ac186dff64d
-	github.com/diagridio/go-etcd-cron v0.12.3
+	github.com/dapr/dapr v1.17.3
+	github.com/dapr/durabletask-go v0.11.1
+	github.com/dapr/go-sdk v1.14.0
+	github.com/dapr/kit v0.17.0
+	github.com/diagridio/go-etcd-cron v0.12.4
 	github.com/docker/docker v28.5.2+incompatible
 	github.com/evanphx/json-patch/v5 v5.9.0
 	github.com/fatih/color v1.17.0
@@ -90,7 +90,7 @@ require (
 	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/cyphar/filepath-securejoin v0.6.1 // indirect
-	github.com/dapr/components-contrib v1.16.2-0.20260212154145-4a37800d3727 // indirect
+	github.com/dapr/components-contrib v1.17.2 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
