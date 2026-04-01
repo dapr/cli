@@ -369,6 +369,10 @@ func TestRunWithTemplateFile(t *testing.T) {
 	})
 
 	t.Run("valid template file no app command", func(t *testing.T) {
+		if isSlimMode() {
+			t.Skip("skipping: slim mode has no placement/scheduler so daprd cannot become healthy")
+		}
+
 		runFilePath := "../testdata/run-template-files/no_app_command.yaml"
 		// The CLI performs daprd health checks (IsDaprListeningOnPort) for
 		// apps with appPort=0. Each check can take up to 60s. With two
@@ -434,6 +438,10 @@ func TestRunWithTemplateFile(t *testing.T) {
 	})
 
 	t.Run("valid template file empty app command", func(t *testing.T) {
+		if isSlimMode() {
+			t.Skip("skipping: slim mode has no placement/scheduler so daprd cannot become healthy")
+		}
+
 		runFilePath := "../testdata/run-template-files/empty_app_command.yaml"
 		// The CLI starts daprd for emit-metrics, runs health checks (up
 		// to 60s each for HTTP and gRPC ports since appPort=0), detects
