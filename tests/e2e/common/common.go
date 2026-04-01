@@ -1087,7 +1087,7 @@ func validateThirdpartyPodsOnInit(t *testing.T) {
 		devZipkinReleaseName: "dapr-dev-zipkin-",
 	}
 	for _, pod := range list.Items {
-		t.Log(pod.ObjectMeta.Name)
+		t.Log(pod.Name)
 		for component, prefix := range prefixes {
 			if pod.Status.Phase != core_v1.PodRunning {
 				continue
@@ -1095,7 +1095,7 @@ func validateThirdpartyPodsOnInit(t *testing.T) {
 			if !pod.Status.ContainerStatuses[0].Ready {
 				continue
 			}
-			if strings.HasPrefix(pod.ObjectMeta.Name, prefix) {
+			if strings.HasPrefix(pod.Name, prefix) {
 				delete(notFound, component)
 			}
 		}
@@ -1139,7 +1139,7 @@ func validatePodsOnInstallUpgrade(t *testing.T, details VersionDetails) {
 
 	t.Logf("items %d", len(list.Items))
 	for _, pod := range list.Items {
-		t.Log(pod.ObjectMeta.Name)
+		t.Log(pod.Name)
 		for component, prefix := range prefixes {
 			if pod.Status.Phase != core_v1.PodRunning {
 				continue
@@ -1147,7 +1147,7 @@ func validatePodsOnInstallUpgrade(t *testing.T, details VersionDetails) {
 			if !pod.Status.ContainerStatuses[0].Ready {
 				continue
 			}
-			if strings.HasPrefix(pod.ObjectMeta.Name, prefix) {
+			if strings.HasPrefix(pod.Name, prefix) {
 				expectedVersion, ok := notFound[component]
 				if !ok {
 					continue
@@ -1198,7 +1198,7 @@ func waitPodDeletionDev(t *testing.T, done, podsDeleted chan struct{}) {
 
 		t.Logf("dev pods waiting to be deleted: %d", len(list.Items))
 		for _, pod := range list.Items {
-			t.Log(pod.ObjectMeta.Name)
+			t.Log(pod.Name)
 			for component, prefix := range prefixes {
 				if pod.Status.Phase != core_v1.PodRunning {
 					continue
@@ -1206,7 +1206,7 @@ func waitPodDeletionDev(t *testing.T, done, podsDeleted chan struct{}) {
 				if !pod.Status.ContainerStatuses[0].Ready {
 					continue
 				}
-				if strings.HasPrefix(pod.ObjectMeta.Name, prefix) {
+				if strings.HasPrefix(pod.Name, prefix) {
 					delete(found, component)
 				}
 			}
@@ -1244,7 +1244,7 @@ func waitPodDeletion(t *testing.T, done, podsDeleted chan struct{}) {
 		} else {
 			t.Logf("pods waiting to be deleted: %d", len(list.Items))
 			for _, pod := range list.Items {
-				t.Log(pod.ObjectMeta.Name)
+				t.Log(pod.Name)
 			}
 		}
 		time.Sleep(5 * time.Second)
@@ -1271,7 +1271,7 @@ func waitAllPodsRunning(t *testing.T, namespace string, haEnabled bool, done, po
 		t.Logf("waiting for pods to be running, current count: %d", len(list.Items))
 		countOfReadyPods := 0
 		for _, item := range list.Items {
-			t.Log(item.ObjectMeta.Name)
+			t.Log(item.Name)
 			// Check pods running, and containers ready.
 			if item.Status.Phase == core_v1.PodRunning && len(item.Status.ContainerStatuses) != 0 {
 				size := len(item.Status.ContainerStatuses)

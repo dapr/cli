@@ -178,11 +178,12 @@ func getVersion(releaseName string, version string) (string, error) {
 	actualVersion := version
 	if version == latestVersion {
 		var err error
-		if releaseName == daprReleaseName {
+		switch releaseName {
+		case daprReleaseName:
 			actualVersion, err = cli_ver.GetDaprVersion()
-		} else if releaseName == dashboardReleaseName {
+		case dashboardReleaseName:
 			actualVersion, err = cli_ver.GetDashboardVersion()
-		} else {
+		default:
 			return "", fmt.Errorf("cannot get latest version for unknown chart: %s", releaseName)
 		}
 		if err != nil {
