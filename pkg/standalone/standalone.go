@@ -212,15 +212,24 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 
 	// Set runtime version.
 
+	// Determine the effective registry URL for version resolution.
+	// When no custom registry is provided, use the default registry
+	// (GHCR or Docker Hub) so we query tags from the same registry
+	// that will be used for pulling images.
+	effectiveRegistryURL := imageRegistryURL
+	if effectiveRegistryURL == "" && defaultImageRegistryName == githubContainerRegistryName {
+		effectiveRegistryURL = ghcrURI
+	}
+
 	if runtimeVersion == latestVersion && !isAirGapInit {
-		runtimeVersion, err = cli_ver.GetLatestVersion(cli_ver.DaprImageRef(imageRegistryURL))
+		runtimeVersion, err = cli_ver.GetLatestVersion(cli_ver.DaprImageRef(effectiveRegistryURL))
 		if err != nil {
 			return fmt.Errorf("cannot get the latest release version: '%w'. Try specifying --runtime-version=<desired_version>", err)
 		}
 	}
 
 	if dashboardVersion == latestVersion && !isAirGapInit {
-		dashboardVersion, err = cli_ver.GetLatestVersion(cli_ver.DashboardImageRef(imageRegistryURL))
+		dashboardVersion, err = cli_ver.GetLatestVersion(cli_ver.DashboardImageRef(effectiveRegistryURL))
 		if err != nil {
 			print.WarningStatusEvent(os.Stdout, "cannot get the latest dashboard version: '%s'. Try specifying --dashboard-version=<desired_version>", err)
 			print.WarningStatusEvent(os.Stdout, "continuing, but dashboard will be unavailable")
