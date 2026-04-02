@@ -262,6 +262,8 @@ func TestWorkflowPurge(t *testing.T) {
 			require.NoError(t, err, output)
 			_, _ = cmdWorkflowTerminate(appID, "purge-all-"+strconv.Itoa(i))
 		}
+		// Wait for workflows to reach terminal state after terminate.
+		time.Sleep(2 * time.Second)
 
 		output, err := cmdWorkflowPurge(appID, redisConnString, "--all")
 		require.NoError(t, err, output)

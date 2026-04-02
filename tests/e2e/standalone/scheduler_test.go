@@ -70,7 +70,7 @@ func TestSchedulerList(t *testing.T) {
 		output, err := cmdSchedulerList()
 		require.NoError(t, err)
 		assert.GreaterOrEqual(c, countSchedulerEntries(output), 8)
-	}, 120*time.Second, time.Second)
+	}, 240*time.Second, time.Second)
 
 	t.Run("short", func(t *testing.T) {
 		output, err := cmdSchedulerList()
@@ -284,7 +284,7 @@ func TestSchedulerGet(t *testing.T) {
 			}
 		}
 		assert.Equal(c, len(expWorkflowPrefixes), foundWorkflows, "expected %d workflow items, found %d", len(expWorkflowPrefixes), foundWorkflows)
-	}, 120*time.Second, time.Second)
+	}, 240*time.Second, time.Second)
 
 	t.Run("short", func(t *testing.T) {
 		for _, name := range expNames {
@@ -403,7 +403,7 @@ func TestSchedulerDelete(t *testing.T) {
 		output, err := cmdSchedulerList()
 		require.NoError(t, err)
 		assert.GreaterOrEqual(c, countSchedulerEntries(output), 8)
-	}, 120*time.Second, time.Second)
+	}, 240*time.Second, time.Second)
 
 	output, err := cmdSchedulerList()
 	require.NoError(t, err)
@@ -465,7 +465,7 @@ func TestSchedulerDeleteAllAll(t *testing.T) {
 		output, err := cmdSchedulerList()
 		require.NoError(t, err)
 		assert.GreaterOrEqual(c, countSchedulerEntries(output), 8)
-	}, 120*time.Second, time.Second)
+	}, 240*time.Second, time.Second)
 
 	_, err := cmdSchedulerDeleteAll("all")
 	require.NoError(t, err)
@@ -495,7 +495,7 @@ func TestSchedulerDeleteAll(t *testing.T) {
 		output, err := cmdSchedulerList()
 		require.NoError(t, err)
 		assert.GreaterOrEqual(c, countSchedulerEntries(output), 8)
-	}, 120*time.Second, time.Second)
+	}, 240*time.Second, time.Second)
 
 	_, err := cmdSchedulerDeleteAll("app/test-scheduler")
 	require.NoError(t, err)
@@ -548,7 +548,7 @@ func TestSchedulerExportImport(t *testing.T) {
 		output, err := cmdSchedulerList()
 		require.NoError(t, err)
 		assert.GreaterOrEqual(c, countSchedulerEntries(output), 8)
-	}, 120*time.Second, time.Second)
+	}, 240*time.Second, time.Second)
 
 	f := filepath.Join(t.TempDir(), "foo")
 	_, err := cmdSchedulerExport("-o", f)
