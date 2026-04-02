@@ -19,7 +19,7 @@ package standalone_test
 
 import (
 	"encoding/json"
-	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -29,21 +29,23 @@ import (
 )
 
 func TestStopAppsStartedWithRunTemplate(t *testing.T) {
+	if isSlimMode() {
+		t.Skip("skipping: slim mode has no placement/scheduler so template apps cannot start fully")
+	}
+
 	// clean up logs before starting the tests
 	cleanUpLogs()
 
-	ensureDaprInstallation(t)
 	t.Cleanup(func() {
-		// remove dapr installation after all tests in this function.
-		tearDownTestSetup(t)
+		cleanUpLogs()
 	})
 
 	t.Run("stop apps by passing run template file", func(t *testing.T) {
 		t.Cleanup(func() {
 			cleanUpLogs()
 		})
+		waitForPortsFree(t, 3510, 3511)
 		go ensureAllAppsStartedWithRunTemplate(t)
-		time.Sleep(10 * time.Second)
 		cliPID := getCLIPID(t)
 		// Assert dapr list contains template name
 		assertTemplateListOutput(t, "test_dapr_template")
@@ -57,8 +59,8 @@ func TestStopAppsStartedWithRunTemplate(t *testing.T) {
 		t.Cleanup(func() {
 			cleanUpLogs()
 		})
+		waitForPortsFree(t, 3510, 3511)
 		go ensureAllAppsStartedWithRunTemplate(t)
-		time.Sleep(10 * time.Second)
 		cliPID := getCLIPID(t)
 		output, err := cmdStopWithRunTemplate("../testdata/run-template-files")
 		assert.NoError(t, err, "failed to stop apps started with run template")
@@ -70,6 +72,7 @@ func TestStopAppsStartedWithRunTemplate(t *testing.T) {
 		t.Cleanup(func() {
 			cleanUpLogs()
 		})
+		waitForPortsFree(t, 3510, 3511)
 		go ensureAllAppsStartedWithRunTemplate(t)
 		time.Sleep(10 * time.Second)
 		output, err := cmdStopWithRunTemplate("../testdata/invalid-dir")
@@ -85,8 +88,8 @@ func TestStopAppsStartedWithRunTemplate(t *testing.T) {
 		t.Cleanup(func() {
 			cleanUpLogs()
 		})
+		waitForPortsFree(t, 3510, 3511)
 		go ensureAllAppsStartedWithRunTemplate(t)
-		time.Sleep(10 * time.Second)
 		cliPID := getCLIPID(t)
 		output, err := cmdStopWithAppID("emit-metrics", "processor")
 		assert.NoError(t, err, "failed to stop apps started with run template")
@@ -124,12 +127,29 @@ func tearDownTestSetup(t *testing.T) {
 }
 
 func getCLIPID(t *testing.T) string {
-	output, err := cmdList("json")
-	require.NoError(t, err, "failed to list apps")
-	result := []map[string]interface{}{}
-	err = json.Unmarshal([]byte(output), &result)
-	assert.Equal(t, 2, len(result))
-	return fmt.Sprintf("%v", result[0]["cliPid"])
+	var pid string
+	require.Eventually(t, func() bool {
+		output, err := cmdList("json")
+		if err != nil {
+			return false
+		}
+		var result []map[string]interface{}
+		if err := json.Unmarshal([]byte(output), &result); err != nil {
+			return false
+		}
+		if len(result) != 2 {
+			return false
+		}
+		// cliPid is a JSON number unmarshaled as float64; wait until it
+		// is a positive value so verifyCLIPIDNotExist can match reliably.
+		v, _ := result[0]["cliPid"].(float64)
+		if v <= 0 {
+			return false
+		}
+		pid = strconv.Itoa(int(v))
+		return true
+	}, 30*time.Second, time.Second, "expected 2 apps with valid cliPid in list")
+	return pid
 }
 
 func verifyCLIPIDNotExist(t *testing.T, pid string) {
@@ -144,17 +164,20 @@ func verifyCLIPIDNotExist(t *testing.T, pid string) {
 }
 
 func assertTemplateListOutput(t *testing.T, name string) {
-	output, err := cmdList("json")
-	t.Log(output)
-	require.NoError(t, err, "dapr list failed")
-	var result []map[string]interface{}
-
-	err = json.Unmarshal([]byte(output), &result)
-
-	assert.NoError(t, err, "output was not valid JSON")
-
-	assert.Len(t, result, 2, "expected two apps to be running")
-	assert.Equal(t, name, result[0]["runTemplateName"], "expected run template name to be %s", name)
-	assert.NotEmpty(t, result[0]["appLogPath"], "expected appLogPath to be non-empty")
-	assert.NotEmpty(t, result[0]["daprdLogPath"], "expected daprdLogPath to be non-empty")
+	require.Eventually(t, func() bool {
+		output, err := cmdList("json")
+		if err != nil {
+			return false
+		}
+		var result []map[string]interface{}
+		if err := json.Unmarshal([]byte(output), &result); err != nil {
+			return false
+		}
+		if len(result) != 2 {
+			return false
+		}
+		return result[0]["runTemplateName"] == name &&
+			result[0]["appLogPath"] != nil && result[0]["appLogPath"] != "" &&
+			result[0]["daprdLogPath"] != nil && result[0]["daprdLogPath"] != ""
+	}, 30*time.Second, time.Second, "expected 2 apps with template name %q and non-empty log paths", name)
 }

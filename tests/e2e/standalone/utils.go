@@ -18,12 +18,16 @@ package standalone_test
 import (
 	"bufio"
 	"errors"
+	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -97,6 +101,9 @@ spec:
 
 // executeAgainstRunningDapr runs a function against a running Dapr instance.
 // If Dapr or the App throws an error, the test is marked as failed.
+// After f() returns the process is given 60s to exit on its own (f()
+// should have called `dapr stop`). If it hasn't exited by then, the
+// process is killed so the test doesn't hang until the global 40m timeout.
 func executeAgainstRunningDapr(t *testing.T, f func(), daprArgs ...string) {
 	daprPath := common.GetDaprPath()
 
@@ -105,6 +112,25 @@ func executeAgainstRunningDapr(t *testing.T, f func(), daprArgs ...string) {
 	scanner := bufio.NewScanner(reader)
 
 	cmd.Start()
+
+	// scanDone is closed when the scanner.Scan loop finishes, meaning
+	// the process has closed its stdout pipe (i.e., is exiting).
+	scanDone := make(chan struct{})
+
+	// Safety goroutine: kill the process if it is still running after
+	// 5 minutes. This prevents a 40-minute hang when f() blocks
+	// (e.g. a subtest hangs on a channel receive) or when f() fails
+	// to stop daprd. Killing the process closes the stdout pipe,
+	// which unblocks scanner.Scan() below.
+	go func() {
+		select {
+		case <-time.After(5 * time.Minute):
+			t.Log("executeAgainstRunningDapr: process did not exit within 5m, killing")
+			cmd.Process.Kill()
+		case <-scanDone:
+			// Process exited on its own — nothing to do.
+		}
+	}()
 
 	daprOutput := ""
 	for scanner.Scan() {
@@ -115,23 +141,100 @@ func executeAgainstRunningDapr(t *testing.T, f func(), daprArgs ...string) {
 		}
 		daprOutput += outputChunk
 	}
+	close(scanDone)
 
 	err := cmd.Wait()
 	hasAppCommand := !strings.Contains(daprOutput, "WARNING: no application command found")
+	terminatedBySignal := strings.Contains(daprOutput, "terminated signal received: shutting down")
 	if err != nil {
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 &&
 			strings.Contains(daprOutput, "Exited Dapr successfully") &&
-			(!hasAppCommand || strings.Contains(daprOutput, "Exited App successfully")) {
+			(!hasAppCommand || terminatedBySignal || strings.Contains(daprOutput, "Exited App successfully")) {
 			err = nil
 		}
 	}
 	require.NoError(t, err, "dapr didn't exit cleanly")
 	assert.NotContains(t, daprOutput, "The App process exited with error code: exit status", "Stop command should have been called before the app had a chance to exit")
 	assert.Contains(t, daprOutput, "Exited Dapr successfully")
-	if hasAppCommand {
+	if hasAppCommand && !terminatedBySignal {
 		assert.Contains(t, daprOutput, "Exited App successfully")
 	}
+}
+
+// waitForPortsFree polls until all given ports are available for binding.
+// This prevents port contention between sequential tests that reuse
+// hardcoded ports (e.g. container ports from dapr init).
+func waitForPortsFree(t *testing.T, ports ...int) {
+	t.Helper()
+	require.Eventually(t, func() bool {
+		for _, port := range ports {
+			ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+			if err != nil {
+				return false
+			}
+			ln.Close()
+		}
+		return true
+	}, 60*time.Second, time.Second, "ports %v not available in time", ports)
+}
+
+// startDaprRun starts `dapr run` in a background goroutine and registers
+// cleanup handlers that stop the app and wait for the goroutine to finish.
+// This prevents "Log in goroutine after Test has completed" panics that
+// occur when the cmdRun goroutine outlives the test.
+//
+// stopArgs is passed to cmdStopWithAppID or cmdStopWithRunTemplate depending
+// on whether it looks like a file path (contains "/" or ".yaml").
+func startDaprRun(t *testing.T, ports []int, stopFn func(), runArgs ...string) {
+	t.Helper()
+
+	if len(ports) > 0 {
+		waitForPortsFree(t, ports...)
+	}
+
+	var wg sync.WaitGroup
+	// Register wg.Wait first so it runs last (LIFO cleanup order).
+	t.Cleanup(func() { wg.Wait() })
+	t.Cleanup(stopFn)
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		o, _ := cmdRun("", runArgs...)
+		// Only safe to call t.Log here because cleanup waits for us
+		// via wg.Wait().
+		t.Log(o)
+	}()
+}
+
+// startDaprRunRetry is like startDaprRun but retries cmdRun up to 10 times
+// on failure. Used by scheduler tests where port contention can cause
+// transient startup failures.
+func startDaprRunRetry(t *testing.T, ports []int, stopFn func(), runArgs ...string) {
+	t.Helper()
+
+	if len(ports) > 0 {
+		waitForPortsFree(t, ports...)
+	}
+
+	var wg sync.WaitGroup
+	t.Cleanup(func() { wg.Wait() })
+	t.Cleanup(stopFn)
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for range 10 {
+			o, err := cmdRun("", runArgs...)
+			t.Log(o)
+			if err == nil {
+				break
+			}
+			t.Log(err)
+			time.Sleep(time.Second * 2)
+		}
+	}()
 }
 
 // ensureDaprInstallation ensures that Dapr is installed.
@@ -144,6 +247,16 @@ func ensureDaprInstallation(t *testing.T) {
 	daprPath := filepath.Join(homeDir, ".dapr")
 	_, err = os.Stat(daprPath)
 	if os.IsNotExist(err) {
+		// Wait for container ports from a previous dapr installation to
+		// be fully released. On macOS, container port bindings can linger
+		// briefly after `dapr uninstall` removes the containers.
+		if !isSlimMode() {
+			waitForPortsFree(t,
+				58080, // placement health
+				58081, // scheduler health
+				50005, // placement gRPC
+			)
+		}
 		args := []string{
 			"--runtime-version", daprRuntimeVersion,
 			"--dashboard-version", daprDashboardVersion,

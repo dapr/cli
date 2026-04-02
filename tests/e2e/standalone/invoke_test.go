@@ -57,7 +57,6 @@ func StartTestService(t *testing.T, port int) common.Service {
 
 func TestStandaloneInvoke(t *testing.T) {
 	port := 9987
-	ensureDaprInstallation(t)
 	s := StartTestService(t, port)
 	defer s.Stop()
 
@@ -117,7 +116,6 @@ func TestStandaloneInvoke(t *testing.T) {
 
 func TestStandaloneInvokeWithAppChannel(t *testing.T) {
 	port := 9988
-	ensureDaprInstallation(t)
 	s := StartTestService(t, port)
 	defer s.Stop()
 

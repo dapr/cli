@@ -17,6 +17,7 @@ import (
 	"bufio"
 	"context"
 	"os/exec"
+	"time"
 )
 
 // CommandWithContext runs a command with its arguments in background.
@@ -75,8 +76,14 @@ func Command(command string, arguments ...string) (string, error) {
 
 // CommandExecWithContext runs a command with its arguments, kills the command after context is done
 // and returns the combined stdout, stderr or the error.
+//
+// WaitDelay is set so that if child processes (e.g. the compiled binary spawned
+// by `go run`) outlive the main process and keep its stdout/stderr pipes open,
+// CombinedOutput will still return after the delay instead of blocking forever.
+// This is critical on macOS where zombie process groups can hold pipes open.
 func CommandExecWithContext(ctx context.Context, command string, arguments ...string) (string, error) {
 	cmd := exec.CommandContext(ctx, command, arguments...)
+	cmd.WaitDelay = 10 * time.Second
 	b, err := cmd.CombinedOutput()
 	return string(b), err
 }

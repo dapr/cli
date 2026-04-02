@@ -26,7 +26,6 @@ import (
 )
 
 func TestStandaloneVersion(t *testing.T) {
-	ensureDaprInstallation(t)
 	t.Run("version", func(t *testing.T) {
 		output, err := cmdVersion("")
 		t.Log(output)

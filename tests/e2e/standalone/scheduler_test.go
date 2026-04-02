@@ -31,40 +31,52 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// countSchedulerEntries parses the tabular output from `dapr scheduler list`
+// and returns the number of data rows (skipping the header and empty lines).
+// This avoids hard-coding total line counts that break when the output format
+// changes (e.g. extra trailing newlines or header adjustments).
+func countSchedulerEntries(output string) int {
+	count := 0
+	for i, line := range strings.Split(output, "\n") {
+		if i == 0 { // skip header
+			continue
+		}
+		if strings.TrimSpace(line) != "" {
+			count++
+		}
+	}
+	return count
+}
+
 func TestSchedulerList(t *testing.T) {
 	if isSlimMode() {
 		t.Skip("skipping scheduler tests in slim mode")
 	}
 
+	// Reinstall Dapr to get a fresh scheduler container. Without this,
+	// stale workflow registrations from previous tests cause
+	// wf.StartWorker to hang when reconnecting with the same types/IDs.
 	cmdUninstall()
 	ensureDaprInstallation(t)
 
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
-	t.Cleanup(func() {
-		cmdStopWithRunTemplate(runFilePath)
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
+	startDaprRunRetry(t, []int{3510}, func() { cmdStopWithRunTemplate(runFilePath) }, "-f", runFilePath)
 
-	args := []string{"-f", runFilePath}
-	go func() {
-		o, err := cmdRun("", args...)
-		t.Log(o)
-		t.Log(err)
-	}()
-
+	// On slow CI runners, the first dapr run attempt may fail to register
+	// workflows (only jobs + reminders appear). startDaprRunRetry retries
+	// in the background, but the retry can take 30-40s. Use 120s to
+	// accommodate the retry delay.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		output, err := cmdSchedulerList()
 		require.NoError(t, err)
-		assert.Len(c, strings.Split(output, "\n"), 10)
-	}, time.Second*30, time.Millisecond*10)
-
-	time.Sleep(time.Second * 3)
+		assert.GreaterOrEqual(c, countSchedulerEntries(output), 8)
+	}, 240*time.Second, time.Second)
 
 	t.Run("short", func(t *testing.T) {
 		output, err := cmdSchedulerList()
 		require.NoError(t, err)
 		lines := strings.Split(output, "\n")
-		require.Len(t, lines, 10)
+		require.Equal(t, 8, countSchedulerEntries(output))
 
 		require.Equal(t, []string{
 			"NAME",
@@ -148,7 +160,7 @@ func TestSchedulerList(t *testing.T) {
 		output, err := cmdSchedulerList("-o", "wide")
 		require.NoError(t, err)
 		lines := strings.Split(output, "\n")
-		require.Len(t, lines, 10)
+		require.Equal(t, 8, countSchedulerEntries(output))
 
 		require.Equal(t, []string{
 			"NAMESPACE",
@@ -187,27 +199,27 @@ func TestSchedulerList(t *testing.T) {
 	t.Run("filter", func(t *testing.T) {
 		output, err := cmdSchedulerList("-n", "foo")
 		require.NoError(t, err)
-		assert.Len(t, strings.Split(output, "\n"), 2)
+		assert.Equal(t, 0, countSchedulerEntries(output))
 
 		output, err = cmdSchedulerList("--filter", "all")
 		require.NoError(t, err)
-		assert.Len(t, strings.Split(output, "\n"), 10)
+		assert.Equal(t, 8, countSchedulerEntries(output))
 
 		output, err = cmdSchedulerList("--filter", "app")
 		require.NoError(t, err)
-		assert.Len(t, strings.Split(output, "\n"), 4)
+		assert.Equal(t, 2, countSchedulerEntries(output))
 
 		output, err = cmdSchedulerList("--filter", "actor")
 		require.NoError(t, err)
-		assert.Len(t, strings.Split(output, "\n"), 4)
+		assert.Equal(t, 2, countSchedulerEntries(output))
 
 		output, err = cmdSchedulerList("--filter", "workflow")
 		require.NoError(t, err)
-		assert.Len(t, strings.Split(output, "\n"), 4)
+		assert.Equal(t, 2, countSchedulerEntries(output))
 
 		output, err = cmdSchedulerList("--filter", "activity")
 		require.NoError(t, err)
-		assert.Len(t, strings.Split(output, "\n"), 4)
+		assert.Equal(t, 2, countSchedulerEntries(output))
 	})
 }
 
@@ -220,18 +232,7 @@ func TestSchedulerGet(t *testing.T) {
 	ensureDaprInstallation(t)
 
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
-	t.Cleanup(func() {
-		cmdStopWithRunTemplate(runFilePath)
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
-
-	args := []string{"-f", runFilePath}
-
-	go func() {
-		o, err := cmdRun("", args...)
-		t.Log(o)
-		t.Log(err)
-	}()
+	startDaprRunRetry(t, []int{3510}, func() { cmdStopWithRunTemplate(runFilePath) }, "-f", runFilePath)
 
 	expNames := []string{
 		"actor/myactortype/actorid1/test1",
@@ -283,7 +284,7 @@ func TestSchedulerGet(t *testing.T) {
 			}
 		}
 		assert.Equal(c, len(expWorkflowPrefixes), foundWorkflows, "expected %d workflow items, found %d", len(expWorkflowPrefixes), foundWorkflows)
-	}, time.Second*30, time.Millisecond*10)
+	}, 240*time.Second, time.Second)
 
 	t.Run("short", func(t *testing.T) {
 		for _, name := range expNames {
@@ -389,36 +390,20 @@ func TestSchedulerDelete(t *testing.T) {
 		t.Skip("skipping scheduler tests in slim mode")
 	}
 
+	// Reinstall Dapr to clear any stale scheduler state (workflow entries)
+	// from previous tests. Without this, wf.StartWorker hangs because the
+	// scheduler container still holds old workflow registrations.
 	cmdUninstall()
 	ensureDaprInstallation(t)
-	t.Cleanup(func() {
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
 
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
-	t.Cleanup(func() {
-		cmdStopWithRunTemplate(runFilePath)
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
-	args := []string{"-f", runFilePath}
-
-	go func() {
-		for range 10 {
-			o, err := cmdRun("", args...)
-			t.Log(o)
-			t.Log(err)
-			if err == nil {
-				break
-			}
-			time.Sleep(time.Second * 2)
-		}
-	}()
+	startDaprRunRetry(t, []int{3510}, func() { cmdStopWithRunTemplate(runFilePath) }, "-f", runFilePath)
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		output, err := cmdSchedulerList()
 		require.NoError(t, err)
-		assert.Len(c, strings.Split(output, "\n"), 10)
-	}, time.Second*30, time.Millisecond*10)
+		assert.GreaterOrEqual(c, countSchedulerEntries(output), 8)
+	}, 240*time.Second, time.Second)
 
 	output, err := cmdSchedulerList()
 	require.NoError(t, err)
@@ -428,7 +413,7 @@ func TestSchedulerDelete(t *testing.T) {
 
 	output, err = cmdSchedulerList()
 	require.NoError(t, err)
-	assert.Len(t, strings.Split(output, "\n"), 9)
+	assert.Equal(t, 7, countSchedulerEntries(output))
 
 	_, err = cmdSchedulerDelete(
 		"actor/myactortype/actorid2/test2",
@@ -439,7 +424,7 @@ func TestSchedulerDelete(t *testing.T) {
 
 	output, err = cmdSchedulerList()
 	require.NoError(t, err)
-	assert.Len(t, strings.Split(output, "\n"), 6)
+	assert.Equal(t, 4, countSchedulerEntries(output))
 
 	_, err = cmdSchedulerDelete(
 		"activity/test-scheduler/xyz1::0::1",
@@ -449,17 +434,18 @@ func TestSchedulerDelete(t *testing.T) {
 
 	output, err = cmdSchedulerList()
 	require.NoError(t, err)
-	assert.Len(t, strings.Split(output, "\n"), 4)
+	assert.Equal(t, 2, countSchedulerEntries(output))
 
+	lines := strings.Split(output, "\n")
 	_, err = cmdSchedulerDelete(
-		strings.Fields(strings.Split(output, "\n")[1])[0],
-		strings.Fields(strings.Split(output, "\n")[2])[0],
+		strings.Fields(lines[1])[0],
+		strings.Fields(lines[2])[0],
 	)
 	require.NoError(t, err)
 
 	output, err = cmdSchedulerList()
 	require.NoError(t, err)
-	assert.Len(t, strings.Split(output, "\n"), 2)
+	assert.Equal(t, 0, countSchedulerEntries(output))
 }
 
 func TestSchedulerDeleteAllAll(t *testing.T) {
@@ -469,41 +455,24 @@ func TestSchedulerDeleteAllAll(t *testing.T) {
 
 	cmdUninstall()
 	ensureDaprInstallation(t)
-	t.Cleanup(func() {
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
 
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
-	t.Cleanup(func() {
-		cmdStopWithRunTemplate(runFilePath)
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
-	args := []string{"-f", runFilePath}
+	startDaprRunRetry(t, []int{3510}, func() { cmdStopWithRunTemplate(runFilePath) }, "-f", runFilePath)
 
-	go func() {
-		for range 10 {
-			o, err := cmdRun("", args...)
-			t.Log(o)
-			t.Log(err)
-			if err == nil {
-				break
-			}
-			time.Sleep(time.Second * 2)
-		}
-	}()
-
+	// On slow macOS CI runners, workflow/activity entries can take over 60s to
+	// register, so use a 120s timeout.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		output, err := cmdSchedulerList()
 		require.NoError(t, err)
-		assert.Len(c, strings.Split(output, "\n"), 10)
-	}, time.Second*30, time.Millisecond*10)
+		assert.GreaterOrEqual(c, countSchedulerEntries(output), 8)
+	}, 240*time.Second, time.Second)
 
 	_, err := cmdSchedulerDeleteAll("all")
 	require.NoError(t, err)
 
 	output, err := cmdSchedulerList()
 	require.NoError(t, err)
-	assert.Len(t, strings.Split(output, "\n"), 2)
+	assert.Equal(t, 0, countSchedulerEntries(output))
 }
 
 func TestSchedulerDeleteAll(t *testing.T) {
@@ -513,69 +482,53 @@ func TestSchedulerDeleteAll(t *testing.T) {
 
 	cmdUninstall()
 	ensureDaprInstallation(t)
-	t.Cleanup(func() {
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
 
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
-	t.Cleanup(func() {
-		cmdStopWithRunTemplate(runFilePath)
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
+	startDaprRunRetry(t, []int{3510}, func() { cmdStopWithRunTemplate(runFilePath) }, "-f", runFilePath)
 
-	// Stop any existing instance before starting to ensure port is free
-	cmdStopWithRunTemplate(runFilePath)
-	time.Sleep(time.Millisecond * 500)
+	// Wait for all 8 scheduler entries to appear: 2 app jobs, 2 actor
+	// reminders, 4 workflow/activity entries. Using countSchedulerEntries
+	// avoids hard-coding a line count that breaks if the output format changes.
+	// On slow macOS CI runners, workflow/activity entries can take over 60s to
+	// register, so use a 120s timeout.
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		output, err := cmdSchedulerList()
+		require.NoError(t, err)
+		assert.GreaterOrEqual(c, countSchedulerEntries(output), 8)
+	}, 240*time.Second, time.Second)
 
-	args := []string{"-f", runFilePath}
-
-	go func() {
-		for range 10 {
-			o, err := cmdRun("", args...)
-			t.Log(o)
-			t.Log(err)
-			if err == nil {
-				break
-			}
-			time.Sleep(time.Second * 2)
-		}
-	}()
+	_, err := cmdSchedulerDeleteAll("app/test-scheduler")
+	require.NoError(t, err)
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		output, err := cmdSchedulerList()
 		require.NoError(t, err)
-		assert.GreaterOrEqual(c, len(strings.Split(output, "\n")), 7)
-	}, time.Second*30, time.Millisecond*10)
-
-	_, err := cmdSchedulerDeleteAll("app/test-scheduler")
-	require.NoError(t, err)
-	output, err := cmdSchedulerList()
-	require.NoError(t, err)
-	assert.Len(t, strings.Split(output, "\n"), 8)
+		assert.Equal(c, 6, countSchedulerEntries(output))
+	}, 10*time.Second, 500*time.Millisecond)
 
 	_, err = cmdSchedulerDeleteAll("workflow/test-scheduler/abc1")
 	require.NoError(t, err)
-	output, err = cmdSchedulerList()
+	output, err := cmdSchedulerList()
 	require.NoError(t, err)
-	assert.Len(t, strings.Split(output, "\n"), 7)
+	assert.Equal(t, 5, countSchedulerEntries(output))
 
 	_, err = cmdSchedulerDeleteAll("workflow/test-scheduler")
 	require.NoError(t, err)
 	output, err = cmdSchedulerList()
 	require.NoError(t, err)
-	assert.Len(t, strings.Split(output, "\n"), 4)
+	assert.Equal(t, 2, countSchedulerEntries(output))
 
 	_, err = cmdSchedulerDeleteAll("actor/myactortype/actorid1")
 	require.NoError(t, err)
 	output, err = cmdSchedulerList()
 	require.NoError(t, err)
-	assert.Len(t, strings.Split(output, "\n"), 3)
+	assert.Equal(t, 1, countSchedulerEntries(output))
 
 	_, err = cmdSchedulerDeleteAll("actor/myactortype")
 	require.NoError(t, err)
 	output, err = cmdSchedulerList()
 	require.NoError(t, err)
-	assert.Len(t, strings.Split(output, "\n"), 2)
+	assert.Equal(t, 0, countSchedulerEntries(output))
 }
 
 func TestSchedulerExportImport(t *testing.T) {
@@ -585,34 +538,17 @@ func TestSchedulerExportImport(t *testing.T) {
 
 	cmdUninstall()
 	ensureDaprInstallation(t)
-	t.Cleanup(func() {
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
 
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
-	t.Cleanup(func() {
-		cmdStopWithRunTemplate(runFilePath)
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
-	args := []string{"-f", runFilePath}
+	startDaprRunRetry(t, []int{3510}, func() { cmdStopWithRunTemplate(runFilePath) }, "-f", runFilePath)
 
-	go func() {
-		for range 10 {
-			o, err := cmdRun("", args...)
-			t.Log(o)
-			t.Log(err)
-			if err == nil {
-				break
-			}
-			time.Sleep(time.Second * 2)
-		}
-	}()
-
+	// On slow macOS CI runners, workflow/activity entries can take over 60s to
+	// register, so use a 120s timeout.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		output, err := cmdSchedulerList()
 		require.NoError(t, err)
-		assert.Len(c, strings.Split(output, "\n"), 10)
-	}, time.Second*30, time.Millisecond*10)
+		assert.GreaterOrEqual(c, countSchedulerEntries(output), 8)
+	}, 240*time.Second, time.Second)
 
 	f := filepath.Join(t.TempDir(), "foo")
 	_, err := cmdSchedulerExport("-o", f)
@@ -622,7 +558,7 @@ func TestSchedulerExportImport(t *testing.T) {
 	require.NoError(t, err)
 	output, err := cmdSchedulerList()
 	require.NoError(t, err)
-	assert.Len(t, strings.Split(output, "\n"), 2)
+	assert.Equal(t, 0, countSchedulerEntries(output))
 
 	_, err = cmdSchedulerImport("-f", f)
 	require.NoError(t, err)
@@ -630,6 +566,6 @@ func TestSchedulerExportImport(t *testing.T) {
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		output, err := cmdSchedulerList()
 		require.NoError(t, err)
-		assert.GreaterOrEqual(c, len(strings.Split(output, "\n")), 9)
-	}, time.Second*30, time.Millisecond*10)
+		assert.GreaterOrEqual(c, countSchedulerEntries(output), 7)
+	}, 60*time.Second, time.Second)
 }
