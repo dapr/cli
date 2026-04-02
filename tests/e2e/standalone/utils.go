@@ -101,6 +101,9 @@ spec:
 
 // executeAgainstRunningDapr runs a function against a running Dapr instance.
 // If Dapr or the App throws an error, the test is marked as failed.
+// After f() returns the process is given 60s to exit on its own (f()
+// should have called `dapr stop`). If it hasn't exited by then, the
+// process is killed so the test doesn't hang until the global 40m timeout.
 func executeAgainstRunningDapr(t *testing.T, f func(), daprArgs ...string) {
 	daprPath := common.GetDaprPath()
 
@@ -109,6 +112,25 @@ func executeAgainstRunningDapr(t *testing.T, f func(), daprArgs ...string) {
 	scanner := bufio.NewScanner(reader)
 
 	cmd.Start()
+
+	// scanDone is closed when the scanner.Scan loop finishes, meaning
+	// the process has closed its stdout pipe (i.e., is exiting).
+	scanDone := make(chan struct{})
+
+	// Safety goroutine: kill the process if it is still running after
+	// 5 minutes. This prevents a 40-minute hang when f() blocks
+	// (e.g. a subtest hangs on a channel receive) or when f() fails
+	// to stop daprd. Killing the process closes the stdout pipe,
+	// which unblocks scanner.Scan() below.
+	go func() {
+		select {
+		case <-time.After(5 * time.Minute):
+			t.Log("executeAgainstRunningDapr: process did not exit within 5m, killing")
+			cmd.Process.Kill()
+		case <-scanDone:
+			// Process exited on its own — nothing to do.
+		}
+	}()
 
 	daprOutput := ""
 	for scanner.Scan() {
@@ -119,6 +141,7 @@ func executeAgainstRunningDapr(t *testing.T, f func(), daprArgs ...string) {
 		}
 		daprOutput += outputChunk
 	}
+	close(scanDone)
 
 	err := cmd.Wait()
 	hasAppCommand := !strings.Contains(daprOutput, "WARNING: no application command found")
