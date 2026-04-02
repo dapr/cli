@@ -44,6 +44,28 @@ type Filter struct {
 	Terminal bool
 }
 
+// RuntimeStatuses is the canonical list of workflow runtime statuses.
+var RuntimeStatuses = []string{
+	"RUNNING",
+	"COMPLETED",
+	"CONTINUED_AS_NEW",
+	"FAILED",
+	"CANCELED",
+	"TERMINATED",
+	"PENDING",
+	"SUSPENDED",
+}
+
+// TerminalStatuses is the subset of RuntimeStatuses that represent terminal
+// (completed) workflow states.
+var TerminalStatuses = []string{
+	"COMPLETED",
+	"CONTINUED_AS_NEW",
+	"FAILED",
+	"CANCELED",
+	"TERMINATED",
+}
+
 type ListOutputShort struct {
 	Namespace     string `csv:"-" json:"namespace" yaml:"namespace"`
 	AppID         string `csv:"-"    json:"appID"     yaml:"appID"`
