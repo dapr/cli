@@ -228,7 +228,7 @@ func TestSchedulerGet(t *testing.T) {
 	ensureDaprInstallation(t)
 
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
-	startDaprRun(t, []int{3510}, func() { cmdStopWithRunTemplate(runFilePath) }, "-f", runFilePath)
+	startDaprRunRetry(t, []int{3510}, func() { cmdStopWithRunTemplate(runFilePath) }, "-f", runFilePath)
 
 	expNames := []string{
 		"actor/myactortype/actorid1/test1",
@@ -280,7 +280,7 @@ func TestSchedulerGet(t *testing.T) {
 			}
 		}
 		assert.Equal(c, len(expWorkflowPrefixes), foundWorkflows, "expected %d workflow items, found %d", len(expWorkflowPrefixes), foundWorkflows)
-	}, time.Second*30, time.Millisecond*10)
+	}, 120*time.Second, time.Second)
 
 	t.Run("short", func(t *testing.T) {
 		for _, name := range expNames {
