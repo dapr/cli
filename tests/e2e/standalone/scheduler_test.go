@@ -62,11 +62,15 @@ func TestSchedulerList(t *testing.T) {
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
 	startDaprRunRetry(t, []int{3510}, func() { cmdStopWithRunTemplate(runFilePath) }, "-f", runFilePath)
 
+	// On slow CI runners, the first dapr run attempt may fail to register
+	// workflows (only jobs + reminders appear). startDaprRunRetry retries
+	// in the background, but the retry can take 30-40s. Use 120s to
+	// accommodate the retry delay.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		output, err := cmdSchedulerList()
 		require.NoError(t, err)
 		assert.GreaterOrEqual(c, countSchedulerEntries(output), 8)
-	}, 60*time.Second, time.Second)
+	}, 120*time.Second, time.Second)
 
 	t.Run("short", func(t *testing.T) {
 		output, err := cmdSchedulerList()
@@ -399,7 +403,7 @@ func TestSchedulerDelete(t *testing.T) {
 		output, err := cmdSchedulerList()
 		require.NoError(t, err)
 		assert.GreaterOrEqual(c, countSchedulerEntries(output), 8)
-	}, 60*time.Second, time.Second)
+	}, 120*time.Second, time.Second)
 
 	output, err := cmdSchedulerList()
 	require.NoError(t, err)
