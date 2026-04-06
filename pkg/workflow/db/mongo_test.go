@@ -22,6 +22,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 )
 
+const testCollection = "daprCollection"
+
 func TestListMongo(t *testing.T) {
 	mt := mtest.New(t, mtest.NewOptions().ClientType(mtest.Mock))
 
@@ -29,13 +31,14 @@ func TestListMongo(t *testing.T) {
 		key1 := "myapp||dapr.internal.default.myapp.workflow||instance-1||metadata"
 		key2 := "myapp||dapr.internal.default.myapp.workflow||instance-2||metadata"
 
-		mt.AddMockResponses(mtest.CreateCursorResponse(1, "daprStore.daprCollection", mtest.FirstBatch,
+		ns := mt.DB.Name() + "." + testCollection
+		mt.AddMockResponses(mtest.CreateCursorResponse(1, ns, mtest.FirstBatch,
 			bson.D{{Key: "_id", Value: key1}},
-		), mtest.CreateCursorResponse(0, "daprStore.daprCollection", mtest.NextBatch,
+		), mtest.CreateCursorResponse(0, ns, mtest.NextBatch,
 			bson.D{{Key: "_id", Value: key2}},
 		))
 
-		keys, err := ListMongo(mt.Context(), mt.DB, "daprCollection", ListOptions{
+		keys, err := ListMongo(mt.Context(), mt.DB, testCollection, ListOptions{
 			Namespace: "default",
 			AppID:     "myapp",
 		})
@@ -44,9 +47,10 @@ func TestListMongo(t *testing.T) {
 	})
 
 	mt.Run("returns nil when no documents match", func(mt *mtest.T) {
-		mt.AddMockResponses(mtest.CreateCursorResponse(0, "daprStore.daprCollection", mtest.FirstBatch))
+		ns := mt.DB.Name() + "." + testCollection
+		mt.AddMockResponses(mtest.CreateCursorResponse(0, ns, mtest.FirstBatch))
 
-		keys, err := ListMongo(mt.Context(), mt.DB, "daprCollection", ListOptions{
+		keys, err := ListMongo(mt.Context(), mt.DB, testCollection, ListOptions{
 			Namespace: "default",
 			AppID:     "myapp",
 		})
@@ -55,9 +59,10 @@ func TestListMongo(t *testing.T) {
 	})
 
 	mt.Run("filter uses _id field with correct regex", func(mt *mtest.T) {
-		mt.AddMockResponses(mtest.CreateCursorResponse(0, "daprStore.daprCollection", mtest.FirstBatch))
+		ns := mt.DB.Name() + "." + testCollection
+		mt.AddMockResponses(mtest.CreateCursorResponse(0, ns, mtest.FirstBatch))
 
-		_, err := ListMongo(mt.Context(), mt.DB, "daprCollection", ListOptions{
+		_, err := ListMongo(mt.Context(), mt.DB, testCollection, ListOptions{
 			Namespace: "default",
 			AppID:     "myapp",
 		})
