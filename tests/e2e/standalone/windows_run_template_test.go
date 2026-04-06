@@ -36,11 +36,6 @@ type AppTestOutput struct {
 }
 
 func TestRunWithTemplateFile(t *testing.T) {
-	ensureDaprInstallation(t)
-	t.Cleanup(func() {
-		// remove dapr installation after all tests in this function.
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
 	// These tests are dependent on run template files in ../testdata/run-template-files folder.
 	t.Run("valid template file", func(t *testing.T) {
 		runFilePath := "../testdata/run-template-files/dapr.yaml"
