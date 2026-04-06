@@ -47,13 +47,13 @@ func ListMongo(ctx context.Context, db *mongo.Database, collection string, opts 
 	regex := fmt.Sprintf("^%s.*%s$", prefix, suffix)
 
 	filter := bson.M{
-		"key": bson.M{
+		"_id": bson.M{
 			"$regex":   regex,
 			"$options": "",
 		},
 	}
 
-	findOpts := options.Find().SetProjection(bson.M{"_id": 0, "key": 1})
+	findOpts := options.Find().SetProjection(bson.M{"_id": 1})
 
 	cur, err := coll.Find(ctx, filter, findOpts)
 	if err != nil {
@@ -64,7 +64,7 @@ func ListMongo(ctx context.Context, db *mongo.Database, collection string, opts 
 	var keys []string
 	for cur.Next(ctx) {
 		var doc struct {
-			Key string `bson:"key"`
+			Key string `bson:"_id"`
 		}
 		if err := cur.Decode(&doc); err != nil {
 			return nil, err
