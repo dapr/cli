@@ -297,6 +297,151 @@ func TestWorkflowPurge(t *testing.T) {
 		assert.NotContains(t, output, "purge-older")
 	})
 
+	t.Run("purge older than with filter status only purges matching status", func(t *testing.T) {
+		// Create one workflow that will complete (SimpleWorkflow) and one that
+		// will be terminated (LongWorkflow) so they have different statuses.
+		output, err := cmdWorkflowRun(appID, "SimpleWorkflow",
+			"--instance-id=filter-completed")
+		require.NoError(t, err, output)
+
+		output, err = cmdWorkflowRun(appID, "LongWorkflow",
+			"--instance-id=filter-terminated")
+		require.NoError(t, err, output)
+
+		// Wait for SimpleWorkflow to complete.
+		require.EventuallyWithT(t, func(c *assert.CollectT) {
+			out, err := cmdWorkflowList(appID, redisConnString, "-o", "json")
+			require.NoError(c, err)
+			var list []map[string]interface{}
+			require.NoError(c, json.Unmarshal([]byte(out), &list))
+			for _, item := range list {
+				if item["instanceID"] == "filter-completed" {
+					assert.Equal(c, "COMPLETED", item["runtimeStatus"])
+					return
+				}
+			}
+			assert.Fail(c, "filter-completed not found")
+		}, 30*time.Second, 500*time.Millisecond)
+
+		// Terminate one so we have two different terminal statuses.
+		_, err = cmdWorkflowTerminate(appID, "filter-terminated")
+		require.NoError(t, err)
+
+		// Wait for the terminate to take effect.
+		require.EventuallyWithT(t, func(c *assert.CollectT) {
+			out, err := cmdWorkflowList(appID, redisConnString, "-o", "json")
+			require.NoError(c, err)
+			var list []map[string]interface{}
+			require.NoError(c, json.Unmarshal([]byte(out), &list))
+			for _, item := range list {
+				if item["instanceID"] == "filter-terminated" {
+					assert.Equal(c, "TERMINATED", item["runtimeStatus"])
+					return
+				}
+			}
+			assert.Fail(c, "filter-terminated not found")
+		}, 30*time.Second, 500*time.Millisecond)
+
+		// Purge only COMPLETED instances older than 1s.
+		output, err = cmdWorkflowPurge(appID, redisConnString,
+			"--all-older-than", "1s", "--all-filter-status", "COMPLETED")
+		require.NoError(t, err, output)
+		assert.Contains(t, output, `Purged workflow instance "filter-completed"`)
+		assert.NotContains(t, output, "filter-terminated")
+
+		// Verify filter-terminated still exists.
+		output, err = cmdWorkflowList(appID, "-o", "json", redisConnString)
+		require.NoError(t, err, output)
+		assert.NotContains(t, output, "filter-completed")
+		assert.Contains(t, output, "filter-terminated")
+
+		// Clean up the remaining instance.
+		t.Cleanup(func() {
+			_, err := cmdWorkflowPurge(appID, redisConnString, "filter-terminated")
+			assert.NoError(t, err)
+		})
+	})
+
+	t.Run("purge older than with filter status TERMINATED", func(t *testing.T) {
+		output, err := cmdWorkflowRun(appID, "SimpleWorkflow",
+			"--instance-id=fs-completed")
+		require.NoError(t, err, output)
+
+		output, err = cmdWorkflowRun(appID, "LongWorkflow",
+			"--instance-id=fs-terminated")
+		require.NoError(t, err, output)
+
+		// Wait for SimpleWorkflow to complete.
+		require.EventuallyWithT(t, func(c *assert.CollectT) {
+			out, err := cmdWorkflowList(appID, redisConnString, "-o", "json")
+			require.NoError(c, err)
+			var list []map[string]interface{}
+			require.NoError(c, json.Unmarshal([]byte(out), &list))
+			for _, item := range list {
+				if item["instanceID"] == "fs-completed" {
+					assert.Equal(c, "COMPLETED", item["runtimeStatus"])
+					return
+				}
+			}
+			assert.Fail(c, "fs-completed not found")
+		}, 30*time.Second, 500*time.Millisecond)
+
+		_, err = cmdWorkflowTerminate(appID, "fs-terminated")
+		require.NoError(t, err)
+
+		// Wait for the terminate to take effect.
+		require.EventuallyWithT(t, func(c *assert.CollectT) {
+			out, err := cmdWorkflowList(appID, redisConnString, "-o", "json")
+			require.NoError(c, err)
+			var list []map[string]interface{}
+			require.NoError(c, json.Unmarshal([]byte(out), &list))
+			for _, item := range list {
+				if item["instanceID"] == "fs-terminated" {
+					assert.Equal(c, "TERMINATED", item["runtimeStatus"])
+					return
+				}
+			}
+			assert.Fail(c, "fs-terminated not found")
+		}, 30*time.Second, 500*time.Millisecond)
+
+		// Purge only TERMINATED instances older than 1s.
+		output, err = cmdWorkflowPurge(appID, redisConnString,
+			"--all-older-than", "1s", "--all-filter-status", "TERMINATED")
+		require.NoError(t, err, output)
+		assert.Contains(t, output, `Purged workflow instance "fs-terminated"`)
+		assert.NotContains(t, output, "fs-completed")
+
+		// Verify fs-completed still exists.
+		output, err = cmdWorkflowList(appID, "-o", "json", redisConnString)
+		require.NoError(t, err, output)
+		assert.Contains(t, output, "fs-completed")
+		assert.NotContains(t, output, "fs-terminated")
+
+		// Clean up.
+		t.Cleanup(func() {
+			_, err := cmdWorkflowPurge(appID, redisConnString, "fs-completed")
+			assert.NoError(t, err)
+		})
+	})
+
+	t.Run("all-filter-status without all-older-than errors", func(t *testing.T) {
+		_, err := cmdWorkflowPurge(appID, redisConnString,
+			"--all-filter-status", "COMPLETED")
+		require.Error(t, err)
+	})
+
+	t.Run("all-filter-status with invalid value errors", func(t *testing.T) {
+		_, err := cmdWorkflowPurge(appID, redisConnString,
+			"--all-older-than", "1s", "--all-filter-status", "INVALID")
+		require.Error(t, err)
+	})
+
+	t.Run("all-filter-status with all flag errors", func(t *testing.T) {
+		_, err := cmdWorkflowPurge(appID, redisConnString,
+			"--all", "--all-filter-status", "COMPLETED")
+		require.Error(t, err)
+	})
+
 	t.Run("also purge scheduler", func(t *testing.T) {
 		output, err := cmdWorkflowRun(appID, "EventWorkflow",
 			"--instance-id=also-sched")

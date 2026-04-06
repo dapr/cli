@@ -148,16 +148,7 @@ func filterCmd(cmd *cobra.Command) *workflow.Filter {
 		status string
 		maxAge string
 
-		listStatuses = []string{
-			"RUNNING",
-			"COMPLETED",
-			"CONTINUED_AS_NEW",
-			"FAILED",
-			"CANCELED",
-			"TERMINATED",
-			"PENDING",
-			"SUSPENDED",
-		}
+		listStatuses = workflow.RuntimeStatuses
 	)
 
 	cmd.Flags().StringVarP(&name, "filter-name", "w", "", "Filter only the workflows with the given name")
