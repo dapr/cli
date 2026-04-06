@@ -74,7 +74,7 @@ func TestStopAppsStartedWithRunTemplate(t *testing.T) {
 		})
 		waitForPortsFree(t, 3510, 3511)
 		go ensureAllAppsStartedWithRunTemplate(t)
-		time.Sleep(10 * time.Second)
+		waitForAppsListed(t, 60*time.Second, "processor", "emit-metrics")
 		output, err := cmdStopWithRunTemplate("../testdata/invalid-dir")
 		assert.Contains(t, output, "Failed to get run file path")
 		assert.Error(t, err, "failed to stop apps started with run template")

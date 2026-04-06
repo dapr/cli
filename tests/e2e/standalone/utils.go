@@ -112,10 +112,11 @@ func executeAgainstRunningDapr(t *testing.T, f func(), daprArgs ...string) {
 	daprPath := common.GetDaprPath()
 
 	cmd := exec.Command(daprPath, daprArgs...)
-	reader, _ := cmd.StdoutPipe()
+	reader, err := cmd.StdoutPipe()
+	require.NoError(t, err, "failed to get stdout pipe")
 	scanner := bufio.NewScanner(reader)
 
-	cmd.Start()
+	require.NoError(t, cmd.Start(), "failed to start dapr process")
 
 	// scanDone is closed when the scanner.Scan loop finishes, meaning
 	// the process has closed its stdout pipe (i.e., is exiting).
@@ -147,7 +148,7 @@ func executeAgainstRunningDapr(t *testing.T, f func(), daprArgs ...string) {
 	}
 	close(scanDone)
 
-	err := cmd.Wait()
+	err = cmd.Wait()
 	hasAppCommand := !strings.Contains(daprOutput, "WARNING: no application command found")
 	terminatedBySignal := strings.Contains(daprOutput, "terminated signal received: shutting down")
 	if err != nil {
@@ -184,12 +185,9 @@ func waitForPortsFree(t *testing.T, ports ...int) {
 }
 
 // startDaprRun starts `dapr run` in a background goroutine and registers
-// cleanup handlers that stop the app and wait for the goroutine to finish.
+// cleanup handlers that invoke stopFn and wait for the goroutine to finish.
 // This prevents "Log in goroutine after Test has completed" panics that
 // occur when the cmdRun goroutine outlives the test.
-//
-// stopArgs is passed to cmdStopWithAppID or cmdStopWithRunTemplate depending
-// on whether it looks like a file path (contains "/" or ".yaml").
 func startDaprRun(t *testing.T, ports []int, stopFn func(), runArgs ...string) {
 	t.Helper()
 

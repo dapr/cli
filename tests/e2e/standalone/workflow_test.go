@@ -45,7 +45,8 @@ func TestWorkflowList(t *testing.T) {
 	waitForAppHealthy(t, 60*time.Second, "test-workflow")
 
 	// Purge any leftover workflow instances from previous test runs.
-	cmdWorkflowPurge(appID, redisConnString, "--all")
+	purgeOut, purgeErr := cmdWorkflowPurge(appID, redisConnString, "--all")
+	require.NoError(t, purgeErr, purgeOut)
 
 	output, err := cmdWorkflowList(appID, redisConnString)
 	require.NoError(t, err)
@@ -90,7 +91,8 @@ func TestWorkflowRaiseEvent(t *testing.T) {
 	startDaprRun(t, []int{3510}, func() { cmdStopWithAppID(appID) }, "-f", runFilePath)
 
 	waitForAppHealthy(t, 60*time.Second, "test-workflow")
-	cmdWorkflowPurge(appID, redisConnString, "--all")
+	purgeOut, purgeErr := cmdWorkflowPurge(appID, redisConnString, "--all")
+	require.NoError(t, purgeErr, purgeOut)
 
 	output, err := cmdWorkflowRun(appID, "EventWorkflow", "--instance-id=foo")
 	require.NoError(t, err, output)
@@ -160,7 +162,8 @@ func TestWorkflowReRun(t *testing.T) {
 
 	waitForAppHealthy(t, 60*time.Second, "test-workflow")
 
-	cmdWorkflowPurge(appID, redisConnString, "--all")
+	purgeOut, purgeErr := cmdWorkflowPurge(appID, redisConnString, "--all")
+	require.NoError(t, purgeErr, purgeOut)
 
 	output, err := cmdWorkflowRun(appID, "SimpleWorkflow", "--instance-id=foo")
 	require.NoError(t, err, output)
@@ -222,7 +225,8 @@ func TestWorkflowPurge(t *testing.T) {
 	startDaprRun(t, []int{3510}, func() { cmdStopWithAppID(appID) }, "-f", runFilePath)
 
 	waitForAppHealthy(t, 60*time.Second, "test-workflow")
-	cmdWorkflowPurge(appID, redisConnString, "--all")
+	purgeOut, purgeErr := cmdWorkflowPurge(appID, redisConnString, "--all")
+	require.NoError(t, purgeErr, purgeOut)
 
 	for i := 0; i < 3; i++ {
 		output, err := cmdWorkflowRun(appID, "SimpleWorkflow",
@@ -333,7 +337,8 @@ func TestWorkflowFilters(t *testing.T) {
 	startDaprRun(t, []int{3510}, func() { cmdStopWithAppID(appID) }, "-f", runFilePath)
 
 	waitForAppHealthy(t, 60*time.Second, "test-workflow")
-	cmdWorkflowPurge(appID, redisConnString, "--all")
+	purgeOut, purgeErr := cmdWorkflowPurge(appID, redisConnString, "--all")
+	require.NoError(t, purgeErr, purgeOut)
 
 	_, _ = cmdWorkflowRun(appID, "SimpleWorkflow", "--instance-id=simple-1")
 	_, _ = cmdWorkflowRun(appID, "LongWorkflow", "--instance-id=long-1")
@@ -386,7 +391,8 @@ func TestWorkflowChildCalls(t *testing.T) {
 	startDaprRun(t, []int{3510}, func() { cmdStopWithAppID(appID) }, "-f", runFilePath)
 
 	waitForAppHealthy(t, 60*time.Second, "test-workflow")
-	cmdWorkflowPurge(appID, redisConnString, "--all")
+	purgeOut, purgeErr := cmdWorkflowPurge(appID, redisConnString, "--all")
+	require.NoError(t, purgeErr, purgeOut)
 
 	t.Run("parent child workflow", func(t *testing.T) {
 		input := `{"test": "parent-child", "value": 42}`
@@ -551,7 +557,8 @@ func TestWorkflowHistory(t *testing.T) {
 	startDaprRun(t, []int{3510}, func() { cmdStopWithAppID(appID) }, "-f", runFilePath)
 
 	waitForAppHealthy(t, 60*time.Second, "test-workflow")
-	cmdWorkflowPurge(appID, redisConnString, "--all")
+	purgeOut, purgeErr := cmdWorkflowPurge(appID, redisConnString, "--all")
+	require.NoError(t, purgeErr, purgeOut)
 
 	output, err := cmdWorkflowRun(appID, "SimpleWorkflow", "--instance-id=history-test")
 	require.NoError(t, err, output)
@@ -592,7 +599,8 @@ func TestWorkflowSuspendResume(t *testing.T) {
 	startDaprRun(t, []int{3510}, func() { cmdStopWithAppID(appID) }, "-f", runFilePath)
 
 	waitForAppHealthy(t, 60*time.Second, "test-workflow")
-	cmdWorkflowPurge(appID, redisConnString, "--all")
+	purgeOut, purgeErr := cmdWorkflowPurge(appID, redisConnString, "--all")
+	require.NoError(t, purgeErr, purgeOut)
 
 	output, err := cmdWorkflowRun(appID, "LongWorkflow", "--instance-id=suspend-resume-test")
 	require.NoError(t, err, output)
@@ -657,7 +665,8 @@ func TestWorkflowTerminate(t *testing.T) {
 	startDaprRun(t, []int{3510}, func() { cmdStopWithAppID(appID) }, "-f", runFilePath)
 
 	waitForAppHealthy(t, 60*time.Second, "test-workflow")
-	cmdWorkflowPurge(appID, redisConnString, "--all")
+	purgeOut, purgeErr := cmdWorkflowPurge(appID, redisConnString, "--all")
+	require.NoError(t, purgeErr, purgeOut)
 
 	output, err := cmdWorkflowRun(appID, "LongWorkflow", "--instance-id=terminate-test")
 	require.NoError(t, err, output)

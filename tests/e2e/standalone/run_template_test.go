@@ -19,7 +19,6 @@ package standalone_test
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
