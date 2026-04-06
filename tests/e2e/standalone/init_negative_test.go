@@ -27,6 +27,10 @@ import (
 func TestStandaloneInitNegatives(t *testing.T) {
 	// Ensure a clean environment
 	must(t, cmdUninstall, "failed to uninstall Dapr")
+	// Reinstall Dapr when done so subsequent tests still work.
+	t.Cleanup(func() {
+		ensureDaprInstallation(t)
+	})
 
 	homeDir, err := os.UserHomeDir()
 	require.NoError(t, err, "expected no error on querying for os home dir")

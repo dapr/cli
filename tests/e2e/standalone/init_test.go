@@ -40,8 +40,9 @@ func TestStandaloneInit(t *testing.T) {
 	daprRuntimeVersion, daprDashboardVersion := common.GetVersionsFromEnv(t, false)
 
 	t.Cleanup(func() {
-		// remove dapr installation after all tests in this function.
-		must(t, cmdUninstall, "failed to uninstall Dapr")
+		// Reinstall Dapr so subsequent tests still have a working installation.
+		cmdUninstall()
+		ensureDaprInstallation(t)
 	})
 
 	t.Run("init with invalid private registry", func(t *testing.T) {
