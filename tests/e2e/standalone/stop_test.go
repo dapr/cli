@@ -18,21 +18,12 @@ package standalone_test
 import (
 	"runtime"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestStandaloneStop(t *testing.T) {
-	ensureDaprInstallation(t)
-
-	time.Sleep(5 * time.Second)
-
-	t.Cleanup(func() {
-		// remove dapr installation after all tests in this function.
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
 
 	runArgs := []string{"run", "--app-id", "dapr_e2e_stop", "--"}
 	if runtime.GOOS == "windows" {
