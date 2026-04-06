@@ -15,331 +15,191 @@ package version
 
 import (
 	"fmt"
-	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
-	"time"
 
+	"github.com/google/go-containerregistry/pkg/crane"
+	"github.com/google/go-containerregistry/pkg/name"
+	"github.com/google/go-containerregistry/pkg/registry"
+	"github.com/google/go-containerregistry/pkg/v1/empty"
+	"github.com/google/go-containerregistry/pkg/v1/mutate"
+	v1 "github.com/google/go-containerregistry/pkg/v1/types"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestGetVersionsGithub(t *testing.T) {
-	// Ensure a clean environment.
-
-	tests := []struct {
-		Name         string
-		Path         string
-		ResponseBody string
-		ExpectedErr  string
-		ExpectedVer  string
-	}{
-		{
-			"RC releases are skipped",
-			"/no_rc",
-			`[
-  {
-    "url": "https://api.github.com/repos/dapr/dapr/releases/44766923",
-    "html_url": "https://github.com/dapr/dapr/releases/tag/v1.2.3-rc.1",
-    "id": 44766926,
-    "tag_name": "v1.2.3-rc.1",
-    "target_commitish": "master",
-    "name": "Dapr Runtime v1.2.3-rc.1",
-    "draft": false,
-    "prerelease": false
-  },
-  {
-    "url": "https://api.github.com/repos/dapr/dapr/releases/44766923",
-    "html_url": "https://github.com/dapr/dapr/releases/tag/v1.2.2",
-    "id": 44766923,
-    "tag_name": "v1.2.2",
-    "target_commitish": "master",
-    "name": "Dapr Runtime v1.2.2",
-    "draft": false,
-    "prerelease": false
-  }
-]
-			`,
-			"",
-			"1.2.2",
-		},
-		{
-			"Only latest version is got",
-			"/latest",
-			`[
-  {
-    "url": "https://api.github.com/repos/dapr/dapr/releases/44766923",
-    "html_url": "https://github.com/dapr/dapr/releases/tag/v1.4.4",
-    "id": 44766926,
-    "tag_name": "v1.4.4",
-    "target_commitish": "master",
-    "name": "Dapr Runtime v1.4.4",
-    "draft": false,
-    "prerelease": false
-  },
-  {
-    "url": "https://api.github.com/repos/dapr/dapr/releases/44766923",
-    "html_url": "https://github.com/dapr/dapr/releases/tag/v1.5.1",
-    "id": 44766923,
-    "tag_name": "v1.5.1",
-    "target_commitish": "master",
-    "name": "Dapr Runtime v1.5.1",
-    "draft": false,
-    "prerelease": false
-  }
-]
-			`,
-			"",
-			"1.5.1",
-		},
-		{
-			"Only latest stable version is got",
-			"/latest_stable",
-			`[
-  {
-    "url": "https://api.github.com/repos/dapr/dapr/releases/44766923",
-    "html_url": "https://github.com/dapr/dapr/releases/tag/v1.5.2-rc.1",
-    "id": 44766926,
-    "tag_name": "v1.5.2-rc.1",
-    "target_commitish": "master",
-    "name": "Dapr Runtime v1.5.2-rc.1",
-    "draft": false,
-    "prerelease": true
-  },
-  {
-    "url": "https://api.github.com/repos/dapr/dapr/releases/44766923",
-    "html_url": "https://github.com/dapr/dapr/releases/tag/v1.4.4",
-    "id": 44766926,
-    "tag_name": "v1.4.4",
-    "target_commitish": "master",
-    "name": "Dapr Runtime v1.4.4",
-    "draft": false,
-    "prerelease": false
-  },
-  {
-    "url": "https://api.github.com/repos/dapr/dapr/releases/44766923",
-    "html_url": "https://github.com/dapr/dapr/releases/tag/v1.5.1",
-    "id": 44766923,
-    "tag_name": "v1.5.1",
-    "target_commitish": "master",
-    "name": "Dapr Runtime v1.5.1",
-    "draft": false,
-    "prerelease": false
-  }
-]
-			`,
-			"",
-			"1.5.1",
-		},
-		{
-			"Malformed JSON",
-			"/malformed",
-			"[",
-			"unexpected end of JSON input",
-			"",
-		},
-		{
-			"Only RCs",
-			"/only_rcs",
-			`[
-  {
-    "url": "https://api.github.com/repos/dapr/dapr/releases/44766923",
-    "html_url": "https://github.com/dapr/dapr/releases/tag/v1.2.3-rc.1",
-    "id": 44766926,
-    "tag_name": "v1.2.3-rc.1",
-    "target_commitish": "master",
-    "name": "Dapr Runtime v1.2.3-rc.1",
-    "draft": false,
-    "prerelease": false
-  }
-]			`,
-			"no releases",
-			"",
-		},
-		{
-			"Empty json",
-			"/empty",
-			"[]",
-			"no releases",
-			"",
-		},
-		{
-			"Malformed version no releases",
-			"/malformed_version_no_releases",
-			`[
-  {
-    "url": "https://api.github.com/repos/dapr/dapr/releases/186741665",
-    "html_url": "https://github.com/dapr/dapr/releases/tag/vedge",
-    "id": 186741665,
-    "tag_name": "vedge",
-    "target_commitish": "master",
-    "name": "Dapr Runtime vedge",
-    "draft": false,
-    "prerelease": false
-  }
-]			`,
-			"no releases",
-			"",
-		},
-		{
-			"Malformed version with latest",
-			"/malformed_version_with_latest",
-			`[
-  {
-    "url": "https://api.github.com/repos/dapr/dapr/releases/186741665",
-    "html_url": "https://github.com/dapr/dapr/releases/tag/vedge",
-    "id": 186741665,
-    "tag_name": "vedge",
-    "target_commitish": "master",
-    "name": "Dapr Runtime vedge",
-    "draft": false,
-    "prerelease": false
-  },
-  {
-	"url": "https://api.github.com/repos/dapr/dapr/releases/44766923",
-	"html_url": "https://github.com/dapr/dapr/releases/tag/v1.5.1",
-	"id": 44766923,
-	"tag_name": "v1.5.1",
-	"target_commitish": "master",
-	"name": "Dapr Runtime v1.5.1",
-	"draft": false,
-	"prerelease": false
-  }
-]			`,
-			"",
-			"1.5.1",
-		},
-	}
-	m := http.NewServeMux()
-	s := http.Server{Addr: ":12345", Handler: m, ReadHeaderTimeout: time.Duration(5) * time.Second}
-
-	for _, tc := range tests {
-		body := tc.ResponseBody
-		m.HandleFunc(tc.Path, func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprint(w, body)
-		})
-	}
-
-	go func() {
-		s.ListenAndServe()
-	}()
-
-	for _, tc := range tests {
-		t.Run(tc.Name, func(t *testing.T) {
-			version, err := GetLatestReleaseGithub("http://localhost:12345" + tc.Path)
-			assert.Equal(t, tc.ExpectedVer, version)
-			if tc.ExpectedErr != "" {
-				assert.EqualError(t, err, tc.ExpectedErr)
-			}
-		})
-	}
-
-	t.Run("error on 404", func(t *testing.T) {
-		version, err := GetLatestReleaseGithub("http://localhost:12345/non-existant/path")
-		assert.Equal(t, "", version)
-		assert.EqualError(t, err, "http://localhost:12345/non-existant/path - 404 Not Found")
-	})
-
-	t.Run("error on bad addr", func(t *testing.T) {
-		version, err := GetLatestReleaseGithub("http://a.super.non.existant.domain/")
-		assert.Equal(t, "", version)
-		assert.Error(t, err)
-	})
-
-	s.Shutdown(t.Context())
+// pushEmptyImage pushes a minimal image with the given tag to the test registry.
+func pushEmptyImage(t *testing.T, ref string) {
+	t.Helper()
+	img := mutate.MediaType(empty.Image, v1.DockerManifestSchema2)
+	err := crane.Push(img, ref)
+	require.NoError(t, err, "failed to push image %s", ref)
 }
 
-func TestGetVersionsHelm(t *testing.T) {
-	// Ensure a clean environment.
+// startTestRegistry starts an in-memory OCI registry and returns the
+// host:port string (without scheme) and a cleanup function.
+func startTestRegistry(t *testing.T) string {
+	t.Helper()
+	srv := httptest.NewServer(registry.New())
+	t.Cleanup(srv.Close)
+	// httptest URLs are http://host:port — strip the scheme for use as a registry.
+	return strings.TrimPrefix(srv.URL, "http://")
+}
 
+func TestGetLatestVersion(t *testing.T) {
 	tests := []struct {
-		Name         string
-		Path         string
-		ResponseBody string
-		ExpectedErr  string
-		ExpectedVer  string
+		name        string
+		tags        []string
+		expectedVer string
+		expectedErr string
 	}{
 		{
-			"Use RC releases if there isn't a full release yet",
-			"/fallback_to_rc",
-			`apiVersion: v1
-entries:
-  dapr:
-  - apiVersion: v1
-    appVersion: 1.2.3-rc.1
-    created: "2021-06-17T03:13:24.179849371Z"
-    description: A Helm chart for Dapr on Kubernetes
-    digest: 60d8d17b58ca316cdcbdb8529cf9ba2c9e2e0834383c677cafbf99add86ee7a0
-    name: dapr
-    urls:
-    - https://dapr.github.io/helm-charts/dapr-1.2.3-rc.1.tgz
-    version: 1.2.3-rc.1
-  - apiVersion: v1
-    appVersion: 1.2.2
-    created: "2021-06-17T03:13:24.179849371Z"
-    description: A Helm chart for Dapr on Kubernetes
-    digest: 60d8d17b58ca316cdcbdb8529cf9ba2c9e2e0834383c677cafbf99add86ee7a0
-    name: dapr
-    urls:
-    - https://dapr.github.io/helm-charts/dapr-1.2.2.tgz
-    version: 1.2.2      `,
-			"",
-			"1.2.2",
+			name:        "RC releases are skipped",
+			tags:        []string{"v1.2.3-rc.1", "v1.2.2"},
+			expectedVer: "1.2.2",
 		},
 		{
-			"Malformed YAML",
-			"/malformed",
-			"[",
-			"yaml: line 1: did not find expected node content",
-			"",
+			name:        "Only latest version is returned",
+			tags:        []string{"v1.4.4", "v1.5.1"},
+			expectedVer: "1.5.1",
 		},
 		{
-			"Empty YAML",
-			"/empty",
-			"",
-			"no releases",
-			"",
+			name:        "Only latest stable version is returned",
+			tags:        []string{"v1.5.2-rc.1", "v1.4.4", "v1.5.1"},
+			expectedVer: "1.5.1",
 		},
 		{
-			"Only RCs",
-			"/only_rcs",
-			`apiVersion: v1
-entries:
-  dapr:
-  - apiVersion: v1
-    appVersion: 1.2.3-rc.1
-    created: "2021-06-17T03:13:24.179849371Z"
-    description: A Helm chart for Dapr on Kubernetes
-    digest: 60d8d17b58ca316cdcbdb8529cf9ba2c9e2e0834383c677cafbf99add86ee7a0
-    name: dapr
-    urls:
-    - https://dapr.github.io/helm-charts/dapr-1.2.3-rc.1.tgz
-    version: 1.2.3-rc.1 `,
-			"",
-			"1.2.3-rc.1",
+			name:        "Tags without v prefix work",
+			tags:        []string{"1.4.4", "1.5.1"},
+			expectedVer: "1.5.1",
+		},
+		{
+			name:        "Only RCs returns error",
+			tags:        []string{"v1.2.3-rc.1"},
+			expectedErr: "no stable releases found",
+		},
+		{
+			name:        "Malformed version tags are skipped",
+			tags:        []string{"vedge", "latest", "v1.5.1"},
+			expectedVer: "1.5.1",
+		},
+		{
+			name:        "Only malformed tags returns error",
+			tags:        []string{"vedge", "latest"},
+			expectedErr: "no stable releases found",
 		},
 	}
-	m := http.NewServeMux()
-	s := http.Server{Addr: ":12346", Handler: m, ReadHeaderTimeout: time.Duration(5) * time.Second}
 
 	for _, tc := range tests {
-		body := tc.ResponseBody
-		m.HandleFunc(tc.Path, func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprint(w, body)
-		})
-	}
+		t.Run(tc.name, func(t *testing.T) {
+			host := startTestRegistry(t)
+			imageRef := fmt.Sprintf("%s/dapr/dapr", host)
 
-	go func() {
-		s.ListenAndServe()
-	}()
+			for _, tag := range tc.tags {
+				pushEmptyImage(t, fmt.Sprintf("%s:%s", imageRef, tag))
+			}
 
-	for _, tc := range tests {
-		t.Run(tc.Name, func(t *testing.T) {
-			version, err := GetLatestReleaseHelmChart("http://localhost:12346" + tc.Path)
-			assert.Equal(t, tc.ExpectedVer, version)
-			if tc.ExpectedErr != "" {
-				assert.EqualError(t, err, tc.ExpectedErr)
+			ver, err := GetLatestVersion(imageRef)
+			if tc.expectedErr != "" {
+				assert.ErrorContains(t, err, tc.expectedErr)
+				assert.Empty(t, ver)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tc.expectedVer, ver)
 			}
 		})
 	}
+}
 
-	s.Shutdown(t.Context())
+func TestGetLatestVersionNoTags(t *testing.T) {
+	host := startTestRegistry(t)
+	imageRef := fmt.Sprintf("%s/dapr/nonexistent", host)
+
+	ver, err := GetLatestVersion(imageRef)
+	assert.Error(t, err)
+	assert.Empty(t, ver)
+}
+
+func TestGetLatestVersionInvalidRef(t *testing.T) {
+	ver, err := GetLatestVersion("://invalid")
+	assert.Error(t, err)
+	assert.Empty(t, ver)
+}
+
+func TestGetLatestVersionBadAddress(t *testing.T) {
+	ver, err := GetLatestVersion("a.super.non.existent.domain/dapr/dapr")
+	assert.Error(t, err)
+	assert.Empty(t, ver)
+}
+
+func TestDaprImageRef(t *testing.T) {
+	tests := []struct {
+		name             string
+		imageRegistryURL string
+		expected         string
+	}{
+		{
+			name:             "custom registry",
+			imageRegistryURL: "localhost:5000",
+			expected:         "localhost:5000/dapr/dapr",
+		},
+		{
+			name:     "default Docker Hub",
+			expected: DaprDefaultImage,
+		},
+		{
+			name:             "default Docker Hub, empty registry URL",
+			imageRegistryURL: "",
+			expected:         DaprDefaultImage,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result := DaprImageRef(tc.imageRegistryURL)
+			assert.Equal(t, tc.expected, result)
+		})
+	}
+}
+
+func TestDashboardImageRef(t *testing.T) {
+	tests := []struct {
+		name             string
+		imageRegistryURL string
+		expected         string
+	}{
+		{
+			name:             "custom registry",
+			imageRegistryURL: "localhost:5000",
+			expected:         "localhost:5000/dapr/dashboard",
+		},
+		{
+			name:     "default Docker Hub",
+			expected: DashboardDefaultImage,
+		},
+		{
+			name:             "default Docker Hub, empty registry URL",
+			imageRegistryURL: "",
+			expected:         DashboardDefaultImage,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result := DashboardImageRef(tc.imageRegistryURL)
+			assert.Equal(t, tc.expected, result)
+		})
+	}
+}
+
+func TestImageRefCanBeResolved(t *testing.T) {
+	// Verify that the default image refs are valid repository references.
+	refs := []string{DaprDefaultImage, DashboardDefaultImage}
+	for _, ref := range refs {
+		t.Run(ref, func(t *testing.T) {
+			_, err := name.NewRepository(ref)
+			require.NoError(t, err, "default image ref %q should be a valid repository", ref)
+		})
+	}
 }
