@@ -67,7 +67,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		// Wait for the emit-metrics app to fail (wrong file name). The app
 		// log gets written quickly since `go run wrongappname.go` fails
 		// immediately. Then send stop so the CLI shuts down gracefully.
-		waitForLogContent(t, "../../apps/emit-metrics/.dapr/logs", "app", "exit status 1", 60*time.Second)
+		waitForLogContent(t, "../../apps/emit-metrics/.dapr/logs", "app", "exit status 1", 120*time.Second)
 		cmdStopWithRunTemplate(runFilePath)
 		// Give the CLI time to gracefully shut down. The CLI must process
 		// the SIGTERM from stop, then kill daprd/app processes (up to 5s

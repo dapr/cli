@@ -522,7 +522,7 @@ func TestWorkflowChildCalls(t *testing.T) {
 	})
 
 	t.Run("child workflow failure handling", func(t *testing.T) {
-		output, err := cmdWorkflowRun(appID, "ParentWorkflow", "--input", `{"fail": true}`, "--instance-id=parent-1")
+		output, err := cmdWorkflowRun(appID, "ParentWorkflow", "--input", `{"fail": true}`, "--instance-id=parent-fail-1")
 		require.NoError(t, err, output)
 
 		// Poll until the parent workflow reaches a terminal state.
@@ -537,13 +537,13 @@ func TestWorkflowChildCalls(t *testing.T) {
 				return false
 			}
 			for _, item := range list {
-				if item["instanceID"] == "parent-1" {
+				if item["instanceID"] == "parent-fail-1" {
 					status, _ := item["runtimeStatus"].(string)
 					return status == "COMPLETED" || status == "FAILED"
 				}
 			}
 			return false
-		}, 30*time.Second, time.Second, "parent-1 workflow did not reach terminal state")
+		}, 30*time.Second, time.Second, "parent-fail-1 workflow did not reach terminal state")
 	})
 }
 
