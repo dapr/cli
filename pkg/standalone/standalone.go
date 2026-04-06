@@ -916,7 +916,7 @@ func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error
 func createSlimConfiguration(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 	defer wg.Done()
 
-	if !(info.slimMode || isAirGapInit) {
+	if !info.slimMode && !isAirGapInit {
 		return
 	}
 
