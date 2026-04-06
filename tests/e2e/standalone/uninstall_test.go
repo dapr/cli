@@ -29,6 +29,11 @@ import (
 )
 
 func TestStandaloneUninstall(t *testing.T) {
+	// Reinstall Dapr when done so subsequent tests still work.
+	t.Cleanup(func() {
+		ensureDaprInstallation(t)
+	})
+
 	t.Run("uninstall should error out if container runtime is not valid", func(t *testing.T) {
 		output, err := cmdUninstall("--container-runtime", "invalid")
 		require.Error(t, err, "expected error if container runtime is invalid")

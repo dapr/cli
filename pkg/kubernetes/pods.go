@@ -115,9 +115,10 @@ func waitPodRunning(ctx context.Context, client k8s.Interface, namespace, appID 
 		case event := <-watcher.ResultChan():
 			pod := event.Object.(*corev1.Pod)
 
-			if pod.Status.Phase == corev1.PodRunning {
+			switch pod.Status.Phase {
+			case corev1.PodRunning:
 				return nil
-			} else if pod.Status.Phase == corev1.PodFailed || pod.Status.Phase == corev1.PodUnknown {
+			case corev1.PodFailed, corev1.PodUnknown:
 				return fmt.Errorf("error waiting for pod run: %w", errPodUnknown)
 			}
 

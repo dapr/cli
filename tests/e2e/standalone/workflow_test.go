@@ -38,25 +38,16 @@ func TestWorkflowList(t *testing.T) {
 		t.Skip("skipping workflow tests in slim mode")
 	}
 
-	cmdUninstall()
-	ensureDaprInstallation(t)
-	t.Cleanup(func() {
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
-
 	runFilePath := "../testdata/run-template-files/test-workflow.yaml"
 	appID := "test-workflow"
-	t.Cleanup(func() {
-		cmdStopWithAppID(appID)
-	})
-	args := []string{"-f", runFilePath}
+	startDaprRun(t, []int{3510}, func() { cmdStopWithAppID(appID) }, "-f", runFilePath)
 
-	go func() {
-		o, _ := cmdRun("", args...)
-		t.Log(o)
-	}()
+	waitForAppHealthy(t, 60*time.Second, "test-workflow")
 
-	time.Sleep(time.Second * 5)
+	// Purge any leftover workflow instances from previous test runs.
+	purgeOut, purgeErr := cmdWorkflowPurge(appID, redisConnString, "--all")
+	require.NoError(t, purgeErr, purgeOut)
+
 	output, err := cmdWorkflowList(appID, redisConnString)
 	require.NoError(t, err)
 	assert.Equal(t, `❌  No workflow found in namespace "default" for app ID "test-workflow"
@@ -95,25 +86,14 @@ func TestWorkflowRaiseEvent(t *testing.T) {
 		t.Skip("skipping workflow tests in slim mode")
 	}
 
-	cmdUninstall()
-	ensureDaprInstallation(t)
-	t.Cleanup(func() {
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
-
 	runFilePath := "../testdata/run-template-files/test-workflow.yaml"
 	appID := "test-workflow"
-	t.Cleanup(func() {
-		cmdStopWithAppID(appID)
-	})
-	args := []string{"-f", runFilePath}
+	startDaprRun(t, []int{3510}, func() { cmdStopWithAppID(appID) }, "-f", runFilePath)
 
-	go func() {
-		o, _ := cmdRun("", args...)
-		t.Log(o)
-	}()
+	waitForAppHealthy(t, 60*time.Second, "test-workflow")
+	purgeOut, purgeErr := cmdWorkflowPurge(appID, redisConnString, "--all")
+	require.NoError(t, purgeErr, purgeOut)
 
-	time.Sleep(time.Second * 5)
 	output, err := cmdWorkflowRun(appID, "EventWorkflow", "--instance-id=foo")
 	require.NoError(t, err, output)
 
@@ -176,40 +156,48 @@ func TestWorkflowReRun(t *testing.T) {
 		t.Skip("skipping workflow tests in slim mode")
 	}
 
-	cmdUninstall()
-	ensureDaprInstallation(t)
-	t.Cleanup(func() {
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
-
 	runFilePath := "../testdata/run-template-files/test-workflow.yaml"
 	appID := "test-workflow"
-	t.Cleanup(func() {
-		cmdStopWithAppID(appID)
-	})
-	args := []string{"-f", runFilePath}
+	startDaprRun(t, []int{3510}, func() { cmdStopWithAppID(appID) }, "-f", runFilePath)
 
-	go func() {
-		o, _ := cmdRun("", args...)
-		t.Log(o)
-	}()
+	waitForAppHealthy(t, 60*time.Second, "test-workflow")
 
-	time.Sleep(time.Second * 5)
+	purgeOut, purgeErr := cmdWorkflowPurge(appID, redisConnString, "--all")
+	require.NoError(t, purgeErr, purgeOut)
 
 	output, err := cmdWorkflowRun(appID, "SimpleWorkflow", "--instance-id=foo")
 	require.NoError(t, err, output)
 
-	time.Sleep(3 * time.Second)
+	// Wait for the workflow instance to reach a terminal state before
+	// attempting rerun operations. Rerun requires the instance to be in a
+	// terminal state (COMPLETED/FAILED/TERMINATED).
+	require.Eventually(t, func() bool {
+		out, err := cmdWorkflowList(appID, redisConnString, "-o", "json")
+		if err != nil {
+			return false
+		}
+		var list []map[string]interface{}
+		if err := json.Unmarshal([]byte(out), &list); err != nil {
+			return false
+		}
+		for _, item := range list {
+			if item["instanceID"] == "foo" {
+				status, _ := item["runtimeStatus"].(string)
+				return status == "COMPLETED" || status == "FAILED" || status == "TERMINATED"
+			}
+		}
+		return false
+	}, 60*time.Second, time.Second, "workflow instance 'foo' did not reach terminal state")
 
 	t.Run("rerun from beginning", func(t *testing.T) {
 		output, err := cmdWorkflowReRun(appID, "foo")
-		require.NoError(t, err)
+		require.NoError(t, err, output)
 		assert.Contains(t, output, "Rerunning workflow instance")
 	})
 
 	t.Run("rerun with new instance ID", func(t *testing.T) {
 		output, err := cmdWorkflowReRun(appID, "foo", "--new-instance-id", "bar")
-		require.NoError(t, err)
+		require.NoError(t, err, output)
 		assert.Contains(t, output, "bar")
 	})
 
@@ -232,25 +220,13 @@ func TestWorkflowPurge(t *testing.T) {
 		t.Skip("skipping workflow tests in slim mode")
 	}
 
-	cmdUninstall()
-	ensureDaprInstallation(t)
-	t.Cleanup(func() {
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
-
 	runFilePath := "../testdata/run-template-files/test-workflow.yaml"
 	appID := "test-workflow"
-	t.Cleanup(func() {
-		cmdStopWithAppID(appID)
-	})
-	args := []string{"-f", runFilePath}
+	startDaprRun(t, []int{3510}, func() { cmdStopWithAppID(appID) }, "-f", runFilePath)
 
-	go func() {
-		o, _ := cmdRun("", args...)
-		t.Log(o)
-	}()
-
-	time.Sleep(5 * time.Second)
+	waitForAppHealthy(t, 60*time.Second, "test-workflow")
+	purgeOut, purgeErr := cmdWorkflowPurge(appID, redisConnString, "--all")
+	require.NoError(t, purgeErr, purgeOut)
 
 	for i := 0; i < 3; i++ {
 		output, err := cmdWorkflowRun(appID, "SimpleWorkflow",
@@ -290,6 +266,8 @@ func TestWorkflowPurge(t *testing.T) {
 			require.NoError(t, err, output)
 			_, _ = cmdWorkflowTerminate(appID, "purge-all-"+strconv.Itoa(i))
 		}
+		// Wait for workflows to reach terminal state after terminate.
+		time.Sleep(2 * time.Second)
 
 		output, err := cmdWorkflowPurge(appID, redisConnString, "--all")
 		require.NoError(t, err, output)
@@ -324,19 +302,28 @@ func TestWorkflowPurge(t *testing.T) {
 			"--instance-id=also-sched")
 		require.NoError(t, err)
 
+		// Wait for scheduler entries to appear while workflow is still running.
+		require.Eventually(t, func() bool {
+			output, err := cmdSchedulerList()
+			if err != nil {
+				return false
+			}
+			return len(strings.Split(output, "\n")) > 2
+		}, 30*time.Second, time.Second, "expected scheduler entries to appear")
+
 		output, err = cmdWorkflowTerminate(appID, "also-sched")
 		require.NoError(t, err, output)
-
-		output, err = cmdSchedulerList()
-		require.NoError(t, err)
-		assert.Greater(t, len(strings.Split(output, "\n")), 2)
 
 		output, err = cmdWorkflowPurge(appID, "also-sched")
 		require.NoError(t, err, output)
 
-		output, err = cmdSchedulerList()
-		require.NoError(t, err)
-		assert.Len(t, strings.Split(output, "\n"), 2)
+		require.Eventually(t, func() bool {
+			output, err := cmdSchedulerList()
+			if err != nil {
+				return false
+			}
+			return len(strings.Split(output, "\n")) == 2
+		}, 30*time.Second, time.Second, "expected scheduler entries to be purged")
 	})
 }
 
@@ -345,25 +332,13 @@ func TestWorkflowFilters(t *testing.T) {
 		t.Skip("skipping workflow tests in slim mode")
 	}
 
-	cmdUninstall()
-	ensureDaprInstallation(t)
-	t.Cleanup(func() {
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
-
 	runFilePath := "../testdata/run-template-files/test-workflow.yaml"
 	appID := "test-workflow"
-	t.Cleanup(func() {
-		cmdStopWithAppID(appID)
-	})
-	args := []string{"-f", runFilePath}
+	startDaprRun(t, []int{3510}, func() { cmdStopWithAppID(appID) }, "-f", runFilePath)
 
-	go func() {
-		o, _ := cmdRun("", args...)
-		t.Log(o)
-	}()
-
-	time.Sleep(5 * time.Second)
+	waitForAppHealthy(t, 60*time.Second, "test-workflow")
+	purgeOut, purgeErr := cmdWorkflowPurge(appID, redisConnString, "--all")
+	require.NoError(t, purgeErr, purgeOut)
 
 	_, _ = cmdWorkflowRun(appID, "SimpleWorkflow", "--instance-id=simple-1")
 	_, _ = cmdWorkflowRun(appID, "LongWorkflow", "--instance-id=long-1")
@@ -411,32 +386,41 @@ func TestWorkflowChildCalls(t *testing.T) {
 		t.Skip("skipping workflow tests in slim mode")
 	}
 
-	cmdUninstall()
-	ensureDaprInstallation(t)
-	t.Cleanup(func() {
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
-
 	runFilePath := "../testdata/run-template-files/test-workflow.yaml"
 	appID := "test-workflow"
-	t.Cleanup(func() {
-		cmdStopWithAppID(appID)
-	})
-	args := []string{"-f", runFilePath}
+	startDaprRun(t, []int{3510}, func() { cmdStopWithAppID(appID) }, "-f", runFilePath)
 
-	go func() {
-		o, _ := cmdRun("", args...)
-		t.Log(o)
-	}()
-
-	time.Sleep(5 * time.Second)
+	waitForAppHealthy(t, 60*time.Second, "test-workflow")
+	purgeOut, purgeErr := cmdWorkflowPurge(appID, redisConnString, "--all")
+	require.NoError(t, purgeErr, purgeOut)
 
 	t.Run("parent child workflow", func(t *testing.T) {
 		input := `{"test": "parent-child", "value": 42}`
 		output, err := cmdWorkflowRun(appID, "ParentWorkflow", "--input", input, "--instance-id=parent-1")
 		require.NoError(t, err, output)
 
-		time.Sleep(5 * time.Second)
+		// Poll until the parent workflow and child workflows appear.
+		require.Eventually(t, func() bool {
+			out, err := cmdWorkflowList(appID, redisConnString, "-o", "json")
+			if err != nil {
+				return false
+			}
+			var list []map[string]interface{}
+			if err := json.Unmarshal([]byte(out), &list); err != nil {
+				return false
+			}
+			var parentFound bool
+			var childCount int
+			for _, item := range list {
+				if item["instanceID"] == "parent-1" {
+					parentFound = true
+				}
+				if name, ok := item["name"].(string); ok && name == "ChildWorkflow" {
+					childCount++
+				}
+			}
+			return parentFound && childCount >= 2
+		}, 30*time.Second, time.Second, "parent workflow and children did not appear")
 
 		output, err = cmdWorkflowList(appID, redisConnString, "-o", "json")
 		require.NoError(t, err)
@@ -463,7 +447,24 @@ func TestWorkflowChildCalls(t *testing.T) {
 		output, err := cmdWorkflowRun(appID, "NestedParentWorkflow", "--instance-id=nested-parent")
 		require.NoError(t, err)
 
-		time.Sleep(6 * time.Second)
+		// Poll until recursive child workflows appear.
+		require.Eventually(t, func() bool {
+			out, err := cmdWorkflowList(appID, redisConnString, "-o", "json")
+			if err != nil {
+				return false
+			}
+			var list []map[string]interface{}
+			if err := json.Unmarshal([]byte(out), &list); err != nil {
+				return false
+			}
+			count := 0
+			for _, item := range list {
+				if name, ok := item["name"].(string); ok && name == "RecursiveChildWorkflow" {
+					count++
+				}
+			}
+			return count >= 2
+		}, 30*time.Second, time.Second, "recursive child workflows did not appear")
 
 		output, err = cmdWorkflowList(appID, redisConnString, "-o", "json")
 		require.NoError(t, err)
@@ -486,7 +487,24 @@ func TestWorkflowChildCalls(t *testing.T) {
 		output, err := cmdWorkflowRun(appID, "FanOutWorkflow", "--input", input, "--instance-id=fanout-1")
 		require.NoError(t, err)
 
-		time.Sleep(5 * time.Second)
+		// Poll until fan-out child workflows appear.
+		require.Eventually(t, func() bool {
+			out, err := cmdWorkflowList(appID, redisConnString, "-o", "json")
+			if err != nil {
+				return false
+			}
+			var list []map[string]interface{}
+			if err := json.Unmarshal([]byte(out), &list); err != nil {
+				return false
+			}
+			count := 0
+			for _, item := range list {
+				if name, ok := item["name"].(string); ok && name == "ChildWorkflow" {
+					count++
+				}
+			}
+			return count >= parallelCount
+		}, 30*time.Second, time.Second, "fan-out child workflows did not appear")
 
 		output, err = cmdWorkflowList(appID, redisConnString, "-o", "json")
 		require.NoError(t, err)
@@ -504,24 +522,28 @@ func TestWorkflowChildCalls(t *testing.T) {
 	})
 
 	t.Run("child workflow failure handling", func(t *testing.T) {
-		output, err := cmdWorkflowRun(appID, "ParentWorkflow", "--input", `{"fail": true}`, "--instance-id=parent-1")
+		output, err := cmdWorkflowRun(appID, "ParentWorkflow", "--input", `{"fail": true}`, "--instance-id=parent-fail-1")
 		require.NoError(t, err, output)
 
-		time.Sleep(5 * time.Second)
-
-		output, err = cmdWorkflowList(appID, redisConnString, "-o", "json")
-		require.NoError(t, err)
-
-		var list []map[string]interface{}
-		require.NoError(t, json.Unmarshal([]byte(output), &list))
-
-		for _, item := range list {
-			if item["instanceID"] == "parent-1" {
-				status := item["runtimeStatus"].(string)
-				assert.Contains(t, []string{"COMPLETED", "FAILED"}, status)
-				break
+		// Poll until the parent workflow reaches a terminal state.
+		// On slow CI runners the workflow may still be RUNNING after 5s.
+		require.Eventually(t, func() bool {
+			out, err := cmdWorkflowList(appID, redisConnString, "-o", "json")
+			if err != nil {
+				return false
 			}
-		}
+			var list []map[string]interface{}
+			if err := json.Unmarshal([]byte(out), &list); err != nil {
+				return false
+			}
+			for _, item := range list {
+				if item["instanceID"] == "parent-fail-1" {
+					status, _ := item["runtimeStatus"].(string)
+					return status == "COMPLETED" || status == "FAILED"
+				}
+			}
+			return false
+		}, 30*time.Second, time.Second, "parent-fail-1 workflow did not reach terminal state")
 	})
 }
 
@@ -530,26 +552,14 @@ func TestWorkflowHistory(t *testing.T) {
 		t.Skip("skipping workflow tests in slim mode")
 	}
 
-	cmdUninstall()
-	ensureDaprInstallation(t)
-	t.Cleanup(func() {
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
-
 	runFilePath := "../testdata/run-template-files/test-workflow.yaml"
 	appID := "test-workflow"
-	t.Cleanup(func() {
-		cmdStopWithAppID(appID)
-	})
-	args := []string{"-f", runFilePath}
+	startDaprRun(t, []int{3510}, func() { cmdStopWithAppID(appID) }, "-f", runFilePath)
 
-	go func() {
-		o, _ := cmdRun("", args...)
-		t.Log(o)
-	}()
+	waitForAppHealthy(t, 60*time.Second, "test-workflow")
+	purgeOut, purgeErr := cmdWorkflowPurge(appID, redisConnString, "--all")
+	require.NoError(t, purgeErr, purgeOut)
 
-	// Wait and create a workflow
-	time.Sleep(5 * time.Second)
 	output, err := cmdWorkflowRun(appID, "SimpleWorkflow", "--instance-id=history-test")
 	require.NoError(t, err, output)
 
@@ -584,26 +594,14 @@ func TestWorkflowSuspendResume(t *testing.T) {
 		t.Skip("skipping workflow tests in slim mode")
 	}
 
-	cmdUninstall()
-	ensureDaprInstallation(t)
-	t.Cleanup(func() {
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
-
 	runFilePath := "../testdata/run-template-files/test-workflow.yaml"
 	appID := "test-workflow"
-	t.Cleanup(func() {
-		cmdStopWithAppID(appID)
-	})
-	args := []string{"-f", runFilePath}
+	startDaprRun(t, []int{3510}, func() { cmdStopWithAppID(appID) }, "-f", runFilePath)
 
-	go func() {
-		o, _ := cmdRun("", args...)
-		t.Log(o)
-	}()
+	waitForAppHealthy(t, 60*time.Second, "test-workflow")
+	purgeOut, purgeErr := cmdWorkflowPurge(appID, redisConnString, "--all")
+	require.NoError(t, purgeErr, purgeOut)
 
-	// Wait and create a long-running workflow
-	time.Sleep(5 * time.Second)
 	output, err := cmdWorkflowRun(appID, "LongWorkflow", "--instance-id=suspend-resume-test")
 	require.NoError(t, err, output)
 
@@ -662,26 +660,14 @@ func TestWorkflowTerminate(t *testing.T) {
 		t.Skip("skipping workflow tests in slim mode")
 	}
 
-	cmdUninstall()
-	ensureDaprInstallation(t)
-	t.Cleanup(func() {
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-	})
-
 	runFilePath := "../testdata/run-template-files/test-workflow.yaml"
 	appID := "test-workflow"
-	t.Cleanup(func() {
-		cmdStopWithAppID(appID)
-	})
-	args := []string{"-f", runFilePath}
+	startDaprRun(t, []int{3510}, func() { cmdStopWithAppID(appID) }, "-f", runFilePath)
 
-	go func() {
-		o, _ := cmdRun("", args...)
-		t.Log(o)
-	}()
+	waitForAppHealthy(t, 60*time.Second, "test-workflow")
+	purgeOut, purgeErr := cmdWorkflowPurge(appID, redisConnString, "--all")
+	require.NoError(t, purgeErr, purgeOut)
 
-	// Wait and create a workflow for testing
-	time.Sleep(5 * time.Second)
 	output, err := cmdWorkflowRun(appID, "LongWorkflow", "--instance-id=terminate-test")
 	require.NoError(t, err, output)
 
