@@ -8,9 +8,9 @@ require (
 	github.com/Pallinder/sillyname-go v0.0.0-20130730142914-97aeae9e6ba1
 	github.com/briandowns/spinner v1.19.0
 	github.com/dapr/dapr v1.17.0-rc.8
-	github.com/dapr/durabletask-go v0.11.0
+	github.com/dapr/durabletask-go v0.11.4-0.20260408193502-7e0554e3883e
 	github.com/dapr/go-sdk v1.13.0
-	github.com/dapr/kit v0.16.2-0.20251124175541-3ac186dff64d
+	github.com/dapr/kit v0.17.1-0.20260402173438-be272d92042b
 	github.com/diagridio/go-etcd-cron v0.12.3
 	github.com/docker/docker v28.5.2+incompatible
 	github.com/evanphx/json-patch/v5 v5.9.0
@@ -104,6 +104,7 @@ require (
 	github.com/docker/go-connections v0.6.0 // indirect
 	github.com/docker/go-events v0.0.0-20250808211157-605354379745 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
+	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
 	github.com/evanphx/json-patch v5.9.11+incompatible // indirect
 	github.com/exponent-io/jsonpath v0.0.0-20210407135951-1de76d718b3f // indirect
@@ -189,6 +190,7 @@ require (
 	github.com/montanaflynn/stats v0.7.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
+	github.com/ncruces/go-strftime v0.1.9 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/openzipkin/zipkin-go v0.4.3 // indirect
@@ -204,6 +206,7 @@ require (
 	github.com/prometheus/common v0.64.0 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/prometheus/statsd_exporter v0.22.7 // indirect
+	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rubenv/sql-migrate v1.8.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
@@ -269,6 +272,10 @@ require (
 	k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff // indirect
 	k8s.io/kubectl v0.33.3 // indirect
 	k8s.io/utils v0.0.0-20250502105355-0f33e8f1c979 // indirect
+	modernc.org/libc v1.61.9 // indirect
+	modernc.org/mathutil v1.7.1 // indirect
+	modernc.org/memory v1.8.2 // indirect
+	modernc.org/sqlite v1.34.5 // indirect
 	oras.land/oras-go/v2 v2.6.0 // indirect
 	sigs.k8s.io/controller-runtime v0.19.0 // indirect
 	sigs.k8s.io/json v0.0.0-20241010143419-9aa6b5e7a4b3 // indirect

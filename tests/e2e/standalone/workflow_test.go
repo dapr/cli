@@ -732,6 +732,134 @@ func TestWorkflowHistory(t *testing.T) {
 		require.NoError(t, json.Unmarshal([]byte(output), &history))
 		assert.GreaterOrEqual(t, len(history), 1)
 	})
+
+	t.Run("timer origin createTimer in details", func(t *testing.T) {
+		// WTimer calls ctx.CreateTimer which produces origin=createTimer.
+		_, err := cmdWorkflowRun(appID, "WTimer", "--instance-id=timer-origin-test")
+		require.NoError(t, err)
+		time.Sleep(2 * time.Second)
+
+		output, err := cmdWorkflowHistory(appID, "timer-origin-test")
+		require.NoError(t, err)
+		assert.Contains(t, output, "origin=createTimer")
+	})
+
+	t.Run("timer origin createTimer in json attrs", func(t *testing.T) {
+		output, err := cmdWorkflowHistory(appID, "timer-origin-test", "-o", "json")
+		require.NoError(t, err)
+
+		var history []map[string]interface{}
+		require.NoError(t, json.Unmarshal([]byte(output), &history))
+
+		found := false
+		for _, ev := range history {
+			if ev["type"] == "TimerCreated" {
+				if attrs, ok := ev["attrs"].(string); ok {
+					assert.Contains(t, attrs, "origin=createTimer")
+					found = true
+				}
+			}
+		}
+		assert.True(t, found, "expected TimerCreated event with origin=createTimer in attrs")
+	})
+
+	t.Run("timer origin externalEvent in details", func(t *testing.T) {
+		// EventWorkflow calls ctx.WaitForExternalEvent("test-event", time.Hour)
+		// which produces origin=externalEvent(test-event).
+		_, err := cmdWorkflowRun(appID, "EventWorkflow", "--instance-id=event-origin-test")
+		require.NoError(t, err)
+		time.Sleep(2 * time.Second)
+
+		output, err := cmdWorkflowHistory(appID, "event-origin-test")
+		require.NoError(t, err)
+		assert.Contains(t, output, "origin=externalEvent(test-event)")
+	})
+
+	t.Run("timer origin externalEvent in json attrs", func(t *testing.T) {
+		output, err := cmdWorkflowHistory(appID, "event-origin-test", "-o", "json")
+		require.NoError(t, err)
+
+		var history []map[string]interface{}
+		require.NoError(t, json.Unmarshal([]byte(output), &history))
+
+		found := false
+		for _, ev := range history {
+			if ev["type"] == "TimerCreated" {
+				if attrs, ok := ev["attrs"].(string); ok {
+					assert.Contains(t, attrs, "origin=externalEvent")
+					assert.Contains(t, attrs, "eventName=test-event")
+					found = true
+				}
+			}
+		}
+		assert.True(t, found, "expected TimerCreated event with origin=externalEvent in attrs")
+	})
+
+	t.Run("timer origin activityRetry in details", func(t *testing.T) {
+		// ActivityRetryWorkflow calls a failing activity with retry policy,
+		// producing TimerCreated events with origin=activityRetry.
+		_, err := cmdWorkflowRun(appID, "ActivityRetryWorkflow", "--instance-id=activity-retry-origin-test")
+		require.NoError(t, err)
+
+		// Wait for retries to produce timer events.
+		time.Sleep(5 * time.Second)
+
+		output, err := cmdWorkflowHistory(appID, "activity-retry-origin-test")
+		require.NoError(t, err)
+		assert.Contains(t, output, "origin=activityRetry(")
+	})
+
+	t.Run("timer origin activityRetry in json attrs", func(t *testing.T) {
+		output, err := cmdWorkflowHistory(appID, "activity-retry-origin-test", "-o", "json")
+		require.NoError(t, err)
+
+		var history []map[string]interface{}
+		require.NoError(t, json.Unmarshal([]byte(output), &history))
+
+		found := false
+		for _, ev := range history {
+			if ev["type"] == "TimerCreated" {
+				if attrs, ok := ev["attrs"].(string); ok && strings.Contains(attrs, "origin=activityRetry") {
+					assert.Contains(t, attrs, "taskExecId=")
+					found = true
+				}
+			}
+		}
+		assert.True(t, found, "expected TimerCreated event with origin=activityRetry in attrs")
+	})
+
+	t.Run("timer origin childWorkflowRetry in details", func(t *testing.T) {
+		// ChildWorkflowRetryWorkflow calls a failing child workflow with retry
+		// policy, producing TimerCreated events with origin=childWorkflowRetry.
+		_, err := cmdWorkflowRun(appID, "ChildWorkflowRetryWorkflow", "--instance-id=child-retry-origin-test")
+		require.NoError(t, err)
+
+		// Wait for retries to produce timer events.
+		time.Sleep(5 * time.Second)
+
+		output, err := cmdWorkflowHistory(appID, "child-retry-origin-test")
+		require.NoError(t, err)
+		assert.Contains(t, output, "origin=childWorkflowRetry(")
+	})
+
+	t.Run("timer origin childWorkflowRetry in json attrs", func(t *testing.T) {
+		output, err := cmdWorkflowHistory(appID, "child-retry-origin-test", "-o", "json")
+		require.NoError(t, err)
+
+		var history []map[string]interface{}
+		require.NoError(t, json.Unmarshal([]byte(output), &history))
+
+		found := false
+		for _, ev := range history {
+			if ev["type"] == "TimerCreated" {
+				if attrs, ok := ev["attrs"].(string); ok && strings.Contains(attrs, "origin=childWorkflowRetry") {
+					assert.Contains(t, attrs, "instanceId=")
+					found = true
+				}
+			}
+		}
+		assert.True(t, found, "expected TimerCreated event with origin=childWorkflowRetry in attrs")
+	})
 }
 
 func TestWorkflowSuspendResume(t *testing.T) {

@@ -230,6 +230,19 @@ func HistoryWide(ctx context.Context, opts HistoryOptions) ([]*HistoryOutputWide
 				row.addAttr("timerName", *t.TimerCreated.Name)
 			}
 			row.addAttr("fireAt", t.TimerCreated.FireAt.AsTime().Format(time.RFC3339))
+			switch x := t.TimerCreated.GetOrigin().(type) {
+			case *protos.TimerCreatedEvent_CreateTimer:
+				row.addAttr("origin", "createTimer")
+			case *protos.TimerCreatedEvent_ExternalEvent:
+				row.addAttr("origin", "externalEvent")
+				row.addAttr("eventName", x.ExternalEvent.GetName())
+			case *protos.TimerCreatedEvent_ActivityRetry:
+				row.addAttr("origin", "activityRetry")
+				row.addAttr("taskExecId", x.ActivityRetry.GetTaskExecutionId())
+			case *protos.TimerCreatedEvent_ChildWorkflowRetry:
+				row.addAttr("origin", "childWorkflowRetry")
+				row.addAttr("instanceId", x.ChildWorkflowRetry.GetInstanceId())
+			}
 		case *protos.HistoryEvent_TimerFired:
 			row.addAttr("timerId", fmt.Sprintf("%d", t.TimerFired.TimerId))
 			row.addAttr("fireAt", t.TimerFired.FireAt.AsTime().Format(time.RFC3339))
@@ -382,6 +395,9 @@ func deriveDetails(first *protos.HistoryEvent, h *protos.HistoryEvent) *string {
 		if in := t.TimerCreated.RerunParentInstanceInfo; in != nil {
 			det += fmt.Sprintf(",rerunParent=%s", in.InstanceID)
 		}
+		if o := timerOriginString(t.TimerCreated); o != "" {
+			det += ",origin=" + o
+		}
 		return ptr.Of(det)
 	case *protos.HistoryEvent_EventRaised:
 		return ptr.Of(fmt.Sprintf("event=%s", t.EventRaised.Name))
@@ -448,6 +464,21 @@ func flatTags(tags map[string]string, max int) string {
 		s += ",…"
 	}
 	return s
+}
+
+func timerOriginString(tc *protos.TimerCreatedEvent) string {
+	switch x := tc.GetOrigin().(type) {
+	case *protos.TimerCreatedEvent_CreateTimer:
+		return "createTimer"
+	case *protos.TimerCreatedEvent_ExternalEvent:
+		return "externalEvent(" + x.ExternalEvent.GetName() + ")"
+	case *protos.TimerCreatedEvent_ActivityRetry:
+		return "activityRetry(" + x.ActivityRetry.GetTaskExecutionId() + ")"
+	case *protos.TimerCreatedEvent_ChildWorkflowRetry:
+		return "childWorkflowRetry(" + x.ChildWorkflowRetry.GetInstanceId() + ")"
+	default:
+		return ""
+	}
 }
 
 func trim(ww *wrapperspb.StringValue, limit int) string {
