@@ -230,18 +230,11 @@ func HistoryWide(ctx context.Context, opts HistoryOptions) ([]*HistoryOutputWide
 				row.addAttr("timerName", *t.TimerCreated.Name)
 			}
 			row.addAttr("fireAt", t.TimerCreated.FireAt.AsTime().Format(time.RFC3339))
-			switch x := t.TimerCreated.GetOrigin().(type) {
-			case *protos.TimerCreatedEvent_CreateTimer:
-				row.addAttr("origin", "createTimer")
-			case *protos.TimerCreatedEvent_ExternalEvent:
-				row.addAttr("origin", "externalEvent")
-				row.addAttr("eventName", x.ExternalEvent.GetName())
-			case *protos.TimerCreatedEvent_ActivityRetry:
-				row.addAttr("origin", "activityRetry")
-				row.addAttr("taskExecId", x.ActivityRetry.GetTaskExecutionId())
-			case *protos.TimerCreatedEvent_ChildWorkflowRetry:
-				row.addAttr("origin", "childWorkflowRetry")
-				row.addAttr("instanceId", x.ChildWorkflowRetry.GetInstanceId())
+			if o := timerOriginInfo(t.TimerCreated); o != nil {
+				row.addAttr("origin", o.kind)
+				if o.attrKey != "" {
+					row.addAttr(o.attrKey, o.attrVal)
+				}
 			}
 		case *protos.HistoryEvent_TimerFired:
 			row.addAttr("timerId", fmt.Sprintf("%d", t.TimerFired.TimerId))
@@ -466,19 +459,36 @@ func flatTags(tags map[string]string, max int) string {
 	return s
 }
 
-func timerOriginString(tc *protos.TimerCreatedEvent) string {
+type timerOrigin struct {
+	kind    string // e.g. "createTimer", "externalEvent"
+	attrKey string // extra attr key, empty if none
+	attrVal string // extra attr value
+}
+
+func timerOriginInfo(tc *protos.TimerCreatedEvent) *timerOrigin {
 	switch x := tc.GetOrigin().(type) {
 	case *protos.TimerCreatedEvent_CreateTimer:
-		return "createTimer"
+		return &timerOrigin{kind: "createTimer"}
 	case *protos.TimerCreatedEvent_ExternalEvent:
-		return "externalEvent(" + x.ExternalEvent.GetName() + ")"
+		return &timerOrigin{kind: "externalEvent", attrKey: "eventName", attrVal: x.ExternalEvent.GetName()}
 	case *protos.TimerCreatedEvent_ActivityRetry:
-		return "activityRetry(" + x.ActivityRetry.GetTaskExecutionId() + ")"
+		return &timerOrigin{kind: "activityRetry", attrKey: "taskExecId", attrVal: x.ActivityRetry.GetTaskExecutionId()}
 	case *protos.TimerCreatedEvent_ChildWorkflowRetry:
-		return "childWorkflowRetry(" + x.ChildWorkflowRetry.GetInstanceId() + ")"
+		return &timerOrigin{kind: "childWorkflowRetry", attrKey: "instanceId", attrVal: x.ChildWorkflowRetry.GetInstanceId()}
 	default:
+		return nil
+	}
+}
+
+func timerOriginString(tc *protos.TimerCreatedEvent) string {
+	o := timerOriginInfo(tc)
+	if o == nil {
 		return ""
 	}
+	if o.attrVal != "" {
+		return o.kind + "(" + o.attrVal + ")"
+	}
+	return o.kind
 }
 
 func trim(ww *wrapperspb.StringValue, limit int) string {
