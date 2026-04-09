@@ -154,9 +154,9 @@ func HistoryWide(ctx context.Context, opts HistoryOptions) ([]*HistoryOutputWide
 
 		switch t := ev.GetEventType().(type) {
 		case *protos.HistoryEvent_ExecutionStarted:
-			if t.ExecutionStarted.OrchestrationInstance != nil &&
-				t.ExecutionStarted.OrchestrationInstance.ExecutionId != nil {
-				execID := t.ExecutionStarted.OrchestrationInstance.ExecutionId.Value
+			if t.ExecutionStarted.WorkflowInstance != nil &&
+				t.ExecutionStarted.WorkflowInstance.ExecutionId != nil {
+				execID := t.ExecutionStarted.WorkflowInstance.ExecutionId.Value
 				row.ExecutionID = &execID
 			}
 			if t.ExecutionStarted.Input != nil {
@@ -188,9 +188,9 @@ func HistoryWide(ctx context.Context, opts HistoryOptions) ([]*HistoryOutputWide
 			if t.TaskCompleted.Result != nil {
 				row.addAttr("output", trim(t.TaskCompleted.Result, 120))
 			}
-		case *protos.HistoryEvent_OrchestratorStarted:
-			if t.OrchestratorStarted.Version != nil {
-				version := t.OrchestratorStarted.GetVersion()
+		case *protos.HistoryEvent_WorkflowStarted:
+			if t.WorkflowStarted.Version != nil {
+				version := t.WorkflowStarted.GetVersion()
 				if version.Name != nil {
 					row.addAttr("versionName", *version.Name)
 				}
@@ -198,13 +198,13 @@ func HistoryWide(ctx context.Context, opts HistoryOptions) ([]*HistoryOutputWide
 					row.addAttr("versionPatches", strings.Join(version.Patches, ","))
 				}
 			}
-		case *protos.HistoryEvent_SubOrchestrationInstanceCreated:
-			if t.SubOrchestrationInstanceCreated.Input != nil {
-				row.addAttr("input", trim(t.SubOrchestrationInstanceCreated.Input, 120))
+		case *protos.HistoryEvent_ChildWorkflowInstanceCreated:
+			if t.ChildWorkflowInstanceCreated.Input != nil {
+				row.addAttr("input", trim(t.ChildWorkflowInstanceCreated.Input, 120))
 			}
-		case *protos.HistoryEvent_SubOrchestrationInstanceCompleted:
-			if t.SubOrchestrationInstanceCompleted.Result != nil {
-				row.addAttr("output", trim(t.SubOrchestrationInstanceCompleted.Result, 120))
+		case *protos.HistoryEvent_ChildWorkflowInstanceCompleted:
+			if t.ChildWorkflowInstanceCompleted.Result != nil {
+				row.addAttr("output", trim(t.ChildWorkflowInstanceCompleted.Result, 120))
 			}
 		case *protos.HistoryEvent_TaskFailed:
 			row.addAttr("scheduledId", fmt.Sprintf("%d", t.TaskFailed.TaskScheduledId))
@@ -278,28 +278,24 @@ func eventTypeName(h *protos.HistoryEvent) string {
 		return "TaskCompleted"
 	case *protos.HistoryEvent_TaskFailed:
 		return "TaskFailed"
-	case *protos.HistoryEvent_SubOrchestrationInstanceCreated:
-		return "SubOrchCreated"
-	case *protos.HistoryEvent_SubOrchestrationInstanceCompleted:
-		return "SubOrchCompleted"
-	case *protos.HistoryEvent_SubOrchestrationInstanceFailed:
-		return "SubOrchFailed"
+	case *protos.HistoryEvent_ChildWorkflowInstanceCreated:
+		return "ChildWorkflowCreated"
+	case *protos.HistoryEvent_ChildWorkflowInstanceCompleted:
+		return "ChildWorkflowCompleted"
+	case *protos.HistoryEvent_ChildWorkflowInstanceFailed:
+		return "ChildWorkflowFailed"
 	case *protos.HistoryEvent_TimerCreated:
 		return "TimerCreated"
 	case *protos.HistoryEvent_TimerFired:
 		return "TimerFired"
-	case *protos.HistoryEvent_OrchestratorStarted:
-		return "OrchestratorStarted"
-	case *protos.HistoryEvent_OrchestratorCompleted:
-		return "OrchestratorCompleted"
+	case *protos.HistoryEvent_WorkflowStarted:
+		return "WorkflowStarted"
+	case *protos.HistoryEvent_WorkflowCompleted:
+		return "WorkflowCompleted"
 	case *protos.HistoryEvent_EventSent:
 		return "EventSent"
 	case *protos.HistoryEvent_EventRaised:
 		return "EventRaised"
-	case *protos.HistoryEvent_GenericEvent:
-		return "GenericEvent"
-	case *protos.HistoryEvent_HistoryState:
-		return "HistoryState"
 	case *protos.HistoryEvent_ContinueAsNew:
 		return "ContinueAsNew"
 	case *protos.HistoryEvent_ExecutionSuspended:
@@ -308,20 +304,6 @@ func eventTypeName(h *protos.HistoryEvent) string {
 		return "ExecutionResumed"
 	case *protos.HistoryEvent_ExecutionStalled:
 		return "ExecutionStalled"
-	case *protos.HistoryEvent_EntityOperationSignaled:
-		return "EntitySignaled"
-	case *protos.HistoryEvent_EntityOperationCalled:
-		return "EntityCalled"
-	case *protos.HistoryEvent_EntityOperationCompleted:
-		return "EntityCompleted"
-	case *protos.HistoryEvent_EntityOperationFailed:
-		return "EntityFailed"
-	case *protos.HistoryEvent_EntityLockRequested:
-		return "EntityLockRequested"
-	case *protos.HistoryEvent_EntityLockGranted:
-		return "EntityLockGranted"
-	case *protos.HistoryEvent_EntityUnlockSent:
-		return "EntityUnlockSent"
 	default:
 		return "Unknown"
 	}
@@ -335,8 +317,8 @@ func deriveName(h *protos.HistoryEvent) *string {
 		return nil
 	case *protos.HistoryEvent_TaskFailed:
 		return nil
-	case *protos.HistoryEvent_SubOrchestrationInstanceCreated:
-		return ptr.Of(t.SubOrchestrationInstanceCreated.Name)
+	case *protos.HistoryEvent_ChildWorkflowInstanceCreated:
+		return ptr.Of(t.ChildWorkflowInstanceCreated.Name)
 	case *protos.HistoryEvent_TimerCreated:
 		if t.TimerCreated.Name != nil {
 			return ptr.Of(*t.TimerCreated.Name)
@@ -356,7 +338,7 @@ func deriveStatus(h *protos.HistoryEvent) string {
 	case *protos.HistoryEvent_TaskFailed:
 		return "FAILED"
 	case *protos.HistoryEvent_ExecutionCompleted:
-		return (workflow.WorkflowMetadata{RuntimeStatus: t.ExecutionCompleted.OrchestrationStatus}).String()
+		return (workflow.WorkflowMetadata{RuntimeStatus: t.ExecutionCompleted.WorkflowStatus}).String()
 	case *protos.HistoryEvent_ExecutionTerminated:
 		return "TERMINATED"
 	case *protos.HistoryEvent_ExecutionSuspended:
@@ -399,13 +381,13 @@ func deriveDetails(first *protos.HistoryEvent, h *protos.HistoryEvent) *string {
 		return ptr.Of(fmt.Sprintf("eventId=%d", t.TaskCompleted.TaskScheduledId))
 	case *protos.HistoryEvent_ExecutionCompleted:
 		return ptr.Of(fmt.Sprintf("execDuration=%s", utils.HumanizeDuration(h.GetTimestamp().AsTime().Sub(first.GetTimestamp().AsTime()))))
-	case *protos.HistoryEvent_SubOrchestrationInstanceCreated:
-		if in := t.SubOrchestrationInstanceCreated.RerunParentInstanceInfo; in != nil {
+	case *protos.HistoryEvent_ChildWorkflowInstanceCreated:
+		if in := t.ChildWorkflowInstanceCreated.RerunParentInstanceInfo; in != nil {
 			return ptr.Of(fmt.Sprintf("rerunParent=%s", in.InstanceID))
 		}
 		return nil
-	case *protos.HistoryEvent_SubOrchestrationInstanceCompleted:
-		return ptr.Of(fmt.Sprintf("eventId=%d", t.SubOrchestrationInstanceCompleted.GetTaskScheduledId()))
+	case *protos.HistoryEvent_ChildWorkflowInstanceCompleted:
+		return ptr.Of(fmt.Sprintf("eventId=%d", t.ChildWorkflowInstanceCompleted.GetTaskScheduledId()))
 	default:
 		return nil
 	}
