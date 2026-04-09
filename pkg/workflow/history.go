@@ -230,6 +230,12 @@ func HistoryWide(ctx context.Context, opts HistoryOptions) ([]*HistoryOutputWide
 				row.addAttr("timerName", *t.TimerCreated.Name)
 			}
 			row.addAttr("fireAt", t.TimerCreated.FireAt.AsTime().Format(time.RFC3339))
+			if o := timerOriginInfo(t.TimerCreated); o != nil {
+				row.addAttr("origin", o.kind)
+				if o.attrKey != "" {
+					row.addAttr(o.attrKey, o.attrVal)
+				}
+			}
 		case *protos.HistoryEvent_TimerFired:
 			row.addAttr("timerId", fmt.Sprintf("%d", t.TimerFired.TimerId))
 			row.addAttr("fireAt", t.TimerFired.FireAt.AsTime().Format(time.RFC3339))
@@ -382,6 +388,9 @@ func deriveDetails(first *protos.HistoryEvent, h *protos.HistoryEvent) *string {
 		if in := t.TimerCreated.RerunParentInstanceInfo; in != nil {
 			det += fmt.Sprintf(",rerunParent=%s", in.InstanceID)
 		}
+		if o := timerOriginString(t.TimerCreated); o != "" {
+			det += ",origin=" + o
+		}
 		return ptr.Of(det)
 	case *protos.HistoryEvent_EventRaised:
 		return ptr.Of(fmt.Sprintf("event=%s", t.EventRaised.Name))
@@ -448,6 +457,38 @@ func flatTags(tags map[string]string, max int) string {
 		s += ",…"
 	}
 	return s
+}
+
+type timerOrigin struct {
+	kind    string // e.g. "createTimer", "externalEvent"
+	attrKey string // extra attr key, empty if none
+	attrVal string // extra attr value
+}
+
+func timerOriginInfo(tc *protos.TimerCreatedEvent) *timerOrigin {
+	switch x := tc.GetOrigin().(type) {
+	case *protos.TimerCreatedEvent_CreateTimer:
+		return &timerOrigin{kind: "createTimer"}
+	case *protos.TimerCreatedEvent_ExternalEvent:
+		return &timerOrigin{kind: "externalEvent", attrKey: "eventName", attrVal: x.ExternalEvent.GetName()}
+	case *protos.TimerCreatedEvent_ActivityRetry:
+		return &timerOrigin{kind: "activityRetry", attrKey: "taskExecId", attrVal: x.ActivityRetry.GetTaskExecutionId()}
+	case *protos.TimerCreatedEvent_ChildWorkflowRetry:
+		return &timerOrigin{kind: "childWorkflowRetry", attrKey: "instanceId", attrVal: x.ChildWorkflowRetry.GetInstanceId()}
+	default:
+		return nil
+	}
+}
+
+func timerOriginString(tc *protos.TimerCreatedEvent) string {
+	o := timerOriginInfo(tc)
+	if o == nil {
+		return ""
+	}
+	if o.attrVal != "" {
+		return o.kind + "(" + o.attrVal + ")"
+	}
+	return o.kind
 }
 
 func trim(ww *wrapperspb.StringValue, limit int) string {
