@@ -124,7 +124,7 @@ func HistoryWide(ctx context.Context, opts HistoryOptions) ([]*HistoryOutputWide
 			prevTs = ts
 		}
 
-		if _, ok := ev.GetEventType().(*protos.HistoryEvent_OrchestratorStarted); ok {
+		if _, ok := ev.GetEventType().(*protos.HistoryEvent_WorkflowStarted); ok {
 			replay++
 		}
 
@@ -372,10 +372,10 @@ func deriveDetails(first *protos.HistoryEvent, h *protos.HistoryEvent) *string {
 	case *protos.HistoryEvent_ExecutionStarted:
 		d := ptr.Of("workflowStart")
 		if p := h.GetExecutionStarted().GetParentInstance(); p != nil {
-			*d += fmt.Sprintf(",parent=%s", p.GetOrchestrationInstance().GetInstanceId())
+			*d += fmt.Sprintf(",parent=%s", p.GetWorkflowInstance().GetInstanceId())
 		}
 		return d
-	case *protos.HistoryEvent_OrchestratorStarted:
+	case *protos.HistoryEvent_WorkflowStarted:
 		return ptr.Of("replay")
 	case *protos.HistoryEvent_TaskCompleted:
 		return ptr.Of(fmt.Sprintf("eventId=%d", t.TaskCompleted.TaskScheduledId))
