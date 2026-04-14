@@ -365,7 +365,8 @@ func TestGetHostPorts(t *testing.T) {
 	t.Run("getPlacementHostPort uses default when override is zero", func(t *testing.T) {
 		info := initInfo{placementHostPort: 0}
 		port := getPlacementHostPort(info)
-		assert.True(t, port == 50005 || port == 6050, "expected 50005 or 6050, got %d", port)
+		assert.Condition(t, func() bool { return port == 50005 || port == 6050 },
+			"expected 50005 or 6050, got %d", port)
 	})
 
 	t.Run("getRedisHostPort uses override when set", func(t *testing.T) {

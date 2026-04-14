@@ -734,10 +734,10 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		}
 
 		args = append(args,
-			"-p", fmt.Sprintf("%v:50006", osPort),
-			"-p", fmt.Sprintf("%v:2379", schedulerEtcdPort),
-			"-p", fmt.Sprintf("%v:8080", schedulerHealthPort),
-			"-p", fmt.Sprintf("%v:9090", schedulerMetricPort),
+			"-p", fmt.Sprintf("%d:50006", osPort),
+			"-p", fmt.Sprintf("%d:2379", schedulerEtcdPort),
+			"-p", fmt.Sprintf("%d:8080", schedulerHealthPort),
+			"-p", fmt.Sprintf("%d:9090", schedulerMetricPort),
 		)
 	}
 
@@ -888,6 +888,9 @@ func checkWindowsExcludedPort(port int) string {
 // flagHint is the name of the CLI flag the user can pass to specify an alternative port;
 // use an empty string when no such flag exists (the error will suggest slim mode instead).
 func checkPortAvailable(port int, service, flagHint string) error {
+	if port < 0 || port > 65535 {
+		return fmt.Errorf("port %d for %s is out of the valid range (0-65535)", port, service)
+	}
 	// On Windows, look for Hyper-V / WSL2 excluded ranges first to give a more actionable message.
 	if msg := checkWindowsExcludedPort(port); msg != "" {
 		if flagHint != "" {
