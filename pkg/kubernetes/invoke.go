@@ -133,18 +133,15 @@ func getAppInfoFromPod(p *DaprPod) *AppInfo {
 				Namespace: p.Namespace,
 			}
 			for i, arg := range c.Args {
-				if arg == "--app-port" {
-					port := c.Args[i+1]
-					appInfo.AppPort = port
-				} else if arg == "--dapr-http-port" {
-					port := c.Args[i+1]
-					appInfo.HTTPPort = port
-				} else if arg == "--dapr-grpc-port" {
-					port := c.Args[i+1]
-					appInfo.GRPCPort = port
-				} else if arg == "--app-id" {
-					id := c.Args[i+1]
-					appInfo.AppID = id
+				switch arg {
+				case "--app-port":
+					appInfo.AppPort = c.Args[i+1]
+				case "--dapr-http-port":
+					appInfo.HTTPPort = c.Args[i+1]
+				case "--dapr-grpc-port":
+					appInfo.GRPCPort = c.Args[i+1]
+				case "--app-id":
+					appInfo.AppID = c.Args[i+1]
 				}
 			}
 		}

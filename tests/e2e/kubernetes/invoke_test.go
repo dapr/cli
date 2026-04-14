@@ -78,6 +78,27 @@ func TestKubernetesInvoke(t *testing.T) {
 			common.ClusterRoleBindings: true,
 		},
 	})
+	uninstallTests := common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
+		CheckResourceExists: map[common.Resource]bool{
+			common.CustomResourceDefs:  true,
+			common.ClusterRoles:        false,
+			common.ClusterRoleBindings: false,
+		},
+	})
+
+	// Make sure the test app and Dapr are always torn down, even on early return.
+	// `t.Run` is allowed from a deferred function because defers execute before the
+	// test function returns, i.e. before the testing runtime marks the test as done.
+	// It is NOT allowed from t.Cleanup, which is why this lives here instead.
+	defer func() {
+		if err := deleteInvokeTestApp(); err != nil {
+			t.Logf("failed to delete test app: %v", err)
+		}
+		for _, tc := range uninstallTests {
+			t.Run(tc.Name, tc.Callable)
+		}
+	}()
+
 	for _, tc := range installTests {
 		t.Run(tc.Name, tc.Callable)
 		if t.Failed() {
@@ -85,27 +106,12 @@ func TestKubernetesInvoke(t *testing.T) {
 		}
 	}
 
-	// Make sure the test app and Dapr are always removed, even if the body fails mid-way.
-	t.Cleanup(func() {
-		// best-effort: log but do not fail the test on teardown errors.
-		if err := deleteInvokeTestApp(); err != nil {
-			t.Logf("failed to delete test app: %v", err)
-		}
-		uninstallTests := common.GetTestsOnUninstall(currentVersionDetails, common.TestOptions{
-			CheckResourceExists: map[common.Resource]bool{
-				common.CustomResourceDefs:  true,
-				common.ClusterRoles:        false,
-				common.ClusterRoleBindings: false,
-			},
-		})
-		for _, tc := range uninstallTests {
-			t.Run(tc.Name, tc.Callable)
-		}
-	})
-
 	t.Run("deploy test app", func(t *testing.T) {
 		require.NoError(t, deployInvokeTestApp(t))
 	})
+	if t.Failed() {
+		return
+	}
 
 	t.Run("invoke via kubernetes flag", func(t *testing.T) {
 		daprPath := common.GetDaprPath()
