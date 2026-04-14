@@ -16,6 +16,7 @@ package standalone
 import (
 	"archive/tar"
 	"archive/zip"
+	"bufio"
 	"compress/gzip"
 	"context"
 	"errors"
@@ -27,6 +28,7 @@ import (
 	"path"
 	path_filepath "path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -145,6 +147,10 @@ type initInfo struct {
 	imageVariant                       string
 	schedulerVolume                    *string
 	schedulerOverrideBroadcastHostPort *string
+	// Host port overrides for Docker -p mappings (0 = use default).
+	placementHostPort int
+	redisHostPort     int
+	zipkinHostPort    int
 }
 
 type daprImageInfo struct {
@@ -186,7 +192,7 @@ func isSchedulerIncluded(runtimeVersion string) (bool, error) {
 }
 
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
-func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool, imageRegistryURL string, fromDir string, containerRuntime string, imageVariant string, daprInstallPath string, schedulerVolume *string, schedulerOverrideBroadcastHostPort *string) error {
+func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool, imageRegistryURL string, fromDir string, containerRuntime string, imageVariant string, daprInstallPath string, schedulerVolume *string, schedulerOverrideBroadcastHostPort *string, placementHostPort, redisHostPort, zipkinHostPort int) error {
 	var err error
 	var bundleDet bundleDetails
 	containerRuntime = strings.TrimSpace(containerRuntime)
@@ -274,7 +280,6 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 	}
 
 	var wg sync.WaitGroup
-	errorChan := make(chan error)
 	initSteps := []func(*sync.WaitGroup, chan<- error, initInfo){
 		createSlimConfiguration,
 		createComponentsAndConfiguration,
@@ -287,6 +292,7 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		runRedis,
 		runZipkin,
 	}
+	errorChan := make(chan error, len(initSteps))
 
 	// Init other configurations, containers.
 	wg.Add(len(initSteps))
@@ -318,7 +324,16 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		imageVariant:                       imageVariant,
 		schedulerVolume:                    schedulerVolume,
 		schedulerOverrideBroadcastHostPort: schedulerOverrideBroadcastHostPort,
+		placementHostPort:                  placementHostPort,
+		redisHostPort:                      redisHostPort,
+		zipkinHostPort:                     zipkinHostPort,
 	}
+
+	// Print a port summary so users can see what the containers will bind to.
+	if !slimMode && !isAirGapInit && dockerNetwork == "" {
+		printInitPortSummary(info)
+	}
+
 	for _, step := range initSteps {
 		// Run init on the configurations and containers.
 		go step(&wg, errorChan, info)
@@ -407,6 +422,12 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 			return
 		}
 
+		zipkinPort := getZipkinHostPort(info)
+		if err := checkPortAvailable(zipkinPort, "Zipkin tracing", "zipkin-host-port"); err != nil {
+			errorChan <- err
+			return
+		}
+
 		args = append(args,
 			"run",
 			"--name", zipkinContainerName,
@@ -422,7 +443,7 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 		} else {
 			args = append(
 				args,
-				"-p", "9411:9411")
+				"-p", fmt.Sprintf("%d:9411", zipkinPort))
 		}
 
 		args = append(args, imageName)
@@ -473,6 +494,12 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 			return
 		}
 
+		redisPort := getRedisHostPort(info)
+		if err := checkPortAvailable(redisPort, "Redis state store", "redis-host-port"); err != nil {
+			errorChan <- err
+			return
+		}
+
 		args = append(args,
 			"run",
 			"--name", redisContainerName,
@@ -488,7 +515,7 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 		} else {
 			args = append(
 				args,
-				"-p", "6379:6379")
+				"-p", fmt.Sprintf("%d:6379", redisPort))
 		}
 		args = append(args, imageName)
 	}
@@ -564,15 +591,24 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 			"--network", info.dockerNetwork,
 			"--network-alias", DaprPlacementContainerName)
 	} else {
-		osPort := 50005
-		if runtime.GOOS == daprWindowsOS {
-			osPort = 6050
+		placementPort := getPlacementHostPort(info)
+		if err := checkPortAvailable(placementPort, "placement service", "placement-host-port"); err != nil {
+			errorChan <- err
+			return
+		}
+		if err := checkPortAvailable(healthPort, "placement service (health endpoint)", ""); err != nil {
+			errorChan <- err
+			return
+		}
+		if err := checkPortAvailable(metricPort, "placement service (metrics endpoint)", ""); err != nil {
+			errorChan <- err
+			return
 		}
 
 		args = append(args,
-			"-p", fmt.Sprintf("%v:50005", osPort),
-			"-p", fmt.Sprintf("%v:8080", healthPort),
-			"-p", fmt.Sprintf("%v:9090", metricPort),
+			"-p", fmt.Sprintf("%d:50005", placementPort),
+			"-p", fmt.Sprintf("%d:8080", healthPort),
+			"-p", fmt.Sprintf("%d:9090", metricPort),
 		)
 	}
 
@@ -680,6 +716,23 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 			osPort = 6060
 		}
 
+		if err := checkPortAvailable(osPort, "scheduler service", ""); err != nil {
+			errorChan <- err
+			return
+		}
+		if err := checkPortAvailable(schedulerEtcdPort, "scheduler service (etcd)", ""); err != nil {
+			errorChan <- err
+			return
+		}
+		if err := checkPortAvailable(schedulerHealthPort, "scheduler service (health endpoint)", ""); err != nil {
+			errorChan <- err
+			return
+		}
+		if err := checkPortAvailable(schedulerMetricPort, "scheduler service (metrics endpoint)", ""); err != nil {
+			errorChan <- err
+			return
+		}
+
 		args = append(args,
 			"-p", fmt.Sprintf("%v:50006", osPort),
 			"-p", fmt.Sprintf("%v:2379", schedulerEtcdPort),
@@ -747,6 +800,133 @@ func schedulerEtcdClientListenAddress(info initInfo) bool {
 	v1160, _ := semver.NewVersion("1.16.0")
 
 	return runV.GreaterThan(v1160)
+}
+
+// getPlacementHostPort returns the host port to use for the placement service gRPC endpoint.
+// If a non-zero override is set in info, that is used; otherwise the default OS-specific port is returned.
+func getPlacementHostPort(info initInfo) int {
+	if info.placementHostPort > 0 {
+		return info.placementHostPort
+	}
+	if runtime.GOOS == daprWindowsOS {
+		return 6050
+	}
+	return 50005
+}
+
+// getSchedulerHostPort returns the default host port for the scheduler service gRPC endpoint.
+func getSchedulerHostPort() int {
+	if runtime.GOOS == daprWindowsOS {
+		return 6060
+	}
+	return 50006
+}
+
+// getRedisHostPort returns the host port to use for the Redis container.
+func getRedisHostPort(info initInfo) int {
+	if info.redisHostPort > 0 {
+		return info.redisHostPort
+	}
+	return 6379
+}
+
+// getZipkinHostPort returns the host port to use for the Zipkin container.
+func getZipkinHostPort(info initInfo) int {
+	if info.zipkinHostPort > 0 {
+		return info.zipkinHostPort
+	}
+	return 9411
+}
+
+// parseNetshExcludedRanges parses the output of
+// `netsh int ipv4 show excludedportrange protocol=tcp` and returns the
+// excluded port ranges as [start, end] pairs.
+func parseNetshExcludedRanges(output string) [][2]int {
+	var ranges [][2]int
+	scanner := bufio.NewScanner(strings.NewReader(output))
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		fields := strings.Fields(line)
+		if len(fields) < 2 {
+			continue
+		}
+		start, err1 := strconv.Atoi(fields[0])
+		end, err2 := strconv.Atoi(fields[1])
+		if err1 != nil || err2 != nil {
+			continue
+		}
+		ranges = append(ranges, [2]int{start, end})
+	}
+	return ranges
+}
+
+// checkWindowsExcludedPort checks whether a port falls in a Windows Hyper-V / WSL2
+// dynamically-excluded port range. Returns a descriptive message when the port is
+// excluded, or an empty string on non-Windows platforms or when no exclusion is found.
+func checkWindowsExcludedPort(port int) string {
+	if runtime.GOOS != daprWindowsOS {
+		return ""
+	}
+	output, err := utils.RunCmdAndWait("netsh", "int", "ipv4", "show", "excludedportrange", "protocol=tcp")
+	if err != nil {
+		return ""
+	}
+	for _, r := range parseNetshExcludedRanges(output) {
+		if port >= r[0] && port <= r[1] {
+			return fmt.Sprintf(
+				"port %d is in a Windows Hyper-V/WSL2 excluded port range [%d-%d]. "+
+					"To release it, run as Administrator: "+
+					"`netsh int ipv4 delete excludedportrange protocol=tcp startport=%d numberofports=%d`",
+				port, r[0], r[1], r[0], r[1]-r[0]+1,
+			)
+		}
+	}
+	return ""
+}
+
+// checkPortAvailable checks whether a port is available for binding.
+// flagHint is the name of the CLI flag the user can pass to specify an alternative port;
+// use an empty string when no such flag exists (the error will suggest slim mode instead).
+func checkPortAvailable(port int, service, flagHint string) error {
+	// On Windows, look for Hyper-V / WSL2 excluded ranges first to give a more actionable message.
+	if msg := checkWindowsExcludedPort(port); msg != "" {
+		if flagHint != "" {
+			return fmt.Errorf("%s; alternatively, use --%s to specify a different port", msg, flagHint)
+		}
+		return fmt.Errorf("%s; alternatively, use `dapr init -s` (slim mode) to skip this service", msg)
+	}
+	if err := utils.CheckIfPortAvailable(port); err != nil {
+		if flagHint != "" {
+			return fmt.Errorf(
+				"port %d required by %s is not available: %s. "+
+					"Free the port or use --%s to specify an alternative",
+				port, service, err, flagHint,
+			)
+		}
+		return fmt.Errorf(
+			"port %d required by %s is not available: %s. "+
+				"Free the port or use `dapr init -s` (slim mode) to skip this service",
+			port, service, err,
+		)
+	}
+	return nil
+}
+
+// printInitPortSummary logs the host ports that will be requested from Docker during init.
+func printInitPortSummary(info initInfo) {
+	hasScheduler, _ := isSchedulerIncluded(info.runtimeVersion)
+	schedulerPort := getSchedulerHostPort()
+
+	print.InfoStatusEvent(os.Stdout,
+		"Container host port assignments: placement=%d, Redis=%d, Zipkin=%d",
+		getPlacementHostPort(info), getRedisHostPort(info), getZipkinHostPort(info),
+	)
+	if hasScheduler {
+		print.InfoStatusEvent(os.Stdout,
+			"Scheduler host port assignments: gRPC=%d, etcd=%d",
+			schedulerPort, schedulerEtcdPort,
+		)
+	}
 }
 
 func moveDashboardFiles(extractedFilePath string, dir string) (string, error) {

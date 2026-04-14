@@ -48,6 +48,9 @@ var (
 	imageVariant                       string
 	schedulerVolume                    string
 	schedulerOverrideBroadcastHostPort string
+	placementHostPort                  int
+	redisHostPort                      int
+	zipkinHostPort                     int
 )
 
 var InitCmd = &cobra.Command{
@@ -96,6 +99,9 @@ dapr init --image-variant <variant>
 # Initialize Dapr inside a ".dapr" directory present in a non-default location
 # Folder .dapr will be created in folder pointed to by <path-to-install-directory>
 dapr init --runtime-path <path-to-install-directory>
+
+# Override container host ports (useful when default ports are reserved by Hyper-V/WSL2 on Windows)
+dapr init --placement-host-port 6050 --redis-host-port 6380 --zipkin-host-port 9412
 
 # See more at: https://docs.dapr.io/getting-started/
 `,
@@ -179,7 +185,7 @@ dapr init --runtime-path <path-to-install-directory>
 				schedulerHostPort = nil
 			}
 
-			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode, imageRegistryURI, fromDir, containerRuntime, imageVariant, runtime.GetDaprRuntimePath(), &schedulerVolume, schedulerHostPort)
+			err := standalone.Init(runtimeVersion, dashboardVersion, dockerNetwork, slimMode, imageRegistryURI, fromDir, containerRuntime, imageVariant, runtime.GetDaprRuntimePath(), &schedulerVolume, schedulerHostPort, placementHostPort, redisHostPort, zipkinHostPort)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)
@@ -230,6 +236,9 @@ func init() {
 	InitCmd.Flags().StringVarP(&imageVariant, "image-variant", "", "", "The image variant to use for the Dapr runtime, for example: mariner")
 	InitCmd.Flags().StringVarP(&schedulerVolume, "scheduler-volume", "", "dapr_scheduler", "Self-hosted only. Specify a volume for the scheduler service data directory.")
 	InitCmd.Flags().StringVarP(&schedulerOverrideBroadcastHostPort, "scheduler-override-broadcast-host-port", "", "", "Self-hosted only. Specify the scheduler broadcast host and port, for example: 192.168.42.42:50006. If not specified, it uses localhost:50006 (6060 for Windows).")
+	InitCmd.Flags().IntVarP(&placementHostPort, "placement-host-port", "", 0, "Self-hosted only. Override the host port for the placement service container, for example: 6050. Defaults to 50005 (6050 on Windows).")
+	InitCmd.Flags().IntVarP(&redisHostPort, "redis-host-port", "", 0, "Self-hosted only. Override the host port for the Redis container, for example: 6380. Defaults to 6379.")
+	InitCmd.Flags().IntVarP(&zipkinHostPort, "zipkin-host-port", "", 0, "Self-hosted only. Override the host port for the Zipkin container, for example: 9412. Defaults to 9411.")
 	InitCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	InitCmd.Flags().StringArrayVar(&values, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
 	InitCmd.Flags().String("image-registry", "", "Custom/private docker image repository URL")

@@ -107,6 +107,20 @@ func isContainerRunError(err error) bool {
 }
 
 func parseContainerRuntimeError(component string, err error) error {
+	if err == nil {
+		return nil
+	}
+	// Docker writes port-conflict errors to stderr, which RunCmdAndWait surfaces as a plain
+	// error string. Check for those first before falling back to exit-code inspection.
+	msg := err.Error()
+	if strings.Contains(msg, "port is already allocated") || strings.Contains(msg, "address already in use") {
+		return fmt.Errorf(
+			"failed to launch %s: a required port is already in use. "+
+				"Check running containers with `docker ps`, free the conflicting port, "+
+				"or use the appropriate --*-host-port flag to specify an alternative: %w",
+			component, err,
+		)
+	}
 	if exitError, ok := err.(*exec.ExitError); ok {
 		exitCode := exitError.ExitCode()
 		if exitCode == 125 { // see https://github.com/moby/moby/pull/14012

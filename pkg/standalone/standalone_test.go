@@ -14,6 +14,7 @@ limitations under the License.
 package standalone
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -326,7 +327,7 @@ func TestInitLogActualContainerRuntimeName(t *testing.T) {
 				t.Skip("Skipping test as container runtime is available")
 			}
 
-			err := Init(latestVersion, latestVersion, "", false, "", "", test.containerRuntime, "", "", nil, ptr.Of("localhost:50006"))
+			err := Init(latestVersion, latestVersion, "", false, "", "", test.containerRuntime, "", "", nil, ptr.Of("localhost:50006"), 0, 0, 0)
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), test.containerRuntime)
 		})
@@ -353,4 +354,106 @@ func TestIsSchedulerIncluded(t *testing.T) {
 			assert.Equal(t, scenario.isIncluded, included)
 		})
 	}
+}
+
+func TestGetHostPorts(t *testing.T) {
+	t.Run("getPlacementHostPort uses override when set", func(t *testing.T) {
+		info := initInfo{placementHostPort: 7777}
+		assert.Equal(t, 7777, getPlacementHostPort(info))
+	})
+
+	t.Run("getPlacementHostPort uses default when override is zero", func(t *testing.T) {
+		info := initInfo{placementHostPort: 0}
+		port := getPlacementHostPort(info)
+		assert.True(t, port == 50005 || port == 6050, "expected 50005 or 6050, got %d", port)
+	})
+
+	t.Run("getRedisHostPort uses override when set", func(t *testing.T) {
+		info := initInfo{redisHostPort: 6380}
+		assert.Equal(t, 6380, getRedisHostPort(info))
+	})
+
+	t.Run("getRedisHostPort uses default 6379 when override is zero", func(t *testing.T) {
+		info := initInfo{redisHostPort: 0}
+		assert.Equal(t, 6379, getRedisHostPort(info))
+	})
+
+	t.Run("getZipkinHostPort uses override when set", func(t *testing.T) {
+		info := initInfo{zipkinHostPort: 9412}
+		assert.Equal(t, 9412, getZipkinHostPort(info))
+	})
+
+	t.Run("getZipkinHostPort uses default 9411 when override is zero", func(t *testing.T) {
+		info := initInfo{zipkinHostPort: 0}
+		assert.Equal(t, 9411, getZipkinHostPort(info))
+	})
+}
+
+func TestParseNetshExcludedRanges(t *testing.T) {
+	t.Run("parses well-formed netsh output", func(t *testing.T) {
+		output := `
+Protocol tcp Port Exclusion Ranges
+
+Start Port    End Port
+----------    --------
+      1024        1123
+      2375        2375
+     50000       50059
+
+* - Administered port exclusions.
+`
+		ranges := parseNetshExcludedRanges(output)
+		assert.Len(t, ranges, 3)
+		assert.Equal(t, [2]int{1024, 1123}, ranges[0])
+		assert.Equal(t, [2]int{2375, 2375}, ranges[1])
+		assert.Equal(t, [2]int{50000, 50059}, ranges[2])
+	})
+
+	t.Run("returns nil for empty output", func(t *testing.T) {
+		ranges := parseNetshExcludedRanges("")
+		assert.Nil(t, ranges)
+	})
+
+	t.Run("skips non-numeric header lines", func(t *testing.T) {
+		output := "Start Port    End Port\n----------    --------\n      6379        6379\n"
+		ranges := parseNetshExcludedRanges(output)
+		assert.Len(t, ranges, 1)
+		assert.Equal(t, [2]int{6379, 6379}, ranges[0])
+	})
+}
+
+func TestCheckPortAvailableOnCurrentPlatform(t *testing.T) {
+	t.Run("available port returns nil", func(t *testing.T) {
+		// Use a port that is virtually guaranteed to be free in CI.
+		err := checkPortAvailable(0, "test service", "test-flag")
+		// Port 0 is special; net.Listen picks an ephemeral port, so this should succeed.
+		assert.NoError(t, err)
+	})
+}
+
+func TestParseContainerRuntimeError(t *testing.T) {
+	t.Run("nil error returns nil", func(t *testing.T) {
+		assert.NoError(t, parseContainerRuntimeError("svc", nil))
+	})
+
+	t.Run("port is already allocated is wrapped with helpful message", func(t *testing.T) {
+		err := fmt.Errorf("Error response from daemon: driver failed programming external connectivity: Bind for 0.0.0.0:6379 failed: port is already allocated")
+		result := parseContainerRuntimeError("Redis state store", err)
+		assert.Error(t, result)
+		assert.Contains(t, result.Error(), "required port is already in use")
+		assert.Contains(t, result.Error(), "--*-host-port")
+	})
+
+	t.Run("address already in use is wrapped with helpful message", func(t *testing.T) {
+		err := fmt.Errorf("listen tcp 0.0.0.0:50005: bind: address already in use")
+		result := parseContainerRuntimeError("placement service", err)
+		assert.Error(t, result)
+		assert.Contains(t, result.Error(), "required port is already in use")
+	})
+
+	t.Run("unrelated error passes through unchanged", func(t *testing.T) {
+		err := fmt.Errorf("some other docker error")
+		result := parseContainerRuntimeError("svc", err)
+		assert.Equal(t, err, result)
+	})
 }
