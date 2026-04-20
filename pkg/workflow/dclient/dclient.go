@@ -92,7 +92,7 @@ func stand(ctx context.Context, opts Options) (*Client, error) {
 	}
 
 	if proc == nil {
-		return nil, fmt.Errorf("Dapr app with id '%s' not found", opts.AppID)
+		return nil, fmt.Errorf("dapr app with id '%s' not found", opts.AppID)
 	}
 
 	resourcePaths := proc.ResourcePaths
@@ -147,7 +147,7 @@ func kube(ctx context.Context, opts Options) (*Client, error) {
 	}
 
 	if pod == nil {
-		return nil, fmt.Errorf("Dapr app with id '%s' not found in namespace %s", opts.AppID, opts.Namespace)
+		return nil, fmt.Errorf("dapr app with id '%s' not found in namespace %s", opts.AppID, opts.Namespace)
 	}
 
 	config, _, err := kubernetes.GetKubeConfigClient()

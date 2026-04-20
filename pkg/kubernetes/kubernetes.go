@@ -174,15 +174,16 @@ func helmConfig(namespace string) (*helm.Configuration, error) {
 	return &ac, err
 }
 
-func getVersion(releaseName string, version string) (string, error) {
+func getVersion(releaseName string, version string, imageRegistryURI string) (string, error) {
 	actualVersion := version
 	if version == latestVersion {
 		var err error
-		if releaseName == daprReleaseName {
-			actualVersion, err = cli_ver.GetDaprVersion()
-		} else if releaseName == dashboardReleaseName {
-			actualVersion, err = cli_ver.GetDashboardVersion()
-		} else {
+		switch releaseName {
+		case daprReleaseName:
+			actualVersion, err = cli_ver.GetLatestVersion(cli_ver.DaprImageRef(imageRegistryURI))
+		case dashboardReleaseName:
+			actualVersion, err = cli_ver.GetLatestVersion(cli_ver.DashboardImageRef(imageRegistryURI))
+		default:
 			return "", fmt.Errorf("cannot get latest version for unknown chart: %s", releaseName)
 		}
 		if err != nil {
@@ -296,7 +297,7 @@ func install(releaseName, releaseVersion, helmRepo string, config InitConfigurat
 		return err
 	}
 
-	version, err := getVersion(releaseName, releaseVersion)
+	version, err := getVersion(releaseName, releaseVersion, config.ImageRegistryURI)
 	if err != nil {
 		return err
 	}

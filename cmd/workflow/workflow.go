@@ -70,7 +70,7 @@ func outputFunc(cmd *cobra.Command) *string {
 	pre := cmd.PreRunE
 	cmd.PreRunE = func(cmd *cobra.Command, args []string) error {
 		if !slices.Contains(outputs, outputFormat) {
-			return errors.New("invalid value for --output. Supported values are 'short', 'wide', 'yaml', 'json'.")
+			return errors.New("invalid value for --output. Supported values are 'short', 'wide', 'yaml', 'json'")
 		}
 
 		if pre != nil {
@@ -148,16 +148,7 @@ func filterCmd(cmd *cobra.Command) *workflow.Filter {
 		status string
 		maxAge string
 
-		listStatuses = []string{
-			"RUNNING",
-			"COMPLETED",
-			"CONTINUED_AS_NEW",
-			"FAILED",
-			"CANCELED",
-			"TERMINATED",
-			"PENDING",
-			"SUSPENDED",
-		}
+		listStatuses = workflow.RuntimeStatuses
 	)
 
 	cmd.Flags().StringVarP(&name, "filter-name", "w", "", "Filter only the workflows with the given name")
