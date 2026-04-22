@@ -7,7 +7,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.3.0
 	github.com/Pallinder/sillyname-go v0.0.0-20130730142914-97aeae9e6ba1
 	github.com/briandowns/spinner v1.19.0
-	github.com/dapr/dapr v1.17.3
+	github.com/dapr/dapr v1.17.5
 	github.com/dapr/durabletask-go v0.11.1
 	github.com/dapr/go-sdk v1.14.0
 	github.com/dapr/kit v0.17.0
@@ -67,7 +67,6 @@ require (
 	github.com/Masterminds/sprig/v3 v3.3.0 // indirect
 	github.com/Masterminds/squirrel v1.5.4 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
-	github.com/PuerkitoBio/purell v1.2.1 // indirect
 	github.com/aavaz-ai/pii-scrubber v0.0.0-20220812094047-3fa450ab6973 // indirect
 	github.com/alphadose/haxmap v1.4.0 // indirect
 	github.com/anshal21/go-worker v1.1.0 // indirect
@@ -92,7 +91,7 @@ require (
 	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/cyphar/filepath-securejoin v0.6.1 // indirect
-	github.com/dapr/components-contrib v1.17.2 // indirect
+	github.com/dapr/components-contrib v1.17.3 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
