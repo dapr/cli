@@ -14,6 +14,12 @@
 name: dapr_cli
 
 on:
+  workflow_call:
+    inputs:
+      tag:
+        type: string
+        required: true
+        description: 'Git tag to build and publish (e.g., v1.16.0)'
   push:
     branches:
       - master
@@ -74,6 +80,8 @@ jobs:
           mkdir -p $HOME/bin
       - name: Check out code into the Go module directory
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || '' }}
       - name: Set up Go
         uses: actions/setup-go@v5
         id: setup-go
@@ -90,6 +98,8 @@ jobs:
         run: make modtidy check-diff
       - name: Parse release version and set REL_VERSION
         run: python ./.github/scripts/get_release_version.py
+        env:
+          GITHUB_REF: ${{ inputs.tag && format('refs/tags/{0}', inputs.tag) || github.ref }}
       - name: Setup test output
         shell: bash
         run: |
@@ -132,7 +142,7 @@ jobs:
   publish:
     name: Publish binaries
     needs: build
-    if: startswith(github.ref, 'refs/tags/v')
+    if: startswith(github.ref, 'refs/tags/v') || inputs.tag != ''
     env:
       ARTIFACT_DIR: ./release
     runs-on: ubuntu-latest
@@ -154,7 +164,6 @@ jobs:
       - name: lists artifacts
         run: ls -l ${{ env.ARTIFACT_DIR }}
       - name: publish binaries to github
-        if: startswith(github.ref, 'refs/tags/v')
         run: |
           # Get the list of files
           RELEASE_ARTIFACT=(${ARTIFACT_DIR}/*)
@@ -169,13 +178,17 @@ jobs:
   publish-winget:
     name: Publish to winget-pkgs
     needs: publish
-    if: startswith(github.ref, 'refs/tags/v')
+    if: startswith(github.ref, 'refs/tags/v') || inputs.tag != ''
     runs-on: windows-latest
     steps:
       - name: Check out code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || '' }}
       - name: Parse release version and set REL_VERSION
         run: python ./.github/scripts/get_release_version.py
+        env:
+          GITHUB_REF: ${{ inputs.tag && format('refs/tags/{0}', inputs.tag) || github.ref }}
       - name: Update winget manifests
         shell: pwsh
         run: |
