@@ -7,10 +7,10 @@ require (
 	github.com/Masterminds/semver/v3 v3.3.0
 	github.com/Pallinder/sillyname-go v0.0.0-20130730142914-97aeae9e6ba1
 	github.com/briandowns/spinner v1.19.0
-	github.com/dapr/dapr v1.17.0-rc.1.0.20260409185128-2e4aff616422
-	github.com/dapr/durabletask-go v0.11.4-0.20260406161632-36d7b5486fa8
-	github.com/dapr/go-sdk v1.13.0
-	github.com/dapr/kit v0.17.1-0.20260402173438-be272d92042b
+	github.com/dapr/dapr v1.17.3
+	github.com/dapr/durabletask-go v0.11.1
+	github.com/dapr/go-sdk v1.14.0
+	github.com/dapr/kit v0.17.0
 	github.com/diagridio/go-etcd-cron v0.12.4
 	github.com/docker/docker v28.5.2+incompatible
 	github.com/evanphx/json-patch/v5 v5.9.0
