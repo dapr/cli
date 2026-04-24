@@ -8,7 +8,7 @@ require (
 	github.com/Pallinder/sillyname-go v0.0.0-20130730142914-97aeae9e6ba1
 	github.com/briandowns/spinner v1.19.0
 	github.com/dapr/dapr v1.17.3
-	github.com/dapr/durabletask-go v0.11.1
+	github.com/dapr/durabletask-go v0.11.3
 	github.com/dapr/go-sdk v1.14.0
 	github.com/dapr/kit v0.17.0
 	github.com/diagridio/go-etcd-cron v0.12.4
