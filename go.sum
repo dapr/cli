@@ -164,6 +164,8 @@ github.com/dapr/components-contrib v1.17.3 h1:lhSvLZ1nGGkmlRKCpzgNEsnNXqOWjFlhAt
 github.com/dapr/components-contrib v1.17.3/go.mod h1:lVPRj9ywzkUWoKXxRTAJbvS+Vg8A882av/nynGstNE4=
 github.com/dapr/dapr v1.17.3 h1:A4pRHW/bnC9X/u1u27JU6Ut4oipaEzBqUeBy2lqsWuc=
 github.com/dapr/dapr v1.17.3/go.mod h1:ZBVXrZSZykIXZkDyAghk+JdBuy7xnXhEmuS+BTwkPBk=
+github.com/dapr/durabletask-go v0.11.4-0.20260413145313-c4b7279b6a8e h1:SSBxGb1/dOmzyWZhKNHVliw/VemiYgLKlv8oOTIsGG0=
+github.com/dapr/durabletask-go v0.11.4-0.20260413145313-c4b7279b6a8e/go.mod h1:nElJPTX9FmveqErAmvTXZrAmt2nnyTQ7Glj0ahPphSY=
 github.com/dapr/go-sdk v1.14.0 h1:OAGOobBsKXhcqfxUEMDOtpkwKollokfZDIwNPly9ANU=
 github.com/dapr/go-sdk v1.14.0/go.mod h1:knMKBC95OCI3WdtitIsEXWy7eTpbZOMBh1NG/2QoV5Y=
 github.com/dapr/kit v0.17.1-0.20260402173438-be272d92042b h1:hXbRlNKvmMGbiMSRy3MX04kH5OiMgH82PRuLN7adtwE=
