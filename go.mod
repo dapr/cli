@@ -7,10 +7,10 @@ require (
 	github.com/Masterminds/semver/v3 v3.3.0
 	github.com/Pallinder/sillyname-go v0.0.0-20130730142914-97aeae9e6ba1
 	github.com/briandowns/spinner v1.19.0
-	github.com/dapr/dapr v1.17.3
+	github.com/dapr/dapr v1.17.0-rc.1.0.20260425162356-f8d0f6142987
 	github.com/dapr/durabletask-go v0.11.4-0.20260413145313-c4b7279b6a8e
-	github.com/dapr/go-sdk v1.14.0
-	github.com/dapr/kit v0.17.1-0.20260402173438-be272d92042b
+	github.com/dapr/go-sdk v1.14.0-rc.2
+	github.com/dapr/kit v0.17.1-0.20260409110905-18c6fce40d5d
 	github.com/diagridio/go-etcd-cron v0.12.4
 	github.com/docker/docker v28.5.2+incompatible
 	github.com/evanphx/json-patch/v5 v5.9.0
@@ -67,7 +67,6 @@ require (
 	github.com/Masterminds/sprig/v3 v3.3.0 // indirect
 	github.com/Masterminds/squirrel v1.5.4 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
-	github.com/PuerkitoBio/purell v1.2.1 // indirect
 	github.com/aavaz-ai/pii-scrubber v0.0.0-20220812094047-3fa450ab6973 // indirect
 	github.com/alphadose/haxmap v1.4.0 // indirect
 	github.com/anshal21/go-worker v1.1.0 // indirect
@@ -254,7 +253,7 @@ require (
 	golang.org/x/oauth2 v0.36.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
 	golang.org/x/term v0.41.0 // indirect
-	golang.org/x/text v0.35.0 // indirect
+	golang.org/x/text v0.36.0 // indirect
 	golang.org/x/time v0.12.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260128011058-8636f8732409 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260319201613-d00831a3d3e7 // indirect
@@ -277,3 +276,6 @@ require (
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.6.0 // indirect
 )
+
+// replace github.com/dapr/dapr => ../dapr
+// replace github.com/dapr/durabletask-go => ../durabletask-go
