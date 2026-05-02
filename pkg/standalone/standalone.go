@@ -717,7 +717,7 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 					"To resolve this, re-run 'dapr init' in an elevated (Administrator)\n"+
 					"terminal (e.g. right-click → \"Run as administrator\"). When running\n"+
 					"elevated, the CLI will automatically stop and restart WSL and\n"+
-					"Windows networking services as part of the installation process.",
+					"Windows networking services as part of the installation process",
 				portErr)
 			return
 		}
