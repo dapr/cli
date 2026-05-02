@@ -706,7 +706,52 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		args = append(args, "--etcd-client-listen-address=0.0.0.0")
 	}
 
+	// On non-elevated Windows with WSL2 installed, verify the scheduler ports
+	// are free before attempting the container start. WSL2 commonly holds
+	// :2379 (etcd) and the only reliable fix requires an elevated terminal.
+	if runtime.GOOS == daprWindowsOS && !isWindowsElevated() && isWSLAvailable() {
+		if portErr := checkSchedulerPorts(osPort); portErr != nil {
+			errorChan <- fmt.Errorf(
+				"failed to start scheduler service: %s\n\n"+
+					"WSL2 is occupying a port the scheduler requires.\n"+
+					"To resolve this, re-run 'dapr init' in an elevated (Administrator)\n"+
+					"terminal (e.g. right-click → \"Run as administrator\"). When running\n"+
+					"elevated, the CLI will automatically stop and restart WSL and\n"+
+					"Windows networking services as part of the installation process",
+				portErr)
+			return
+		}
+	}
+
+	// On elevated Windows, shut down WSL2 and stop WinNAT so Docker can
+	// re-acquire the scheduler's port bindings (especially etcd :2379) that
+	// WSL2 may be holding.
+	if runtime.GOOS == daprWindowsOS && isWindowsElevated() {
+		if isWSLAvailable() {
+			print.InfoStatusEvent(os.Stdout, "Temporarily shutting down WSL to free ports for scheduler installation...")
+			if wslErr := shutdownWSL(); wslErr != nil {
+				print.WarningStatusEvent(os.Stdout, "Failed to shut down WSL: %s. Continuing...", wslErr)
+			}
+		}
+		print.InfoStatusEvent(os.Stdout, "Temporarily stopping Windows NAT service to free scheduler ports...")
+		if stopErr := stopWinNAT(); stopErr != nil {
+			print.WarningStatusEvent(os.Stdout, "Failed to stop Windows NAT service: %s. Continuing...", stopErr)
+		}
+	}
+
 	_, err = utils.RunCmdAndWait(runtimeCmd, args...)
+
+	// Restore WinNAT and restart WSL regardless of whether the scheduler container started successfully.
+	if runtime.GOOS == daprWindowsOS && isWindowsElevated() {
+		if startErr := startWinNAT(); startErr != nil {
+			print.WarningStatusEvent(os.Stdout, "Failed to restart Windows NAT service: %s", startErr)
+		}
+		if isWSLAvailable() {
+			print.InfoStatusEvent(os.Stdout, "Restarting WSL...")
+			startWSLBackground()
+		}
+	}
+
 	if err != nil {
 		runError := isContainerRunError(err)
 		if !runError {
@@ -717,6 +762,24 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		return
 	}
 	errorChan <- nil
+}
+
+// checkSchedulerPorts verifies that all ports required by the scheduler
+// service are available. grpcPort is the platform-specific gRPC port
+// (50006 on Linux/Mac, 6060 on Windows).
+func checkSchedulerPorts(grpcPort int) error {
+	return checkPorts(grpcPort, schedulerEtcdPort, schedulerHealthPort, schedulerMetricPort)
+}
+
+// checkPorts returns an error for the first port in the list that is not
+// available, including the port number in the message.
+func checkPorts(ports ...int) error {
+	for _, p := range ports {
+		if err := utils.CheckIfPortAvailable(p); err != nil {
+			return fmt.Errorf("port %d is not available: %w", p, err)
+		}
+	}
+	return nil
 }
 
 func schedulerOverrideHostPort(info initInfo) bool {
