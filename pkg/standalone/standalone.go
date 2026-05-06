@@ -733,11 +733,11 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 	if info.dockerNetwork == "" && runtime.GOOS == daprWindowsOS && isWindowsElevated() && isWSLAvailable() {
 		print.InfoStatusEvent(os.Stdout, "Temporarily shutting down WSL to free ports for scheduler installation...")
 		if wslErr := shutdownWSL(); wslErr != nil {
-			print.WarningStatusEvent(os.Stdout, "Failed to shut down WSL: %s. Continuing...", wslErr)
+			print.WarningStatusEvent(os.Stdout, "Failed to shut down WSL: %v. Continuing...", wslErr)
 		}
 		print.InfoStatusEvent(os.Stdout, "Temporarily stopping Windows NAT service to free scheduler ports...")
 		if stopErr := stopWinNAT(); stopErr != nil {
-			print.WarningStatusEvent(os.Stdout, "Failed to stop Windows NAT service: %s. Continuing...", stopErr)
+			print.WarningStatusEvent(os.Stdout, "Failed to stop Windows NAT service: %v. Continuing...", stopErr)
 		} else {
 			winNATStopped = true
 		}
@@ -749,7 +749,7 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 	if info.dockerNetwork == "" && runtime.GOOS == daprWindowsOS && isWindowsElevated() && isWSLAvailable() {
 		if winNATStopped {
 			if startErr := startWinNAT(); startErr != nil {
-				print.WarningStatusEvent(os.Stdout, "Failed to restart Windows NAT service: %s", startErr)
+				print.WarningStatusEvent(os.Stdout, "Failed to restart Windows NAT service: %v", startErr)
 			}
 		}
 		print.InfoStatusEvent(os.Stdout, "Restarting WSL...")
