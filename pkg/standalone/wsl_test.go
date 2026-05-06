@@ -58,7 +58,7 @@ func TestCheckPorts(t *testing.T) {
 		assert.Contains(t, err.Error(), fmt.Sprintf("port %d", busy))
 	})
 
-	t.Run("succeeds for free port preceding an occupied one when first fails fast", func(t *testing.T) {
+	t.Run("errors when the first port is occupied, ignoring a free port that follows", func(t *testing.T) {
 		ln := holdPort(t)
 		defer ln.Close()
 		busy := ln.Addr().(*net.TCPAddr).Port
