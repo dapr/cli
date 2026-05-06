@@ -724,16 +724,16 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		}
 	}
 
-	// On elevated Windows, shut down WSL2 and stop WinNAT so Docker can
-	// re-acquire the scheduler's port bindings (especially etcd :2379) that
-	// WSL2 may be holding.
+	// On elevated Windows with host-port publishing and WSL2 installed, shut
+	// down WSL2 and stop WinNAT so Docker can re-acquire the scheduler's port
+	// bindings (especially etcd :2379) that WSL2 may be holding.
+	// Skipped when using a Docker network (no host ports) or when WSL is not
+	// present, to avoid unnecessary service disruption.
 	winNATStopped := false
-	if runtime.GOOS == daprWindowsOS && isWindowsElevated() {
-		if isWSLAvailable() {
-			print.InfoStatusEvent(os.Stdout, "Temporarily shutting down WSL to free ports for scheduler installation...")
-			if wslErr := shutdownWSL(); wslErr != nil {
-				print.WarningStatusEvent(os.Stdout, "Failed to shut down WSL: %s. Continuing...", wslErr)
-			}
+	if info.dockerNetwork == "" && runtime.GOOS == daprWindowsOS && isWindowsElevated() && isWSLAvailable() {
+		print.InfoStatusEvent(os.Stdout, "Temporarily shutting down WSL to free ports for scheduler installation...")
+		if wslErr := shutdownWSL(); wslErr != nil {
+			print.WarningStatusEvent(os.Stdout, "Failed to shut down WSL: %s. Continuing...", wslErr)
 		}
 		print.InfoStatusEvent(os.Stdout, "Temporarily stopping Windows NAT service to free scheduler ports...")
 		if stopErr := stopWinNAT(); stopErr != nil {
@@ -746,16 +746,14 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 	_, err = utils.RunCmdAndWait(runtimeCmd, args...)
 
 	// Restore WinNAT and restart WSL regardless of whether the scheduler container started successfully.
-	if runtime.GOOS == daprWindowsOS && isWindowsElevated() {
+	if info.dockerNetwork == "" && runtime.GOOS == daprWindowsOS && isWindowsElevated() && isWSLAvailable() {
 		if winNATStopped {
 			if startErr := startWinNAT(); startErr != nil {
 				print.WarningStatusEvent(os.Stdout, "Failed to restart Windows NAT service: %s", startErr)
 			}
 		}
-		if isWSLAvailable() {
-			print.InfoStatusEvent(os.Stdout, "Restarting WSL...")
-			startWSLBackground()
-		}
+		print.InfoStatusEvent(os.Stdout, "Restarting WSL...")
+		startWSLBackground()
 	}
 
 	if err != nil {
