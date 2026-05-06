@@ -30,9 +30,9 @@ func TestCheckPorts(t *testing.T) {
 	})
 
 	t.Run("returns nil when all ports are free", func(t *testing.T) {
-		p1 := freePort(t)
-		p2 := freePort(t)
-		assert.NoError(t, checkPorts(p1, p2))
+		// Port 0 always passes CheckIfPortAvailable (the OS selects a free
+		// ephemeral port), so there is no bind/close race here.
+		assert.NoError(t, checkPorts(0, 0))
 	})
 
 	t.Run("returns error containing port number when port is in use", func(t *testing.T) {
@@ -46,14 +46,13 @@ func TestCheckPorts(t *testing.T) {
 	})
 
 	t.Run("returns error for first occupied port in the list", func(t *testing.T) {
-		free := freePort(t)
-
 		ln := holdPort(t)
 		defer ln.Close()
 		busy := ln.Addr().(*net.TCPAddr).Port
 
-		// free comes first — we still expect failure once the busy port is reached.
-		err := checkPorts(free, busy)
+		// Port 0 is always free (OS picks an ephemeral port); busy comes second.
+		// We still expect failure once the busy port is reached.
+		err := checkPorts(0, busy)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), fmt.Sprintf("port %d", busy))
 	})
@@ -63,13 +62,11 @@ func TestCheckPorts(t *testing.T) {
 		defer ln.Close()
 		busy := ln.Addr().(*net.TCPAddr).Port
 
-		free := freePort(t)
-
-		// busy comes first — error must name it, not the free port.
-		err := checkPorts(busy, free)
+		// busy comes first, port 0 (always free) follows — error must name busy only.
+		err := checkPorts(busy, 0)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), fmt.Sprintf("port %d", busy))
-		assert.NotContains(t, err.Error(), fmt.Sprintf("port %d", free))
+		assert.NotContains(t, err.Error(), "port 0")
 	})
 }
 
@@ -94,16 +91,4 @@ func holdPort(t *testing.T) net.Listener {
 	ln, err := net.Listen("tcp", ":0")
 	require.NoError(t, err)
 	return ln
-}
-
-// freePort returns an available port number by briefly binding then releasing
-// it. There is a theoretical race between Close and the subsequent
-// checkPorts call, but in practice this window is negligible for unit tests.
-func freePort(t *testing.T) int {
-	t.Helper()
-	ln, err := net.Listen("tcp", ":0")
-	require.NoError(t, err)
-	port := ln.Addr().(*net.TCPAddr).Port
-	ln.Close()
-	return port
 }
