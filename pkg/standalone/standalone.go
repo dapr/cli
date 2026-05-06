@@ -713,7 +713,7 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 	if info.dockerNetwork == "" && runtime.GOOS == daprWindowsOS && !isWindowsElevated() && isWSLAvailable() {
 		if portErr := checkSchedulerPorts(osPort); portErr != nil {
 			errorChan <- fmt.Errorf(
-				"failed to start scheduler service: %s\n\n"+
+				"failed to start scheduler service: %v\n\n"+
 					"A required port is already in use (often due to WSL).\n"+
 					"To resolve this, re-run 'dapr init' in an elevated (Administrator)\n"+
 					"terminal (e.g. right-click → \"Run as administrator\"). When running\n"+
