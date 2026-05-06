@@ -714,7 +714,7 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		if portErr := checkSchedulerPorts(osPort); portErr != nil {
 			errorChan <- fmt.Errorf(
 				"failed to start scheduler service: %s\n\n"+
-					"WSL2 is occupying a port the scheduler requires.\n"+
+					"A required port is already in use (often due to WSL2).\n"+
 					"To resolve this, re-run 'dapr init' in an elevated (Administrator)\n"+
 					"terminal (e.g. right-click → \"Run as administrator\"). When running\n"+
 					"elevated, the CLI will automatically stop and restart WSL and\n"+
