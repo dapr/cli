@@ -35,7 +35,7 @@ func isWSLAvailable() bool {
 	return err == nil
 }
 
-// shutdownWSL runs `wsl --shutdown` to terminate the WSL2 VM and free any
+// shutdownWSL runs `wsl --shutdown` to terminate the WSL2 instance and free any
 // ports it holds.
 func shutdownWSL() error {
 	_, err := utils.RunCmdAndWait("wsl", "--shutdown")
