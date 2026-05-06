@@ -56,7 +56,7 @@ func startWinNAT() error {
 	return err
 }
 
-// startWSLBackground starts WSL in the background to re-initialize WSL2
+// startWSLBackground starts WSL in the background to re-initialize WSL
 // networking after a wsl --shutdown. We run a no-op command so the session
 // exits immediately once WSL services are up, then wait in a goroutine to
 // clean up the process handle.
