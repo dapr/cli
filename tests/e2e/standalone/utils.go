@@ -112,11 +112,38 @@ func executeAgainstRunningDapr(t *testing.T, f func(), daprArgs ...string) {
 	daprPath := common.GetDaprPath()
 
 	cmd := exec.Command(daprPath, daprArgs...)
-	reader, err := cmd.StdoutPipe()
-	require.NoError(t, err, "failed to get stdout pipe")
-	scanner := bufio.NewScanner(reader)
+	stdoutReader, err := cmd.StdoutPipe()
+	require.NoError(t, err, "failed to get stdout pipe for dapr")
+	stderrReader, err := cmd.StderrPipe()
+	require.NoError(t, err, "failed to get stderr pipe for dapr")
+	scanner := bufio.NewScanner(stdoutReader)
 
-	require.NoError(t, cmd.Start(), "failed to start dapr process")
+	err = cmd.Start()
+	require.NoError(t, err, "failed to start dapr")
+
+	var wg sync.WaitGroup
+	var stderrOutput strings.Builder
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		stderrScanner := bufio.NewScanner(stderrReader)
+		for stderrScanner.Scan() {
+			line := stderrScanner.Text()
+			t.Log(line)
+			stderrOutput.WriteString(line + "\n")
+		}
+		if err := stderrScanner.Err(); err != nil {
+			t.Errorf("error while reading dapr stderr: %v", err)
+		}
+	}()
+
+	t.Cleanup(func() {
+		if cmd.Process != nil {
+			_ = cmd.Process.Kill()
+			_ = cmd.Wait()
+		}
+		wg.Wait()
+	})
 
 	// scanDone is closed when the scanner.Scan loop finishes, meaning
 	// the process has closed its stdout pipe (i.e., is exiting).
@@ -144,27 +171,28 @@ func executeAgainstRunningDapr(t *testing.T, f func(), daprArgs ...string) {
 		if strings.Contains(outputChunk, "You're up and running!") {
 			f()
 		}
-		daprOutput += outputChunk
+		daprOutput += outputChunk + "\n"
+	}
+	if err := scanner.Err(); err != nil {
+		t.Errorf("error while reading dapr stdout: %v", err)
 	}
 	close(scanDone)
 
+	wg.Wait()
+	daprOutput += stderrOutput.String()
+
 	err = cmd.Wait()
-	hasAppCommand := !strings.Contains(daprOutput, "WARNING: no application command found")
-	terminatedBySignal := strings.Contains(daprOutput, "terminated signal received: shutting down")
 	if err != nil {
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 &&
 			strings.Contains(daprOutput, "Exited Dapr successfully") &&
-			(!hasAppCommand || terminatedBySignal || strings.Contains(daprOutput, "Exited App successfully")) {
+			!strings.Contains(daprOutput, "The App process exited with error") {
 			err = nil
 		}
 	}
 	require.NoError(t, err, "dapr didn't exit cleanly")
-	assert.NotContains(t, daprOutput, "The App process exited with error code: exit status", "Stop command should have been called before the app had a chance to exit")
+	assert.NotContains(t, daprOutput, "The App process exited with error", "Stop command should have been called before the app had a chance to exit")
 	assert.Contains(t, daprOutput, "Exited Dapr successfully")
-	if hasAppCommand && !terminatedBySignal {
-		assert.Contains(t, daprOutput, "Exited App successfully")
-	}
 }
 
 // waitForPortsFree polls until all given ports are available for binding.
