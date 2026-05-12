@@ -14,6 +14,7 @@ limitations under the License.
 package kubernetes
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -23,11 +24,43 @@ import (
 	"strings"
 
 	core_v1 "k8s.io/api/core/v1"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	k8s "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/portforward"
 	"k8s.io/client-go/transport/spdy"
 )
+
+// Port-forward streams over closed connections produce noisy errors during
+// teardown (e.g. "broken pipe", "use of closed network connection") that get
+// surfaced via k8s.io/apimachinery's global ErrorHandlers as "Unhandled Error"
+// klog lines. These are benign for one-shot CLI port-forwards: we are about
+// to exit anyway. Filter only those known-benign patterns and defer everything
+// else to the default handlers so genuine errors still surface.
+func init() {
+	benign := []string{
+		"broken pipe",
+		"use of closed network connection",
+		"connection reset by peer",
+	}
+
+	defaults := utilruntime.ErrorHandlers
+	utilruntime.ErrorHandlers = []utilruntime.ErrorHandler{
+		func(ctx context.Context, err error, msg string, kv ...interface{}) {
+			if err != nil {
+				msgStr := err.Error()
+				for _, p := range benign {
+					if strings.Contains(msgStr, p) {
+						return
+					}
+				}
+			}
+			for _, fn := range defaults {
+				fn(ctx, err, msg, kv...)
+			}
+		},
+	}
+}
 
 // PortForward provides a port-forward connection in a kubernetes cluster.
 type PortForward struct {
