@@ -234,7 +234,10 @@ func list(ctx context.Context, instanceIDs []string, cl *dclient.Client, opts Li
 		if listOutput[j].Created.IsZero() {
 			return true
 		}
-		return listOutput[i].Created.Before(listOutput[j].Created)
+		if !listOutput[i].Created.Equal(listOutput[j].Created) {
+			return listOutput[i].Created.Before(listOutput[j].Created)
+		}
+		return listOutput[i].InstanceID < listOutput[j].InstanceID
 	})
 
 	return listOutput, nil

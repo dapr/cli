@@ -22,6 +22,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 
 	core_v1 "k8s.io/api/core/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -37,29 +38,36 @@ import (
 // klog lines. These are benign for one-shot CLI port-forwards: we are about
 // to exit anyway. Filter only those known-benign patterns and defer everything
 // else to the default handlers so genuine errors still surface.
-func init() {
-	benign := []string{
-		"broken pipe",
-		"use of closed network connection",
-		"connection reset by peer",
-	}
+//
+// The override is global but installed lazily, only on first PortForward use,
+// so commands that never touch port-forwarding are unaffected.
+var installErrorFilterOnce sync.Once
 
-	defaults := utilruntime.ErrorHandlers
-	utilruntime.ErrorHandlers = []utilruntime.ErrorHandler{
-		func(ctx context.Context, err error, msg string, kv ...interface{}) {
-			if err != nil {
-				msgStr := err.Error()
-				for _, p := range benign {
-					if strings.Contains(msgStr, p) {
-						return
+func installPortForwardErrorFilter() {
+	installErrorFilterOnce.Do(func() {
+		benign := []string{
+			"broken pipe",
+			"use of closed network connection",
+			"connection reset by peer",
+		}
+
+		defaults := utilruntime.ErrorHandlers
+		utilruntime.ErrorHandlers = []utilruntime.ErrorHandler{
+			func(ctx context.Context, err error, msg string, kv ...interface{}) {
+				if err != nil {
+					msgStr := err.Error()
+					for _, p := range benign {
+						if strings.Contains(msgStr, p) {
+							return
+						}
 					}
 				}
-			}
-			for _, fn := range defaults {
-				fn(ctx, err, msg, kv...)
-			}
-		},
-	}
+				for _, fn := range defaults {
+					fn(ctx, err, msg, kv...)
+				}
+			},
+		}
+	})
 }
 
 // PortForward provides a port-forward connection in a kubernetes cluster.
@@ -132,6 +140,8 @@ func NewPortForward(
 // This function blocks until connection is established.
 // Note: Caller should call Stop() to finish the connection.
 func (pf *PortForward) Init() error {
+	installPortForwardErrorFilter()
+
 	transport, upgrader, err := spdy.RoundTripperFor(pf.Config)
 	if err != nil {
 		return fmt.Errorf("cannot connect to Kubernetes cluster: %w", err)
