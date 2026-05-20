@@ -74,6 +74,13 @@ func killProcessGroup(process *os.Process) error {
 		if errors.Is(err, syscall.ESRCH) {
 			return nil // process group gone
 		}
+		// EPERM can occur on macOS when the process group is in a
+		// dying/zombie state. Keep polling rather than returning an
+		// error so we can fall through to SIGKILL if needed.
+		if errors.Is(err, syscall.EPERM) {
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
 		return fmt.Errorf("failed to check status of process group %d: %w", pgid, err)
 	}
 	// Grace period elapsed — force kill.

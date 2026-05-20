@@ -32,11 +32,26 @@ type PurgeOptions struct {
 	AppID              string
 	InstanceIDs        []string
 	AllOlderThan       *time.Time
+	AllFilterStatus    *string
 	All                bool
 	Force              bool
 
 	ConnectionString *string
 	TableName        *string
+}
+
+// BuildPurgeFilter constructs the Filter used when listing workflow instances
+// for bulk purge. When AllFilterStatus is set, it filters by that status
+// instead of using the default terminal-only filter.
+func BuildPurgeFilter(allFilterStatus *string) Filter {
+	filter := Filter{
+		Terminal: true,
+	}
+	if allFilterStatus != nil {
+		filter.Terminal = false
+		filter.Status = allFilterStatus
+	}
+	return filter
 }
 
 func Purge(ctx context.Context, opts PurgeOptions) error {
@@ -45,6 +60,8 @@ func Purge(ctx context.Context, opts PurgeOptions) error {
 	if len(opts.InstanceIDs) > 0 {
 		toPurge = opts.InstanceIDs
 	} else {
+		filter := BuildPurgeFilter(opts.AllFilterStatus)
+
 		var list []*ListOutputWide
 		var err error
 		list, err = ListWide(ctx, ListOptions{
@@ -53,9 +70,7 @@ func Purge(ctx context.Context, opts PurgeOptions) error {
 			AppID:            opts.AppID,
 			ConnectionString: opts.ConnectionString,
 			TableName:        opts.TableName,
-			Filter: Filter{
-				Terminal: true,
-			},
+			Filter:           filter,
 		})
 		if err != nil {
 			return err

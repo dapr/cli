@@ -29,8 +29,6 @@ import (
 )
 
 func TestStandaloneRun(t *testing.T) {
-	ensureDaprInstallation(t)
-
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	defer cancelFunc()
 
@@ -46,9 +44,6 @@ func TestStandaloneRun(t *testing.T) {
 		}
 	}
 	t.Cleanup(func() {
-		// remove dapr installation after all tests in this function.
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-		// Call cancelFunc to stop the processes
 		cancelFunc()
 	})
 	for _, path := range getSocketCases() {

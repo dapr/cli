@@ -22,9 +22,7 @@ import (
 
 	"github.com/dapr/cli/cmd/runtime"
 	"github.com/dapr/cli/pkg/workflow/dclient"
-	"github.com/dapr/durabletask-go/api"
-	"github.com/dapr/durabletask-go/api/protos"
-	"github.com/dapr/kit/ptr"
+	"github.com/dapr/durabletask-go/workflow"
 	"k8s.io/apimachinery/pkg/util/duration"
 )
 
@@ -42,6 +40,28 @@ type Filter struct {
 	Status   *string
 	MaxAge   *time.Time
 	Terminal bool
+}
+
+// RuntimeStatuses is the canonical list of workflow runtime statuses.
+var RuntimeStatuses = []string{
+	"RUNNING",
+	"COMPLETED",
+	"CONTINUED_AS_NEW",
+	"FAILED",
+	"CANCELED",
+	"TERMINATED",
+	"PENDING",
+	"SUSPENDED",
+}
+
+// TerminalStatuses is the subset of RuntimeStatuses that represent terminal
+// (completed) workflow states.
+var TerminalStatuses = []string{
+	"COMPLETED",
+	"CONTINUED_AS_NEW",
+	"FAILED",
+	"CANCELED",
+	"TERMINATED",
 }
 
 type ListOutputShort struct {
@@ -129,9 +149,7 @@ func list(ctx context.Context, instanceIDs []string, cl *dclient.Client, opts Li
 			continue
 		}
 
-		// TODO: @joshvanl: add `WorkflowIsCompleted` func to workflow package.
-		//nolint:govet
-		if opts.Filter.Terminal && !api.OrchestrationMetadataIsComplete(ptr.Of(protos.OrchestrationMetadata(*resp))) {
+		if opts.Filter.Terminal && !workflow.WorkflowMetadataIsComplete(resp) {
 			continue
 		}
 
