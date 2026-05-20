@@ -735,15 +735,23 @@ func TestWorkflowHistory(t *testing.T) {
 
 	t.Run("timer origin createTimer", func(t *testing.T) {
 		// WTimer calls ctx.CreateTimer which produces origin=createTimer.
-		_, err := cmdWorkflowRun(appID, "WTimer", "--instance-id=timer-origin-test")
+		// The timer fires after 10h, so the instance will stay RUNNING; the
+		// cleanup below terminates and purges it so it doesn't leak into
+		// subsequent runs.
+		const instanceID = "timer-origin-test"
+		_, err := cmdWorkflowRun(appID, "WTimer", "--instance-id="+instanceID)
 		require.NoError(t, err)
+		t.Cleanup(func() {
+			_, _ = cmdWorkflowTerminate(appID, instanceID)
+			_, _ = cmdWorkflowPurge(appID, redisConnString, instanceID)
+		})
 
 		require.Eventually(t, func() bool {
-			out, err := cmdWorkflowHistory(appID, "timer-origin-test")
+			out, err := cmdWorkflowHistory(appID, instanceID)
 			return err == nil && strings.Contains(out, "origin=createTimer")
 		}, 10*time.Second, 200*time.Millisecond)
 
-		output, err := cmdWorkflowHistory(appID, "timer-origin-test", "-o", "json")
+		output, err := cmdWorkflowHistory(appID, instanceID, "-o", "json")
 		require.NoError(t, err)
 
 		var history []map[string]interface{}
@@ -762,17 +770,22 @@ func TestWorkflowHistory(t *testing.T) {
 	})
 
 	t.Run("timer origin externalEvent", func(t *testing.T) {
-		// EventWorkflow calls ctx.WaitForExternalEvent("test-event", time.Hour)
-		// which produces origin=externalEvent(test-event).
-		_, err := cmdWorkflowRun(appID, "EventWorkflow", "--instance-id=event-origin-test")
+		// EventWorkflow waits on an external event with a 1h timeout, so the
+		// instance will stay RUNNING; cleanup terminates and purges it.
+		const instanceID = "event-origin-test"
+		_, err := cmdWorkflowRun(appID, "EventWorkflow", "--instance-id="+instanceID)
 		require.NoError(t, err)
+		t.Cleanup(func() {
+			_, _ = cmdWorkflowTerminate(appID, instanceID)
+			_, _ = cmdWorkflowPurge(appID, redisConnString, instanceID)
+		})
 
 		require.Eventually(t, func() bool {
-			out, err := cmdWorkflowHistory(appID, "event-origin-test")
+			out, err := cmdWorkflowHistory(appID, instanceID)
 			return err == nil && strings.Contains(out, "origin=externalEvent(test-event)")
 		}, 10*time.Second, 200*time.Millisecond)
 
-		output, err := cmdWorkflowHistory(appID, "event-origin-test", "-o", "json")
+		output, err := cmdWorkflowHistory(appID, instanceID, "-o", "json")
 		require.NoError(t, err)
 
 		var history []map[string]interface{}
@@ -793,16 +806,23 @@ func TestWorkflowHistory(t *testing.T) {
 
 	t.Run("timer origin activityRetry", func(t *testing.T) {
 		// ActivityRetryWorkflow calls a failing activity with retry policy,
-		// producing TimerCreated events with origin=activityRetry.
-		_, err := cmdWorkflowRun(appID, "ActivityRetryWorkflow", "--instance-id=activity-retry-origin-test")
+		// producing TimerCreated events with origin=activityRetry. The
+		// workflow itself fails after retries are exhausted; cleanup purges
+		// the terminal instance so it doesn't accumulate across runs.
+		const instanceID = "activity-retry-origin-test"
+		_, err := cmdWorkflowRun(appID, "ActivityRetryWorkflow", "--instance-id="+instanceID)
 		require.NoError(t, err)
+		t.Cleanup(func() {
+			_, _ = cmdWorkflowTerminate(appID, instanceID)
+			_, _ = cmdWorkflowPurge(appID, redisConnString, instanceID)
+		})
 
 		require.Eventually(t, func() bool {
-			out, err := cmdWorkflowHistory(appID, "activity-retry-origin-test")
+			out, err := cmdWorkflowHistory(appID, instanceID)
 			return err == nil && strings.Contains(out, "origin=activityRetry(")
 		}, 15*time.Second, 250*time.Millisecond)
 
-		output, err := cmdWorkflowHistory(appID, "activity-retry-origin-test", "-o", "json")
+		output, err := cmdWorkflowHistory(appID, instanceID, "-o", "json")
 		require.NoError(t, err)
 
 		var history []map[string]interface{}
@@ -823,15 +843,22 @@ func TestWorkflowHistory(t *testing.T) {
 	t.Run("timer origin childWorkflowRetry", func(t *testing.T) {
 		// ChildWorkflowRetryWorkflow calls a failing child workflow with retry
 		// policy, producing TimerCreated events with origin=childWorkflowRetry.
-		_, err := cmdWorkflowRun(appID, "ChildWorkflowRetryWorkflow", "--instance-id=child-retry-origin-test")
+		// The parent workflow fails after retries are exhausted; cleanup
+		// purges the terminal instance.
+		const instanceID = "child-retry-origin-test"
+		_, err := cmdWorkflowRun(appID, "ChildWorkflowRetryWorkflow", "--instance-id="+instanceID)
 		require.NoError(t, err)
+		t.Cleanup(func() {
+			_, _ = cmdWorkflowTerminate(appID, instanceID)
+			_, _ = cmdWorkflowPurge(appID, redisConnString, instanceID)
+		})
 
 		require.Eventually(t, func() bool {
-			out, err := cmdWorkflowHistory(appID, "child-retry-origin-test")
+			out, err := cmdWorkflowHistory(appID, instanceID)
 			return err == nil && strings.Contains(out, "origin=childWorkflowRetry(")
 		}, 30*time.Second, 500*time.Millisecond)
 
-		output, err := cmdWorkflowHistory(appID, "child-retry-origin-test", "-o", "json")
+		output, err := cmdWorkflowHistory(appID, instanceID, "-o", "json")
 		require.NoError(t, err)
 
 		var history []map[string]interface{}
