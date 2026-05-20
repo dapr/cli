@@ -15,6 +15,7 @@ package kubernetes
 
 import (
 	"bytes"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -128,16 +129,17 @@ func TestMCPServers(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			var buff bytes.Buffer
-			err := writeMCPServers(&buff,
+			err := WriteMCPServers(&buff,
 				func() (*v1alpha1.MCPServerList, error) {
 					if len(tc.errString) > 0 {
-						return nil, assert.AnError
+						return nil, errors.New(tc.errString)
 					}
 					return &v1alpha1.MCPServerList{Items: tc.mcpServers}, nil
 				}, tc.serverName, tc.outputFormat)
 
 			if tc.errorExpected {
 				require.Error(t, err)
+				assert.EqualError(t, err, tc.errString)
 			} else {
 				require.NoError(t, err)
 			}

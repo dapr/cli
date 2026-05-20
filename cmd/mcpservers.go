@@ -20,18 +20,21 @@ import (
 
 	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/pkg/print"
+	"github.com/dapr/cli/pkg/standalone"
 
+	v1alpha1 "github.com/dapr/dapr/pkg/apis/mcpserver/v1alpha1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
-	mcpserversName         string
-	mcpserversOutputFormat string
+	mcpServersName         string
+	mcpServersOutputFormat string
+	mcpServersResourcesDir string
 )
 
-var McpserversCmd = &cobra.Command{
+var MCPServersCmd = &cobra.Command{
 	Use:   "mcpservers",
-	Short: "List all Dapr MCPServer resources. Supported platforms: Kubernetes",
+	Short: "List all Dapr MCPServer resources. Supported platforms: Kubernetes and self-hosted",
 	Run: func(cmd *cobra.Command, args []string) {
 		if kubernetesMode {
 			if allNamespaces {
@@ -39,41 +42,58 @@ var McpserversCmd = &cobra.Command{
 			} else if resourceNamespace == "" {
 				resourceNamespace = meta_v1.NamespaceAll
 			}
-			err := kubernetes.PrintMCPServers(mcpserversName, resourceNamespace, mcpserversOutputFormat)
-			if err != nil {
+			if err := kubernetes.PrintMCPServers(mcpServersName, resourceNamespace, mcpServersOutputFormat); err != nil {
 				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)
 			}
+			return
+		}
+
+		// Self-hosted: walk the resources directory for MCPServer YAML.
+		// Defaults to $HOME/.dapr/components when --resources-path is not set;
+		// resolution is handled by pkg/standalone.
+		err := kubernetes.WriteMCPServers(os.Stdout, func() (*v1alpha1.MCPServerList, error) {
+			return standalone.ListMCPServers(mcpServersResourcesDir)
+		}, mcpServersName, mcpServersOutputFormat)
+		if err != nil {
+			print.FailureStatusEvent(os.Stderr, err.Error())
+			os.Exit(1)
 		}
 	},
 	PostRun: func(cmd *cobra.Command, args []string) {
 		kubernetes.CheckForCertExpiry()
 	},
 	Example: `
+# List all Dapr MCPServer resources in self-hosted mode (reads from ~/.dapr/components/ by default)
+dapr mcpservers
+
+# List MCPServer resources from a custom resources directory in self-hosted mode
+dapr mcpservers --resources-path ./resources
+
+# Print a specific MCPServer resource in self-hosted mode
+dapr mcpservers -n my-mcp-server
+
 # List all Dapr MCPServer resources in Kubernetes mode
 dapr mcpservers -k
 
 # List MCPServer resources in a specific namespace
 dapr mcpservers -k --namespace default
 
-# Print a specific MCPServer resource
-dapr mcpservers -k -n my-mcp-server
-
 # List MCPServer resources across all namespaces
 dapr mcpservers -k --all-namespaces
 
 # Output as JSON
-dapr mcpservers -k -o json
+dapr mcpservers -o json
 `,
 }
 
 func init() {
-	McpserversCmd.Flags().BoolVarP(&allNamespaces, "all-namespaces", "A", false, "If true, list all Dapr MCPServer resources in all namespaces")
-	McpserversCmd.Flags().StringVarP(&mcpserversName, "name", "n", "", "The MCPServer name to be printed (optional)")
-	McpserversCmd.Flags().StringVarP(&resourceNamespace, "namespace", "", "", "List MCPServer resources in a specific Kubernetes namespace")
-	McpserversCmd.Flags().StringVarP(&mcpserversOutputFormat, "output", "o", "list", "Output format (options: json or yaml or list)")
-	McpserversCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "List all Dapr MCPServer resources in a Kubernetes cluster")
-	McpserversCmd.Flags().BoolP("help", "h", false, "Print this help message")
-	McpserversCmd.MarkFlagRequired("kubernetes")
-	RootCmd.AddCommand(McpserversCmd)
+	MCPServersCmd.Flags().BoolVarP(&allNamespaces, "all-namespaces", "A", false, "If true, list all Dapr MCPServer resources in all namespaces (Kubernetes mode only)")
+	MCPServersCmd.Flags().StringVarP(&mcpServersName, "name", "n", "", "The MCPServer name to be printed (optional)")
+	MCPServersCmd.Flags().StringVarP(&resourceNamespace, "namespace", "", "", "List MCPServer resources in a specific Kubernetes namespace")
+	MCPServersCmd.Flags().StringVarP(&mcpServersOutputFormat, "output", "o", "list", "Output format (options: json or yaml or list)")
+	MCPServersCmd.Flags().BoolVarP(&kubernetesMode, "kubernetes", "k", false, "List Dapr MCPServer resources from a Kubernetes cluster")
+	MCPServersCmd.Flags().StringVar(&mcpServersResourcesDir, "resources-path", "", "Self-hosted only: directory to scan for MCPServer YAML resources (defaults to $HOME/.dapr/components)")
+	MCPServersCmd.Flags().BoolP("help", "h", false, "Print this help message")
+	RootCmd.AddCommand(MCPServersCmd)
 }

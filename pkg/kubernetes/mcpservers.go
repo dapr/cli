@@ -41,14 +41,14 @@ type MCPServerOutput struct {
 
 // mcpServerDetailedOutput is used for JSON/YAML output.
 type mcpServerDetailedOutput struct {
-	Name      string               `json:"name"`
-	Namespace string               `json:"namespace"`
-	Spec      v1alpha1.MCPServerSpec `json:"spec"`
+	Name      string                 `json:"name"      yaml:"name"`
+	Namespace string                 `json:"namespace" yaml:"namespace"`
+	Spec      v1alpha1.MCPServerSpec `json:"spec"      yaml:"spec"`
 }
 
 // PrintMCPServers prints all Dapr MCPServer resources.
 func PrintMCPServers(name, namespace, outputFormat string) error {
-	return writeMCPServers(os.Stdout, func() (*v1alpha1.MCPServerList, error) {
+	return WriteMCPServers(os.Stdout, func() (*v1alpha1.MCPServerList, error) {
 		client, err := DaprClient()
 		if err != nil {
 			return nil, err
@@ -74,7 +74,11 @@ func ListMCPServers(client versioned.Interface, namespace string) (*v1alpha1.MCP
 	return list, nil
 }
 
-func writeMCPServers(writer io.Writer, getFunc func() (*v1alpha1.MCPServerList, error), name, outputFormat string) error {
+// WriteMCPServers fetches MCPServers via the supplied closure and writes them
+// to the writer in the requested output format ("list", "json", or "yaml").
+// The closure abstraction lets cmd/ supply either a Kubernetes-backed lister
+// or a standalone disk-walker.
+func WriteMCPServers(writer io.Writer, getFunc func() (*v1alpha1.MCPServerList, error), name, outputFormat string) error {
 	servers, err := getFunc()
 	if err != nil {
 		return err
