@@ -14,19 +14,13 @@ limitations under the License.
 package version
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
-	"net/http"
-	"os"
 	"strings"
 
-	"github.com/hashicorp/go-version"
-	yaml "gopkg.in/yaml.v2"
-
-	"github.com/dapr/cli/pkg/print"
-	"github.com/dapr/cli/utils"
+	"github.com/google/go-containerregistry/pkg/authn"
+	"github.com/google/go-containerregistry/pkg/name"
+	"github.com/google/go-containerregistry/pkg/v1/remote"
+	goversion "github.com/hashicorp/go-version"
 )
 
 const (
@@ -36,137 +30,68 @@ const (
 	DaprGitHubRepo = "dapr"
 	// DashboardGitHubRepo is the repo name of dapr dashboard on GitHub.
 	DashboardGitHubRepo = "dashboard"
+
+	// Default container image references used for version resolution.
+	DaprDefaultImage      = "daprio/dapr"
+	DashboardDefaultImage = "daprio/dashboard"
 )
 
-type githubRepoReleaseItem struct {
-	URL     string `json:"url"`
-	TagName string `json:"tag_name"`
-	Name    string `json:"name"`
-	Draft   bool   `json:"draft"`
-}
-
-type helmChartItems struct {
-	Entries struct {
-		Dapr []struct {
-			Version string `yaml:"appVersion"`
-		}
-		DaprDashboard []struct {
-			Version string `yaml:"appVersion"`
-		} `yaml:"dapr-dashboard"`
-	}
-}
-
-func GetDashboardVersion() (string, error) {
-	return GetLatestReleaseGithub(fmt.Sprintf("https://api.github.com/repos/%s/%s/releases", DaprGitHubOrg, DashboardGitHubRepo))
-}
-
-func GetDaprVersion() (string, error) {
-	version, err := GetLatestReleaseGithub(fmt.Sprintf("https://api.github.com/repos/%s/%s/releases", DaprGitHubOrg, DaprGitHubRepo))
+// GetLatestVersion lists tags on the given container image reference
+// and returns the highest semver, non-prerelease version.
+func GetLatestVersion(imageRef string) (string, error) {
+	repo, err := name.NewRepository(imageRef)
 	if err != nil {
-		print.WarningStatusEvent(os.Stdout, "Failed to get runtime version: '%s'. Trying secondary source", err)
+		return "", fmt.Errorf("invalid image reference %q: %w", imageRef, err)
+	}
 
-		version, err = GetLatestReleaseHelmChart("https://dapr.github.io/helm-charts/index.yaml")
-		if err != nil {
-			return "", err
+	tags, err := remote.List(repo, remote.WithAuthFromKeychain(authn.DefaultKeychain))
+	if err != nil {
+		return "", fmt.Errorf("failed to list tags for %q: %w", imageRef, err)
+	}
+
+	if len(tags) == 0 {
+		return "", fmt.Errorf("no tags found for %q", imageRef)
+	}
+
+	defaultVersion, _ := goversion.NewVersion("0.0.0")
+	latestVersion := defaultVersion
+
+	for _, tag := range tags {
+		cur, err := goversion.NewVersion(strings.TrimPrefix(tag, "v"))
+		if err != nil || cur == nil {
+			continue
+		}
+		if cur.Prerelease() != "" || cur.Metadata() != "" {
+			continue
+		}
+		if cur.GreaterThan(latestVersion) {
+			latestVersion = cur
 		}
 	}
 
-	return version, nil
+	if latestVersion.Equal(defaultVersion) {
+		return "", fmt.Errorf("no stable releases found for %q", imageRef)
+	}
+
+	return latestVersion.String(), nil
 }
 
-func GetVersionFromURL(releaseURL string, parseVersion func(body []byte) (string, error)) (string, error) {
-	req, err := http.NewRequest(http.MethodGet, releaseURL, nil)
-	if err != nil {
-		return "", err
+// DaprImageRef returns the full image reference for the Dapr runtime image
+// based on the provided custom registry URL. If empty, it falls back to
+// the default Docker Hub image.
+func DaprImageRef(imageRegistryURL string) string {
+	if imageRegistryURL != "" {
+		return imageRegistryURL + "/dapr/dapr"
 	}
-
-	githubToken := utils.GetEnv("GITHUB_TOKEN", "")
-	if githubToken != "" {
-		req.Header.Add("Authorization", "token "+githubToken)
-	}
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("%s - %s", releaseURL, resp.Status)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-
-	return parseVersion(body)
+	return DaprDefaultImage
 }
 
-// GetLatestReleaseGithub return the latest release version of dapr from GitHub API.
-func GetLatestReleaseGithub(githubURL string) (string, error) {
-	return GetVersionFromURL(githubURL, func(body []byte) (string, error) {
-		var githubRepoReleases []githubRepoReleaseItem
-		err := json.Unmarshal(body, &githubRepoReleases)
-		if err != nil {
-			return "", err
-		}
-
-		if len(githubRepoReleases) == 0 {
-			return "", errors.New("no releases")
-		}
-
-		defaultVersion, _ := version.NewVersion("0.0.0")
-		latestVersion := defaultVersion
-
-		for _, release := range githubRepoReleases {
-			cur, err := version.NewVersion(strings.TrimPrefix(release.TagName, "v"))
-			if err != nil || cur == nil {
-				print.WarningStatusEvent(os.Stdout, "Malformed version %s, skipping", release.TagName)
-				continue
-			}
-			// Prerelease versions and versions with metadata are skipped.
-			if cur.Prerelease() != "" || cur.Metadata() != "" {
-				continue
-			}
-
-			if cur.GreaterThan(latestVersion) {
-				latestVersion = cur
-			}
-		}
-
-		if latestVersion.Equal(defaultVersion) {
-			return "", errors.New("no releases")
-		}
-
-		return latestVersion.String(), nil
-	})
-}
-
-// GetLatestReleaseHelmChart return the latest release version of dapr from helm chart static index.yaml.
-func GetLatestReleaseHelmChart(helmChartURL string) (string, error) {
-	return GetVersionFromURL(helmChartURL, func(body []byte) (string, error) {
-		var helmChartReleases helmChartItems
-		err := yaml.Unmarshal(body, &helmChartReleases)
-		if err != nil {
-			return "", err
-		}
-		if len(helmChartReleases.Entries.Dapr) == 0 {
-			return "", errors.New("no releases")
-		}
-
-		for _, release := range helmChartReleases.Entries.Dapr {
-			if !strings.Contains(release.Version, "-rc") {
-				return release.Version, nil
-			}
-		}
-
-		// Did not find a non-rc version, so we fallback to an RC.
-		// This is helpful to allow us to validate installation of new charts (Dashboard).
-		for _, release := range helmChartReleases.Entries.Dapr {
-			return release.Version, nil
-		}
-
-		return "", errors.New("no releases")
-	})
+// DashboardImageRef returns the full image reference for the Dapr dashboard
+// image based on the provided custom registry URL. If empty, it falls back
+// to the default Docker Hub image.
+func DashboardImageRef(imageRegistryURL string) string {
+	if imageRegistryURL != "" {
+		return imageRegistryURL + "/dapr/dashboard"
+	}
+	return DashboardDefaultImage
 }

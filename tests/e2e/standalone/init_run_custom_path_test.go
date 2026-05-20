@@ -39,6 +39,10 @@ func echoTestAppArgs() []string {
 func TestStandaloneInitRunUninstallNonDefaultDaprPath(t *testing.T) {
 	// Ensure a clean environment
 	must(t, cmdUninstall, "failed to uninstall Dapr")
+	// Reinstall Dapr when done so subsequent tests still work.
+	t.Cleanup(func() {
+		ensureDaprInstallation(t)
+	})
 	t.Run("run with --runtime-path flag", func(t *testing.T) {
 		daprPath, err := os.MkdirTemp("", "dapr-e2e-run-with-flag-*")
 		assert.NoError(t, err)
