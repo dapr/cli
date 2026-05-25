@@ -118,9 +118,9 @@ func ListShort(ctx context.Context, opts ListOptions) ([]*ListOutputShort, error
 	return short, nil
 }
 
-// ListIDs returns just the workflow instance IDs for the given app, sorted
-// lexicographically. It avoids the per-instance metadata fetch performed by
-// ListWide/ListShort, making it much cheaper when the caller only needs IDs.
+// ListIDs returns the workflow instance IDs for the given app in the order
+// returned by the backend. It avoids the per-instance metadata fetch performed
+// by ListWide/ListShort, making it much cheaper when the caller only needs IDs.
 func ListIDs(ctx context.Context, opts ListOptions) ([]string, error) {
 	dclient, err := dclient.DaprClient(ctx, dclient.Options{
 		KubernetesMode:     opts.KubernetesMode,
@@ -134,13 +134,7 @@ func ListIDs(ctx context.Context, opts ListOptions) ([]string, error) {
 	}
 	defer dclient.Cancel()
 
-	ids, err := dclient.InstanceIDs(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	sort.Strings(ids)
-	return ids, nil
+	return dclient.InstanceIDs(ctx)
 }
 
 func ListWide(ctx context.Context, opts ListOptions) ([]*ListOutputWide, error) {
