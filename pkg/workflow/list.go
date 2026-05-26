@@ -18,15 +18,21 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"sync"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 
 	"github.com/dapr/cli/cmd/runtime"
 	"github.com/dapr/cli/pkg/workflow/dclient"
-	"github.com/dapr/durabletask-go/api"
-	"github.com/dapr/durabletask-go/api/protos"
-	"github.com/dapr/kit/ptr"
+	"github.com/dapr/durabletask-go/workflow"
 	"k8s.io/apimachinery/pkg/util/duration"
 )
+
+// listConcurrency caps in-flight FetchWorkflowMetadata calls when listing
+// workflows. The metadata fetches are independent gRPC round-trips, so
+// running them concurrently is a large speedup over serial fetching.
+const listConcurrency = 32
 
 type ListOptions struct {
 	KubernetesMode   bool
@@ -112,6 +118,25 @@ func ListShort(ctx context.Context, opts ListOptions) ([]*ListOutputShort, error
 	return short, nil
 }
 
+// ListIDs returns the workflow instance IDs for the given app in the order
+// returned by the backend. It avoids the per-instance metadata fetch performed
+// by ListWide/ListShort, making it much cheaper when the caller only needs IDs.
+func ListIDs(ctx context.Context, opts ListOptions) ([]string, error) {
+	dclient, err := dclient.DaprClient(ctx, dclient.Options{
+		KubernetesMode:     opts.KubernetesMode,
+		Namespace:          opts.Namespace,
+		AppID:              opts.AppID,
+		RuntimePath:        runtime.GetDaprRuntimePath(),
+		DBConnectionString: opts.ConnectionString,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Dapr client: %w", err)
+	}
+	defer dclient.Cancel()
+
+	return dclient.InstanceIDs(ctx)
+}
+
 func ListWide(ctx context.Context, opts ListOptions) ([]*ListOutputWide, error) {
 	dclient, err := dclient.DaprClient(ctx, dclient.Options{
 		KubernetesMode:     opts.KubernetesMode,
@@ -134,52 +159,66 @@ func ListWide(ctx context.Context, opts ListOptions) ([]*ListOutputWide, error) 
 }
 
 func list(ctx context.Context, instanceIDs []string, cl *dclient.Client, opts ListOptions) ([]*ListOutputWide, error) {
-	var listOutput []*ListOutputWide
+	var (
+		listOutput []*ListOutputWide
+		mu         sync.Mutex
+	)
+
+	eg, egctx := errgroup.WithContext(ctx)
+	eg.SetLimit(listConcurrency)
+
 	for _, instanceID := range instanceIDs {
-		resp, err := cl.WF.FetchWorkflowMetadata(ctx, instanceID)
-		if err != nil {
-			return nil, err
-		}
+		eg.Go(func() error {
+			resp, err := cl.WF.FetchWorkflowMetadata(egctx, instanceID)
+			if err != nil {
+				return err
+			}
 
-		if opts.Filter.Name != nil && resp.Name != *opts.Filter.Name {
-			continue
-		}
-		if opts.Filter.Status != nil && resp.String() != *opts.Filter.Status {
-			continue
-		}
-		if opts.Filter.MaxAge != nil && resp.CreatedAt.AsTime().Before(*opts.Filter.MaxAge) {
-			continue
-		}
+			if opts.Filter.Name != nil && resp.Name != *opts.Filter.Name {
+				return nil
+			}
+			if opts.Filter.Status != nil && resp.String() != *opts.Filter.Status {
+				return nil
+			}
+			if opts.Filter.MaxAge != nil && resp.CreatedAt.AsTime().Before(*opts.Filter.MaxAge) {
+				return nil
+			}
 
-		// TODO: @joshvanl: add `WorkflowIsCompleted` func to workflow package.
-		//nolint:govet
-		if opts.Filter.Terminal && !api.OrchestrationMetadataIsComplete(ptr.Of(protos.OrchestrationMetadata(*resp))) {
-			continue
-		}
+			if opts.Filter.Terminal && !workflow.WorkflowMetadataIsComplete(resp) {
+				return nil
+			}
 
-		wide := &ListOutputWide{
-			Namespace:     opts.Namespace,
-			AppID:         opts.AppID,
-			Name:          resp.Name,
-			InstanceID:    instanceID,
-			Created:       resp.CreatedAt.AsTime().Truncate(time.Second),
-			LastUpdate:    resp.LastUpdatedAt.AsTime().Truncate(time.Second),
-			RuntimeStatus: resp.String(),
-		}
+			wide := &ListOutputWide{
+				Namespace:     opts.Namespace,
+				AppID:         opts.AppID,
+				Name:          resp.Name,
+				InstanceID:    instanceID,
+				Created:       resp.CreatedAt.AsTime().Truncate(time.Second),
+				LastUpdate:    resp.LastUpdatedAt.AsTime().Truncate(time.Second),
+				RuntimeStatus: resp.String(),
+			}
 
-		if resp.CustomStatus != nil {
-			wide.CustomStatus = resp.CustomStatus.Value
-		}
+			if resp.CustomStatus != nil {
+				wide.CustomStatus = resp.CustomStatus.Value
+			}
 
-		if resp.FailureDetails != nil {
-			wide.FailureMessage = strings.ReplaceAll(
-				strings.ReplaceAll(
-					resp.FailureDetails.GetErrorMessage(),
-					"\n", ""),
-				"\r", "")
-		}
+			if resp.FailureDetails != nil {
+				wide.FailureMessage = strings.ReplaceAll(
+					strings.ReplaceAll(
+						resp.FailureDetails.GetErrorMessage(),
+						"\n", ""),
+					"\r", "")
+			}
 
-		listOutput = append(listOutput, wide)
+			mu.Lock()
+			listOutput = append(listOutput, wide)
+			mu.Unlock()
+			return nil
+		})
+	}
+
+	if err := eg.Wait(); err != nil {
+		return nil, err
 	}
 
 	sort.SliceStable(listOutput, func(i, j int) bool {
@@ -189,7 +228,10 @@ func list(ctx context.Context, instanceIDs []string, cl *dclient.Client, opts Li
 		if listOutput[j].Created.IsZero() {
 			return true
 		}
-		return listOutput[i].Created.Before(listOutput[j].Created)
+		if !listOutput[i].Created.Equal(listOutput[j].Created) {
+			return listOutput[i].Created.Before(listOutput[j].Created)
+		}
+		return listOutput[i].InstanceID < listOutput[j].InstanceID
 	})
 
 	return listOutput, nil
