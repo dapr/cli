@@ -116,7 +116,7 @@ func printMCPServerList(writer io.Writer, list []v1alpha1.MCPServer) error {
 			Namespace: s.GetNamespace(),
 			Transport: mcpTransport(&s),
 			URL:       mcpURL(&s),
-			Created:   s.CreationTimestamp.Format("2006-01-02 15:04.05"),
+			Created:   s.CreationTimestamp.Format("2006-01-02 15:04:05"),
 			Age:       age.GetAge(s.CreationTimestamp.Time),
 			Scopes:    strings.Join(s.Scopes, ","),
 		})

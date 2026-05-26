@@ -29,18 +29,13 @@ import (
 )
 
 // ListMCPServers walks the given resources directory and returns every
-// MCPServer YAML resource it finds.
-// If resourcesPath is empty, the default ($HOME/.dapr/components) is used.
-// If the directory does not exist, an empty list is returned (no error) —
-// matches the behavior of the Kubernetes lister when the CRD isn't installed.
+// MCPServer YAML resource it finds. Empty resourcesPath defaults to
+// $HOME/.dapr/components. A missing directory returns an empty list
+// (matches the Kubernetes lister when the CRD isn't installed).
 //
-// TODO(@sicoyle): replace this hand-rolled walker with the public LocalLoader
-// pattern once dapr/dapr exposes an internal MCPServer disk loader.
-// `pkg/internal/loader/disk/mcpservers.go` already implements typed
-// multi-document loading with field validation; mirroring
-// `pkg/components/loader/localloader.go` to wrap `disk.NewMCPServers(...)`
-// would let us drop the YAML decoding here entirely and switch this
-// function to a ~10-line call into `loader.NewMCPServerLocalLoader(...).Load(ctx)`.
+// TODO(@sicoyle): replace with `loader.NewMCPServerLocalLoader(...).Load(ctx)`
+// once dapr/dapr exposes its `pkg/internal/loader/disk/mcpservers.go` publicly
+// (the way `pkg/components/loader/localloader.go` already does for Components).
 func ListMCPServers(resourcesPath string) (*mcpserverapi.MCPServerList, error) {
 	if resourcesPath == "" {
 		daprPath, err := GetDaprRuntimePath("")
@@ -80,12 +75,6 @@ func ListMCPServers(resourcesPath string) (*mcpserverapi.MCPServerList, error) {
 			return fmt.Errorf("read %q: %w", p, err)
 		}
 
-		// A single YAML file may contain multiple documents separated by `---`.
-		// k8s.io/apimachinery's YAML decoder handles document splitting and the
-		// JSON-shaped target types. Decode each document straight into
-		// MCPServer, then check the typed `Kind` constant from the upstream
-		// API package to skip non-MCP resources (Components, Configurations,
-		// etc.) that share the same directory.
 		dec := yaml.NewYAMLToJSONDecoder(bytes.NewReader(data))
 		for {
 			var server mcpserverapi.MCPServer
@@ -95,10 +84,8 @@ func ListMCPServers(resourcesPath string) (*mcpserverapi.MCPServerList, error) {
 				}
 				return fmt.Errorf("parse %q: %w", p, err)
 			}
-			// Reach past the method `(MCPServer) Kind() string` (which always
-			// returns the const) to the underlying TypeMeta.Kind field that
-			// was populated from the YAML document, so non-MCPServer docs
-			// in the same directory are correctly skipped.
+			// TypeMeta.Kind reads the YAML's `kind:`; `.Kind` is a method that
+			// shadows it and always returns the package const.
 			if server.TypeMeta.Kind != mcpserverapi.Kind {
 				continue
 			}

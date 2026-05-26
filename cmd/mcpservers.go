@@ -37,9 +37,7 @@ var MCPServersCmd = &cobra.Command{
 	Short: "List all Dapr MCPServer resources. Supported platforms: Kubernetes and self-hosted",
 	Run: func(cmd *cobra.Command, args []string) {
 		if kubernetesMode {
-			if allNamespaces {
-				resourceNamespace = meta_v1.NamespaceAll
-			} else if resourceNamespace == "" {
+			if allNamespaces || resourceNamespace == "" {
 				resourceNamespace = meta_v1.NamespaceAll
 			}
 			if err := kubernetes.PrintMCPServers(mcpServersName, resourceNamespace, mcpServersOutputFormat); err != nil {
