@@ -34,6 +34,7 @@ const (
 	outputFormatWide  = "wide"
 	outputFormatYAML  = "yaml"
 	outputFormatJSON  = "json"
+	outputFormatIDs   = "ids"
 )
 
 var (
@@ -54,13 +55,13 @@ func init() {
 	WorkflowCmd.PersistentFlags().StringVarP(&flagAppID, "app-id", "a", "", "The app ID owner of the workflow instance")
 }
 
-func outputFunc(cmd *cobra.Command) *string {
-	outputs := []string{
+func outputFunc(cmd *cobra.Command, extra ...string) *string {
+	outputs := append([]string{
 		outputFormatShort,
 		outputFormatWide,
 		outputFormatYAML,
 		outputFormatJSON,
-	}
+	}, extra...)
 
 	var outputFormat string
 	cmd.Flags().StringVarP(&outputFormat, "output", "o", outputFormatShort, fmt.Sprintf("Output format. One of %s",
@@ -70,7 +71,7 @@ func outputFunc(cmd *cobra.Command) *string {
 	pre := cmd.PreRunE
 	cmd.PreRunE = func(cmd *cobra.Command, args []string) error {
 		if !slices.Contains(outputs, outputFormat) {
-			return errors.New("invalid value for --output. Supported values are 'short', 'wide', 'yaml', 'json'")
+			return fmt.Errorf("invalid value for --output. Supported values are %s", strings.Join(outputs, ", "))
 		}
 
 		if pre != nil {
