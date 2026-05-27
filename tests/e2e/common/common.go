@@ -48,11 +48,11 @@ const (
 	ClusterRoles
 	ClusterRoleBindings
 
-	numHAPodsWithScheduler      = 16
-	numHAPodsOld                = 13
-	numNonHAPodsWithHAScheduler = 8
-	numNonHAPodsWithScheduler   = 6
-	numNonHAPodsOld             = 5
+	numHAPodsWithScheduler      = 15
+	numHAPodsOld                = 12
+	numNonHAPodsWithHAScheduler = 7
+	numNonHAPodsWithScheduler   = 5
+	numNonHAPodsOld             = 4
 
 	thirdPartyDevNamespace = "default"
 	devRedisReleaseName    = "dapr-dev-redis"
