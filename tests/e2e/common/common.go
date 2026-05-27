@@ -32,7 +32,6 @@ import (
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/dapr/cli/pkg/kubernetes"
 	"github.com/dapr/cli/tests/e2e/spawn"
 
 	k8s "k8s.io/client-go/kubernetes"
@@ -70,7 +69,6 @@ var (
 
 type VersionDetails struct {
 	RuntimeVersion       string
-	DashboardVersion     string
 	ImageVariant         string
 	CustomResourceDefs   []string
 	ClusterRoles         []string
@@ -95,32 +93,25 @@ type TestCase struct {
 	Callable func(*testing.T)
 }
 
-// GetVersionsFromEnv will return values from required environment variables.
-// parameter `latest` is used to determine if the latest versions of dapr & dashboard should be used.
+// GetVersionsFromEnv will return the runtime version from required environment variables.
+// parameter `latest` is used to determine if the latest version of dapr should be used.
 // if environment variables are not set it fails the test.
-func GetVersionsFromEnv(t *testing.T, latest bool) (string, string) {
-	var daprRuntimeVersion, daprDashboardVersion string
+func GetVersionsFromEnv(t *testing.T, latest bool) string {
+	var daprRuntimeVersion string
 	runtimeEnvVar := "DAPR_RUNTIME_PINNED_VERSION"
-	dashboardEnvVar := "DAPR_DASHBOARD_PINNED_VERSION"
 	if latest {
 		runtimeEnvVar = "DAPR_RUNTIME_LATEST_STABLE_VERSION"
-		dashboardEnvVar = "DAPR_DASHBOARD_LATEST_STABLE_VERSION"
 	}
 	if runtimeVersion, ok := os.LookupEnv(runtimeEnvVar); ok {
 		daprRuntimeVersion = runtimeVersion
 	} else {
 		t.Fatalf("env var \"%s\" not set", runtimeEnvVar)
 	}
-	if dashboardVersion, ok := os.LookupEnv(dashboardEnvVar); ok {
-		daprDashboardVersion = dashboardVersion
-	} else {
-		t.Fatalf("env var \"%s\" not set", dashboardEnvVar)
-	}
-	return daprRuntimeVersion, daprDashboardVersion
+	return daprRuntimeVersion
 }
 
 func GetRuntimeVersion(t *testing.T, latest bool) *semver.Version {
-	daprRuntimeVersion, _ := GetVersionsFromEnv(t, latest)
+	daprRuntimeVersion := GetVersionsFromEnv(t, latest)
 	runtimeVersion, err := semver.NewVersion(daprRuntimeVersion)
 	require.NoError(t, err)
 	return runtimeVersion
@@ -149,13 +140,6 @@ func UpgradeTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 			"upgrade", "-k",
 			"--runtime-version", details.RuntimeVersion,
 			"--log-as-json",
-		}
-
-		hasDashboardInDaprChart, err := kubernetes.IsDashboardIncluded(details.RuntimeVersion)
-		require.NoError(t, err, "failed to check if dashboard is included in dapr chart")
-
-		if !hasDashboardInDaprChart {
-			args = append(args, "--dashboard-version", details.DashboardVersion)
 		}
 
 		if details.ImageVariant != "" {
@@ -413,7 +397,6 @@ func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t
 			notFound = map[string][]string{
 				"dapr-sentry":           {details.RuntimeVersion, "1"},
 				"dapr-sidecar-injector": {details.RuntimeVersion, "1"},
-				"dapr-dashboard":        {details.DashboardVersion, "1"},
 				"dapr-placement-server": {details.RuntimeVersion, "1"},
 				"dapr-operator":         {details.RuntimeVersion, "1"},
 			}
@@ -426,7 +409,6 @@ func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t
 			notFound = map[string][]string{
 				"dapr-sentry":           {details.RuntimeVersion, "3"},
 				"dapr-sidecar-injector": {details.RuntimeVersion, "3"},
-				"dapr-dashboard":        {details.DashboardVersion, "1"},
 				"dapr-placement-server": {details.RuntimeVersion, "3"},
 				"dapr-operator":         {details.RuntimeVersion, "3"},
 			}
@@ -460,10 +442,7 @@ func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t
 						require.Equal(c, "True", cols[2], "%s healthy field must be true", cols[0])
 						require.Equal(c, "Running", cols[3], "%s pods must be Running", cols[0])
 						require.Equal(c, toVerify[1], cols[4], "%s replicas must be equal", cols[0])
-						// TODO: Skip the dashboard version check for now until the helm chart is updated.
-						if cols[0] != "dapr-dashboard" {
-							require.Equal(c, toVerify[0], cols[5], "%s versions must match", cols[0])
-						}
+						require.Equal(c, toVerify[0], cols[5], "%s versions must match", cols[0])
 						delete(notFound, cols[0])
 					}
 				}
@@ -847,7 +826,6 @@ func installTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 			args = append(args, "--dev")
 		}
 		if !details.UseDaprLatestVersion {
-			// TODO: Pass dashboard-version also when charts are released.
 			args = append(args, "--runtime-version", details.RuntimeVersion)
 		}
 		if opts.HAEnabled {
@@ -1115,9 +1093,8 @@ func validatePodsOnInstallUpgrade(t *testing.T, details VersionDetails) {
 	require.NoError(t, err)
 
 	notFound := map[string]string{
-		"sentry":  details.RuntimeVersion,
-		"sidecar": details.RuntimeVersion,
-		// "dashboard": details.DashboardVersion, TODO: enable when helm charts are updated.
+		"sentry":    details.RuntimeVersion,
+		"sidecar":   details.RuntimeVersion,
 		"placement": details.RuntimeVersion,
 		"operator":  details.RuntimeVersion,
 	}
@@ -1130,9 +1107,8 @@ func validatePodsOnInstallUpgrade(t *testing.T, details VersionDetails) {
 	}
 
 	prefixes := map[string]string{
-		"sentry":  "dapr-sentry-",
-		"sidecar": "dapr-sidecar-injector-",
-		// "dashboard": "dapr-dashboard-", TODO: enable when helm charts are updated.
+		"sentry":    "dapr-sentry-",
+		"sidecar":   "dapr-sidecar-injector-",
 		"placement": "dapr-placement-server-",
 		"operator":  "dapr-operator-",
 	}

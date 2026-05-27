@@ -35,7 +35,7 @@ type ListOutput struct {
 	HTTPPort           int      `csv:"HTTP PORT" json:"httpPort"           yaml:"httpPort"`
 	GRPCPort           int      `csv:"GRPC PORT" json:"grpcPort"           yaml:"grpcPort"`
 	AppPort            int      `csv:"APP PORT"  json:"appPort"            yaml:"appPort"`
-	MetricsEnabled     bool     `csv:"-"         json:"metricsEnabled"     yaml:"metricsEnabled"` // Not displayed in table, consumed by dashboard.
+	MetricsEnabled     bool     `csv:"-"         json:"metricsEnabled"     yaml:"metricsEnabled"` // Not displayed in table.
 	Command            string   `csv:"COMMAND"   json:"command"            yaml:"command"`
 	Age                string   `csv:"AGE"       json:"age"                yaml:"age"`
 	Created            string   `csv:"CREATED"   json:"created"            yaml:"created"`
@@ -189,7 +189,6 @@ func List() ([]ListOutput, error) {
 				ResourcePaths:      resourcePaths,
 			}
 
-			// filter only dashboard instance.
 			if listRow.AppID != "" {
 				list = append(list, listRow)
 			}

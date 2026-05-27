@@ -163,39 +163,9 @@ func TestDaprImageRef(t *testing.T) {
 	}
 }
 
-func TestDashboardImageRef(t *testing.T) {
-	tests := []struct {
-		name             string
-		imageRegistryURL string
-		expected         string
-	}{
-		{
-			name:             "custom registry",
-			imageRegistryURL: "localhost:5000",
-			expected:         "localhost:5000/dapr/dashboard",
-		},
-		{
-			name:     "default Docker Hub",
-			expected: DashboardDefaultImage,
-		},
-		{
-			name:             "default Docker Hub, empty registry URL",
-			imageRegistryURL: "",
-			expected:         DashboardDefaultImage,
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			result := DashboardImageRef(tc.imageRegistryURL)
-			assert.Equal(t, tc.expected, result)
-		})
-	}
-}
-
 func TestImageRefCanBeResolved(t *testing.T) {
 	// Verify that the default image refs are valid repository references.
-	refs := []string{DaprDefaultImage, DashboardDefaultImage}
+	refs := []string{DaprDefaultImage}
 	for _, ref := range refs {
 		t.Run(ref, func(t *testing.T) {
 			_, err := name.NewRepository(ref)
