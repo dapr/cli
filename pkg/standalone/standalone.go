@@ -42,7 +42,6 @@ import (
 
 const (
 	daprRuntimeFilePrefix      = "daprd"
-	dashboardFilePrefix        = "dashboard"
 	placementServiceFilePrefix = "placement"
 	schedulerServiceFilePrefix = "scheduler"
 
@@ -138,7 +137,6 @@ type initInfo struct {
 	bundleDet                          *bundleDetails
 	slimMode                           bool
 	runtimeVersion                     string
-	dashboardVersion                   string
 	dockerNetwork                      string
 	imageRegistryURL                   string
 	containerRuntime                   string
@@ -186,7 +184,7 @@ func isSchedulerIncluded(runtimeVersion string) (bool, error) {
 }
 
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
-func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMode bool, imageRegistryURL string, fromDir string, containerRuntime string, imageVariant string, daprInstallPath string, schedulerVolume *string, schedulerOverrideBroadcastHostPort *string) error {
+func Init(runtimeVersion string, dockerNetwork string, slimMode bool, imageRegistryURL string, fromDir string, containerRuntime string, imageVariant string, daprInstallPath string, schedulerVolume *string, schedulerOverrideBroadcastHostPort *string) error {
 	var err error
 	var bundleDet bundleDetails
 	containerRuntime = strings.TrimSpace(containerRuntime)
@@ -228,14 +226,6 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		}
 	}
 
-	if dashboardVersion == latestVersion && !isAirGapInit {
-		dashboardVersion, err = cli_ver.GetLatestVersion(cli_ver.DashboardImageRef(effectiveRegistryURL))
-		if err != nil {
-			print.WarningStatusEvent(os.Stdout, "cannot get the latest dashboard version: '%s'. Try specifying --dashboard-version=<desired_version>", err)
-			print.WarningStatusEvent(os.Stdout, "continuing, but dashboard will be unavailable")
-		}
-	}
-
 	// If --from-dir flag is given try parsing the details from the expected details file in the specified directory.
 	if isAirGapInit {
 		bundleDet = bundleDetails{}
@@ -245,10 +235,8 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 			return fmt.Errorf("error parsing details file from bundle location: %w", err)
 		}
 
-		// Set runtime and dashboard versions from the bundle details parsed.
-
+		// Set runtime version from the bundle details parsed.
 		runtimeVersion = *bundleDet.RuntimeVersion
-		dashboardVersion = *bundleDet.DashboardVersion
 	}
 
 	// At this point the runtimeVersion variable is parsed either from the details file if --fromDir is specified or
@@ -281,7 +269,6 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		installDaprRuntime,
 		installPlacement,
 		installScheduler,
-		installDashboard,
 		runPlacementService,
 		runSchedulerService,
 		runRedis,
@@ -311,7 +298,6 @@ func Init(runtimeVersion, dashboardVersion string, dockerNetwork string, slimMod
 		installDir:                         installDir,
 		slimMode:                           slimMode,
 		runtimeVersion:                     runtimeVersion,
-		dashboardVersion:                   dashboardVersion,
 		dockerNetwork:                      dockerNetwork,
 		imageRegistryURL:                   imageRegistryURL,
 		containerRuntime:                   containerRuntime,
@@ -749,52 +735,10 @@ func schedulerEtcdClientListenAddress(info initInfo) bool {
 	return runV.GreaterThan(v1160)
 }
 
-func moveDashboardFiles(extractedFilePath string, dir string) (string, error) {
-	// Move /release/os/web directory to /web.
-	oldPath := path_filepath.Join(path_filepath.Dir(extractedFilePath), "web")
-	newPath := path_filepath.Join(dir, "web")
-	err := os.Rename(oldPath, newPath)
-	if err != nil {
-		err = fmt.Errorf("failed to move dashboard files: %w", err)
-		return "", err
-	}
-
-	// Move binary from /release/<os>/web/dashboard(.exe) to /dashboard(.exe).
-	err = os.Rename(extractedFilePath, path_filepath.Join(dir, path_filepath.Base(extractedFilePath)))
-	if err != nil {
-		err = fmt.Errorf("error moving %s binary to path: %w", path_filepath.Base(extractedFilePath), err)
-		return "", err
-	}
-
-	// Change the extracted binary file path to reflect the move above.
-	extractedFilePath = path_filepath.Join(dir, path_filepath.Base(extractedFilePath))
-
-	// Remove the now-empty 'release' directory.
-	err = os.RemoveAll(path_filepath.Join(dir, "release"))
-	if err != nil {
-		err = fmt.Errorf("error moving dashboard files: %w", err)
-		return "", err
-	}
-
-	return extractedFilePath, nil
-}
-
 func installDaprRuntime(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 	defer wg.Done()
 
 	err := installBinary(info.runtimeVersion, daprRuntimeFilePrefix, cli_ver.DaprGitHubRepo, info)
-	if err != nil {
-		errorChan <- err
-	}
-}
-
-func installDashboard(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
-	defer wg.Done()
-	if info.dashboardVersion == "" {
-		return
-	}
-
-	err := installBinary(info.dashboardVersion, dashboardFilePrefix, cli_ver.DashboardGitHubRepo, info)
 	if err != nil {
 		errorChan <- err
 	}
@@ -835,7 +779,7 @@ func installScheduler(wg *sync.WaitGroup, errorChan chan<- error, info initInfo)
 	}
 }
 
-// installBinary installs the daprd, placement, scheduler, or dashboard binaries and associated files inside the default dapr bin directory.
+// installBinary installs the daprd, placement, or scheduler binaries and associated files inside the default dapr bin directory.
 func installBinary(version, binaryFilePrefix, githubRepo string, info initInfo) error {
 	var (
 		err      error
@@ -862,13 +806,6 @@ func installBinary(version, binaryFilePrefix, githubRepo string, info initInfo) 
 		err = os.Remove(filepath)
 		if err != nil {
 			return fmt.Errorf("failed to remove archive: %w", err)
-		}
-	}
-
-	if binaryFilePrefix == "dashboard" {
-		extractedFilePath, err = moveDashboardFiles(extractedFilePath, dir)
-		if err != nil {
-			return err
 		}
 	}
 

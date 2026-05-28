@@ -23,7 +23,6 @@ import (
 func TestParseDetails(t *testing.T) {
 	correctDetails := `{
 		"daprd" : "1.7.0",
-		"dashboard": "0.10.0",
 		"cli": "1.7.0",
 		"daprBinarySubDir": "dist",
 		"dockerImageSubDir": "docker",
@@ -41,17 +40,40 @@ func TestParseDetails(t *testing.T) {
 	err = bd.readAndParseDetails(f.Name())
 	assert.NoError(t, err, "expected no error on parsing correct details in file")
 	assert.Equal(t, "1.7.0", *bd.RuntimeVersion, "expected versions to match")
-	assert.Equal(t, "0.10.0", *bd.DashboardVersion, "expected versions to match")
 	assert.Equal(t, "dist", *bd.BinarySubDir, "expected value to match")
 	assert.Equal(t, "docker", *bd.ImageSubDir, "expected value to match")
 	assert.Equal(t, "daprio/dapr:1.7.2", bd.getDaprImageName(), "expected value to match")
 	assert.Equal(t, "daprio-dapr-1.7.2.tar.gz", bd.getDaprImageFileName(), "expected value to match")
 }
 
+func TestParseDetailsWithDashboardFieldIgnored(t *testing.T) {
+	// Bundles that still contain a "dashboard" field should parse without error
+	// (forward-compat: new CLI tolerates bundles that still ship the field).
+	detailsWithDashboard := `{
+		"daprd" : "1.7.0",
+		"dashboard": "0.10.0",
+		"cli": "1.7.0",
+		"daprBinarySubDir": "dist",
+		"dockerImageSubDir": "docker",
+		"daprImageName": "daprio/dapr:1.7.2",
+		"daprImageFileName": "daprio-dapr-1.7.2.tar.gz"
+	}`
+	f, err := os.CreateTemp("", "*-details.json")
+	if err != nil {
+		t.Fatalf("error creating temp directory for testing: %s", err)
+	}
+	defer os.Remove(f.Name())
+	f.WriteString(detailsWithDashboard)
+	f.Close()
+	bd := bundleDetails{}
+	err = bd.readAndParseDetails(f.Name())
+	assert.NoError(t, err, "expected no error when bundle still contains dashboard field")
+	assert.Equal(t, "1.7.0", *bd.RuntimeVersion, "expected runtime version to match")
+}
+
 func TestParseDetailsMissingDetails(t *testing.T) {
 	missingDetails := `{
 		"daprd" : "1.7.0",
-		"dashboard": "0.10.0",
 		"cli": "1.7.0",
 		"daprImageName": "daprio/dapr:1.7.2"
 		"daprImageFileName": "daprio-dapr-1.7.2.tar.gz"
@@ -71,7 +93,6 @@ func TestParseDetailsMissingDetails(t *testing.T) {
 func TestParseDetailsEmptyDetails(t *testing.T) {
 	missingDetails := `{
 		"daprd" : "",
-		"dashboard": "",
 		"cli": "1.7.0",
 		"daprBinarySubDir": "dist",
 		"dockerImageSubDir": "docker",

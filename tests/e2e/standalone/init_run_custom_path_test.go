@@ -48,10 +48,9 @@ func TestStandaloneInitRunUninstallNonDefaultDaprPath(t *testing.T) {
 		assert.NoError(t, err)
 		defer os.RemoveAll(daprPath) // clean up
 
-		daprRuntimeVersion, daprDashboardVersion := common.GetVersionsFromEnv(t, false)
+		daprRuntimeVersion := common.GetVersionsFromEnv(t, false)
 		args := []string{
 			"--runtime-version", daprRuntimeVersion,
-			"--dashboard-version", daprDashboardVersion,
 			"--runtime-path", daprPath,
 		}
 		output, err := cmdInit(args...)
@@ -107,10 +106,9 @@ func TestStandaloneInitRunUninstallNonDefaultDaprPath(t *testing.T) {
 
 		t.Setenv("DAPR_RUNTIME_PATH", daprPath)
 
-		daprRuntimeVersion, daprDashboardVersion := common.GetVersionsFromEnv(t, false)
+		daprRuntimeVersion := common.GetVersionsFromEnv(t, false)
 		args := []string{
 			"--runtime-version", daprRuntimeVersion,
-			"--dashboard-version", daprDashboardVersion,
 		}
 		output, err := cmdInit(args...)
 		t.Log(output)
@@ -168,10 +166,9 @@ func TestStandaloneInitRunUninstallNonDefaultDaprPath(t *testing.T) {
 
 		t.Setenv("DAPR_RUNTIME_PATH", daprPathEnv)
 
-		daprRuntimeVersion, daprDashboardVersion := common.GetVersionsFromEnv(t, false)
+		daprRuntimeVersion := common.GetVersionsFromEnv(t, false)
 		args := []string{
 			"--runtime-version", daprRuntimeVersion,
-			"--dashboard-version", daprDashboardVersion,
 			"--runtime-path", daprPathFlag,
 		}
 		output, err := cmdInit(args...)

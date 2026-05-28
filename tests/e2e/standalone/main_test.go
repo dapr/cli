@@ -52,10 +52,6 @@ func installDapr() error {
 	if !ok {
 		return fmt.Errorf("env var DAPR_RUNTIME_PINNED_VERSION not set")
 	}
-	daprDashboardVersion, ok := os.LookupEnv("DAPR_DASHBOARD_PINNED_VERSION")
-	if !ok {
-		return fmt.Errorf("env var DAPR_DASHBOARD_PINNED_VERSION not set")
-	}
 
 	if !isSlimMode() {
 		if err := waitForPortsFreeDirect(60*time.Second, 58080, 58081, 50005); err != nil {
@@ -65,7 +61,6 @@ func installDapr() error {
 
 	args := []string{
 		"--runtime-version", daprRuntimeVersion,
-		"--dashboard-version", daprDashboardVersion,
 	}
 	output, err := cmdInit(args...)
 	if err != nil {
