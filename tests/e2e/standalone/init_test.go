@@ -37,7 +37,7 @@ import (
 )
 
 func TestStandaloneInit(t *testing.T) {
-	daprRuntimeVersion, daprDashboardVersion := common.GetVersionsFromEnv(t, false)
+	daprRuntimeVersion := common.GetVersionsFromEnv(t, false)
 
 	t.Cleanup(func() {
 		// Reinstall Dapr so subsequent tests still have a working installation.
@@ -54,7 +54,6 @@ func TestStandaloneInit(t *testing.T) {
 		must(t, cmdUninstall, "failed to uninstall Dapr")
 		args := []string{
 			"--runtime-version", daprRuntimeVersion,
-			"--dashboard-version", daprDashboardVersion,
 			"--image-registry", "smplregistry.io/owner",
 		}
 		output, err := cmdInit(args...)
@@ -71,7 +70,6 @@ func TestStandaloneInit(t *testing.T) {
 		must(t, cmdUninstall, "failed to uninstall Dapr")
 		args := []string{
 			"--runtime-version", daprRuntimeVersion,
-			"--dashboard-version", daprDashboardVersion,
 			"--image-registry", "localhost:5000",
 			"--from-dir", "./local-dir",
 		}
@@ -85,7 +83,6 @@ func TestStandaloneInit(t *testing.T) {
 		must(t, cmdUninstall, "failed to uninstall Dapr")
 		args := []string{
 			"--runtime-version", daprRuntimeVersion,
-			"--dashboard-version", daprDashboardVersion,
 			"--container-runtime", "invalid",
 		}
 		output, err := cmdInit(args...)
@@ -99,7 +96,6 @@ func TestStandaloneInit(t *testing.T) {
 
 		args := []string{
 			"--runtime-version", daprRuntimeVersion,
-			"--dashboard-version", daprDashboardVersion,
 		}
 		output, err := cmdInit(args...)
 		t.Log(output)
@@ -113,7 +109,7 @@ func TestStandaloneInit(t *testing.T) {
 		require.DirExists(t, daprPath, "Directory %s does not exist", daprPath)
 
 		verifyContainers(t, daprRuntimeVersion)
-		verifyBinaries(t, daprPath, daprRuntimeVersion, daprDashboardVersion)
+		verifyBinaries(t, daprPath, daprRuntimeVersion)
 		verifyConfigs(t, daprPath)
 	})
 
@@ -123,7 +119,6 @@ func TestStandaloneInit(t *testing.T) {
 
 		args := []string{
 			"--runtime-version", daprRuntimeVersion,
-			"--dashboard-version", daprDashboardVersion,
 			"--image-variant", "mariner",
 		}
 		output, err := cmdInit(args...)
@@ -138,7 +133,7 @@ func TestStandaloneInit(t *testing.T) {
 		require.DirExists(t, daprPath, "Directory %s does not exist", daprPath)
 
 		verifyContainers(t, daprRuntimeVersion+"-mariner")
-		verifyBinaries(t, daprPath, daprRuntimeVersion, daprDashboardVersion)
+		verifyBinaries(t, daprPath, daprRuntimeVersion)
 		verifyConfigs(t, daprPath)
 	})
 
@@ -157,10 +152,10 @@ func TestStandaloneInit(t *testing.T) {
 		daprPath := filepath.Join(homeDir, ".dapr")
 		require.DirExists(t, daprPath, "Directory %s does not exist", daprPath)
 
-		latestDaprRuntimeVersion, latestDaprDashboardVersion := common.GetVersionsFromEnv(t, true)
+		latestDaprRuntimeVersion := common.GetVersionsFromEnv(t, true)
 
 		verifyContainers(t, latestDaprRuntimeVersion)
-		verifyBinaries(t, daprPath, latestDaprRuntimeVersion, latestDaprDashboardVersion)
+		verifyBinaries(t, daprPath, latestDaprRuntimeVersion)
 		verifyConfigs(t, daprPath)
 
 		placementPort := 50005
@@ -175,7 +170,7 @@ func TestStandaloneInit(t *testing.T) {
 		// Ensure a clean environment
 		must(t, cmdUninstall, "failed to uninstall Dapr")
 
-		latestDaprRuntimeVersion, latestDaprDashboardVersion := common.GetVersionsFromEnv(t, true)
+		latestDaprRuntimeVersion := common.GetVersionsFromEnv(t, true)
 
 		args := []string{
 			"--runtime-version", latestDaprRuntimeVersion,
@@ -193,7 +188,7 @@ func TestStandaloneInit(t *testing.T) {
 		require.DirExists(t, daprPath, "Directory %s does not exist", daprPath)
 
 		verifyContainers(t, latestDaprRuntimeVersion)
-		verifyBinaries(t, daprPath, latestDaprRuntimeVersion, latestDaprDashboardVersion)
+		verifyBinaries(t, daprPath, latestDaprRuntimeVersion)
 		verifyConfigs(t, daprPath)
 
 		placementPort := 50005
@@ -244,10 +239,10 @@ func TestStandaloneInit(t *testing.T) {
 		daprPath := filepath.Join(homeDir, ".dapr")
 		require.DirExists(t, daprPath, "Directory %s does not exist", daprPath)
 
-		latestDaprRuntimeVersion, latestDaprDashboardVersion := common.GetVersionsFromEnv(t, true)
+		latestDaprRuntimeVersion := common.GetVersionsFromEnv(t, true)
 
 		verifyContainers(t, latestDaprRuntimeVersion+"-mariner")
-		verifyBinaries(t, daprPath, latestDaprRuntimeVersion, latestDaprDashboardVersion)
+		verifyBinaries(t, daprPath, latestDaprRuntimeVersion)
 		verifyConfigs(t, daprPath)
 	})
 }
@@ -308,15 +303,14 @@ func verifyContainers(t *testing.T, daprRuntimeVersion string) {
 }
 
 // verifyBinaries ensures that the correct binaries are present in the correct path.
-func verifyBinaries(t *testing.T, daprPath, runtimeVersion, dashboardVersion string) {
+func verifyBinaries(t *testing.T, daprPath, runtimeVersion string) {
 	t.Helper()
 
 	binPath := filepath.Join(daprPath, "bin")
 	require.DirExists(t, binPath, "Directory %s does not exist", binPath)
 
 	binaries := map[string]string{
-		"daprd":     runtimeVersion,
-		"dashboard": dashboardVersion,
+		"daprd": runtimeVersion,
 	}
 
 	if isSlimMode() {

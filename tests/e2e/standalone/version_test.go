@@ -35,7 +35,7 @@ func TestStandaloneVersion(t *testing.T) {
 		assert.Contains(t, lines[0], "CLI version")
 		assert.Contains(t, lines[0], "edge")
 		assert.Contains(t, lines[1], "Runtime version")
-		runtimeVer, _ := common.GetVersionsFromEnv(t, false)
+		runtimeVer := common.GetVersionsFromEnv(t, false)
 		assert.Contains(t, lines[1], runtimeVer)
 	})
 
@@ -47,7 +47,7 @@ func TestStandaloneVersion(t *testing.T) {
 		err = json.Unmarshal([]byte(output), &result)
 		assert.NoError(t, err, "output was not valid JSON")
 		assert.Contains(t, result["Cli version"], "edge")
-		runtimeVer, _ := common.GetVersionsFromEnv(t, false)
+		runtimeVer := common.GetVersionsFromEnv(t, false)
 		assert.Contains(t, result["Runtime version"], runtimeVer)
 	})
 }

@@ -32,7 +32,6 @@ var controlPlaneLabels = []string{
 	"dapr-placement", // TODO: This is for the backward compatibility. Remove this after 1.0.0 GA release.
 	"dapr-placement-server",
 	"dapr-sidecar-injector",
-	"dapr-dashboard",
 	"dapr-scheduler-server",
 }
 
