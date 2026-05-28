@@ -710,7 +710,11 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 	// are free before attempting the container start, but only when the
 	// scheduler is publishing host ports. WSL2 commonly holds :2379 (etcd)
 	// and the only reliable fix requires an elevated terminal.
-	if info.dockerNetwork == "" && runtime.GOOS == daprWindowsOS && !isWindowsElevated() && isWSLAvailable() {
+	isWindowsHostPortMode := info.dockerNetwork == "" && runtime.GOOS == daprWindowsOS && isWSLAvailable()
+	shouldWarnNonElevated := isWindowsHostPortMode && !isWindowsElevated()
+	shouldManageWSL := isWindowsHostPortMode && isWindowsElevated()
+
+	if shouldWarnNonElevated {
 		if portErr := checkSchedulerPorts(osPort); portErr != nil {
 			errorChan <- fmt.Errorf(
 				"failed to start scheduler service: %v\n\n"+
@@ -730,7 +734,7 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 	// Skipped when using a Docker network (no host ports) or when WSL is not
 	// present, to avoid unnecessary service disruption.
 	winNATStopped := false
-	if info.dockerNetwork == "" && runtime.GOOS == daprWindowsOS && isWindowsElevated() && isWSLAvailable() {
+	if shouldManageWSL {
 		print.InfoStatusEvent(os.Stdout, "Temporarily shutting down WSL to free ports for scheduler installation...")
 		if wslErr := shutdownWSL(); wslErr != nil {
 			print.WarningStatusEvent(os.Stdout, "Failed to shut down WSL: %v. Continuing...", wslErr)
