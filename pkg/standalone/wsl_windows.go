@@ -16,10 +16,12 @@ limitations under the License.
 package standalone
 
 import (
+	"os"
 	"os/exec"
 
 	"golang.org/x/sys/windows"
 
+	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/utils"
 )
 
@@ -63,6 +65,7 @@ func startWinNAT() error {
 func startWSLBackground() {
 	cmd := exec.Command("wsl", "--exec", "echo")
 	if err := cmd.Start(); err != nil {
+		print.WarningStatusEvent(os.Stderr, "failed to start WSL background process: %s", err)
 		return
 	}
 	go func() { _ = cmd.Wait() }()
