@@ -106,7 +106,7 @@ func stand(ctx context.Context, opts Options) (*Client, error) {
 		resourcePaths = []string{standalone.GetDaprComponentsPath(daprDirPath)}
 	}
 
-	client, err := client.NewClientWithAddress("localhost:" + strconv.Itoa(proc.GRPCPort))
+	client, err := client.NewClientWithAddressContext(ctx, "localhost:"+strconv.Itoa(proc.GRPCPort))
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +177,7 @@ func kube(ctx context.Context, opts Options) (*Client, error) {
 		return nil, err
 	}
 
-	client, err := client.NewClientWithAddress("localhost:" + strconv.Itoa(port))
+	client, err := client.NewClientWithAddressContext(ctx, "localhost:"+strconv.Itoa(port))
 	if err != nil {
 		return nil, err
 	}
