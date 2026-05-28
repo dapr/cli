@@ -22,9 +22,7 @@ import (
 
 	"github.com/dapr/cli/cmd/runtime"
 	"github.com/dapr/cli/pkg/workflow/dclient"
-	"github.com/dapr/durabletask-go/api"
-	"github.com/dapr/durabletask-go/api/protos"
-	"github.com/dapr/kit/ptr"
+	"github.com/dapr/durabletask-go/workflow"
 	"k8s.io/apimachinery/pkg/util/duration"
 )
 
@@ -151,9 +149,7 @@ func list(ctx context.Context, instanceIDs []string, cl *dclient.Client, opts Li
 			continue
 		}
 
-		// TODO: @joshvanl: add `WorkflowIsCompleted` func to workflow package.
-		//nolint:govet
-		if opts.Filter.Terminal && !api.OrchestrationMetadataIsComplete(ptr.Of(protos.OrchestrationMetadata(*resp))) {
+		if opts.Filter.Terminal && !workflow.WorkflowMetadataIsComplete(resp) {
 			continue
 		}
 
