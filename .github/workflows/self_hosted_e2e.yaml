@@ -38,7 +38,7 @@ jobs:
       GOARCH: ${{ matrix.target_arch }}
       GOPROXY: https://proxy.golang.org
       ARCHIVE_OUTDIR: dist/archives
-      DAPR_RUNTIME_PINNED_VERSION: "1.17.7"
+      DAPR_RUNTIME_PINNED_VERSION: "1.18.0-rc.4"
       DAPR_RUNTIME_LATEST_STABLE_VERSION: ""
       GOLANG_PROTOBUF_REGISTRATION_CONFLICT: warn
       PODMAN_VERSION: 5.4.0
