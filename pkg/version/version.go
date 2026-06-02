@@ -28,12 +28,9 @@ const (
 	DaprGitHubOrg = "dapr"
 	// DaprGitHubRepo is the repo name of dapr runtime on GitHub.
 	DaprGitHubRepo = "dapr"
-	// DashboardGitHubRepo is the repo name of dapr dashboard on GitHub.
-	DashboardGitHubRepo = "dashboard"
 
 	// Default container image references used for version resolution.
-	DaprDefaultImage      = "daprio/dapr"
-	DashboardDefaultImage = "daprio/dashboard"
+	DaprDefaultImage = "daprio/dapr"
 )
 
 // GetLatestVersion lists tags on the given container image reference
@@ -84,14 +81,4 @@ func DaprImageRef(imageRegistryURL string) string {
 		return imageRegistryURL + "/dapr/dapr"
 	}
 	return DaprDefaultImage
-}
-
-// DashboardImageRef returns the full image reference for the Dapr dashboard
-// image based on the provided custom registry URL. If empty, it falls back
-// to the default Docker Hub image.
-func DashboardImageRef(imageRegistryURL string) string {
-	if imageRegistryURL != "" {
-		return imageRegistryURL + "/dapr/dashboard"
-	}
-	return DashboardDefaultImage
 }

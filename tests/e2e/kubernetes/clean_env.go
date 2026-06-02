@@ -25,22 +25,20 @@ import (
 
 var (
 	currentRuntimeVersion     string
-	currentDashboardVersion   string
 	currentVersionDetails     common.VersionDetails
-	clusterRoles1_9_X         = []string{"dapr-operator-admin", "dashboard-reader"}
-	clusterRoleBindings1_9_X  = []string{"dapr-operator", "dapr-role-tokenreview-binding", "dashboard-reader-global"}
-	clusterRoles1_10_X        = []string{"dapr-dashboard", "dapr-injector", "dapr-operator-admin", "dapr-placement", "dapr-sentry"}
-	clusterRoleBindings1_10_X = []string{"dapr-operator-admin", "dapr-dashboard", "dapr-injector", "dapr-placement", "dapr-sentry"}
+	clusterRoles1_9_X         = []string{"dapr-operator-admin"}
+	clusterRoleBindings1_9_X  = []string{"dapr-operator", "dapr-role-tokenreview-binding"}
+	clusterRoles1_10_X        = []string{"dapr-injector", "dapr-operator-admin", "dapr-placement", "dapr-sentry"}
+	clusterRoleBindings1_10_X = []string{"dapr-operator-admin", "dapr-injector", "dapr-placement", "dapr-sentry"}
 )
 
 // ensureCleanEnv function needs to be called in every Test function.
 // sets necessary variable values and uninstalls any previously installed `dapr`.
 func ensureCleanEnv(t *testing.T, useDaprLatestVersion bool) {
-	currentRuntimeVersion, currentDashboardVersion = common.GetVersionsFromEnv(t, useDaprLatestVersion)
+	currentRuntimeVersion = common.GetVersionsFromEnv(t, useDaprLatestVersion)
 
 	currentVersionDetails = common.VersionDetails{
 		RuntimeVersion:       currentRuntimeVersion,
-		DashboardVersion:     currentDashboardVersion,
 		CustomResourceDefs:   []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io", "httpendpoints.dapr.io"},
 		ImageVariant:         "",
 		UseDaprLatestVersion: useDaprLatestVersion,

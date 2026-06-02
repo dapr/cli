@@ -58,7 +58,6 @@ var versionWithHAScheduler = semver.MustParse("1.15.0-rc.1")
 
 type UpgradeConfig struct {
 	RuntimeVersion   string
-	DashboardVersion string
 	Args             []string
 	Timeout          uint
 	ImageRegistryURI string
@@ -85,11 +84,6 @@ func Upgrade(conf UpgradeConfig) error {
 	daprVersion := GetDaprVersion(status)
 	print.InfoStatusEvent(os.Stdout, "Dapr control plane version %s detected in namespace %s", daprVersion, status[0].Namespace)
 
-	hasDashboardInDaprChart, err := IsDashboardIncluded(daprVersion)
-	if err != nil {
-		return err
-	}
-
 	upgradeClient, helmConf, err := newUpgradeClient(status[0].Namespace, conf)
 	if err != nil {
 		return fmt.Errorf("unable to create helm client: %w", err)
@@ -98,41 +92,6 @@ func Upgrade(conf UpgradeConfig) error {
 	controlPlaneChart, err := getHelmChart(conf.RuntimeVersion, "dapr", helmRepo, helmConf)
 	if err != nil {
 		return fmt.Errorf("unable to get helm chart: %w", err)
-	}
-
-	willHaveDashboardInDaprChart, err := IsDashboardIncluded(conf.RuntimeVersion)
-	if err != nil {
-		return err
-	}
-
-	// Before we do anything, checks if installing dashboard is allowed.
-	if willHaveDashboardInDaprChart && conf.DashboardVersion != "" {
-		// We cannot install Dashboard separately if Dapr's chart has it already.
-		return fmt.Errorf("cannot install Dashboard because Dapr version %s already contains it - installation aborted", conf.RuntimeVersion)
-	}
-
-	dashboardExists, err := confirmExist(helmConf, dashboardReleaseName)
-	if err != nil {
-		return err
-	}
-
-	if !hasDashboardInDaprChart && willHaveDashboardInDaprChart && dashboardExists {
-		print.InfoStatusEvent(os.Stdout, "Dashboard being uninstalled prior to Dapr control plane upgrade...")
-		uninstallClient := helm.NewUninstall(helmConf)
-		uninstallClient.Timeout = time.Duration(conf.Timeout) * time.Second //nolint:gosec
-
-		_, err = uninstallClient.Run(dashboardReleaseName)
-		if err != nil {
-			return err
-		}
-	}
-
-	var dashboardChart *chart.Chart
-	if conf.DashboardVersion != "" {
-		dashboardChart, err = getHelmChart(conf.DashboardVersion, dashboardReleaseName, helmRepo, helmConf)
-		if err != nil {
-			return err
-		}
 	}
 
 	print.InfoStatusEvent(os.Stdout, "Starting upgrade...")
@@ -222,25 +181,6 @@ func Upgrade(conf UpgradeConfig) error {
 		case <-downgradeDeletionChan:
 		case <-time.After(3 * time.Minute):
 			return errors.New("timed out waiting for downgrade deletion")
-		}
-	}
-
-	if dashboardChart != nil {
-		if dashboardExists {
-			if _, err = upgradeClient.Run(dashboardReleaseName, dashboardChart, vals); err != nil {
-				return err
-			}
-		} else {
-			// We need to install Dashboard since it does not exist yet.
-			err = install(dashboardReleaseName, conf.DashboardVersion, helmRepo, InitConfiguration{
-				DashboardVersion: conf.DashboardVersion,
-				Namespace:        upgradeClient.Namespace,
-				Wait:             upgradeClient.Wait,
-				Timeout:          conf.Timeout,
-			})
-			if err != nil {
-				return err
-			}
 		}
 	}
 
@@ -363,9 +303,6 @@ func helmUpgrade(client *helm.Upgrade, name string, chart *chart.Chart, vals map
 
 func highAvailabilityEnabled(status []StatusOutput) bool {
 	for _, s := range status {
-		if s.Name == "dapr-dashboard" {
-			continue
-		}
 		// Skip the scheduler server because it's in HA mode by default since version 1.15.0
 		// This will fall back to other dapr services to determine if HA mode is enabled.
 		if strings.HasPrefix(s.Name, "dapr-scheduler-server") {

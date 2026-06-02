@@ -14,6 +14,7 @@ limitations under the License.
 package workflow
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/gocarina/gocsv"
@@ -52,6 +53,26 @@ var ListCmd = &cobra.Command{
 			ConnectionString: listConn.connectionString,
 			TableName:        listConn.tableName,
 			Filter:           *listFilter,
+		}
+
+		if *listOutputFormat == outputFormatIDs {
+			if listFilter.Name != nil || listFilter.Status != nil || listFilter.MaxAge != nil || listFilter.Terminal {
+				return fmt.Errorf("filters cannot be combined with --output=%s; rerun without filters or use a different output format", outputFormatIDs)
+			}
+
+			var ids []string
+			ids, err = workflow.ListIDs(ctx, opts)
+			if err != nil {
+				return err
+			}
+			if len(ids) == 0 {
+				print.FailureStatusEvent(os.Stderr, "No workflow found in namespace %q for app ID %q", flagDaprNamespace, appID)
+				return nil
+			}
+			for _, id := range ids {
+				fmt.Fprintln(os.Stdout, id)
+			}
+			return nil
 		}
 
 		var list any
@@ -107,7 +128,7 @@ var ListCmd = &cobra.Command{
 
 func init() {
 	listFilter = filterCmd(ListCmd)
-	listOutputFormat = outputFunc(ListCmd)
+	listOutputFormat = outputFunc(ListCmd, outputFormatIDs)
 	listConn = connectionCmd(ListCmd)
 	WorkflowCmd.AddCommand(ListCmd)
 }

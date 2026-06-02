@@ -17,36 +17,13 @@ package standalone_test
 
 import (
 	"context"
-	"fmt"
 	"path/filepath"
-	"strings"
 
 	"github.com/dapr/cli/pkg/standalone"
 	"github.com/dapr/cli/tests/e2e/common"
 	"github.com/dapr/cli/tests/e2e/spawn"
 	"github.com/dapr/cli/utils"
 )
-
-// cmdDashboard runs the Dapr dashboard and blocks until it is started.
-// If the context is done, the dashboard is stopped.
-func cmdDashboard(ctx context.Context, port string) error {
-	stdOutChan, stdErrChan, err := spawn.CommandWithContext(ctx, common.GetDaprPath(), "dashboard", "--port", port)
-	if err != nil {
-		return err
-	}
-	for output := range stdOutChan {
-		if strings.Contains(output, "Dapr Dashboard running on") {
-			return nil
-		}
-	}
-
-	errOutput := ""
-	for output := range stdErrChan {
-		errOutput += output
-	}
-
-	return fmt.Errorf("Dashboard could not be started: %s", errOutput)
-}
 
 func cmdProcess(ctx context.Context, executable string, log func(args ...any), args ...string) (string, error) {
 	path, err := GetExecutablePath(executable)

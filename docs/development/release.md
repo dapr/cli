@@ -14,7 +14,7 @@ Only the repository maintainers and release team are allowed to execute the belo
 Pre-release build will be built from `release-<major>.<minor>` branch and versioned by git version tag suffix e.g. `-rc.0`, `-rc.1`, etc. This build is not released to users who use the latest stable version.
 
 **Pre-release process**
-1. Create a PR to update the `Dapr runtime` and `Dapr dashboard` pre-release versions in workflow and tests files wherever applicable, and merge the PR to master branch. For example, please take a look at this PR - https://github.com/dapr/cli/pull/1019. Please note that this PR is just for reference and only reflects the absolute minimum number of file changes. These versions update could lead to some other changes also.
+1. Create a PR to update the `Dapr runtime` pre-release version in workflow and tests files wherever applicable, and merge the PR to master branch. For example, please take a look at this PR - https://github.com/dapr/cli/pull/1019. Please note that this PR is just for reference and only reflects the absolute minimum number of file changes. These versions update could lead to some other changes also.
 
 2. Create branch `release-<major>.<minor>` from master and push the branch. e.g. `release-1.11`. You can use the github web UI to create the branch or use the following command.
 
@@ -45,7 +45,7 @@ This workflow will create a new release branch and tag, and trigger the Dapr CLI
 
 ## Release the stable version to users
 
-> **Note**: Make sure stable versions of `dapr runtime` and `dapr dashboard` are released before releasing the CLI and update their references in workflow and tests files wherever applicable.
+> **Note**: Make sure a stable version of `dapr runtime` is released before releasing the CLI and update its references in workflow and tests files wherever applicable.
 
 Once all bugs are fixed, stable version can be released. Create a new git version tag (without the suffix -rc.x e.g. v1.11.0) and push the tag. CI will create the new build artifacts and release them.
 

@@ -38,7 +38,6 @@ import (
 
 const (
 	daprReleaseName      = "dapr"
-	dashboardReleaseName = "dapr-dashboard"
 	latestVersion        = "latest"
 	bitnamiStableVersion = "17.14.5"
 
@@ -59,7 +58,6 @@ const (
 
 type InitConfiguration struct {
 	Version                   string
-	DashboardVersion          string
 	Namespace                 string
 	EnableMTLS                bool
 	EnableHA                  bool
@@ -78,21 +76,6 @@ type InitConfiguration struct {
 func Init(config InitConfiguration) error {
 	helmRepoDapr := utils.GetEnv("DAPR_HELM_REPO_URL", daprHelmRepo)
 	err := installWithConsole(daprReleaseName, config.Version, helmRepoDapr, "Dapr control plane", config)
-	if err != nil {
-		return err
-	}
-
-	for _, dashboardClusterRole := range []string{"dashboard-reader", "dapr-dashboard"} {
-		// Detect Dapr Dashboard using a cluster-level resource (not dependent on namespace).
-		_, err = utils.RunCmdAndWait("kubectl", "describe", "clusterrole", dashboardClusterRole)
-		if err == nil {
-			// No need to install Dashboard since it is already present.
-			// Charts for versions < 1.11 contain Dashboard already.
-			return nil
-		}
-	}
-
-	err = installWithConsole(dashboardReleaseName, config.DashboardVersion, helmRepoDapr, "Dapr dashboard", config)
 	if err != nil {
 		return err
 	}
@@ -181,8 +164,6 @@ func getVersion(releaseName string, version string, imageRegistryURI string) (st
 		switch releaseName {
 		case daprReleaseName:
 			actualVersion, err = cli_ver.GetLatestVersion(cli_ver.DaprImageRef(imageRegistryURI))
-		case dashboardReleaseName:
-			actualVersion, err = cli_ver.GetLatestVersion(cli_ver.DashboardImageRef(imageRegistryURI))
 		default:
 			return "", fmt.Errorf("cannot get latest version for unknown chart: %s", releaseName)
 		}
@@ -218,7 +199,7 @@ func getHelmChart(version, releaseName, helmRepo string, config *helm.Configurat
 
 	pull.Settings = &cli.EnvSettings{}
 
-	if version != latestVersion && (releaseName == daprReleaseName || releaseName == dashboardReleaseName || releaseName == redisChartName) {
+	if version != latestVersion && (releaseName == daprReleaseName || releaseName == redisChartName) {
 		pull.Version = chartVersion(version)
 	}
 

@@ -40,20 +40,6 @@ func GetRuntimeVersion(inputInstallPath string) (string, error) {
 	return string(out), nil
 }
 
-// GetDashboardVersion returns the version for the local Dapr dashboard.
-func GetDashboardVersion(inputInstallPath string) (string, error) {
-	dashboardCMD, err := lookupBinaryFilePath(inputInstallPath, "dashboard")
-	if err != nil {
-		return naStr, err
-	}
-
-	out, err := exec.Command(dashboardCMD, "--version").Output()
-	if err != nil {
-		return naStr, err
-	}
-	return string(out), nil
-}
-
 // GetBuildInfo returns build info for the CLI and the local Dapr runtime.
 func GetBuildInfo(inputInstallPath string, version string) (string, error) {
 	daprCMD, err := lookupBinaryFilePath(inputInstallPath, "daprd")

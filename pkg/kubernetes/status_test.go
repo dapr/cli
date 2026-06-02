@@ -26,8 +26,7 @@ import (
 )
 
 const (
-	daprImageTag          = "daprio/dapr:0.0.1"
-	daprDashboardImageTag = "daprio/dashboard:0.0.1"
+	daprImageTag = "daprio/dapr:0.0.1"
 )
 
 type podDetails struct {
@@ -88,8 +87,8 @@ func TestStatus(t *testing.T) {
 
 	t.Run("one status waiting", func(t *testing.T) {
 		pd := podDetails{
-			name:      "dapr-dashboard-58877dbc9d-n8qg2",
-			appName:   "dapr-dashboard",
+			name:      "dapr-sentry-58877dbc9d-n8qg2",
+			appName:   "dapr-sentry",
 			createdAt: time.Now(),
 			state: v1.ContainerState{
 				Waiting: &v1.ContainerStateWaiting{
@@ -98,14 +97,14 @@ func TestStatus(t *testing.T) {
 				},
 			},
 			ready:    false,
-			imageURI: "daprio/dapr-dashboard:0.0.1",
+			imageURI: "daprio/dapr:0.0.1",
 		}
 		k8s := newTestSimpleK8s(newDaprControlPlanePod(pd))
 		status, err := k8s.Status()
 		assert.NoError(t, err, "status should not raise an error")
 		assert.Len(t, status, 1, "Expected status to be non-empty list")
 		stat := status[0]
-		assert.Equal(t, "dapr-dashboard", stat.Name, "expected name to match")
+		assert.Equal(t, "dapr-sentry", stat.Name, "expected name to match")
 		assert.Equal(t, "dapr-system", stat.Namespace, "expected namespace to match")
 		assert.Equal(t, "0.0.1", stat.Version, "expected version to match")
 		assert.Equal(t, 1, stat.Replicas, "expected replicas to match")
@@ -116,8 +115,8 @@ func TestStatus(t *testing.T) {
 	t.Run("one status running", func(t *testing.T) {
 		testTime := time.Now()
 		pd := podDetails{
-			name:      "dapr-dashboard-58877dbc9d-n8qg2",
-			appName:   "dapr-dashboard",
+			name:      "dapr-sentry-58877dbc9d-n8qg2",
+			appName:   "dapr-sentry",
 			createdAt: testTime.Add(time.Duration(-20) * time.Minute),
 			state: v1.ContainerState{
 				Running: &v1.ContainerStateRunning{
@@ -127,14 +126,14 @@ func TestStatus(t *testing.T) {
 				},
 			},
 			ready:    true,
-			imageURI: "daprio/dapr-dashboard:0.0.1",
+			imageURI: "daprio/dapr:0.0.1",
 		}
 		k8s := newTestSimpleK8s(newDaprControlPlanePod(pd))
 		status, err := k8s.Status()
 		assert.NoError(t, err, "status should not raise an error")
 		assert.Len(t, status, 1, "Expected status to be non-empty list")
 		stat := status[0]
-		assert.Equal(t, "dapr-dashboard", stat.Name, "expected name to match")
+		assert.Equal(t, "dapr-sentry", stat.Name, "expected name to match")
 		assert.Equal(t, "dapr-system", stat.Namespace, "expected namespace to match")
 		assert.Equal(t, "20m", stat.Age, "expected age to match")
 		assert.Equal(t, "0.0.1", stat.Version, "expected version to match")
@@ -146,8 +145,8 @@ func TestStatus(t *testing.T) {
 	t.Run("one status terminated", func(t *testing.T) {
 		testTime := time.Now()
 		pd := podDetails{
-			name:      "dapr-dashboard-58877dbc9d-n8qg2",
-			appName:   "dapr-dashboard",
+			name:      "dapr-sentry-58877dbc9d-n8qg2",
+			appName:   "dapr-sentry",
 			createdAt: testTime.Add(time.Duration(-20) * time.Minute),
 			state: v1.ContainerState{
 				Terminated: &v1.ContainerStateTerminated{
@@ -155,7 +154,7 @@ func TestStatus(t *testing.T) {
 				},
 			},
 			ready:    false,
-			imageURI: "daprio/dapr-dashboard:0.0.1",
+			imageURI: "daprio/dapr:0.0.1",
 		}
 		k8s := newTestSimpleK8s(newDaprControlPlanePod(pd))
 
@@ -163,7 +162,7 @@ func TestStatus(t *testing.T) {
 		assert.NoError(t, err, "status should not raise an error")
 		assert.Len(t, status, 1, "Expected status to be non-empty list")
 		stat := status[0]
-		assert.Equal(t, "dapr-dashboard", stat.Name, "expected name to match")
+		assert.Equal(t, "dapr-sentry", stat.Name, "expected name to match")
 		assert.Equal(t, "dapr-system", stat.Namespace, "expected namespace to match")
 		assert.Equal(t, "20m", stat.Age, "expected age to match")
 		assert.Equal(t, "0.0.1", stat.Version, "expected version to match")
@@ -175,8 +174,8 @@ func TestStatus(t *testing.T) {
 	t.Run("one status pending", func(t *testing.T) {
 		testTime := time.Now()
 		pd := podDetails{
-			name:      "dapr-dashboard-58877dbc9d-n8qg2",
-			appName:   "dapr-dashboard",
+			name:      "dapr-sentry-58877dbc9d-n8qg2",
+			appName:   "dapr-sentry",
 			createdAt: testTime.Add(time.Duration(-20) * time.Minute),
 			state: v1.ContainerState{
 				Terminated: &v1.ContainerStateTerminated{
@@ -184,7 +183,7 @@ func TestStatus(t *testing.T) {
 				},
 			},
 			ready:    false,
-			imageURI: "daprio/dapr-dashboard:0.0.1",
+			imageURI: "daprio/dapr:0.0.1",
 		}
 		pod := newDaprControlPlanePod(pd)
 		// delete pod's podstatus.
@@ -196,7 +195,7 @@ func TestStatus(t *testing.T) {
 		assert.NoError(t, err, "status should not raise an error")
 		assert.Len(t, status, 1, "Expected status to be non-empty list")
 		stat := status[0]
-		assert.Equal(t, "dapr-dashboard", stat.Name, "expected name to match")
+		assert.Equal(t, "dapr-sentry", stat.Name, "expected name to match")
 		assert.Equal(t, "dapr-system", stat.Namespace, "expected namespace to match")
 		assert.Equal(t, "20m", stat.Age, "expected age to match")
 		assert.Equal(t, "0.0.1", stat.Version, "expected version to match")
@@ -220,7 +219,6 @@ func TestControlPlaneServices(t *testing.T) {
 		appName  string
 		imageURI string
 	}{
-		{"dapr-dashboard-58877dbc9d-n8qg2", "dapr-dashboard", daprDashboardImageTag},
 		{"dapr-operator-67d7d7bb6c-7h96c", "dapr-operator", daprImageTag},
 		{"dapr-operator-67d7d7bb6c-2h96d", "dapr-operator", daprImageTag},
 		{"dapr-operator-67d7d7bb6c-3h96c", "dapr-operator", daprImageTag},
