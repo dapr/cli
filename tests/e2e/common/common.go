@@ -66,7 +66,7 @@ const (
 	// scheduler's default changed (1Gi -> 16Gi in 1.17.7+), so without pinning, up/downgrading
 	// between versions with different defaults leaves the scheduler StatefulSet stuck on the old
 	// version (the PVC size patch is rejected by Kubernetes).
-	schedulerStorageSizeSetArg = "dapr_scheduler.cluster.storageSize=1Gi"
+	schedulerStorageSizeSetArg = "dapr_scheduler.cluster.storageSize=16Gi"
 )
 
 var (
