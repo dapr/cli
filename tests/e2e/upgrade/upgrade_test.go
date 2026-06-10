@@ -30,9 +30,9 @@ type upgradePath struct {
 }
 
 const (
-	latestRuntimeVersion         = "1.17.3"
-	latestRuntimeVersionMinusOne = "1.16.12"
-	latestRuntimeVersionMinusTwo = "1.15.13"
+	latestRuntimeVersion         = "1.18.0"
+	latestRuntimeVersionMinusOne = "1.17.9"
+	latestRuntimeVersionMinusTwo = "1.16.14"
 )
 
 var supportedUpgradePaths = []upgradePath{
@@ -124,7 +124,36 @@ var supportedUpgradePaths = []upgradePath{
 	},
 }
 
+// ed25519DowngradeFloor is the lowest version a control plane at or above it can be safely
+// downgraded to. Dapr 1.17.7 introduced two changes that make any downgrade from >= 1.17.7 to
+// < 1.17.7 unsupported:
+//   - Sentry switched to Ed25519 trust-bundle keys; Sentry < 1.17.7 cannot parse the bundle and
+//     crash-loops on startup ("unsupported key type ed25519.PrivateKey").
+//   - The scheduler's default PVC storageSize changed to 16Gi, and a StatefulSet's
+//     volumeClaimTemplates storage is immutable, so the scheduler cannot roll to the older size.
+//
+// See the Dapr 1.18 release notes, "Downgrading to Earlier Versions".
+var ed25519DowngradeFloor = semver.MustParse("1.17.7")
+
+// isUnsupportedDowngrade reports whether p downgrades from >= 1.17.7 to < 1.17.7.
+func isUnsupportedDowngrade(p upgradePath) bool {
+	prev := semver.MustParse(p.previous.RuntimeVersion)
+	next := semver.MustParse(p.next.RuntimeVersion)
+	return next.LessThan(prev) && !prev.LessThan(ed25519DowngradeFloor) && next.LessThan(ed25519DowngradeFloor)
+}
+
 func getTestsOnUpgrade(p upgradePath, installOpts, upgradeOpts common.TestOptions) []common.TestCase {
+	// Skip downgrades that cross the 1.17.7 floor (Ed25519 trust bundle + scheduler PVC change),
+	// which Dapr does not support, instead of installing and hanging on a crash-looping pod.
+	if isUnsupportedDowngrade(p) {
+		return []common.TestCase{{
+			Name: fmt.Sprintf("skip unsupported downgrade v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion),
+			Callable: func(t *testing.T) {
+				t.Skipf("downgrade from v%s to v%s crosses the 1.17.7 floor (Ed25519 trust bundle + scheduler PVC change) and is unsupported by Dapr", p.previous.RuntimeVersion, p.next.RuntimeVersion)
+			},
+		}}
+	}
+
 	tests := []common.TestCase{}
 
 	// install previous version.
