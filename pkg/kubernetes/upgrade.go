@@ -44,6 +44,8 @@ var crds = []string{
 	"subscription",
 	"resiliency",
 	"httpendpoints",
+	"mcpservers",
+	"workflowaccesspolicy",
 }
 
 var crdsFullResources = []string{
@@ -52,6 +54,8 @@ var crdsFullResources = []string{
 	"subscriptions.dapr.io",
 	"resiliencies.dapr.io",
 	"httpendpoints.dapr.io",
+	"mcpservers.dapr.io",
+	"workflowaccesspolicies.dapr.io",
 }
 
 var versionWithHAScheduler = semver.MustParse("1.15.0-rc.1")
