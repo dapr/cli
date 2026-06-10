@@ -49,12 +49,16 @@ func register(ctx context.Context) {
 		RecursiveChildWorkflow,
 		FanOutWorkflow,
 		DataWorkflow,
+		ActivityRetryWorkflow,
+		ChildWorkflowRetryWorkflow,
+		FailingChildWorkflow,
 	}
 	activities := []workflow.Activity{
 		ANoOP,
 		SimpleActivity,
 		LongRunningActivity,
 		DataProcessingActivity,
+		FailingActivity,
 	}
 
 	for _, w := range workflows {
@@ -367,4 +371,45 @@ func FanOutWorkflow(ctx *workflow.WorkflowContext) (any, error) {
 		"parallelCount": input.ParallelCount,
 		"results":       results,
 	}, nil
+}
+
+// FailingActivity always returns an error so that retry policies create
+// timer events with origin=activityRetry.
+func FailingActivity(ctx workflow.ActivityContext) (any, error) {
+	return nil, fmt.Errorf("intentional failure")
+}
+
+// ActivityRetryWorkflow calls FailingActivity with a retry policy.
+// The activity always fails, producing TimerCreated events with
+// origin=activityRetry. The workflow itself will eventually fail
+// after max attempts, but the history will contain the retry timers.
+func ActivityRetryWorkflow(ctx *workflow.WorkflowContext) (any, error) {
+	var result any
+	err := ctx.CallActivity(FailingActivity, workflow.WithActivityRetryPolicy(&workflow.RetryPolicy{
+		MaxAttempts:          3,
+		InitialRetryInterval: time.Second,
+		BackoffCoefficient:   1,
+		MaxRetryInterval:     time.Second,
+	})).Await(&result)
+	return result, err
+}
+
+// FailingChildWorkflow always returns an error so that retry policies create
+// timer events with origin=childWorkflowRetry.
+func FailingChildWorkflow(ctx *workflow.WorkflowContext) (any, error) {
+	return nil, fmt.Errorf("intentional child failure")
+}
+
+// ChildWorkflowRetryWorkflow calls FailingChildWorkflow with a retry policy.
+// The child always fails, producing TimerCreated events with
+// origin=childWorkflowRetry.
+func ChildWorkflowRetryWorkflow(ctx *workflow.WorkflowContext) (any, error) {
+	var result any
+	err := ctx.CallChildWorkflow(FailingChildWorkflow, workflow.WithChildWorkflowRetryPolicy(&workflow.RetryPolicy{
+		MaxAttempts:          3,
+		InitialRetryInterval: time.Second,
+		BackoffCoefficient:   1,
+		MaxRetryInterval:     time.Second,
+	})).Await(&result)
+	return result, err
 }
