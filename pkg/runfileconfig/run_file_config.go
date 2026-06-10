@@ -51,6 +51,7 @@ type App struct {
 	standalone.RunConfig   `yaml:",inline"`
 	ContainerConfiguration `yaml:",inline"`
 	AppDirPath             string `yaml:"appDirPath"`
+	LogsDir                string `yaml:"logsDir,omitempty"`
 	AppLogFileName         string
 	DaprdLogFileName       string
 	AppLogWriteCloser      io.WriteCloser
@@ -60,10 +61,17 @@ type App struct {
 // Common represents the configuration options for the common section in the run file.
 type Common struct {
 	standalone.SharedRunConfig `yaml:",inline"`
+	LogsDir                    string `yaml:"logsDir,omitempty"`
 }
 
+// GetLogsDir returns the directory where the app and daprd log files are written.
+// It defaults to '<appDirPath>/.dapr/logs' unless a custom 'logsDir' is provided
+// in the run template file. The directory is created if it does not exist.
 func (a *App) GetLogsDir() string {
-	logsPath := filepath.Join(a.AppDirPath, standalone.DefaultDaprDirName, logsDir)
+	logsPath := a.LogsDir
+	if logsPath == "" {
+		logsPath = filepath.Join(a.AppDirPath, standalone.DefaultDaprDirName, logsDir)
+	}
 	os.MkdirAll(logsPath, 0o755)
 	return logsPath
 }
