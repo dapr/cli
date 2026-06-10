@@ -60,6 +60,13 @@ const (
 
 	DaprModeHA    = "ha"
 	DaprModeNonHA = "non-ha"
+
+	// schedulerStorageSizeSetArg pins the scheduler's PVC storageSize to a fixed value on every
+	// install and upgrade. A StatefulSet's volumeClaimTemplates storage is immutable, and the
+	// scheduler's default changed (1Gi -> 16Gi in 1.17.7+), so without pinning, up/downgrading
+	// between versions with different defaults leaves the scheduler StatefulSet stuck on the old
+	// version (the PVC size patch is rejected by Kubernetes).
+	schedulerStorageSizeSetArg = "dapr_scheduler.cluster.storageSize=1Gi"
 )
 
 var (
@@ -149,6 +156,9 @@ func UpgradeTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 		if opts.TimeoutSeconds > 0 {
 			args = append(args, "--timeout", strconv.Itoa(opts.TimeoutSeconds))
 		}
+
+		// Keep the scheduler PVC size constant across versions (immutable StatefulSet field).
+		args = append(args, "--set", schedulerStorageSizeSetArg)
 
 		output, err := spawn.Command(daprPath, args...)
 		t.Log(output)
@@ -848,6 +858,10 @@ func installTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 			}
 			args = append(args, certParam...)
 		}
+
+		// Keep the scheduler PVC size constant across versions (immutable StatefulSet field).
+		args = append(args, "--set", schedulerStorageSizeSetArg)
+
 		output, err := spawn.Command(daprPath, args...)
 		t.Log(output)
 		require.NoError(t, err, "init failed")
