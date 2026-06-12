@@ -72,6 +72,12 @@ func (a *RunFileConfig) validateRunConfig(runFilePath string) error {
 		a.Common.ResourcesPaths = append(a.Common.ResourcesPaths, a.Common.ResourcesPath)
 	}
 
+	// Resolve common's section LogsDir to an absolute path. The directory is not
+	// required to exist, it is created when the log files are written.
+	if err := a.resolvePathToAbs(baseDir, &a.Common.LogsDir); err != nil {
+		return err
+	}
+
 	for i := range len(a.Apps) {
 		if a.Apps[i].AppDirPath == "" {
 			return errors.New("required field 'appDirPath' not found in the provided app config file")
@@ -98,6 +104,16 @@ func (a *RunFileConfig) validateRunConfig(runFilePath string) error {
 		// Merge app's section ResourcesPaths and ResourcePath. ResourcesPaths will be single source of truth for resources to be loaded.
 		if len(strings.TrimSpace(a.Apps[i].ResourcesPath)) > 0 {
 			a.Apps[i].ResourcesPaths = append(a.Apps[i].ResourcesPaths, a.Apps[i].ResourcesPath)
+		}
+
+		// Resolve the app's LogsDir to an absolute path relative to AppDirPath.
+		// The directory is not required to exist, it is created when the log files are written.
+		// Precedence order -> apps[i].logsDir > common.logsDir > default (<appDirPath>/.dapr/logs).
+		if err := a.resolvePathToAbs(a.Apps[i].AppDirPath, &a.Apps[i].LogsDir); err != nil {
+			return err
+		}
+		if a.Apps[i].LogsDir == "" {
+			a.Apps[i].LogsDir = a.Common.LogsDir
 		}
 
 		// Check containerImagePullPolicy is valid.
@@ -209,6 +225,20 @@ func (a *RunFileConfig) getBasePathFromAbsPath(appDirPath string) (string, error
 		return filepath.Base(appDirPath), nil
 	}
 	return "", fmt.Errorf("error in getting the base path from the provided appDirPath %q: ", appDirPath)
+}
+
+// resolvePathToAbs resolves a relative path in the run file to an absolute path
+// without validating that it exists.
+func (a *RunFileConfig) resolvePathToAbs(baseDir string, path *string) error {
+	if *path == "" {
+		return nil
+	}
+	resolved, err := utils.ResolveHomeDir(*path)
+	if err != nil {
+		return err
+	}
+	*path = utils.GetAbsPath(baseDir, resolved)
+	return nil
 }
 
 // resolvePathToAbsAndValidate resolves the relative paths in run file to absolute path and validates the file path.

@@ -33,6 +33,7 @@ var (
 	runFileForPrecedenceRuleDaprDir = filepath.Join(".", "testdata", "test_run_config_precedence_rule_dapr_dir.yaml")
 	runFileForLogDestination        = filepath.Join(".", "testdata", "test_run_config_log_destination.yaml")
 	runFileForMultiResourcePaths    = filepath.Join(".", "testdata", "test_run_config_multiple_resources_paths.yaml")
+	runFileForLogsDir               = filepath.Join(".", "testdata", "test_run_config_logs_dir.yaml")
 
 	runFileForContainerImagePullPolicy        = filepath.Join(".", "testdata", "test_run_config_container_image_pull_policy.yaml")
 	runFileForContainerImagePullPolicyInvalid = filepath.Join(".", "testdata", "test_run_config_container_image_pull_policy_invalid.yaml")
@@ -404,4 +405,58 @@ func getResourcesAndConfigFilePaths(t *testing.T, daprInstallPath string) []stri
 	result[0] = standalone.GetDaprComponentsPath(daprDirPath)
 	result[1] = standalone.GetDaprConfigPath(daprDirPath)
 	return result
+}
+
+func TestLogsDirPrecedenceAndResolution(t *testing.T) {
+	config := RunFileConfig{}
+	apps, err := config.GetApps(runFileForLogsDir)
+	assert.NoError(t, err)
+	assert.Len(t, apps, 3)
+
+	testDataDir, err := filepath.Abs(filepath.Join(".", "testdata"))
+	assert.NoError(t, err)
+
+	// common's relative logsDir is resolved against the run file's directory.
+	expectedCommonLogsDir := filepath.Join(testDataDir, "central-logs")
+	// app_2's relative logsDir is resolved against its appDirPath.
+	expectedApp2LogsDir := filepath.Join(testDataDir, "webapp", "custom-logs")
+
+	t.Run("app without logsDir inherits common's logsDir", func(t *testing.T) {
+		assert.Equal(t, expectedCommonLogsDir, apps[0].LogsDir)
+		assert.Equal(t, expectedCommonLogsDir, apps[0].GetLogsDir())
+	})
+
+	t.Run("app's relative logsDir overrides common and resolves against appDirPath", func(t *testing.T) {
+		assert.Equal(t, expectedApp2LogsDir, apps[1].LogsDir)
+		assert.Equal(t, expectedApp2LogsDir, apps[1].GetLogsDir())
+	})
+
+	t.Run("app's absolute logsDir is used as is", func(t *testing.T) {
+		assert.Equal(t, "/tmp/dapr-abs-logs", apps[2].LogsDir)
+		assert.Equal(t, "/tmp/dapr-abs-logs", apps[2].GetLogsDir())
+	})
+
+	t.Run("logs directory is created on use", func(t *testing.T) {
+		logsDir := apps[0].GetLogsDir()
+		stat, err := os.Stat(logsDir)
+		assert.NoError(t, err)
+		assert.True(t, stat.IsDir())
+	})
+
+	t.Cleanup(func() {
+		os.RemoveAll(expectedCommonLogsDir)
+		os.RemoveAll(expectedApp2LogsDir)
+		os.RemoveAll("/tmp/dapr-abs-logs")
+	})
+}
+
+func TestLogsDirDefault(t *testing.T) {
+	config := RunFileConfig{}
+	apps, err := config.GetApps(validRunFilePath)
+	assert.NoError(t, err)
+	for _, app := range apps {
+		assert.Empty(t, app.LogsDir)
+		expected := filepath.Join(app.AppDirPath, standalone.DefaultDaprDirName, "logs")
+		assert.Equal(t, expected, app.GetLogsDir())
+	}
 }
