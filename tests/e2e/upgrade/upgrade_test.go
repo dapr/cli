@@ -32,7 +32,7 @@ type upgradePath struct {
 const (
 	latestRuntimeVersion         = "1.18.0"
 	latestRuntimeVersionMinusOne = "1.17.9"
-	latestRuntimeVersionMinusTwo = "1.16.15"
+	latestRuntimeVersionMinusTwo = "1.16.16-rc.1"
 )
 
 var supportedUpgradePaths = []upgradePath{
@@ -124,33 +124,7 @@ var supportedUpgradePaths = []upgradePath{
 	},
 }
 
-// ed25519DowngradeFloor is the lowest version a control plane at or above it can be safely
-// downgraded to. Sentry switched to Ed25519 trust-bundle keys in Dapr 1.17.7, and Sentry < 1.17.7
-// cannot parse the bundle, so it crash-loops on startup ("unsupported key type
-// ed25519.PrivateKey"). Any downgrade from >= 1.17.7 to < 1.17.7 is therefore unsupported by Dapr.
-//
-// See the Dapr 1.18 release notes, "Downgrading to Earlier Versions".
-var ed25519DowngradeFloor = semver.MustParse("1.17.7")
-
-// isUnsupportedDowngrade reports whether p downgrades from >= 1.17.7 to < 1.17.7.
-func isUnsupportedDowngrade(p upgradePath) bool {
-	prev := semver.MustParse(p.previous.RuntimeVersion)
-	next := semver.MustParse(p.next.RuntimeVersion)
-	return next.LessThan(prev) && !prev.LessThan(ed25519DowngradeFloor) && next.LessThan(ed25519DowngradeFloor)
-}
-
 func getTestsOnUpgrade(p upgradePath, installOpts, upgradeOpts common.TestOptions) []common.TestCase {
-	// Skip downgrades that cross the 1.17.7 floor (Sentry Ed25519 trust bundle), which Dapr does not
-	// support, instead of installing and hanging on a crash-looping Sentry pod.
-	if isUnsupportedDowngrade(p) {
-		return []common.TestCase{{
-			Name: fmt.Sprintf("skip unsupported downgrade v%s to v%s", p.previous.RuntimeVersion, p.next.RuntimeVersion),
-			Callable: func(t *testing.T) {
-				t.Skipf("downgrade from v%s to v%s crosses the 1.17.7 floor (Sentry Ed25519 trust bundle) and is unsupported by Dapr", p.previous.RuntimeVersion, p.next.RuntimeVersion)
-			},
-		}}
-	}
-
 	tests := []common.TestCase{}
 
 	// install previous version.
