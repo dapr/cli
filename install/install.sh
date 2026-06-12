@@ -109,13 +109,15 @@ checkExistingDapr() {
 }
 
 getLatestRelease() {
-    local daprReleaseUrl="https://api.github.com/repos/${GITHUB_ORG}/${GITHUB_REPO}/releases"
+    # Use the releases Atom feed instead of the REST API, which is rate-limited for unauthenticated callers.
+    # Entry ids look like "tag:github.com,2008:Repository/192994336/v1.18.0", newest release first.
+    local daprReleaseUrl="https://github.com/${GITHUB_ORG}/${GITHUB_REPO}/releases.atom"
     local latest_release=""
 
     if [ "$DAPR_HTTP_REQUEST_CLI" == "curl" ]; then
-        latest_release=$(curl -s $daprReleaseUrl | grep \"tag_name\" | grep -v rc | awk 'NR==1{print $2}' |  sed -n 's/\"\(.*\)\",/\1/p')
+        latest_release=$(curl -s $daprReleaseUrl | sed -n 's:.*<id>.*Repository/[0-9]*/\(.*\)</id>.*:\1:p' | grep -v rc | awk 'NR==1')
     else
-        latest_release=$(wget -q --header="Accept: application/json" -O - $daprReleaseUrl | grep \"tag_name\" | grep -v rc | awk 'NR==1{print $2}' |  sed -n 's/\"\(.*\)\",/\1/p')
+        latest_release=$(wget -q -O - $daprReleaseUrl | sed -n 's:.*<id>.*Repository/[0-9]*/\(.*\)</id>.*:\1:p' | grep -v rc | awk 'NR==1')
     fi
 
     ret_val=$latest_release
@@ -224,6 +226,10 @@ checkHttpRequestCLI
 if [ -z "$1" ]; then
     echo "Getting the latest Dapr CLI..."
     getLatestRelease
+    if [ -z "$ret_val" ]; then
+        echo "Failed to determine the latest Dapr CLI release. Retry later, or pass a specific version to this script as an argument."
+        exit 1
+    fi
 else
     ret_val=v$1
 fi
