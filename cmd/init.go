@@ -47,6 +47,7 @@ var (
 	imageVariant                       string
 	schedulerVolume                    string
 	schedulerOverrideBroadcastHostPort string
+	redisStack                         bool
 )
 
 var InitCmd = &cobra.Command{
@@ -95,6 +96,9 @@ dapr init --image-variant <variant>
 # Folder .dapr will be created in folder pointed to by <path-to-install-directory>
 dapr init --runtime-path <path-to-install-directory>
 
+# Initialize Dapr in self-hosted mode with Redis Stack for RediSearch/vector store support
+dapr init --redis-stack
+
 # See more at: https://docs.dapr.io/getting-started/
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -108,6 +112,10 @@ dapr init --runtime-path <path-to-install-directory>
 
 			if len(strings.TrimSpace(runtime.GetDaprRuntimePath())) != 0 {
 				print.FailureStatusEvent(os.Stderr, "--runtime-path is only valid for self-hosted mode")
+				os.Exit(1)
+			}
+			if redisStack {
+				print.FailureStatusEvent(os.Stderr, "--redis-stack is only valid for self-hosted mode")
 				os.Exit(1)
 			}
 
@@ -176,7 +184,7 @@ dapr init --runtime-path <path-to-install-directory>
 				schedulerHostPort = nil
 			}
 
-			err := standalone.Init(runtimeVersion, dockerNetwork, slimMode, imageRegistryURI, fromDir, containerRuntime, imageVariant, runtime.GetDaprRuntimePath(), &schedulerVolume, schedulerHostPort)
+			err := standalone.Init(runtimeVersion, dockerNetwork, slimMode, imageRegistryURI, fromDir, containerRuntime, imageVariant, runtime.GetDaprRuntimePath(), &schedulerVolume, schedulerHostPort, redisStack)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)
@@ -225,6 +233,7 @@ func init() {
 	InitCmd.Flags().StringVarP(&imageVariant, "image-variant", "", "", "The image variant to use for the Dapr runtime, for example: mariner")
 	InitCmd.Flags().StringVarP(&schedulerVolume, "scheduler-volume", "", "dapr_scheduler", "Self-hosted only. Specify a volume for the scheduler service data directory.")
 	InitCmd.Flags().StringVarP(&schedulerOverrideBroadcastHostPort, "scheduler-override-broadcast-host-port", "", "", "Self-hosted only. Specify the scheduler broadcast host and port, for example: 192.168.42.42:50006. If not specified, it uses localhost:50006 (6060 for Windows).")
+	InitCmd.Flags().BoolVarP(&redisStack, "redis-stack", "", false, "Self-hosted only. Use redis-stack-server image instead of standard Redis for RediSearch support")
 	InitCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	InitCmd.Flags().StringArrayVar(&values, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
 	InitCmd.Flags().String("image-registry", "", "Custom/private docker image repository URL")
