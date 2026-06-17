@@ -58,18 +58,20 @@ const (
 	githubContainerRegistryName = "ghcr"
 
 	// used when DAPR_DEFAULT_IMAGE_REGISTRY is not set.
-	daprDockerImageName   = "docker.io/daprio/dapr"
-	redisDockerImageName  = "docker.io/redis:6"
-	zipkinDockerImageName = "docker.io/openzipkin/zipkin"
+	daprDockerImageName       = "docker.io/daprio/dapr"
+	redisDockerImageName      = "docker.io/redis:6"
+	redisStackDockerImageName = "docker.io/redis/redis-stack-server:7.2.0-v19"
+	zipkinDockerImageName     = "docker.io/openzipkin/zipkin"
 
 	// used when DAPR_DEFAULT_IMAGE_REGISTRY is set as GHCR.
 	dockerURI = "docker.io"
 	ghcrURI   = "ghcr.io"
 
 	// used when DAPR_DEFAULT_IMAGE_REGISTRY is set as GHCR or image-registry flag is set.
-	daprGhcrImageName   = "dapr/dapr"
-	redisGhcrImageName  = "dapr/3rdparty/redis:6"
-	zipkinGhcrImageName = "dapr/3rdparty/zipkin"
+	daprGhcrImageName       = "dapr/dapr"
+	redisGhcrImageName      = "dapr/3rdparty/redis:6"
+	redisStackGhcrImageName = "dapr/3rdparty/redis-stack-server:7.2.0-v19"
+	zipkinGhcrImageName     = "dapr/3rdparty/zipkin"
 
 	// DaprPlacementContainerName is the container name of placement service.
 	DaprPlacementContainerName = "dapr_placement"
@@ -143,6 +145,22 @@ type initInfo struct {
 	imageVariant                       string
 	schedulerVolume                    *string
 	schedulerOverrideBroadcastHostPort *string
+	redisStack                         bool
+}
+
+// InitOptions configures a standalone Dapr initialization.
+type InitOptions struct {
+	RuntimeVersion                     string
+	DockerNetwork                      string
+	SlimMode                           bool
+	ImageRegistryURL                   string
+	FromDir                            string
+	ContainerRuntime                   string
+	ImageVariant                       string
+	DaprInstallPath                    string
+	SchedulerVolume                    *string
+	SchedulerOverrideBroadcastHostPort *string
+	RedisStack                         bool
 }
 
 type daprImageInfo struct {
@@ -184,9 +202,21 @@ func isSchedulerIncluded(runtimeVersion string) (bool, error) {
 }
 
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
-func Init(runtimeVersion string, dockerNetwork string, slimMode bool, imageRegistryURL string, fromDir string, containerRuntime string, imageVariant string, daprInstallPath string, schedulerVolume *string, schedulerOverrideBroadcastHostPort *string) error {
+func Init(opts InitOptions) error {
 	var err error
 	var bundleDet bundleDetails
+	runtimeVersion := opts.RuntimeVersion
+	dockerNetwork := opts.DockerNetwork
+	slimMode := opts.SlimMode
+	imageRegistryURL := opts.ImageRegistryURL
+	fromDir := opts.FromDir
+	containerRuntime := opts.ContainerRuntime
+	imageVariant := opts.ImageVariant
+	daprInstallPath := opts.DaprInstallPath
+	schedulerVolume := opts.SchedulerVolume
+	schedulerOverrideBroadcastHostPort := opts.SchedulerOverrideBroadcastHostPort
+	redisStack := opts.RedisStack
+
 	containerRuntime = strings.TrimSpace(containerRuntime)
 	daprInstallPath = strings.TrimSpace(daprInstallPath)
 	// AirGap init flow is true when fromDir var is set i.e. --from-dir flag has value.
@@ -304,6 +334,7 @@ func Init(runtimeVersion string, dockerNetwork string, slimMode bool, imageRegis
 		imageVariant:                       imageVariant,
 		schedulerVolume:                    schedulerVolume,
 		schedulerOverrideBroadcastHostPort: schedulerOverrideBroadcastHostPort,
+		redisStack:                         redisStack,
 	}
 	for _, step := range initSteps {
 		// Run init on the configurations and containers.
@@ -448,12 +479,7 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 		// do not create container again if it exists.
 		args = append(args, "start", redisContainerName)
 	} else {
-		imageName, err = resolveImageURI(daprImageInfo{
-			ghcrImageName:      redisGhcrImageName,
-			dockerHubImageName: redisDockerImageName,
-			imageRegistryURL:   info.imageRegistryURL,
-			imageRegistryName:  defaultImageRegistryName,
-		})
+		imageName, err = resolveImageURI(redisImageInfo(info.redisStack, info.imageRegistryURL, defaultImageRegistryName))
 		if err != nil {
 			errorChan <- err
 			return
@@ -489,6 +515,24 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 		return
 	}
 	errorChan <- nil
+}
+
+func redisImageInfo(redisStack bool, imageRegistryURL string, imageRegistryName string) daprImageInfo {
+	if redisStack {
+		return daprImageInfo{
+			ghcrImageName:      redisStackGhcrImageName,
+			dockerHubImageName: redisStackDockerImageName,
+			imageRegistryURL:   imageRegistryURL,
+			imageRegistryName:  imageRegistryName,
+		}
+	}
+
+	return daprImageInfo{
+		ghcrImageName:      redisGhcrImageName,
+		dockerHubImageName: redisDockerImageName,
+		imageRegistryURL:   imageRegistryURL,
+		imageRegistryName:  imageRegistryName,
+	}
 }
 
 func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
