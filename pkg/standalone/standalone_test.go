@@ -375,7 +375,11 @@ func TestInitLogActualContainerRuntimeName(t *testing.T) {
 				t.Skip("Skipping test as container runtime is available")
 			}
 
-			err := Init(latestVersion, "", false, "", "", test.containerRuntime, "", "", nil, ptr.Of("localhost:50006"), false)
+			err := Init(InitOptions{
+				RuntimeVersion:                     latestVersion,
+				ContainerRuntime:                   test.containerRuntime,
+				SchedulerOverrideBroadcastHostPort: ptr.Of("localhost:50006"),
+			})
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), test.containerRuntime)
 		})

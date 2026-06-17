@@ -184,7 +184,19 @@ dapr init --redis-stack
 				schedulerHostPort = nil
 			}
 
-			err := standalone.Init(runtimeVersion, dockerNetwork, slimMode, imageRegistryURI, fromDir, containerRuntime, imageVariant, runtime.GetDaprRuntimePath(), &schedulerVolume, schedulerHostPort, redisStack)
+			err := standalone.Init(standalone.InitOptions{
+				RuntimeVersion:                     runtimeVersion,
+				DockerNetwork:                      dockerNetwork,
+				SlimMode:                           slimMode,
+				ImageRegistryURL:                   imageRegistryURI,
+				FromDir:                            fromDir,
+				ContainerRuntime:                   containerRuntime,
+				ImageVariant:                       imageVariant,
+				DaprInstallPath:                    runtime.GetDaprRuntimePath(),
+				SchedulerVolume:                    &schedulerVolume,
+				SchedulerOverrideBroadcastHostPort: schedulerHostPort,
+				RedisStack:                         redisStack,
+			})
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, err.Error())
 				os.Exit(1)
