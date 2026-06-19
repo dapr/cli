@@ -198,6 +198,55 @@ func TestResolveImageWithPrivateRegistry(t *testing.T) {
 	}
 }
 
+func TestRedisImageInfo(t *testing.T) {
+	tests := []struct {
+		name              string
+		redisStack        bool
+		imageRegistryURL  string
+		imageRegistryName string
+		expect            string
+	}{
+		{
+			name:              "standard redis with Docker Hub",
+			redisStack:        false,
+			imageRegistryName: dockerContainerRegistryName,
+			expect:            "docker.io/redis:6",
+		},
+		{
+			name:              "redis stack with Docker Hub",
+			redisStack:        true,
+			imageRegistryName: dockerContainerRegistryName,
+			expect:            "docker.io/redis/redis-stack-server:7.2.0-v19",
+		},
+		{
+			name:              "standard redis with GHCR",
+			redisStack:        false,
+			imageRegistryName: githubContainerRegistryName,
+			expect:            "ghcr.io/dapr/3rdparty/redis:6",
+		},
+		{
+			name:              "redis stack with GHCR",
+			redisStack:        true,
+			imageRegistryName: githubContainerRegistryName,
+			expect:            "ghcr.io/dapr/3rdparty/redis-stack-server:7.2.0-v19",
+		},
+		{
+			name:             "redis stack with private registry",
+			redisStack:       true,
+			imageRegistryURL: "docker.io/username",
+			expect:           "docker.io/username/dapr/3rdparty/redis-stack-server:7.2.0-v19",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got, err := resolveImageURI(redisImageInfo(test.redisStack, test.imageRegistryURL, test.imageRegistryName))
+			assert.NoError(t, err)
+			assert.Equal(t, test.expect, got)
+		})
+	}
+}
+
 func TestResolveImageErr(t *testing.T) {
 	redisImageInfo := daprImageInfo{
 		ghcrImageName:      redisGhcrImageName,
@@ -326,7 +375,11 @@ func TestInitLogActualContainerRuntimeName(t *testing.T) {
 				t.Skip("Skipping test as container runtime is available")
 			}
 
-			err := Init(latestVersion, "", false, "", "", test.containerRuntime, "", "", nil, ptr.Of("localhost:50006"))
+			err := Init(InitOptions{
+				RuntimeVersion:                     latestVersion,
+				ContainerRuntime:                   test.containerRuntime,
+				SchedulerOverrideBroadcastHostPort: ptr.Of("localhost:50006"),
+			})
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), test.containerRuntime)
 		})
