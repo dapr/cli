@@ -113,6 +113,27 @@ func TestStandaloneInit(t *testing.T) {
 		verifyConfigs(t, daprPath)
 	})
 
+	t.Run("init with redis stack", func(t *testing.T) {
+		if isSlimMode() {
+			t.Skip("Skipping Redis Stack init test because of slim installation")
+		}
+
+		// Ensure a clean environment
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+
+		args := []string{
+			"--runtime-version", daprRuntimeVersion,
+			"--redis-stack",
+		}
+		output, err := cmdInit(args...)
+		t.Log(output)
+		require.NoError(t, err, "init failed")
+		assert.Contains(t, output, "Success! Dapr is up and running.")
+
+		verifyContainers(t, daprRuntimeVersion)
+		verifyRedisContainerImage(t, "redis-stack-server:7.2.0-v19")
+	})
+
 	t.Run("init with mariner images", func(t *testing.T) {
 		// Ensure a clean environment
 		must(t, cmdUninstall, "failed to uninstall Dapr")
@@ -245,6 +266,27 @@ func TestStandaloneInit(t *testing.T) {
 		verifyBinaries(t, daprPath, latestDaprRuntimeVersion)
 		verifyConfigs(t, daprPath)
 	})
+}
+
+func verifyRedisContainerImage(t *testing.T, expectedImageSubstring string) {
+	t.Helper()
+
+	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv, dockerClient.WithVersion("1.48"))
+	require.NoError(t, err)
+
+	containers, err := cli.ContainerList(context.Background(), container.ListOptions{})
+	require.NoError(t, err)
+
+	for _, container := range containers {
+		for _, name := range container.Names {
+			if strings.TrimPrefix(name, "/") == "dapr_redis" {
+				assert.Contains(t, container.Image, expectedImageSubstring)
+				return
+			}
+		}
+	}
+
+	require.Fail(t, "dapr_redis container was not found")
 }
 
 // verifyContainers ensures that the correct containers are up and running.
