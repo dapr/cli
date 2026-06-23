@@ -331,7 +331,6 @@ func Init(opts InitOptions) error {
 		runSchedulerService,
 		runRedis,
 		runZipkin,
-		runSentryService,
 	}
 
 	msg := "Downloading binaries and setting up components..."
@@ -367,7 +366,7 @@ func Init(opts InitOptions) error {
 		if err := runParallelInitSteps(prepSteps, info); err != nil {
 			return err
 		}
-		if err := runSentryServiceInternal(info); err != nil {
+		if err := runSentryService(info); err != nil {
 			return err
 		}
 		if err := runParallelInitSteps(containerSteps, info); err != nil {
@@ -923,15 +922,7 @@ func generateCertsForMTLSInternal(info initInfo) error {
 	return nil
 }
 
-func runSentryService(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
-	defer wg.Done()
-
-	if err := runSentryServiceInternal(info); err != nil {
-		errorChan <- err
-	}
-}
-
-func runSentryServiceInternal(info initInfo) error {
+func runSentryService(info initInfo) error {
 	if !info.enableMTLS || info.slimMode {
 		return nil
 	}
