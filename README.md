@@ -104,6 +104,31 @@ This step creates the following defaults:
 2. component files in the components folder called `pubsub.yaml` and `statestore.yaml`.
 3. default config file `$HOME/.dapr/config.yaml` for Linux/MacOS or for Windows at `%USERPROFILE%\.dapr\config.yaml` to enable tracing on `dapr init` call. Can be overridden with the `--config` flag on `dapr run`.
 
+#### Initialize Dapr with mTLS (self-hosted)
+
+To enable mutual TLS and start the local Sentry certificate authority in one step:
+
+```bash
+dapr init --enable-mtls
+```
+
+This command:
+
+- Generates root and issuer certificates under `$HOME/.dapr/certs/` (`ca.crt`, `issuer.crt`, `issuer.key`)
+- Starts the `dapr_sentry` container alongside placement, scheduler, redis, and zipkin
+- Writes `spec.mtls.enabled: true` to the default `$HOME/.dapr/config.yaml`
+
+After that, `dapr run` uses the default config and obtains a SPIFFE workload identity from Sentry without setting `DAPR_TRUST_ANCHORS`, `DAPR_CERT_CHAIN`, or `DAPR_CERT_KEY` manually.
+
+Output should look like:
+
+```
+ℹ️  dapr_sentry container is running.
+ℹ️  Sentry running, mTLS enabled, trust domain: cluster.local
+```
+
+`dapr uninstall` removes the Sentry container along with the other self-hosted services.
+
 #### Slim Init
 
 Alternatively to the above, to have the CLI not install any default configuration files or run Docker containers, use the `--slim` flag with the init command. Only Dapr binaries will be installed.

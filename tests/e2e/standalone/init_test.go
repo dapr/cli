@@ -266,6 +266,33 @@ func TestStandaloneInit(t *testing.T) {
 		verifyBinaries(t, daprPath, latestDaprRuntimeVersion)
 		verifyConfigs(t, daprPath)
 	})
+
+	t.Run("init with mTLS", func(t *testing.T) {
+		if isSlimMode() {
+			t.Skip("Skipping mTLS init test because of slim installation")
+		}
+
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+
+		args := []string{
+			"--runtime-version", daprRuntimeVersion,
+			"--enable-mtls",
+		}
+		output, err := cmdInit(args...)
+		t.Log(output)
+		require.NoError(t, err, "init with mTLS failed")
+		assert.Contains(t, output, "Success! Dapr is up and running.")
+		assert.Contains(t, output, "Sentry running, mTLS enabled, trust domain: cluster.local")
+
+		homeDir, err := os.UserHomeDir()
+		require.NoError(t, err, "failed to get user home directory")
+
+		daprPath := filepath.Join(homeDir, ".dapr")
+		verifyMTLSCerts(t, daprPath)
+		verifyMTLSConfig(t, daprPath)
+		verifySentryContainer(t, daprRuntimeVersion)
+		verifyTCPLocalhost(t, 50001)
+	})
 }
 
 func verifyRedisContainerImage(t *testing.T, expectedImageSubstring string) {
@@ -287,6 +314,56 @@ func verifyRedisContainerImage(t *testing.T, expectedImageSubstring string) {
 	}
 
 	require.Fail(t, "dapr_redis container was not found")
+}
+
+func verifyMTLSCerts(t *testing.T, daprPath string) {
+	t.Helper()
+
+	certsPath := filepath.Join(daprPath, "certs")
+	for _, file := range []string{"ca.crt", "issuer.crt", "issuer.key"} {
+		require.FileExists(t, filepath.Join(certsPath, file), "expected cert file %s", file)
+	}
+}
+
+func verifyMTLSConfig(t *testing.T, daprPath string) {
+	t.Helper()
+
+	configPath := filepath.Join(daprPath, "config.yaml")
+	bytes, err := os.ReadFile(configPath)
+	require.NoError(t, err, "failed to read config file")
+
+	var actual map[string]interface{}
+	err = yaml.Unmarshal(bytes, &actual)
+	require.NoError(t, err, "failed to unmarshal config file")
+
+	spec, ok := actual["spec"].(map[interface{}]interface{})
+	require.True(t, ok, "expected spec in config")
+	mtls, ok := spec["mtls"].(map[interface{}]interface{})
+	require.True(t, ok, "expected mtls in config spec")
+	assert.Equal(t, true, mtls["enabled"])
+}
+
+func verifySentryContainer(t *testing.T, daprRuntimeVersion string) {
+	t.Helper()
+
+	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv, dockerClient.WithVersion("1.48"))
+	require.NoError(t, err)
+
+	containers, err := cli.ContainerList(context.Background(), container.ListOptions{})
+	require.NoError(t, err)
+
+	for _, c := range containers {
+		for _, name := range c.Names {
+			if strings.TrimPrefix(name, "/") != "dapr_sentry" {
+				continue
+			}
+			assert.Equal(t, "running", c.State)
+			assert.Contains(t, c.Image, daprRuntimeVersion)
+			return
+		}
+	}
+
+	require.Fail(t, "dapr_sentry container was not found")
 }
 
 // verifyContainers ensures that the correct containers are up and running.

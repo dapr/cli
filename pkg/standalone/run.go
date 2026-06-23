@@ -19,6 +19,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"reflect"
 	"runtime"
 	"strconv"
@@ -32,6 +33,7 @@ import (
 
 	"github.com/dapr/cli/pkg/print"
 	localloader "github.com/dapr/dapr/pkg/components/loader"
+	"github.com/dapr/dapr/pkg/security/consts"
 )
 
 type LogDestType string
@@ -384,7 +386,11 @@ func (config *RunConfig) getArgs() []string {
 		sentryAddress := mtlsEndpoint(config.ConfigFile)
 		if sentryAddress != "" {
 			// mTLS is enabled locally, set it up.
-			args = append(args, "--enable-mtls", "--sentry-address", sentryAddress)
+			args = append(args,
+				"--enable-mtls",
+				"--sentry-address", sentryAddress,
+				"--control-plane-trust-domain", defaultTrustDomain,
+			)
 		}
 	}
 
@@ -581,7 +587,28 @@ func GetDaprCommand(config *RunConfig) (*exec.Cmd, error) {
 
 	args := config.getArgs()
 	cmd := exec.Command(daprCMD, args...)
+	if trustAnchors, ok := mtlsTrustAnchors(config); ok {
+		cmd.Env = append(os.Environ(), fmt.Sprintf("%s=%s", consts.TrustAnchorsEnvVar, trustAnchors))
+	}
 	return cmd, nil
+}
+
+func mtlsTrustAnchors(config *RunConfig) (string, bool) {
+	if config == nil || mtlsEndpoint(config.ConfigFile) == "" {
+		return "", false
+	}
+
+	daprDir, err := GetDaprRuntimePath(config.DaprdInstallPath)
+	if err != nil {
+		return "", false
+	}
+
+	trustAnchors, err := os.ReadFile(filepath.Join(GetDaprCertsPath(daprDir), trustAnchorsFile))
+	if err != nil {
+		return "", false
+	}
+
+	return string(trustAnchors), true
 }
 
 func mtlsEndpoint(configFile string) string {
