@@ -15,12 +15,17 @@ package upgrade
 
 import (
 	"fmt"
+	"net/http"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/Masterminds/semver/v3"
 
 	"github.com/dapr/cli/tests/e2e/common"
 )
+
+const daprHelmRepo = "https://dapr.github.io/helm-charts"
 
 const deleteCRDs = "delete CRDs "
 
@@ -122,6 +127,44 @@ var supportedUpgradePaths = []upgradePath{
 			CustomResourceDefs:  []string{"components.dapr.io", "configurations.dapr.io", "subscriptions.dapr.io", "resiliencies.dapr.io", "httpendpoints.dapr.io"},
 		},
 	},
+}
+
+func TestMain(m *testing.M) {
+	if missing := unpublishedChartVersions(); len(missing) > 0 {
+		fmt.Fprintf(os.Stderr,
+			"\nPREFLIGHT FAILED: Dapr Helm chart(s) not published to %s: %s\n"+
+				"`dapr init -k` cannot install these versions. Wait for the chart-publish job to run, "+
+				"or pin supportedUpgradePaths to a version whose chart exists, before running the upgrade tests.\n\n",
+			daprHelmRepo, strings.Join(missing, ", "))
+		os.Exit(1)
+	}
+	os.Exit(m.Run())
+}
+
+func unpublishedChartVersions() []string {
+	seen := map[string]bool{}
+	var missing []string
+	for _, p := range supportedUpgradePaths {
+		for _, v := range []string{p.previous.RuntimeVersion, p.next.RuntimeVersion} {
+			if seen[v] {
+				continue
+			}
+			seen[v] = true
+			if !chartPublished(v) {
+				missing = append(missing, v)
+			}
+		}
+	}
+	return missing
+}
+
+func chartPublished(version string) bool {
+	resp, err := http.Head(fmt.Sprintf("%s/dapr-%s.tgz", daprHelmRepo, version))
+	if err != nil {
+		return false
+	}
+	defer resp.Body.Close()
+	return resp.StatusCode == http.StatusOK
 }
 
 func getTestsOnUpgrade(p upgradePath, installOpts, upgradeOpts common.TestOptions) []common.TestCase {
