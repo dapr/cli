@@ -19,6 +19,7 @@ import (
 	"io/fs"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/utils"
@@ -84,8 +85,16 @@ func removeDir(dirPath string) error {
 		return nil
 	}
 	print.InfoStatusEvent(os.Stdout, "Removing directory: %s", dirPath)
-	err = os.RemoveAll(dirPath)
-	return err
+	// Windows can transiently hold locks on binaries that have just exited
+	// (for example daprd right after "dapr run" returns), which makes
+	// os.RemoveAll fail, so retry briefly before giving up.
+	for i := 0; ; i++ {
+		err = os.RemoveAll(dirPath)
+		if err == nil || i >= 4 {
+			return err
+		}
+		time.Sleep(time.Second)
+	}
 }
 
 // Uninstall reverts all changes made by init. Deletes all installed containers, removes default dapr folder,
@@ -110,7 +119,7 @@ func Uninstall(uninstallAll bool, dockerNetwork string, containerRuntime string,
 	// Remove .dapr/bin.
 	err = removeDir(daprBinDir)
 	if err != nil {
-		print.WarningStatusEvent(os.Stdout, "WARNING: could not delete dapr bin dir: %s", daprBinDir)
+		print.WarningStatusEvent(os.Stdout, "WARNING: could not delete dapr bin dir %s: %s", daprBinDir, err)
 	}
 	// We don't delete .dapr/scheduler by choice since it holds state.
 	// To delete .dapr/scheduler, user is expected to use the `--all` flag as it deletes the .dapr folder.
