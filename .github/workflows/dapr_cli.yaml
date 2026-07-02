@@ -211,7 +211,7 @@ jobs:
       actions: read
     uses: dapr/.github/.github/workflows/open-issue-on-failure.yml@main
     with:
-      title: "Release publish failed: ${{ github.workflow }} (${{ github.ref_name }})"
+      title: "Release publish failed: ${{ github.workflow }} (${{ inputs.tag || github.ref_name }})"
       labels: "release,ci/publish-failure"
       mention: "@dapr/maintainers-cli @dapr/approvers-cli"
     secrets:
