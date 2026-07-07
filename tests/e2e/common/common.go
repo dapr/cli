@@ -848,6 +848,7 @@ func installTest(details VersionDetails, opts TestOptions) func(t *testing.T) {
 			}
 			args = append(args, certParam...)
 		}
+
 		output, err := spawn.Command(daprPath, args...)
 		t.Log(output)
 		require.NoError(t, err, "init failed")
