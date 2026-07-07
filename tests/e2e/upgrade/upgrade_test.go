@@ -19,6 +19,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Masterminds/semver/v3"
 
@@ -159,9 +160,11 @@ func unpublishedChartVersions() []string {
 }
 
 func chartPublished(version string) bool {
-	resp, err := http.Head(fmt.Sprintf("%s/dapr-%s.tgz", daprHelmRepo, version))
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Head(fmt.Sprintf("%s/dapr-%s.tgz", daprHelmRepo, version))
 	if err != nil {
-		return false
+		fmt.Fprintf(os.Stderr, "PREFLIGHT WARNING: could not check chart %s (transport error, not treated as unpublished): %v\n", version, err)
+		return true
 	}
 	defer resp.Body.Close()
 	return resp.StatusCode == http.StatusOK
