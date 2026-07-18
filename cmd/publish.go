@@ -73,7 +73,7 @@ dapr publish --publish-app-id myapp --pubsub target --topic sample --data '{"key
 				print.FailureStatusEvent(os.Stderr, "The unix-domain-socket option is not supported on Windows")
 				os.Exit(1)
 			} else {
-				print.WarningStatusEvent(os.Stdout, "Unix domain sockets are currently a preview feature")
+				print.WarningStatusEvent(os.Stderr, "Unix domain sockets are currently a preview feature")
 			}
 		}
 
@@ -92,7 +92,7 @@ dapr publish --publish-app-id myapp --pubsub target --topic sample --data '{"key
 			os.Exit(1)
 		}
 
-		print.SuccessStatusEvent(os.Stdout, "Event published successfully")
+		print.SuccessStatusEvent(os.Stderr, "Event published successfully")
 	},
 }
 
