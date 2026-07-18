@@ -391,13 +391,20 @@ func deployYamlToK8s(yamlToDeployPath string) error {
 	return nil
 }
 
-func deleteYamlK8s(yamlToDeletePath string) error {
+func deleteYamlK8s(yamlToDeletePath string, ignoreNotFound bool) error {
 	print.InfoStatusEvent(os.Stdout, "Deleting %q from Kubernetes", yamlToDeletePath)
 	_, err := os.Stat(yamlToDeletePath)
 	if os.IsNotExist(err) {
 		return fmt.Errorf("error given file %q does not exist", yamlToDeletePath)
 	}
-	_, err = utils.RunCmdAndWait("kubectl", "delete", "-f", yamlToDeletePath)
+	args := []string{"delete", "-f", yamlToDeletePath}
+	if ignoreNotFound {
+		// "dapr stop -f -k" races with the graceful shutdown performed by the
+		// "dapr run -f -k" process on receiving the stop signal; resources
+		// already deleted by the other process must not fail the stop.
+		args = append(args, "--ignore-not-found")
+	}
+	_, err = utils.RunCmdAndWait("kubectl", args...)
 	if err != nil {
 		return fmt.Errorf("error deleting the yaml %s from Kubernetes: %w", yamlToDeletePath, err)
 	}
@@ -412,9 +419,9 @@ func gracefullyShutdownK8sDeployment(runStates []runState, client k8s.Interface,
 	errs := make([]error, 0, len(runStates)*4)
 	for _, r := range runStates {
 		if len(r.serviceFilePath) != 0 {
-			errs = append(errs, deleteYamlK8s(r.serviceFilePath))
+			errs = append(errs, deleteYamlK8s(r.serviceFilePath, false))
 		}
-		errs = append(errs, deleteYamlK8s(r.deploymentFilePath))
+		errs = append(errs, deleteYamlK8s(r.deploymentFilePath, false))
 		labelSelector := map[string]string{
 			daprAppIDKey: r.app.AppID,
 		}
