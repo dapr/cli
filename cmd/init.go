@@ -175,7 +175,7 @@ dapr init --redis-stack
 			}
 
 			if !utils.IsValidContainerRuntime(containerRuntime) {
-				print.FailureStatusEvent(os.Stdout, "Invalid container runtime. Supported values are docker and podman.")
+				print.FailureStatusEvent(os.Stderr, "Invalid container runtime. Supported values are docker and podman.")
 				os.Exit(1)
 			}
 

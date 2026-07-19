@@ -34,13 +34,13 @@ func outputList(list interface{}, length int) {
 	if outputFormat == "json" || outputFormat == "yaml" {
 		err := utils.PrintDetail(os.Stdout, outputFormat, list)
 		if err != nil {
-			print.FailureStatusEvent(os.Stdout, err.Error())
+			print.FailureStatusEvent(os.Stderr, err.Error())
 			os.Exit(1)
 		}
 	} else {
 		table, err := gocsv.MarshalString(list)
 		if err != nil {
-			print.FailureStatusEvent(os.Stdout, err.Error())
+			print.FailureStatusEvent(os.Stderr, err.Error())
 			os.Exit(1)
 		}
 
@@ -72,13 +72,13 @@ dapr list -k --all-namespaces
 `,
 	PreRun: func(cmd *cobra.Command, args []string) {
 		if outputFormat != "" && outputFormat != "json" && outputFormat != "yaml" && outputFormat != "table" {
-			print.FailureStatusEvent(os.Stdout, "An invalid output format was specified.")
+			print.FailureStatusEvent(os.Stderr, "An invalid output format was specified.")
 			os.Exit(1)
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if kubernetesMode {
-			print.WarningStatusEvent(os.Stdout, "In future releases, this command will only query the \"default\" namespace by default. Please use the --namespace flag for a specific namespace, or the --all-namespaces (-A) flag for all namespaces.")
+			print.WarningStatusEvent(os.Stderr, "In future releases, this command will only query the \"default\" namespace by default. Please use the --namespace flag for a specific namespace, or the --all-namespaces (-A) flag for all namespaces.")
 			if allNamespaces {
 				resourceNamespace = meta_v1.NamespaceAll
 			} else if resourceNamespace == "" {

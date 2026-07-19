@@ -80,7 +80,7 @@ dapr uninstall --runtime-path <path-to-install-directory>
 			err = kubernetes.Uninstall(uninstallNamespace, uninstallAll, uninstallDev, timeout)
 		} else {
 			if !utils.IsValidContainerRuntime(uninstallContainerRuntime) {
-				print.FailureStatusEvent(os.Stdout, "Invalid container runtime. Supported values are docker and podman.")
+				print.FailureStatusEvent(os.Stderr, "Invalid container runtime. Supported values are docker and podman.")
 				os.Exit(1)
 			}
 			print.InfoStatusEvent(os.Stdout, "Removing Dapr from your machine...")

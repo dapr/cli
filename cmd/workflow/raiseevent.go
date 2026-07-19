@@ -58,7 +58,7 @@ var RaiseEventCmd = &cobra.Command{
 		}
 
 		if err = workflow.RaiseEvent(ctx, opts); err != nil {
-			print.FailureStatusEvent(os.Stdout, err.Error())
+			print.FailureStatusEvent(os.Stderr, err.Error())
 			os.Exit(1)
 		}
 

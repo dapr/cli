@@ -58,7 +58,7 @@ var ReRunCmd = &cobra.Command{
 
 		id, err := workflow.ReRun(ctx, opts)
 		if err != nil {
-			print.FailureStatusEvent(os.Stdout, err.Error())
+			print.FailureStatusEvent(os.Stderr, err.Error())
 			os.Exit(1)
 		}
 
