@@ -98,7 +98,7 @@ dapr uninstall --runtime-path <path-to-install-directory>
 
 func init() {
 	UninstallCmd.Flags().BoolVarP(&uninstallKubernetes, "kubernetes", "k", false, "Uninstall Dapr from a Kubernetes cluster")
-	UninstallCmd.Flags().BoolVarP(&uninstallDev, "dev", "", false, "Uninstall Dapr Redis and Zipking installations from Kubernetes cluster")
+	UninstallCmd.Flags().BoolVarP(&uninstallDev, "dev", "", false, "Uninstall Dapr Redis and Zipkin installations from Kubernetes cluster")
 	UninstallCmd.Flags().UintVarP(&timeout, "timeout", "", 300, "The timeout for the Kubernetes uninstall")
 	UninstallCmd.Flags().BoolVar(&uninstallAll, "all", false, "Remove .dapr directory, Redis, Placement, Scheduler (and default volume in self-hosted mode), and Zipkin containers on local machine, and CRDs on a Kubernetes cluster")
 	UninstallCmd.Flags().String("network", "", "The Docker network from which to remove the Dapr runtime")
