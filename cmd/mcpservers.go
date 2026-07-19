@@ -35,6 +35,12 @@ var (
 var MCPServersCmd = &cobra.Command{
 	Use:   "mcpservers",
 	Short: "List all Dapr MCPServer resources. Supported platforms: Kubernetes and self-hosted",
+	PreRun: func(cmd *cobra.Command, args []string) {
+		if mcpServersOutputFormat != "list" && mcpServersOutputFormat != "json" && mcpServersOutputFormat != "yaml" {
+			print.FailureStatusEvent(os.Stderr, "An invalid output format was specified. Valid values are: json, yaml, or list")
+			os.Exit(1)
+		}
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if kubernetesMode {
 			if allNamespaces || resourceNamespace == "" {
@@ -59,7 +65,9 @@ var MCPServersCmd = &cobra.Command{
 		}
 	},
 	PostRun: func(cmd *cobra.Command, args []string) {
-		kubernetes.CheckForCertExpiry()
+		if kubernetesMode {
+			kubernetes.CheckForCertExpiry()
+		}
 	},
 	Example: `
 # List all Dapr MCPServer resources in self-hosted mode (reads from ~/.dapr/components/ by default)
