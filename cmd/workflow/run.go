@@ -60,7 +60,7 @@ var RunCmd = &cobra.Command{
 
 		id, err := workflow.Run(ctx, opts)
 		if err != nil {
-			print.FailureStatusEvent(os.Stdout, err.Error())
+			print.FailureStatusEvent(os.Stderr, err.Error())
 			os.Exit(1)
 		}
 
