@@ -36,7 +36,7 @@ dapr version --output json
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		if output != "" && output != "json" {
-			print.FailureStatusEvent(os.Stdout, "An invalid output format was specified.")
+			print.FailureStatusEvent(os.Stderr, "An invalid output format was specified.")
 			os.Exit(1)
 		}
 		switch output {
