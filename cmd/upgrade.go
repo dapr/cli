@@ -36,8 +36,8 @@ var UpgradeCmd = &cobra.Command{
 		viper.BindPFlag("image-registry", cmd.Flags().Lookup("image-registry"))
 	},
 	Example: `
-# Upgrade Dapr in Kubernetes
-dapr upgrade -k
+# Upgrade Dapr in Kubernetes to the specified version
+dapr upgrade -k --runtime-version 1.16.0
 
 # See more at: https://docs.dapr.io/getting-started/
 `,

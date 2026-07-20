@@ -43,7 +43,7 @@ var PublishCmd = &cobra.Command{
 dapr publish --publish-app-id myapp --pubsub target --topic sample --data '{"key":"value"}'
 
 # Publish to sample topic in target pubsub via a publishing app using Unix domain socket
-dapr publish --enable-domain-socket --publish-app-id myapp --pubsub target --topic sample --data '{"key":"value"}'
+dapr publish --unix-domain-socket /tmp --publish-app-id myapp --pubsub target --topic sample --data '{"key":"value"}'
 
 # Publish to sample topic in target pubsub via a publishing app without cloud event
 dapr publish --publish-app-id myapp --pubsub target --topic sample --data '{"key":"value"}' --metadata '{"rawPayload":"true","ttlInSeconds":"10"}'
