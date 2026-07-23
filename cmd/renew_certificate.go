@@ -132,9 +132,8 @@ dapr mtls renew-cert -k --valid-until <no of days> --restart
 				"Certificate rotation is successful! Your new certificate is valid through "+expiry.Format(time.RFC1123))
 
 			if restartDaprServices {
-				restartControlPlaneService()
-				if err != nil {
-					print.FailureStatusEvent(os.Stdout, err.Error())
+				if err := restartControlPlaneService(); err != nil {
+					print.FailureStatusEvent(os.Stderr, "%s", err.Error())
 					os.Exit(1)
 				}
 			}
@@ -170,15 +169,21 @@ func logErrorAndExit(err error) {
 }
 
 func restartControlPlaneService() error {
+	namespace, err := kubernetes.GetDaprNamespace()
+	if err != nil {
+		return fmt.Errorf("failed to fetch Dapr namespace: %w", err)
+	}
+
 	controlPlaneServices := []string{
 		"deploy/dapr-sentry",
 		"deploy/dapr-sidecar-injector",
 		"deploy/dapr-operator",
 		"statefulsets/dapr-placement-server",
 	}
-	namespace, err := kubernetes.GetDaprNamespace()
-	if err != nil {
-		print.FailureStatusEvent(os.Stdout, "Failed to fetch Dapr namespace")
+	// The scheduler control plane service only exists for runtime 1.14 onwards,
+	// so restart it only when it is present in the cluster.
+	if _, err := utils.RunCmdAndWait("kubectl", "get", "statefulsets/dapr-scheduler-server", "-n", namespace); err == nil {
+		controlPlaneServices = append(controlPlaneServices, "statefulsets/dapr-scheduler-server")
 	}
 
 	errs := make([]error, len(controlPlaneServices))
@@ -190,12 +195,12 @@ func restartControlPlaneService() error {
 			print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Restarting %s..", name))
 			_, err := utils.RunCmdAndWait("kubectl", "rollout", "restart", "-n", namespace, name)
 			if err != nil {
-				errs[i] = fmt.Errorf("error in restarting deployment %s. Error is %w", name, err)
+				errs[i] = fmt.Errorf("error in restarting %s. Error is %w", name, err)
 				return
 			}
 			_, err = utils.RunCmdAndWait("kubectl", "rollout", "status", "-n", namespace, name)
 			if err != nil {
-				errs[i] = fmt.Errorf("error in checking status for deployment %s. Error is %w", name, err)
+				errs[i] = fmt.Errorf("error in checking rollout status for %s. Error is %w", name, err)
 				return
 			}
 		}(i, name)
