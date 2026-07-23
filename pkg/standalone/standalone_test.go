@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/dapr/cli/utils"
 	"github.com/dapr/kit/ptr"
@@ -38,7 +39,7 @@ spec:
       endpointAddress: http://test_zipkin_host:9411/api/v2/spans
 `
 		os.Remove(testFile)
-		createDefaultConfiguration("test_zipkin_host", testFile)
+		createDefaultConfiguration("test_zipkin_host", testFile, false)
 		assert.FileExists(t, testFile)
 		content, err := os.ReadFile(testFile)
 		assert.NoError(t, err)
@@ -53,11 +54,50 @@ metadata:
 spec: {}
 `
 		os.Remove(testFile)
-		createDefaultConfiguration("", testFile)
+		createDefaultConfiguration("", testFile, false)
 		assert.FileExists(t, testFile)
 		content, err := os.ReadFile(testFile)
 		assert.NoError(t, err)
 		assert.Equal(t, expectConfigSlim, string(content))
+	})
+
+	t.Run("Standalone config with mTLS", func(t *testing.T) {
+		expectConfigMTLS := `apiVersion: dapr.io/v1alpha1
+kind: Configuration
+metadata:
+  name: daprConfig
+spec:
+  mtls:
+    enabled: true
+`
+		os.Remove(testFile)
+		createDefaultConfiguration("", testFile, true)
+		assert.FileExists(t, testFile)
+		content, err := os.ReadFile(testFile)
+		assert.NoError(t, err)
+		assert.Equal(t, expectConfigMTLS, string(content))
+	})
+
+	t.Run("Standalone config with mTLS merges existing tracing", func(t *testing.T) {
+		existing := `apiVersion: dapr.io/v1alpha1
+kind: Configuration
+metadata:
+  name: daprConfig
+spec:
+  tracing:
+    samplingRate: "1"
+    zipkin:
+      endpointAddress: http://test_zipkin_host:9411/api/v2/spans
+`
+		os.Remove(testFile)
+		require.NoError(t, os.WriteFile(testFile, []byte(existing), 0o644))
+		require.NoError(t, createDefaultConfiguration("ignored_zipkin_host", testFile, true))
+		content, err := os.ReadFile(testFile)
+		require.NoError(t, err)
+		text := string(content)
+		assert.Contains(t, text, "mtls:")
+		assert.Contains(t, text, "enabled: true")
+		assert.Contains(t, text, "zipkin:")
 	})
 
 	os.Remove(testFile)

@@ -18,6 +18,9 @@ import (
 	"archive/zip"
 	"compress/gzip"
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"io"
@@ -38,6 +41,7 @@ import (
 	"github.com/dapr/cli/pkg/print"
 	cli_ver "github.com/dapr/cli/pkg/version"
 	"github.com/dapr/cli/utils"
+	"github.com/dapr/dapr/pkg/sentry/server/ca/bundle"
 )
 
 const (
@@ -77,6 +81,8 @@ const (
 	DaprPlacementContainerName = "dapr_placement"
 	// DaprSchedulerContainerName is the container name of scheduler service.
 	DaprSchedulerContainerName = "dapr_scheduler"
+	// DaprSentryContainerName is the container name of sentry service.
+	DaprSentryContainerName = "dapr_sentry"
 	// DaprRedisContainerName is the container name of redis.
 	DaprRedisContainerName = "dapr_redis"
 	// DaprZipkinContainerName is the container name of zipkin.
@@ -90,6 +96,17 @@ const (
 	schedulerHealthPort = 58081
 	schedulerMetricPort = 59091
 	schedulerEtcdPort   = 2379
+
+	sentryGRPCPort              = 50001
+	sentryHealthPort            = 58082
+	sentryMetricPort            = 59092
+	sentryConfigContainerPath   = "/etc/dapr/config.yaml"
+	sentryStandaloneMode        = "standalone"
+
+	defaultTrustDomain = "cluster.local"
+	trustAnchorsFile   = "ca.crt"
+	issuerCertFile     = "issuer.crt"
+	issuerKeyFile      = "issuer.key"
 
 	daprVersionsWithScheduler = ">= 1.14.x"
 )
@@ -112,6 +129,9 @@ type configuration struct {
 				EndpointAddress string `yaml:"endpointAddress,omitempty"`
 			} `yaml:"zipkin,omitempty"`
 		} `yaml:"tracing,omitempty"`
+		MTLS struct {
+			Enabled bool `yaml:"enabled,omitempty"`
+		} `yaml:"mtls,omitempty"`
 	} `yaml:"spec"`
 }
 
@@ -138,6 +158,7 @@ type initInfo struct {
 	installDir                         string
 	bundleDet                          *bundleDetails
 	slimMode                           bool
+	enableMTLS                         bool
 	runtimeVersion                     string
 	dockerNetwork                      string
 	imageRegistryURL                   string
@@ -153,6 +174,7 @@ type InitOptions struct {
 	RuntimeVersion                     string
 	DockerNetwork                      string
 	SlimMode                           bool
+	EnableMTLS                         bool
 	ImageRegistryURL                   string
 	FromDir                            string
 	ContainerRuntime                   string
@@ -208,6 +230,7 @@ func Init(opts InitOptions) error {
 	runtimeVersion := opts.RuntimeVersion
 	dockerNetwork := opts.DockerNetwork
 	slimMode := opts.SlimMode
+	enableMTLS := opts.EnableMTLS
 	imageRegistryURL := opts.ImageRegistryURL
 	fromDir := opts.FromDir
 	containerRuntime := opts.ContainerRuntime
@@ -216,6 +239,10 @@ func Init(opts InitOptions) error {
 	schedulerVolume := opts.SchedulerVolume
 	schedulerOverrideBroadcastHostPort := opts.SchedulerOverrideBroadcastHostPort
 	redisStack := opts.RedisStack
+
+	if enableMTLS && slimMode {
+		return fmt.Errorf("--enable-mtls is not supported with --slim mode")
+	}
 
 	containerRuntime = strings.TrimSpace(containerRuntime)
 	daprInstallPath = strings.TrimSpace(daprInstallPath)
@@ -291,22 +318,20 @@ func Init(opts InitOptions) error {
 		return er
 	}
 
-	var wg sync.WaitGroup
-	errorChan := make(chan error)
-	initSteps := []func(*sync.WaitGroup, chan<- error, initInfo){
+	prepSteps := []func(*sync.WaitGroup, chan<- error, initInfo){
 		createSlimConfiguration,
 		createComponentsAndConfiguration,
+		generateCertsForMTLS,
 		installDaprRuntime,
 		installPlacement,
 		installScheduler,
+	}
+	containerSteps := []func(*sync.WaitGroup, chan<- error, initInfo){
 		runPlacementService,
 		runSchedulerService,
 		runRedis,
 		runZipkin,
 	}
-
-	// Init other configurations, containers.
-	wg.Add(len(initSteps))
 
 	msg := "Downloading binaries and setting up components..."
 	if isAirGapInit {
@@ -327,6 +352,7 @@ func Init(opts InitOptions) error {
 		fromDir:                            fromDir,
 		installDir:                         installDir,
 		slimMode:                           slimMode,
+		enableMTLS:                         enableMTLS,
 		runtimeVersion:                     runtimeVersion,
 		dockerNetwork:                      dockerNetwork,
 		imageRegistryURL:                   imageRegistryURL,
@@ -336,19 +362,32 @@ func Init(opts InitOptions) error {
 		schedulerOverrideBroadcastHostPort: schedulerOverrideBroadcastHostPort,
 		redisStack:                         redisStack,
 	}
-	for _, step := range initSteps {
-		// Run init on the configurations and containers.
-		go step(&wg, errorChan, info)
-	}
-
-	go func() {
-		wg.Wait()
-		close(errorChan)
-	}()
-
-	for err := range errorChan {
-		if err != nil {
+	if enableMTLS {
+		if err := runParallelInitSteps(prepSteps, info); err != nil {
 			return err
+		}
+		if err := runSentryService(info); err != nil {
+			return err
+		}
+		if err := runParallelInitSteps(containerSteps, info); err != nil {
+			return err
+		}
+	} else {
+		initSteps := append(prepSteps, containerSteps...)
+		var wg sync.WaitGroup
+		errorChan := make(chan error)
+		wg.Add(len(initSteps))
+		for _, step := range initSteps {
+			go step(&wg, errorChan, info)
+		}
+		go func() {
+			wg.Wait()
+			close(errorChan)
+		}()
+		for err := range errorChan {
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -375,6 +414,9 @@ func Init(opts InitOptions) error {
 		if err == nil && hasScheduler {
 			dockerContainerNames = append(dockerContainerNames, DaprSchedulerContainerName)
 		}
+		if info.enableMTLS {
+			dockerContainerNames = append(dockerContainerNames, DaprSentryContainerName)
+		}
 		for _, container := range dockerContainerNames {
 			containerName := utils.CreateContainerName(container, dockerNetwork)
 			ok, err := confirmContainerIsRunningOrExists(containerName, true, runtimeCmd)
@@ -386,6 +428,16 @@ func Init(opts InitOptions) error {
 			}
 		}
 		print.InfoStatusEvent(os.Stdout, "Use `%s ps` to check running containers.", runtimeCmd)
+		if info.enableMTLS {
+			sentryContainerName := utils.CreateContainerName(DaprSentryContainerName, dockerNetwork)
+			ok, err := confirmContainerIsRunningOrExists(sentryContainerName, true, runtimeCmd)
+			if err != nil {
+				return err
+			}
+			if ok {
+				print.InfoStatusEvent(os.Stdout, "Sentry running, mTLS enabled, trust domain: %s", defaultTrustDomain)
+			}
+		}
 	}
 	return nil
 }
@@ -606,7 +658,11 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		)
 	}
 
+	args = appendMTLSContainerRunArgs(args, info)
 	args = append(args, image)
+	if info.enableMTLS {
+		args = append(args, mtlsControlPlaneServiceArgs(info.dockerNetwork)...)
+	}
 
 	_, err = utils.RunCmdAndWait(runtimeCmd, args...)
 	if err != nil {
@@ -718,6 +774,8 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		)
 	}
 
+	args = appendMTLSContainerRunArgs(args, info)
+
 	if strings.EqualFold(info.imageVariant, "mariner") {
 		args = append(args, image, "--etcd-data-dir=/var/tmp/dapr/scheduler")
 	} else {
@@ -734,6 +792,10 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 
 	if schedulerEtcdClientListenAddress(info) {
 		args = append(args, "--etcd-client-listen-address=0.0.0.0")
+	}
+
+	if info.enableMTLS {
+		args = append(args, mtlsControlPlaneServiceArgs(info.dockerNetwork)...)
 	}
 
 	// On non-elevated Windows with WSL2 installed, verify the scheduler ports
@@ -800,6 +862,116 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		return
 	}
 	errorChan <- nil
+}
+
+func generateCertsForMTLS(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
+	defer wg.Done()
+
+	if err := generateCertsForMTLSInternal(info); err != nil {
+		errorChan <- err
+	}
+}
+
+func generateCertsForMTLSInternal(info initInfo) error {
+	if !info.enableMTLS {
+		return nil
+	}
+
+	certsDir := GetDaprCertsPath(info.installDir)
+
+	if err := os.MkdirAll(certsDir, 0o755); err != nil {
+		return fmt.Errorf("error creating certs directory: %w", err)
+	}
+
+	caPath := path_filepath.Join(certsDir, trustAnchorsFile)
+	issuerCertPath := path_filepath.Join(certsDir, issuerCertFile)
+	issuerKeyPath := path_filepath.Join(certsDir, issuerKeyFile)
+
+	if _, err := os.Stat(caPath); err == nil {
+		if _, err := os.Stat(issuerCertPath); err == nil {
+			if _, err := os.Stat(issuerKeyPath); err == nil {
+				return nil
+			}
+		}
+	}
+
+	rootKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return fmt.Errorf("error generating root key for mTLS: %w", err)
+	}
+
+	certValidity := 365 * 24 * time.Hour
+	certBundle, err := bundle.GenerateX509(bundle.OptionsX509{
+		X509RootKey:   rootKey,
+		TrustDomain:   defaultTrustDomain,
+		OverrideCATTL: &certValidity,
+	})
+	if err != nil {
+		return fmt.Errorf("error generating mTLS certificates: %w", err)
+	}
+
+	if err := os.WriteFile(caPath, certBundle.TrustAnchors, 0o600); err != nil {
+		return fmt.Errorf("error writing CA certificate: %w", err)
+	}
+	if err := os.WriteFile(issuerCertPath, certBundle.IssChainPEM, 0o600); err != nil {
+		return fmt.Errorf("error writing issuer certificate: %w", err)
+	}
+	if err := os.WriteFile(issuerKeyPath, certBundle.IssKeyPEM, 0o600); err != nil {
+		return fmt.Errorf("error writing issuer key: %w", err)
+	}
+	return nil
+}
+
+func runSentryService(info initInfo) error {
+	if !info.enableMTLS || info.slimMode {
+		return nil
+	}
+
+	runtimeCmd := utils.GetContainerRuntimeCmd(info.containerRuntime)
+	sentryContainerName := utils.CreateContainerName(DaprSentryContainerName, info.dockerNetwork)
+
+	exists, err := confirmContainerIsRunningOrExists(sentryContainerName, false, runtimeCmd)
+	if err != nil {
+		return err
+	} else if exists {
+		return fmt.Errorf("%s container exists or is running. %s", sentryContainerName, errInstallTemplate)
+	}
+
+	var image string
+
+	imgInfo := daprImageInfo{
+		ghcrImageName:      daprGhcrImageName,
+		dockerHubImageName: daprDockerImageName,
+		imageRegistryURL:   info.imageRegistryURL,
+		imageRegistryName:  defaultImageRegistryName,
+	}
+
+	if isAirGapInit {
+		dir := path_filepath.Join(info.fromDir, *info.bundleDet.ImageSubDir)
+		image = info.bundleDet.getDaprImageName()
+		err = loadContainer(dir, info.bundleDet.getDaprImageFileName(), info.containerRuntime)
+		if err != nil {
+			return err
+		}
+	} else {
+		image, err = getDaprImageName(imgInfo, info)
+		if err != nil {
+			return err
+		}
+	}
+	
+	args := buildSentryContainerRunArgs(info, image)
+
+	_, err = utils.RunCmdAndWait(runtimeCmd, args...)
+	if err != nil {
+		runError := isContainerRunError(err)
+		if !runError {
+			return parseContainerRuntimeError("sentry service", err)
+		} else {
+			return fmt.Errorf("%s %s failed with: %w", runtimeCmd, args, err)
+		}
+	}
+	return nil
 }
 
 // checkSchedulerPorts verifies that all ports required by the scheduler
@@ -967,7 +1139,7 @@ func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error
 		errorChan <- fmt.Errorf("error creating redis statestore component file: %w", err)
 		return
 	}
-	err = createDefaultConfiguration(zipkinHost, configPath)
+	err = createDefaultConfiguration(zipkinHost, configPath, info.enableMTLS)
 	if err != nil {
 		errorChan <- fmt.Errorf("error creating default configuration file: %w", err)
 		return
@@ -983,7 +1155,7 @@ func createSlimConfiguration(wg *sync.WaitGroup, errorChan chan<- error, info in
 
 	configPath := GetDaprConfigPath(info.installDir)
 	// For --slim we pass empty string so that we do not configure zipkin.
-	err := createDefaultConfiguration("", configPath)
+	err := createDefaultConfiguration("", configPath, info.enableMTLS)
 	if err != nil {
 		errorChan <- fmt.Errorf("error creating default configuration file: %w", err)
 		return
@@ -1275,7 +1447,7 @@ func createRedisPubSub(redisHost string, componentsPath string) error {
 	return err
 }
 
-func createDefaultConfiguration(zipkinHost, filePath string) error {
+func createDefaultConfiguration(zipkinHost, filePath string, enableMTLS bool) error {
 	defaultConfig := configuration{
 		APIVersion: "dapr.io/v1alpha1",
 		Kind:       "Configuration",
@@ -1285,9 +1457,18 @@ func createDefaultConfiguration(zipkinHost, filePath string) error {
 		defaultConfig.Spec.Tracing.SamplingRate = "1"
 		defaultConfig.Spec.Tracing.Zipkin.EndpointAddress = fmt.Sprintf("http://%s:9411/api/v2/spans", zipkinHost) //nolint:nosprintfhostport
 	}
+	if enableMTLS {
+		defaultConfig.Spec.MTLS.Enabled = true
+	}
 	b, err := yaml.Marshal(&defaultConfig)
 	if err != nil {
 		return err
+	}
+
+	if enableMTLS {
+		if _, err := os.Stat(filePath); err == nil {
+			return mergeMTLSIntoConfiguration(filePath)
+		}
 	}
 
 	err = checkAndOverWriteFile(filePath, b)

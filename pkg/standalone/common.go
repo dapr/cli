@@ -27,6 +27,7 @@ const (
 
 	defaultDaprBinDirName       = "bin"
 	defaultComponentsDirName    = "components"
+	defaultCertsDirName         = "certs"
 	defaultSchedulerDirName     = "scheduler"
 	defaultSchedulerDataDirName = "data"
 )
@@ -83,4 +84,8 @@ func GetDaprComponentsPath(daprDir string) string {
 
 func GetDaprConfigPath(daprDir string) string {
 	return path_filepath.Join(daprDir, DefaultConfigFileName)
+}
+
+func GetDaprCertsPath(daprDir string) string {
+	return path_filepath.Join(daprDir, defaultCertsDirName)
 }

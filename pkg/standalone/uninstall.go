@@ -28,27 +28,45 @@ import (
 func removeContainers(uninstallPlacementContainer, uninstallSchedulerContainer, uninstallAll bool, dockerNetwork, runtimeCmd string) []error {
 	var containerErrs []error
 
-	if uninstallPlacementContainer {
-		containerErrs = removeDockerContainer(containerErrs, DaprPlacementContainerName, dockerNetwork, runtimeCmd)
-	}
-
-	if uninstallSchedulerContainer {
-		containerErrs = removeDockerContainer(containerErrs, DaprSchedulerContainerName, dockerNetwork, runtimeCmd)
-	}
-
-	if uninstallAll {
-		containerErrs = removeDockerContainer(containerErrs, DaprRedisContainerName, dockerNetwork, runtimeCmd)
-		containerErrs = removeDockerContainer(containerErrs, DaprZipkinContainerName, dockerNetwork, runtimeCmd)
+	for _, container := range containersToRemove(uninstallPlacementContainer, uninstallSchedulerContainer, uninstallAll) {
+		containerErrs = removeDockerContainer(containerErrs, container.name, dockerNetwork, runtimeCmd, container.warnIfMissing)
 	}
 
 	return containerErrs
 }
 
-func removeDockerContainer(containerErrs []error, containerName, network, runtimeCmd string) []error {
+type removableContainer struct {
+	name          string
+	warnIfMissing bool
+}
+
+func containersToRemove(uninstallPlacementContainer, uninstallSchedulerContainer, uninstallAll bool) []removableContainer {
+	containers := []removableContainer{}
+	if uninstallPlacementContainer {
+		containers = append(containers, removableContainer{name: DaprPlacementContainerName, warnIfMissing: true})
+	}
+	if uninstallSchedulerContainer {
+		containers = append(containers, removableContainer{name: DaprSchedulerContainerName, warnIfMissing: true})
+	}
+	if uninstallPlacementContainer || uninstallAll {
+		containers = append(containers, removableContainer{name: DaprSentryContainerName})
+	}
+	if uninstallAll {
+		containers = append(containers,
+			removableContainer{name: DaprRedisContainerName, warnIfMissing: true},
+			removableContainer{name: DaprZipkinContainerName, warnIfMissing: true},
+		)
+	}
+	return containers
+}
+
+func removeDockerContainer(containerErrs []error, containerName, network, runtimeCmd string, warnIfMissing bool) []error {
 	container := utils.CreateContainerName(containerName, network)
 	exists, _ := confirmContainerIsRunningOrExists(container, false, runtimeCmd)
 	if !exists {
-		print.WarningStatusEvent(os.Stdout, "WARNING: %s container does not exist", container)
+		if warnIfMissing {
+			print.WarningStatusEvent(os.Stdout, "WARNING: %s container does not exist", container)
+		}
 		return containerErrs
 	}
 	print.InfoStatusEvent(os.Stdout, "Removing container: %s", container)

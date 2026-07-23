@@ -14,12 +14,16 @@ limitations under the License.
 package standalone
 
 import (
+	"os"
+	"path/filepath"
 	"runtime"
 	"sort"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/dapr/dapr/pkg/security/consts"
 )
 
 func strPtr(s string) *string { return &s }
@@ -142,6 +146,54 @@ func TestGetEnv(t *testing.T) {
 
 		assert.Equal(t, expect, got)
 	})
+}
+
+func TestGetArgsWithMTLSConfig(t *testing.T) {
+	configFile := filepath.Join(t.TempDir(), "config.yaml")
+	err := createDefaultConfiguration("", configFile, true)
+	assert.NoError(t, err)
+
+	config := &RunConfig{
+		SharedRunConfig: SharedRunConfig{
+			ConfigFile: configFile,
+		},
+	}
+
+	args := config.getArgs()
+
+	assert.Contains(t, args, "--enable-mtls")
+	assert.Contains(t, args, "--sentry-address")
+	assert.Contains(t, args, sentryDefaultAddress)
+	assert.Contains(t, args, "--control-plane-trust-domain")
+	assert.Contains(t, args, defaultTrustDomain)
+}
+
+func TestGetDaprCommandSetsMTLSTrustAnchors(t *testing.T) {
+	runtimePath := t.TempDir()
+	daprDir := filepath.Join(runtimePath, DefaultDaprDirName)
+	certsDir := GetDaprCertsPath(daprDir)
+	err := os.MkdirAll(certsDir, 0o755)
+	assert.NoError(t, err)
+
+	trustAnchors := "-----BEGIN CERTIFICATE-----\ntest\n-----END CERTIFICATE-----\n"
+	err = os.WriteFile(filepath.Join(certsDir, trustAnchorsFile), []byte(trustAnchors), 0o600)
+	assert.NoError(t, err)
+
+	configFile := filepath.Join(t.TempDir(), "config.yaml")
+	err = createDefaultConfiguration("", configFile, true)
+	assert.NoError(t, err)
+
+	cmd, err := GetDaprCommand(&RunConfig{
+		SharedRunConfig: SharedRunConfig{
+			ConfigFile:       configFile,
+			DaprdInstallPath: runtimePath,
+		},
+	})
+	assert.NoError(t, err)
+
+	assert.Contains(t, cmd.Env, consts.TrustAnchorsEnvVar+"="+trustAnchors)
+	assert.Contains(t, cmd.Args, "--control-plane-trust-domain")
+	assert.Contains(t, cmd.Args, defaultTrustDomain)
 }
 
 func TestValidatePlacementHostAddr(t *testing.T) {
