@@ -174,7 +174,9 @@ func TestGetVersionAndImageVariant(t *testing.T) {
 
 func TestValidateFilePaths(t *testing.T) {
 	dirName := createTempDir(t, "test_validate_paths")
-	defer cleanupTempDir(t, dirName)
+	t.Cleanup(func() {
+		cleanupTempDir(t, dirName)
+	})
 	validFile := createTempFile(t, dirName, "valid_test_file.yaml")
 	testcases := []struct {
 		name        string
@@ -212,6 +214,14 @@ func TestGetAbsPath(t *testing.T) {
 	assert.NoError(t, err)
 	baseDir := filepath.Dir(ex)
 
+	// An absolute path is platform specific: on Windows a rooted path such as
+	// "/absolute/path" carries no volume name, so filepath.IsAbs reports false
+	// for it and GetAbsPath joins it with baseDir instead of returning it.
+	absolutePath := "/absolute/path"
+	if runtime.GOOS == "windows" {
+		absolutePath = `C:\absolute\path`
+	}
+
 	testcases := []struct {
 		name     string
 		input    string
@@ -234,8 +244,8 @@ func TestGetAbsPath(t *testing.T) {
 		},
 		{
 			name:     "absolute path",
-			input:    "/absolute/path",
-			expected: "/absolute/path",
+			input:    absolutePath,
+			expected: absolutePath,
 		},
 	}
 
@@ -311,7 +321,9 @@ func TestResolveHomeDir(t *testing.T) {
 
 func TestReadFile(t *testing.T) {
 	fileName := createTempFile(t, "", "test_read_file")
-	defer cleanupTempDir(t, fileName)
+	t.Cleanup(func() {
+		cleanupTempDir(t, fileName)
+	})
 	testcases := []struct {
 		name        string
 		input       string
