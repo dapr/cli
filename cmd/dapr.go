@@ -78,8 +78,10 @@ func Execute(version, apiVersion string) {
 	cobra.OnInitialize(initConfig)
 
 	if err := RootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(-1)
+		// cobra already prints the error and usage hint to stderr, so avoid
+		// printing it a second time to stdout. Exit 1 rather than -1 (which
+		// surfaces as 255) to follow the conventional CLI failure code.
+		os.Exit(1)
 	}
 }
 
