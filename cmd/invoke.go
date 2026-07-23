@@ -74,7 +74,7 @@ dapr invoke --unix-domain-socket /tmp --app-id target --method sample --verb GET
 				print.FailureStatusEvent(os.Stderr, "The unix-domain-socket option is not supported on Windows")
 				os.Exit(1)
 			} else {
-				print.WarningStatusEvent(os.Stdout, "Unix domain sockets are currently a preview feature")
+				print.WarningStatusEvent(os.Stderr, "Unix domain sockets are currently a preview feature")
 			}
 		}
 
@@ -88,7 +88,7 @@ dapr invoke --unix-domain-socket /tmp --app-id target --method sample --verb GET
 		if response != "" {
 			fmt.Println(response)
 		}
-		print.SuccessStatusEvent(os.Stdout, "App invoked successfully")
+		print.SuccessStatusEvent(os.Stderr, "App invoked successfully")
 	},
 }
 
