@@ -90,9 +90,9 @@ dapr uninstall --runtime-path <path-to-install-directory>
 
 		if err != nil {
 			print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Error removing Dapr: %s", err))
-		} else {
-			print.SuccessStatusEvent(os.Stdout, "Dapr has been removed successfully")
+			os.Exit(1)
 		}
+		print.SuccessStatusEvent(os.Stdout, "Dapr has been removed successfully")
 	},
 }
 

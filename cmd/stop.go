@@ -61,19 +61,22 @@ dapr stop --run-file /path/to/directory -k
 				err = executeStopWithRunFile(runFilePath)
 				if err != nil {
 					print.FailureStatusEvent(os.Stderr, "Failed to stop Dapr and app processes: %s", err)
-				} else {
-					print.SuccessStatusEvent(os.Stdout, "Dapr and app processes stopped successfully")
+					os.Exit(1)
 				}
+				print.SuccessStatusEvent(os.Stdout, "Dapr and app processes stopped successfully")
 				return
 			}
 			config, _, cErr := getRunConfigFromRunFile(runFilePath)
 			if cErr != nil {
 				print.FailureStatusEvent(os.Stderr, "Failed to parse run template file %q: %s", runFilePath, cErr.Error())
+				os.Exit(1)
 			}
 			err = kubernetes.Stop(runFilePath, config)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, "Error stopping deployments from multi-app run template: %v", err)
+				os.Exit(1)
 			}
+			return
 		}
 		if stopAppID != "" {
 			args = append(args, stopAppID)
@@ -84,13 +87,18 @@ dapr stop --run-file /path/to/directory -k
 			os.Exit(1)
 		}
 		cliPIDToNoOfApps := standalone.GetCLIPIDCountMap(apps)
+		stopFailed := false
 		for _, appID := range args {
 			err = standalone.Stop(appID, cliPIDToNoOfApps, apps)
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, "failed to stop app id %s: %s", appID, err)
+				stopFailed = true
 			} else {
 				print.SuccessStatusEvent(os.Stdout, "app stopped successfully: %s", appID)
 			}
+		}
+		if stopFailed {
+			os.Exit(1)
 		}
 	},
 }

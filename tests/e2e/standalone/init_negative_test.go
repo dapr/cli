@@ -54,7 +54,7 @@ func TestStandaloneInitNegatives(t *testing.T) {
 
 	t.Run("stop without install", func(t *testing.T) {
 		output, err := cmdStopWithAppID("test")
-		require.NoError(t, err, "expected no error on stop without install")
+		require.Error(t, err, "expected non-zero exit code on stop without install")
 		require.Contains(t, output, "failed to stop app id test: couldn't find app id test", "expected output to match")
 	})
 

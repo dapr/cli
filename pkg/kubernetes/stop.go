@@ -42,13 +42,13 @@ func Stop(runFilePath string, config runfileconfig.RunFileConfig) error {
 		serviceFilePath := filepath.Join(deployDir, serviceFileName)
 		deploymentFilePath := filepath.Join(deployDir, deploymentFileName)
 		if app.CreateService {
-			err = deleteYamlK8s(serviceFilePath)
+			err = deleteYamlK8s(serviceFilePath, true)
 			if err != nil {
 				appError = true
 			}
 			errs = append(errs, err)
 		}
-		err = deleteYamlK8s(deploymentFilePath)
+		err = deleteYamlK8s(deploymentFilePath, true)
 		if err != nil {
 			appError = true
 		}
