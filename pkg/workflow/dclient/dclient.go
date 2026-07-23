@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"slices"
 	"sort"
 	"strconv"
@@ -31,6 +32,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/dapr/cli/pkg/kubernetes"
+	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/pkg/standalone"
 	"github.com/dapr/cli/pkg/workflow/db"
 	"github.com/dapr/dapr/pkg/apis/components/v1alpha1"
@@ -203,19 +205,19 @@ func kube(ctx context.Context, opts Options) (*Client, error) {
 }
 
 func (c *Client) InstanceIDs(ctx context.Context) ([]string, error) {
-	resp, err := c.WF.ListInstanceIDs(ctx)
-	if err != nil {
-		code, ok := status.FromError(err)
-		if !ok || (code.Code() != codes.Unimplemented && code.Code() != codes.Unknown) {
-			return nil, err
+	resp, rpcErr := c.WF.ListInstanceIDs(ctx)
+	if rpcErr != nil {
+		if ctx.Err() != nil {
+			return nil, rpcErr
 		}
 
-		// Dapr is pre v1.17, so fall back to reading from the state store
-		// directly.
-		var metaKeys []string
-		metaKeys, err = c.metaKeysFromDB(ctx)
+		// The listing API may not be served by this runtime (pre v1.17), so
+		// fall back to reading from the state store directly.
+		print.WarningStatusEvent(os.Stderr, "Failed to list workflows via the Dapr runtime, falling back to reading the state store directly: %v", rpcErr)
+
+		metaKeys, err := c.metaKeysFromDB(ctx)
 		if err != nil {
-			return nil, err
+			return nil, errors.Join(rpcErr, err)
 		}
 
 		instanceIDs := make([]string, 0, len(metaKeys))
@@ -228,15 +230,15 @@ func (c *Client) InstanceIDs(ctx context.Context) ([]string, error) {
 			instanceIDs = append(instanceIDs, split[2])
 		}
 
-		return instanceIDs, err
+		return instanceIDs, nil
 	}
 
 	ids := resp.InstanceIds
 
 	for resp.ContinuationToken != nil {
-		resp, err = c.WF.ListInstanceIDs(ctx, workflow.WithListInstanceIDsContinuationToken(*resp.ContinuationToken))
-		if err != nil {
-			return nil, err
+		resp, rpcErr = c.WF.ListInstanceIDs(ctx, workflow.WithListInstanceIDsContinuationToken(*resp.ContinuationToken))
+		if rpcErr != nil {
+			return nil, rpcErr
 		}
 
 		ids = append(ids, resp.InstanceIds...)
