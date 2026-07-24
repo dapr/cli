@@ -55,20 +55,32 @@ LOCAL_OS := $(shell uname)
 ifeq ($(LOCAL_OS),Linux)
    TARGET_OS_LOCAL = linux
    GOLANGCI_LINT:=golangci-lint
+   FINDBIN := which
    export ARCHIVE_EXT = .tar.gz
 else ifeq ($(LOCAL_OS),Darwin)
    TARGET_OS_LOCAL = darwin
    GOLANGCI_LINT:=golangci-lint
+   FINDBIN := which
    PATH := $(PATH):$(HOME)/go/bin/darwin_$(GOARCH)
    export ARCHIVE_EXT = .tar.gz
 else
    TARGET_OS_LOCAL ?= windows
    BINARY_EXT_LOCAL = .exe
    GOLANGCI_LINT:=golangci-lint.exe
+   FINDBIN := where
    export ARCHIVE_EXT = .zip
 endif
 export GOOS ?= $(TARGET_OS_LOCAL)
 export BINARY_EXT ?= $(BINARY_EXT_LOCAL)
+
+# Version of golangci-lint used by the GitHub Actions pipeline (.github/workflows/dapr_cli.yaml).
+GH_LINT_VERSION := $(shell grep 'GOLANG_CI_LINT_VER:' .github/workflows/dapr_cli.yaml | xargs | cut -d' ' -f2)
+LINTER_BINARY := $(shell $(FINDBIN) $(GOLANGCI_LINT) 2>/dev/null)
+ifeq (,$(LINTER_BINARY))
+  INSTALLED_LINT_VERSION := v0.0.0
+else
+  INSTALLED_LINT_VERSION := v$(shell $(GOLANGCI_LINT) --version | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+endif
 
 TEST_OUTPUT_FILE ?= test_output.json
 
@@ -111,10 +123,37 @@ $(CLI_BINARY):
 	-o $(BINS_OUT_DIR)/$(CLI_BINARY)$(BINARY_EXT);
 
 ################################################################################
+# Target: verify-linter-installed                                             #
+################################################################################
+.PHONY: verify-linter-installed
+verify-linter-installed:
+	@if [ -z "$(LINTER_BINARY)" ]; then \
+	  echo "[!] golangci-lint is not installed"; \
+	  echo "[!] You can install it from https://golangci-lint.run/usage/install/"; \
+	  echo "[!]   or by running"; \
+	  echo "[!]   curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin $(GH_LINT_VERSION)"; \
+	  exit 1; \
+	fi
+
+################################################################################
+# Target: verify-linter-version                                               #
+################################################################################
+.PHONY: verify-linter-version
+verify-linter-version:
+	@if [ "$(GH_LINT_VERSION)" != "$(INSTALLED_LINT_VERSION)" ]; then \
+	  echo "[!] Your locally installed version of golangci-lint is different from the pipeline"; \
+	  echo "[!] This will likely cause linting issues for you locally"; \
+	  echo "[!] Yours:  $(INSTALLED_LINT_VERSION)"; \
+	  echo "[!] Theirs: $(GH_LINT_VERSION)"; \
+	  echo "[!] Upgrade: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin $(GH_LINT_VERSION)"; \
+	  sleep 3; \
+	fi
+
+################################################################################
 # Target: lint                                                                 #
 ################################################################################
 .PHONY: lint
-lint:
+lint: verify-linter-installed verify-linter-version
 	$(GOLANGCI_LINT) run --timeout=20m
 
 ################################################################################
