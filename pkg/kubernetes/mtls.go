@@ -46,12 +46,19 @@ func IsMTLSEnabled() (bool, error) {
 }
 
 func getSystemConfig() (*v1alpha1.Configuration, error) {
+	return getSystemConfigInNamespace(meta_v1.NamespaceAll)
+}
+
+// getSystemConfigInNamespace looks up the Dapr system configuration in the given
+// namespace. Passing meta_v1.NamespaceAll ("") searches across all namespaces,
+// which preserves the behaviour for single control-plane installs.
+func getSystemConfigInNamespace(namespace string) (*v1alpha1.Configuration, error) {
 	client, err := DaprClient()
 	if err != nil {
 		return nil, err
 	}
 
-	configs, err := client.ConfigurationV1alpha1().Configurations(meta_v1.NamespaceAll).List(meta_v1.ListOptions{})
+	configs, err := client.ConfigurationV1alpha1().Configurations(namespace).List(meta_v1.ListOptions{})
 	// This means that the Dapr Configurations CRD is not installed and
 	// therefore no configuration items exist.
 	if apierrors.IsNotFound(err) {
@@ -134,12 +141,19 @@ func CheckForCertExpiry() {
 }
 
 func getTrustChainSecret() (*corev1.Secret, error) {
+	return getTrustChainSecretInNamespace(meta_v1.NamespaceAll)
+}
+
+// getTrustChainSecretInNamespace returns the trust chain secret for the control
+// plane in the given namespace. Passing meta_v1.NamespaceAll ("") preserves the
+// original auto-detect behaviour.
+func getTrustChainSecretInNamespace(namespace string) (*corev1.Secret, error) {
 	_, client, err := GetKubeConfigClient()
 	if err != nil {
 		return nil, err
 	}
 
-	c, err := getSystemConfig()
+	c, err := getSystemConfigInNamespace(namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +172,14 @@ func getTrustChainSecret() (*corev1.Secret, error) {
 
 // Expiry returns the expiry time for the root cert.
 func Expiry() (*time.Time, error) {
-	secret, err := getTrustChainSecret()
+	return ExpiryInNamespace(meta_v1.NamespaceAll)
+}
+
+// ExpiryInNamespace returns the expiry time for the root cert of the control
+// plane in the given namespace. Passing meta_v1.NamespaceAll ("") preserves the
+// original auto-detect behaviour.
+func ExpiryInNamespace(namespace string) (*time.Time, error) {
+	secret, err := getTrustChainSecretInNamespace(namespace)
 	if err != nil {
 		return nil, err
 	}

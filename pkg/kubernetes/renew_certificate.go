@@ -25,6 +25,7 @@ import (
 	"time"
 
 	helm "helm.sh/helm/v3/pkg/action"
+	k8s "k8s.io/client-go/kubernetes"
 	"k8s.io/helm/pkg/strvals"
 
 	"github.com/dapr/cli/pkg/print"
@@ -40,6 +41,9 @@ type RenewCertificateParams struct {
 	ValidUntil                time.Duration
 	Timeout                   uint
 	ImageVariant              string
+	// Namespace optionally targets a specific control-plane namespace. When
+	// empty the namespace is auto-detected.
+	Namespace string
 }
 
 func RenewCertificate(conf RenewCertificateParams) error {
@@ -47,6 +51,14 @@ func RenewCertificate(conf RenewCertificateParams) error {
 	var issuerCertBytes []byte
 	var issuerKeyBytes []byte
 	var err error
+
+	// Resolve the target control-plane namespace up-front so that certificate
+	// generation, the Helm upgrade and the restart all act on the same one.
+	namespace, err := resolveControlPlaneNamespace(conf.Namespace)
+	if err != nil {
+		return err
+	}
+
 	if conf.RootCertificateFilePath != "" && conf.IssuerCertificateFilePath != "" && conf.IssuerPrivateKeyFilePath != "" {
 		rootCertBytes, issuerCertBytes, issuerKeyBytes, err = parseCertificateFiles(
 			conf.RootCertificateFilePath,
@@ -58,17 +70,71 @@ func RenewCertificate(conf RenewCertificateParams) error {
 	} else {
 		rootCertBytes, issuerCertBytes, issuerKeyBytes, err = GenerateNewCertificates(
 			conf.ValidUntil,
-			conf.RootPrivateKeyFilePath)
+			conf.RootPrivateKeyFilePath,
+			namespace)
 		if err != nil {
 			return err
 		}
 	}
 	print.InfoStatusEvent(os.Stdout, "Updating certifcates in your Kubernetes cluster")
-	err = renewCertificate(rootCertBytes, issuerCertBytes, issuerKeyBytes, conf.Timeout, conf.ImageVariant)
+	err = renewCertificate(rootCertBytes, issuerCertBytes, issuerKeyBytes, conf.Timeout, conf.ImageVariant, namespace)
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+// resolveControlPlaneNamespace determines which Dapr control-plane namespace to
+// operate on. When namespace is provided explicitly it is used as-is. Otherwise
+// the namespace is auto-detected; if more than one control plane is present the
+// caller is asked to disambiguate with --namespace instead of silently picking
+// one.
+func resolveControlPlaneNamespace(namespace string) (string, error) {
+	if namespace != "" {
+		return namespace, nil
+	}
+	_, client, err := GetKubeConfigClient()
+	if err != nil {
+		return "", err
+	}
+	namespaces, err := listControlPlaneNamespaces(client)
+	if err != nil {
+		return "", err
+	}
+	return selectControlPlaneNamespace(namespaces)
+}
+
+// selectControlPlaneNamespace picks a single control-plane namespace from the
+// detected set, erroring when the choice is ambiguous.
+func selectControlPlaneNamespace(namespaces []string) (string, error) {
+	switch len(namespaces) {
+	case 0:
+		return "", errors.New("dapr is not installed in your cluster")
+	case 1:
+		return namespaces[0], nil
+	default:
+		return "", fmt.Errorf("multiple Dapr control planes detected in namespaces %v; specify the target with --namespace", namespaces)
+	}
+}
+
+// listControlPlaneNamespaces returns the distinct namespaces that contain a Dapr
+// sentry (control plane) deployment.
+func listControlPlaneNamespaces(client k8s.Interface) ([]string, error) {
+	pods, err := ListPodsInterface(client, map[string]string{"app": "dapr-sentry"})
+	if err != nil {
+		return nil, err
+	}
+	seen := map[string]struct{}{}
+	namespaces := []string{}
+	for _, pod := range pods.Items {
+		ns := pod.GetNamespace()
+		if _, ok := seen[ns]; ok {
+			continue
+		}
+		seen[ns] = struct{}{}
+		namespaces = append(namespaces, ns)
+	}
+	return namespaces, nil
 }
 
 func parseCertificateFiles(rootCert, issuerCert, issuerKey string) ([]byte, []byte, []byte, error) {
@@ -87,14 +153,14 @@ func parseCertificateFiles(rootCert, issuerCert, issuerKey string) ([]byte, []by
 	return rootCertBytes, issuerCertBytes, issuerKeyBytes, nil
 }
 
-func renewCertificate(rootCert, issuerCert, issuerKey []byte, timeout uint, imageVariant string) error {
+func renewCertificate(rootCert, issuerCert, issuerKey []byte, timeout uint, imageVariant, namespace string) error {
 	var daprVersion, daprImageVariant string
 	status, err := GetDaprResourcesStatus()
 	if err != nil {
 		return err
 	}
 	daprVersion = GetDaprVersion(status)
-	print.InfoStatusEvent(os.Stdout, "Dapr control plane version %s detected in namespace %s", daprVersion, status[0].Namespace)
+	print.InfoStatusEvent(os.Stdout, "Dapr control plane version %s detected in namespace %s", daprVersion, namespace)
 
 	// Get the control plane version from daprversion(1.x.x-mariner), if image variant is provided.
 	// Here, imageVariant is used only to extract the actual control plane version,
@@ -106,7 +172,7 @@ func renewCertificate(rootCert, issuerCert, issuerKey []byte, timeout uint, imag
 		}
 	}
 
-	helmConf, err := helmConfig(status[0].Namespace)
+	helmConf, err := helmConfig(namespace)
 	if err != nil {
 		return err
 	}
@@ -122,7 +188,7 @@ func renewCertificate(rootCert, issuerCert, issuerKey []byte, timeout uint, imag
 	upgradeClient.ReuseValues = true
 	upgradeClient.Wait = true
 	upgradeClient.Timeout = time.Duration(timeout) * time.Second //nolint:gosec
-	upgradeClient.Namespace = status[0].Namespace
+	upgradeClient.Namespace = namespace
 
 	// Override the helm configuration values with the new certificates.
 	vals, err := createHelmParamsForNewCertificates(string(rootCert), string(issuerCert), string(issuerKey))
@@ -162,7 +228,7 @@ func createHelmParamsForNewCertificates(ca, issuerCert, issuerKey string) (map[s
 	return chartVals, nil
 }
 
-func GenerateNewCertificates(validUntil time.Duration, privateKeyFile string) ([]byte, []byte, []byte, error) {
+func GenerateNewCertificates(validUntil time.Duration, privateKeyFile, namespace string) ([]byte, []byte, []byte, error) {
 	var rootKey *ecdsa.PrivateKey
 	if privateKeyFile != "" {
 		privateKeyBytes, err := os.ReadFile(privateKeyFile)
@@ -184,7 +250,7 @@ func GenerateNewCertificates(validUntil time.Duration, privateKeyFile string) ([
 			return nil, nil, nil, err
 		}
 	}
-	systemConfig, err := GetDaprControlPlaneCurrentConfig()
+	systemConfig, err := GetDaprControlPlaneCurrentConfigInNamespace(namespace)
 	if err != nil {
 		return nil, nil, nil, err
 	}

@@ -43,6 +43,16 @@ func GetDaprControlPlaneCurrentConfig() (*v1alpha1.Configuration, error) {
 	if err != nil {
 		return nil, err
 	}
+	return GetDaprControlPlaneCurrentConfigInNamespace(namespace)
+}
+
+// GetDaprControlPlaneCurrentConfigInNamespace returns the daprsystem
+// configuration from the given namespace. When namespace is empty it falls back
+// to auto-detecting the control-plane namespace.
+func GetDaprControlPlaneCurrentConfigInNamespace(namespace string) (*v1alpha1.Configuration, error) {
+	if namespace == "" {
+		return GetDaprControlPlaneCurrentConfig()
+	}
 	output, err := utils.RunCmdAndWait("kubectl", "get", "configurations.dapr.io/daprsystem", "-n", namespace, "-o", "json")
 	if err != nil {
 		return nil, err

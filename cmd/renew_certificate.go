@@ -35,6 +35,7 @@ var (
 	issuerPublicCertificateFile string
 	validUntil                  uint
 	restartDaprServices         bool
+	certRenewNamespace          string
 )
 
 func RenewCertificateCmd() *cobra.Command {
@@ -55,6 +56,9 @@ dapr mtls renew-certificate -k --ca-root-certificate <root.pem> --issuer-private
 
 # Generates new root and issuer certificates for kubernetes cluster with provided image variant
 dapr mtls renew-certificate -k --valid-until <no of days> --image-variant mariner --restart
+
+# Target a specific control-plane namespace (e.g. when not installed in dapr-system)
+dapr mtls renew-certificate -k --namespace custom-namespace --valid-until <no of days> --restart
 
 # Use alias to renew certificate command
 dapr mtls rnc -k --valid-until <no of days> --restart
@@ -90,6 +94,7 @@ dapr mtls renew-cert -k --valid-until <no of days> --restart
 						IssuerPrivateKeyFilePath:  issuerPrivateKeyFile,
 						Timeout:                   timeout,
 						ImageVariant:              imageVariant,
+						Namespace:                 certRenewNamespace,
 					})
 					if err != nil {
 						logErrorAndExit(err)
@@ -106,6 +111,7 @@ dapr mtls renew-cert -k --valid-until <no of days> --restart
 						ValidUntil:             time.Hour * time.Duration(validUntil*24), //nolint:gosec
 						Timeout:                timeout,
 						ImageVariant:           imageVariant,
+						Namespace:              certRenewNamespace,
 					})
 					if err != nil {
 						logErrorAndExit(err)
@@ -116,6 +122,7 @@ dapr mtls renew-cert -k --valid-until <no of days> --restart
 						ValidUntil:   time.Hour * time.Duration(validUntil*24), //nolint:gosec
 						Timeout:      timeout,
 						ImageVariant: imageVariant,
+						Namespace:    certRenewNamespace,
 					})
 					if err != nil {
 						logErrorAndExit(err)
@@ -124,7 +131,7 @@ dapr mtls renew-cert -k --valid-until <no of days> --restart
 			}
 		},
 		PostRun: func(cmd *cobra.Command, args []string) {
-			expiry, err := kubernetes.Expiry()
+			expiry, err := kubernetes.ExpiryInNamespace(certRenewNamespace)
 			if err != nil {
 				logErrorAndExit(err)
 			}
@@ -132,7 +139,7 @@ dapr mtls renew-cert -k --valid-until <no of days> --restart
 				"Certificate rotation is successful! Your new certificate is valid through "+expiry.Format(time.RFC1123))
 
 			if restartDaprServices {
-				restartControlPlaneService()
+				err = restartControlPlaneService(certRenewNamespace)
 				if err != nil {
 					print.FailureStatusEvent(os.Stdout, err.Error())
 					os.Exit(1)
@@ -150,6 +157,7 @@ dapr mtls renew-cert -k --valid-until <no of days> --restart
 	command.Flags().BoolVarP(&restartDaprServices, "restart", "", false, "Restart Dapr control plane services")
 	command.Flags().UintVarP(&timeout, "timeout", "", 300, "The timeout for the certificate renewal")
 	command.Flags().StringVarP(&imageVariant, "image-variant", "", "", "The image variant to use for the Dapr runtime, for example: mariner")
+	command.Flags().StringVarP(&certRenewNamespace, "namespace", "n", "", "The namespace of the Dapr control plane to renew certificates for. If unset, the namespace is auto-detected")
 	command.MarkFlagRequired("kubernetes")
 	return command
 }
@@ -169,16 +177,20 @@ func logErrorAndExit(err error) {
 	os.Exit(1)
 }
 
-func restartControlPlaneService() error {
+func restartControlPlaneService(namespace string) error {
 	controlPlaneServices := []string{
 		"deploy/dapr-sentry",
 		"deploy/dapr-sidecar-injector",
 		"deploy/dapr-operator",
 		"statefulsets/dapr-placement-server",
 	}
-	namespace, err := kubernetes.GetDaprNamespace()
-	if err != nil {
-		print.FailureStatusEvent(os.Stdout, "Failed to fetch Dapr namespace")
+	// When no namespace is provided explicitly, fall back to auto-detection.
+	if namespace == "" {
+		var err error
+		namespace, err = kubernetes.GetDaprNamespace()
+		if err != nil {
+			print.FailureStatusEvent(os.Stdout, "Failed to fetch Dapr namespace")
+		}
 	}
 
 	errs := make([]error, len(controlPlaneServices))
