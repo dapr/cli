@@ -26,6 +26,16 @@ DAPR_HTTP_REQUEST_CLI=curl
 GITHUB_ORG=dapr
 GITHUB_REPO=cli
 
+# Canonical GitHub Releases download base. Used for release probing and as a
+# fallback if the download gateway is unavailable.
+GITHUB_DOWNLOAD_BASE="https://github.com/${GITHUB_ORG}/${GITHUB_REPO}/releases/download"
+
+# Artifact download base URL. Defaults to the Dapr download gateway (Scarf),
+# which redirects to GitHub Releases and provides the project with anonymous
+# download counts. Set DAPR_DOWNLOAD_BASE to bypass the gateway, e.g.:
+#   DAPR_DOWNLOAD_BASE="https://github.com/dapr/cli/releases/download" ./install.sh
+: ${DAPR_DOWNLOAD_BASE:="https://downloads.dapr.io/cli"}
+
 # Dapr CLI filename
 DAPR_CLI_FILENAME=dapr
 
@@ -127,32 +137,47 @@ downloadFile() {
     LATEST_RELEASE_TAG=$1
 
     DAPR_CLI_ARTIFACT="${DAPR_CLI_FILENAME}_${OS}_${ARCH}.tar.gz"
-    DOWNLOAD_BASE="https://github.com/${GITHUB_ORG}/${GITHUB_REPO}/releases/download"
-    DOWNLOAD_URL="${DOWNLOAD_BASE}/${LATEST_RELEASE_TAG}/${DAPR_CLI_ARTIFACT}"
+    DOWNLOAD_URL="${DAPR_DOWNLOAD_BASE}/${LATEST_RELEASE_TAG}/${DAPR_CLI_ARTIFACT}"
 
     # Create the temp directory
     DAPR_TMP_ROOT=$(mktemp -dt dapr-install-XXXXXX)
     ARTIFACT_TMP_FILE="$DAPR_TMP_ROOT/$DAPR_CLI_ARTIFACT"
 
-    echo "Downloading $DOWNLOAD_URL ..."
-    if [ "$DAPR_HTTP_REQUEST_CLI" == "curl" ]; then
-        curl -SsL "$DOWNLOAD_URL" -o "$ARTIFACT_TMP_FILE"
-    else
-        wget -q -O "$ARTIFACT_TMP_FILE" "$DOWNLOAD_URL"
+    if ! fetchArtifact "$DOWNLOAD_URL" "$ARTIFACT_TMP_FILE"; then
+        if [ "$DAPR_DOWNLOAD_BASE" != "$GITHUB_DOWNLOAD_BASE" ]; then
+            echo "Download from ${DAPR_DOWNLOAD_BASE} failed, falling back to GitHub Releases..."
+            DOWNLOAD_URL="${GITHUB_DOWNLOAD_BASE}/${LATEST_RELEASE_TAG}/${DAPR_CLI_ARTIFACT}"
+            fetchArtifact "$DOWNLOAD_URL" "$ARTIFACT_TMP_FILE"
+        fi
     fi
 
-    if [ ! -f "$ARTIFACT_TMP_FILE" ]; then
+    if [ ! -s "$ARTIFACT_TMP_FILE" ]; then
         echo "failed to download $DOWNLOAD_URL ..."
         exit 1
     fi
+}
+
+fetchArtifact() {
+    local url=$1
+    local dest=$2
+
+    echo "Downloading $url ..."
+    if [ "$DAPR_HTTP_REQUEST_CLI" == "curl" ]; then
+        curl -SsLf "$url" -o "$dest" || return 1
+    else
+        wget -q -O "$dest" "$url" || return 1
+    fi
+
+    [ -s "$dest" ]
 }
 
 isReleaseAvailable() {
     LATEST_RELEASE_TAG=$1
 
     DAPR_CLI_ARTIFACT="${DAPR_CLI_FILENAME}_${OS}_${ARCH}.tar.gz"
-    DOWNLOAD_BASE="https://github.com/${GITHUB_ORG}/${GITHUB_REPO}/releases/download"
-    DOWNLOAD_URL="${DOWNLOAD_BASE}/${LATEST_RELEASE_TAG}/${DAPR_CLI_ARTIFACT}"
+    # Probe GitHub Releases directly: this is an existence check, not a download,
+    # so it should not go through (and be counted by) the download gateway.
+    DOWNLOAD_URL="${GITHUB_DOWNLOAD_BASE}/${LATEST_RELEASE_TAG}/${DAPR_CLI_ARTIFACT}"
 
     if [ "$DAPR_HTTP_REQUEST_CLI" == "curl" ]; then
         httpstatus=$(curl -sSLI -o /dev/null -w "%{http_code}" "$DOWNLOAD_URL")

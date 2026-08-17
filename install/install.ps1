@@ -14,7 +14,11 @@ param (
     [string]$Version,
     [string]$DaprRoot = "$Env:SystemDrive\dapr",
     [string]$DaprReleaseJsonUrl = "",
-    [scriptblock]$CustomAssetFactory = $null
+    [scriptblock]$CustomAssetFactory = $null,
+    # Artifact download base URL. Defaults to the Dapr download gateway (Scarf),
+    # which redirects to GitHub Releases and provides the project with anonymous
+    # download counts. Pass an empty string to download from GitHub directly.
+    [string]$DownloadBase = "https://downloads.dapr.io/cli"
 )
 
 Write-Output ""
@@ -126,12 +130,32 @@ $zipFileUrl = $asset.url
 $assetName = $asset.name
 
 $zipFilePath = $DaprRoot + "\" + $assetName
-Write-Output "Downloading $zipFileUrl ..."
 
-$githubHeader.Accept = "application/octet-stream"
 $oldProgressPreference = $progressPreference;
 $progressPreference = 'SilentlyContinue';
-Invoke-WebRequest -Headers $githubHeader -Uri $zipFileUrl -OutFile $zipFilePath
+$downloaded = $false
+
+# Download via the Dapr download gateway first (redirects to GitHub Releases and
+# provides the project with anonymous download counts). Skipped when a
+# CustomAssetFactory is used, since its asset URL may not exist on the gateway.
+if (!$CustomAssetFactory -and $DownloadBase) {
+    $gatewayUrl = "$DownloadBase/$($release.tag_name)/$assetName"
+    Write-Output "Downloading $gatewayUrl ..."
+    try {
+        # Note: no GitHub auth header here - this request does not go to GitHub.
+        Invoke-WebRequest -Uri $gatewayUrl -OutFile $zipFilePath
+        $downloaded = $true
+    }
+    catch {
+        Write-Output "Download from $DownloadBase failed, falling back to GitHub..."
+    }
+}
+
+if (!$downloaded) {
+    Write-Output "Downloading $zipFileUrl ..."
+    $githubHeader.Accept = "application/octet-stream"
+    Invoke-WebRequest -Headers $githubHeader -Uri $zipFileUrl -OutFile $zipFilePath
+}
 $progressPreference = $oldProgressPreference;
 if (!(Test-Path $zipFilePath -PathType Leaf)) {
     throw "Failed to download Dapr Cli binary - $zipFilePath"
