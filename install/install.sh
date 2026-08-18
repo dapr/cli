@@ -34,7 +34,7 @@ GITHUB_DOWNLOAD_BASE="https://github.com/${GITHUB_ORG}/${GITHUB_REPO}/releases/d
 # which redirects to GitHub Releases and provides the project with anonymous
 # download counts. Set DAPR_DOWNLOAD_BASE to bypass the gateway, e.g.:
 #   DAPR_DOWNLOAD_BASE="https://github.com/dapr/cli/releases/download" ./install.sh
-: ${DAPR_DOWNLOAD_BASE:="https://downloads.dapr.io/cli"}
+: ${DAPR_DOWNLOAD_BASE:="https://dapr.gateway.scarf.sh/cli"}
 
 # Dapr CLI filename
 DAPR_CLI_FILENAME=dapr

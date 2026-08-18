@@ -18,7 +18,7 @@ param (
     # Artifact download base URL. Defaults to the Dapr download gateway (Scarf),
     # which redirects to GitHub Releases and provides the project with anonymous
     # download counts. Pass an empty string to download from GitHub directly.
-    [string]$DownloadBase = "https://downloads.dapr.io/cli"
+    [string]$DownloadBase = "https://dapr.gateway.scarf.sh/cli"
 )
 
 Write-Output ""
