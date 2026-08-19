@@ -15,10 +15,15 @@ param (
     [string]$DaprRoot = "$Env:SystemDrive\dapr",
     [string]$DaprReleaseJsonUrl = "",
     [scriptblock]$CustomAssetFactory = $null,
-    # Artifact download base URL. Defaults to the Dapr download gateway (Scarf),
-    # which redirects to GitHub Releases and provides the project with anonymous
-    # download counts. Pass an empty string to download from GitHub directly.
-    [string]$DownloadBase = "https://dapr.gateway.scarf.sh/cli"
+    # Artifact download base URL. When set, downloads are routed through the Dapr
+    # download gateway (Scarf), which redirects to GitHub Releases and provides the
+    # project with anonymous download counts.
+    #
+    # Empty by default: the gateway's route resolves {platform}/{arch} to a
+    # `.tar.gz`, but the Windows artifact is a `.zip`, so every Windows request
+    # would 404 and fall back to GitHub with a warning. Set this to
+    # "https://dapr.gateway.scarf.sh/cli" once a Windows route exists.
+    [string]$DownloadBase = ""
 )
 
 Write-Output ""
@@ -139,7 +144,9 @@ $downloaded = $false
 # provides the project with anonymous download counts). Skipped when a
 # CustomAssetFactory is used, since its asset URL may not exist on the gateway.
 if (!$CustomAssetFactory -and $DownloadBase) {
-    $gatewayUrl = "$DownloadBase/$($release.tag_name)/$assetName"
+    # The gateway routes on /{version}/{platform}/{arch} and resolves the
+    # artifact name itself.
+    $gatewayUrl = "$DownloadBase/$($release.tag_name)/windows/amd64"
     Write-Output "Downloading $gatewayUrl ..."
     try {
         # Note: no GitHub auth header here - this request does not go to GitHub.

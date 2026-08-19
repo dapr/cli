@@ -30,11 +30,17 @@ GITHUB_REPO=cli
 # fallback if the download gateway is unavailable.
 GITHUB_DOWNLOAD_BASE="https://github.com/${GITHUB_ORG}/${GITHUB_REPO}/releases/download"
 
+# The download gateway routes on /{version}/{platform}/{arch} and resolves the
+# artifact name itself, so its URLs are shaped differently from GitHub's.
+DAPR_GATEWAY_DOWNLOAD_BASE="https://dapr.gateway.scarf.sh/cli"
+
 # Artifact download base URL. Defaults to the Dapr download gateway (Scarf),
 # which redirects to GitHub Releases and provides the project with anonymous
 # download counts. Set DAPR_DOWNLOAD_BASE to bypass the gateway, e.g.:
 #   DAPR_DOWNLOAD_BASE="https://github.com/dapr/cli/releases/download" ./install.sh
-: ${DAPR_DOWNLOAD_BASE:="https://dapr.gateway.scarf.sh/cli"}
+# Any base other than the gateway is treated as GitHub-shaped
+# (<base>/<version>/<artifact-filename>).
+: ${DAPR_DOWNLOAD_BASE:="$DAPR_GATEWAY_DOWNLOAD_BASE"}
 
 # Dapr CLI filename
 DAPR_CLI_FILENAME=dapr
@@ -137,7 +143,11 @@ downloadFile() {
     LATEST_RELEASE_TAG=$1
 
     DAPR_CLI_ARTIFACT="${DAPR_CLI_FILENAME}_${OS}_${ARCH}.tar.gz"
-    DOWNLOAD_URL="${DAPR_DOWNLOAD_BASE}/${LATEST_RELEASE_TAG}/${DAPR_CLI_ARTIFACT}"
+    if [ "$DAPR_DOWNLOAD_BASE" = "$DAPR_GATEWAY_DOWNLOAD_BASE" ]; then
+        DOWNLOAD_URL="${DAPR_DOWNLOAD_BASE}/${LATEST_RELEASE_TAG}/${OS}/${ARCH}"
+    else
+        DOWNLOAD_URL="${DAPR_DOWNLOAD_BASE}/${LATEST_RELEASE_TAG}/${DAPR_CLI_ARTIFACT}"
+    fi
 
     # Create the temp directory
     DAPR_TMP_ROOT=$(mktemp -dt dapr-install-XXXXXX)
