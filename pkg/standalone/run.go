@@ -93,6 +93,7 @@ type SharedRunConfig struct {
 	// Specifically omitted from annotations see https://github.com/dapr/cli/issues/1324 .
 	DaprdInstallPath    string            `yaml:"runtimePath"`
 	Env                 map[string]string `yaml:"env"`
+	EnvFile             string            `yaml:"envFile"`
 	DaprdLogDestination LogDestType       `yaml:"daprdLogDestination"`
 	AppLogDestination   LogDestType       `yaml:"appLogDestination"`
 	// Pointer string to distinguish omitted (nil) vs explicitly empty (disable) vs value provided
@@ -175,6 +176,49 @@ func (config *RunConfig) validateSchedulerHostAddr() error {
 	}
 	config.SchedulerHostAddress = &schedulerHostAddr
 	return nil
+}
+
+// validateEnvFile merges KEY=VALUE pairs from config.EnvFile into config.Env.
+// Keys already present in config.Env take precedence over the env file.
+func (config *RunConfig) validateEnvFile() error {
+	if config.EnvFile == "" {
+		return nil
+	}
+	fileEnv, err := parseEnvFile(config.EnvFile)
+	if err != nil {
+		return fmt.Errorf("error parsing env file %q : %w", config.EnvFile, err)
+	}
+	if config.Env == nil {
+		config.Env = map[string]string{}
+	}
+	for k, v := range fileEnv {
+		if _, ok := config.Env[k]; !ok {
+			config.Env[k] = v
+		}
+	}
+	return nil
+}
+
+// parseEnvFile reads KEY=VALUE pairs from a file, one per line. Blank lines
+// and lines starting with '#' are ignored.
+func parseEnvFile(path string) (map[string]string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	env := map[string]string{}
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		key, value, found := strings.Cut(line, "=")
+		if !found {
+			continue
+		}
+		env[strings.TrimSpace(key)] = strings.Trim(strings.TrimSpace(value), `"'`)
+	}
+	return env, nil
 }
 
 func (config *RunConfig) validatePort(portName string, portPtr *int, meta *DaprMeta) error {
@@ -278,7 +322,8 @@ func (config *RunConfig) Validate() error {
 	if err != nil {
 		return err
 	}
-	return nil
+
+	return config.validateEnvFile()
 }
 
 func (config *RunConfig) ValidateK8s() error {
@@ -323,7 +368,7 @@ func (config *RunConfig) ValidateK8s() error {
 		config.HTTPReadBufferSize = qBuffer.String()
 	}
 
-	return nil
+	return config.validateEnvFile()
 }
 
 type DaprMeta struct {
