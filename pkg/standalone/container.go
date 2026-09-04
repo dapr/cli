@@ -98,6 +98,19 @@ func confirmContainerIsRunningOrExists(containerName string, isRunning bool, run
 	return true, nil
 }
 
+// publishPortNetworkArgs returns the extra network args needed so that -p
+// mappings are honoured when the CLI does not pass an explicit --network.
+// podman applies the containers.conf netns default (e.g. netns="host"), which
+// silently drops every -p; "private" forces a fresh netns (bridge for rootful,
+// pasta/slirp4netns for rootless), i.e. podman's own default. docker has no
+// such override and does not accept "private", so it gets nothing.
+func publishPortNetworkArgs(runtimeCmd string) []string {
+	if runtimeCmd == string(utils.PODMAN) {
+		return []string{"--network", "private"}
+	}
+	return nil
+}
+
 func isContainerRunError(err error) bool {
 	if exitError, ok := err.(*exec.ExitError); ok {
 		exitCode := exitError.ExitCode()
