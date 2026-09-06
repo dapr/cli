@@ -18,6 +18,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -34,6 +35,7 @@ var (
 	invokeVerb      string
 	invokeDataFile  string
 	invokeSocket    string
+	invokeHeaders   []string
 )
 
 var InvokeCmd = &cobra.Command{
@@ -42,6 +44,9 @@ var InvokeCmd = &cobra.Command{
 	Example: `
 # Invoke a sample method on target app with POST Verb
 dapr invoke --app-id target --method sample --data '{"key":"value"}'
+
+# Invoke a sample method on target app with a custom HTTP header
+dapr invoke --app-id target --method sample --header "Authorization=Bearer token"
 
 # Invoke a sample method on target app with GET Verb
 dapr invoke --app-id target --method sample --verb GET
@@ -66,6 +71,16 @@ dapr invoke --unix-domain-socket /tmp --app-id target --method sample --verb GET
 		} else if invokeData != "" {
 			bytePayload = []byte(invokeData)
 		}
+		headers := http.Header{}
+		for _, h := range invokeHeaders {
+			k, v, ok := strings.Cut(h, "=")
+			if !ok || k == "" || v == "" {
+				print.FailureStatusEvent(os.Stderr, "Invalid header '%s'. Expected format: Key=Value", h)
+				os.Exit(1)
+			}
+			headers.Add(k, v)
+		}
+
 		client := standalone.NewClient()
 
 		// TODO(@daixiang0): add Windows support.
@@ -78,7 +93,7 @@ dapr invoke --unix-domain-socket /tmp --app-id target --method sample --verb GET
 			}
 		}
 
-		response, err := client.Invoke(invokeAppID, invokeAppMethod, bytePayload, invokeVerb, invokeSocket)
+		response, err := client.Invoke(invokeAppID, invokeAppMethod, bytePayload, invokeVerb, headers, invokeSocket)
 		if err != nil {
 			err = fmt.Errorf("error invoking app %s: %w", invokeAppID, err)
 			print.FailureStatusEvent(os.Stderr, err.Error())
@@ -98,6 +113,7 @@ func init() {
 	InvokeCmd.Flags().StringVarP(&invokeData, "data", "d", "", "The JSON serialized data string (optional)")
 	InvokeCmd.Flags().StringVarP(&invokeVerb, "verb", "v", defaultHTTPVerb, "The HTTP verb to use")
 	InvokeCmd.Flags().StringVarP(&invokeDataFile, "data-file", "f", "", "A file containing the JSON serialized data (optional)")
+	InvokeCmd.Flags().StringArrayVarP(&invokeHeaders, "header", "H", nil, "An HTTP header in Key=Value form (can be repeated)")
 	InvokeCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	InvokeCmd.Flags().StringVarP(&invokeSocket, "unix-domain-socket", "u", "", "Path to a unix domain socket dir. If specified, Dapr API servers will use Unix Domain Sockets")
 	InvokeCmd.MarkFlagRequired("app-id")

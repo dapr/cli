@@ -15,6 +15,7 @@ package standalone
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"runtime"
 	"testing"
@@ -105,7 +106,7 @@ func TestInvoke(t *testing.T) {
 					},
 				}
 
-				res, err := client.Invoke(tc.appID, tc.method, []byte(tc.resp), "GET", socket)
+				res, err := client.Invoke(tc.appID, tc.method, []byte(tc.resp), "GET", nil, socket)
 				if tc.errorExpected {
 					assert.Error(t, err, "expected an error")
 					assert.Equal(t, tc.errString, err.Error(), "expected error strings to match")
@@ -137,7 +138,7 @@ func TestInvoke(t *testing.T) {
 						Err: tc.listErr,
 					},
 				}
-				res, err := client.Invoke(tc.appID, tc.method, []byte(tc.resp), "POST", socket)
+				res, err := client.Invoke(tc.appID, tc.method, []byte(tc.resp), "POST", nil, socket)
 				if tc.errorExpected {
 					assert.Error(t, err, "expected an error")
 					assert.Equal(t, tc.errString, err.Error(), "expected error strings to match")
@@ -169,7 +170,7 @@ func TestInvoke(t *testing.T) {
 						Err: tc.listErr,
 					},
 				}
-				res, err := client.Invoke(tc.appID, tc.method, []byte(tc.resp), "DELETE", socket)
+				res, err := client.Invoke(tc.appID, tc.method, []byte(tc.resp), "DELETE", nil, socket)
 				if tc.errorExpected {
 					assert.Error(t, err, "expected an error")
 					assert.Equal(t, tc.errString, err.Error(), "expected error strings to match")
@@ -202,7 +203,7 @@ func TestInvoke(t *testing.T) {
 						Err: tc.listErr,
 					},
 				}
-				res, err := client.Invoke(tc.appID, tc.method, []byte(tc.resp), "PUT", socket)
+				res, err := client.Invoke(tc.appID, tc.method, []byte(tc.resp), "PUT", nil, socket)
 				if tc.errorExpected {
 					assert.Error(t, err, "expected an error")
 					assert.Equal(t, tc.errString, err.Error(), "expected error strings to match")
@@ -213,4 +214,26 @@ func TestInvoke(t *testing.T) {
 			})
 		}
 	}
+}
+
+func TestInvokeWithHeaders(t *testing.T) {
+	var gotHeaders http.Header
+	ts, port := getTestServerFunc(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotHeaders = r.Header
+	}))
+	ts.Start()
+	defer ts.Close()
+
+	client := &Standalone{
+		process: &mockDaprProcess{
+			Lo: []ListOutput{{AppID: "testapp", HTTPPort: port}},
+		},
+	}
+
+	headers := http.Header{}
+	headers.Add("Authorization", "Bearer token")
+
+	_, err := client.Invoke("testapp", "test", nil, "GET", headers, "")
+	assert.NoError(t, err)
+	assert.Equal(t, "Bearer token", gotHeaders.Get("Authorization"))
 }
