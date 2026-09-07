@@ -581,6 +581,14 @@ func GetDaprCommand(config *RunConfig) (*exec.Cmd, error) {
 
 	args := config.getArgs()
 	cmd := exec.Command(daprCMD, args...)
+
+	if len(config.Env) > 0 {
+		cmd.Env = os.Environ()
+		for k, v := range config.Env {
+			cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%v", k, v))
+		}
+	}
+
 	return cmd, nil
 }
 
