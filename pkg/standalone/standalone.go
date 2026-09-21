@@ -213,6 +213,10 @@ func isSchedulerPlacementIncluded(runtimeVersion string) (bool, error) {
 
 // isSchedulerIncluded returns true if scheduler is included a given version for Dapr.
 func isSchedulerIncluded(runtimeVersion string) (bool, error) {
+	if runtimeVersion == "edge" || runtimeVersion == "dev" {
+		return true, nil
+	}
+
 	c, err := semver.NewConstraint(daprVersionsWithScheduler)
 	if err != nil {
 		return false, err

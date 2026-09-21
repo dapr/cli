@@ -190,12 +190,17 @@ func restartControlPlaneService() error {
 			defer wg.Done()
 			// Not every service is deployed: the placement statefulset is
 			// absent when the scheduler serves actor placement.
-			if _, err := utils.RunCmdAndWait("kubectl", "get", "-n", namespace, name); err != nil {
+			out, err := utils.RunCmdAndWait("kubectl", "get", "-n", namespace, name, "--ignore-not-found", "-o", "name")
+			if err != nil {
+				errs[i] = fmt.Errorf("error checking whether %s is deployed: %w", name, err)
+				return
+			}
+			if strings.TrimSpace(out) == "" {
 				print.InfoStatusEvent(os.Stdout, fmt.Sprintf("%s is not deployed, skipping restart", name))
 				return
 			}
 			print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Restarting %s..", name))
-			_, err := utils.RunCmdAndWait("kubectl", "rollout", "restart", "-n", namespace, name)
+			_, err = utils.RunCmdAndWait("kubectl", "rollout", "restart", "-n", namespace, name)
 			if err != nil {
 				errs[i] = fmt.Errorf("error in restarting %s. Error is %w", name, err)
 				return

@@ -421,6 +421,8 @@ func TestIsSchedulerIncluded(t *testing.T) {
 		{"1.14.0-rc.1", true},
 		{"1.14.0-mycompany.1", true},
 		{"1.14.1", true},
+		{"edge", true},
+		{"dev", true},
 	}
 	for _, scenario := range scenarios {
 		t.Run("isSchedulerIncludedIn"+scenario.version, func(t *testing.T) {
