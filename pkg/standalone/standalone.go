@@ -489,6 +489,7 @@ func runZipkin(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 				"--network", info.dockerNetwork,
 				"--network-alias", DaprZipkinContainerName)
 		} else {
+			args = append(args, publishPortNetworkArgs(runtimeCmd)...)
 			args = append(
 				args,
 				"-p", "9411:9411")
@@ -550,6 +551,7 @@ func runRedis(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 				"--network", info.dockerNetwork,
 				"--network-alias", DaprRedisContainerName)
 		} else {
+			args = append(args, publishPortNetworkArgs(runtimeCmd)...)
 			args = append(
 				args,
 				"-p", "6379:6379")
@@ -651,6 +653,7 @@ func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 			osPort = 6050
 		}
 
+		args = append(args, publishPortNetworkArgs(runtimeCmd)...)
 		args = append(args,
 			"-p", fmt.Sprintf("%v:50005", osPort),
 			"-p", fmt.Sprintf("%v:8080", healthPort),
@@ -762,6 +765,7 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 			osPort = 6060
 		}
 
+		args = append(args, publishPortNetworkArgs(runtimeCmd)...)
 		args = append(args,
 			"-p", fmt.Sprintf("%v:50006", osPort),
 			"-p", fmt.Sprintf("%v:2379", schedulerEtcdPort),
