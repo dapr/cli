@@ -224,10 +224,21 @@ func TestStandaloneInit(t *testing.T) {
 	})
 
 	t.Run("init with scheduler placement", func(t *testing.T) {
+		latestDaprRuntimeVersion := common.GetVersionsFromEnv(t, true)
+
+		// --scheduler-placement requires Dapr >= 1.19. Skip until the latest
+		// stable release reaches that, rather than pinning a version that may
+		// not exist yet.
+		schedulerPlacementConstraint, err := semver.NewConstraint(">= 1.19.x")
+		require.NoError(t, err)
+		v, err := semver.NewVersion(latestDaprRuntimeVersion)
+		require.NoError(t, err)
+		if !schedulerPlacementConstraint.Check(v) {
+			t.Skipf("Skipping: latest stable Dapr %s is older than the first release with --scheduler-placement (>= 1.19)", latestDaprRuntimeVersion)
+		}
+
 		// Ensure a clean environment
 		must(t, cmdUninstall, "failed to uninstall Dapr")
-
-		latestDaprRuntimeVersion := common.GetVersionsFromEnv(t, true)
 
 		args := []string{
 			"--runtime-version", latestDaprRuntimeVersion,
