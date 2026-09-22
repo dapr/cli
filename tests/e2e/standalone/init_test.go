@@ -224,6 +224,10 @@ func TestStandaloneInit(t *testing.T) {
 	})
 
 	t.Run("init with scheduler placement", func(t *testing.T) {
+		if isSlimMode() {
+			t.Skip("Skipping scheduler placement test because of slim installation")
+		}
+
 		latestDaprRuntimeVersion := common.GetVersionsFromEnv(t, true)
 
 		// --scheduler-placement requires Dapr >= 1.19. Skip until the latest

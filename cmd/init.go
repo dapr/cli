@@ -119,6 +119,10 @@ dapr init --redis-stack
 				print.FailureStatusEvent(os.Stderr, "--redis-stack is only valid for self-hosted mode")
 				os.Exit(1)
 			}
+			if schedulerPlacement {
+				print.FailureStatusEvent(os.Stderr, "--scheduler-placement is only valid for self-hosted mode")
+				os.Exit(1)
+			}
 
 			if len(imageRegistryFlag) != 0 {
 				warnForPrivateRegFeat()
@@ -177,6 +181,10 @@ dapr init --redis-stack
 
 			if !utils.IsValidContainerRuntime(containerRuntime) {
 				print.FailureStatusEvent(os.Stderr, "Invalid container runtime. Supported values are docker and podman.")
+				os.Exit(1)
+			}
+			if slimMode && schedulerPlacement {
+				print.FailureStatusEvent(os.Stderr, "--scheduler-placement cannot be used with --slim: slim mode does not run the scheduler")
 				os.Exit(1)
 			}
 
