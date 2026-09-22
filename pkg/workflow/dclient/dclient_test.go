@@ -23,6 +23,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 
 	"github.com/dapr/durabletask-go/api/protos"
 	"github.com/dapr/durabletask-go/workflow"
@@ -101,4 +102,31 @@ func TestInstanceIDsCancelledContext(t *testing.T) {
 	_, err := c.InstanceIDs(ctx)
 	require.Error(t, err)
 	assert.NotContains(t, err.Error(), "connection string is required")
+}
+
+func TestConnectSendsAPIToken(t *testing.T) {
+	t.Setenv("DAPR_API_TOKEN", "my-token")
+
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+
+	var gotToken []string
+	srv := grpc.NewServer(grpc.UnaryInterceptor(func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+		md, _ := metadata.FromIncomingContext(ctx)
+		gotToken = md.Get("dapr-api-token")
+		return handler(ctx, req)
+	}))
+	protos.RegisterTaskHubSidecarServiceServer(srv, &fakeSidecar{
+		listResp: &protos.ListInstanceIDsResponse{},
+	})
+	go srv.Serve(lis)
+	t.Cleanup(srv.Stop)
+
+	dapr, wf, err := connect(t.Context(), lis.Addr().(*net.TCPAddr).Port)
+	require.NoError(t, err)
+	t.Cleanup(dapr.Close)
+
+	_, err = wf.ListInstanceIDs(t.Context())
+	require.NoError(t, err)
+	assert.Equal(t, []string{"my-token"}, gotToken)
 }
