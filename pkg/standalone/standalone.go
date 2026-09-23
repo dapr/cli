@@ -27,6 +27,7 @@ import (
 	"path"
 	path_filepath "path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -92,6 +93,8 @@ const (
 	schedulerEtcdPort   = 2379
 
 	daprVersionsWithScheduler = ">= 1.14.x"
+
+	daprVersionsWithSchedulerPlacement = ">= 1.19.x"
 )
 
 var (
@@ -145,6 +148,7 @@ type initInfo struct {
 	imageVariant                       string
 	schedulerVolume                    *string
 	schedulerOverrideBroadcastHostPort *string
+	schedulerPlacement                 bool
 	redisStack                         bool
 }
 
@@ -160,6 +164,7 @@ type InitOptions struct {
 	DaprInstallPath                    string
 	SchedulerVolume                    *string
 	SchedulerOverrideBroadcastHostPort *string
+	SchedulerPlacement                 bool
 	RedisStack                         bool
 }
 
@@ -182,8 +187,36 @@ func isBinaryInstallationRequired(binaryFilePrefix, binInstallDir string) (bool,
 	return true, nil
 }
 
+// isSchedulerPlacementIncluded returns true if the scheduler can serve actor
+// placement in a given version of Dapr.
+func isSchedulerPlacementIncluded(runtimeVersion string) (bool, error) {
+	if runtimeVersion == "edge" || runtimeVersion == "dev" {
+		return true, nil
+	}
+
+	c, err := semver.NewConstraint(daprVersionsWithSchedulerPlacement)
+	if err != nil {
+		return false, err
+	}
+
+	v, err := semver.NewVersion(runtimeVersion)
+	if err != nil {
+		return false, err
+	}
+
+	vNoPrerelease, err := v.SetPrerelease("")
+	if err != nil {
+		return false, err
+	}
+	return c.Check(&vNoPrerelease), nil
+}
+
 // isSchedulerIncluded returns true if scheduler is included a given version for Dapr.
 func isSchedulerIncluded(runtimeVersion string) (bool, error) {
+	if runtimeVersion == "edge" || runtimeVersion == "dev" {
+		return true, nil
+	}
+
 	c, err := semver.NewConstraint(daprVersionsWithScheduler)
 	if err != nil {
 		return false, err
@@ -274,6 +307,16 @@ func Init(opts InitOptions) error {
 
 	// After this point runtimeVersion will not be latest string but rather actual version.
 
+	if opts.SchedulerPlacement {
+		ok, serr := isSchedulerPlacementIncluded(runtimeVersion)
+		if serr != nil {
+			return serr
+		}
+		if !ok {
+			return fmt.Errorf("--scheduler-placement requires Dapr %s, got %s", daprVersionsWithSchedulerPlacement, runtimeVersion)
+		}
+	}
+
 	print.InfoStatusEvent(os.Stdout, "Installing runtime version %s", runtimeVersion)
 
 	installDir, err := GetDaprRuntimePath(daprInstallPath)
@@ -334,6 +377,7 @@ func Init(opts InitOptions) error {
 		imageVariant:                       imageVariant,
 		schedulerVolume:                    schedulerVolume,
 		schedulerOverrideBroadcastHostPort: schedulerOverrideBroadcastHostPort,
+		schedulerPlacement:                 opts.SchedulerPlacement,
 		redisStack:                         redisStack,
 	}
 	for _, step := range initSteps {
@@ -362,7 +406,9 @@ func Init(opts InitOptions) error {
 	print.InfoStatusEvent(os.Stdout, "%s binary has been installed to %s.", daprRuntimeFilePrefix, daprBinDir)
 	if slimMode {
 		// Print info on placement binary only on slim install.
-		print.InfoStatusEvent(os.Stdout, "%s binary has been installed to %s.", placementServiceFilePrefix, daprBinDir)
+		if !info.schedulerPlacement {
+			print.InfoStatusEvent(os.Stdout, "%s binary has been installed to %s.", placementServiceFilePrefix, daprBinDir)
+		}
 		print.InfoStatusEvent(os.Stdout, "%s binary has been installed to %s.", schedulerServiceFilePrefix, daprBinDir)
 	} else {
 		runtimeCmd := utils.GetContainerRuntimeCmd(info.containerRuntime)
@@ -370,6 +416,12 @@ func Init(opts InitOptions) error {
 		// Skip redis and zipkin in local installation mode.
 		if isAirGapInit {
 			dockerContainerNames = []string{DaprPlacementContainerName}
+		}
+		if info.schedulerPlacement {
+			// The scheduler serves placement, so no placement container runs.
+			dockerContainerNames = slices.DeleteFunc(dockerContainerNames, func(name string) bool {
+				return name == DaprPlacementContainerName
+			})
 		}
 		hasScheduler, err := isSchedulerIncluded(info.runtimeVersion)
 		if err == nil && hasScheduler {
@@ -540,7 +592,7 @@ func redisImageInfo(redisStack bool, imageRegistryURL string, imageRegistryName 
 func runPlacementService(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 	defer wg.Done()
 
-	if info.slimMode {
+	if info.slimMode || info.schedulerPlacement {
 		return
 	}
 
@@ -740,6 +792,10 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		args = append(args, "--etcd-client-listen-address=0.0.0.0")
 	}
 
+	if info.schedulerPlacement {
+		args = append(args, "--placement-enabled=true")
+	}
+
 	// On non-elevated Windows with WSL2 installed, verify the scheduler ports
 	// are free before attempting the container start, but only when the
 	// scheduler is publishing host ports. WSL2 commonly holds :2379 (etcd)
@@ -866,7 +922,7 @@ func installDaprRuntime(wg *sync.WaitGroup, errorChan chan<- error, info initInf
 func installPlacement(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 	defer wg.Done()
 
-	if !info.slimMode {
+	if !info.slimMode || info.schedulerPlacement {
 		return
 	}
 

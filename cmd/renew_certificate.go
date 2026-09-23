@@ -175,6 +175,7 @@ func restartControlPlaneService() error {
 		"deploy/dapr-sidecar-injector",
 		"deploy/dapr-operator",
 		"statefulsets/dapr-placement-server",
+		"statefulsets/dapr-scheduler-server",
 	}
 	namespace, err := kubernetes.GetDaprNamespace()
 	if err != nil {
@@ -187,15 +188,26 @@ func restartControlPlaneService() error {
 	for i, name := range controlPlaneServices {
 		go func(i int, name string) {
 			defer wg.Done()
-			print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Restarting %s..", name))
-			_, err := utils.RunCmdAndWait("kubectl", "rollout", "restart", "-n", namespace, name)
+			// Not every service is deployed: the placement statefulset is
+			// absent when the scheduler serves actor placement.
+			out, err := utils.RunCmdAndWait("kubectl", "get", "-n", namespace, name, "--ignore-not-found", "-o", "name")
 			if err != nil {
-				errs[i] = fmt.Errorf("error in restarting deployment %s. Error is %w", name, err)
+				errs[i] = fmt.Errorf("error checking whether %s is deployed: %w", name, err)
+				return
+			}
+			if strings.TrimSpace(out) == "" {
+				print.InfoStatusEvent(os.Stdout, fmt.Sprintf("%s is not deployed, skipping restart", name))
+				return
+			}
+			print.InfoStatusEvent(os.Stdout, fmt.Sprintf("Restarting %s..", name))
+			_, err = utils.RunCmdAndWait("kubectl", "rollout", "restart", "-n", namespace, name)
+			if err != nil {
+				errs[i] = fmt.Errorf("error in restarting %s. Error is %w", name, err)
 				return
 			}
 			_, err = utils.RunCmdAndWait("kubectl", "rollout", "status", "-n", namespace, name)
 			if err != nil {
-				errs[i] = fmt.Errorf("error in checking status for deployment %s. Error is %w", name, err)
+				errs[i] = fmt.Errorf("error in checking status for %s. Error is %w", name, err)
 				return
 			}
 		}(i, name)
