@@ -14,12 +14,15 @@ limitations under the License.
 package standalone
 
 import (
+	"os"
+	"path/filepath"
 	"runtime"
 	"sort"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func strPtr(s string) *string { return &s }
@@ -213,5 +216,54 @@ func TestValidateSchedulerHostAddr(t *testing.T) {
 		err := cfg.validateSchedulerHostAddr()
 		assert.NoError(t, err)
 		assert.Equal(t, "1.2.3.4:45678", *cfg.SchedulerHostAddress)
+	})
+}
+
+func TestParseEnvFile(t *testing.T) {
+	t.Run("parses key value pairs and skips blanks and comments", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), ".env")
+		content := "FOO=bar\n\n# a comment\nBAZ=\"qux\"\nQUOTED='single'\nNOVALUELINE\n"
+		require.NoError(t, os.WriteFile(path, []byte(content), 0o600))
+
+		env, err := parseEnvFile(path)
+		assert.NoError(t, err)
+		assert.Equal(t, map[string]string{
+			"FOO":    "bar",
+			"BAZ":    "qux",
+			"QUOTED": "single",
+		}, env)
+	})
+
+	t.Run("missing file returns error", func(t *testing.T) {
+		_, err := parseEnvFile(filepath.Join(t.TempDir(), "does-not-exist.env"))
+		assert.Error(t, err)
+	})
+}
+
+func TestValidateEnvFile(t *testing.T) {
+	t.Run("no-op when EnvFile is empty", func(t *testing.T) {
+		cfg := &RunConfig{SharedRunConfig: SharedRunConfig{Env: map[string]string{"A": "1"}}}
+		err := cfg.validateEnvFile()
+		assert.NoError(t, err)
+		assert.Equal(t, map[string]string{"A": "1"}, cfg.Env)
+	})
+
+	t.Run("merges env file, explicit Env wins on conflict", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), ".env")
+		require.NoError(t, os.WriteFile(path, []byte("A=from-file\nB=from-file\n"), 0o600))
+
+		cfg := &RunConfig{SharedRunConfig: SharedRunConfig{
+			Env:     map[string]string{"A": "from-config"},
+			EnvFile: path,
+		}}
+		err := cfg.validateEnvFile()
+		assert.NoError(t, err)
+		assert.Equal(t, map[string]string{"A": "from-config", "B": "from-file"}, cfg.Env)
+	})
+
+	t.Run("returns error for missing env file", func(t *testing.T) {
+		cfg := &RunConfig{SharedRunConfig: SharedRunConfig{EnvFile: "/no/such/file.env"}}
+		err := cfg.validateEnvFile()
+		assert.Error(t, err)
 	})
 }
