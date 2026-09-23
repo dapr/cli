@@ -70,6 +70,11 @@ make build GOOS=linux GOARCH=amd64
 make test
 ```
 
+### Run E2E tests
+
+See [Running E2E tests](../../tests/docs/running-e2e.md) for the build step, required
+environment variables, and commands to run them.
+
 ### Debug Dapr CLI
 
 We highly recommend to use [VSCode with Go plugin](https://marketplace.visualstudio.com/items?itemName=ms-vscode.Go) for your productivity. If you want to use the different editors, you can find the [list of editor plugins](https://github.com/go-delve/delve/blob/master/Documentation/EditorIntegration.md) for Delve.
