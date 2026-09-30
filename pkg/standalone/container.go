@@ -14,12 +14,14 @@ limitations under the License.
 package standalone
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	path_filepath "path/filepath"
 	"strings"
+	"time"
 
 	"github.com/dapr/cli/utils"
 )
@@ -109,6 +111,26 @@ func publishPortNetworkArgs(runtimeCmd string) []string {
 		return []string{"--network", "private"}
 	}
 	return nil
+}
+
+// waitForContainerRuntime polls `<runtimeCmd> info` every interval until it
+// succeeds or timeout elapses, returning the last error on timeout. The
+// timeout also bounds each probe, as `info` can hang while Docker Desktop's
+// WSL2 engine is restarting.
+func waitForContainerRuntime(runtimeCmd string, timeout, interval time.Duration) error {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	deadline, _ := ctx.Deadline()
+	for {
+		err := exec.CommandContext(ctx, runtimeCmd, "info").Run()
+		if err == nil {
+			return nil
+		}
+		if time.Now().Add(interval).After(deadline) {
+			return fmt.Errorf("%s did not respond within %s: %w", runtimeCmd, timeout, err)
+		}
+		time.Sleep(interval)
+	}
 }
 
 func isContainerRunError(err error) bool {

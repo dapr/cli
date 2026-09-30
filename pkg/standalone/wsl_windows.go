@@ -18,6 +18,7 @@ package standalone
 import (
 	"os"
 	"os/exec"
+	"strings"
 
 	"golang.org/x/sys/windows"
 
@@ -49,6 +50,14 @@ func shutdownWSL() error {
 func stopWinNAT() error {
 	_, err := utils.RunCmdAndWait("net", "stop", "winnat")
 	return err
+}
+
+// isWinNATRunning returns true if the Windows NAT driver service (WinNat) is
+// currently running. Used to avoid stopping (and later starting) a service
+// that was not running in the first place.
+func isWinNATRunning() bool {
+	out, err := utils.RunCmdAndWait("sc", "query", "winnat")
+	return err == nil && strings.Contains(out, "RUNNING")
 }
 
 // startWinNAT starts the Windows NAT driver service after the scheduler

@@ -28,6 +28,7 @@ func TestNoopStubs(t *testing.T) {
 	assert.False(t, isWindowsElevated(), "isWindowsElevated must always be false on non-Windows")
 	assert.False(t, isWSLAvailable(), "isWSLAvailable must always be false on non-Windows")
 	assert.NoError(t, shutdownWSL())
+	assert.False(t, isWinNATRunning(), "isWinNATRunning must always be false on non-Windows")
 	assert.NoError(t, stopWinNAT())
 	assert.NoError(t, startWinNAT())
 	startWSLBackground() // must not panic
