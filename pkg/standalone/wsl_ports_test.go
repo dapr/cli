@@ -15,8 +15,12 @@ package standalone
 
 import (
 	"errors"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -189,11 +193,76 @@ func TestWaitForContainerRuntime(t *testing.T) {
 		assert.NoError(t, waitForContainerRuntime(truePath, time.Second, 10*time.Millisecond))
 	})
 
+	t.Run("kills a hung info call at the timeout", func(t *testing.T) {
+		if runtime.GOOS == daprWindowsOS {
+			t.Skip("relies on a POSIX shell script")
+		}
+		// A fake runtime whose `info` never returns, like a Docker Desktop
+		// pipe that accepts the connection but stalls while WSL2 restarts.
+		hung := filepath.Join(t.TempDir(), "hung-runtime")
+		require.NoError(t, os.WriteFile(hung, []byte("#!/bin/sh\nexec sleep 30\n"), 0o755)) //nolint:gosec
+
+		start := time.Now()
+		err := waitForContainerRuntime(hung, 200*time.Millisecond, 10*time.Millisecond)
+		require.Error(t, err)
+		assert.Less(t, time.Since(start), 5*time.Second)
+	})
+
 	t.Run("returns error after timeout when the runtime never responds", func(t *testing.T) {
 		start := time.Now()
 		err := waitForContainerRuntime("dapr-nonexistent-container-runtime", 50*time.Millisecond, 10*time.Millisecond)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "did not respond within")
 		assert.Less(t, time.Since(start), 2*time.Second)
+	})
+}
+
+func TestFirstInitError(t *testing.T) {
+	stepErr := errors.New("placement failed")
+
+	// run starts a fast failing step and a slow succeeding step, closing the
+	// channel once both are done, as Init does. It returns the error and
+	// whether the slow step had finished when firstInitError returned.
+	run := func(waitForAll bool) (error, bool) {
+		errorChan := make(chan error)
+		var wg sync.WaitGroup
+		var slowDone atomic.Bool
+		wg.Add(2)
+		go func() { defer wg.Done(); errorChan <- stepErr }()
+		go func() {
+			defer wg.Done()
+			time.Sleep(100 * time.Millisecond)
+			slowDone.Store(true)
+			errorChan <- nil
+		}()
+		go func() { wg.Wait(); close(errorChan) }()
+
+		err := firstInitError(errorChan, waitForAll)
+		done := slowDone.Load()
+		if !waitForAll {
+			for range errorChan { //nolint:revive // drain so the test goroutines exit
+			}
+		}
+		return err, done
+	}
+
+	t.Run("returns on the first error when nothing needs restoring", func(t *testing.T) {
+		err, slowDone := run(false)
+		require.ErrorIs(t, err, stepErr)
+		assert.False(t, slowDone)
+	})
+
+	t.Run("waits for every step when WSL must be restored", func(t *testing.T) {
+		err, slowDone := run(true)
+		require.ErrorIs(t, err, stepErr)
+		assert.True(t, slowDone, "restore must not run while a step is still in progress")
+	})
+
+	t.Run("returns nil when every step succeeds", func(t *testing.T) {
+		errorChan := make(chan error, 2)
+		errorChan <- nil
+		errorChan <- nil
+		close(errorChan)
+		assert.NoError(t, firstInitError(errorChan, true))
 	})
 }

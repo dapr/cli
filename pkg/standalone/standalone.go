@@ -400,10 +400,10 @@ func Init(opts InitOptions) error {
 		close(errorChan)
 	}()
 
-	for err := range errorChan {
-		if err != nil {
-			return err
-		}
+	// If WSL/WinNAT were stopped, wait for every step to finish so the
+	// deferred restore does not run while a container is still starting.
+	if err = firstInitError(errorChan, restoreWSL != nil); err != nil {
+		return err
 	}
 
 	stopSpinning(print.Success)
@@ -819,6 +819,23 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		return
 	}
 	errorChan <- nil
+}
+
+// firstInitError returns the first non-nil error received on errorChan. It
+// returns as soon as that error arrives, unless waitForAll is set, in which
+// case it keeps draining until errorChan is closed (i.e. all steps are done).
+func firstInitError(errorChan <-chan error, waitForAll bool) error {
+	var firstErr error
+	for err := range errorChan {
+		if err == nil || firstErr != nil {
+			continue
+		}
+		if !waitForAll {
+			return err
+		}
+		firstErr = err
+	}
+	return firstErr
 }
 
 // checkSchedulerPorts verifies that all ports required by the scheduler

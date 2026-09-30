@@ -14,6 +14,7 @@ limitations under the License.
 package standalone
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -113,11 +114,15 @@ func publishPortNetworkArgs(runtimeCmd string) []string {
 }
 
 // waitForContainerRuntime polls `<runtimeCmd> info` every interval until it
-// succeeds or timeout elapses, returning the last error on timeout.
+// succeeds or timeout elapses, returning the last error on timeout. The
+// timeout also bounds each probe, as `info` can hang while Docker Desktop's
+// WSL2 engine is restarting.
 func waitForContainerRuntime(runtimeCmd string, timeout, interval time.Duration) error {
-	deadline := time.Now().Add(timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	deadline, _ := ctx.Deadline()
 	for {
-		_, err := utils.RunCmdAndWait(runtimeCmd, "info")
+		err := exec.CommandContext(ctx, runtimeCmd, "info").Run()
 		if err == nil {
 			return nil
 		}
