@@ -27,6 +27,9 @@ func shutdownWSL() error { return nil }
 // stopWinNAT is a no-op on non-Windows platforms.
 func stopWinNAT() error { return nil }
 
+// isWinNATRunning always returns false on non-Windows platforms.
+func isWinNATRunning() bool { return false }
+
 // startWinNAT is a no-op on non-Windows platforms.
 func startWinNAT() error { return nil }
 

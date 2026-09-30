@@ -20,6 +20,7 @@ import (
 	"os/exec"
 	path_filepath "path/filepath"
 	"strings"
+	"time"
 
 	"github.com/dapr/cli/utils"
 )
@@ -109,6 +110,22 @@ func publishPortNetworkArgs(runtimeCmd string) []string {
 		return []string{"--network", "private"}
 	}
 	return nil
+}
+
+// waitForContainerRuntime polls `<runtimeCmd> info` every interval until it
+// succeeds or timeout elapses, returning the last error on timeout.
+func waitForContainerRuntime(runtimeCmd string, timeout, interval time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	for {
+		_, err := utils.RunCmdAndWait(runtimeCmd, "info")
+		if err == nil {
+			return nil
+		}
+		if time.Now().Add(interval).After(deadline) {
+			return fmt.Errorf("%s did not respond within %s: %w", runtimeCmd, timeout, err)
+		}
+		time.Sleep(interval)
+	}
 }
 
 func isContainerRunError(err error) bool {

@@ -380,6 +380,16 @@ func Init(opts InitOptions) error {
 		schedulerPlacement:                 opts.SchedulerPlacement,
 		redisStack:                         redisStack,
 	}
+	// Free the scheduler's host ports before starting any container: this may
+	// shut down WSL, which also stops Docker Desktop's WSL2 engine.
+	restoreWSL, err := freeSchedulerHostPorts(info)
+	if err != nil {
+		return err
+	}
+	if restoreWSL != nil {
+		defer restoreWSL()
+	}
+
 	for _, step := range initSteps {
 		// Run init on the configurations and containers.
 		go step(&wg, errorChan, info)
@@ -762,7 +772,7 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 			"--network-alias", DaprSchedulerContainerName)
 	} else {
 		if runtime.GOOS == daprWindowsOS {
-			osPort = 6060
+			osPort = schedulerWindowsGRPCHostPort
 		}
 
 		args = append(args, publishPortNetworkArgs(runtimeCmd)...)
@@ -796,60 +806,9 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 		args = append(args, "--placement-enabled=true")
 	}
 
-	// On non-elevated Windows with WSL2 installed, verify the scheduler ports
-	// are free before attempting the container start, but only when the
-	// scheduler is publishing host ports. WSL2 commonly holds :2379 (etcd)
-	// and the only reliable fix requires an elevated terminal.
-	isWindowsHostPortMode := info.dockerNetwork == "" && runtime.GOOS == daprWindowsOS && isWSLAvailable()
-	shouldWarnNonElevated := isWindowsHostPortMode && !isWindowsElevated()
-	shouldManageWSL := isWindowsHostPortMode && isWindowsElevated()
-
-	if shouldWarnNonElevated {
-		if portErr := checkSchedulerPorts(osPort); portErr != nil {
-			errorChan <- fmt.Errorf(
-				"failed to start scheduler service: %v\n\n"+
-					"A required port is already in use (often due to WSL).\n"+
-					"To resolve this, re-run 'dapr init' in an elevated (Administrator)\n"+
-					"terminal (e.g. right-click → \"Run as administrator\"). When running\n"+
-					"elevated, the CLI will automatically stop and restart WSL and\n"+
-					"Windows networking services as part of the installation process",
-				portErr)
-			return
-		}
-	}
-
-	// On elevated Windows with host-port publishing and WSL2 installed, shut
-	// down WSL2 and stop WinNAT so Docker can re-acquire the scheduler's port
-	// bindings (especially etcd :2379) that WSL2 may be holding.
-	// Skipped when using a Docker network (no host ports) or when WSL is not
-	// present, to avoid unnecessary service disruption.
-	winNATStopped := false
-	if shouldManageWSL {
-		print.InfoStatusEvent(os.Stdout, "Temporarily shutting down WSL to free ports for scheduler installation...")
-		if wslErr := shutdownWSL(); wslErr != nil {
-			print.WarningStatusEvent(os.Stdout, "Failed to shut down WSL: %v. Continuing...", wslErr)
-		}
-		print.InfoStatusEvent(os.Stdout, "Temporarily stopping Windows NAT service to free scheduler ports...")
-		if stopErr := stopWinNAT(); stopErr != nil {
-			print.WarningStatusEvent(os.Stdout, "Failed to stop Windows NAT service: %v. Continuing...", stopErr)
-		} else {
-			winNATStopped = true
-		}
-	}
-
+	// Host ports held by WSL2 on Windows are freed up front by
+	// freeSchedulerHostPorts in Init, before any container step starts.
 	_, err = utils.RunCmdAndWait(runtimeCmd, args...)
-
-	// Restore WinNAT and restart WSL regardless of whether the scheduler container started successfully.
-	if info.dockerNetwork == "" && runtime.GOOS == daprWindowsOS && isWindowsElevated() && isWSLAvailable() {
-		if winNATStopped {
-			if startErr := startWinNAT(); startErr != nil {
-				print.WarningStatusEvent(os.Stdout, "Failed to restart Windows NAT service: %v", startErr)
-			}
-		}
-		print.InfoStatusEvent(os.Stdout, "Restarting WSL...")
-		startWSLBackground()
-	}
-
 	if err != nil {
 		runError := isContainerRunError(err)
 		if !runError {

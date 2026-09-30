@@ -131,11 +131,11 @@ dapr init --redis-stack
 				imageRegistryURI, err = kubernetes.GetImageRegistry()
 			}
 			if err != nil {
-				print.FailureStatusEvent(os.Stderr, err.Error())
+				print.FailureStatusEvent(os.Stderr, "%s", err.Error())
 				os.Exit(1)
 			}
 			if err = verifyCustomCertFlags(cmd); err != nil {
-				print.FailureStatusEvent(os.Stderr, err.Error())
+				print.FailureStatusEvent(os.Stderr, "%s", err.Error())
 				os.Exit(1)
 			}
 
@@ -156,7 +156,7 @@ dapr init --redis-stack
 			}
 			err = kubernetes.Init(config)
 			if err != nil {
-				print.FailureStatusEvent(os.Stderr, err.Error())
+				print.FailureStatusEvent(os.Stderr, "%s", err.Error())
 				os.Exit(1)
 			}
 			print.SuccessStatusEvent(os.Stdout, fmt.Sprintf("Success! Dapr has been installed to namespace %s. To verify, run `dapr status -k' in your terminal. To get started, go here: https://docs.dapr.io/getting-started", config.Namespace))
@@ -208,7 +208,7 @@ dapr init --redis-stack
 				RedisStack:                         redisStack,
 			})
 			if err != nil {
-				print.FailureStatusEvent(os.Stderr, err.Error())
+				print.FailureStatusEvent(os.Stderr, "%s", err.Error())
 				os.Exit(1)
 			}
 			print.SuccessStatusEvent(os.Stdout, "Success! Dapr is up and running. To get started, go here: https://docs.dapr.io/getting-started")
