@@ -76,14 +76,24 @@ func TestSchedulerList(t *testing.T) {
 	runFilePath := "../testdata/run-template-files/test-scheduler.yaml"
 	startDaprRunRetry(t, []int{3510}, func() { cmdStopWithRunTemplate(runFilePath) }, "-f", runFilePath)
 
+	expActivityNames := []string{
+		activityJobName(t, "xyz1"),
+		activityJobName(t, "xyz2"),
+	}
+
 	// On slow CI runners, the first dapr run attempt may fail to register
 	// workflows (only jobs + reminders appear). startDaprRunRetry retries
 	// in the background, but the retry can take 30-40s. Use 120s to
 	// accommodate the retry delay.
+	// The list can reach 8 entries before both workflows have scheduled their
+	// first activity, so also wait for both activity jobs.
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		output, err := cmdSchedulerList()
 		require.NoError(t, err)
 		assert.GreaterOrEqual(c, countSchedulerEntries(output), 8)
+		for _, name := range expActivityNames {
+			assert.Contains(c, strings.Fields(output), name)
+		}
 	}, 240*time.Second, time.Second)
 
 	t.Run("short", func(t *testing.T) {
@@ -144,10 +154,6 @@ func TestSchedulerList(t *testing.T) {
 		}
 
 		// Check activity items (count should be 0)
-		expActivityNames := []string{
-			activityJobName(t, "xyz1"),
-			activityJobName(t, "xyz2"),
-		}
 		for _, name := range expActivityNames {
 			count, exists := schedulerCounts[name]
 			require.True(t, exists, "expected activity %s not found", name)
