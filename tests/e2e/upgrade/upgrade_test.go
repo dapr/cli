@@ -30,9 +30,9 @@ type upgradePath struct {
 }
 
 const (
-	latestRuntimeVersion         = "1.18.0"
-	latestRuntimeVersionMinusOne = "1.17.9"
-	latestRuntimeVersionMinusTwo = "1.16.16"
+	latestRuntimeVersion         = "1.19.0-rc.1"
+	latestRuntimeVersionMinusOne = "1.18.4"
+	latestRuntimeVersionMinusTwo = "1.17.14"
 )
 
 var supportedUpgradePaths = []upgradePath{
