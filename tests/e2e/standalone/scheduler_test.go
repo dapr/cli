@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/dapr/cli/pkg/scheduler"
+	"github.com/dapr/cli/tests/e2e/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
@@ -46,6 +47,19 @@ func countSchedulerEntries(output string) int {
 		}
 	}
 	return count
+}
+
+// activityJobName returns the `dapr scheduler list` name of the activity job
+// for the first task of the given workflow instance. The trailing generation
+// component of the activity actor ID is a counter before 1.19 and a fixed "0"
+// from 1.19.
+func activityJobName(t *testing.T, instanceID string) string {
+	t.Helper()
+	generation := "1"
+	if !common.GetRuntimeVersion(t, false).LessThan(common.VersionWithFixedActivityGeneration) {
+		generation = "0"
+	}
+	return "activity/test-scheduler/" + instanceID + "::0::" + generation
 }
 
 func TestSchedulerList(t *testing.T) {
@@ -131,8 +145,8 @@ func TestSchedulerList(t *testing.T) {
 
 		// Check activity items (count should be 0)
 		expActivityNames := []string{
-			"activity/test-scheduler/xyz1::0::1",
-			"activity/test-scheduler/xyz2::0::1",
+			activityJobName(t, "xyz1"),
+			activityJobName(t, "xyz2"),
 		}
 		for _, name := range expActivityNames {
 			count, exists := schedulerCounts[name]
@@ -239,8 +253,8 @@ func TestSchedulerGet(t *testing.T) {
 		"actor/myactortype/actorid2/test2",
 		"app/test-scheduler/test1",
 		"app/test-scheduler/test2",
-		"activity/test-scheduler/xyz1::0::1",
-		"activity/test-scheduler/xyz2::0::1",
+		activityJobName(t, "xyz1"),
+		activityJobName(t, "xyz2"),
 	}
 
 	expWorkflowPrefixes := []string{
@@ -427,8 +441,8 @@ func TestSchedulerDelete(t *testing.T) {
 	assert.Equal(t, 4, countSchedulerEntries(output))
 
 	_, err = cmdSchedulerDelete(
-		"activity/test-scheduler/xyz1::0::1",
-		"activity/test-scheduler/xyz2::0::1",
+		activityJobName(t, "xyz1"),
+		activityJobName(t, "xyz2"),
 	)
 	require.NoError(t, err)
 
