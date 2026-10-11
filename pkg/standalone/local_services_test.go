@@ -21,6 +21,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -106,6 +107,20 @@ func TestStartLocalService(t *testing.T) {
 		err = s.waitHealthy(30 * time.Second)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "the process exited")
+	})
+
+	t.Run("the log file keeps the output of earlier runs", func(t *testing.T) {
+		t.Setenv(fakeServiceEnv, "exit")
+		logPath := filepath.Join(t.TempDir(), "scheduler.log")
+		require.NoError(t, os.WriteFile(logPath, []byte("output of another run\n"), 0o600))
+
+		s, err := startLocalService(os.Args[0], logPath, fakeServiceSpec(t))
+		require.NoError(t, err)
+		<-s.exited
+
+		content, err := os.ReadFile(logPath)
+		require.NoError(t, err)
+		assert.True(t, strings.HasPrefix(string(content), "output of another run\n"), "log file: %q", content)
 	})
 
 	t.Run("a binary that does not exist does not start", func(t *testing.T) {
@@ -251,6 +266,21 @@ func TestLocalServicesPlan(t *testing.T) {
 		l, _ := newTestLocalServices(t, "", false, "placement", "scheduler")
 		assert.Empty(t, l.plan(true, true))
 	})
+
+	t.Run("no daprd binary, nothing starts", func(t *testing.T) {
+		// GetRuntimeVersion returns "n/a" and an error when daprd is not installed.
+		runtimePath := t.TempDir()
+		binDir := getDaprBinPath(filepath.Join(runtimePath, DefaultDaprDirName))
+		require.NoError(t, os.MkdirAll(binDir, 0o755))
+		for _, b := range []string{placementServiceFilePrefix, schedulerServiceFilePrefix} {
+			require.NoError(t, os.WriteFile(binaryFilePathWithDir(binDir, b), []byte("not a binary"), 0o600))
+		}
+
+		l, err := NewLocalServices(runtimePath)
+		require.NoError(t, err)
+		assert.Empty(t, l.runtimeVersion)
+		assert.Empty(t, l.plan(true, true))
+	})
 }
 
 func TestLocalServicesStart(t *testing.T) {
@@ -267,6 +297,20 @@ func TestLocalServicesStart(t *testing.T) {
 		l.Start(false, true)
 		assert.Empty(t, l.started)
 		assert.Contains(t, out.String(), "Could not start the scheduler service")
+	})
+
+	t.Run("a service that another run started at the same moment is used", func(t *testing.T) {
+		l, out := newTestLocalServices(t, "1.18.7", false, "scheduler")
+		// Free when Start looks, in use when the start fails.
+		calls := 0
+		l.isListening = func(string) bool {
+			calls++
+			return calls > 1
+		}
+		l.Start(false, true)
+		assert.Empty(t, l.started)
+		assert.Contains(t, out.String(), "Using the scheduler service that runs on localhost:50006")
+		assert.NotContains(t, out.String(), "Could not start")
 	})
 
 	t.Run("nil does nothing", func(t *testing.T) {

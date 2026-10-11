@@ -96,8 +96,12 @@ func NewLocalServices(daprInstallPath string) (*LocalServices, error) {
 	if err != nil {
 		return nil, err
 	}
-	// The version is empty when daprd is not installed. Then no service starts.
-	version, _ := GetRuntimeVersion(daprInstallPath)
+	// GetRuntimeVersion returns an error and "n/a" when daprd is not installed
+	// or does not run. Then the version is empty, and no service starts.
+	version, err := GetRuntimeVersion(daprInstallPath)
+	if err != nil {
+		version = ""
+	}
 
 	return &LocalServices{
 		binDir:           getDaprBinPath(installDir),
@@ -135,7 +139,7 @@ func (l *LocalServices) Start(startPlacement, startScheduler bool) {
 		logPath := path_filepath.Join(l.logsDir, spec.name+".log")
 		s, err := startLocalService(binaryFilePathWithDir(l.binDir, spec.name), logPath, spec)
 		if err != nil {
-			print.WarningStatusEvent(l.out, "Could not start the %s service: %s", spec.name, err)
+			l.warnStartFailed(spec, address, fmt.Sprintf("Could not start the %s service: %s", spec.name, err))
 			continue
 		}
 		starting = append(starting, s)
@@ -145,12 +149,23 @@ func (l *LocalServices) Start(startPlacement, startScheduler bool) {
 		address := localServiceHost + ":" + strconv.Itoa(s.spec.port)
 		if err := s.waitHealthy(localServiceStartTimeout); err != nil {
 			s.stop(localServiceStopTimeout)
-			print.WarningStatusEvent(l.out, "Could not start the %s service on %s: %s. See %s", s.spec.name, address, err, s.logPath)
+			l.warnStartFailed(s.spec, address, fmt.Sprintf("Could not start the %s service on %s: %s. See %s", s.spec.name, address, err, s.logPath))
 			continue
 		}
 		l.started = append(l.started, s)
 		print.InfoStatusEvent(l.out, "Started the %s service on %s. It stops when this command exits. Logs: %s", s.spec.name, address, s.logPath)
 	}
+}
+
+// warnStartFailed reports a service that did not start. Another `dapr run` can
+// start the same service at the same moment. Then this start fails because the
+// port is in use, and the service of the other command serves the address.
+func (l *LocalServices) warnStartFailed(spec localServiceSpec, address, warning string) {
+	if l.isListening(address) {
+		print.InfoStatusEvent(l.out, "Using the %s service that runs on %s.", spec.name, address)
+		return
+	}
+	print.WarningStatusEvent(l.out, "%s", warning)
 }
 
 // plan returns the services that Start must look at.
@@ -299,12 +314,13 @@ func defaultSchedulerPort() int {
 }
 
 // startLocalService starts the binary with the arguments of spec. The process
-// writes its output to logPath.
+// appends its output to logPath. It does not truncate the file, because a
+// service that another `dapr run` started can still write to it.
 func startLocalService(binPath, logPath string, spec localServiceSpec) (*localService, error) {
 	if err := os.MkdirAll(path_filepath.Dir(logPath), 0o755); err != nil {
 		return nil, err
 	}
-	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
+	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
 	if err != nil {
 		return nil, err
 	}
