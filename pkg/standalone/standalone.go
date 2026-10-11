@@ -97,9 +97,6 @@ const (
 	daprVersionsWithScheduler = ">= 1.14.x"
 
 	daprVersionsWithSchedulerPlacement = ">= 1.19.x"
-
-	// The SQLite state store came in Dapr 1.10.
-	daprVersionsWithSQLiteStateStore = ">= 1.10.x"
 )
 
 var (
@@ -1422,6 +1419,10 @@ func removeSlimStateStore(installDir string) (bool, error) {
 	}
 	return true, nil
 }
+
+// daprVersionsWithSQLiteStateStore are the runtime versions with the SQLite
+// state store. It came in Dapr 1.10.
+const daprVersionsWithSQLiteStateStore = ">= 1.10.x"
 
 // hasSQLiteStateStore returns true if the runtime version has the SQLite state store.
 func hasSQLiteStateStore(runtimeVersion string) bool {
