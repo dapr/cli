@@ -100,7 +100,7 @@ func TestStandaloneInit(t *testing.T) {
 		output, err := cmdInit(args...)
 		t.Log(output)
 		require.NoError(t, err, "init failed")
-		assert.Contains(t, output, "Success! Dapr is up and running.")
+		assert.Contains(t, output, initSuccessMessage())
 
 		homeDir, err := os.UserHomeDir()
 		require.NoError(t, err, "failed to get user home directory")
@@ -128,7 +128,7 @@ func TestStandaloneInit(t *testing.T) {
 		output, err := cmdInit(args...)
 		t.Log(output)
 		require.NoError(t, err, "init failed")
-		assert.Contains(t, output, "Success! Dapr is up and running.")
+		assert.Contains(t, output, initSuccessMessage())
 
 		verifyContainers(t, daprRuntimeVersion)
 		verifyRedisContainerImage(t, "redis-stack-server:7.2.0-v19")
@@ -145,7 +145,7 @@ func TestStandaloneInit(t *testing.T) {
 		output, err := cmdInit(args...)
 		t.Log(output)
 		require.NoError(t, err, "init failed")
-		assert.Contains(t, output, "Success! Dapr is up and running.")
+		assert.Contains(t, output, initSuccessMessage())
 
 		homeDir, err := os.UserHomeDir()
 		require.NoError(t, err, "failed to get user home directory")
@@ -165,7 +165,7 @@ func TestStandaloneInit(t *testing.T) {
 		output, err := cmdInit()
 		t.Log(output)
 		require.NoError(t, err, "init failed")
-		assert.Contains(t, output, "Success! Dapr is up and running.")
+		assert.Contains(t, output, initSuccessMessage())
 
 		homeDir, err := os.UserHomeDir()
 		require.NoError(t, err, "failed to get user home directory")
@@ -200,7 +200,7 @@ func TestStandaloneInit(t *testing.T) {
 		output, err := cmdInit(args...)
 		t.Log(output)
 		require.NoError(t, err, "init failed")
-		assert.Contains(t, output, "Success! Dapr is up and running.")
+		assert.Contains(t, output, initSuccessMessage())
 
 		homeDir, err := os.UserHomeDir()
 		require.NoError(t, err, "failed to get user home directory")
@@ -224,10 +224,6 @@ func TestStandaloneInit(t *testing.T) {
 	})
 
 	t.Run("init with scheduler placement", func(t *testing.T) {
-		if isSlimMode() {
-			t.Skip("Skipping scheduler placement test because of slim installation")
-		}
-
 		latestDaprRuntimeVersion := common.GetVersionsFromEnv(t, true)
 
 		// --scheduler-placement requires Dapr >= 1.19. Skip until the latest
@@ -251,7 +247,7 @@ func TestStandaloneInit(t *testing.T) {
 		output, err := cmdInit(args...)
 		t.Log(output)
 		require.NoError(t, err, "init failed")
-		assert.Contains(t, output, "Success! Dapr is up and running.")
+		assert.Contains(t, output, initSuccessMessage())
 
 		homeDir, err := os.UserHomeDir()
 		require.NoError(t, err, "failed to get user home directory")
@@ -259,7 +255,11 @@ func TestStandaloneInit(t *testing.T) {
 		daprPath := filepath.Join(homeDir, ".dapr")
 		require.DirExists(t, daprPath, "Directory %s does not exist", daprPath)
 
-		verifyBinaries(t, daprPath, latestDaprRuntimeVersion)
+		if isSlimMode() {
+			verifySlimSchedulerPlacementBinaries(t, daprPath)
+		} else {
+			verifyBinaries(t, daprPath, latestDaprRuntimeVersion)
+		}
 		verifyConfigs(t, daprPath)
 		verifySchedulerPlacementContainers(t)
 	})
@@ -279,7 +279,7 @@ func TestStandaloneInit(t *testing.T) {
 		output, err := cmdInit(args...)
 		t.Log(output)
 		require.NoError(t, err, "init failed")
-		assert.Contains(t, output, "Success! Dapr is up and running.")
+		assert.Contains(t, output, initSuccessMessage())
 
 		verifySchedulerBroadcastHostPort(t, customBroadcastHostPort)
 	})
@@ -293,7 +293,7 @@ func TestStandaloneInit(t *testing.T) {
 		output, err := cmdInit(args...)
 		t.Log(output)
 		require.NoError(t, err, "init failed")
-		assert.Contains(t, output, "Success! Dapr is up and running.")
+		assert.Contains(t, output, initSuccessMessage())
 
 		homeDir, err := os.UserHomeDir()
 		require.NoError(t, err, "failed to get user home directory")
@@ -419,6 +419,21 @@ func verifyBinaries(t *testing.T, daprPath, runtimeVersion string) {
 	}
 }
 
+// verifySlimSchedulerPlacementBinaries ensures that a slim init with
+// --scheduler-placement installs daprd and scheduler, and no placement binary.
+func verifySlimSchedulerPlacementBinaries(t *testing.T, daprPath string) {
+	t.Helper()
+
+	ext := ""
+	if runtime.GOOS == "windows" {
+		ext = ".exe"
+	}
+	binPath := filepath.Join(daprPath, "bin")
+	assert.FileExists(t, filepath.Join(binPath, "daprd"+ext))
+	assert.FileExists(t, filepath.Join(binPath, "scheduler"+ext))
+	assert.NoFileExists(t, filepath.Join(binPath, "placement"+ext))
+}
+
 // verifyConfigs ensures that the Dapr configuration and component YAMLs
 // are present in the correct path and have the correct values.
 func verifyConfigs(t *testing.T, daprPath string) {
@@ -448,7 +463,32 @@ func verifyConfigs(t *testing.T, daprPath string) {
 		},
 	}
 
-	// The default components are not installed in slim mode.
+	// Slim mode writes a SQLite actor state store instead of the Redis components.
+	if isSlimMode() {
+		configs[filepath.Join("components", "statestore.yaml")] = map[string]interface{}{
+			"apiVersion": "dapr.io/v1alpha1",
+			"kind":       "Component",
+			"metadata": map[interface{}]interface{}{
+				"name": "statestore",
+			},
+			"spec": map[interface{}]interface{}{
+				"type":    "state.sqlite",
+				"version": "v1",
+				"metadata": []interface{}{
+					map[interface{}]interface{}{
+						"name":  "connectionString",
+						"value": filepath.Join(daprPath, "state", "statestore.db"),
+					},
+					map[interface{}]interface{}{
+						"name":  "actorStateStore",
+						"value": "true",
+					},
+				},
+			},
+		}
+	}
+
+	// The Redis components are not installed in slim mode.
 	if !isSlimMode() {
 		configs[filepath.Join("components", "statestore.yaml")] = map[string]interface{}{
 			"apiVersion": "dapr.io/v1alpha1",

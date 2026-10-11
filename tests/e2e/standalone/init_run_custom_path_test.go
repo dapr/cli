@@ -56,7 +56,7 @@ func TestStandaloneInitRunUninstallNonDefaultDaprPath(t *testing.T) {
 		output, err := cmdInit(args...)
 		t.Log(output)
 		require.NoError(t, err, "init failed")
-		assert.Contains(t, output, "Success! Dapr is up and running.")
+		assert.Contains(t, output, initSuccessMessage())
 
 		// check version
 		output, err = cmdVersion("", "--runtime-path", daprPath)
@@ -113,7 +113,7 @@ func TestStandaloneInitRunUninstallNonDefaultDaprPath(t *testing.T) {
 		output, err := cmdInit(args...)
 		t.Log(output)
 		require.NoError(t, err, "init failed")
-		assert.Contains(t, output, "Success! Dapr is up and running.")
+		assert.Contains(t, output, initSuccessMessage())
 
 		// check version
 		output, err = cmdVersion("", "--runtime-path", daprPath)
@@ -174,7 +174,7 @@ func TestStandaloneInitRunUninstallNonDefaultDaprPath(t *testing.T) {
 		output, err := cmdInit(args...)
 		t.Log(output)
 		require.NoError(t, err, "init failed")
-		assert.Contains(t, output, "Success! Dapr is up and running.")
+		assert.Contains(t, output, initSuccessMessage())
 
 		// check version
 		output, err = cmdVersion("", "--runtime-path", daprPathFlag)
