@@ -446,12 +446,13 @@ func TestCreateSlimStateStore(t *testing.T) {
 		installDir := t.TempDir()
 		require.NoError(t, makeDefaultComponentsDir(installDir))
 
-		path, err := createSlimStateStore(installDir)
+		store, err := createSlimStateStore(installDir, "1.19.0")
 		require.NoError(t, err)
-		assert.Equal(t, filepath.Join(installDir, "components", "statestore.yaml"), path)
+		assert.Empty(t, store.skipReason)
+		assert.Equal(t, filepath.Join(installDir, "components", "statestore.yaml"), store.path)
 		assert.DirExists(t, filepath.Join(installDir, "state"))
 
-		content, err := os.ReadFile(path)
+		content, err := os.ReadFile(store.path)
 		require.NoError(t, err)
 		var actual map[string]interface{}
 		require.NoError(t, yaml.Unmarshal(content, &actual))
@@ -463,29 +464,118 @@ func TestCreateSlimStateStore(t *testing.T) {
 				"type":    "state.sqlite",
 				"version": "v1",
 				"metadata": []interface{}{
-					map[interface{}]interface{}{"name": "connectionString", "value": filepath.Join(installDir, "state", "statestore.db")},
+					map[interface{}]interface{}{"name": "connectionString", "value": "file:" + filepath.Join(installDir, "state", "statestore.db")},
 					map[interface{}]interface{}{"name": "actorStateStore", "value": "true"},
 				},
 			},
 		}, actual)
 	})
 
-	t.Run("keeps a components folder that already has components", func(t *testing.T) {
+	t.Run("keeps a components folder that already has components and says why", func(t *testing.T) {
 		installDir := t.TempDir()
 		require.NoError(t, makeDefaultComponentsDir(installDir))
 		existing := filepath.Join(installDir, "components", "redis.yml")
 		require.NoError(t, os.WriteFile(existing, []byte("kind: Component\n"), 0o600))
 
-		path, err := createSlimStateStore(installDir)
+		store, err := createSlimStateStore(installDir, "1.19.0")
 		require.NoError(t, err)
-		assert.Empty(t, path)
+		assert.Empty(t, store.path)
+		assert.Contains(t, store.skipReason, filepath.Join(installDir, "components")+" already has component files")
+		assert.Contains(t, store.skipReason, "actorStateStore")
 		assert.NoFileExists(t, filepath.Join(installDir, "components", "statestore.yaml"))
 		assert.NoDirExists(t, filepath.Join(installDir, "state"))
 	})
 
+	t.Run("writes nothing for a runtime without the sqlite state store", func(t *testing.T) {
+		installDir := t.TempDir()
+		require.NoError(t, makeDefaultComponentsDir(installDir))
+
+		store, err := createSlimStateStore(installDir, "1.9.6")
+		require.NoError(t, err)
+		assert.Empty(t, store.path)
+		assert.Contains(t, store.skipReason, "Dapr 1.9.6 has no SQLite state store")
+		assert.NoFileExists(t, filepath.Join(installDir, "components", "statestore.yaml"))
+	})
+
 	t.Run("errors when the components folder is missing", func(t *testing.T) {
-		_, err := createSlimStateStore(t.TempDir())
+		_, err := createSlimStateStore(t.TempDir(), "1.19.0")
 		require.Error(t, err)
+	})
+}
+
+func TestHasSQLiteStateStore(t *testing.T) {
+	for version, want := range map[string]bool{
+		"1.9.6":       false,
+		"1.10.0-rc.1": true,
+		"1.10.0":      true,
+		"1.19.0":      true,
+		"edge":        true,
+		"dev":         true,
+	} {
+		assert.Equal(t, want, hasSQLiteStateStore(version), version)
+	}
+}
+
+func TestSQLiteConnectionString(t *testing.T) {
+	assert.Equal(t, "file:/home/user/.dapr/state/statestore.db", sqliteConnectionString("/home/user/.dapr/state/statestore.db"))
+	// The SQLite state store splits the options at "?". SQLite ends the path at "#" and decodes "%XX".
+	assert.Equal(t, "file:/home/a%3Fb%23c%2541/.dapr/state/statestore.db", sqliteConnectionString("/home/a?b#c%41/.dapr/state/statestore.db"))
+}
+
+func TestRemoveSlimStateStore(t *testing.T) {
+	t.Run("removes the state store that slim init wrote", func(t *testing.T) {
+		installDir := t.TempDir()
+		require.NoError(t, makeDefaultComponentsDir(installDir))
+		store, err := createSlimStateStore(installDir, "1.19.0")
+		require.NoError(t, err)
+		require.FileExists(t, store.path)
+
+		removed, err := removeSlimStateStore(installDir)
+		require.NoError(t, err)
+		assert.True(t, removed)
+		assert.NoFileExists(t, store.path)
+
+		// The Docker init then writes the Redis state store.
+		require.NoError(t, createRedisStateStore(daprDefaultHost, filepath.Join(installDir, "components")))
+		content, err := os.ReadFile(store.path)
+		require.NoError(t, err)
+		assert.Contains(t, string(content), "state.redis")
+	})
+
+	t.Run("keeps a state store that the user changed", func(t *testing.T) {
+		installDir := t.TempDir()
+		require.NoError(t, makeDefaultComponentsDir(installDir))
+		store, err := createSlimStateStore(installDir, "1.19.0")
+		require.NoError(t, err)
+		content, err := os.ReadFile(store.path)
+		require.NoError(t, err)
+		require.NoError(t, os.WriteFile(store.path, append(content, []byte("# my change\n")...), 0o600))
+
+		removed, err := removeSlimStateStore(installDir)
+		require.NoError(t, err)
+		assert.False(t, removed)
+		assert.FileExists(t, store.path)
+	})
+
+	t.Run("keeps the redis state store", func(t *testing.T) {
+		installDir := t.TempDir()
+		require.NoError(t, makeDefaultComponentsDir(installDir))
+		componentsDir := filepath.Join(installDir, "components")
+		require.NoError(t, createRedisStateStore(daprDefaultHost, componentsDir))
+
+		removed, err := removeSlimStateStore(installDir)
+		require.NoError(t, err)
+		assert.False(t, removed)
+		assert.FileExists(t, filepath.Join(componentsDir, "statestore.yaml"))
+	})
+
+	t.Run("does nothing without a state store", func(t *testing.T) {
+		installDir := t.TempDir()
+		require.NoError(t, makeDefaultComponentsDir(installDir))
+
+		removed, err := removeSlimStateStore(installDir)
+		require.NoError(t, err)
+		assert.False(t, removed)
 	})
 }
 

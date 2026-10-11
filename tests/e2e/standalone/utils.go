@@ -82,6 +82,8 @@ func initSuccessMessage() string {
 }
 
 // createSlimComponents creates default state store and pubsub components in path.
+// It keeps a file that exists. After a slim init, which writes a SQLite state
+// store, it adds only the pubsub component.
 func createSlimComponents(path string) error {
 	components := map[string]string{
 		"pubsub.yaml": `apiVersion: dapr.io/v1alpha1
@@ -306,8 +308,8 @@ func ensureDaprInstallation(t *testing.T) {
 		require.NoError(t, err, "failed to stat dapr installation")
 	}
 
-	// Slim mode does not have any components by default.
-	// Install the components required by the tests.
+	// Slim init writes only a SQLite state store.
+	// Install the other components required by the tests.
 	if isSlimMode() {
 		err = createSlimComponents(filepath.Join(daprPath, "components"))
 		require.NoError(t, err, "failed to create components")

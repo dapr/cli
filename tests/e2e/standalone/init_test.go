@@ -477,7 +477,7 @@ func verifyConfigs(t *testing.T, daprPath string) {
 				"metadata": []interface{}{
 					map[interface{}]interface{}{
 						"name":  "connectionString",
-						"value": filepath.Join(daprPath, "state", "statestore.db"),
+						"value": "file:" + filepath.Join(daprPath, "state", "statestore.db"),
 					},
 					map[interface{}]interface{}{
 						"name":  "actorStateStore",

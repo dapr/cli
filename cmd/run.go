@@ -685,7 +685,9 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 	// Stop daprd and app processes for each runState.
 	closeError := gracefullyShutdownAppsAndCloseResources(runStates, apps)
 
-	// Stop the local services after daprd, so daprd does not lose them while it shuts down.
+	// Stop the local services that this run started, after daprd. On Linux and macOS, Ctrl-C and
+	// `dapr stop -f` also signal the services directly, at the same time as daprd, because they
+	// are in the process group of this command.
 	for i := len(localServicesOrder) - 1; i >= 0; i-- {
 		localServicesOrder[i].Stop()
 	}
