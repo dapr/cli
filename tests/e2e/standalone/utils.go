@@ -72,6 +72,15 @@ func isSlimMode() bool {
 	return os.Getenv("DAPR_E2E_INIT_SLIM") == "true"
 }
 
+// initSuccessMessage returns the start of the message that a successful self-hosted init prints.
+// A slim init starts no service, so it does not say that Dapr is running.
+func initSuccessMessage() string {
+	if isSlimMode() {
+		return "Success! Dapr is installed in slim mode."
+	}
+	return "Success! Dapr is up and running."
+}
+
 // createSlimComponents creates default state store and pubsub components in path.
 func createSlimComponents(path string) error {
 	components := map[string]string{

@@ -25,6 +25,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"golang.org/x/mod/semver"
@@ -252,8 +253,17 @@ dapr run --run-file /path/to/directory -k
 		sigCh := make(chan os.Signal, 1)
 		daprsyscall.SetupShutdownNotify(sigCh)
 
+		// A slim installation has the placement and scheduler binaries, but nothing runs them.
+		localServices := newLocalServices(cmdruntime.GetDaprRuntimePath())
+		localServices.Start(!cmd.Flags().Changed("placement-host-address"), !cmd.Flags().Changed("scheduler-host-address"))
+		if warning := localServices.SchedulerWarning(appConfig.SchedulerHostAddress); warning != "" {
+			print.WarningStatusEvent(os.Stdout, "%s", warning)
+		}
+
 		daprRunning := make(chan bool, 1)
 		appRunning := make(chan bool, 1)
+		// daprdKilled is true when this command kills daprd during its own shutdown.
+		var daprdKilled atomic.Bool
 
 		go func() {
 			var startInfo string
@@ -289,11 +299,16 @@ dapr run --run-file /path/to/directory -k
 			err = output.DaprCMD.Start()
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, err.Error())
+				localServices.Stop()
 				os.Exit(1)
 			}
 
 			go func() {
 				daprdErr := output.DaprCMD.Wait()
+				if daprdKilled.Load() {
+					// The shutdown below killed daprd and reports the result.
+					return
+				}
 
 				if daprdErr != nil {
 					output.DaprErr = daprdErr
@@ -386,12 +401,14 @@ dapr run --run-file /path/to/directory -k
 		appRunStatus := <-appRunning
 		if !appRunStatus {
 			// Start App failed, try to stop Dapr and exit.
+			daprdKilled.Store(true)
 			err = output.DaprCMD.Process.Kill()
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Start App failed, try to stop Dapr Error: %s", err))
 			} else {
 				print.SuccessStatusEvent(os.Stdout, "Start App failed, try to stop Dapr successfully")
 			}
+			localServices.Stop()
 			os.Exit(1)
 		}
 
@@ -431,6 +448,7 @@ dapr run --run-file /path/to/directory -k
 			exitWithError = true
 			print.FailureStatusEvent(os.Stderr, fmt.Sprintf("Error exiting Dapr: %s", output.DaprErr))
 		} else if output.DaprCMD.ProcessState == nil || !output.DaprCMD.ProcessState.Exited() {
+			daprdKilled.Store(true)
 			err = output.DaprCMD.Process.Kill()
 			if err != nil {
 				exitWithError = true
@@ -464,10 +482,24 @@ dapr run --run-file /path/to/directory -k
 			}
 		}
 
+		localServices.Stop()
+
 		if exitWithError {
 			os.Exit(1)
 		}
 	},
+}
+
+// newLocalServices returns the local services of the Dapr installation in
+// runtimePath. It returns nil when it cannot find the installation. The
+// methods of a nil *standalone.LocalServices do nothing.
+func newLocalServices(runtimePath string) *standalone.LocalServices {
+	services, err := standalone.NewLocalServices(runtimePath)
+	if err != nil {
+		print.WarningStatusEvent(os.Stdout, "Could not look for the local placement and scheduler services: %s", err)
+		return nil
+	}
+	return services
 }
 
 func init() {
@@ -524,10 +556,18 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 	// This is done to provide a better grouping, which can be used to control all the proceses started by "dapr run -f".
 	daprsyscall.CreateProcessGroupID()
 
+	// Local placement and scheduler services of slim installations, one entry for each runtime path.
+	localServices := map[string]*standalone.LocalServices{}
+	var localServicesOrder []*standalone.LocalServices
+
 	for _, app := range apps {
 		print.StatusEvent(os.Stdout, print.LogInfo, "Validating config and starting app %q", app.AppID)
 		// Set defaults if zero value provided in config yaml.
 		app.SetDefaultFromSchema()
+
+		// A slim installation may start these services only when the run file gives no address for them.
+		startPlacement := app.PlacementHostAddr == nil
+		startScheduler := app.SchedulerHostAddress == nil
 
 		// Adjust scheduler host address defaults for run-file apps (pointer-aware)
 		var schedIn string
@@ -545,6 +585,17 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 			print.FailureStatusEvent(os.Stderr, "Error validating run config for app %q present in %s: %s", app.AppID, runFilePath, err.Error())
 			exitWithError = true
 			break
+		}
+
+		services, ok := localServices[app.DaprdInstallPath]
+		if !ok {
+			services = newLocalServices(app.DaprdInstallPath)
+			localServices[app.DaprdInstallPath] = services
+			localServicesOrder = append(localServicesOrder, services)
+		}
+		services.Start(startPlacement, startScheduler)
+		if warning := services.SchedulerWarning(app.SchedulerHostAddress); warning != "" {
+			print.StatusEvent(os.Stdout, print.LogWarning, "%s", warning)
 		}
 
 		// Get Run Config for different apps.
@@ -633,6 +684,11 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 
 	// Stop daprd and app processes for each runState.
 	closeError := gracefullyShutdownAppsAndCloseResources(runStates, apps)
+
+	// Stop the local services after daprd, so daprd does not lose them while it shuts down.
+	for i := len(localServicesOrder) - 1; i >= 0; i-- {
+		localServicesOrder[i].Stop()
+	}
 
 	for _, app := range apps {
 		runConfig := app.RunConfig

@@ -15,9 +15,12 @@ package standalone
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v2"
 
 	"github.com/dapr/cli/utils"
 	"github.com/dapr/kit/ptr"
@@ -436,4 +439,74 @@ func TestIsSchedulerIncluded(t *testing.T) {
 func TestPublishPortNetworkArgs(t *testing.T) {
 	assert.Equal(t, []string{"--network", "private"}, publishPortNetworkArgs("podman"))
 	assert.Nil(t, publishPortNetworkArgs("docker"))
+}
+
+func TestCreateSlimStateStore(t *testing.T) {
+	t.Run("writes a sqlite actor state store into an empty components folder", func(t *testing.T) {
+		installDir := t.TempDir()
+		require.NoError(t, makeDefaultComponentsDir(installDir))
+
+		path, err := createSlimStateStore(installDir)
+		require.NoError(t, err)
+		assert.Equal(t, filepath.Join(installDir, "components", "statestore.yaml"), path)
+		assert.DirExists(t, filepath.Join(installDir, "state"))
+
+		content, err := os.ReadFile(path)
+		require.NoError(t, err)
+		var actual map[string]interface{}
+		require.NoError(t, yaml.Unmarshal(content, &actual))
+		assert.Equal(t, map[string]interface{}{
+			"apiVersion": "dapr.io/v1alpha1",
+			"kind":       "Component",
+			"metadata":   map[interface{}]interface{}{"name": "statestore"},
+			"spec": map[interface{}]interface{}{
+				"type":    "state.sqlite",
+				"version": "v1",
+				"metadata": []interface{}{
+					map[interface{}]interface{}{"name": "connectionString", "value": filepath.Join(installDir, "state", "statestore.db")},
+					map[interface{}]interface{}{"name": "actorStateStore", "value": "true"},
+				},
+			},
+		}, actual)
+	})
+
+	t.Run("keeps a components folder that already has components", func(t *testing.T) {
+		installDir := t.TempDir()
+		require.NoError(t, makeDefaultComponentsDir(installDir))
+		existing := filepath.Join(installDir, "components", "redis.yml")
+		require.NoError(t, os.WriteFile(existing, []byte("kind: Component\n"), 0o600))
+
+		path, err := createSlimStateStore(installDir)
+		require.NoError(t, err)
+		assert.Empty(t, path)
+		assert.NoFileExists(t, filepath.Join(installDir, "components", "statestore.yaml"))
+		assert.NoDirExists(t, filepath.Join(installDir, "state"))
+	})
+
+	t.Run("errors when the components folder is missing", func(t *testing.T) {
+		_, err := createSlimStateStore(t.TempDir())
+		require.Error(t, err)
+	})
+}
+
+func TestInitSuccessMessage(t *testing.T) {
+	t.Run("docker install runs the services", func(t *testing.T) {
+		assert.Equal(t, "Success! Dapr is up and running. To get started, go here: https://docs.dapr.io/getting-started",
+			InitSuccessMessage(false, false))
+		assert.Equal(t, InitSuccessMessage(false, false), InitSuccessMessage(false, true))
+	})
+
+	t.Run("slim install runs nothing yet", func(t *testing.T) {
+		msg := InitSuccessMessage(true, false)
+		assert.NotContains(t, msg, "up and running")
+		assert.Contains(t, msg, "Success! Dapr is installed in slim mode.")
+		assert.Contains(t, msg, "starts the placement and scheduler services when they are not running.")
+	})
+
+	t.Run("slim install with scheduler placement", func(t *testing.T) {
+		msg := InitSuccessMessage(true, true)
+		assert.Contains(t, msg, "Success! Dapr is installed in slim mode.")
+		assert.Contains(t, msg, "starts the scheduler service when it is not running.")
+		assert.NotContains(t, msg, "placement and scheduler")
+	})
 }

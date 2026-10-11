@@ -53,6 +53,7 @@ const (
 
 	pubSubYamlFileName     = "pubsub.yaml"
 	stateStoreYamlFileName = "statestore.yaml"
+	sqliteStateFileName    = "statestore.db"
 
 	// accepted DAPR_DEFAULT_IMAGE_REGISTRY values.
 	dockerContainerRegistryName = "dockerhub"
@@ -234,6 +235,20 @@ func isSchedulerIncluded(runtimeVersion string) (bool, error) {
 	return c.Check(&vNoPrerelease), nil
 }
 
+// InitSuccessMessage returns the message for a successful self-hosted init.
+// Slim mode starts no service, so the message must not say that Dapr is running.
+func InitSuccessMessage(slimMode, schedulerPlacement bool) string {
+	const getStarted = " To get started, go here: https://docs.dapr.io/getting-started"
+	if !slimMode {
+		return "Success! Dapr is up and running." + getStarted
+	}
+	services := "the placement and scheduler services when they are not running."
+	if schedulerPlacement {
+		services = "the scheduler service when it is not running."
+	}
+	return "Success! Dapr is installed in slim mode. `dapr run` starts " + services + getStarted
+}
+
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
 func Init(opts InitOptions) error {
 	var err error
@@ -364,6 +379,15 @@ func Init(opts InitOptions) error {
 		return err
 	}
 
+	// Slim mode runs no Redis, so give workflows and actors a SQLite state store.
+	slimStateStorePath := ""
+	if slimMode {
+		slimStateStorePath, err = createSlimStateStore(installDir)
+		if err != nil {
+			return fmt.Errorf("error creating sqlite statestore component file: %w", err)
+		}
+	}
+
 	info := initInfo{
 		// values in bundleDet can be nil if fromDir is empty, so must be used in conjunction with fromDir.
 		bundleDet:                          &bundleDet,
@@ -420,6 +444,9 @@ func Init(opts InitOptions) error {
 			print.InfoStatusEvent(os.Stdout, "%s binary has been installed to %s.", placementServiceFilePrefix, daprBinDir)
 		}
 		print.InfoStatusEvent(os.Stdout, "%s binary has been installed to %s.", schedulerServiceFilePrefix, daprBinDir)
+		if slimStateStorePath != "" {
+			print.InfoStatusEvent(os.Stdout, "SQLite actor state store component has been written to %s.", slimStateStorePath)
+		}
 	} else {
 		runtimeCmd := utils.GetContainerRuntimeCmd(info.containerRuntime)
 		dockerContainerNames := []string{DaprPlacementContainerName, DaprRedisContainerName, DaprZipkinContainerName}
@@ -1260,6 +1287,60 @@ func createRedisStateStore(redisHost string, componentsPath string) error {
 	err = checkAndOverWriteFile(filePath, b)
 
 	return err
+}
+
+// createSlimStateStore writes a SQLite state store component, marked as the actor
+// state store, into the default components folder of a slim installation. Workflows
+// and actors need an actor state store, and SQLite needs no server or container.
+// It writes nothing when the folder already has a component file, so that it never
+// adds a second actor state store. It returns the path of the file that it wrote.
+func createSlimStateStore(installDir string) (string, error) {
+	componentsDir := GetDaprComponentsPath(installDir)
+	entries, err := os.ReadDir(componentsDir)
+	if err != nil {
+		return "", err
+	}
+	for _, entry := range entries {
+		ext := strings.ToLower(path_filepath.Ext(entry.Name()))
+		if !entry.IsDir() && (ext == ".yaml" || ext == ".yml") {
+			return "", nil
+		}
+	}
+
+	stateDir := getDaprStatePath(installDir)
+	if err = os.MkdirAll(stateDir, 0o755); err != nil {
+		return "", err
+	}
+
+	sqliteStore := component{
+		APIVersion: "dapr.io/v1alpha1",
+		Kind:       "Component",
+	}
+	sqliteStore.Metadata.Name = "statestore"
+	sqliteStore.Spec.Type = "state.sqlite"
+	sqliteStore.Spec.Version = "v1"
+	sqliteStore.Spec.Metadata = []componentMetadataItem{
+		{
+			// An absolute path, so that the file does not depend on the working directory of daprd.
+			Name:  "connectionString",
+			Value: path_filepath.Join(stateDir, sqliteStateFileName),
+		},
+		{
+			Name:  "actorStateStore",
+			Value: "true",
+		},
+	}
+
+	b, err := yaml.Marshal(&sqliteStore)
+	if err != nil {
+		return "", err
+	}
+
+	filePath := path_filepath.Join(componentsDir, stateStoreYamlFileName)
+	if err = checkAndOverWriteFile(filePath, b); err != nil {
+		return "", err
+	}
+	return filePath, nil
 }
 
 func createRedisPubSub(redisHost string, componentsPath string) error {

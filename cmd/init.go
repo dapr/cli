@@ -87,6 +87,9 @@ dapr init -k --runtime-version 0.10.0
 # Initialize Dapr in slim self-hosted mode
 dapr init -s
 
+# Initialize Dapr in slim self-hosted mode, with actor placement served by the scheduler (Dapr 1.19 or later)
+dapr init -s --scheduler-placement
+
 # Initialize Dapr from a directory (installer-bundle installation) (Preview feature)
 dapr init --from-dir <path-to-directory>
 
@@ -183,10 +186,6 @@ dapr init --redis-stack
 				print.FailureStatusEvent(os.Stderr, "Invalid container runtime. Supported values are docker and podman.")
 				os.Exit(1)
 			}
-			if slimMode && schedulerPlacement {
-				print.FailureStatusEvent(os.Stderr, "--scheduler-placement cannot be used with --slim: slim mode does not run the scheduler")
-				os.Exit(1)
-			}
 
 			schedulerHostPort := &schedulerOverrideBroadcastHostPort
 			if schedulerOverrideBroadcastHostPort == "" {
@@ -211,7 +210,7 @@ dapr init --redis-stack
 				print.FailureStatusEvent(os.Stderr, "%s", err.Error())
 				os.Exit(1)
 			}
-			print.SuccessStatusEvent(os.Stdout, "Success! Dapr is up and running. To get started, go here: https://docs.dapr.io/getting-started")
+			print.SuccessStatusEvent(os.Stdout, "%s", standalone.InitSuccessMessage(slimMode, schedulerPlacement))
 		}
 	},
 }
@@ -245,7 +244,7 @@ func init() {
 	InitCmd.Flags().BoolVarP(&devMode, "dev", "", false, "Use Dev mode. Deploy Redis, Zipkin also in the Kubernetes cluster")
 	InitCmd.Flags().BoolVarP(&wait, "wait", "", false, "Wait for Kubernetes initialization to complete")
 	InitCmd.Flags().UintVarP(&timeout, "timeout", "", 300, "The wait timeout for the Kubernetes installation")
-	InitCmd.Flags().BoolVarP(&slimMode, "slim", "s", false, "Exclude placement service, scheduler service, Redis and Zipkin containers from self-hosted installation")
+	InitCmd.Flags().BoolVarP(&slimMode, "slim", "s", false, "Install the self-hosted binaries and a SQLite state store without containers. The dapr run command starts the placement and scheduler services when they are not running")
 	InitCmd.Flags().StringVarP(&runtimeVersion, "runtime-version", "", defaultRuntimeVersion, "The version of the Dapr runtime to install, for example: 1.0.0")
 	InitCmd.Flags().StringVarP(&initNamespace, "namespace", "n", "dapr-system", "The Kubernetes namespace to install Dapr in")
 	InitCmd.Flags().BoolVarP(&enableMTLS, "enable-mtls", "", true, "Enable mTLS in your cluster")

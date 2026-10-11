@@ -29,6 +29,8 @@ const (
 	defaultComponentsDirName    = "components"
 	defaultSchedulerDirName     = "scheduler"
 	defaultSchedulerDataDirName = "data"
+	defaultStateDirName         = "state"
+	defaultLogsDirName          = "logs"
 )
 
 // GetDaprRuntimePath returns the dapr runtime installation path.
@@ -83,4 +85,19 @@ func GetDaprComponentsPath(daprDir string) string {
 
 func GetDaprConfigPath(daprDir string) string {
 	return path_filepath.Join(daprDir, DefaultConfigFileName)
+}
+
+// getDaprStatePath returns the folder for the SQLite file of the slim state store.
+func getDaprStatePath(daprDir string) string {
+	return path_filepath.Join(daprDir, defaultStateDirName)
+}
+
+// getDaprSchedulerDataPath returns the data folder of a scheduler service that `dapr run` starts.
+func getDaprSchedulerDataPath(daprDir string) string {
+	return path_filepath.Join(daprDir, defaultSchedulerDirName, defaultSchedulerDataDirName)
+}
+
+// getDaprLogsPath returns the log folder of the services that `dapr run` starts.
+func getDaprLogsPath(daprDir string) string {
+	return path_filepath.Join(daprDir, defaultLogsDirName)
 }
