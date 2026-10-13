@@ -144,6 +144,29 @@ func TestGetEnv(t *testing.T) {
 	})
 }
 
+func TestGetDaprCommandEnv(t *testing.T) {
+	t.Run("no user-defined env vars", func(t *testing.T) {
+		config := &RunConfig{AppID: "testapp"}
+
+		cmd, err := GetDaprCommand(config)
+
+		assert.NoError(t, err)
+		assert.Nil(t, cmd.Env)
+	})
+
+	t.Run("user-defined env vars are passed to daprd", func(t *testing.T) {
+		config := &RunConfig{
+			AppID:           "testapp",
+			SharedRunConfig: SharedRunConfig{Env: map[string]string{"MYAPP_API_PORT": "3000"}},
+		}
+
+		cmd, err := GetDaprCommand(config)
+
+		assert.NoError(t, err)
+		assert.Contains(t, cmd.Env, "MYAPP_API_PORT=3000")
+	})
+}
+
 func TestValidatePlacementHostAddr(t *testing.T) {
 	t.Run("empty disables placement", func(t *testing.T) {
 		cfg := &RunConfig{SharedRunConfig: SharedRunConfig{PlacementHostAddr: strPtr("")}}
