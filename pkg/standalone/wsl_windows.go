@@ -52,12 +52,12 @@ func stopWinNAT() error {
 	return err
 }
 
-// isWinNATRunning returns true if the Windows NAT driver service (WinNat) is
-// currently running. Used to avoid stopping (and later starting) a service
-// that was not running in the first place.
-func isWinNATRunning() bool {
-	out, err := utils.RunCmdAndWait("sc", "query", "winnat")
-	return err == nil && strings.Contains(out, "RUNNING")
+// isWSLRunning reports whether any WSL distribution is running. `wsl --list
+// --running --quiet` prints their names (as UTF-16 on older releases, hence
+// the NUL stripping) and nothing, or an error, when there is none.
+func isWSLRunning() bool {
+	out, err := utils.RunCmdAndWait("wsl", "--list", "--running", "--quiet")
+	return err == nil && strings.TrimSpace(strings.ReplaceAll(out, "\x00", "")) != ""
 }
 
 // startWinNAT starts the Windows NAT driver service after the scheduler

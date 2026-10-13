@@ -113,6 +113,20 @@ func publishPortNetworkArgs(runtimeCmd string) []string {
 	return nil
 }
 
+// containerPublishingPort returns the name of a container that publishes
+// hostPort, or "" if there is none or it cannot be determined.
+func containerPublishingPort(runtimeCmd string, hostPort int) string {
+	out, err := utils.RunCmdAndWait(runtimeCmd, "ps", "--filter", fmt.Sprintf("publish=%d", hostPort), "--format", "{{.Names}}")
+	if err != nil {
+		return ""
+	}
+	names := strings.Fields(out)
+	if len(names) == 0 {
+		return ""
+	}
+	return names[0]
+}
+
 // waitForContainerRuntime polls `<runtimeCmd> info` every interval until it
 // succeeds or timeout elapses, returning the last error on timeout. The
 // timeout also bounds each probe, as `info` can hang while Docker Desktop's

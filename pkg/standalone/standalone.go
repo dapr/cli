@@ -838,24 +838,6 @@ func firstInitError(errorChan <-chan error, waitForAll bool) error {
 	return firstErr
 }
 
-// checkSchedulerPorts verifies that all ports required by the scheduler
-// service are available. grpcPort is the platform-specific gRPC port
-// (50006 on Linux/Mac, 6060 on Windows).
-func checkSchedulerPorts(grpcPort int) error {
-	return checkPorts(grpcPort, schedulerEtcdPort, schedulerHealthPort, schedulerMetricPort)
-}
-
-// checkPorts returns an error for the first port in the list that is not
-// available, including the port number in the message.
-func checkPorts(ports ...int) error {
-	for _, p := range ports {
-		if err := utils.CheckIfPortAvailable(p); err != nil {
-			return fmt.Errorf("port %d is not available: %w", p, err)
-		}
-	}
-	return nil
-}
-
 func schedulerOverrideHostPort(info initInfo) bool {
 	if info.runtimeVersion == "edge" || info.runtimeVersion == "dev" {
 		return true

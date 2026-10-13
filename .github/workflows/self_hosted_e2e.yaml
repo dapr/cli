@@ -33,6 +33,7 @@ jobs:
   self-hosted-e2e:
     name: Run Self-Hosted E2E tests in ${{ matrix.target_os }}_${{ matrix.target_arch }}_${{ matrix.dapr_install_mode }}
     runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.experimental == true }}
     env:
       GOOS: ${{ matrix.target_os }}
       GOARCH: ${{ matrix.target_arch }}
@@ -57,6 +58,16 @@ jobs:
             target_os: darwin
           - os: windows-latest
             target_os: windows
+          # Complete mode on Windows needs Linux containers, which the image's
+          # own Docker engine cannot run: this leg installs Docker Desktop on
+          # the WSL2 backend, which only windows-2025 ships. Docker does not
+          # support Docker Desktop on Windows Server, so the leg must not fail
+          # the workflow.
+          - os: windows-2025
+            target_os: windows
+            target_arch: amd64
+            dapr_install_mode: complete
+            experimental: true
         exclude:
           - os: windows-latest
             dapr_install_mode: complete
@@ -70,9 +81,9 @@ jobs:
           echo "GOBIN=$HOME/bin" >> $GITHUB_ENV
           mkdir -p $HOME/bin
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         id: setup-go
         with:
           go-version-file: "go.mod"
@@ -93,6 +104,40 @@ jobs:
           podman machine ssh sudo sysctl -w kernel.keys.maxkeys=20000
           podman info
           echo "CONTAINER_RUNTIME=podman" >> $GITHUB_ENV
+      - name: Install Docker Desktop - Windows
+        timeout-minutes: 25
+        if: matrix.target_os == 'windows' && matrix.dapr_install_mode == 'complete'
+        shell: pwsh
+        run: |
+          # The image's own Docker engine only runs Windows containers and owns
+          # the default engine pipe.
+          Stop-Service docker -Force -ErrorAction SilentlyContinue
+          Set-Service docker -StartupType Disabled -ErrorAction SilentlyContinue
+
+          $installer = Join-Path $env:RUNNER_TEMP 'DockerDesktopInstaller.exe'
+          curl.exe -fsSL --retry 3 -o $installer 'https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe'
+          if ($LASTEXITCODE -ne 0) { throw 'could not download the Docker Desktop installer' }
+
+          # --accept-license accepts the Docker Subscription Service Agreement.
+          $install = Start-Process $installer -Wait -PassThru -ArgumentList 'install', '--quiet', '--accept-license', '--backend=wsl-2'
+          if ($install.ExitCode -ne 0) { throw "the Docker Desktop installer exited with code $($install.ExitCode)" }
+
+          # Ahead of the image's docker.exe.
+          $bin = 'C:\Program Files\Docker\Docker\resources\bin'
+          $env:Path = "$bin;$env:Path"
+          Add-Content -Path $env:GITHUB_PATH -Value $bin
+
+          Start-Process 'C:\Program Files\Docker\Docker\Docker Desktop.exe'
+          $deadline = (Get-Date).AddMinutes(10)
+          do {
+            Start-Sleep -Seconds 5
+            $engine = docker info --format '{{.OSType}}' 2>$null
+          } until ($engine -eq 'linux' -or (Get-Date) -gt $deadline)
+          if ($engine -ne 'linux') { throw "Docker Desktop's Linux engine did not answer within 10 minutes" }
+          docker version
+
+          # Run the test that makes dapr init shut WSL down.
+          Add-Content -Path $env:GITHUB_ENV -Value 'DAPR_E2E_WSL_SHUTDOWN=true'
       - name: Determine latest Dapr Runtime version including Pre-releases
         if: github.base_ref == 'master'
         run: |
@@ -139,9 +184,28 @@ jobs:
           export GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
           make e2e-build-run-sh
         shell: bash
+      - name: Collect Docker Desktop logs - Windows
+        if: failure() && matrix.target_os == 'windows' && matrix.dapr_install_mode == 'complete'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Continue'
+          docker info
+          docker ps --all
+          wsl --list --verbose
+          netstat -ano | Select-String ':(6060|2379|58081|59091)\s'
+          netsh int ipv4 show excludedportrange protocol=tcp
+          Copy-Item (Join-Path $env:LOCALAPPDATA 'Docker\log') (Join-Path $env:RUNNER_TEMP 'docker-desktop-logs') -Recurse -ErrorAction SilentlyContinue
+          exit 0
+      - name: Upload Docker Desktop logs - Windows
+        if: failure() && matrix.target_os == 'windows' && matrix.dapr_install_mode == 'complete'
+        uses: actions/upload-artifact@v7
+        with:
+          name: docker-desktop-logs
+          path: ${{ runner.temp }}/docker-desktop-logs
+          if-no-files-found: ignore
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.target_os }}_${{ matrix.target_arch }}_${{ matrix.dapr_install_mode }}_e2e_standalone.json
           path: ${{ env.TEST_OUTPUT_FILE }}
