@@ -223,6 +223,47 @@ func TestStandaloneInit(t *testing.T) {
 		verifyTCPLocalhost(t, schedulerPort)
 	})
 
+	t.Run("init with scheduler placement", func(t *testing.T) {
+		if isSlimMode() {
+			t.Skip("Skipping scheduler placement test because of slim installation")
+		}
+
+		latestDaprRuntimeVersion := common.GetVersionsFromEnv(t, true)
+
+		// --scheduler-placement requires Dapr >= 1.19. Skip until the latest
+		// stable release reaches that, rather than pinning a version that may
+		// not exist yet.
+		schedulerPlacementConstraint, err := semver.NewConstraint(">= 1.19.x")
+		require.NoError(t, err)
+		v, err := semver.NewVersion(latestDaprRuntimeVersion)
+		require.NoError(t, err)
+		if !schedulerPlacementConstraint.Check(v) {
+			t.Skipf("Skipping: latest stable Dapr %s is older than the first release with --scheduler-placement (>= 1.19)", latestDaprRuntimeVersion)
+		}
+
+		// Ensure a clean environment
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+
+		args := []string{
+			"--runtime-version", latestDaprRuntimeVersion,
+			"--scheduler-placement",
+		}
+		output, err := cmdInit(args...)
+		t.Log(output)
+		require.NoError(t, err, "init failed")
+		assert.Contains(t, output, "Success! Dapr is up and running.")
+
+		homeDir, err := os.UserHomeDir()
+		require.NoError(t, err, "failed to get user home directory")
+
+		daprPath := filepath.Join(homeDir, ".dapr")
+		require.DirExists(t, daprPath, "Directory %s does not exist", daprPath)
+
+		verifyBinaries(t, daprPath, latestDaprRuntimeVersion)
+		verifyConfigs(t, daprPath)
+		verifySchedulerPlacementContainers(t)
+	})
+
 	t.Run("init with custom scheduler host", func(t *testing.T) {
 		if isSlimMode() {
 			t.Skip("Skipping scheduler host test because of slim installation")
@@ -489,6 +530,43 @@ func verifyTCPLocalhost(t *testing.T, port int) {
 			conn.Close()
 		}
 	}, time.Second*10, time.Millisecond*10)
+}
+
+// verifySchedulerPlacementContainers ensures that, with --scheduler-placement,
+// no placement container runs and the scheduler container runs with
+// --placement-enabled=true. This catches regressions where both services, or
+// neither, end up running.
+func verifySchedulerPlacementContainers(t *testing.T) {
+	t.Helper()
+
+	t.Run("verifySchedulerPlacementContainers", func(t *testing.T) {
+		if isSlimMode() {
+			t.Skip("Skipping container verification because of slim installation")
+		}
+
+		cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv, dockerClient.WithVersion("1.48"))
+		require.NoError(t, err)
+
+		containers, err := cli.ContainerList(context.Background(), container.ListOptions{})
+		require.NoError(t, err)
+
+		var foundScheduler bool
+		for _, c := range containers {
+			if c.State != "running" {
+				continue
+			}
+			name := strings.TrimPrefix(c.Names[0], "/")
+			assert.NotEqual(t, "dapr_placement", name, "placement container must not run when the scheduler serves placement")
+			if name == "dapr_scheduler" {
+				foundScheduler = true
+			}
+		}
+		assert.True(t, foundScheduler, "dapr_scheduler container was not found")
+
+		containerInfo, err := cli.ContainerInspect(context.Background(), "dapr_scheduler")
+		require.NoError(t, err)
+		assert.Contains(t, containerInfo.Args, "--placement-enabled=true", "expected scheduler container to run with --placement-enabled=true")
+	})
 }
 
 // verifySchedulerBroadcastHostPort verifies that the scheduler container was started with the correct broadcast host and port.
