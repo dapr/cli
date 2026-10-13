@@ -24,9 +24,7 @@ import (
 	"strconv"
 	"strings"
 
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -108,24 +106,15 @@ func stand(ctx context.Context, opts Options) (*Client, error) {
 		resourcePaths = []string{standalone.GetDaprComponentsPath(daprDirPath)}
 	}
 
-	client, err := client.NewClientWithAddressContext(ctx, "localhost:"+strconv.Itoa(proc.GRPCPort))
-	if err != nil {
-		return nil, err
-	}
-
-	//nolint:staticcheck
-	conn, err := grpc.DialContext(ctx, "localhost:"+strconv.Itoa(proc.GRPCPort),
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(),
-	)
+	dapr, wf, err := connect(ctx, proc.GRPCPort)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Client{
-		Dapr:           client,
-		WF:             workflow.NewClient(conn),
-		Cancel:         func() { conn.Close() },
+		Dapr:           dapr,
+		WF:             wf,
+		Cancel:         dapr.Close,
 		kubernetesMode: false,
 		resourcePaths:  resourcePaths,
 		appID:          opts.AppID,
@@ -179,29 +168,32 @@ func kube(ctx context.Context, opts Options) (*Client, error) {
 		return nil, err
 	}
 
-	client, err := client.NewClientWithAddressContext(ctx, "localhost:"+strconv.Itoa(port))
+	dapr, wf, err := connect(ctx, port)
 	if err != nil {
-		return nil, err
-	}
-
-	//nolint:staticcheck
-	conn, err := grpc.DialContext(ctx, "localhost:"+strconv.Itoa(port),
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(),
-	)
-	if err != nil {
+		portForward.Stop()
 		return nil, err
 	}
 
 	return &Client{
-		WF:             workflow.NewClient(conn),
-		Dapr:           client,
-		Cancel:         func() { conn.Close(); portForward.Stop() },
+		WF:             wf,
+		Dapr:           dapr,
+		Cancel:         func() { dapr.Close(); portForward.Stop() },
 		kubernetesMode: true,
 		appID:          opts.AppID,
 		ns:             opts.Namespace,
 		dbConnString:   opts.DBConnectionString,
 	}, nil
+}
+
+// connect shares the SDK client's connection with the workflow client so
+// that both send the DAPR_API_TOKEN header.
+func connect(ctx context.Context, port int) (client.Client, *workflow.Client, error) {
+	dapr, err := client.NewClientWithAddressContext(ctx, "localhost:"+strconv.Itoa(port))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return dapr, workflow.NewClient(dapr.GrpcClientConn()), nil
 }
 
 func (c *Client) InstanceIDs(ctx context.Context) ([]string, error) {
