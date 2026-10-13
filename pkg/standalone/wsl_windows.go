@@ -18,6 +18,7 @@ package standalone
 import (
 	"os"
 	"os/exec"
+	"strings"
 
 	"golang.org/x/sys/windows"
 
@@ -49,6 +50,14 @@ func shutdownWSL() error {
 func stopWinNAT() error {
 	_, err := utils.RunCmdAndWait("net", "stop", "winnat")
 	return err
+}
+
+// isWSLRunning reports whether any WSL distribution is running. `wsl --list
+// --running --quiet` prints their names (as UTF-16 on older releases, hence
+// the NUL stripping) and nothing, or an error, when there is none.
+func isWSLRunning() bool {
+	out, err := utils.RunCmdAndWait("wsl", "--list", "--running", "--quiet")
+	return err == nil && strings.TrimSpace(strings.ReplaceAll(out, "\x00", "")) != ""
 }
 
 // startWinNAT starts the Windows NAT driver service after the scheduler
