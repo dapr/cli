@@ -65,6 +65,10 @@ const (
 var (
 	VersionWithScheduler   = semver.MustParse("1.14.0-rc.1")
 	VersionWithHAScheduler = semver.MustParse("1.15.0-rc.1")
+	// VersionWithFixedActivityGeneration is the first runtime version whose
+	// workflow activity actor IDs end in a fixed "0" generation component
+	// (<instanceID>::<taskID>::0) instead of a per-execution counter.
+	VersionWithFixedActivityGeneration = semver.MustParse("1.19.0-rc.1")
 )
 
 type VersionDetails struct {
