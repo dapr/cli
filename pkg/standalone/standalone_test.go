@@ -407,3 +407,8 @@ func TestIsSchedulerIncluded(t *testing.T) {
 		})
 	}
 }
+
+func TestPublishPortNetworkArgs(t *testing.T) {
+	assert.Equal(t, []string{"--network", "private"}, publishPortNetworkArgs("podman"))
+	assert.Nil(t, publishPortNetworkArgs("docker"))
+}
