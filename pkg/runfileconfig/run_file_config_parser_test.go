@@ -33,6 +33,8 @@ var (
 	runFileForPrecedenceRuleDaprDir = filepath.Join(".", "testdata", "test_run_config_precedence_rule_dapr_dir.yaml")
 	runFileForLogDestination        = filepath.Join(".", "testdata", "test_run_config_log_destination.yaml")
 	runFileForMultiResourcePaths    = filepath.Join(".", "testdata", "test_run_config_multiple_resources_paths.yaml")
+	runFileForStartLocalServices    = filepath.Join(".", "testdata", "test_run_config_start_local_services.yaml")
+	runFileForStartLocalServicesApp = filepath.Join(".", "testdata", "test_run_config_start_local_services_app.yaml")
 
 	runFileForContainerImagePullPolicy        = filepath.Join(".", "testdata", "test_run_config_container_image_pull_policy.yaml")
 	runFileForContainerImagePullPolicyInvalid = filepath.Join(".", "testdata", "test_run_config_container_image_pull_policy_invalid.yaml")
@@ -404,4 +406,61 @@ func getResourcesAndConfigFilePaths(t *testing.T, daprInstallPath string) []stri
 	result[0] = standalone.GetDaprComponentsPath(daprDirPath)
 	result[1] = standalone.GetDaprConfigPath(daprDirPath)
 	return result
+}
+
+func TestStartLocalServices(t *testing.T) {
+	testcases := []struct {
+		name     string
+		runFile  string
+		expected map[string]bool
+	}{
+		{
+			name:    "key not set in common or in the apps",
+			runFile: validRunFilePath,
+			expected: map[string]bool{
+				"webapp":  true,
+				"backend": true,
+			},
+		},
+		{
+			name:    "key in common, app value over common",
+			runFile: runFileForStartLocalServices,
+			expected: map[string]bool{
+				"from_common":          false,
+				"app_true_over_common": true,
+				"app_false":            false,
+			},
+		},
+		{
+			name:    "key in the apps only",
+			runFile: runFileForStartLocalServicesApp,
+			expected: map[string]bool{
+				"not_set":   true,
+				"app_false": false,
+				"app_true":  true,
+			},
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			config := RunFileConfig{}
+			apps, err := config.GetApps(tc.runFile)
+			assert.NoError(t, err)
+			assert.Len(t, apps, len(tc.expected))
+			for _, app := range apps {
+				expected, ok := tc.expected[app.AppID]
+				assert.True(t, ok, "unexpected app %q", app.AppID)
+				assert.Equal(t, expected, app.LocalServicesEnabled(), "app %q", app.AppID)
+			}
+		})
+	}
+
+	t.Run("key not set means nil, not false", func(t *testing.T) {
+		config := RunFileConfig{}
+		apps, err := config.GetApps(runFileForStartLocalServicesApp)
+		assert.NoError(t, err)
+		assert.Nil(t, config.Common.StartLocalServices)
+		assert.Nil(t, apps[0].StartLocalServices)
+	})
 }

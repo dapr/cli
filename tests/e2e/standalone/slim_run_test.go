@@ -118,3 +118,69 @@ func TestSlimSingleAppRunStartsLocalServices(t *testing.T) {
 		waitForPortsFree(t, ports...)
 	})
 }
+
+// TestSlimSingleAppRunWithoutLocalServices runs one app with
+// --start-local-services=false on a slim installation, also on Windows.
+// The command sets no placement or scheduler address, but `dapr run` starts
+// no service, and the ports stay free.
+func TestSlimSingleAppRunWithoutLocalServices(t *testing.T) {
+	if !isSlimMode() {
+		t.Skip("dapr run starts local services for slim installations only")
+	}
+	if !common.GetRuntimeVersion(t, false).GreaterThanEqual(common.VersionWithScheduler) {
+		t.Skip("the runtime has no scheduler")
+	}
+
+	ports := []int{50005, 50006}
+	if runtime.GOOS == "windows" {
+		ports = []int{6050, 6060}
+	}
+	waitForPortsFree(t, ports...)
+
+	// The app runs long enough for the checks below, then it exits.
+	appID := "slim-no-local-services"
+	args := []string{"--app-id", appID, "--start-local-services=false", "--"}
+	if runtime.GOOS == "windows" {
+		args = append(args, "cmd", "/c", "ping -n 16 127.0.0.1 > nul")
+	} else {
+		args = append(args, "bash", "-c", "sleep 15")
+	}
+
+	var output string
+	var runErr error
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		output, runErr = cmdRun("", args...)
+	}()
+	t.Cleanup(func() {
+		select {
+		case <-done:
+		case <-time.After(2 * time.Minute):
+		}
+	})
+
+	t.Run("no service listens while the app runs", func(t *testing.T) {
+		waitForAppsListed(t, 60*time.Second, appID)
+		for _, port := range ports {
+			conn, err := net.DialTimeout("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(port)), time.Second)
+			if err == nil {
+				conn.Close()
+			}
+			assert.Error(t, err, "a service listens on port %d", port)
+		}
+	})
+
+	t.Run("dapr run started no service", func(t *testing.T) {
+		select {
+		case <-done:
+		case <-time.After(2 * time.Minute):
+			require.FailNow(t, "dapr run did not exit")
+		}
+		require.NoError(t, runErr, output)
+		assert.Contains(t, output, "No scheduler service answers on")
+		assert.NotContains(t, output, "Started the placement service")
+		assert.NotContains(t, output, "Started the scheduler service")
+		waitForPortsFree(t, ports...)
+	})
+}

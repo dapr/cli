@@ -16,6 +16,7 @@ limitations under the License.
 package standalone_test
 
 import (
+	"context"
 	"encoding/json"
 	"net"
 	"os"
@@ -88,6 +89,74 @@ func TestSlimRunStartsLocalServices(t *testing.T) {
 	t.Run("the services stop with dapr run", func(t *testing.T) {
 		_, err := cmdStopWithAppID(appID)
 		require.NoError(t, err)
+		waitForPortsFree(t, 50005, 50006)
+	})
+}
+
+// TestSlimRunWithoutLocalServices runs a run file that sets startLocalServices
+// to false in its common section. The run file sets no placement or scheduler
+// address, but `dapr run` starts no service, and the ports stay free.
+func TestSlimRunWithoutLocalServices(t *testing.T) {
+	if !isSlimMode() {
+		t.Skip("dapr run starts local services for slim installations only")
+	}
+	if !common.GetRuntimeVersion(t, false).GreaterThanEqual(common.VersionWithScheduler) {
+		t.Skip("the runtime has no scheduler")
+	}
+
+	waitForPortsFree(t, 50005, 50006, 3512)
+
+	runFilePath := "../testdata/run-template-files/test-slim-no-local-services.yaml"
+	appID := "test-slim-no-local-services"
+	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
+	defer cancel()
+	t.Cleanup(func() {
+		cmdStopWithRunTemplate(runFilePath)
+		cmdStopWithAppID(appID)
+	})
+
+	outputCh := make(chan string, 1)
+	go func() {
+		output, _ := cmdRunWithContext(ctx, "", "-f", runFilePath)
+		outputCh <- output
+	}()
+
+	t.Run("no service listens while the app runs", func(t *testing.T) {
+		// `dapr stop -f` finds the app from the run file path in the sidecar metadata.
+		require.EventuallyWithT(t, func(c *assert.CollectT) {
+			output, err := cmdList("json")
+			if !assert.NoError(c, err, output) {
+				return
+			}
+			var list []map[string]interface{}
+			if !assert.NoError(c, json.Unmarshal([]byte(output), &list)) {
+				return
+			}
+			runTemplatePath := ""
+			for _, item := range list {
+				if item["appId"] == appID {
+					runTemplatePath, _ = item["runTemplatePath"].(string)
+				}
+			}
+			assert.NotEmpty(c, runTemplatePath, "app %q is not listed with its run file", appID)
+		}, 90*time.Second, time.Second)
+
+		for _, port := range []string{"50005", "50006"} {
+			conn, err := net.DialTimeout("tcp", net.JoinHostPort("127.0.0.1", port), time.Second)
+			if err == nil {
+				conn.Close()
+			}
+			assert.Error(t, err, "a service listens on port %s", port)
+		}
+	})
+
+	t.Run("dapr run started no service", func(t *testing.T) {
+		_, err := cmdStopWithRunTemplate(runFilePath)
+		require.NoError(t, err)
+		output := collectOutput(t, outputCh, cancel, 60*time.Second)
+		assert.Contains(t, output, "No scheduler service answers on localhost:50006.")
+		assert.NotContains(t, output, "Started the placement service")
+		assert.NotContains(t, output, "Started the scheduler service")
 		waitForPortsFree(t, 50005, 50006)
 	})
 }
