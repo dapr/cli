@@ -135,6 +135,7 @@ func TestPlacementServiceSpec(t *testing.T) {
 		assert.Equal(t, placementServiceFilePrefix, spec.name)
 		assert.Equal(t, 50005, spec.port)
 		assert.Equal(t, healthPort, spec.healthzPort)
+		assert.Equal(t, []int{8201, 58080, 59090}, spec.otherPorts)
 		assert.Equal(t, []string{
 			"--port", "50005",
 			"--healthz-port", "58080",
@@ -163,6 +164,7 @@ func TestSchedulerServiceSpec(t *testing.T) {
 		assert.Equal(t, schedulerServiceFilePrefix, spec.name)
 		assert.Equal(t, 50006, spec.port)
 		assert.Equal(t, schedulerHealthPort, spec.healthzPort)
+		assert.Equal(t, []int{2379, 2380, 58081, 59091}, spec.otherPorts)
 		assert.Equal(t, []string{
 			"--port", "50006",
 			"--listen-address", "127.0.0.1",
@@ -207,6 +209,7 @@ func newTestLocalServices(t *testing.T, version string, listening bool, binaries
 		runtimeVersion:   version,
 		handled:          map[string]bool{},
 		isListening:      func(string) bool { return listening },
+		canListen:        func(string) bool { return true },
 		out:              out,
 		placementPort:    50005,
 		schedulerPort:    50006,
@@ -313,6 +316,56 @@ func TestLocalServicesStart(t *testing.T) {
 		assert.NotContains(t, out.String(), "Could not start")
 	})
 
+	t.Run("a service with another port in use does not start", func(t *testing.T) {
+		for _, tc := range []struct {
+			service string
+			port    string
+		}{
+			{"scheduler", "2379"},
+			{"scheduler", "2380"},
+			{"placement", "8201"},
+		} {
+			l, out := newTestLocalServices(t, "1.18.7", false, tc.service)
+			var checked []string
+			l.canListen = func(address string) bool {
+				checked = append(checked, address)
+				return address != "127.0.0.1:"+tc.port
+			}
+			l.Start(tc.service == "placement", tc.service == "scheduler")
+			assert.Empty(t, l.started)
+			assert.Contains(t, checked, "127.0.0.1:"+tc.port)
+			assert.Contains(t, out.String(), "Did not start the "+tc.service+" service, because another process uses port "+tc.port+".")
+			// The binary of the test is not executable, so a start attempt gives "Could not start".
+			assert.NotContains(t, out.String(), "Could not start")
+		}
+	})
+
+	t.Run("the other ports of a running service are not checked", func(t *testing.T) {
+		l, out := newTestLocalServices(t, "1.18.7", true, "placement", "scheduler")
+		l.canListen = func(address string) bool {
+			t.Errorf("canListen(%q) called for a running service", address)
+			return false
+		}
+		l.Start(true, true)
+		assert.Contains(t, out.String(), "Using the placement service that runs on localhost:50005")
+		assert.Contains(t, out.String(), "Using the scheduler service that runs on localhost:50006")
+	})
+
+	t.Run("a port in use by a service that another run started at the same moment", func(t *testing.T) {
+		l, out := newTestLocalServices(t, "1.18.7", false, "scheduler")
+		// Free when Start looks, in use when the port check fails.
+		calls := 0
+		l.isListening = func(string) bool {
+			calls++
+			return calls > 1
+		}
+		l.canListen = func(string) bool { return false }
+		l.Start(false, true)
+		assert.Empty(t, l.started)
+		assert.Contains(t, out.String(), "Using the scheduler service that runs on localhost:50006")
+		assert.NotContains(t, out.String(), "Did not start")
+	})
+
 	t.Run("nil does nothing", func(t *testing.T) {
 		var l *LocalServices
 		l.Start(true, true)
@@ -355,6 +408,15 @@ func TestLocalServicesSchedulerWarning(t *testing.T) {
 		assert.Contains(t, warning, "No scheduler service answers on localhost:50006.")
 		assert.Contains(t, warning, "dapr_scheduler container")
 	})
+}
+
+func TestCanListen(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	addr := ln.Addr().String()
+	assert.False(t, canListen(addr))
+	require.NoError(t, ln.Close())
+	assert.True(t, canListen(addr))
 }
 
 func TestIsListening(t *testing.T) {
