@@ -44,6 +44,13 @@ const (
 	localServiceStopTimeout  = 10 * time.Second
 
 	daprVersionsWithListenAddressFlags = ">= 1.14.x"
+
+	// placementRaftPort is the raft port of the placement service. The
+	// service uses it with its default flags.
+	placementRaftPort = 8201
+	// schedulerEtcdPeerPort is the etcd peer port of the scheduler service.
+	// The service uses it with its default flags.
+	schedulerEtcdPeerPort = 2380
 )
 
 // localServiceSpec describes how `dapr run` starts one service of a slim installation.
@@ -53,7 +60,11 @@ type localServiceSpec struct {
 	// port is the gRPC port that daprd connects to.
 	port        int
 	healthzPort int
-	args        []string
+	// otherPorts are the other ports that the service listens on, on
+	// localServiceListenAddress. The service cannot start when another
+	// process uses one of them.
+	otherPorts []int
+	args       []string
 }
 
 // localService is a service process that `dapr run` started.
@@ -83,6 +94,7 @@ type LocalServices struct {
 
 	// Replaced in tests.
 	isListening   func(address string) bool
+	canListen     func(address string) bool
 	out           io.Writer
 	placementPort int
 	schedulerPort int
@@ -110,6 +122,7 @@ func NewLocalServices(daprInstallPath string) (*LocalServices, error) {
 		runtimeVersion:   strings.TrimSpace(version),
 		handled:          map[string]bool{},
 		isListening:      isListening,
+		canListen:        canListen,
 		out:              os.Stdout,
 		placementPort:    defaultPlacementPort(),
 		schedulerPort:    defaultSchedulerPort(),
@@ -119,8 +132,9 @@ func NewLocalServices(daprInstallPath string) (*LocalServices, error) {
 // Start starts the placement service (when startPlacement is true) and the
 // scheduler service (when startScheduler is true) of a slim installation.
 // The caller sets a flag to false when the user gave an address for that service.
-// A service starts only when its binary is installed and no process accepts
-// connections on its default address. Start waits until the services are
+// A service starts only when its binary is installed, no process accepts
+// connections on its default address, and no other process uses one of the
+// other ports of the service. Start waits until the services are
 // healthy. A service that does not start gives a warning, not an error, because
 // daprd can run without it.
 func (l *LocalServices) Start(startPlacement, startScheduler bool) {
@@ -133,6 +147,12 @@ func (l *LocalServices) Start(startPlacement, startScheduler bool) {
 		address := localServiceHost + ":" + strconv.Itoa(spec.port)
 		if l.isListening(address) {
 			print.InfoStatusEvent(l.out, "Using the %s service that runs on %s.", spec.name, address)
+			continue
+		}
+		// With a port in use, the service does not become healthy. The
+		// scheduler retries its etcd ports until the start timeout.
+		if port, inUse := l.portInUse(spec); inUse {
+			l.warnStartFailed(spec, address, fmt.Sprintf("Did not start the %s service, because another process uses port %d.", spec.name, port))
 			continue
 		}
 
@@ -166,6 +186,16 @@ func (l *LocalServices) warnStartFailed(spec localServiceSpec, address, warning 
 		return
 	}
 	print.WarningStatusEvent(l.out, "%s", warning)
+}
+
+// portInUse returns the first of the other ports of spec that another process uses.
+func (l *LocalServices) portInUse(spec localServiceSpec) (int, bool) {
+	for _, port := range spec.otherPorts {
+		if !l.canListen(net.JoinHostPort(localServiceListenAddress, strconv.Itoa(port))) {
+			return port, true
+		}
+	}
+	return 0, false
 }
 
 // plan returns the services that Start must look at.
@@ -248,6 +278,7 @@ func placementServiceSpec(runtimeVersion string, port int) localServiceSpec {
 		name:        placementServiceFilePrefix,
 		port:        port,
 		healthzPort: healthPort,
+		otherPorts:  []int{placementRaftPort, healthPort, metricPort},
 		args:        args,
 	}
 }
@@ -274,6 +305,7 @@ func schedulerServiceSpec(runtimeVersion, dataDir string, port int, placementEna
 		name:        schedulerServiceFilePrefix,
 		port:        port,
 		healthzPort: schedulerHealthPort,
+		otherPorts:  []int{schedulerEtcdPort, schedulerEtcdPeerPort, schedulerHealthPort, schedulerMetricPort},
 		args:        args,
 	}
 }
@@ -401,6 +433,18 @@ func (s *localService) stop(timeout time.Duration) {
 		_ = s.cmd.Process.Kill()
 		<-s.exited
 	}
+}
+
+// canListen returns true if this process can listen on the TCP address. Then
+// a service that listens on the same address does not fail because the port
+// is in use.
+func canListen(address string) bool {
+	ln, err := net.Listen("tcp", address)
+	if err != nil {
+		return false
+	}
+	ln.Close()
+	return true
 }
 
 // isListening returns true if a process accepts TCP connections on address.
