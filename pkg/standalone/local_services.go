@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver"
+	"github.com/nightlyone/lockfile"
 
 	"github.com/dapr/cli/pkg/print"
 )
@@ -42,6 +43,10 @@ const (
 
 	localServiceStartTimeout = 30 * time.Second
 	localServiceStopTimeout  = 10 * time.Second
+
+	// localServicesLockFileName is the lock file in the logs folder. It keeps
+	// two `dapr run` commands from starting the same service at the same moment.
+	localServicesLockFileName = "local-services.lock"
 
 	daprVersionsWithListenAddressFlags = ">= 1.14.x"
 
@@ -98,6 +103,7 @@ type LocalServices struct {
 	out           io.Writer
 	placementPort int
 	schedulerPort int
+	lockTimeout   time.Duration
 }
 
 // NewLocalServices returns the local services of the Dapr installation in
@@ -126,6 +132,7 @@ func NewLocalServices(daprInstallPath string) (*LocalServices, error) {
 		out:              os.Stdout,
 		placementPort:    defaultPlacementPort(),
 		schedulerPort:    defaultSchedulerPort(),
+		lockTimeout:      localServiceStartTimeout,
 	}, nil
 }
 
@@ -137,13 +144,23 @@ func NewLocalServices(daprInstallPath string) (*LocalServices, error) {
 // other ports of the service. Start waits until the services are
 // healthy. A service that does not start gives a warning, not an error, because
 // daprd can run without it.
+//
+// Start holds a lock file from the first check until the services are healthy.
+// A second `dapr run` that starts at the same moment waits for the lock, and
+// then uses the services of the first one.
 func (l *LocalServices) Start(startPlacement, startScheduler bool) {
 	if l == nil {
 		return
 	}
+	specs := l.plan(startPlacement, startScheduler)
+	if len(specs) == 0 {
+		return
+	}
+	unlock := l.lock()
+	defer unlock()
 
 	var starting []*localService
-	for _, spec := range l.plan(startPlacement, startScheduler) {
+	for _, spec := range specs {
 		address := localServiceHost + ":" + strconv.Itoa(spec.port)
 		if l.isListening(address) {
 			print.InfoStatusEvent(l.out, "Using the %s service that runs on %s.", spec.name, address)
@@ -186,6 +203,43 @@ func (l *LocalServices) warnStartFailed(spec localServiceSpec, address, warning 
 		return
 	}
 	print.WarningStatusEvent(l.out, "%s", warning)
+}
+
+// lock takes the lock file of the installation, and returns the function that
+// releases it. The file holds the process ID, so a lock file of a process that
+// no longer runs does not block. lock waits up to lockTimeout for another
+// process to release the lock. After that time, or when the lock file does not
+// work, Start continues without the lock.
+func (l *LocalServices) lock() func() {
+	noLock := func() {}
+	if err := os.MkdirAll(l.logsDir, 0o755); err != nil {
+		return noLock
+	}
+	path, err := path_filepath.Abs(path_filepath.Join(l.logsDir, localServicesLockFileName))
+	if err != nil {
+		return noLock
+	}
+	lockFile, err := lockfile.New(path)
+	if err != nil {
+		return noLock
+	}
+
+	deadline := time.Now().Add(l.lockTimeout)
+	for {
+		err = lockFile.TryLock()
+		if err == nil {
+			return func() { _ = lockFile.Unlock() }
+		}
+		var temporary interface{ Temporary() bool }
+		if !errors.As(err, &temporary) || !temporary.Temporary() {
+			return noLock
+		}
+		if time.Now().After(deadline) {
+			print.WarningStatusEvent(l.out, "Another dapr run holds %s for more than %s. This command starts the services without the lock.", path, l.lockTimeout)
+			return noLock
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
 }
 
 // portInUse returns the first of the other ports of spec that another process uses.
