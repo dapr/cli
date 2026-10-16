@@ -97,11 +97,18 @@ const (
 	daprVersionsWithScheduler = ">= 1.14.x"
 
 	daprVersionsWithSchedulerPlacement = ">= 1.19.x"
+
+	// noContainerRuntimeDocsURL is the docs page for a self-hosted install
+	// without a container runtime.
+	noContainerRuntimeDocsURL = "https://docs.dapr.io/operations/hosting/self-hosted/self-hosted-no-docker/"
 )
 
 var (
 	defaultImageRegistryName string
 	isAirGapInit             bool
+
+	// isContainerRuntimeInstalled is a variable so that tests can replace it.
+	isContainerRuntimeInstalled = utils.IsContainerRuntimeInstalled
 )
 
 type configuration struct {
@@ -273,9 +280,8 @@ func Init(opts InitOptions) error {
 	setAirGapInit(fromDir)
 	if !slimMode {
 		// If --slim installation is not requested, check if docker is installed.
-		containerRuntimeAvailable := utils.IsContainerRuntimeInstalled(containerRuntime)
-		if !containerRuntimeAvailable {
-			return fmt.Errorf("could not connect to %s. %s may not be installed or running", containerRuntime, containerRuntime)
+		if !isContainerRuntimeInstalled(containerRuntime) {
+			return containerRuntimeNotAvailableError(containerRuntime)
 		}
 
 		// Initialize default registry only if any of --slim or --image-registry or --from-dir are not given.
@@ -878,6 +884,15 @@ func firstInitError(errorChan <-chan error, waitForAll bool) error {
 		firstErr = err
 	}
 	return firstErr
+}
+
+// containerRuntimeNotAvailableError is the error of `dapr init` when it cannot
+// connect to the container runtime. It tells the user how to install Dapr
+// without a container runtime.
+func containerRuntimeNotAvailableError(containerRuntime string) error {
+	return fmt.Errorf("could not connect to %[1]s. %[1]s may not be installed or running.\n"+
+		"To install Dapr without %[1]s, run: dapr init --slim\n"+
+		"For more information, see %[2]s", containerRuntime, noContainerRuntimeDocsURL)
 }
 
 func schedulerOverrideHostPort(info initInfo) bool {
