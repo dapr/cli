@@ -394,7 +394,7 @@ func defaultPlacementPort() int {
 
 func defaultSchedulerPort() int {
 	if runtime.GOOS == daprWindowsOS {
-		return 6060
+		return schedulerWindowsGRPCHostPort
 	}
 	return 50006
 }
