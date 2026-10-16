@@ -1,0 +1,12 @@
+version: 1
+common:
+  startLocalServices: false
+apps:
+  - appDirPath: ./webapp/
+    appID: from_common
+  - appDirPath: ./webapp/
+    appID: app_true_over_common
+    startLocalServices: true
+  - appDirPath: ./webapp/
+    appID: app_false
+    startLocalServices: false

@@ -97,6 +97,16 @@ type SharedRunConfig struct {
 	AppLogDestination   LogDestType       `yaml:"appLogDestination"`
 	// Pointer string to distinguish omitted (nil) vs explicitly empty (disable) vs value provided
 	SchedulerHostAddress *string `arg:"scheduler-host-address" yaml:"schedulerHostAddress"`
+	// StartLocalServices tells `dapr run` if it can start the placement and scheduler services
+	// of a slim installation. It is a CLI setting, so it has no arg or annotation tag.
+	// Pointer bool to distinguish omitted (nil, which means true) vs explicitly false.
+	StartLocalServices *bool `yaml:"startLocalServices"`
+}
+
+// LocalServicesEnabled returns false when the user set startLocalServices
+// (or --start-local-services) to false. It returns true when the value is not set.
+func (config *SharedRunConfig) LocalServicesEnabled() bool {
+	return config.StartLocalServices == nil || *config.StartLocalServices
 }
 
 func (meta *DaprMeta) newAppID() string {

@@ -77,6 +77,7 @@ var (
 	runFilePath          string
 	appChannelAddress    string
 	enableRunK8s         bool
+	startLocalServices   bool
 )
 
 const (
@@ -255,7 +256,8 @@ dapr run --run-file /path/to/directory -k
 
 		// A slim installation has the placement and scheduler binaries, but nothing runs them.
 		localServices := newLocalServices(cmdruntime.GetDaprRuntimePath())
-		localServices.Start(!cmd.Flags().Changed("placement-host-address"), !cmd.Flags().Changed("scheduler-host-address"))
+		localServices.Start(localServicesToStart(startLocalServices,
+			cmd.Flags().Changed("placement-host-address"), cmd.Flags().Changed("scheduler-host-address")))
 		if warning := localServices.SchedulerWarning(appConfig.SchedulerHostAddress); warning != "" {
 			print.WarningStatusEvent(os.Stdout, "%s", warning)
 		}
@@ -502,6 +504,17 @@ func newLocalServices(runtimePath string) *standalone.LocalServices {
 	return services
 }
 
+// localServicesToStart returns the services of a slim installation that `dapr run`
+// can start for one app. It returns false for both when the user set
+// --start-local-services or startLocalServices to false. It returns false for a
+// service when the user gave an address for that service.
+func localServicesToStart(enabled, placementAddressSet, schedulerAddressSet bool) (startPlacement, startScheduler bool) {
+	if !enabled {
+		return false, false
+	}
+	return !placementAddressSet, !schedulerAddressSet
+}
+
 func init() {
 	RunCmd.Flags().IntVarP(&appPort, "app-port", "p", -1, "The port your application is listening on")
 	RunCmd.Flags().StringVarP(&appID, "app-id", "a", "", "The id for your application, used for service discovery")
@@ -539,6 +552,7 @@ func init() {
 	RunCmd.Flags().StringVar(&apiListenAddresses, "dapr-listen-addresses", "", "Comma separated list of IP addresses that sidecar will listen to")
 	RunCmd.Flags().StringVarP(&runFilePath, "run-file", "f", "", "Path to the run template file for the list of apps to run")
 	RunCmd.Flags().StringVarP(&appChannelAddress, "app-channel-address", "", utils.DefaultAppChannelAddress, "The network address the application listens on")
+	RunCmd.Flags().BoolVar(&startLocalServices, "start-local-services", true, "Start the placement and scheduler services of a slim installation when no address is set and none runs. Set to false to never start them")
 	RootCmd.AddCommand(RunCmd)
 }
 
@@ -565,9 +579,10 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 		// Set defaults if zero value provided in config yaml.
 		app.SetDefaultFromSchema()
 
-		// A slim installation may start these services only when the run file gives no address for them.
-		startPlacement := app.PlacementHostAddr == nil
-		startScheduler := app.SchedulerHostAddress == nil
+		// A slim installation may start these services only when the run file gives no address for them,
+		// and does not set startLocalServices to false.
+		startPlacement, startScheduler := localServicesToStart(app.LocalServicesEnabled(),
+			app.PlacementHostAddr != nil, app.SchedulerHostAddress != nil)
 
 		// Adjust scheduler host address defaults for run-file apps (pointer-aware)
 		var schedIn string
