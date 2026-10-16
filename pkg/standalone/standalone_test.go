@@ -16,6 +16,7 @@ package standalone
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -385,6 +386,53 @@ func TestInitLogActualContainerRuntimeName(t *testing.T) {
 			})
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), test.containerRuntime)
+			assert.Contains(t, err.Error(), "dapr init --slim")
+		})
+	}
+}
+
+func TestContainerRuntimeNotAvailableError(t *testing.T) {
+	for _, containerRuntime := range []string{"docker", "podman"} {
+		t.Run(containerRuntime, func(t *testing.T) {
+			msg := containerRuntimeNotAvailableError(containerRuntime).Error()
+
+			// The first sentence does not change, so that scripts that match it still work.
+			assert.True(t, strings.HasPrefix(msg, "could not connect to "+containerRuntime+". "+containerRuntime+" may not be installed or running."), msg)
+			assert.Contains(t, msg, "To install Dapr without "+containerRuntime+", run: dapr init --slim")
+			assert.Contains(t, msg, noContainerRuntimeDocsURL)
+		})
+	}
+}
+
+func TestInitWithoutContainerRuntime(t *testing.T) {
+	origIsContainerRuntimeInstalled := isContainerRuntimeInstalled
+	t.Cleanup(func() { isContainerRuntimeInstalled = origIsContainerRuntimeInstalled })
+
+	for _, containerRuntime := range []string{"docker", "podman"} {
+		t.Run(containerRuntime, func(t *testing.T) {
+			var checked []string
+			isContainerRuntimeInstalled = func(name string) bool {
+				checked = append(checked, name)
+				return false
+			}
+			installPath := t.TempDir()
+
+			err := Init(InitOptions{
+				RuntimeVersion:                     latestVersion,
+				ContainerRuntime:                   containerRuntime,
+				DaprInstallPath:                    installPath,
+				SchedulerOverrideBroadcastHostPort: ptr.Of("localhost:50006"),
+			})
+
+			require.Error(t, err)
+			assert.Equal(t, containerRuntimeNotAvailableError(containerRuntime).Error(), err.Error())
+			assert.Contains(t, err.Error(), "dapr init --slim")
+			assert.Equal(t, []string{containerRuntime}, checked)
+
+			// Init stops before it writes a file.
+			entries, err := os.ReadDir(installPath)
+			require.NoError(t, err)
+			assert.Empty(t, entries)
 		})
 	}
 }
