@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"testing"
 	"time"
@@ -213,6 +214,7 @@ func newTestLocalServices(t *testing.T, version string, listening bool, binaries
 		out:              out,
 		placementPort:    50005,
 		schedulerPort:    50006,
+		lockTimeout:      10 * time.Second,
 	}, out
 }
 
@@ -371,6 +373,95 @@ func TestLocalServicesStart(t *testing.T) {
 		l.Start(true, true)
 		l.Stop()
 		assert.Empty(t, l.SchedulerWarning(nil))
+	})
+}
+
+// processPID starts a process with the mode of TestFakeLocalService, and
+// returns its process ID. With the mode "exit", the process has exited when
+// processPID returns. With the mode "serve", it runs until the test ends.
+func processPID(t *testing.T, mode string) int {
+	t.Helper()
+	t.Setenv(fakeServiceEnv, mode)
+	s, err := startLocalService(os.Args[0], filepath.Join(t.TempDir(), "other.log"), fakeServiceSpec(t))
+	require.NoError(t, err)
+	if mode == "exit" {
+		<-s.exited
+	} else {
+		t.Cleanup(func() { s.stop(10 * time.Second) })
+	}
+	return s.cmd.Process.Pid
+}
+
+// writeLockFile writes the lock file of l with the process ID of another process.
+func writeLockFile(t *testing.T, l *LocalServices, pid int) string {
+	t.Helper()
+	require.NoError(t, os.MkdirAll(l.logsDir, 0o755))
+	path := filepath.Join(l.logsDir, localServicesLockFileName)
+	require.NoError(t, os.WriteFile(path, []byte(strconv.Itoa(pid)+"\n"), 0o600))
+	return path
+}
+
+func TestLocalServicesStartLock(t *testing.T) {
+	t.Run("Start releases the lock", func(t *testing.T) {
+		l, _ := newTestLocalServices(t, "1.18.7", false, "scheduler")
+		l.Start(false, true)
+		assert.NoFileExists(t, filepath.Join(l.logsDir, localServicesLockFileName))
+	})
+
+	t.Run("Start takes no lock when it has no service to look at", func(t *testing.T) {
+		l, _ := newTestLocalServices(t, "1.18.7", false)
+		l.Start(true, true)
+		assert.NoDirExists(t, l.logsDir)
+	})
+
+	t.Run("Start waits for the lock of another run, then uses its service", func(t *testing.T) {
+		l, out := newTestLocalServices(t, "1.18.7", false, "scheduler")
+		lockPath := writeLockFile(t, l, processPID(t, "serve"))
+
+		// The other run starts its scheduler, then releases the lock.
+		var released atomic.Bool
+		l.isListening = func(string) bool { return released.Load() }
+		go func() {
+			time.Sleep(500 * time.Millisecond)
+			released.Store(true)
+			_ = os.Remove(lockPath)
+		}()
+
+		start := time.Now()
+		l.Start(false, true)
+		assert.GreaterOrEqual(t, time.Since(start), 500*time.Millisecond)
+		assert.Contains(t, out.String(), "Using the scheduler service that runs on localhost:50006")
+		assert.NotContains(t, out.String(), "Could not start")
+		assert.NotContains(t, out.String(), "without the lock")
+		assert.NoFileExists(t, lockPath)
+	})
+
+	t.Run("a lock that another run keeps gives a warning after the timeout", func(t *testing.T) {
+		l, out := newTestLocalServices(t, "1.18.7", false, "scheduler")
+		pid := processPID(t, "serve")
+		lockPath := writeLockFile(t, l, pid)
+		l.lockTimeout = 300 * time.Millisecond
+
+		l.Start(false, true)
+		assert.Contains(t, out.String(), "Another dapr run holds "+lockPath+" for more than 300ms. This command starts the services without the lock.")
+		// Start continues. The binary of the test is not executable.
+		assert.Contains(t, out.String(), "Could not start the scheduler service")
+		// The lock file of the other run stays.
+		content, err := os.ReadFile(lockPath)
+		require.NoError(t, err)
+		assert.Equal(t, strconv.Itoa(pid)+"\n", string(content))
+	})
+
+	t.Run("a lock of a process that no longer runs does not block", func(t *testing.T) {
+		l, out := newTestLocalServices(t, "1.18.7", false, "scheduler")
+		lockPath := writeLockFile(t, l, processPID(t, "exit"))
+
+		start := time.Now()
+		l.Start(false, true)
+		assert.Less(t, time.Since(start), 5*time.Second)
+		assert.NotContains(t, out.String(), "without the lock")
+		assert.Contains(t, out.String(), "Could not start the scheduler service")
+		assert.NoFileExists(t, lockPath)
 	})
 }
 
