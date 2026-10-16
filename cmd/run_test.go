@@ -5,6 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestValidateSchedulerHostAddress(t *testing.T) {
@@ -75,4 +76,57 @@ func TestDetectIncompatibleFlags(t *testing.T) {
 		incompatibleFlags := detectIncompatibleFlags(cmd)
 		assert.Nil(t, incompatibleFlags)
 	})
+}
+
+func TestStartLocalServicesFlag(t *testing.T) {
+	flag := RunCmd.Flags().Lookup("start-local-services")
+	require.NotNil(t, flag)
+
+	t.Run("default is true", func(t *testing.T) {
+		assert.Equal(t, "bool", flag.Value.Type())
+		assert.Equal(t, "true", flag.DefValue)
+		assert.True(t, startLocalServices)
+	})
+
+	t.Run("set to false", func(t *testing.T) {
+		originalRunFilePath := runFilePath
+		t.Cleanup(func() {
+			runFilePath = originalRunFilePath
+			require.NoError(t, flag.Value.Set(flag.DefValue))
+			flag.Changed = false
+		})
+
+		require.NoError(t, RunCmd.Flags().Parse([]string{"--start-local-services=false"}))
+		assert.False(t, startLocalServices)
+		assert.True(t, flag.Changed)
+
+		// With --run-file, the run file sets this value, as for the address flags.
+		runFilePath = "some/path"
+		assert.Contains(t, detectIncompatibleFlags(RunCmd), "start-local-services")
+	})
+}
+
+func TestLocalServicesToStart(t *testing.T) {
+	testcases := []struct {
+		name          string
+		enabled       bool
+		placementSet  bool
+		schedulerSet  bool
+		wantPlacement bool
+		wantScheduler bool
+	}{
+		{name: "enabled, no address", enabled: true, wantPlacement: true, wantScheduler: true},
+		{name: "enabled, placement address", enabled: true, placementSet: true, wantScheduler: true},
+		{name: "enabled, scheduler address", enabled: true, schedulerSet: true, wantPlacement: true},
+		{name: "enabled, both addresses", enabled: true, placementSet: true, schedulerSet: true},
+		{name: "disabled, no address", enabled: false},
+		{name: "disabled, both addresses", enabled: false, placementSet: true, schedulerSet: true},
+	}
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			placement, scheduler := localServicesToStart(tc.enabled, tc.placementSet, tc.schedulerSet)
+			assert.Equal(t, tc.wantPlacement, placement, "placement")
+			assert.Equal(t, tc.wantScheduler, scheduler, "scheduler")
+		})
+	}
 }

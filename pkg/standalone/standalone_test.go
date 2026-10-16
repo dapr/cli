@@ -15,9 +15,13 @@ package standalone
 
 import (
 	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v2"
 
 	"github.com/dapr/cli/utils"
 	"github.com/dapr/kit/ptr"
@@ -382,6 +386,53 @@ func TestInitLogActualContainerRuntimeName(t *testing.T) {
 			})
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), test.containerRuntime)
+			assert.Contains(t, err.Error(), "dapr init --slim")
+		})
+	}
+}
+
+func TestContainerRuntimeNotAvailableError(t *testing.T) {
+	for _, containerRuntime := range []string{"docker", "podman"} {
+		t.Run(containerRuntime, func(t *testing.T) {
+			msg := containerRuntimeNotAvailableError(containerRuntime).Error()
+
+			// The first sentence does not change, so that scripts that match it still work.
+			assert.True(t, strings.HasPrefix(msg, "could not connect to "+containerRuntime+". "+containerRuntime+" may not be installed or running."), msg)
+			assert.Contains(t, msg, "To install Dapr without "+containerRuntime+", run: dapr init --slim")
+			assert.Contains(t, msg, noContainerRuntimeDocsURL)
+		})
+	}
+}
+
+func TestInitWithoutContainerRuntime(t *testing.T) {
+	origIsContainerRuntimeInstalled := isContainerRuntimeInstalled
+	t.Cleanup(func() { isContainerRuntimeInstalled = origIsContainerRuntimeInstalled })
+
+	for _, containerRuntime := range []string{"docker", "podman"} {
+		t.Run(containerRuntime, func(t *testing.T) {
+			var checked []string
+			isContainerRuntimeInstalled = func(name string) bool {
+				checked = append(checked, name)
+				return false
+			}
+			installPath := t.TempDir()
+
+			err := Init(InitOptions{
+				RuntimeVersion:                     latestVersion,
+				ContainerRuntime:                   containerRuntime,
+				DaprInstallPath:                    installPath,
+				SchedulerOverrideBroadcastHostPort: ptr.Of("localhost:50006"),
+			})
+
+			require.Error(t, err)
+			assert.Equal(t, containerRuntimeNotAvailableError(containerRuntime).Error(), err.Error())
+			assert.Contains(t, err.Error(), "dapr init --slim")
+			assert.Equal(t, []string{containerRuntime}, checked)
+
+			// Init stops before it writes a file.
+			entries, err := os.ReadDir(installPath)
+			require.NoError(t, err)
+			assert.Empty(t, entries)
 		})
 	}
 }
@@ -436,4 +487,164 @@ func TestIsSchedulerIncluded(t *testing.T) {
 func TestPublishPortNetworkArgs(t *testing.T) {
 	assert.Equal(t, []string{"--network", "private"}, publishPortNetworkArgs("podman"))
 	assert.Nil(t, publishPortNetworkArgs("docker"))
+}
+
+func TestCreateSlimStateStore(t *testing.T) {
+	t.Run("writes a sqlite actor state store into an empty components folder", func(t *testing.T) {
+		installDir := t.TempDir()
+		require.NoError(t, makeDefaultComponentsDir(installDir))
+
+		store, err := createSlimStateStore(installDir, "1.19.0")
+		require.NoError(t, err)
+		assert.Empty(t, store.skipReason)
+		assert.Equal(t, filepath.Join(installDir, "components", "statestore.yaml"), store.path)
+		assert.DirExists(t, filepath.Join(installDir, "state"))
+
+		content, err := os.ReadFile(store.path)
+		require.NoError(t, err)
+		var actual map[string]interface{}
+		require.NoError(t, yaml.Unmarshal(content, &actual))
+		assert.Equal(t, map[string]interface{}{
+			"apiVersion": "dapr.io/v1alpha1",
+			"kind":       "Component",
+			"metadata":   map[interface{}]interface{}{"name": "statestore"},
+			"spec": map[interface{}]interface{}{
+				"type":    "state.sqlite",
+				"version": "v1",
+				"metadata": []interface{}{
+					map[interface{}]interface{}{"name": "connectionString", "value": "file:" + filepath.Join(installDir, "state", "statestore.db")},
+					map[interface{}]interface{}{"name": "actorStateStore", "value": "true"},
+				},
+			},
+		}, actual)
+	})
+
+	t.Run("keeps a components folder that already has components and says why", func(t *testing.T) {
+		installDir := t.TempDir()
+		require.NoError(t, makeDefaultComponentsDir(installDir))
+		existing := filepath.Join(installDir, "components", "redis.yml")
+		require.NoError(t, os.WriteFile(existing, []byte("kind: Component\n"), 0o600))
+
+		store, err := createSlimStateStore(installDir, "1.19.0")
+		require.NoError(t, err)
+		assert.Empty(t, store.path)
+		assert.Contains(t, store.skipReason, filepath.Join(installDir, "components")+" already has component files")
+		assert.Contains(t, store.skipReason, "actorStateStore")
+		assert.NoFileExists(t, filepath.Join(installDir, "components", "statestore.yaml"))
+		assert.NoDirExists(t, filepath.Join(installDir, "state"))
+	})
+
+	t.Run("writes nothing for a runtime without the sqlite state store", func(t *testing.T) {
+		installDir := t.TempDir()
+		require.NoError(t, makeDefaultComponentsDir(installDir))
+
+		store, err := createSlimStateStore(installDir, "1.9.6")
+		require.NoError(t, err)
+		assert.Empty(t, store.path)
+		assert.Contains(t, store.skipReason, "Dapr 1.9.6 has no SQLite state store")
+		assert.NoFileExists(t, filepath.Join(installDir, "components", "statestore.yaml"))
+	})
+
+	t.Run("errors when the components folder is missing", func(t *testing.T) {
+		_, err := createSlimStateStore(t.TempDir(), "1.19.0")
+		require.Error(t, err)
+	})
+}
+
+func TestHasSQLiteStateStore(t *testing.T) {
+	for version, want := range map[string]bool{
+		"1.9.6":       false,
+		"1.10.0-rc.1": true,
+		"1.10.0":      true,
+		"1.19.0":      true,
+		"edge":        true,
+		"dev":         true,
+	} {
+		assert.Equal(t, want, hasSQLiteStateStore(version), version)
+	}
+}
+
+func TestSQLiteConnectionString(t *testing.T) {
+	assert.Equal(t, "file:/home/user/.dapr/state/statestore.db", sqliteConnectionString("/home/user/.dapr/state/statestore.db"))
+	// The SQLite state store splits the options at "?". SQLite ends the path at "#" and decodes "%XX".
+	assert.Equal(t, "file:/home/a%3Fb%23c%2541/.dapr/state/statestore.db", sqliteConnectionString("/home/a?b#c%41/.dapr/state/statestore.db"))
+}
+
+func TestRemoveSlimStateStore(t *testing.T) {
+	t.Run("removes the state store that slim init wrote", func(t *testing.T) {
+		installDir := t.TempDir()
+		require.NoError(t, makeDefaultComponentsDir(installDir))
+		store, err := createSlimStateStore(installDir, "1.19.0")
+		require.NoError(t, err)
+		require.FileExists(t, store.path)
+
+		removed, err := removeSlimStateStore(installDir)
+		require.NoError(t, err)
+		assert.True(t, removed)
+		assert.NoFileExists(t, store.path)
+
+		// The Docker init then writes the Redis state store.
+		require.NoError(t, createRedisStateStore(daprDefaultHost, filepath.Join(installDir, "components")))
+		content, err := os.ReadFile(store.path)
+		require.NoError(t, err)
+		assert.Contains(t, string(content), "state.redis")
+	})
+
+	t.Run("keeps a state store that the user changed", func(t *testing.T) {
+		installDir := t.TempDir()
+		require.NoError(t, makeDefaultComponentsDir(installDir))
+		store, err := createSlimStateStore(installDir, "1.19.0")
+		require.NoError(t, err)
+		content, err := os.ReadFile(store.path)
+		require.NoError(t, err)
+		require.NoError(t, os.WriteFile(store.path, append(content, []byte("# my change\n")...), 0o600))
+
+		removed, err := removeSlimStateStore(installDir)
+		require.NoError(t, err)
+		assert.False(t, removed)
+		assert.FileExists(t, store.path)
+	})
+
+	t.Run("keeps the redis state store", func(t *testing.T) {
+		installDir := t.TempDir()
+		require.NoError(t, makeDefaultComponentsDir(installDir))
+		componentsDir := filepath.Join(installDir, "components")
+		require.NoError(t, createRedisStateStore(daprDefaultHost, componentsDir))
+
+		removed, err := removeSlimStateStore(installDir)
+		require.NoError(t, err)
+		assert.False(t, removed)
+		assert.FileExists(t, filepath.Join(componentsDir, "statestore.yaml"))
+	})
+
+	t.Run("does nothing without a state store", func(t *testing.T) {
+		installDir := t.TempDir()
+		require.NoError(t, makeDefaultComponentsDir(installDir))
+
+		removed, err := removeSlimStateStore(installDir)
+		require.NoError(t, err)
+		assert.False(t, removed)
+	})
+}
+
+func TestInitSuccessMessage(t *testing.T) {
+	t.Run("docker install runs the services", func(t *testing.T) {
+		assert.Equal(t, "Success! Dapr is up and running. To get started, go here: https://docs.dapr.io/getting-started",
+			InitSuccessMessage(false, false))
+		assert.Equal(t, InitSuccessMessage(false, false), InitSuccessMessage(false, true))
+	})
+
+	t.Run("slim install runs nothing yet", func(t *testing.T) {
+		msg := InitSuccessMessage(true, false)
+		assert.NotContains(t, msg, "up and running")
+		assert.Contains(t, msg, "Success! Dapr is installed in slim mode.")
+		assert.Contains(t, msg, "starts the placement and scheduler services when they are not running.")
+	})
+
+	t.Run("slim install with scheduler placement", func(t *testing.T) {
+		msg := InitSuccessMessage(true, true)
+		assert.Contains(t, msg, "Success! Dapr is installed in slim mode.")
+		assert.Contains(t, msg, "starts the scheduler service when it is not running.")
+		assert.NotContains(t, msg, "placement and scheduler")
+	})
 }

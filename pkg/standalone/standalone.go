@@ -16,6 +16,7 @@ package standalone
 import (
 	"archive/tar"
 	"archive/zip"
+	"bytes"
 	"compress/gzip"
 	"context"
 	"errors"
@@ -53,6 +54,7 @@ const (
 
 	pubSubYamlFileName     = "pubsub.yaml"
 	stateStoreYamlFileName = "statestore.yaml"
+	sqliteStateFileName    = "statestore.db"
 
 	// accepted DAPR_DEFAULT_IMAGE_REGISTRY values.
 	dockerContainerRegistryName = "dockerhub"
@@ -95,11 +97,18 @@ const (
 	daprVersionsWithScheduler = ">= 1.14.x"
 
 	daprVersionsWithSchedulerPlacement = ">= 1.19.x"
+
+	// noContainerRuntimeDocsURL is the docs page for a self-hosted install
+	// without a container runtime.
+	noContainerRuntimeDocsURL = "https://docs.dapr.io/operations/hosting/self-hosted/self-hosted-no-docker/"
 )
 
 var (
 	defaultImageRegistryName string
 	isAirGapInit             bool
+
+	// isContainerRuntimeInstalled is a variable so that tests can replace it.
+	isContainerRuntimeInstalled = utils.IsContainerRuntimeInstalled
 )
 
 type configuration struct {
@@ -234,6 +243,20 @@ func isSchedulerIncluded(runtimeVersion string) (bool, error) {
 	return c.Check(&vNoPrerelease), nil
 }
 
+// InitSuccessMessage returns the message for a successful self-hosted init.
+// Slim mode starts no service, so the message must not say that Dapr is running.
+func InitSuccessMessage(slimMode, schedulerPlacement bool) string {
+	const getStarted = " To get started, go here: https://docs.dapr.io/getting-started"
+	if !slimMode {
+		return "Success! Dapr is up and running." + getStarted
+	}
+	services := "the placement and scheduler services when they are not running."
+	if schedulerPlacement {
+		services = "the scheduler service when it is not running."
+	}
+	return "Success! Dapr is installed in slim mode. `dapr run` starts " + services + getStarted
+}
+
 // Init installs Dapr on a local machine using the supplied runtimeVersion.
 func Init(opts InitOptions) error {
 	var err error
@@ -257,9 +280,8 @@ func Init(opts InitOptions) error {
 	setAirGapInit(fromDir)
 	if !slimMode {
 		// If --slim installation is not requested, check if docker is installed.
-		containerRuntimeAvailable := utils.IsContainerRuntimeInstalled(containerRuntime)
-		if !containerRuntimeAvailable {
-			return fmt.Errorf("could not connect to %s. %s may not be installed or running", containerRuntime, containerRuntime)
+		if !isContainerRuntimeInstalled(containerRuntime) {
+			return containerRuntimeNotAvailableError(containerRuntime)
 		}
 
 		// Initialize default registry only if any of --slim or --image-registry or --from-dir are not given.
@@ -364,6 +386,23 @@ func Init(opts InitOptions) error {
 		return err
 	}
 
+	// Slim mode runs no Redis, so give workflows and actors a SQLite state store.
+	var slimStore slimStateStore
+	removedSlimStateStore := false
+	if slimMode {
+		slimStore, err = createSlimStateStore(installDir, runtimeVersion)
+		if err != nil {
+			return fmt.Errorf("error creating sqlite statestore component file: %w", err)
+		}
+	} else if !isAirGapInit {
+		// A Docker init writes the Redis state store. It does not replace the
+		// SQLite state store of an earlier slim install, so remove that first.
+		removedSlimStateStore, err = removeSlimStateStore(installDir)
+		if err != nil {
+			return fmt.Errorf("error checking the statestore component file: %w", err)
+		}
+	}
+
 	info := initInfo{
 		// values in bundleDet can be nil if fromDir is empty, so must be used in conjunction with fromDir.
 		bundleDet:                          &bundleDet,
@@ -420,7 +459,16 @@ func Init(opts InitOptions) error {
 			print.InfoStatusEvent(os.Stdout, "%s binary has been installed to %s.", placementServiceFilePrefix, daprBinDir)
 		}
 		print.InfoStatusEvent(os.Stdout, "%s binary has been installed to %s.", schedulerServiceFilePrefix, daprBinDir)
+		if slimStore.path != "" {
+			print.InfoStatusEvent(os.Stdout, "SQLite actor state store component has been written to %s.", slimStore.path)
+		}
+		if slimStore.skipReason != "" {
+			print.InfoStatusEvent(os.Stdout, "%s", slimStore.skipReason)
+		}
 	} else {
+		if removedSlimStateStore {
+			print.InfoStatusEvent(os.Stdout, "The SQLite state store of the earlier slim install has been replaced with the Redis state store.")
+		}
 		runtimeCmd := utils.GetContainerRuntimeCmd(info.containerRuntime)
 		dockerContainerNames := []string{DaprPlacementContainerName, DaprRedisContainerName, DaprZipkinContainerName}
 		// Skip redis and zipkin in local installation mode.
@@ -836,6 +884,15 @@ func firstInitError(errorChan <-chan error, waitForAll bool) error {
 		firstErr = err
 	}
 	return firstErr
+}
+
+// containerRuntimeNotAvailableError is the error of `dapr init` when it cannot
+// connect to the container runtime. It tells the user how to install Dapr
+// without a container runtime.
+func containerRuntimeNotAvailableError(containerRuntime string) error {
+	return fmt.Errorf("could not connect to %[1]s. %[1]s may not be installed or running.\n"+
+		"To install Dapr without %[1]s, run: dapr init --slim\n"+
+		"For more information, see %[2]s", containerRuntime, noContainerRuntimeDocsURL)
 }
 
 func schedulerOverrideHostPort(info initInfo) bool {
@@ -1260,6 +1317,146 @@ func createRedisStateStore(redisHost string, componentsPath string) error {
 	err = checkAndOverWriteFile(filePath, b)
 
 	return err
+}
+
+// slimStateStore is the result of createSlimStateStore.
+type slimStateStore struct {
+	// path is the component file that createSlimStateStore wrote. It is empty
+	// when createSlimStateStore wrote no file.
+	path string
+	// skipReason tells the user why createSlimStateStore wrote no file.
+	skipReason string
+}
+
+// createSlimStateStore writes a SQLite state store component, marked as the actor
+// state store, into the default components folder of a slim installation. Workflows
+// and actors need an actor state store, and SQLite needs no server or container.
+// It writes nothing when the folder already has a component file, so that it never
+// adds a second actor state store. It also writes nothing for a runtime that has
+// no SQLite state store.
+func createSlimStateStore(installDir, runtimeVersion string) (slimStateStore, error) {
+	componentsDir := GetDaprComponentsPath(installDir)
+	entries, err := os.ReadDir(componentsDir)
+	if err != nil {
+		return slimStateStore{}, err
+	}
+	for _, entry := range entries {
+		ext := strings.ToLower(path_filepath.Ext(entry.Name()))
+		if !entry.IsDir() && (ext == ".yaml" || ext == ".yml") {
+			return slimStateStore{
+				skipReason: fmt.Sprintf("Slim init wrote no SQLite state store, because %s already has component files. "+
+					"Workflows and actors need a state store component with actorStateStore set to \"true\".", componentsDir),
+			}, nil
+		}
+	}
+
+	if !hasSQLiteStateStore(runtimeVersion) {
+		return slimStateStore{
+			skipReason: fmt.Sprintf("Slim init wrote no SQLite state store, because Dapr %s has no SQLite state store. "+
+				"It needs Dapr 1.10 or later.", runtimeVersion),
+		}, nil
+	}
+
+	if err = os.MkdirAll(getDaprStatePath(installDir), 0o755); err != nil {
+		return slimStateStore{}, err
+	}
+
+	b, err := slimStateStoreYAML(installDir)
+	if err != nil {
+		return slimStateStore{}, err
+	}
+
+	filePath := path_filepath.Join(componentsDir, stateStoreYamlFileName)
+	if err = checkAndOverWriteFile(filePath, b); err != nil {
+		return slimStateStore{}, err
+	}
+	return slimStateStore{path: filePath}, nil
+}
+
+// slimStateStoreYAML returns the SQLite state store component that slim init
+// writes for the installation in installDir.
+func slimStateStoreYAML(installDir string) ([]byte, error) {
+	sqliteStore := component{
+		APIVersion: "dapr.io/v1alpha1",
+		Kind:       "Component",
+	}
+	sqliteStore.Metadata.Name = "statestore"
+	sqliteStore.Spec.Type = "state.sqlite"
+	sqliteStore.Spec.Version = "v1"
+	sqliteStore.Spec.Metadata = []componentMetadataItem{
+		{
+			// An absolute path, so that the file does not depend on the working directory of daprd.
+			Name:  "connectionString",
+			Value: sqliteConnectionString(path_filepath.Join(getDaprStatePath(installDir), sqliteStateFileName)),
+		},
+		{
+			Name:  "actorStateStore",
+			Value: "true",
+		},
+	}
+	return yaml.Marshal(&sqliteStore)
+}
+
+// sqliteConnectionString returns a SQLite URI for the database file at path.
+// The SQLite state store reads the text after "?" as options, and SQLite ends
+// the path of a URI at "#" and decodes "%XX". So these characters in path must
+// be escaped.
+func sqliteConnectionString(path string) string {
+	return "file:" + strings.NewReplacer("%", "%25", "?", "%3F", "#", "%23").Replace(path)
+}
+
+// removeSlimStateStore removes the state store component of an earlier slim
+// installation in installDir. `dapr uninstall` keeps the components folder, and
+// a Docker init does not replace a component file that exists. Without this, a
+// Docker init after a slim install keeps the SQLite state store, and the Redis
+// container runs unused. It removes the file only when its content is the one
+// that slim init writes, so it never removes a file that the user changed. It
+// returns true when it removed the file.
+func removeSlimStateStore(installDir string) (bool, error) {
+	filePath := path_filepath.Join(GetDaprComponentsPath(installDir), stateStoreYamlFileName)
+	existing, err := os.ReadFile(filePath)
+	if errors.Is(err, os.ErrNotExist) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+
+	slim, err := slimStateStoreYAML(installDir)
+	if err != nil {
+		return false, err
+	}
+	if !bytes.Equal(existing, slim) {
+		return false, nil
+	}
+	if err = os.Remove(filePath); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// daprVersionsWithSQLiteStateStore are the runtime versions with the SQLite
+// state store. It came in Dapr 1.10.
+const daprVersionsWithSQLiteStateStore = ">= 1.10.x"
+
+// hasSQLiteStateStore returns true if the runtime version has the SQLite state store.
+func hasSQLiteStateStore(runtimeVersion string) bool {
+	if runtimeVersion == "edge" || runtimeVersion == "dev" {
+		return true
+	}
+	c, err := semver.NewConstraint(daprVersionsWithSQLiteStateStore)
+	if err != nil {
+		return true
+	}
+	v, err := semver.NewVersion(runtimeVersion)
+	if err != nil {
+		return true
+	}
+	vNoPrerelease, err := v.SetPrerelease("")
+	if err != nil {
+		return true
+	}
+	return c.Check(&vNoPrerelease)
 }
 
 func createRedisPubSub(redisHost string, componentsPath string) error {

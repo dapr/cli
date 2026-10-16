@@ -106,7 +106,7 @@ This step creates the following defaults:
 
 #### Slim Init
 
-Alternatively to the above, to have the CLI not install any default configuration files or run Docker containers, use the `--slim` flag with the init command. Only Dapr binaries will be installed.
+Alternatively to the above, to install Dapr without Docker, use the `--slim` flag with the init command. The CLI installs the Dapr runtime, placement and scheduler binaries and a SQLite state store. It runs no containers.
 
 ```bash
 dapr init --slim
@@ -118,12 +118,27 @@ Output should look like so:
 ⌛  Making the jump to hyperspace...
 ✅  Downloaded binaries and completed components set up.
 ℹ️  daprd binary has been installed to $HOME/.dapr/bin.
-ℹ️  placement binary has been installed.
-ℹ️  scheduler binary has been installed.
-✅  Success! Dapr is up and running. To get started, go here: https://docs.dapr.io/getting-started
+ℹ️  placement binary has been installed to $HOME/.dapr/bin.
+ℹ️  scheduler binary has been installed to $HOME/.dapr/bin.
+ℹ️  SQLite actor state store component has been written to $HOME/.dapr/components/statestore.yaml.
+✅  Success! Dapr is installed in slim mode. `dapr run` starts the placement and scheduler services when they are not running. To get started, go here: https://docs.dapr.io/getting-started
 ```
 
->Note: When initializing Dapr with the `--slim` flag only the Dapr runtime, placement, and scheduler service binaries are installed. An empty default components folder is created with no default configuration files. During `dapr run` user should use `--resources-path` (`--components-path` is deprecated and will be removed in future releases) to point to a components directory with custom configurations files or alternatively place these files in the default directory. For Linux/MacOS, the default components directory path is `$HOME/.dapr/components` and for Windows it is `%USERPROFILE%\.dapr\components`.
+>Note: When initializing Dapr with the `--slim` flag, no service runs after `dapr init`. When you use `dapr run` (or `dapr run -f`) and no placement or scheduler service answers on the default address, the CLI starts them from `$HOME/.dapr/bin` on `localhost` and stops them when `dapr run` exits. It does not start a service when you set `--placement-host-address` or `--scheduler-host-address` (or `placementHostAddress` or `schedulerHostAddress` in a run file). The services write their logs to `$HOME/.dapr/logs`, and the scheduler keeps its data in `$HOME/.dapr/scheduler/data`.
+
+>Note: To keep `dapr run` from starting the services, use `dapr run --start-local-services=false`. In a run file, set `startLocalServices: false` in `common` or in an app. The value in an app has priority over the value in `common`, and `dapr run -f` ignores the flag. With `false`, daprd connects to the default placement and scheduler addresses, and you start the services yourself. When no scheduler service answers there, `dapr run` prints a warning.
+
+>Note: The `dapr run` command that starts the services also stops them when it exits, also when other `dapr run` commands still use them. A `dapr run` that finds the services already running uses them and prints `Using the scheduler service that runs on ...`. When the first command exits, the other apps lose placement and the scheduler until a new `dapr run` starts them again. To keep the services for several apps, run all apps from one run file with `dapr run -f`.
+
+>Note: On Linux and macOS, Ctrl-C and `dapr stop -f` reach the services through the process group of `dapr run`, and the services shut down cleanly. On Windows, the CLI stops the services with `TerminateProcess`. On Linux and macOS, a closed terminal (`SIGHUP`) also stops them without a clean shutdown. After a hard stop, the next scheduler can wait up to about 21 seconds before it runs jobs, until the leadership lease of the stopped scheduler expires. If `dapr run` itself is killed (for example with `SIGKILL`), the services keep running, and the next `dapr run` uses them.
+
+>Note: Slim init writes a `statestore.yaml` component of type `state.sqlite` with `actorStateStore: "true"`, so that workflows and actors work without Redis. It writes the file only when the components folder has no `.yaml` or `.yml` file, and only for Dapr 1.10 or later. Otherwise it prints why it wrote no state store. The database file is `$HOME/.dapr/state/statestore.db`. Slim init writes no pub/sub component. `dapr uninstall` keeps the components folder. A later `dapr init` without `--slim` replaces this SQLite state store with the Redis state store, unless you changed the file. During `dapr run` user can use `--resources-path` (`--components-path` is deprecated and will be removed in future releases) to point to a components directory with custom configurations files or alternatively place these files in the default directory. For Linux/MacOS, the default components directory path is `$HOME/.dapr/components` and for Windows it is `%USERPROFILE%\.dapr\components`.
+
+With Dapr 1.19 or later, add `--scheduler-placement` to serve actor placement from the scheduler. Then the CLI installs no placement binary, and `dapr run` starts only the scheduler.
+
+```bash
+dapr init --slim --scheduler-placement
+```
 
 #### Install a specific runtime version
 
