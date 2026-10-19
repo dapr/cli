@@ -463,6 +463,28 @@ func TestLocalServicesStartLock(t *testing.T) {
 		assert.Contains(t, out.String(), "Could not start the scheduler service")
 		assert.NoFileExists(t, lockPath)
 	})
+
+	// `dapr run -f` calls Start for each app in one process. Two runtime paths
+	// of the run file can name one installation, so two LocalServices of the
+	// process use one lock file. A process that starts again with the same
+	// process ID, for example in a new container, also finds its own ID.
+	t.Run("a lock file with the ID of this process does not block", func(t *testing.T) {
+		first, out := newTestLocalServices(t, "1.18.7", false, "placement", "scheduler")
+		second, secondOut := newTestLocalServices(t, "1.18.7", false, "placement", "scheduler")
+		second.binDir, second.logsDir, second.schedulerDataDir = first.binDir, first.logsDir, first.schedulerDataDir
+		lockPath := writeLockFile(t, first, os.Getpid())
+
+		start := time.Now()
+		first.Start(true, false)
+		second.Start(false, true)
+		assert.Less(t, time.Since(start), 5*time.Second)
+		for _, o := range []string{out.String(), secondOut.String()} {
+			assert.NotContains(t, o, "without the lock")
+		}
+		assert.Contains(t, out.String(), "Could not start the placement service")
+		assert.Contains(t, secondOut.String(), "Could not start the scheduler service")
+		assert.NoFileExists(t, lockPath)
+	})
 }
 
 func TestLocalServicesSchedulerWarning(t *testing.T) {
