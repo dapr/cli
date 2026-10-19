@@ -28,6 +28,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/dapr/cli/tests/e2e/common"
+	"github.com/dapr/cli/tests/e2e/spawn"
 )
 
 // TestSlimRunStartsLocalServices runs a workflow on a slim installation.
@@ -64,7 +65,12 @@ func TestSlimRunStartsLocalServices(t *testing.T) {
 	})
 
 	t.Run("a workflow completes", func(t *testing.T) {
-		output, err := cmdWorkflowRun(appID, "SimpleWorkflow", "--instance-id=slim-1", "--input", `"slim"`)
+		// `dapr workflow run` waits with no time limit until the app gives its
+		// workflows to daprd. If the app does not start, the time limit makes
+		// this test fail, and the test log gets the output of `dapr run`.
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		defer cancel()
+		output, err := cmdWorkflowRunWithContext(ctx, appID, "SimpleWorkflow", "--instance-id=slim-1", "--input", `"slim"`)
 		require.NoError(t, err, output)
 
 		require.EventuallyWithT(t, func(c *assert.CollectT) {
@@ -159,4 +165,11 @@ func TestSlimRunWithoutLocalServices(t *testing.T) {
 		assert.NotContains(t, output, "Started the scheduler service")
 		waitForPortsFree(t, 50005, 50006)
 	})
+}
+
+// cmdWorkflowRunWithContext runs `dapr workflow run`, and stops it when ctx is done.
+func cmdWorkflowRunWithContext(ctx context.Context, appID, workflowName string, args ...string) (string, error) {
+	allArgs := []string{"workflow", "run", "-a", appID, workflowName}
+	allArgs = append(allArgs, args...)
+	return spawn.CommandExecWithContext(ctx, common.GetDaprPath(), allArgs...)
 }
