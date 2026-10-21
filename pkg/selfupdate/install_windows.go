@@ -22,16 +22,23 @@ const uninstallKeyPath = `SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall`
 // msiInstalled reports whether the Dapr CLI MSI is registered under the
 // HKCU or HKLM uninstall keys.
 func msiInstalled() bool {
-	for _, root := range []registry.Key{registry.CURRENT_USER, registry.LOCAL_MACHINE} {
-		if uninstallEntryExists(root) {
-			return true
-		}
+	// The MSI is built as a 32-bit package, so per-machine installs register
+	// under the WOW6432Node view of HKLM, which a 64-bit process does not see
+	// by default; check that view explicitly as well.
+	const (
+		defaultView = 0
+		wow64View   = registry.WOW64_32KEY
+	)
+	if uninstallEntryExists(registry.CURRENT_USER, defaultView) ||
+		uninstallEntryExists(registry.LOCAL_MACHINE, defaultView) ||
+		uninstallEntryExists(registry.LOCAL_MACHINE, wow64View) {
+		return true
 	}
 	return false
 }
 
-func uninstallEntryExists(root registry.Key) bool {
-	parent, err := registry.OpenKey(root, uninstallKeyPath, registry.ENUMERATE_SUB_KEYS)
+func uninstallEntryExists(root registry.Key, view uint32) bool {
+	parent, err := registry.OpenKey(root, uninstallKeyPath, registry.ENUMERATE_SUB_KEYS|view)
 	if err != nil {
 		return false
 	}
@@ -41,7 +48,7 @@ func uninstallEntryExists(root registry.Key) bool {
 		return false
 	}
 	for _, name := range names {
-		sub, err := registry.OpenKey(root, uninstallKeyPath+`\`+name, registry.QUERY_VALUE)
+		sub, err := registry.OpenKey(root, uninstallKeyPath+`\`+name, registry.QUERY_VALUE|view)
 		if err != nil {
 			continue
 		}

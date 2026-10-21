@@ -51,7 +51,11 @@ dapr update --version 1.18.3
 				if runtime.GOOS == "windows" {
 					print.InfoStatusEvent(os.Stdout, "Run the command again from an elevated (Administrator) terminal.")
 				} else {
-					print.InfoStatusEvent(os.Stdout, "Run the command again with sudo: sudo dapr update")
+					sudoCmd := "sudo dapr update"
+					if updateVersion != "" {
+						sudoCmd += " --version " + updateVersion
+					}
+					print.InfoStatusEvent(os.Stdout, "Run the command again with sudo: %s", sudoCmd)
 				}
 			}
 			os.Exit(1)

@@ -47,17 +47,6 @@ Install the latest darwin Dapr CLI to `/usr/local/bin`
 curl -fsSL https://raw.githubusercontent.com/dapr/cli/master/install/install.sh | /bin/bash
 ```
 
-#### Update the CLI
-
-Update an existing Dapr CLI to the latest stable version, or to a specific version:
-
-```bash
-dapr update
-dapr update --version <version>
-```
-
-If the CLI was installed with Homebrew or winget, `dapr update` tells you to use that package manager instead.
-
 #### From the Binary Releases
 
 Each release of Dapr CLI includes various OSes and architectures. These binary versions can be manually downloaded and installed.
@@ -76,6 +65,19 @@ Install windows Dapr CLI using MSI package.
 2. Run `dapr.msi` to install Dapr CLI on your system
 
 > NOTE: The default installation directory is set to `$Env:SystemDrive\dapr` and can be modified at the time of installation.
+
+#### Update the CLI
+
+Update an existing Dapr CLI to the latest stable version, or to a specific version:
+
+```bash
+dapr update
+dapr update --version <version>
+```
+
+If the CLI was installed with Homebrew or winget, `dapr update` tells you to use that package manager instead.
+
+> NOTE: Installing a version older than the one that introduced `dapr update` (via `--version`) removes the `dapr update` command; from then on, update with the install script or your package manager.
 
 ### Install Dapr on your local machine (self-hosted)
 

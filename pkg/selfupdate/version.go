@@ -49,6 +49,10 @@ const (
 	ActionAheadOfLatest
 )
 
+// Note: the Atom feed only lists recent releases (same limitation as
+// install/install.sh), so a long run of release candidates can yield
+// "no stable release found".
+
 // ParseLatestStable returns the highest stable semver (without leading "v")
 // found in a GitHub releases Atom feed.
 func ParseLatestStable(feed io.Reader) (string, error) {

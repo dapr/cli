@@ -76,8 +76,8 @@ func writeArchive(t *testing.T, dir, entry, content string) string {
 
 	if ArchiveExt() == "zip" {
 		zw := zip.NewWriter(f)
-		w, err := zw.Create(entry)
-		require.NoError(t, err)
+		w, cerr := zw.Create(entry)
+		require.NoError(t, cerr)
 		_, err = w.Write([]byte(content))
 		require.NoError(t, err)
 		require.NoError(t, zw.Close())

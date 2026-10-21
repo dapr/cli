@@ -22,6 +22,8 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/Masterminds/semver/v3"
+
 	"github.com/dapr/cli/pkg/download"
 )
 
@@ -49,6 +51,12 @@ type Result struct {
 // Run updates the CLI to requestedVersion, or to the latest stable release when
 // requestedVersion is empty.
 func (u *Updater) Run(ctx context.Context, requestedVersion string) (Result, error) {
+	if requestedVersion != "" {
+		if _, err := semver.StrictNewVersion(NormalizeVersion(requestedVersion)); err != nil {
+			return Result{}, fmt.Errorf("invalid version %q: use a full version such as 1.18.3", requestedVersion)
+		}
+	}
+
 	baseURL := valueOr(u.ReleaseBaseURL, defaultReleaseBaseURL)
 	goos := valueOr(u.GOOS, runtime.GOOS)
 	goarch := valueOr(u.GOARCH, runtime.GOARCH)
@@ -134,11 +142,11 @@ func install(baseURL, version, goos, goarch, exePath string) error {
 
 	archive, err := download.File(tmp, assetURL)
 	if err != nil {
-		return fmt.Errorf("failed to download Dapr CLI %s: %w", version, err)
+		return fmt.Errorf("failed to download Dapr CLI: version %s not found or not available for %s/%s: %w", version, goos, goarch, err)
 	}
 	checksum, err := download.File(tmp, assetURL+".sha256")
 	if err != nil {
-		return fmt.Errorf("failed to download Dapr CLI %s: %w", version, err)
+		return fmt.Errorf("checksum file not published for Dapr CLI version %s; cannot verify the download: %w", version, err)
 	}
 	if err = VerifyChecksum(archive, checksum); err != nil {
 		return err

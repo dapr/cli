@@ -191,7 +191,28 @@ func TestRun_VersionNotFound(t *testing.T) {
 	_, err := newUpdater(srv.URL+"/releases", "1.18.2", exe).Run(context.Background(), "")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not found")
+	assert.Contains(t, err.Error(), runtime.GOOS+"/"+runtime.GOARCH)
 	assert.Equal(t, "old", readFile(t, exe))
+}
+
+func TestRun_InvalidRequestedVersion(t *testing.T) {
+	for _, v := range []string{"latest", "1.18"} {
+		t.Run(v, func(t *testing.T) {
+			var requests atomic.Int32
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				requests.Add(1)
+				http.NotFound(w, r)
+			}))
+			t.Cleanup(srv.Close)
+			exe := newExe(t)
+			_, err := newUpdater(srv.URL+"/releases", "1.18.2", exe).Run(context.Background(), v)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "invalid version")
+			assert.Contains(t, err.Error(), "1.18.3")
+			assert.Zero(t, requests.Load())
+			assert.Equal(t, "old", readFile(t, exe))
+		})
+	}
 }
 
 func TestRun_ChecksumMismatch(t *testing.T) {
@@ -208,6 +229,7 @@ func TestRun_MissingChecksum(t *testing.T) {
 	exe := newExe(t)
 	_, err := newUpdater(srv.URL+"/releases", "1.18.2", exe).Run(context.Background(), "")
 	require.Error(t, err)
+	assert.Contains(t, err.Error(), "checksum file not published for Dapr CLI version 1.18.3")
 	assert.Equal(t, "old", readFile(t, exe))
 }
 
