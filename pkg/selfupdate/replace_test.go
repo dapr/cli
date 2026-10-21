@@ -59,6 +59,51 @@ func TestReplaceBinary_Windows(t *testing.T) {
 	require.NoError(t, ReplaceBinary(cur, staged, "windows"))
 	assert.Equal(t, "new", readFile(t, cur))
 	assert.Equal(t, "old", readFile(t, cur+".old"))
+	assert.NoFileExists(t, staged)
+}
+
+func TestReplaceBinary_WindowsRollbackFailureKeepsStaged(t *testing.T) {
+	dir := t.TempDir()
+	cur := filepath.Join(dir, "dapr.exe")
+	staged := cur + ".new"
+	writeFile(t, cur, "old", 0o755)
+	writeFile(t, staged, "new", 0o755)
+
+	orig := rename
+	t.Cleanup(func() { rename = orig })
+	calls := 0
+	rename = func(from, to string) error {
+		calls++
+		if calls >= 2 {
+			return errors.New("injected failure")
+		}
+		return orig(from, to)
+	}
+
+	err := ReplaceBinary(cur, staged, "windows")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), cur+".old")
+	assert.Contains(t, err.Error(), staged)
+	assert.Equal(t, "new", readFile(t, staged))
+	assert.Equal(t, "old", readFile(t, cur+".old"))
+}
+
+func TestReplaceBinary_WindowsOldBinaryInUse(t *testing.T) {
+	dir := t.TempDir()
+	cur := filepath.Join(dir, "dapr.exe")
+	staged := cur + ".new"
+	writeFile(t, cur, "old", 0o755)
+	writeFile(t, staged, "new", 0o755)
+	// A non-empty directory cannot be removed by os.Remove, simulating a locked .old.
+	require.NoError(t, os.Mkdir(cur+".old", 0o755))
+	writeFile(t, filepath.Join(cur+".old", "x"), "x", 0o644)
+
+	err := ReplaceBinary(cur, staged, "windows")
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, ErrOldBinaryInUse))
+	assert.False(t, errors.Is(err, ErrNotWritable))
+	assert.Equal(t, "old", readFile(t, cur))
+	assert.NoFileExists(t, staged)
 }
 
 func TestReplaceBinary_WindowsRollback(t *testing.T) {

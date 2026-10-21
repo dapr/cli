@@ -25,6 +25,9 @@ import (
 // ErrNotWritable indicates the directory holding the CLI binary cannot be written to.
 var ErrNotWritable = errors.New("install directory is not writable")
 
+// ErrOldBinaryInUse indicates a previous dapr binary (".old") is still running and cannot be removed.
+var ErrOldBinaryInUse = errors.New("a previous dapr binary is still in use; stop any running dapr processes and try again")
+
 // StageBinary copies extractedPath next to currentPath as currentPath+".new",
 // giving it the mode of the current binary. The current binary is never touched.
 func StageBinary(currentPath, extractedPath string) (string, error) {
@@ -79,36 +82,47 @@ func wrapStageError(currentPath string, err error) error {
 	return fmt.Errorf("failed to stage new binary: %w", err)
 }
 
+// rename is a variable so tests can inject failures.
+var rename = os.Rename
+
 // ReplaceBinary swaps stagedPath into place of currentPath. On failure the
-// original binary at currentPath is left in place and stagedPath is removed.
+// original binary at currentPath is left in place and stagedPath is removed,
+// except when the original could not be restored: then stagedPath is kept so
+// the new binary is not lost.
 func ReplaceBinary(currentPath, stagedPath, goos string) error {
-	err := replace(currentPath, stagedPath, goos)
-	if err != nil {
+	keepStaged, err := replace(currentPath, stagedPath, goos)
+	if err != nil && !keepStaged {
 		os.Remove(stagedPath)
 	}
 	return err
 }
 
-func replace(currentPath, stagedPath, goos string) error {
+func replace(currentPath, stagedPath, goos string) (keepStaged bool, err error) {
 	if goos != "windows" {
-		if err := os.Rename(stagedPath, currentPath); err != nil {
-			return wrapReplaceError(currentPath, err)
+		if err := rename(stagedPath, currentPath); err != nil {
+			return false, wrapReplaceError(currentPath, err)
 		}
-		return nil
+		return false, nil
 	}
 
 	// A running .exe can be renamed but not overwritten, so move it aside first.
 	oldPath := currentPath + ".old"
-	if err := os.Rename(currentPath, oldPath); err != nil {
-		return wrapReplaceError(currentPath, err)
+	// A leftover .old from a previous update may still be a running image.
+	os.Remove(oldPath)
+	if _, statErr := os.Lstat(oldPath); statErr == nil {
+		return false, fmt.Errorf("%w: %s", ErrOldBinaryInUse, oldPath)
 	}
-	if err := os.Rename(stagedPath, currentPath); err != nil {
-		if rbErr := os.Rename(oldPath, currentPath); rbErr != nil {
-			return fmt.Errorf("failed to install new binary: %w (rollback also failed: %w)", err, rbErr)
+	if err := rename(currentPath, oldPath); err != nil {
+		return false, wrapReplaceError(currentPath, err)
+	}
+	if err := rename(stagedPath, currentPath); err != nil {
+		if rbErr := rename(oldPath, currentPath); rbErr != nil {
+			return true, fmt.Errorf("failed to replace %s and failed to restore it; the original binary is at %s and the new binary is at %s: %w (restore error: %v)",
+				currentPath, oldPath, stagedPath, err, rbErr)
 		}
-		return wrapReplaceError(currentPath, err)
+		return false, wrapReplaceError(currentPath, err)
 	}
-	return nil
+	return false, nil
 }
 
 func wrapReplaceError(currentPath string, err error) error {
