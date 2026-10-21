@@ -47,6 +47,17 @@ Install the latest darwin Dapr CLI to `/usr/local/bin`
 curl -fsSL https://raw.githubusercontent.com/dapr/cli/master/install/install.sh | /bin/bash
 ```
 
+#### Update the CLI
+
+Update an existing Dapr CLI to the latest stable version, or to a specific version:
+
+```bash
+dapr update
+dapr update --version <version>
+```
+
+If the CLI was installed with Homebrew or winget, `dapr update` tells you to use that package manager instead.
+
 #### From the Binary Releases
 
 Each release of Dapr CLI includes various OSes and architectures. These binary versions can be manually downloaded and installed.
