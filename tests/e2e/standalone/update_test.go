@@ -88,7 +88,8 @@ func TestStandaloneUpdate(t *testing.T) {
 		output, err := spawn.Command(dapr, "update", "--version", updateTargetVersion)
 		t.Log(output)
 		require.NoError(t, err, "dapr update failed")
-		assert.Contains(t, output, "updated")
+		assert.Contains(t, output, "updated from ")
+		assert.Contains(t, output, " to "+updateTargetVersion)
 
 		output, err = spawn.Command(dapr, "version")
 		t.Log(output)

@@ -85,7 +85,7 @@ sudo dapr update
 - `--version` takes a full version, with or without a leading `v` (`1.18.3` or `v1.18.3`). Partial versions such as `1.18`, or `latest`, are not accepted.
 - Without `--version`, `dapr update` never installs an older version. If you're on a release candidate that's newer than the latest stable version, it tells you so and doesn't change anything.
 - If the CLI's directory isn't writable, run the command with `sudo` (Linux and macOS) or from an elevated (Administrator) terminal (Windows).
-- If the CLI was installed with Homebrew or winget, `dapr update` doesn't change anything and prints the package manager command to run instead.
+- If the CLI was installed with Homebrew or the Windows MSI installer (including winget), `dapr update` doesn't replace the binary and prints the package manager command to run instead.
 - The new version is downloaded from GitHub and checked against its published SHA-256 checksum before the current binary is replaced, so `dapr update` needs internet access. In an airgapped environment, use the [installer bundle](#install-in-airgap-environment) instead.
 - `dapr update` only updates the CLI. To update the Dapr runtime, use [`dapr init --runtime-version`](#install-a-specific-runtime-version) in self-hosted mode, or [`dapr upgrade -k`](#upgrade-dapr-on-kubernetes) on Kubernetes.
 

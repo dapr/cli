@@ -33,12 +33,13 @@ import (
 const helperEnv = "DAPR_SELFUPDATE_HELPER"
 
 // TestHelperProcess is not a real test: it keeps a copy of the test binary
-// running so tests can replace a running executable.
+// running so tests can replace a running executable. The parent test kills it;
+// the long sleep only bounds an orphaned helper.
 func TestHelperProcess(t *testing.T) {
 	if os.Getenv(helperEnv) != "1" {
-		return
+		t.Skip("helper process for TestReplaceBinary_WindowsRunningBinary")
 	}
-	time.Sleep(30 * time.Second)
+	time.Sleep(10 * time.Minute)
 	os.Exit(0)
 }
 

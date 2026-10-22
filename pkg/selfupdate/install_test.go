@@ -14,7 +14,6 @@ limitations under the License.
 package selfupdate
 
 import (
-	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -25,9 +24,7 @@ func TestDetectInstallMethod_Homebrew(t *testing.T) {
 }
 
 func TestDetectInstallMethod_Direct(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("depends on the Windows registry")
-	}
+	stubMSIInstalled(t, false)
 	assert.Equal(t, InstallDirect, DetectInstallMethod("/usr/local/bin/dapr"))
 }
 
