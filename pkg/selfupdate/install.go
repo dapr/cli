@@ -32,12 +32,15 @@ const (
 	InstallMSI
 )
 
+// msiInstalledFunc is a variable so tests can simulate an MSI install.
+var msiInstalledFunc = msiInstalled
+
 // DetectInstallMethod determines how the CLI at resolvedExePath was installed.
 func DetectInstallMethod(resolvedExePath string) InstallMethod {
 	if strings.Contains(strings.ReplaceAll(resolvedExePath, "\\", "/"), "/Cellar/") {
 		return InstallHomebrew
 	}
-	if msiInstalled() {
+	if msiInstalledFunc() {
 		return InstallMSI
 	}
 	return InstallDirect

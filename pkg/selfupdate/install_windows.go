@@ -17,7 +17,8 @@ import (
 	"golang.org/x/sys/windows/registry"
 )
 
-const uninstallKeyPath = `SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall`
+// uninstallKeyPath is a variable so tests can point it at a scratch key.
+var uninstallKeyPath = `SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall`
 
 // msiInstalled reports whether the Dapr CLI MSI is registered under the
 // HKCU or HKLM uninstall keys.

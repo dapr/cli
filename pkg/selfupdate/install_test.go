@@ -31,6 +31,29 @@ func TestDetectInstallMethod_Direct(t *testing.T) {
 	assert.Equal(t, InstallDirect, DetectInstallMethod("/usr/local/bin/dapr"))
 }
 
+func stubMSIInstalled(t *testing.T, installed bool) {
+	t.Helper()
+	orig := msiInstalledFunc
+	t.Cleanup(func() { msiInstalledFunc = orig })
+	msiInstalledFunc = func() bool { return installed }
+}
+
+func TestDetectInstallMethod_HomebrewWinsOverMSI(t *testing.T) {
+	stubMSIInstalled(t, true)
+	assert.Equal(t, InstallHomebrew, DetectInstallMethod("/opt/homebrew/Cellar/dapr-cli/1.18.3/bin/dapr"))
+}
+
+func TestDetectInstallMethod_MSI(t *testing.T) {
+	stubMSIInstalled(t, true)
+	assert.Equal(t, InstallMSI, DetectInstallMethod(`C:\Program Files (x86)\Dapr\dapr.exe`))
+}
+
+func TestDetectInstallMethod_DirectWhenNoMSI(t *testing.T) {
+	stubMSIInstalled(t, false)
+	assert.Equal(t, InstallDirect, DetectInstallMethod(`C:\dapr\dapr.exe`))
+	assert.Equal(t, InstallDirect, DetectInstallMethod("/usr/local/bin/dapr"))
+}
+
 func TestPackageManagerHint(t *testing.T) {
 	const brew = "brew upgrade dapr/tap/dapr-cli"
 	tests := []struct {
@@ -40,6 +63,8 @@ func TestPackageManagerHint(t *testing.T) {
 		current   string
 		want      string
 	}{
+		{"direct latest", InstallDirect, "", "1.18.3", ""},
+		{"direct version", InstallDirect, "1.17.0", "1.18.3", ""},
 		{"homebrew latest", InstallHomebrew, "", "1.18.3",
 			"The Dapr CLI was installed with Homebrew. To update it, run:\n  " + brew},
 		{"homebrew version", InstallHomebrew, "1.17.0", "1.18.3",
