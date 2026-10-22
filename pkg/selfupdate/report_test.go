@@ -11,7 +11,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cmd
+package selfupdate
 
 import (
 	"bytes"
@@ -21,28 +21,26 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-
-	"github.com/dapr/cli/pkg/selfupdate"
 )
 
-type fakeUpdater struct {
-	res       selfupdate.Result
+type fakeRunner struct {
+	res       Result
 	err       error
 	requested string
 }
 
-func (f *fakeUpdater) Run(_ context.Context, requestedVersion string) (selfupdate.Result, error) {
+func (f *fakeRunner) Run(_ context.Context, requestedVersion string) (Result, error) {
 	f.requested = requestedVersion
 	return f.res, f.err
 }
 
-func TestUpdateRunUpdate(t *testing.T) {
-	notWritable := fmt.Errorf("%w: /usr/local/bin: permission denied", selfupdate.ErrNotWritable)
-	oldInUse := fmt.Errorf("%w: C:\\dapr\\dapr.exe.old", selfupdate.ErrOldBinaryInUse)
+func TestReport(t *testing.T) {
+	notWritable := fmt.Errorf("%w: /usr/local/bin: permission denied", ErrNotWritable)
+	oldInUse := fmt.Errorf("%w: C:\\dapr\\dapr.exe.old", ErrOldBinaryInUse)
 
 	tests := []struct {
 		name       string
-		res        selfupdate.Result
+		res        Result
 		err        error
 		requested  string
 		goos       string
@@ -53,33 +51,33 @@ func TestUpdateRunUpdate(t *testing.T) {
 	}{
 		{
 			name:       "package hint",
-			res:        selfupdate.Result{From: "1.18.2", PackageHint: "Installed with Homebrew. Run:\n  brew upgrade dapr/tap/dapr-cli"},
+			res:        Result{From: "1.18.2", PackageHint: "Installed with Homebrew. Run:\n  brew upgrade dapr/tap/dapr-cli"},
 			goos:       "darwin",
 			wantStdout: []string{"Installed with Homebrew. Run:\n  brew upgrade dapr/tap/dapr-cli"},
 			notOutput:  []string{"updated"},
 		},
 		{
 			name:       "package hint with percent sign",
-			res:        selfupdate.Result{PackageHint: "100% managed by %s %d"},
+			res:        Result{PackageHint: "100% managed by %s %d"},
 			goos:       "darwin",
 			wantStdout: []string{"100% managed by %s %d"},
 			notOutput:  []string{"%!"},
 		},
 		{
 			name:       "up to date",
-			res:        selfupdate.Result{Action: selfupdate.ActionUpToDate, From: "1.18.3", To: "1.18.3"},
+			res:        Result{Action: ActionUpToDate, From: "1.18.3", To: "1.18.3"},
 			goos:       "linux",
 			wantStdout: []string{"Dapr CLI is already on version 1.18.3."},
 		},
 		{
 			name:       "ahead of latest",
-			res:        selfupdate.Result{Action: selfupdate.ActionAheadOfLatest, From: "1.19.0-rc.1", To: "1.18.3"},
+			res:        Result{Action: ActionAheadOfLatest, From: "1.19.0-rc.1", To: "1.18.3"},
 			goos:       "linux",
 			wantStdout: []string{"Dapr CLI version 1.19.0-rc.1 is newer than the latest stable version 1.18.3."},
 		},
 		{
 			name:       "installed",
-			res:        selfupdate.Result{Action: selfupdate.ActionInstall, From: "1.18.2", To: "1.18.3"},
+			res:        Result{Action: ActionInstall, From: "1.18.2", To: "1.18.3"},
 			goos:       "linux",
 			wantStdout: []string{"Dapr CLI updated from 1.18.2 to 1.18.3."},
 		},
@@ -129,10 +127,10 @@ func TestUpdateRunUpdate(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			u := &fakeUpdater{res: tc.res, err: tc.err}
+			u := &fakeRunner{res: tc.res, err: tc.err}
 			var stdout, stderr bytes.Buffer
 
-			code := runUpdate(context.Background(), u, tc.requested, tc.goos, &stdout, &stderr)
+			code := Report(context.Background(), u, tc.requested, tc.goos, &stdout, &stderr)
 
 			assert.Equal(t, tc.wantCode, code)
 			assert.Equal(t, tc.requested, u.requested)
