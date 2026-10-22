@@ -21,6 +21,7 @@ import (
 	"context"
 	"io/ioutil"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -136,7 +137,7 @@ func TestRunWithTemplateFile(t *testing.T) {
 		output := collectOutput(t, outputCh, cancel, 60*time.Second)
 
 		// Deterministic output for template file, so we can assert line by line
-		lines := strings.Split(output, "\n")
+		lines := withoutLocalServiceLines(strings.Split(output, "\n"))
 		require.GreaterOrEqual(t, len(lines), 6, "expected at least 6 lines in output of starting two apps")
 		assert.Contains(t, lines[0], "Validating config and starting app \"processor\"")
 		assert.Contains(t, lines[1], "Started Dapr with app id \"processor\". HTTP Port: 3510.")
@@ -513,5 +514,11 @@ func readAndAssertLogFileContents(t *testing.T, logFilePath string, expectedCont
 	}
 }
 
-
-
+// withoutLocalServiceLines removes the lines about the placement and scheduler
+// services. On a slim installation, `dapr run -f` prints them before the lines
+// of the first app.
+func withoutLocalServiceLines(lines []string) []string {
+	return slices.DeleteFunc(lines, func(l string) bool {
+		return strings.Contains(l, "placement service") || strings.Contains(l, "scheduler service")
+	})
+}
