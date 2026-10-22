@@ -16,6 +16,7 @@ package cmd
 import (
 	"context"
 	"errors"
+	"io"
 	"os"
 	"runtime"
 
@@ -39,42 +40,51 @@ dapr update
 dapr update --version 1.18.3
 `,
 	Run: func(cmd *cobra.Command, args []string) {
-		updater := &selfupdate.Updater{CurrentVersion: cliVersion}
-		res, err := updater.Run(context.Background(), updateVersion)
-		if err != nil {
-			if errors.Is(err, selfupdate.ErrOldBinaryInUse) {
-				print.FailureStatusEvent(os.Stderr, "Failed to update the Dapr CLI: %s", err)
-				os.Exit(1)
-			}
-			print.FailureStatusEvent(os.Stderr, "Failed to update the Dapr CLI: %s", err)
-			if errors.Is(err, selfupdate.ErrNotWritable) {
-				if runtime.GOOS == "windows" {
-					print.InfoStatusEvent(os.Stdout, "Run the command again from an elevated (Administrator) terminal.")
-				} else {
-					sudoCmd := "sudo dapr update"
-					if updateVersion != "" {
-						sudoCmd += " --version " + updateVersion
-					}
-					print.InfoStatusEvent(os.Stdout, "Run the command again with sudo: %s", sudoCmd)
-				}
-			}
-			os.Exit(1)
-		}
-
-		if res.PackageHint != "" {
-			print.InfoStatusEvent(os.Stdout, "%s", res.PackageHint)
-			return
-		}
-
-		switch res.Action {
-		case selfupdate.ActionUpToDate:
-			print.InfoStatusEvent(os.Stdout, "Dapr CLI is already on version %s.", res.From)
-		case selfupdate.ActionAheadOfLatest:
-			print.InfoStatusEvent(os.Stdout, "Dapr CLI version %s is newer than the latest stable version %s. Use --version to install a specific version.", res.From, res.To)
-		case selfupdate.ActionInstall:
-			print.SuccessStatusEvent(os.Stdout, "Dapr CLI updated from %s to %s.", res.From, res.To)
+		u := &selfupdate.Updater{CurrentVersion: cliVersion}
+		if code := runUpdate(context.Background(), u, updateVersion, runtime.GOOS, os.Stdout, os.Stderr); code != 0 {
+			os.Exit(code)
 		}
 	},
+}
+
+// updater is the part of selfupdate.Updater used by the update command.
+type updater interface {
+	Run(ctx context.Context, requestedVersion string) (selfupdate.Result, error)
+}
+
+// runUpdate runs the update and reports the outcome, returning the exit code.
+func runUpdate(ctx context.Context, u updater, requestedVersion, goos string, stdout, stderr io.Writer) int {
+	res, err := u.Run(ctx, requestedVersion)
+	if err != nil {
+		print.FailureStatusEvent(stderr, "Failed to update the Dapr CLI: %s", err)
+		if errors.Is(err, selfupdate.ErrNotWritable) {
+			if goos == "windows" {
+				print.InfoStatusEvent(stdout, "Run the command again from an elevated (Administrator) terminal.")
+			} else {
+				sudoCmd := "sudo dapr update"
+				if requestedVersion != "" {
+					sudoCmd += " --version " + requestedVersion
+				}
+				print.InfoStatusEvent(stdout, "Run the command again with sudo: %s", sudoCmd)
+			}
+		}
+		return 1
+	}
+
+	if res.PackageHint != "" {
+		print.InfoStatusEvent(stdout, "%s", res.PackageHint)
+		return 0
+	}
+
+	switch res.Action {
+	case selfupdate.ActionUpToDate:
+		print.InfoStatusEvent(stdout, "Dapr CLI is already on version %s.", res.From)
+	case selfupdate.ActionAheadOfLatest:
+		print.InfoStatusEvent(stdout, "Dapr CLI version %s is newer than the latest stable version %s. Use --version to install a specific version.", res.From, res.To)
+	case selfupdate.ActionInstall:
+		print.SuccessStatusEvent(stdout, "Dapr CLI updated from %s to %s.", res.From, res.To)
+	}
+	return 0
 }
 
 func init() {
