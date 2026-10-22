@@ -24,7 +24,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"path"
 	path_filepath "path/filepath"
 	"runtime"
 	"strings"
@@ -190,7 +189,7 @@ func File(dir string, url string) (string, error) {
 	tokens := strings.Split(url, "/")
 	fileName := tokens[len(tokens)-1]
 
-	filepath := path.Join(dir, fileName)
+	filepath := path_filepath.Join(dir, fileName)
 	_, err := os.Stat(filepath)
 	if os.IsExist(err) {
 		return "", nil
