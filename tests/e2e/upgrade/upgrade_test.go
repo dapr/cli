@@ -30,7 +30,7 @@ type upgradePath struct {
 }
 
 const (
-	latestRuntimeVersion         = "1.19.0-rc.5"
+	latestRuntimeVersion         = "1.19.0"
 	latestRuntimeVersionMinusOne = "1.18.7"
 	latestRuntimeVersionMinusTwo = "1.17.16"
 )
