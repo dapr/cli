@@ -36,7 +36,7 @@ const (
 type Updater struct {
 	ReleaseBaseURL string                     // default "https://github.com/dapr/cli/releases"
 	CurrentVersion string                     // version of the running CLI
-	ExecutablePath string                     // resolved via os.Executable + filepath.EvalSymlinks when empty
+	ExecutablePath string                     // default os.Executable; symlinks are always resolved
 	GOOS, GOARCH   string                     // default runtime values
 	DetectInstall  func(string) InstallMethod // default DetectInstallMethod
 }
@@ -96,18 +96,24 @@ func (u *Updater) Run(ctx context.Context, requestedVersion string) (Result, err
 }
 
 func (u *Updater) executablePath() (string, error) {
-	if u.ExecutablePath != "" {
-		return u.ExecutablePath, nil
+	p := u.ExecutablePath
+	if p == "" {
+		var err error
+		if p, err = os.Executable(); err != nil {
+			return "", fmt.Errorf("failed to locate the Dapr CLI binary: %w", err)
+		}
 	}
-	p, err := os.Executable()
-	if err != nil {
-		return "", fmt.Errorf("failed to locate the Dapr CLI binary: %w", err)
-	}
-	p, err = filepath.EvalSymlinks(p)
+	return resolveExecutable(p)
+}
+
+// resolveExecutable follows symlinks so the real binary is replaced (and the
+// symlink left intact) and install detection sees the real location.
+func resolveExecutable(p string) (string, error) {
+	resolved, err := filepath.EvalSymlinks(p)
 	if err != nil {
 		return "", fmt.Errorf("failed to resolve the Dapr CLI binary path: %w", err)
 	}
-	return p, nil
+	return resolved, nil
 }
 
 func latestStable(ctx context.Context, baseURL string) (string, error) {

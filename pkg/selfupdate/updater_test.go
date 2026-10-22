@@ -261,3 +261,76 @@ func TestRun_FeedNon200(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to check for the latest Dapr CLI version")
 }
+
+// symlink creates link pointing at target, skipping the test when the
+// platform or user can't create symlinks (e.g. Windows without developer mode).
+func symlink(t *testing.T, target, link string) {
+	t.Helper()
+	if err := os.Symlink(target, link); err != nil {
+		if runtime.GOOS == "windows" {
+			t.Skipf("symlinks not permitted: %v", err)
+		}
+		require.NoError(t, err)
+	}
+}
+
+func TestRun_ReplacesSymlinkTarget(t *testing.T) {
+	srv := newReleaseServer(t, serverOpts{latest: "1.18.3"})
+	realPath := newExe(t)
+	link := filepath.Join(t.TempDir(), filepath.Base(realPath))
+	symlink(t, realPath, link)
+
+	res, err := newUpdater(srv.URL+"/releases", "1.18.2", link).Run(context.Background(), "")
+	require.NoError(t, err)
+	assert.Equal(t, ActionInstall, res.Action)
+	assert.Equal(t, "new", readFile(t, realPath))
+
+	info, err := os.Lstat(link)
+	require.NoError(t, err)
+	assert.NotZero(t, info.Mode()&os.ModeSymlink, "link should still be a symlink")
+	target, err := os.Readlink(link)
+	require.NoError(t, err)
+	assert.Equal(t, realPath, target)
+}
+
+func TestRun_HomebrewViaSymlink(t *testing.T) {
+	var requests atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests.Add(1)
+		http.NotFound(w, r)
+	}))
+	t.Cleanup(srv.Close)
+
+	tmp := t.TempDir()
+	realPath := filepath.Join(tmp, "Cellar", "dapr-cli", "1.18.2", "bin", "dapr")
+	require.NoError(t, os.MkdirAll(filepath.Dir(realPath), 0o755))
+	writeFile(t, realPath, "old", 0o755)
+	link := filepath.Join(tmp, "bin", "dapr")
+	require.NoError(t, os.MkdirAll(filepath.Dir(link), 0o755))
+	symlink(t, realPath, link)
+
+	u := newUpdater(srv.URL+"/releases", "1.18.2", link)
+	u.DetectInstall = nil // use the realPath DetectInstallMethod
+	res, err := u.Run(context.Background(), "")
+	require.NoError(t, err)
+	assert.Contains(t, res.PackageHint, "Homebrew")
+	assert.Zero(t, requests.Load())
+	assert.Equal(t, "old", readFile(t, realPath))
+}
+
+func TestExecutablePath_Default(t *testing.T) {
+	want, err := os.Executable()
+	require.NoError(t, err)
+	want, err = filepath.EvalSymlinks(want)
+	require.NoError(t, err)
+
+	got, err := (&Updater{}).executablePath()
+	require.NoError(t, err)
+	assert.Equal(t, want, got)
+}
+
+func TestExecutablePath_Missing(t *testing.T) {
+	_, err := (&Updater{ExecutablePath: filepath.Join(t.TempDir(), "missing")}).executablePath()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to resolve the Dapr CLI binary path")
+}
