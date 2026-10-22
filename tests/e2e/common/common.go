@@ -392,7 +392,7 @@ func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t
 	return func(t *testing.T) {
 		version, err := semver.NewVersion(details.RuntimeVersion)
 		if err != nil {
-			t.Error("failed to parse runtime version", err)
+			t.Fatal("failed to parse runtime version", err)
 		}
 		columnSplitPattern := regexp.MustCompile(`\s{2,}`)
 
