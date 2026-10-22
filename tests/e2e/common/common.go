@@ -22,6 +22,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -32,6 +33,7 @@ import (
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	cliversion "github.com/dapr/cli/pkg/version"
 	"github.com/dapr/cli/tests/e2e/spawn"
 
 	k8s "k8s.io/client-go/kubernetes"
@@ -97,18 +99,43 @@ type TestCase struct {
 	Callable func(*testing.T)
 }
 
-// GetVersionsFromEnv will return the runtime version from required environment variables.
-// parameter `latest` is used to determine if the latest version of dapr should be used.
-// if environment variables are not set it fails the test.
-func GetVersionsFromEnv(t *testing.T, latest bool) string {
-	var daprRuntimeVersion string
-	runtimeEnvVar := "DAPR_RUNTIME_PINNED_VERSION"
-	if latest {
-		runtimeEnvVar = "DAPR_RUNTIME_LATEST_STABLE_VERSION"
+// latestStableVersion is the version `dapr init` installs when no runtime
+// version is given: the highest stable tag of the Dapr image in the registry
+// that DAPR_DEFAULT_IMAGE_REGISTRY selects (Docker Hub, or GHCR), resolved
+// once per test binary with the CLI's own lookup. A failed lookup is retried
+// so one registry hiccup does not fail every test that needs the version.
+var latestStableVersion = sync.OnceValues(func() (string, error) {
+	ref := cliversion.DaprDefaultImage
+	if strings.EqualFold(os.Getenv("DAPR_DEFAULT_IMAGE_REGISTRY"), "ghcr") {
+		ref = cliversion.DaprImageRef("ghcr.io")
 	}
-	if runtimeVersion, ok := os.LookupEnv(runtimeEnvVar); ok {
-		daprRuntimeVersion = runtimeVersion
-	} else {
+	const attempts = 5
+	var err error
+	for attempt := 1; attempt <= attempts; attempt++ {
+		var v string
+		if v, err = cliversion.GetLatestVersion(ref); err == nil {
+			return v, nil
+		}
+		if attempt < attempts {
+			time.Sleep(time.Duration(attempt) * 2 * time.Second)
+		}
+	}
+	return "", err
+})
+
+// GetVersionsFromEnv returns the runtime version the tests run against.
+// With latest, it is the latest stable version, see latestStableVersion.
+// Otherwise it is DAPR_RUNTIME_PINNED_VERSION, and the test fails if that
+// is unset or empty.
+func GetVersionsFromEnv(t *testing.T, latest bool) string {
+	if latest {
+		v, err := latestStableVersion()
+		require.NoError(t, err, "failed to resolve the latest stable Dapr runtime version")
+		return v
+	}
+	const runtimeEnvVar = "DAPR_RUNTIME_PINNED_VERSION"
+	daprRuntimeVersion := os.Getenv(runtimeEnvVar)
+	if daprRuntimeVersion == "" {
 		t.Fatalf("env var \"%s\" not set", runtimeEnvVar)
 	}
 	return daprRuntimeVersion
@@ -391,9 +418,7 @@ func HTTPEndpointsTestOnInstallUpgrade(installOpts TestOptions, upgradeOpts Test
 func StatusTestOnInstallUpgrade(details VersionDetails, opts TestOptions) func(t *testing.T) {
 	return func(t *testing.T) {
 		version, err := semver.NewVersion(details.RuntimeVersion)
-		if err != nil {
-			t.Error("failed to parse runtime version", err)
-		}
+		require.NoError(t, err, "failed to parse runtime version %q", details.RuntimeVersion)
 		columnSplitPattern := regexp.MustCompile(`\s{2,}`)
 
 		var notFound map[string][]string
