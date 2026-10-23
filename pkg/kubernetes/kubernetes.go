@@ -37,6 +37,9 @@ import (
 )
 
 const (
+	// daprChartName is the name of the Dapr Helm chart.
+	daprChartName = "dapr"
+	// daprReleaseName is the default name of the Dapr Helm release.
 	daprReleaseName      = "dapr"
 	latestVersion        = "latest"
 	bitnamiStableVersion = "17.14.5"
@@ -70,12 +73,24 @@ type InitConfiguration struct {
 	RootCertificateFilePath   string
 	IssuerCertificateFilePath string
 	IssuerPrivateKeyFilePath  string
+	// ReleaseName is the name of the Helm release for the Dapr control plane.
+	// It defaults to "dapr" when empty.
+	ReleaseName string
+}
+
+// releaseName returns the name of the Helm release to use for the Dapr
+// control plane.
+func (c InitConfiguration) releaseName() string {
+	if c.ReleaseName == "" {
+		return daprReleaseName
+	}
+	return c.ReleaseName
 }
 
 // Init deploys the Dapr operator using the supplied runtime version.
 func Init(config InitConfiguration) error {
 	helmRepoDapr := utils.GetEnv("DAPR_HELM_REPO_URL", daprHelmRepo)
-	err := installWithConsole(daprReleaseName, config.Version, helmRepoDapr, "Dapr control plane", config)
+	err := installWithConsole(config.releaseName(), daprChartName, config.Version, helmRepoDapr, "Dapr control plane", config)
 	if err != nil {
 		return err
 	}
@@ -119,11 +134,11 @@ func installThirdPartyWithConsole(releaseName, chartName, releaseVersion, helmRe
 	return nil
 }
 
-func installWithConsole(releaseName, releaseVersion, helmRepo string, prettyName string, config InitConfiguration) error {
+func installWithConsole(releaseName, chartName, releaseVersion, helmRepo string, prettyName string, config InitConfiguration) error {
 	installSpinning := print.Spinner(os.Stdout, "Deploying the %s with %s version to your cluster...", prettyName, releaseVersion)
 	defer installSpinning(print.Failure)
 
-	err := install(releaseName, releaseVersion, helmRepo, config)
+	err := install(releaseName, chartName, releaseVersion, helmRepo, config)
 	if err != nil {
 		return err
 	}
@@ -157,15 +172,15 @@ func helmConfig(namespace string) (*helm.Configuration, error) {
 	return &ac, err
 }
 
-func getVersion(releaseName string, version string, imageRegistryURI string) (string, error) {
+func getVersion(chartName string, version string, imageRegistryURI string) (string, error) {
 	actualVersion := version
 	if version == latestVersion {
 		var err error
-		switch releaseName {
-		case daprReleaseName:
+		switch chartName {
+		case daprChartName:
 			actualVersion, err = cli_ver.GetLatestVersion(cli_ver.DaprImageRef(imageRegistryURI))
 		default:
-			return "", fmt.Errorf("cannot get latest version for unknown chart: %s", releaseName)
+			return "", fmt.Errorf("cannot get latest version for unknown chart: %s", chartName)
 		}
 		if err != nil {
 			return "", fmt.Errorf("cannot get the latest release version: %w", err)
@@ -191,7 +206,7 @@ func locateChartFile(dirPath string) (string, error) {
 	return filepath.Join(dirPath, files[0].Name()), nil
 }
 
-func getHelmChart(version, releaseName, helmRepo string, config *helm.Configuration) (*chart.Chart, error) {
+func getHelmChart(version, chartName, helmRepo string, config *helm.Configuration) (*chart.Chart, error) {
 	pull := helm.NewPullWithOpts(helm.WithConfig(config))
 	pull.RepoURL = helmRepo
 	pull.Username = utils.GetEnv("DAPR_HELM_REPO_USERNAME", "")
@@ -199,7 +214,7 @@ func getHelmChart(version, releaseName, helmRepo string, config *helm.Configurat
 
 	pull.Settings = &cli.EnvSettings{}
 
-	if version != latestVersion && (releaseName == daprReleaseName || releaseName == redisChartName) {
+	if version != latestVersion && (chartName == daprChartName || chartName == redisChartName) {
 		pull.Version = chartVersion(version)
 	}
 
@@ -211,7 +226,7 @@ func getHelmChart(version, releaseName, helmRepo string, config *helm.Configurat
 
 	pull.DestDir = dir
 
-	_, err = pull.Run(releaseName)
+	_, err = pull.Run(chartName)
 	if err != nil {
 		return nil, err
 	}
@@ -262,7 +277,7 @@ func daprChartValues(config InitConfiguration, version string) (map[string]inter
 	return chartVals, nil
 }
 
-func install(releaseName, releaseVersion, helmRepo string, config InitConfiguration) error {
+func install(releaseName, chartName, releaseVersion, helmRepo string, config InitConfiguration) error {
 	err := createNamespace(config.Namespace)
 	if err != nil {
 		return err
@@ -273,17 +288,17 @@ func install(releaseName, releaseVersion, helmRepo string, config InitConfigurat
 		return err
 	}
 
-	daprChart, err := getHelmChart(releaseVersion, releaseName, helmRepo, helmConf)
+	daprChart, err := getHelmChart(releaseVersion, chartName, helmRepo, helmConf)
 	if err != nil {
 		return err
 	}
 
-	version, err := getVersion(releaseName, releaseVersion, config.ImageRegistryURI)
+	version, err := getVersion(chartName, releaseVersion, config.ImageRegistryURI)
 	if err != nil {
 		return err
 	}
 
-	if releaseName == daprReleaseName {
+	if chartName == daprChartName {
 		err = applyCRDs("v" + version)
 		if err != nil {
 			return err

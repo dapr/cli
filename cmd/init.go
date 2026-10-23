@@ -38,6 +38,7 @@ var (
 	runtimeVersion                     string
 	allNamespaces                      bool
 	initNamespace                      string
+	initReleaseName                    string
 	resourceNamespace                  string
 	enableMTLS                         bool
 	enableHA                           bool
@@ -74,6 +75,9 @@ dapr init -k
 
 # Initialize Dapr in Kubernetes in dev mode
 dapr init -k --dev
+
+# Initialize Dapr in Kubernetes using a custom Helm release name
+dapr init -k --release-name my-dapr
 
 # Initialize Dapr in Kubernetes and wait for the installation to complete (default timeout is 300s/5m)
 dapr init -k --wait --timeout 600
@@ -141,6 +145,7 @@ dapr init --redis-stack
 
 			config := kubernetes.InitConfiguration{
 				Namespace:                 initNamespace,
+				ReleaseName:               initReleaseName,
 				Version:                   runtimeVersion,
 				EnableMTLS:                enableMTLS,
 				EnableHA:                  enableHA,
@@ -248,6 +253,7 @@ func init() {
 	InitCmd.Flags().BoolVarP(&slimMode, "slim", "s", false, "Exclude placement service, scheduler service, Redis and Zipkin containers from self-hosted installation")
 	InitCmd.Flags().StringVarP(&runtimeVersion, "runtime-version", "", defaultRuntimeVersion, "The version of the Dapr runtime to install, for example: 1.0.0")
 	InitCmd.Flags().StringVarP(&initNamespace, "namespace", "n", "dapr-system", "The Kubernetes namespace to install Dapr in")
+	InitCmd.Flags().StringVarP(&initReleaseName, "release-name", "", "dapr", "The name of the Helm release used to install Dapr in the Kubernetes cluster")
 	InitCmd.Flags().BoolVarP(&enableMTLS, "enable-mtls", "", true, "Enable mTLS in your cluster")
 	InitCmd.Flags().BoolVarP(&enableHA, "enable-ha", "", false, "Enable high availability (HA) mode")
 	InitCmd.Flags().String("network", "", "The Docker network on which to deploy the Dapr runtime")
