@@ -72,7 +72,18 @@ func isSlimMode() bool {
 	return os.Getenv("DAPR_E2E_INIT_SLIM") == "true"
 }
 
+// initSuccessMessage returns the start of the message that a successful self-hosted init prints.
+// A slim init starts no service, so it does not say that Dapr is running.
+func initSuccessMessage() string {
+	if isSlimMode() {
+		return "Success! Dapr is installed in slim mode."
+	}
+	return "Success! Dapr is up and running."
+}
+
 // createSlimComponents creates default state store and pubsub components in path.
+// It keeps a file that exists. After a slim init, which writes a SQLite state
+// store, it adds only the pubsub component.
 func createSlimComponents(path string) error {
 	components := map[string]string{
 		"pubsub.yaml": `apiVersion: dapr.io/v1alpha1
@@ -297,8 +308,8 @@ func ensureDaprInstallation(t *testing.T) {
 		require.NoError(t, err, "failed to stat dapr installation")
 	}
 
-	// Slim mode does not have any components by default.
-	// Install the components required by the tests.
+	// Slim init writes only a SQLite state store.
+	// Install the other components required by the tests.
 	if isSlimMode() {
 		err = createSlimComponents(filepath.Join(daprPath, "components"))
 		require.NoError(t, err, "failed to create components")
