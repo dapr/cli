@@ -39,7 +39,6 @@ jobs:
       GOPROXY: https://proxy.golang.org
       ARCHIVE_OUTDIR: dist/archives
       DAPR_RUNTIME_PINNED_VERSION: "1.19.0"
-      DAPR_RUNTIME_LATEST_STABLE_VERSION: ""
       GOLANG_PROTOBUF_REGISTRATION_CONFLICT: warn
       PODMAN_VERSION: 5.4.0
     strategy:
@@ -103,14 +102,6 @@ jobs:
             echo "Found $RUNTIME_VERSION"
             echo "DAPR_RUNTIME_PINNED_VERSION=$RUNTIME_VERSION" >> $GITHUB_ENV
           fi
-        shell: bash
-      - name: Determine latest stable Dapr Runtime version
-        run: |
-          # The highest release without a pre-release suffix: the version that `dapr init` installs.
-          # Not /releases/latest: it skips a release that is still flagged as a pre-release, which happens on GA day.
-          export LATEST_STABLE_RUNTIME_VERSION=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/dapr/dapr/releases?per_page=100" | grep tag_name | awk -F':' '{print $2}' | tr -d '", ' | grep -v -- '-' | tr -d 'v' | sort -V | tail -1)
-          echo "Found $LATEST_STABLE_RUNTIME_VERSION"
-          echo "DAPR_RUNTIME_LATEST_STABLE_VERSION=$LATEST_STABLE_RUNTIME_VERSION" >> $GITHUB_ENV
         shell: bash
       - name: Set the test timeout - MacOS
         if: matrix.os == 'macos-14-large'
