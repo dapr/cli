@@ -29,6 +29,7 @@ const (
 	defaultComponentsDirName    = "components"
 	defaultSchedulerDirName     = "scheduler"
 	defaultSchedulerDataDirName = "data"
+	defaultSentryCertsDirName   = "certs"
 )
 
 // GetDaprRuntimePath returns the dapr runtime installation path.
@@ -83,4 +84,8 @@ func GetDaprComponentsPath(daprDir string) string {
 
 func GetDaprConfigPath(daprDir string) string {
 	return path_filepath.Join(daprDir, DefaultConfigFileName)
+}
+
+func GetDaprSentryCertsPath(daprDir string) string {
+	return path_filepath.Join(daprDir, defaultSentryCertsDirName)
 }

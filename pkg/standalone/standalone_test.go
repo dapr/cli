@@ -38,7 +38,7 @@ spec:
       endpointAddress: http://test_zipkin_host:9411/api/v2/spans
 `
 		os.Remove(testFile)
-		createDefaultConfiguration("test_zipkin_host", testFile)
+		createDefaultConfiguration("test_zipkin_host", testFile, false)
 		assert.FileExists(t, testFile)
 		content, err := os.ReadFile(testFile)
 		assert.NoError(t, err)
@@ -53,7 +53,7 @@ metadata:
 spec: {}
 `
 		os.Remove(testFile)
-		createDefaultConfiguration("", testFile)
+		createDefaultConfiguration("", testFile, false)
 		assert.FileExists(t, testFile)
 		content, err := os.ReadFile(testFile)
 		assert.NoError(t, err)
