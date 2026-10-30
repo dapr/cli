@@ -38,8 +38,7 @@ jobs:
       GOARCH: ${{ matrix.target_arch }}
       GOPROXY: https://proxy.golang.org
       ARCHIVE_OUTDIR: dist/archives
-      DAPR_RUNTIME_PINNED_VERSION: "1.19.0-rc.3"
-      DAPR_RUNTIME_LATEST_STABLE_VERSION: ""
+      DAPR_RUNTIME_PINNED_VERSION: "1.19.0"
       GOLANG_PROTOBUF_REGISTRATION_CONFLICT: warn
       PODMAN_VERSION: 5.4.0
     strategy:
@@ -104,12 +103,6 @@ jobs:
             echo "DAPR_RUNTIME_PINNED_VERSION=$RUNTIME_VERSION" >> $GITHUB_ENV
           fi
         shell: bash
-      - name: Determine latest stable Dapr Runtime version
-        run: |
-          export LATEST_STABLE_RUNTIME_VERSION=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/dapr/dapr/releases/latest | grep tag_name | awk -F':' '{print $2}' | tr -d '", ' | sed '/-/! s/$/_/' | sort -V | sed 's/_$//' | tr -d 'v' | tail -1)
-          echo "Found $LATEST_STABLE_RUNTIME_VERSION"
-          echo "DAPR_RUNTIME_LATEST_STABLE_VERSION=$LATEST_STABLE_RUNTIME_VERSION" >> $GITHUB_ENV
-        shell: bash
       - name: Set the test timeout - MacOS
         if: matrix.os == 'macos-14-large'
         run: echo "E2E_SH_TEST_TIMEOUT=40m" >> $GITHUB_ENV
@@ -159,7 +152,7 @@ jobs:
     continue-on-error: true
     env:
       GOPROXY: https://proxy.golang.org
-      DAPR_RUNTIME_PINNED_VERSION: "1.19.0-rc.3"
+      DAPR_RUNTIME_PINNED_VERSION: "1.19.0"
       # Run the test that makes dapr init shut WSL down.
       DAPR_E2E_WSL_SHUTDOWN: "true"
     defaults:
