@@ -9,7 +9,7 @@ require (
 	github.com/briandowns/spinner v1.19.0
 	github.com/dapr/dapr v1.19.0
 	github.com/dapr/durabletask-go v0.15.1
-	github.com/dapr/go-sdk v1.15.0-rc.2
+	github.com/dapr/go-sdk v1.16.0
 	github.com/dapr/kit v0.19.0
 	github.com/diagridio/go-etcd-cron v0.12.10
 	github.com/docker/docker v28.5.2+incompatible
