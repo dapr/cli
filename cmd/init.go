@@ -100,6 +100,9 @@ dapr init --runtime-path <path-to-install-directory>
 # Initialize Dapr in self-hosted mode with Redis Stack for RediSearch/vector store support
 dapr init --redis-stack
 
+# Initialize Dapr in self-hosted mode with mTLS enabled for sentry service
+dapr init --enable-mtls
+
 # See more at: https://docs.dapr.io/getting-started/
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -206,6 +209,7 @@ dapr init --redis-stack
 				SchedulerOverrideBroadcastHostPort: schedulerHostPort,
 				SchedulerPlacement:                 schedulerPlacement,
 				RedisStack:                         redisStack,
+				EnableMTLS:                         enableMTLS,
 			})
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, "%s", err.Error())
