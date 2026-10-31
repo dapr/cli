@@ -91,6 +91,9 @@ const (
 	healthPort = 58080
 	metricPort = 59090
 
+	sentryHealthPort = 58082
+	sentryMetricPort = 59092
+
 	schedulerHealthPort = 58081
 	schedulerMetricPort = 59091
 	schedulerEtcdPort   = 2379
@@ -894,9 +897,28 @@ func runSentryService(wg *sync.WaitGroup, errorChan chan<- error, info initInfo)
 	}
 
 	var (
-		daprConfigDir = GetDaprConfigPath(info.installDir)
-		sentryCertsDir = GetDaprSentryCertsPath(info.installDir)
+		daprConfigFile        = GetDaprConfigPath(info.installDir)
+		sentryCertsDir        = GetDaprSentryCertsPath(info.installDir)
+		defaultDaprConfigFile = "/.dapr/config.yaml"
+		defaultDaprCertsDir   = "/.dapr/certs/"
 	)
+
+	absHostDaprCertsDir, err := path_filepath.Abs(sentryCertsDir)
+	if err != nil {
+		errorChan <- err
+		return
+	}
+
+	absHostDaprConfigFile, err := path_filepath.Abs(daprConfigFile)
+	if err != nil {
+		errorChan <- err
+		return
+	}
+
+	if err := os.MkdirAll(sentryCertsDir, 0o755); err != nil {
+		errorChan <- err
+		return
+	}
 
 	args := []string{
 		"run",
@@ -904,8 +926,8 @@ func runSentryService(wg *sync.WaitGroup, errorChan chan<- error, info initInfo)
 		"--restart", "always",
 		"-d",
 		"--entrypoint", "./sentry",
-		"-v", sentryCertsDir + ":" + sentryCertsDir,
-		"-v", daprConfigDir + ":" + daprConfigDir+ ":ro",
+		"-v", absHostDaprCertsDir + ":" + defaultDaprCertsDir,
+		"-v", absHostDaprConfigFile + ":" + defaultDaprConfigFile + ":ro",
 	}
 
 	if info.dockerNetwork != "" {
@@ -922,15 +944,15 @@ func runSentryService(wg *sync.WaitGroup, errorChan chan<- error, info initInfo)
 		args = append(args, publishPortNetworkArgs(runtimeCmd)...)
 		args = append(args,
 			"-p", fmt.Sprintf("%v:50001", osPort),
-			"-p", fmt.Sprintf("%v:8080", healthPort),
-			"-p", fmt.Sprintf("%v:9090", metricPort),
+			"-p", fmt.Sprintf("%v:8080", sentryHealthPort),
+			"-p", fmt.Sprintf("%v:9090", sentryMetricPort),
 		)
 	}
 
-	args = append(args, image, 
-		"--trust-domain=cluster.local", 
-		fmt.Sprintf("--issuer-credentials=%s", sentryCertsDir),
-		"--config", daprConfigDir,
+	args = append(args, image,
+		"--trust-domain=cluster.local",
+		fmt.Sprintf("--issuer-credentials=%s", defaultDaprCertsDir),
+		"--config", defaultDaprConfigFile,
 	)
 
 	_, err = utils.RunCmdAndWait(runtimeCmd, args...)
