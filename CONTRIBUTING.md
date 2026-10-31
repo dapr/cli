@@ -45,6 +45,10 @@ Before you file an issue, make sure you've checked the following:
     - Many changes to the Dapr runtime may require changes to the API. In that case, the best place to discuss the potential feature is the main [Dapr repo](https://github.com/dapr/dapr).
     - Other examples could include bindings, state stores or entirely new components.
 
+### Self-Assigning Issues
+
+Contributors can self-assign open issues in this repository using [dapr-bot](https://docs.dapr.io/contributing/daprbot/). Comment `/assign` on the issue you would like to work on, and `dapr-bot` (configured in [`.github/workflows/dapr-bot.yml`](https://github.com/dapr/cli/blob/master/.github/workflows/dapr-bot.yml)) will automatically assign it to you. For a full list of supported bot commands (such as `/unassign`), see the [Daprbot documentation](https://docs.dapr.io/contributing/daprbot/).
+
 ## Contributing to Dapr
 
 This section describes the guidelines for contributing code / docs to Dapr.
