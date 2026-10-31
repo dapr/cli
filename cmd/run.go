@@ -191,6 +191,16 @@ dapr run --run-file /path/to/directory -k
 			}
 		}
 
+		mtlsEnv, err := standalone.MTLSEnv(daprDirPath, os.LookupEnv)
+		if err != nil {
+			print.FailureStatusEvent(os.Stderr, "Failed to load mTLS environment: %v", err)
+			os.Exit(1)
+		}
+
+		if !standalone.IsMTLSEnabled(configFile) {
+			mtlsEnv = nil
+		}
+
 		sharedRunConfig := &standalone.SharedRunConfig{
 			ConfigFile:         configFile,
 			EnableProfiling:    enableProfiling,
@@ -210,6 +220,7 @@ dapr run --run-file /path/to/directory -k
 			EnableAPILogging:   enableAPILogging,
 			APIListenAddresses: apiListenAddresses,
 			DaprdInstallPath:   cmdruntime.GetDaprRuntimePath(),
+			Env:                mtlsEnv,
 		}
 
 		// placement-host-address flag handling: only set pointer if flag was explicitly changed

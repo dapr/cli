@@ -28,7 +28,6 @@ import (
 
 	"github.com/Pallinder/sillyname-go"
 	"github.com/phayes/freeport"
-	"gopkg.in/yaml.v2"
 
 	"github.com/dapr/cli/pkg/print"
 	localloader "github.com/dapr/dapr/pkg/components/loader"
@@ -597,20 +596,10 @@ func mtlsEndpoint(configFile string) string {
 		return ""
 	}
 
-	b, err := os.ReadFile(configFile)
-	if err != nil {
-		return ""
-	}
-
-	var config mtlsConfig
-	err = yaml.Unmarshal(b, &config)
-	if err != nil {
-		return ""
-	}
-
-	if config.Spec.MTLS.Enabled {
+	if IsMTLSEnabled(configFile) {
 		return sentryDefaultAddress
 	}
+
 	return ""
 }
 
