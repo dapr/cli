@@ -16,10 +16,12 @@ package runfileconfig
 import (
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
 
+	cmdruntime "github.com/dapr/cli/cmd/runtime"
 	"github.com/dapr/cli/pkg/standalone"
 	"github.com/dapr/cli/utils"
 
@@ -27,6 +29,29 @@ import (
 )
 
 var imagePullPolicyValuesAllowed = []string{"Always", "Never", "IfNotPresent"}
+
+func (a *RunFileConfig) addMTLSEnvToCommon() error {
+	daprDir, err := standalone.GetDaprRuntimePath(cmdruntime.GetDaprRuntimePath())
+	if err != nil {
+		return fmt.Errorf("error getting dapr install path: %w", err)
+	}
+	env, err := standalone.MTLSEnv(daprDir, os.LookupEnv)
+	if err != nil {
+		return err
+	}
+	if len(env) == 0 {
+		return nil
+	}
+	if a.Common.Env == nil {
+		a.Common.Env = make(map[string]string, len(env))
+	}
+	for k, v := range env {
+		if _, set := a.Common.Env[k]; !set {
+			a.Common.Env[k] = v
+		}
+	}
+	return nil
+}
 
 // Parse the provided run file into a RunFileConfig struct.
 func (a *RunFileConfig) parseAppsConfig(runFilePath string) error {
@@ -128,6 +153,9 @@ func (a *RunFileConfig) GetApps(runFilePath string) ([]App, error) {
 		return nil, err
 	}
 	a.mergeCommonAndAppsSharedRunConfig()
+	if err = a.addMTLSEnvToCommon(); err != nil {
+		return nil, err
+	}
 	a.mergeCommonAndAppsEnv()
 
 	// Set and validates default fields in the run file.
@@ -257,6 +285,9 @@ func (a *RunFileConfig) resolveResourcesAndConfigFilePaths() error {
 // Precedence order for envs -> apps[i].envs > common.envs.
 func (a *RunFileConfig) mergeCommonAndAppsEnv() {
 	for i := range a.Apps {
+		if a.Apps[i].Env == nil && len(a.Common.Env) > 0 {
+			a.Apps[i].Env = make(map[string]string, len(a.Common.Env))
+		}
 		for k, v := range a.Common.Env {
 			if _, ok := a.Apps[i].Env[k]; !ok {
 				a.Apps[i].Env[k] = v
