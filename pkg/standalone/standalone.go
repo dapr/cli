@@ -943,6 +943,7 @@ func runSentryService(wg *sync.WaitGroup, errorChan chan<- error, info initInfo)
 		}
 		return
 	}
+	print.InfoStatusEvent(os.Stdout, "Sentry running, mTLS enabled, trust domain cluster.local")
 	errorChan <- nil
 }
 
@@ -1048,6 +1049,7 @@ func installSentry(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 	if err != nil {
 		errorChan <- err
 	}
+	print.InfoStatusEvent(os.Stdout, "Sentry installed, mTLS enabled, trust domain cluster.local")
 }
 
 // installBinary installs the daprd, placement, or scheduler binaries and associated files inside the default dapr bin directory.
