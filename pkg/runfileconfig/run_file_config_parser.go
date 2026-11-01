@@ -34,8 +34,11 @@ func (a *RunFileConfig) addMTLSEnvToCommon() error {
 	if err != nil {
 		return fmt.Errorf("error getting dapr install path: %w", err)
 	}
-	if !standalone.EnsureCerts(standalone.GetDaprSentryCertsPath(daprDir)) {
-		return fmt.Errorf("error getting sentry certs")
+
+	if standalone.IsMTLSEnabled(a.Common.ConfigFile) {
+		if !standalone.EnsureCerts(standalone.GetDaprSentryCertsPath(daprDir)) {
+			return fmt.Errorf("error getting sentry certs")
+		}
 	}
 	env, err := standalone.MTLSEnv(daprDir)
 	if err != nil {

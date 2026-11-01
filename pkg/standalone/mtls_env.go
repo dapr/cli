@@ -63,7 +63,7 @@ func MTLSEnv(daprDir string) (map[string]string, error) {
 func EnsureCerts(certsDir string) bool {
 	for _, c := range mtlsCertFiles {
 		_, err := os.ReadFile(filepath.Join(certsDir, c.file))
-		if errors.Is(err, fs.ErrNotExist) {
+		if err != nil {
 			return false
 		}
 	}

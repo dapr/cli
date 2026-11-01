@@ -1,3 +1,4 @@
+
 /*
 Copyright 2026 The Dapr Authors
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,6 +15,7 @@ limitations under the License.
 package runfileconfig
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -24,43 +26,111 @@ import (
 	"github.com/dapr/cli/pkg/standalone"
 )
 
-// These tests describe how the run file handles mTLS today. Where the current
-// behavior looks questionable, the test says so in a comment.
-
-// useDaprRuntimeDir points the Dapr runtime path at a temporary directory and
-// returns the resulting .dapr directory.
-func useDaprRuntimeDir(t *testing.T) string {
+func setupMTLSTest(t *testing.T) string {
 	t.Helper()
+
 	root := t.TempDir()
 	t.Setenv("DAPR_RUNTIME_PATH", root)
+
 	return filepath.Join(root, standalone.DefaultDaprDirName)
 }
 
-func writeSentryCerts(t *testing.T, daprDir string) {
+func createMTLSTestCerts(t *testing.T, daprDir string) {
 	t.Helper()
+
 	certsDir := standalone.GetDaprSentryCertsPath(daprDir)
 	require.NoError(t, os.MkdirAll(certsDir, 0o755))
-	for name, content := range map[string]string{
-		"ca.crt":     "CA\n",
-		"issuer.crt": "CHAIN\n",
-		"issuer.key": "KEY\n",
+
+	for _, cert := range []struct {
+		name    string
+		content string
+	}{
+		{"ca.crt", "CA"},
+		{"issuer.crt", "CHAIN"},
+		{"issuer.key", "KEY"},
 	} {
-		require.NoError(t, os.WriteFile(filepath.Join(certsDir, name), []byte(content), 0o600))
+		require.NoError(t, os.WriteFile(
+			filepath.Join(certsDir, cert.name),
+			[]byte(cert.content),
+			0o600,
+		))
 	}
 }
 
+func createRunFile(t *testing.T, appDir string) string {
+	t.Helper()
+
+	runFile := filepath.Join(t.TempDir(), "dapr.yaml")
+	content := fmt.Sprintf(`version: 1
+apps:
+  - appDirPath: %q
+`, appDir)
+
+	require.NoError(t, os.WriteFile(runFile, []byte(content), 0o600))
+
+	return runFile
+}
+
 func commonWithEnv(env map[string]string) Common {
-	return Common{SharedRunConfig: standalone.SharedRunConfig{Env: env}}
+	return Common{
+		SharedRunConfig: standalone.SharedRunConfig{
+			Env: env,
+		},
+	}
 }
 
 func appWithEnv(env map[string]string) App {
-	return App{RunConfig: standalone.RunConfig{SharedRunConfig: standalone.SharedRunConfig{Env: env}}}
+	return App{
+		RunConfig: standalone.RunConfig{
+			SharedRunConfig: standalone.SharedRunConfig{
+				Env: env,
+			},
+		},
+	}
 }
 
 func TestAddMTLSEnvToCommon(t *testing.T) {
-	t.Run("certs present adds the three variables to the common env", func(t *testing.T) {
-		writeSentryCerts(t, useDaprRuntimeDir(t))
-		cfg := &RunFileConfig{}
+	t.Run("mTLS disabled does not require certificates", func(t *testing.T) {
+		daprDir := setupMTLSTest(t)
+		require.NoError(t, os.MkdirAll(daprDir, 0o755))
+
+		configFile := standalone.GetDaprConfigPath(daprDir)
+		require.NoError(t, os.WriteFile(
+			configFile,
+			[]byte("spec:\n  mtls:\n    enabled: false\n"),
+			0o600,
+		))
+
+		cfg := &RunFileConfig{
+			Common: Common{
+				SharedRunConfig: standalone.SharedRunConfig{
+					ConfigFile: configFile,
+				},
+			},
+		}
+
+		require.NoError(t, cfg.addMTLSEnvToCommon())
+		assert.Empty(t, cfg.Common.Env)
+	})
+
+	t.Run("mTLS enabled loads certificate variables", func(t *testing.T) {
+		daprDir := setupMTLSTest(t)
+		createMTLSTestCerts(t, daprDir)
+
+		configFile := standalone.GetDaprConfigPath(daprDir)
+		require.NoError(t, os.WriteFile(
+			configFile,
+			[]byte("spec:\n  mtls:\n    enabled: true\n"),
+			0o600,
+		))
+
+		cfg := &RunFileConfig{
+			Common: Common{
+				SharedRunConfig: standalone.SharedRunConfig{
+					ConfigFile: configFile,
+				},
+			},
+		}
 
 		require.NoError(t, cfg.addMTLSEnvToCommon())
 
@@ -71,126 +141,160 @@ func TestAddMTLSEnvToCommon(t *testing.T) {
 		}, cfg.Common.Env)
 	})
 
-	t.Run("values already in the common env win", func(t *testing.T) {
-		writeSentryCerts(t, useDaprRuntimeDir(t))
-		cfg := &RunFileConfig{Common: commonWithEnv(map[string]string{
-			standalone.EnvDaprCertKey: "mine",
-			"OTHER":                   "kept",
-		})}
+	t.Run("user-defined values take precedence", func(t *testing.T) {
+		daprDir := setupMTLSTest(t)
+		createMTLSTestCerts(t, daprDir)
+
+		configFile := standalone.GetDaprConfigPath(daprDir)
+		require.NoError(t, os.WriteFile(
+			configFile,
+			[]byte("spec:\n  mtls:\n    enabled: true\n"),
+			0o600,
+		))
+
+		cfg := &RunFileConfig{
+			Common: Common{
+				SharedRunConfig: standalone.SharedRunConfig{
+					ConfigFile: configFile,
+					Env: map[string]string{
+						standalone.EnvDaprCertKey: "custom-key",
+						"OTHER":                   "preserved",
+					},
+				},
+			},
+		}
 
 		require.NoError(t, cfg.addMTLSEnvToCommon())
 
-		assert.Equal(t, "mine", cfg.Common.Env[standalone.EnvDaprCertKey])
-		assert.Equal(t, "kept", cfg.Common.Env["OTHER"])
+		assert.Equal(t, "custom-key", cfg.Common.Env[standalone.EnvDaprCertKey])
 		assert.Equal(t, "CA", cfg.Common.Env[standalone.EnvDaprTrustAnchors])
 		assert.Equal(t, "CHAIN", cfg.Common.Env[standalone.EnvDaprCertChain])
+		assert.Equal(t, "preserved", cfg.Common.Env["OTHER"])
 	})
 
-	t.Run("no certs is an error", func(t *testing.T) {
-		// Nothing here checks whether mTLS is enabled, so a machine that never
-		// ran `dapr init --enable-mtls` gets this error for every run file.
-		useDaprRuntimeDir(t)
-		cfg := &RunFileConfig{}
+	t.Run("missing certificates return an error when mTLS is enabled", func(t *testing.T) {
+		daprDir := setupMTLSTest(t)
+		require.NoError(t, os.MkdirAll(daprDir, 0o755))
+
+		configFile := standalone.GetDaprConfigPath(daprDir)
+		require.NoError(t, os.WriteFile(
+			configFile,
+			[]byte("spec:\n  mtls:\n    enabled: true\n"),
+			0o600,
+		))
+
+		cfg := &RunFileConfig{
+			Common: Common{
+				SharedRunConfig: standalone.SharedRunConfig{
+					ConfigFile: configFile,
+				},
+			},
+		}
 
 		err := cfg.addMTLSEnvToCommon()
-
-		assert.EqualError(t, err, "error getting sentry certs")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "sentry certs")
 		assert.Empty(t, cfg.Common.Env)
-	})
-
-	t.Run("an mtls-disabled configuration does not skip the cert check", func(t *testing.T) {
-		daprDir := useDaprRuntimeDir(t)
-		require.NoError(t, os.MkdirAll(daprDir, 0o755))
-		require.NoError(t, os.WriteFile(
-			filepath.Join(daprDir, standalone.DefaultConfigFileName),
-			[]byte("spec:\n  mtls:\n    enabled: false\n"), 0o600))
-		cfg := &RunFileConfig{Common: Common{SharedRunConfig: standalone.SharedRunConfig{
-			ConfigFile: filepath.Join(daprDir, standalone.DefaultConfigFileName),
-		}}}
-
-		assert.Error(t, cfg.addMTLSEnvToCommon())
 	})
 }
 
 func TestMergeCommonAndAppsEnv(t *testing.T) {
-	t.Run("an app without env gets a copy of the common env", func(t *testing.T) {
-		cfg := &RunFileConfig{
-			Common: commonWithEnv(map[string]string{"A": "1", "B": "2"}),
-			Apps:   []App{appWithEnv(nil)},
-		}
+	tests := []struct {
+		name       string
+		commonEnv  map[string]string
+		appEnv     map[string]string
+		want       map[string]string
+		wantNilEnv bool
+	}{
+		{
+			name:      "common environment is copied",
+			commonEnv: map[string]string{"A": "1", "B": "2"},
+			want:      map[string]string{"A": "1", "B": "2"},
+		},
+		{
+			name:      "app environment takes precedence",
+			commonEnv: map[string]string{"A": "common", "B": "common"},
+			appEnv:    map[string]string{"A": "app"},
+			want:      map[string]string{"A": "app", "B": "common"},
+		},
+		{
+			name:       "empty common environment leaves nil app environment",
+			wantNilEnv: true,
+		},
+		{
+			name:      "empty app environment is preserved when common is nil",
+			appEnv:    map[string]string{"A": "app"},
+			want:      map[string]string{"A": "app"},
+		},
+	}
 
-		cfg.mergeCommonAndAppsEnv()
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := &RunFileConfig{
+				Common: commonWithEnv(tc.commonEnv),
+				Apps:   []App{appWithEnv(tc.appEnv)},
+			}
 
-		assert.Equal(t, map[string]string{"A": "1", "B": "2"}, cfg.Apps[0].Env)
-		// It is a copy: changing the app's env leaves the common env alone.
-		cfg.Apps[0].Env["A"] = "changed"
-		assert.Equal(t, "1", cfg.Common.Env["A"])
-	})
+			cfg.mergeCommonAndAppsEnv()
 
-	t.Run("app values win over common values", func(t *testing.T) {
-		cfg := &RunFileConfig{
-			Common: commonWithEnv(map[string]string{"A": "common", "B": "common"}),
-			Apps:   []App{appWithEnv(map[string]string{"A": "app"})},
-		}
+			if tc.wantNilEnv {
+				assert.Nil(t, cfg.Apps[0].Env)
+				return
+			}
 
-		cfg.mergeCommonAndAppsEnv()
+			assert.Equal(t, tc.want, cfg.Apps[0].Env)
 
-		assert.Equal(t, map[string]string{"A": "app", "B": "common"}, cfg.Apps[0].Env)
-	})
-
-	t.Run("every app is merged independently", func(t *testing.T) {
-		cfg := &RunFileConfig{
-			Common: commonWithEnv(map[string]string{"A": "common"}),
-			Apps:   []App{appWithEnv(nil), appWithEnv(map[string]string{"A": "second"})},
-		}
-
-		cfg.mergeCommonAndAppsEnv()
-
-		assert.Equal(t, "common", cfg.Apps[0].Env["A"])
-		assert.Equal(t, "second", cfg.Apps[1].Env["A"])
-	})
-
-	t.Run("no common env leaves apps untouched", func(t *testing.T) {
-		cfg := &RunFileConfig{Apps: []App{appWithEnv(nil), appWithEnv(map[string]string{"A": "1"})}}
-
-		cfg.mergeCommonAndAppsEnv()
-
-		assert.Nil(t, cfg.Apps[0].Env)
-		assert.Equal(t, map[string]string{"A": "1"}, cfg.Apps[1].Env)
-	})
+			if len(tc.commonEnv) > 0 {
+				cfg.Apps[0].Env["A"] = "modified"
+				assert.Equal(t, tc.commonEnv["A"], cfg.Common.Env["A"])
+			}
+		})
+	}
 }
 
-func TestGetAppsMTLSEnvReachesEveryApp(t *testing.T) {
-	daprDir := useDaprRuntimeDir(t)
-	writeSentryCerts(t, daprDir)
+func TestGetAppsMTLSEnv(t *testing.T) {
+	daprDir := setupMTLSTest(t)
+	createMTLSTestCerts(t, daprDir)
+
+	configFile := standalone.GetDaprConfigPath(daprDir)
+	require.NoError(t, os.WriteFile(
+		configFile,
+		[]byte("spec:\n  mtls:\n    enabled: true\n"),
+		0o600,
+	))
 
 	appDir := t.TempDir()
-	runFile := filepath.Join(t.TempDir(), "dapr.yaml")
-	require.NoError(t, os.WriteFile(runFile, []byte("version: 1\napps:\n  - appDirPath: "+appDir+"\n"), 0o600))
+	runFile := createRunFile(t, appDir)
 
-	cfg := &RunFileConfig{}
+	cfg := &RunFileConfig{
+		Common: Common{
+			SharedRunConfig: standalone.SharedRunConfig{
+				ConfigFile: configFile,
+			},
+		},
+	}
+
 	apps, err := cfg.GetApps(runFile)
 
 	require.NoError(t, err)
 	require.Len(t, apps, 1)
-	// The variables land in the app's shared Env, which is passed to the
-	// application process as well as to daprd.
-	assert.Equal(t, "KEY", apps[0].Env[standalone.EnvDaprCertKey])
+
 	assert.Equal(t, "CA", apps[0].Env[standalone.EnvDaprTrustAnchors])
 	assert.Equal(t, "CHAIN", apps[0].Env[standalone.EnvDaprCertChain])
+	assert.Equal(t, "KEY", apps[0].Env[standalone.EnvDaprCertKey])
 }
 
-func TestGetAppsFailsWithoutSentryCerts(t *testing.T) {
-	useDaprRuntimeDir(t)
+func TestGetAppsWithoutMTLS(t *testing.T) {
+	setupMTLSTest(t)
 
 	appDir := t.TempDir()
-	runFile := filepath.Join(t.TempDir(), "dapr.yaml")
-	require.NoError(t, os.WriteFile(runFile, []byte("version: 1\napps:\n  - appDirPath: "+appDir+"\n"), 0o600))
+	runFile := createRunFile(t, appDir)
 
 	cfg := &RunFileConfig{}
+
 	apps, err := cfg.GetApps(runFile)
 
-	// Even a run file that never mentions mTLS can't be loaded without certs.
-	assert.Nil(t, apps)
-	assert.EqualError(t, err, "error getting sentry certs")
+	require.NoError(t, err)
+	require.Len(t, apps, 1)
+	assert.NotContains(t, apps[0].Env, standalone.EnvDaprCertKey)
 }

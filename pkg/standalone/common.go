@@ -112,6 +112,14 @@ func parseMTLSConfig(configBytes []byte) (mtlsConfig, error) {
 }
 
 func IsMTLSEnabled(configFile string) bool {
+	if configFile == "" {
+		daprDir, err := GetDaprRuntimePath("")
+		if err != nil {
+			return false
+		}
+		configFile = GetDaprConfigPath(daprDir)
+	}
+	
 	mtlsConfig, err := GetMTLSConfig(configFile)
 	if err != nil {
 		return false
