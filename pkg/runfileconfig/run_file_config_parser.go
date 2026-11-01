@@ -16,7 +16,6 @@ package runfileconfig
 import (
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -35,7 +34,10 @@ func (a *RunFileConfig) addMTLSEnvToCommon() error {
 	if err != nil {
 		return fmt.Errorf("error getting dapr install path: %w", err)
 	}
-	env, err := standalone.MTLSEnv(daprDir, os.LookupEnv)
+	if !standalone.EnsureCerts(standalone.GetDaprSentryCertsPath(daprDir)) {
+		return fmt.Errorf("error getting sentry certs")
+	}
+	env, err := standalone.MTLSEnv(daprDir)
 	if err != nil {
 		return err
 	}
