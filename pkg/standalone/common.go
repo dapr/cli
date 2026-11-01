@@ -98,8 +98,12 @@ func GetMTLSConfig(configFile string) (mtlsConfig, error) {
 		return mtlsConfig{}, err
 	}
 
+	return parseMTLSConfig(b)
+}
+
+func parseMTLSConfig(configBytes []byte) (mtlsConfig, error) {
 	var config mtlsConfig
-	err = yaml.Unmarshal(b, &config)
+	err := yaml.Unmarshal(configBytes, &config)
 	if err != nil {
 		return mtlsConfig{}, err
 	}

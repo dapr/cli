@@ -209,7 +209,7 @@ dapr init --enable-mtls
 				SchedulerOverrideBroadcastHostPort: schedulerHostPort,
 				SchedulerPlacement:                 schedulerPlacement,
 				RedisStack:                         redisStack,
-				EnableMTLS:                         enableMTLS,
+				EnableMTLS:                         enableMTLS && cmd.Flags().Changed("enable-mtls"),
 			})
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, "%s", err.Error())
@@ -252,7 +252,7 @@ func init() {
 	InitCmd.Flags().BoolVarP(&slimMode, "slim", "s", false, "Exclude placement service, scheduler service, Redis and Zipkin containers from self-hosted installation")
 	InitCmd.Flags().StringVarP(&runtimeVersion, "runtime-version", "", defaultRuntimeVersion, "The version of the Dapr runtime to install, for example: 1.0.0")
 	InitCmd.Flags().StringVarP(&initNamespace, "namespace", "n", "dapr-system", "The Kubernetes namespace to install Dapr in")
-	InitCmd.Flags().BoolVarP(&enableMTLS, "enable-mtls", "", true, "Enable mTLS in your cluster")
+	InitCmd.Flags().BoolVarP(&enableMTLS, "enable-mtls", "", true, "Enable mTLS. Kubernetes: on by default. Self-hosted: opt-in, installs and runs the Sentry service")
 	InitCmd.Flags().BoolVarP(&enableHA, "enable-ha", "", false, "Enable high availability (HA) mode")
 	InitCmd.Flags().String("network", "", "The Docker network on which to deploy the Dapr runtime")
 	InitCmd.Flags().StringVarP(&fromDir, "from-dir", "", "", "Use Dapr artifacts from local directory for self-hosted installation")
