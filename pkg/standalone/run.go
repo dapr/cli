@@ -30,6 +30,7 @@ import (
 	"github.com/phayes/freeport"
 	"gopkg.in/yaml.v2"
 
+	"github.com/dapr/cli/pkg/envfile"
 	"github.com/dapr/cli/pkg/print"
 	localloader "github.com/dapr/dapr/pkg/components/loader"
 )
@@ -93,6 +94,7 @@ type SharedRunConfig struct {
 	// Specifically omitted from annotations see https://github.com/dapr/cli/issues/1324 .
 	DaprdInstallPath    string            `yaml:"runtimePath"`
 	Env                 map[string]string `yaml:"env"`
+	EnvFile             string            `yaml:"envFile"`
 	DaprdLogDestination LogDestType       `yaml:"daprdLogDestination"`
 	AppLogDestination   LogDestType       `yaml:"appLogDestination"`
 	// Pointer string to distinguish omitted (nil) vs explicitly empty (disable) vs value provided
@@ -278,6 +280,11 @@ func (config *RunConfig) Validate() error {
 	if err != nil {
 		return err
 	}
+
+	if config.EnvFile != "" && len(config.Env) > 0 {
+		return fmt.Errorf("both env and envFile cannot be specified at the same time")
+	}
+
 	return nil
 }
 
@@ -321,6 +328,10 @@ func (config *RunConfig) ValidateK8s() error {
 		config.HTTPReadBufferSize = "-1"
 	} else {
 		config.HTTPReadBufferSize = qBuffer.String()
+	}
+
+	if config.EnvFile != "" && len(config.Env) > 0 {
+		return fmt.Errorf("both env and envFile cannot be specified at the same time")
 	}
 
 	return nil
@@ -499,6 +510,13 @@ func (config *RunConfig) getEnv() []string {
 		env = append(env, fmt.Sprintf("%s=%v", k, v))
 	}
 
+	if file := config.EnvFile; file != "" {
+		envs, _ := envfile.GetEnvs(file)
+		for k, v := range envs {
+			env = append(env, fmt.Sprintf("%s=%v", k, v))
+		}
+	}
+
 	return env
 }
 
@@ -550,6 +568,14 @@ func (config *RunConfig) GetEnv() map[string]string {
 	for k, v := range config.Env {
 		env[k] = v
 	}
+
+	if file := config.EnvFile; file != "" {
+		envs, _ := envfile.GetEnvs(file)
+		for k, v := range envs {
+			env[k] = v
+		}
+	}
+
 	return env
 }
 
@@ -586,6 +612,13 @@ func GetDaprCommand(config *RunConfig) (*exec.Cmd, error) {
 		cmd.Env = os.Environ()
 		for k, v := range config.Env {
 			cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%v", k, v))
+		}
+
+		if file := config.EnvFile; file != "" {
+			envs, _ := envfile.GetEnvs(file)
+			for k, v := range envs {
+				cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%v", k, v))
+			}
 		}
 	}
 
