@@ -850,6 +850,11 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 	errorChan <- nil
 }
 
+const (
+	sentryContainerCertsDir   = "/.dapr/certs/"
+	sentryContainerConfigFile = "/.dapr/config.yaml"
+)
+
 func runSentryService(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 	defer wg.Done()
 
@@ -857,77 +862,78 @@ func runSentryService(wg *sync.WaitGroup, errorChan chan<- error, info initInfo)
 		return
 	}
 
+	errorChan <- startSentryContainer(info)
+}
+
+func startSentryContainer(info initInfo) error {
 	runtimeCmd := utils.GetContainerRuntimeCmd(info.containerRuntime)
-	sentryContainerName := utils.CreateContainerName(DaprSentryContainerName, info.dockerNetwork)
+	containerName := utils.CreateContainerName(DaprSentryContainerName, info.dockerNetwork)
 
-	exists, err := confirmContainerIsRunningOrExists(sentryContainerName, false, runtimeCmd)
-
+	exists, err := confirmContainerIsRunningOrExists(containerName, false, runtimeCmd)
 	if err != nil {
-		errorChan <- err
-		return
-	} else if exists {
-		errorChan <- fmt.Errorf("%s container exists or is running. %s", sentryContainerName, errInstallTemplate)
-		return
+		return err
 	}
-	var image string
+	if exists {
+		return fmt.Errorf("%s container exists or is running. %s", containerName, errInstallTemplate)
+	}
 
-	imgInfo := daprImageInfo{
+	image, err := sentryImage(info)
+	if err != nil {
+		return err
+	}
+
+	certsDir, err := path_filepath.Abs(GetDaprSentryCertsPath(info.installDir))
+	if err != nil {
+		return err
+	}
+	configFile, err := path_filepath.Abs(GetDaprConfigPath(info.installDir))
+	if err != nil {
+		return err
+	}
+	if err = os.MkdirAll(certsDir, 0o755); err != nil {
+		return err
+	}
+
+	args := sentryContainerArgs(info, runtimeCmd, containerName, image, certsDir, configFile)
+	if _, err = utils.RunCmdAndWait(runtimeCmd, args...); err != nil {
+		if isContainerRunError(err) {
+			return fmt.Errorf("%s %s failed with: %w", runtimeCmd, args, err)
+		}
+		return parseContainerRuntimeError("sentry service", err)
+	}
+
+	print.InfoStatusEvent(os.Stdout, "Sentry running, mTLS enabled, trust domain %s", sentryTrustDomain)
+	return nil
+}
+
+// sentryImage resolves the Dapr image that ships the sentry binary, loading it
+// from the installer bundle for air-gapped installs.
+func sentryImage(info initInfo) (string, error) {
+	if isAirGapInit {
+		dir := path_filepath.Join(info.fromDir, *info.bundleDet.ImageSubDir)
+		if err := loadContainer(dir, info.bundleDet.getDaprImageFileName(), info.containerRuntime); err != nil {
+			return "", err
+		}
+		return info.bundleDet.getDaprImageName(), nil
+	}
+
+	return getDaprImageName(daprImageInfo{
 		ghcrImageName:      daprGhcrImageName,
 		dockerHubImageName: daprDockerImageName,
 		imageRegistryURL:   info.imageRegistryURL,
 		imageRegistryName:  defaultImageRegistryName,
-	}
+	}, info)
+}
 
-	if isAirGapInit {
-		// if --from-dir flag is given load the image details from the installer-bundle.
-		dir := path_filepath.Join(info.fromDir, *info.bundleDet.ImageSubDir)
-		image = info.bundleDet.getDaprImageName()
-		err = loadContainer(dir, info.bundleDet.getDaprImageFileName(), info.containerRuntime)
-		if err != nil {
-			errorChan <- err
-			return
-		}
-	} else {
-		// otherwise load the image from the specified repository.
-		image, err = getDaprImageName(imgInfo, info)
-		if err != nil {
-			errorChan <- err
-			return
-		}
-	}
-
-	var (
-		daprConfigFile        = GetDaprConfigPath(info.installDir)
-		sentryCertsDir        = GetDaprSentryCertsPath(info.installDir)
-		defaultDaprConfigFile = "/.dapr/config.yaml"
-		defaultDaprCertsDir   = "/.dapr/certs/"
-	)
-
-	absHostDaprCertsDir, err := path_filepath.Abs(sentryCertsDir)
-	if err != nil {
-		errorChan <- err
-		return
-	}
-
-	absHostDaprConfigFile, err := path_filepath.Abs(daprConfigFile)
-	if err != nil {
-		errorChan <- err
-		return
-	}
-
-	if err := os.MkdirAll(sentryCertsDir, 0o755); err != nil {
-		errorChan <- err
-		return
-	}
-
+func sentryContainerArgs(info initInfo, runtimeCmd, containerName, image, certsDir, configFile string) []string {
 	args := []string{
 		"run",
-		"--name", sentryContainerName,
+		"--name", containerName,
 		"--restart", "always",
 		"-d",
 		"--entrypoint", "./sentry",
-		"-v", absHostDaprCertsDir + ":" + defaultDaprCertsDir,
-		"-v", absHostDaprConfigFile + ":" + defaultDaprConfigFile + ":ro",
+		"-v", certsDir + ":" + sentryContainerCertsDir,
+		"-v", configFile + ":" + sentryContainerConfigFile + ":ro",
 	}
 
 	if info.dockerNetwork != "" {
@@ -935,38 +941,19 @@ func runSentryService(wg *sync.WaitGroup, errorChan chan<- error, info initInfo)
 			"--network", info.dockerNetwork,
 			"--network-alias", DaprSentryContainerName)
 	} else {
-		osPort := 50001
-		if runtime.GOOS == daprWindowsOS {
-			osPort = 6010 // TODO: change the windows port
-		}
-
-		// mtls.mountSentryVolume: /var/run/secrets/dapr.io/sentrytoken
 		args = append(args, publishPortNetworkArgs(runtimeCmd)...)
 		args = append(args,
-			"-p", fmt.Sprintf("%v:50001", osPort),
-			"-p", fmt.Sprintf("%v:8080", sentryHealthPort),
-			"-p", fmt.Sprintf("%v:9090", sentryMetricPort),
+			"-p", fmt.Sprintf("%d:50001", sentryHostPort()),
+			"-p", fmt.Sprintf("%d:8080", sentryHealthPort),
+			"-p", fmt.Sprintf("%d:9090", sentryMetricPort),
 		)
 	}
 
-	args = append(args, image,
-		"--trust-domain=cluster.local",
-		fmt.Sprintf("--issuer-credentials=%s", defaultDaprCertsDir),
-		"--config", defaultDaprConfigFile,
+	return append(args, image,
+		"--trust-domain="+sentryTrustDomain,
+		"--issuer-credentials="+sentryContainerCertsDir,
+		"--config", sentryContainerConfigFile,
 	)
-
-	_, err = utils.RunCmdAndWait(runtimeCmd, args...)
-	if err != nil {
-		runError := isContainerRunError(err)
-		if !runError {
-			errorChan <- parseContainerRuntimeError("sentry service", err)
-		} else {
-			errorChan <- fmt.Errorf("%s %s failed with: %w", runtimeCmd, args, err)
-		}
-		return
-	}
-	print.InfoStatusEvent(os.Stdout, "Sentry running, mTLS enabled, trust domain cluster.local")
-	errorChan <- nil
 }
 
 // firstInitError returns the first non-nil error received on errorChan. It
