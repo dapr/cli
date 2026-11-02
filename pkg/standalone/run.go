@@ -25,13 +25,11 @@ import (
 	"strings"
 
 	"k8s.io/apimachinery/pkg/api/resource"
-	corev1 "k8s.io/api/core/v1"
 
 	"github.com/Pallinder/sillyname-go"
 	"github.com/phayes/freeport"
 	"gopkg.in/yaml.v2"
 
-	"github.com/dapr/cli/pkg/envvar"
 	"github.com/dapr/cli/pkg/print"
 	localloader "github.com/dapr/dapr/pkg/components/loader"
 )
@@ -93,10 +91,10 @@ type SharedRunConfig struct {
 	AppHealthThreshold int    `arg:"app-health-threshold" annotation:"dapr.io/app-health-threshold" ifneq:"0" yaml:"appHealthThreshold"`
 	EnableAPILogging   bool   `arg:"enable-api-logging" annotation:"dapr.io/enable-api-logging" yaml:"enableApiLogging"`
 	// Specifically omitted from annotations see https://github.com/dapr/cli/issues/1324 .
-	DaprdInstallPath    string      `yaml:"runtimePath"`
-	Env                 envvar.Env  `yaml:"env"`
-	DaprdLogDestination LogDestType `yaml:"daprdLogDestination"`
-	AppLogDestination   LogDestType `yaml:"appLogDestination"`
+	DaprdInstallPath    string            `yaml:"runtimePath"`
+	Env                 map[string]string `yaml:"env"`
+	DaprdLogDestination LogDestType       `yaml:"daprdLogDestination"`
+	AppLogDestination   LogDestType       `yaml:"appLogDestination"`
 	// Pointer string to distinguish omitted (nil) vs explicitly empty (disable) vs value provided
 	SchedulerHostAddress *string `arg:"scheduler-host-address" yaml:"schedulerHostAddress"`
 }
@@ -531,8 +529,8 @@ func (config *RunConfig) getAppProtocol() string {
 	}
 }
 
-func (config *RunConfig) fieldEnvVars() []corev1.EnvVar {
-	var out []corev1.EnvVar
+func (config *RunConfig) GetEnv() map[string]string {
+	env := map[string]string{}
 	schema := reflect.ValueOf(*config)
 	for i := range schema.NumField() {
 		valueField := schema.Field(i).Interface()
@@ -545,46 +543,14 @@ func (config *RunConfig) fieldEnvVars() []corev1.EnvVar {
 			// ignore unset numeric variables.
 			continue
 		}
-		out = append(out, corev1.EnvVar{
-			Name:  key,
-			Value: fmt.Sprintf("%v", reflect.ValueOf(valueField)),
-		})
-	}
-	return out
-}
 
-func (config *RunConfig) GetEnv() map[string]string {
-	env := map[string]string{}
-	for _, ev := range config.fieldEnvVars() {
-		env[ev.Name] = ev.Value
+		value := fmt.Sprintf("%v", reflect.ValueOf(valueField))
+		env[key] = value
 	}
-	for _, ev := range config.Env {
-		if ev.ValueFrom != nil {
-			continue
-		}
-		env[ev.Name] = ev.Value
+	for k, v := range config.Env {
+		env[k] = v
 	}
 	return env
-}
-
-func (config *RunConfig) GetK8sEnvVar() []corev1.EnvVar {
-	var out []corev1.EnvVar
-	index := map[string]int{}
-	set := func(ev corev1.EnvVar) {
-		if i, ok := index[ev.Name]; ok {
-			out[i] = ev
-			return
-		}
-		index[ev.Name] = len(out)
-		out = append(out, ev)
-	}
-	for _, ev := range config.fieldEnvVars() {
-		set(ev)
-	}
-	for _, ev := range config.Env {
-		set(ev)
-	}
-	return out
 }
 
 func (config *RunConfig) GetAnnotations() map[string]string {
