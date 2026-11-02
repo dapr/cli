@@ -283,6 +283,7 @@ func (a *RunFileConfig) resolveResourcesAndConfigFilePaths() error {
 // Precedence order for envs -> apps[i].envs > common.envs.
 func (a *RunFileConfig) mergeCommonAndAppsEnv() {
 	for i := range a.Apps {
+		a.Apps[i].Env = make(map[string]string)
 		for k, v := range a.Common.Env {
 			if _, ok := a.Apps[i].Env[k]; !ok {
 				a.Apps[i].Env[k] = v

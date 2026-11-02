@@ -281,10 +281,6 @@ func (config *RunConfig) Validate() error {
 		return err
 	}
 
-	if config.EnvFile != "" && len(config.Env) > 0 {
-		return fmt.Errorf("both env and envFile cannot be specified at the same time")
-	}
-
 	return nil
 }
 
@@ -328,10 +324,6 @@ func (config *RunConfig) ValidateK8s() error {
 		config.HTTPReadBufferSize = "-1"
 	} else {
 		config.HTTPReadBufferSize = qBuffer.String()
-	}
-
-	if config.EnvFile != "" && len(config.Env) > 0 {
-		return fmt.Errorf("both env and envFile cannot be specified at the same time")
 	}
 
 	return nil
