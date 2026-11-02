@@ -333,6 +333,14 @@ func getEnv(app runfileconfig.App) []corev1.EnvVar {
 		envVars[i] = corev1.EnvVar{
 			Name:  k,
 			Value: v,
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					Key: "",
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: "",
+					},
+				},
+			},
 		}
 		i++
 	}
