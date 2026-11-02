@@ -605,12 +605,12 @@ func GetDaprCommand(config *RunConfig) (*exec.Cmd, error) {
 		for k, v := range config.Env {
 			cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%v", k, v))
 		}
+	}
 
-		if file := config.EnvFile; file != "" {
-			envs, _ := envfile.GetEnvs(file)
-			for k, v := range envs {
-				cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%v", k, v))
-			}
+	if file := config.EnvFile; file != "" {
+		envs, _ := envfile.GetEnvs(file)
+		for k, v := range envs {
+			cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%v", k, v))
 		}
 	}
 

@@ -290,7 +290,7 @@ func (a *RunFileConfig) mergeCommonAndAppsEnv() {
 			}
 		}
 
-		if file := a.Common.EnvFile; file != "" {
+		if file := a.Apps[i].EnvFile; file != "" {
 			envs, _ := envfile.GetEnvs(file)
 			for k, v := range envs {
 				if _, ok := a.Apps[i].Env[k]; !ok {
@@ -299,7 +299,7 @@ func (a *RunFileConfig) mergeCommonAndAppsEnv() {
 			}
 		}
 
-		if file := a.Apps[i].EnvFile; file != "" {
+		if file := a.Common.EnvFile; file != "" {
 			envs, _ := envfile.GetEnvs(file)
 			for k, v := range envs {
 				if _, ok := a.Apps[i].Env[k]; !ok {
