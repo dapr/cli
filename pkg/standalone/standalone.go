@@ -433,7 +433,13 @@ func Init(opts InitOptions) error {
 		print.InfoStatusEvent(os.Stdout, "%s binary has been installed to %s.", schedulerServiceFilePrefix, daprBinDir)
 	} else {
 		runtimeCmd := utils.GetContainerRuntimeCmd(info.containerRuntime)
-		dockerContainerNames := []string{DaprPlacementContainerName, DaprRedisContainerName, DaprZipkinContainerName}
+		dockerContainerNames := []string{DaprPlacementContainerName}
+		if !info.noRedis {
+			dockerContainerNames = append(dockerContainerNames, DaprRedisContainerName)
+		}
+		if !info.noZipkin {
+			dockerContainerNames = append(dockerContainerNames, DaprZipkinContainerName)
+		}
 		// Skip redis and zipkin in local installation mode.
 		if isAirGapInit {
 			dockerContainerNames = []string{DaprPlacementContainerName}
