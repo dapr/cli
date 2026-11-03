@@ -25,15 +25,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const testMTLSEnabledConfig = `apiVersion: dapr.io/v1alpha1
-kind: Configuration
-metadata:
-  name: daprsystem
-spec:
-  mtls:
-    enabled: true
-`
-
 func strPtr(s string) *string { return &s }
 
 // setupMTLSTest creates an isolated Dapr installation directory.
