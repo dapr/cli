@@ -1,0 +1,8 @@
+version: 1
+common:
+  envFile: "envFile-common.env"
+apps:
+  - appDirPath: ./webapp/
+  - appID: backend
+    appDirPath: ./backend/
+    envFile: "envFile-backend.env"

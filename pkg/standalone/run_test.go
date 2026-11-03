@@ -14,6 +14,8 @@ limitations under the License.
 package standalone
 
 import (
+	"fmt"
+	"os"
 	"runtime"
 	"sort"
 	"strings"
@@ -164,6 +166,63 @@ func TestGetDaprCommandEnv(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Contains(t, cmd.Env, "MYAPP_API_PORT=3000")
+	})
+
+	t.Run("user-defined envFile passed to daprd", func(t *testing.T) {
+		file, err := os.CreateTemp("", "envFile-*.env")
+		assert.NoError(t, err)
+		defer os.Remove(file.Name())
+		defer file.Close()
+
+		defaultEnv := "MyEnvFileKey=MyEnvFileValue"
+		_, err = file.WriteString(defaultEnv)
+		assert.NoError(t, err)
+
+		config := &RunConfig{
+			AppID: "envFileTest",
+			SharedRunConfig: SharedRunConfig{
+				EnvFile: file.Name(),
+			},
+		}
+
+		cmd, err := GetDaprCommand(config)
+		getEnvs := config.getEnv()
+		GetEnvMap := config.GetEnv()
+
+		assert.NoError(t, err)
+		assert.Contains(t, cmd.Env, defaultEnv)
+		assert.Contains(t, getEnvs, defaultEnv)
+		assert.Equal(t, "MyEnvFileValue", GetEnvMap["MyEnvFileKey"])
+	})
+
+	t.Run("unqiue user-defined envFile passed to daprd along with envs", func(t *testing.T) {
+		file, err := os.CreateTemp("", "envFile-*.env")
+		assert.NoError(t, err)
+		defer os.Remove(file.Name())
+		defer file.Close()
+
+		defaultEnvKey := "MyEnvKey"
+		defaultEnvValue := "MyEnvValue"
+		envFileContent := fmt.Sprintf("%s=%s", defaultEnvKey, defaultEnvValue)
+		_, err = file.WriteString(envFileContent)
+		assert.NoError(t, err)
+
+		config := &RunConfig{
+			AppID: "envFileTest",
+			SharedRunConfig: SharedRunConfig{
+				EnvFile: file.Name(),
+				Env: map[string]string{defaultEnvKey: "some-value"},
+			},
+		}
+
+		cmd, err := GetDaprCommand(config)
+		getEnvs := config.getEnv()
+		GetEnvMap := config.GetEnv()
+
+		assert.NoError(t, err)
+		assert.Contains(t, cmd.Env, envFileContent)
+		assert.Contains(t, getEnvs, envFileContent)
+		assert.Equal(t, defaultEnvValue, GetEnvMap[defaultEnvKey])
 	})
 }
 

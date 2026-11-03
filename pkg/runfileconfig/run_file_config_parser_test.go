@@ -33,6 +33,9 @@ var (
 	runFileForPrecedenceRuleDaprDir = filepath.Join(".", "testdata", "test_run_config_precedence_rule_dapr_dir.yaml")
 	runFileForLogDestination        = filepath.Join(".", "testdata", "test_run_config_log_destination.yaml")
 	runFileForMultiResourcePaths    = filepath.Join(".", "testdata", "test_run_config_multiple_resources_paths.yaml")
+	runFileWithEnvFileCommon        = filepath.Join(".", "testdata", "test_run_config_envfile_common.yaml")
+	runFileWithEnvFileApp           = filepath.Join(".", "testdata", "test_run_config_envfile_app.yaml")
+	runFileWithEnvFileAppPrecedence = filepath.Join(".", "testdata", "test_run_config_envfile_app_precedence.yaml")
 
 	runFileForContainerImagePullPolicy        = filepath.Join(".", "testdata", "test_run_config_container_image_pull_policy.yaml")
 	runFileForContainerImagePullPolicyInvalid = filepath.Join(".", "testdata", "test_run_config_container_image_pull_policy_invalid.yaml")
@@ -253,6 +256,139 @@ func TestRunConfigFile(t *testing.T) {
 		assert.Equal(t, "file", apps[5].DaprdLogDestination.String())
 		assert.Equal(t, "console", apps[5].AppLogDestination.String())
 	})
+
+	t.Run("common envFile applies to all apps", func(t *testing.T) {
+		apps := getAppsWithEnvFiles(t, runFileWithEnvFileCommon, map[string]string{
+			"envFile-common.env": "key1=value1\nkey2=value2",
+		})
+
+		expectedEnvs := map[string]map[string]string{
+			"webapp": {
+				"key1": "value1",
+				"key2": "value2",
+			},
+			"backend": {
+				"key1": "value1",
+				"key2": "value2",
+			},
+		}
+
+		assertAppEnvs(t, apps, expectedEnvs)
+	})
+
+	t.Run("app envFiles apply only to their respective apps", func(t *testing.T) {
+		apps := getAppsWithEnvFiles(t, runFileWithEnvFileApp, map[string]string{
+			"envFile-webapp.env":  "webkey1=value1\nwebkey2=value2",
+			"envFile-backend.env": "bkey1=value1\nbkey2=value2",
+		})
+
+		expectedEnvs := map[string]map[string]string{
+			"webapp": {
+				"webkey1": "value1",
+				"webkey2": "value2",
+			},
+			"backend": {
+				"bkey1": "value1",
+				"bkey2": "value2",
+			},
+		}
+
+		assertAppEnvs(t, apps, expectedEnvs)
+	})
+
+	t.Run("app envFile values override common envFile values", func(t *testing.T) {
+		apps := getAppsWithEnvFiles(t, runFileWithEnvFileAppPrecedence, map[string]string{
+			"envFile-common.env":  "ckey1=value1\nckey2=value2",
+			"envFile-backend.env": "ckey1=cv1\nbkey2=value2",
+		})
+
+		expectedEnvs := map[string]map[string]string{
+			"webapp": {
+				"ckey1":   "value1",
+				"ckey2":   "value2",
+			},
+			"backend": {
+				"ckey1": "cv1",
+				"ckey2": "value2",
+				"bkey2": "value2",
+			},
+		}
+
+		assertAppEnvs(t, apps, expectedEnvs)
+	})
+}
+
+func getAppsWithEnvFiles(t *testing.T, runFile string, envFiles map[string]string) []App {
+	t.Helper()
+
+	tempDir := t.TempDir()
+
+	yamlData, err := os.ReadFile(runFile)
+	assert.NoError(t, err)
+
+	yamlContent := string(yamlData)
+
+	for placeholder, content := range envFiles {
+		assert.Equal(
+			t,
+			1,
+			strings.Count(yamlContent, placeholder),
+			"expected exactly one occurrence of placeholder %q in %s",
+			placeholder,
+			runFile,
+		)
+
+		envFilePath := filepath.Join(tempDir, placeholder)
+		assert.NoError(t, os.WriteFile(envFilePath, []byte(content), 0o600))
+
+		yamlContent = strings.Replace(yamlContent, placeholder, envFilePath, 1)
+	}
+
+	runFileHandle, err := os.CreateTemp(filepath.Dir(runFile), ".run-*.yaml")
+	assert.NoError(t, err)
+
+	runFilePath := runFileHandle.Name()
+	assert.NoError(t, runFileHandle.Close())
+
+	t.Cleanup(func() {
+		assert.NoError(t, os.Remove(runFilePath))
+	})
+
+	assert.NoError(t, os.WriteFile(runFilePath, []byte(yamlContent), 0o600))
+
+	config := RunFileConfig{}
+	apps, err := config.GetApps(runFilePath)
+	assert.NoError(t, err)
+
+	return apps
+}
+
+func assertAppEnvs(t *testing.T, apps []App, expectedEnvs map[string]map[string]string) {
+	t.Helper()
+
+	assert.Len(t, apps, len(expectedEnvs))
+
+	actualAppIDs := make(map[string]struct{}, len(apps))
+
+	for _, app := range apps {
+		_, duplicate := actualAppIDs[app.AppID]
+		assert.False(t, duplicate, "duplicate app ID %q", app.AppID)
+
+		actualAppIDs[app.AppID] = struct{}{}
+
+		expectedEnv, exists := expectedEnvs[app.AppID]
+		assert.True(t, exists, "unexpected app ID %q", app.AppID)
+		if exists {
+			assert.Equal(t, expectedEnv, app.Env, "environment variables for app %q", app.AppID)
+		}
+	}
+
+	assert.Len(t, actualAppIDs, len(expectedEnvs))
+
+	for appID := range expectedEnvs {
+		_, exists := actualAppIDs[appID]
+		assert.True(t, exists, "expected app %q was not returned", appID)
+	}
 }
 
 func TestContainerImagePullPolicy(t *testing.T) {
