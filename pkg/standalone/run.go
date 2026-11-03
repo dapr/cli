@@ -597,7 +597,7 @@ func mtlsEndpoint(configFile string) string {
 	}
 
 	if IsMTLSEnabled(configFile) {
-		return sentryDefaultAddress
+		return SentryAddress()
 	}
 
 	return ""

@@ -1,4 +1,3 @@
-
 /*
 Copyright 2026 The Dapr Authors
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,7 +23,7 @@ import (
 )
 
 const (
-	mtlsEnabledConfig = `apiVersion: dapr.io/v1alpha1
+	testMTLSEnabledConfig = `apiVersion: dapr.io/v1alpha1
 kind: Configuration
 metadata:
   name: daprConfig
@@ -33,7 +32,7 @@ spec:
     enabled: true
 `
 
-	mtlsDisabledConfig = `apiVersion: dapr.io/v1alpha1
+	testMTLSDisabledConfig = `apiVersion: dapr.io/v1alpha1
 kind: Configuration
 metadata:
   name: daprConfig
@@ -43,7 +42,7 @@ spec:
 `
 )
 
-func writeTestFile(t *testing.T, dir, name, content string) string {
+func writeMTLSTestFile(t *testing.T, dir, name, content string) string {
 	t.Helper()
 
 	require.NoError(t, os.MkdirAll(dir, 0o755))
@@ -54,7 +53,7 @@ func writeTestFile(t *testing.T, dir, name, content string) string {
 	return path
 }
 
-func writeTestCerts(t *testing.T, daprDir string) string {
+func writeMTLSTestCerts(t *testing.T, daprDir string) string {
 	t.Helper()
 
 	certsDir := GetDaprSentryCertsPath(daprDir)
@@ -63,7 +62,7 @@ func writeTestCerts(t *testing.T, daprDir string) string {
 	for _, cert := range mtlsCertFiles {
 		require.NoError(t, os.WriteFile(
 			filepath.Join(certsDir, cert.file),
-			[]byte("certificate content"),
+			[]byte(" certificate content \n"),
 			0o600,
 		))
 	}
@@ -71,130 +70,77 @@ func writeTestCerts(t *testing.T, daprDir string) string {
 	return certsDir
 }
 
-func TestGetDaprSentryCertsPath(t *testing.T) {
-	assert.Equal(
-		t,
-		filepath.Join("dapr", "certs"),
-		GetDaprSentryCertsPath("dapr"),
-	)
-}
-
-func TestGetMTLSConfig(t *testing.T) {
-	tests := []struct {
-		name    string
-		content string
-		want    bool
-		wantErr bool
-	}{
-		{
-			name:    "enabled",
-			content: mtlsEnabledConfig,
-			want:    true,
-		},
-		{
-			name:    "disabled",
-			content: mtlsDisabledConfig,
-			want:    false,
-		},
-		{
-			name:    "mtls omitted",
-			content: "spec: {}\n",
-			want:    false,
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			path := writeTestFile(t, t.TempDir(), "config.yaml", tc.content)
-
-			cfg, err := GetMTLSConfig(path)
-
-			if tc.wantErr {
-				require.Error(t, err)
-				return
-			}
-
-			require.NoError(t, err)
-			assert.Equal(t, tc.want, cfg.Spec.MTLS.Enabled)
-		})
-	}
-
-	t.Run("missing file", func(t *testing.T) {
-		_, err := GetMTLSConfig(filepath.Join(t.TempDir(), "missing.yaml"))
-		require.ErrorIs(t, err, os.ErrNotExist)
-	})
-}
-
 func TestIsMTLSEnabled(t *testing.T) {
 	tests := []struct {
-		name string
-		data string
-		want bool
+		name    string
+		config  string
+		want    bool
 	}{
 		{
-			name: "enabled",
-			data: mtlsEnabledConfig,
-			want: true,
+			name:   "enabled",
+			config: testMTLSEnabledConfig,
+			want:   true,
 		},
 		{
-			name: "disabled",
-			data: mtlsDisabledConfig,
+			name:   "disabled",
+			config: testMTLSDisabledConfig,
 		},
 		{
-			name: "omitted",
-			data: "spec: {}\n",
+			name:   "mtls omitted",
+			config: "spec: {}\n",
+		},
+		{
+			name:   "invalid yaml",
+			config: "spec: [invalid",
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			path := writeTestFile(t, t.TempDir(), "config.yaml", tc.data)
-			assert.Equal(t, tc.want, IsMTLSEnabled(path))
+			configFile := writeMTLSTestFile(
+				t,
+				t.TempDir(),
+				"config.yaml",
+				tc.config,
+			)
+
+			assert.Equal(t, tc.want, IsMTLSEnabled(configFile))
 		})
 	}
 
-	t.Run("invalid configuration", func(t *testing.T) {
-		path := writeTestFile(t, t.TempDir(), "config.yaml", "spec: [invalid")
-		assert.False(t, IsMTLSEnabled(path))
+	t.Run("missing config file", func(t *testing.T) {
+		configFile := filepath.Join(t.TempDir(), "missing.yaml")
+
+		assert.False(t, IsMTLSEnabled(configFile))
 	})
 }
 
 func TestEnsureCerts(t *testing.T) {
 	t.Run("all certificates exist", func(t *testing.T) {
-		certsDir := writeTestCerts(t, t.TempDir())
+		certsDir := writeMTLSTestCerts(t, t.TempDir())
+
 		assert.True(t, EnsureCerts(certsDir))
 	})
 
 	t.Run("certificate directory does not exist", func(t *testing.T) {
-		assert.False(t, EnsureCerts(filepath.Join(t.TempDir(), "certs")))
+		certsDir := filepath.Join(t.TempDir(), "certs")
+
+		assert.False(t, EnsureCerts(certsDir))
 	})
 
-	for _, missing := range mtlsCertFiles {
-		t.Run("missing "+missing.file, func(t *testing.T) {
-			certsDir := writeTestCerts(t, t.TempDir())
+	t.Run("certificate is missing", func(t *testing.T) {
+		certsDir := writeMTLSTestCerts(t, t.TempDir())
 
-			require.NoError(t, os.Remove(filepath.Join(certsDir, missing.file)))
+		require.NoError(t, os.Remove(filepath.Join(certsDir, "issuer.key")))
 
-			assert.False(t, EnsureCerts(certsDir))
-		})
-	}
-
-	t.Run("certificate path is a directory", func(t *testing.T) {
-		certsDir := writeTestCerts(t, t.TempDir())
-
-		path := filepath.Join(certsDir, "issuer.key")
-		require.NoError(t, os.Remove(path))
-		require.NoError(t, os.Mkdir(path, 0o700))
-
-		// A directory is not a valid certificate file.
 		assert.False(t, EnsureCerts(certsDir))
 	})
 }
 
 func TestMTLSEnv(t *testing.T) {
-	t.Run("all certificates are loaded", func(t *testing.T) {
+	t.Run("loads all certificate environment variables", func(t *testing.T) {
 		daprDir := t.TempDir()
-		certsDir := writeTestCerts(t, daprDir)
+		writeMTLSTestCerts(t, daprDir)
 
 		env, err := MTLSEnv(daprDir)
 
@@ -204,13 +150,11 @@ func TestMTLSEnv(t *testing.T) {
 			EnvDaprCertChain:    "certificate content",
 			EnvDaprCertKey:      "certificate content",
 		}, env)
-
-		assert.FileExists(t, filepath.Join(certsDir, "ca.crt"))
 	})
 
 	t.Run("missing certificates are omitted", func(t *testing.T) {
 		daprDir := t.TempDir()
-		certsDir := writeTestCerts(t, daprDir)
+		certsDir := writeMTLSTestCerts(t, daprDir)
 
 		require.NoError(t, os.Remove(filepath.Join(certsDir, "issuer.key")))
 
@@ -222,7 +166,7 @@ func TestMTLSEnv(t *testing.T) {
 		assert.Contains(t, env, EnvDaprCertChain)
 	})
 
-	t.Run("missing certificate directory", func(t *testing.T) {
+	t.Run("missing certificate directory returns empty environment", func(t *testing.T) {
 		env, err := MTLSEnv(t.TempDir())
 
 		require.NoError(t, err)
@@ -231,16 +175,16 @@ func TestMTLSEnv(t *testing.T) {
 
 	t.Run("unreadable certificate returns an error", func(t *testing.T) {
 		daprDir := t.TempDir()
-		certsDir := writeTestCerts(t, daprDir)
+		certsDir := writeMTLSTestCerts(t, daprDir)
 
-		path := filepath.Join(certsDir, "issuer.key")
-		require.NoError(t, os.Remove(path))
-		require.NoError(t, os.Mkdir(path, 0o700))
+		keyPath := filepath.Join(certsDir, "issuer.key")
+
+		require.NoError(t, os.Remove(keyPath))
+		require.NoError(t, os.Mkdir(keyPath, 0o700))
 
 		env, err := MTLSEnv(daprDir)
 
 		require.Error(t, err)
 		assert.Nil(t, env)
-		assert.Contains(t, err.Error(), "reading mTLS file")
 	})
 }

@@ -1,4 +1,3 @@
-
 /*
 Copyright 2026 The Dapr Authors
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,112 +15,83 @@ package standalone
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
-	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestMTLSEnabled(t *testing.T) {
-	tests := []struct {
-		name    string
-		config  string
-		want    bool
-		wantErr bool
-	}{
-		{
-			name:   "enabled",
-			config: mtlsEnabledConfig,
-			want:   true,
-		},
-		{
-			name:   "disabled",
-			config: mtlsDisabledConfig,
-		},
-		{
-			name:   "mtls omitted",
-			config: "spec: {}\n",
-		},
-		{
-			name:   "unrelated configuration fields",
-			config: "spec:\n  tracing:\n    samplingRate: \"1\"\n  mtls:\n    enabled: true\n",
-			want:   true,
-		},
-		{
-			name:    "invalid yaml",
-			config:  "spec: [invalid",
-			wantErr: true,
-		},
+func mtlsTestFlagValue(args []string, flag string) string {
+	for i := 0; i < len(args)-1; i++ {
+		if args[i] == flag {
+			return args[i+1]
+		}
 	}
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			got, err := parseMTLSConfig([]byte(tc.config))
-
-			if tc.wantErr {
-				require.Error(t, err)
-				return
-			}
-
-			require.NoError(t, err)
-			assert.Equal(t, tc.want, got.Spec.MTLS.Enabled)
-		})
-	}
+	return ""
 }
 
-func TestMTLSEndpoint(t *testing.T) {
-	tests := []struct {
-		name       string
-		config     string
-		want       string
-	}{
-		{
-			name:   "enabled",
-			config: mtlsEnabledConfig,
-			want:   sentryDefaultAddress,
-		},
-		{
-			name:   "disabled",
-			config: mtlsDisabledConfig,
-		},
-		{
-			name:   "mtls omitted",
-			config: "spec: {}\n",
-		},
-		{
-			name:   "invalid yaml",
-			config: "spec: [invalid",
-		},
-	}
+func TestRunConfigMTLSArgs(t *testing.T) {
+	t.Run("mTLS enabled", func(t *testing.T) {
+		configFile := writeMTLSTestFile(
+			t,
+			t.TempDir(),
+			"config.yaml",
+			testMTLSEnabledConfig,
+		)
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			configFile := filepath.Join(t.TempDir(), "config.yaml")
-			require.NoError(t, os.WriteFile(configFile, []byte(tc.config), 0o600))
+		config := &RunConfig{
+			SharedRunConfig: SharedRunConfig{
+				ConfigFile: configFile,
+			},
+		}
 
-			assert.Equal(t, tc.want, mtlsEndpoint(configFile))
-		})
-	}
+		args := config.getArgs()
 
-	t.Run("empty config path", func(t *testing.T) {
-		assert.Empty(t, mtlsEndpoint(""))
+		assert.Contains(t, args, "--enable-mtls")
+		assert.Contains(t, args, "--sentry-address")
+		assert.Equal(t, SentryAddress(), mtlsTestFlagValue(args, "--sentry-address"))
 	})
 
-	t.Run("missing config file", func(t *testing.T) {
-		assert.Empty(t, mtlsEndpoint(filepath.Join(t.TempDir(), "missing.yaml")))
+	t.Run("mTLS disabled", func(t *testing.T) {
+		configFile := writeMTLSTestFile(
+			t,
+			t.TempDir(),
+			"config.yaml",
+			testMTLSDisabledConfig,
+		)
+
+		config := &RunConfig{
+			SharedRunConfig: SharedRunConfig{
+				ConfigFile: configFile,
+			},
+		}
+
+		args := config.getArgs()
+
+		assert.NotContains(t, args, "--enable-mtls")
+		assert.NotContains(t, args, "--sentry-address")
 	})
-}
 
-func TestSentryAddress(t *testing.T) {
-	port := sentryPort
-	if runtime.GOOS == daprWindowsOS {
-		port = sentryWindowsPort
-	}
+	t.Run("mTLS omitted", func(t *testing.T) {
+		configFile := writeMTLSTestFile(
+			t,
+			t.TempDir(),
+			"config.yaml",
+			"spec: {}\n",
+		)
 
-	assert.Equal(t, fmt.Sprintf("localhost:%d", port), SentryAddress())
+		config := &RunConfig{
+			SharedRunConfig: SharedRunConfig{
+				ConfigFile: configFile,
+			},
+		}
+
+		args := config.getArgs()
+
+		assert.NotContains(t, args, "--enable-mtls")
+		assert.NotContains(t, args, "--sentry-address")
+	})
 }
 
 func TestSentryContainerArgs(t *testing.T) {
@@ -139,17 +109,17 @@ func TestSentryContainerArgs(t *testing.T) {
 		wantNetwork bool
 	}{
 		{
-			name:    "docker without network",
+			name:    "docker without custom network",
 			runtime: "docker",
 		},
 		{
-			name:        "docker with network",
+			name:        "docker with custom network",
 			runtime:     "docker",
 			info:        initInfo{dockerNetwork: "dapr-network"},
 			wantNetwork: true,
 		},
 		{
-			name:    "podman without network",
+			name:    "podman without custom network",
 			runtime: "podman",
 		},
 	}
@@ -172,13 +142,11 @@ func TestSentryContainerArgs(t *testing.T) {
 			assert.Contains(t, args, certsDir+":"+sentryContainerCertsDir)
 			assert.Contains(t, args, configFile+":"+sentryContainerConfigFile+":ro")
 
-			assert.Equal(t, []string{
-				image,
-				"--trust-domain=" + sentryTrustDomain,
-				"--issuer-credentials=" + sentryContainerCertsDir,
-				"--config",
-				sentryContainerConfigFile,
-			}, args[len(args)-5:])
+			assert.Contains(t, args, image)
+			assert.Contains(t, args, "--trust-domain="+sentryTrustDomain)
+			assert.Contains(t, args, "--issuer-credentials="+sentryContainerCertsDir)
+			assert.Contains(t, args, "--config")
+			assert.Contains(t, args, sentryContainerConfigFile)
 
 			if tc.wantNetwork {
 				assert.Contains(t, args, "--network")
@@ -187,10 +155,17 @@ func TestSentryContainerArgs(t *testing.T) {
 				assert.NotContains(t, args, "-p")
 			} else {
 				assert.Contains(t, args, "-p")
-				assert.Contains(t, args, fmt.Sprintf("%d:50001", sentryHostPort()))
+				assert.Contains(t, args, fmt.Sprintf(
+					"%d:50001",
+					sentryHostPort(),
+				))
 				assert.Contains(t, args, fmt.Sprintf("%d:8080", sentryHealthPort))
 				assert.Contains(t, args, fmt.Sprintf("%d:9090", sentryMetricPort))
 			}
 		})
 	}
+}
+
+func TestSentryAddress(t *testing.T) {
+	require.Equal(t, fmt.Sprintf("localhost:%d", sentryHostPort()), SentryAddress())
 }

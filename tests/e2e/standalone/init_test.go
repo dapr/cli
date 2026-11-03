@@ -309,6 +309,301 @@ func TestStandaloneInit(t *testing.T) {
 	})
 }
 
+type mtlsRunFileConfig struct {
+	Version int             `yaml:"version"`
+	Apps    []mtlsRunFileApp `yaml:"apps"`
+}
+
+type mtlsRunFileApp struct {
+	AppDirPath string   `yaml:"appDirPath"`
+	AppID      string   `yaml:"appID"`
+	Command    []string `yaml:"command"`
+}
+
+func TestStandaloneInitMTLS(t *testing.T) {
+	if isSlimMode() {
+		t.Skip("Sentry container verification is not supported in slim mode")
+	}
+
+	daprRuntimeVersion := common.GetVersionsFromEnv(t, false)
+
+	t.Cleanup(func() {
+		_, _ = cmdUninstall()
+		ensureDaprInstallation(t)
+	})
+
+	// Verify that mTLS remains opt-in.
+	t.Run("init without enable-mtls", func(t *testing.T) {
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+
+		output, err := cmdInit(
+			"--runtime-version",
+			daprRuntimeVersion,
+		)
+
+		t.Log(output)
+		require.NoError(t, err)
+		assert.Contains(t, output, "Success! Dapr is up and running.")
+
+		homeDir, err := os.UserHomeDir()
+		require.NoError(t, err)
+
+		daprPath := filepath.Join(homeDir, ".dapr")
+
+		verifyMTLSConfig(t, daprPath, false)
+		verifyNoSentryContainer(t)
+	})
+
+	// Start a fresh installation with mTLS enabled.
+	must(t, cmdUninstall, "failed to uninstall Dapr")
+
+	t.Run("init with enable-mtls", func(t *testing.T) {
+		output, err := cmdInit(
+			"--runtime-version",
+			daprRuntimeVersion,
+			"--enable-mtls",
+		)
+
+		t.Log(output)
+		require.NoError(t, err)
+		assert.Contains(t, output, "Success! Dapr is up and running.")
+		assert.Contains(t, output, "Sentry running")
+
+		homeDir, err := os.UserHomeDir()
+		require.NoError(t, err)
+
+		daprPath := filepath.Join(homeDir, ".dapr")
+
+		verifyMTLSConfig(t, daprPath, true)
+		verifySentryContainer(t)
+		verifySentryCertificates(t, daprPath)
+
+		sentryPort := 50001
+		if runtime.GOOS == "windows" {
+			sentryPort = 6010
+		}
+
+		verifyTCPLocalhost(t, sentryPort)
+	})
+
+	// Verify the generated certificates are automatically passed to the app.
+	t.Run("dapr run receives mTLS certificate environment", func(t *testing.T) {
+		args := []string{
+			"--app-id",
+			"mtls-direct-test",
+			"--",
+		}
+
+		args = append(args, mtlsEnvironmentCheckCommand()...)
+
+		output, err := cmdRun("", args...)
+
+		t.Log(output)
+		require.NoError(t, err, "dapr run failed with mTLS enabled")
+
+		assert.Contains(t, output, "Exited App successfully")
+		assert.Contains(t, output, "Exited Dapr successfully")
+	})
+
+	// Verify the same behavior through the run-file execution path.
+	t.Run("run-file apps receive mTLS certificate environment", func(t *testing.T) {
+		runFile := writeMTLSRunFile(t)
+
+		output, err := cmdRun(
+			"",
+			"--run-file",
+			runFile,
+		)
+
+		t.Log(output)
+		require.NoError(t, err, "dapr run --run-file failed with mTLS enabled")
+
+		assert.Contains(t, output, "Exited App successfully")
+		assert.Contains(t, output, "Exited Dapr successfully")
+	})
+
+	// Sentry must be removed by uninstall.
+	t.Run("uninstall removes Sentry", func(t *testing.T) {
+		output, err := cmdUninstall()
+
+		t.Log(output)
+		require.NoError(t, err, "dapr uninstall failed")
+
+		assert.Contains(t, output, "Dapr has been removed successfully")
+
+		homeDir, err := os.UserHomeDir()
+		require.NoError(t, err)
+
+		daprPath := filepath.Join(homeDir, ".dapr")
+		require.NoDirExists(t, daprPath)
+
+		verifyNoSentryContainer(t)
+	})
+}
+
+func mtlsEnvironmentCheckCommand() []string {
+	if runtime.GOOS == "windows" {
+		return []string{
+			"cmd",
+			"/c",
+			"if not defined DAPR_TRUST_ANCHORS exit /b 1 & " +
+				"if not defined DAPR_CERT_CHAIN exit /b 1 & " +
+				"if not defined DAPR_CERT_KEY exit /b 1",
+		}
+	}
+
+	return []string{
+		"sh",
+		"-c",
+		`test -n "$DAPR_TRUST_ANCHORS" &&
+		 test -n "$DAPR_CERT_CHAIN" &&
+		 test -n "$DAPR_CERT_KEY"`,
+	}
+}
+
+func writeMTLSRunFile(t *testing.T) string {
+	t.Helper()
+
+	appDir := t.TempDir()
+
+	config := mtlsRunFileConfig{
+		Version: 1,
+		Apps: []mtlsRunFileApp{
+			{
+				AppDirPath: appDir,
+				AppID:      "mtls-run-file-test",
+				Command:    mtlsEnvironmentCheckCommand(),
+			},
+		},
+	}
+
+	content, err := yaml.Marshal(config)
+	require.NoError(t, err)
+
+	runFile := filepath.Join(t.TempDir(), "dapr.yaml")
+
+	require.NoError(t, os.WriteFile(
+		runFile,
+		content,
+		0o600,
+	))
+
+	return runFile
+}
+
+func verifyMTLSConfig(t *testing.T, daprPath string, expected bool) {
+	t.Helper()
+
+	configFile := filepath.Join(daprPath, "config.yaml")
+
+	content, err := os.ReadFile(configFile)
+	require.NoError(t, err)
+
+	var config struct {
+		Spec struct {
+			MTLS struct {
+				Enabled bool `yaml:"enabled"`
+			} `yaml:"mtls"`
+		} `yaml:"spec"`
+	}
+
+	require.NoError(t, yaml.Unmarshal(content, &config))
+
+	assert.Equal(t, expected, config.Spec.MTLS.Enabled)
+}
+
+func verifySentryCertificates(t *testing.T, daprPath string) {
+	t.Helper()
+
+	certsDir := filepath.Join(daprPath, "certs")
+
+	certificateFiles := []string{
+		"ca.crt",
+		"issuer.crt",
+		"issuer.key",
+	}
+
+	// Sentry generates certificates asynchronously after its container starts.
+	require.Eventually(
+		t,
+		func() bool {
+			for _, name := range certificateFiles {
+				content, err := os.ReadFile(filepath.Join(certsDir, name))
+				if err != nil || len(strings.TrimSpace(string(content))) == 0 {
+					return false
+				}
+			}
+
+			return true
+		},
+		30*time.Second,
+		250*time.Millisecond,
+		"Sentry certificates were not generated in %s",
+		certsDir,
+	)
+}
+
+func verifySentryContainer(t *testing.T) {
+	t.Helper()
+
+	cli, err := dockerClient.NewClientWithOpts(
+		dockerClient.FromEnv,
+		dockerClient.WithVersion("1.48"),
+	)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_ = cli.Close()
+	})
+
+	ctx := context.Background()
+
+	info, err := cli.ContainerInspect(ctx, "dapr_sentry")
+	require.NoError(t, err, "dapr_sentry container was not found")
+
+	require.NotNil(t, info.State)
+	assert.True(t, info.State.Running, "Sentry container is not running")
+
+	args := strings.Join(info.Args, " ")
+
+	assert.Contains(t, args, "--trust-domain="+ "cluster.local")
+	assert.Contains(t, args, "--issuer-credentials=/.dapr/certs/")
+	assert.Contains(t, args, "--config")
+	assert.Contains(t, args, "/.dapr/config.yaml")
+}
+
+func verifyNoSentryContainer(t *testing.T) {
+	t.Helper()
+
+	cli, err := dockerClient.NewClientWithOpts(
+		dockerClient.FromEnv,
+		dockerClient.WithVersion("1.48"),
+	)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_ = cli.Close()
+	})
+
+	containers, err := cli.ContainerList(
+		context.Background(),
+		container.ListOptions{
+			All: true,
+		},
+	)
+	require.NoError(t, err)
+
+	for _, c := range containers {
+		for _, name := range c.Names {
+			assert.NotEqual(
+				t,
+				"/dapr_sentry",
+				name,
+				"unexpected Sentry container found: %s",
+				name,
+			)
+		}
+	}
+}
+
 func verifyRedisContainerImage(t *testing.T, expectedImageSubstring string) {
 	t.Helper()
 

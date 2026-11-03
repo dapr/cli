@@ -35,26 +35,35 @@ func (a *RunFileConfig) addMTLSEnvToCommon() error {
 		return fmt.Errorf("error getting dapr install path: %w", err)
 	}
 
-	if standalone.IsMTLSEnabled(a.Common.ConfigFile) {
-		if !standalone.EnsureCerts(standalone.GetDaprSentryCertsPath(daprDir)) {
-			return fmt.Errorf("error getting sentry certs")
-		}
+	configFile := a.Common.ConfigFile
+	if configFile == "" {
+		configFile = standalone.GetDaprConfigPath(daprDir)
 	}
+
+	if !standalone.IsMTLSEnabled(configFile) {
+		return nil
+	}
+
+	certsDir := standalone.GetDaprSentryCertsPath(daprDir)
+	if !standalone.EnsureCerts(certsDir) {
+		return fmt.Errorf("error getting sentry certs")
+	}
+
 	env, err := standalone.MTLSEnv(daprDir)
 	if err != nil {
 		return err
 	}
-	if len(env) == 0 {
-		return nil
-	}
+
 	if a.Common.Env == nil {
 		a.Common.Env = make(map[string]string, len(env))
 	}
-	for k, v := range env {
-		if _, set := a.Common.Env[k]; !set {
-			a.Common.Env[k] = v
+
+	for key, value := range env {
+		if _, exists := a.Common.Env[key]; !exists {
+			a.Common.Env[key] = value
 		}
 	}
+
 	return nil
 }
 
