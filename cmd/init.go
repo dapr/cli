@@ -209,7 +209,7 @@ dapr init --redis-stack
 				SchedulerPlacement:                 schedulerPlacement,
 				RedisStack:                         redisStack,
 				NoRedis:                            noRedis,
-				NoZipkin:                           noRedis,
+				NoZipkin:                           noZipkin,
 			})
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, "%s", err.Error())

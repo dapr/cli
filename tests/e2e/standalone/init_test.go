@@ -307,6 +307,82 @@ func TestStandaloneInit(t *testing.T) {
 		verifyBinaries(t, daprPath, latestDaprRuntimeVersion)
 		verifyConfigs(t, daprPath)
 	})
+
+	t.Run("init without redis", func(t *testing.T) {
+		if isSlimMode() {
+			t.Skip("Skipping no-redis test because of slim installation")
+		}
+
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+
+		output, err := cmdInit(
+			"--runtime-version", daprRuntimeVersion,
+			"--no-redis",
+		)
+		t.Log(output)
+		require.NoError(t, err, "init with --no-redis failed")
+		assert.Contains(t, output, "Success! Dapr is up and running.")
+
+		homeDir, err := os.UserHomeDir()
+		require.NoError(t, err)
+
+		daprPath := filepath.Join(homeDir, ".dapr")
+		require.DirExists(t, daprPath)
+
+		verifyInitOptionalDependencies(t, daprPath, true, false)
+		verifyBinaries(t, daprPath, daprRuntimeVersion)
+	})
+
+	t.Run("init without zipkin", func(t *testing.T) {
+		if isSlimMode() {
+			t.Skip("Skipping no-zipkin test because of slim installation")
+		}
+
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+
+		output, err := cmdInit(
+			"--runtime-version", daprRuntimeVersion,
+			"--no-zipkin",
+		)
+		t.Log(output)
+		require.NoError(t, err, "init with --no-zipkin failed")
+		assert.Contains(t, output, "Success! Dapr is up and running.")
+
+		homeDir, err := os.UserHomeDir()
+		require.NoError(t, err)
+
+		daprPath := filepath.Join(homeDir, ".dapr")
+		require.DirExists(t, daprPath)
+
+		verifyInitOptionalDependencies(t, daprPath, false, true)
+		verifyBinaries(t, daprPath, daprRuntimeVersion)
+	})
+
+	t.Run("init without redis and zipkin", func(t *testing.T) {
+		if isSlimMode() {
+			t.Skip("Skipping no-redis and no-zipkin test because of slim installation")
+		}
+
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+
+		output, err := cmdInit(
+			"--runtime-version", daprRuntimeVersion,
+			"--no-redis",
+			"--no-zipkin",
+		)
+		t.Log(output)
+		require.NoError(t, err, "init with --no-redis and --no-zipkin failed")
+		assert.Contains(t, output, "Success! Dapr is up and running.")
+
+		homeDir, err := os.UserHomeDir()
+		require.NoError(t, err)
+
+		daprPath := filepath.Join(homeDir, ".dapr")
+		require.DirExists(t, daprPath)
+
+		verifyInitOptionalDependencies(t, daprPath, true, true)
+		verifyBinaries(t, daprPath, daprRuntimeVersion)
+	})
 }
 
 func verifyRedisContainerImage(t *testing.T, expectedImageSubstring string) {
