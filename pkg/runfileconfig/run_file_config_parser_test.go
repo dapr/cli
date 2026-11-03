@@ -20,6 +20,8 @@ import (
 	"strings"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
+
 	"github.com/dapr/cli/pkg/standalone"
 
 	"github.com/stretchr/testify/assert"
@@ -92,14 +94,24 @@ func TestRunConfigFile(t *testing.T) {
 		// test merged envs from common and app sections.
 		assert.Len(t, apps[0].Env, 2)
 		assert.Len(t, apps[1].Env, 2)
-		assert.Contains(t, apps[0].Env, "DEBUG")
-		assert.Contains(t, apps[0].Env, "tty")
-		assert.Contains(t, apps[1].Env, "DEBUG")
-		assert.Contains(t, apps[1].Env, "tty")
-		assert.Equal(t, "false", apps[0].Env["DEBUG"])
-		assert.Equal(t, "sts", apps[0].Env["tty"])
-		assert.Equal(t, "true", apps[1].Env["DEBUG"])
-		assert.Equal(t, "sts", apps[1].Env["tty"])
+		assert.ElementsMatch(t, []corev1.EnvVar{
+			{Name: "DEBUG", Value: "false"},
+			{Name: "tty", Value: "sts"},
+		}, apps[0].Env)
+
+		assert.ElementsMatch(t, []corev1.EnvVar{
+			{Name: "DEBUG", Value: "true"},
+			{Name: "tty", Value: "sts"},
+		}, apps[1].Env)
+		assert.ElementsMatch(t, []corev1.EnvVar{
+			{Name: "DEBUG", Value: "false"},
+			{Name: "tty", Value: "sts"},
+		}, apps[0].Env)
+
+		assert.ElementsMatch(t, []corev1.EnvVar{
+			{Name: "DEBUG", Value: "true"},
+			{Name: "tty", Value: "sts"},
+		}, apps[1].Env)
 	})
 
 	t.Run("test precedence logic for resources-path and dapr config file", func(t *testing.T) {
