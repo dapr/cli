@@ -658,3 +658,142 @@ func verifySchedulerBroadcastHostPort(t *testing.T, expectedBroadcastHostPort st
 	expectedArg := "--override-broadcast-host-port=" + expectedBroadcastHostPort
 	assert.Contains(t, containerInfo.Args, expectedArg, "Expected scheduler argument %s not found in container args: %v", expectedArg, containerInfo.Args)
 }
+
+func verifyInitOptionalDependencies(
+	t *testing.T,
+	daprPath string,
+	noRedis bool,
+	noZipkin bool,
+) {
+	t.Helper()
+
+	cli, err := dockerClient.NewClientWithOpts(
+		dockerClient.FromEnv,
+		dockerClient.WithVersion("1.48"),
+	)
+	require.NoError(t, err)
+
+	containers, err := cli.ContainerList(
+		context.Background(),
+		container.ListOptions{},
+	)
+	require.NoError(t, err)
+
+	expectedContainers := map[string]bool{
+		"dapr_redis":  !noRedis,
+		"dapr_zipkin": !noZipkin,
+	}
+
+	for _, c := range containers {
+		if c.State != "running" {
+			continue
+		}
+
+		for _, containerName := range c.Names {
+			name := strings.TrimPrefix(containerName, "/")
+
+			if expected, ok := expectedContainers[name]; ok {
+				assert.True(
+					t,
+					expected,
+					"unexpected container %s is running",
+					name,
+				)
+			}
+		}
+	}
+
+	for name, expected := range expectedContainers {
+		found := false
+
+		for _, c := range containers {
+			if c.State != "running" {
+				continue
+			}
+
+			for _, containerName := range c.Names {
+				if strings.TrimPrefix(containerName, "/") == name {
+					found = true
+					break
+				}
+			}
+		}
+
+		assert.Equal(
+			t,
+			expected,
+			found,
+			"unexpected presence of container %s",
+			name,
+		)
+	}
+
+	componentsDir := filepath.Join(daprPath, "components")
+
+	redisComponents := []string{
+		"statestore.yaml",
+		"pubsub.yaml",
+	}
+
+	for _, component := range redisComponents {
+		componentPath := filepath.Join(componentsDir, component)
+
+		if noRedis {
+			assert.NoFileExists(
+				t,
+				componentPath,
+				"Redis component %s should not exist",
+				component,
+			)
+		} else {
+			assert.FileExists(
+				t,
+				componentPath,
+				"Redis component %s should exist",
+				component,
+			)
+		}
+	}
+
+	configPath := filepath.Join(daprPath, "config.yaml")
+
+	configBytes, err := os.ReadFile(configPath)
+	require.NoError(t, err, "failed to read Dapr configuration")
+
+	var actual map[string]interface{}
+	err = yaml.Unmarshal(configBytes, &actual)
+	require.NoError(t, err, "failed to unmarshal Dapr configuration")
+
+	spec, ok := actual["spec"].(map[interface{}]interface{})
+	require.True(t, ok, "configuration spec is missing or invalid")
+
+	tracing, hasTracing := spec["tracing"]
+
+	if noZipkin {
+		assert.False(
+			t,
+			hasTracing,
+			"Zipkin tracing configuration should not exist when --no-zipkin is specified",
+		)
+	} else {
+		require.True(
+			t,
+			hasTracing,
+			"Zipkin tracing configuration should exist",
+		)
+
+		tracingSpec, ok := tracing.(map[interface{}]interface{})
+		require.True(t, ok, "tracing configuration is invalid")
+
+		assert.Equal(t, "1", tracingSpec["samplingRate"])
+
+		zipkin, ok := tracingSpec["zipkin"].(map[interface{}]interface{})
+		require.True(t, ok, "Zipkin configuration is missing")
+
+		assert.Equal(
+			t,
+			"http://localhost:9411/api/v2/spans",
+			zipkin["endpointAddress"],
+		)
+	}
+}
