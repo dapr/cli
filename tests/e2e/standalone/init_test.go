@@ -341,6 +341,7 @@ func TestStandaloneInit(t *testing.T) {
 		verifyMTLSCerts(t)
 		verifyMTLSConfigEnabled(t, daprPath)
 	})
+	
 }
 
 func verifyRedisContainerImage(t *testing.T, expectedImageSubstring string) {
