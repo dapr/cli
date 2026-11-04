@@ -25,6 +25,7 @@ import (
 	"github.com/dapr/cli/pkg/standalone"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v2"
 )
 
 func setupRunFileMTLSTest(
@@ -42,25 +43,14 @@ func setupRunFileMTLSTest(
 
 	require.NoError(t, os.MkdirAll(daprDir, 0o755))
 
-	config := `apiVersion: dapr.io/v1alpha1
+	config := fmt.Sprintf(`apiVersion: dapr.io/v1alpha1
 kind: Configuration
 metadata:
   name: daprConfig
 spec:
   mtls:
-    enabled: false
-`
-
-	if mtlsEnabled {
-		config = `apiVersion: dapr.io/v1alpha1
-kind: Configuration
-metadata:
-  name: daprConfig
-spec:
-  mtls:
-    enabled: true
-`
-	}
+    enabled: %t
+`, mtlsEnabled)
 
 	configFile := standalone.GetDaprConfigPath(daprDir)
 
@@ -101,60 +91,31 @@ func createMTLSRunFile(
 ) string {
 	t.Helper()
 
-	type runFileApp struct {
-		AppDirPath string            `yaml:"appDirPath"`
-		AppID      string            `yaml:"appID"`
-		Env        map[string]string `yaml:"env,omitempty"`
-	}
-
-	type runFileCommon struct {
-		ConfigFile string `yaml:"configFilePath"`
-	}
-
-	type runFileConfig struct {
-		Version int          `yaml:"version"`
-		Common  runFileCommon `yaml:"common"`
-		Apps    []runFileApp  `yaml:"apps"`
-	}
-
-	config := runFileConfig{
+	config := RunFileConfig{
 		Version: 1,
-		Common: runFileCommon{
-			ConfigFile: configFile,
+		Common: Common{
+			SharedRunConfig: standalone.SharedRunConfig{
+				ConfigFile: configFile,
+			},
 		},
-		Apps: []runFileApp{
+		Apps: []App{
 			{
 				AppDirPath: appDir,
-				AppID:      "mtls-test-app",
-				Env:        appEnv,
+				RunConfig: standalone.RunConfig{
+					SharedRunConfig: standalone.SharedRunConfig{
+						Env: appEnv,
+					},
+					AppID: "mtls-test-app",
+				},
 			},
 		},
 	}
 
-	// YAML paths are quoted so paths containing spaces are safe.
-	content := fmt.Sprintf(`version: 1
-common:
-  configFilePath: %q
-apps:
-  - appDirPath: %q
-    appID: %s
-`, config.Common.ConfigFile, config.Apps[0].AppDirPath, config.Apps[0].AppID)
-
-	if len(config.Apps[0].Env) > 0 {
-		content += "    env:\n"
-
-		for key, value := range config.Apps[0].Env {
-			content += fmt.Sprintf("      %s: %q\n", key, value)
-		}
-	}
+	content, err := yaml.Marshal(&config)
+	require.NoError(t, err)
 
 	runFile := filepath.Join(t.TempDir(), "dapr.yaml")
-
-	require.NoError(t, os.WriteFile(
-		runFile,
-		[]byte(content),
-		0o600,
-	))
+	require.NoError(t, os.WriteFile(runFile, content, 0o600))
 
 	return runFile
 }
