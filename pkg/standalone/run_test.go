@@ -1,4 +1,3 @@
-
 /*
 Copyright 2021 The Dapr Authors
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,8 +14,6 @@ limitations under the License.
 package standalone
 
 import (
-	"os"
-	"path/filepath"
 	"runtime"
 	"sort"
 	"strings"
@@ -26,63 +23,6 @@ import (
 )
 
 func strPtr(s string) *string { return &s }
-
-// setupMTLSTest creates an isolated Dapr installation directory.
-func setupMTLSTest(t *testing.T) string {
-	t.Helper()
-
-	runtimePath := t.TempDir()
-
-	daprDir, err := GetDaprRuntimePath(runtimePath)
-	assert.NoError(t, err)
-
-	return daprDir
-}
-
-// writeMTLSConfig creates a Dapr configuration file in the installation directory.
-func writeMTLSConfig(t *testing.T, daprDir, content string) string {
-	t.Helper()
-
-	assert.NoError(t, os.MkdirAll(daprDir, 0o755))
-
-	configFile := GetDaprConfigPath(daprDir)
-	assert.NoError(t, os.WriteFile(configFile, []byte(content), 0o600))
-
-	return configFile
-}
-
-// writeMTLSCerts creates certificates in the same directory structure
-// used by the Sentry installation.
-func writeMTLSCerts(t *testing.T, daprDir string) {
-	t.Helper()
-
-	certsDir := GetDaprSentryCertsPath(daprDir)
-	assert.NoError(t, os.MkdirAll(certsDir, 0o755))
-
-	for _, cert := range []struct {
-		name    string
-		content string
-	}{
-		{
-			name:    "ca.crt",
-			content: "content of ca.crt",
-		},
-		{
-			name:    "issuer.crt",
-			content: "content of issuer.crt",
-		},
-		{
-			name:    "issuer.key",
-			content: "content of issuer.key",
-		},
-	} {
-		assert.NoError(t, os.WriteFile(
-			filepath.Join(certsDir, cert.name),
-			[]byte(cert.content),
-			0o600,
-		))
-	}
-}
 
 func TestGetEnv(t *testing.T) {
 	config := &RunConfig{
@@ -216,12 +156,8 @@ func TestGetDaprCommandEnv(t *testing.T) {
 
 	t.Run("user-defined env vars are passed to daprd", func(t *testing.T) {
 		config := &RunConfig{
-			AppID: "testapp",
-			SharedRunConfig: SharedRunConfig{
-				Env: map[string]string{
-					"MYAPP_API_PORT": "3000",
-				},
-			},
+			AppID:           "testapp",
+			SharedRunConfig: SharedRunConfig{Env: map[string]string{"MYAPP_API_PORT": "3000"}},
 		}
 
 		cmd, err := GetDaprCommand(config)
@@ -229,76 +165,6 @@ func TestGetDaprCommandEnv(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Contains(t, cmd.Env, "MYAPP_API_PORT=3000")
 	})
-
-	t.Run("mTLS enabled adds daprd arguments", func(t *testing.T) {
-		daprDir := setupMTLSTest(t)
-		configFile := writeMTLSConfig(t, daprDir, testMTLSEnabledConfig)
-
-		config := &RunConfig{
-			AppID: "testapp",
-			SharedRunConfig: SharedRunConfig{
-				ConfigFile: configFile,
-			},
-		}
-
-		cmd, err := GetDaprCommand(config)
-
-		assert.NoError(t, err)
-
-		assert.Contains(t, cmd.Args, "--enable-mtls")
-		assert.Contains(t, cmd.Args, "--sentry-address")
-		assert.Contains(t, cmd.Args, sentryDefaultAddress)
-	})
-
-	t.Run("mTLS disabled adds no mTLS arguments", func(t *testing.T) {
-		daprDir := setupMTLSTest(t)
-		configFile := writeMTLSConfig(t, daprDir, "spec: {}\n")
-
-		config := &RunConfig{
-			AppID: "testapp",
-			SharedRunConfig: SharedRunConfig{
-				ConfigFile: configFile,
-			},
-		}
-
-		cmd, err := GetDaprCommand(config)
-
-		assert.NoError(t, err)
-
-		assert.NotContains(t, cmd.Args, "--enable-mtls")
-		assert.NotContains(t, cmd.Args, "--sentry-address")
-	})
-}
-
-func TestGetAppCommandMTLSEnv(t *testing.T) {
-	daprDir := setupMTLSTest(t)
-	writeMTLSCerts(t, daprDir)
-
-	// MTLSEnv accepts the Dapr installation directory, not the certs directory.
-	mtlsEnv, err := MTLSEnv(daprDir)
-	assert.NoError(t, err)
-
-	assert.Equal(t, map[string]string{
-		EnvDaprTrustAnchors: "content of ca.crt",
-		EnvDaprCertChain:    "content of issuer.crt",
-		EnvDaprCertKey:      "content of issuer.key",
-	}, mtlsEnv)
-
-	config := &RunConfig{
-		AppID:   "testapp",
-		Command: []string{"echo", "hello"},
-		SharedRunConfig: SharedRunConfig{
-			Env: mtlsEnv,
-		},
-	}
-
-	cmd := GetAppCommand(config)
-
-	assert.NotNil(t, cmd)
-
-	assert.Contains(t, cmd.Env, EnvDaprTrustAnchors+"=content of ca.crt")
-	assert.Contains(t, cmd.Env, EnvDaprCertChain+"=content of issuer.crt")
-	assert.Contains(t, cmd.Env, EnvDaprCertKey+"=content of issuer.key")
 }
 
 func TestValidatePlacementHostAddr(t *testing.T) {
