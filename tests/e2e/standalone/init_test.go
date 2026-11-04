@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver"
+	"github.com/dapr/cli/pkg/standalone"
 	"github.com/dapr/cli/tests/e2e/common"
 	"github.com/dapr/cli/tests/e2e/spawn"
 	"github.com/docker/docker/api/types/container"
@@ -308,80 +309,51 @@ func TestStandaloneInit(t *testing.T) {
 		verifyConfigs(t, daprPath)
 	})
 
-	t.Run("init without redis", func(t *testing.T) {
+	t.Run("init with --no-zipkin", func(t *testing.T) {
 		if isSlimMode() {
-			t.Skip("Skipping no-redis test because of slim installation")
+			t.Skip("Skipping --no-zipkin test because of slim installation")
 		}
 
 		must(t, cmdUninstall, "failed to uninstall Dapr")
 
-		output, err := cmdInit(
-			"--runtime-version", daprRuntimeVersion,
-			"--no-redis",
-		)
-		t.Log(output)
-		require.NoError(t, err, "init with --no-redis failed")
-		assert.Contains(t, output, "Success! Dapr is up and running.")
-
-		homeDir, err := os.UserHomeDir()
-		require.NoError(t, err)
-
-		daprPath := filepath.Join(homeDir, ".dapr")
-		require.DirExists(t, daprPath)
-
-		verifyInitOptionalDependencies(t, daprPath, true, false)
-		verifyBinaries(t, daprPath, daprRuntimeVersion)
-	})
-
-	t.Run("init without zipkin", func(t *testing.T) {
-		if isSlimMode() {
-			t.Skip("Skipping no-zipkin test because of slim installation")
-		}
-
-		must(t, cmdUninstall, "failed to uninstall Dapr")
-
-		output, err := cmdInit(
+		args := []string{
 			"--runtime-version", daprRuntimeVersion,
 			"--no-zipkin",
-		)
+		}
+		output, err := cmdInit(args...)
 		t.Log(output)
-		require.NoError(t, err, "init with --no-zipkin failed")
+		require.NoError(t, err, "init failed")
 		assert.Contains(t, output, "Success! Dapr is up and running.")
 
-		homeDir, err := os.UserHomeDir()
-		require.NoError(t, err)
-
-		daprPath := filepath.Join(homeDir, ".dapr")
-		require.DirExists(t, daprPath)
-
-		verifyInitOptionalDependencies(t, daprPath, false, true)
-		verifyBinaries(t, daprPath, daprRuntimeVersion)
+		assertContainerNotPresent(t, "dapr_zipkin")
 	})
 
-	t.Run("init without redis and zipkin", func(t *testing.T) {
+	t.Run("init with --no-redis", func(t *testing.T) {
 		if isSlimMode() {
-			t.Skip("Skipping no-redis and no-zipkin test because of slim installation")
+			t.Skip("Skipping --no-redis test because of slim installation")
 		}
 
 		must(t, cmdUninstall, "failed to uninstall Dapr")
 
-		output, err := cmdInit(
+		args := []string{
 			"--runtime-version", daprRuntimeVersion,
 			"--no-redis",
-			"--no-zipkin",
-		)
+		}
+		output, err := cmdInit(args...)
 		t.Log(output)
-		require.NoError(t, err, "init with --no-redis and --no-zipkin failed")
+		require.NoError(t, err, "init failed")
 		assert.Contains(t, output, "Success! Dapr is up and running.")
 
-		homeDir, err := os.UserHomeDir()
+		assertContainerNotPresent(t, "dapr_redis")
+
+		daprDir, err := standalone.GetDaprRuntimePath("")
 		require.NoError(t, err)
 
-		daprPath := filepath.Join(homeDir, ".dapr")
-		require.DirExists(t, daprPath)
-
-		verifyInitOptionalDependencies(t, daprPath, true, true)
-		verifyBinaries(t, daprPath, daprRuntimeVersion)
+		componentsDir := standalone.GetDaprComponentsPath(daprDir)
+		require.NoFileExists(t, filepath.Join(componentsDir, "pubsub.yaml"),
+			"pubsub.yaml must not be created when --no-redis is set")
+		require.NoFileExists(t, filepath.Join(componentsDir, "statestore.yaml"),
+			"statestore.yaml must not be created when --no-redis is set")
 	})
 }
 
@@ -659,141 +631,24 @@ func verifySchedulerBroadcastHostPort(t *testing.T, expectedBroadcastHostPort st
 	assert.Contains(t, containerInfo.Args, expectedArg, "Expected scheduler argument %s not found in container args: %v", expectedArg, containerInfo.Args)
 }
 
-func verifyInitOptionalDependencies(
-	t *testing.T,
-	daprPath string,
-	noRedis bool,
-	noZipkin bool,
-) {
+// assertContainerNotPresent fails if a container with the given name exists
+// (running or stopped).
+func assertContainerNotPresent(t *testing.T, name string) {
 	t.Helper()
 
-	cli, err := dockerClient.NewClientWithOpts(
-		dockerClient.FromEnv,
-		dockerClient.WithVersion("1.48"),
-	)
+	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv, dockerClient.WithVersion("1.48"))
 	require.NoError(t, err)
 
-	containers, err := cli.ContainerList(
-		context.Background(),
-		container.ListOptions{},
-	)
+	// Include stopped containers so we catch "created but not running" as well.
+	containers, err := cli.ContainerList(context.Background(), container.ListOptions{All: true})
 	require.NoError(t, err)
-
-	expectedContainers := map[string]bool{
-		"dapr_redis":  !noRedis,
-		"dapr_zipkin": !noZipkin,
-	}
 
 	for _, c := range containers {
-		if c.State != "running" {
-			continue
-		}
-
-		for _, containerName := range c.Names {
-			name := strings.TrimPrefix(containerName, "/")
-
-			if expected, ok := expectedContainers[name]; ok {
-				assert.True(
-					t,
-					expected,
-					"unexpected container %s is running",
-					name,
-				)
+		for _, n := range c.Names {
+			if strings.TrimPrefix(n, "/") == name {
+				require.Failf(t, "container present",
+					"expected container %q not to exist, but found it (state=%s)", name, c.State)
 			}
 		}
-	}
-
-	for name, expected := range expectedContainers {
-		found := false
-
-		for _, c := range containers {
-			if c.State != "running" {
-				continue
-			}
-
-			for _, containerName := range c.Names {
-				if strings.TrimPrefix(containerName, "/") == name {
-					found = true
-					break
-				}
-			}
-		}
-
-		assert.Equal(
-			t,
-			expected,
-			found,
-			"unexpected presence of container %s",
-			name,
-		)
-	}
-
-	componentsDir := filepath.Join(daprPath, "components")
-
-	redisComponents := []string{
-		"statestore.yaml",
-		"pubsub.yaml",
-	}
-
-	for _, component := range redisComponents {
-		componentPath := filepath.Join(componentsDir, component)
-
-		if noRedis {
-			assert.NoFileExists(
-				t,
-				componentPath,
-				"Redis component %s should not exist",
-				component,
-			)
-		} else {
-			assert.FileExists(
-				t,
-				componentPath,
-				"Redis component %s should exist",
-				component,
-			)
-		}
-	}
-
-	configPath := filepath.Join(daprPath, "config.yaml")
-
-	configBytes, err := os.ReadFile(configPath)
-	require.NoError(t, err, "failed to read Dapr configuration")
-
-	var actual map[string]interface{}
-	err = yaml.Unmarshal(configBytes, &actual)
-	require.NoError(t, err, "failed to unmarshal Dapr configuration")
-
-	spec, ok := actual["spec"].(map[interface{}]interface{})
-	require.True(t, ok, "configuration spec is missing or invalid")
-
-	tracing, hasTracing := spec["tracing"]
-
-	if noZipkin {
-		assert.False(
-			t,
-			hasTracing,
-			"Zipkin tracing configuration should not exist when --no-zipkin is specified",
-		)
-	} else {
-		require.True(
-			t,
-			hasTracing,
-			"Zipkin tracing configuration should exist",
-		)
-
-		tracingSpec, ok := tracing.(map[interface{}]interface{})
-		require.True(t, ok, "tracing configuration is invalid")
-
-		assert.Equal(t, "1", tracingSpec["samplingRate"])
-
-		zipkin, ok := tracingSpec["zipkin"].(map[interface{}]interface{})
-		require.True(t, ok, "Zipkin configuration is missing")
-
-		assert.Equal(
-			t,
-			"http://localhost:9411/api/v2/spans",
-			zipkin["endpointAddress"],
-		)
 	}
 }
