@@ -889,6 +889,10 @@ func startSentryContainer(info initInfo) error {
 		return err
 	}
 
+	if err := os.Chmod(certsDir, 0o1777); err != nil {
+		return err
+	}
+
 	args := sentryContainerArgs(info, runtimeCmd, containerName, image, certsDir, configFile)
 	if _, err = utils.RunCmdAndWait(runtimeCmd, args...); err != nil {
 		if isContainerRunError(err) {
