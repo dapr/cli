@@ -850,11 +850,6 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 	errorChan <- nil
 }
 
-const (
-	sentryContainerCertsDir   = "/.dapr/certs/"
-	sentryContainerConfigFile = "/.dapr/config.yaml"
-)
-
 func runSentryService(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
 	defer wg.Done()
 
@@ -890,7 +885,7 @@ func startSentryContainer(info initInfo) error {
 	if err != nil {
 		return err
 	}
-	if err = os.MkdirAll(certsDir, 0o755); err != nil {
+	if err = os.MkdirAll(certsDir, 0o1777); err != nil {
 		return err
 	}
 
@@ -926,6 +921,16 @@ func sentryImage(info initInfo) (string, error) {
 }
 
 func sentryContainerArgs(info initInfo, runtimeCmd, containerName, image, certsDir, configFile string) []string {
+	var (
+		sentryContainerCertsDir   = "/var/lock/.dapr/certs/"
+		sentryContainerConfigFile = "/var/lock/.dapr/config.yaml"
+	)
+
+	if strings.EqualFold(info.imageVariant, "mariner") {
+		sentryContainerCertsDir = "/var/tmp/.dapr/certs/"
+		sentryContainerConfigFile = "/var/tmp/.dapr/config.yaml"
+	}
+
 	args := []string{
 		"run",
 		"--name", containerName,
