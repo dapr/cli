@@ -38,26 +38,7 @@ func (a *RunFileConfig) parseAppsConfig(runFilePath string) error {
 	if err := yaml.Unmarshal(data, a); err != nil {
 		return fmt.Errorf("error in parsing the provided app config file: %w", err)
 	}
-
-	// envFile paths are relative to the run file, not to the current directory.
-	baseDir, err := filepath.Abs(filepath.Dir(runFilePath))
-	if err != nil {
-		return fmt.Errorf("error in resolving the run file directory: %w", err)
-	}
-	a.Common.EnvFile = resolveRelativeTo(baseDir, a.Common.EnvFile)
-	for i := range a.Apps {
-		a.Apps[i].EnvFile = resolveRelativeTo(baseDir, a.Apps[i].EnvFile)
-	}
 	return nil
-}
-
-// resolveRelativeTo returns p unchanged if it is empty or already absolute,
-// otherwise p joined onto baseDir.
-func resolveRelativeTo(baseDir, p string) string {
-	if p == "" || filepath.IsAbs(p) {
-		return p
-	}
-	return filepath.Join(baseDir, p)
 }
 
 // validateRunConfig validates the run file config for mandatory fields.
@@ -283,7 +264,20 @@ func (a *RunFileConfig) resolveResourcesAndConfigFilePaths() error {
 // Precedence order for envs -> apps[i].envs > common.envs.
 func (a *RunFileConfig) mergeCommonAndAppsEnv() {
 	for i := range a.Apps {
-		a.Apps[i].Env = make(map[string]string)
+		if a.Apps[i].Env == nil {
+			a.Apps[i].Env = make(map[string]string)
+		}
+
+		if file := a.Common.EnvFile; file != "" {
+			if envs, err := envfile.GetEnvs(file); err == nil {
+				for k, v := range envs {
+					if _, ok := a.Apps[i].Env[k]; !ok {
+						a.Apps[i].Env[k] = v
+					}
+				}
+			}
+		}
+
 		for k, v := range a.Common.Env {
 			if _, ok := a.Apps[i].Env[k]; !ok {
 				a.Apps[i].Env[k] = v
@@ -291,18 +285,8 @@ func (a *RunFileConfig) mergeCommonAndAppsEnv() {
 		}
 
 		if file := a.Apps[i].EnvFile; file != "" {
-			envs, _ := envfile.GetEnvs(file)
-			for k, v := range envs {
-				if _, ok := a.Apps[i].Env[k]; !ok {
-					a.Apps[i].Env[k] = v
-				}
-			}
-		}
-
-		if file := a.Common.EnvFile; file != "" {
-			envs, _ := envfile.GetEnvs(file)
-			for k, v := range envs {
-				if _, ok := a.Apps[i].Env[k]; !ok {
+			if envs, err := envfile.GetEnvs(file); err == nil {
+				for k, v := range envs {
 					a.Apps[i].Env[k] = v
 				}
 			}

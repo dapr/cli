@@ -2,14 +2,15 @@ package envfile
 
 import (
 	"os"
+
 	"github.com/joho/godotenv"
 )
 
-func GetEnvs(envFile string) (map[string]string, error) {
-	file, err := os.Open(envFile)
+func GetEnvs(path string) (map[string]string, error) {
+	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
-
-	return godotenv.Parse(file)
+	defer f.Close()
+	return godotenv.Parse(f)
 }

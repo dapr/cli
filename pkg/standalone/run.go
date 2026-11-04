@@ -471,6 +471,8 @@ func (config *RunConfig) setDefaultFromSchemaRecursive(schema reflect.Value) {
 }
 
 func (config *RunConfig) getEnv() []string {
+	config.mergeEnvFileIntoEnv()
+
 	env := []string{}
 
 	// Handle values from config that have an "env" tag.
@@ -497,16 +499,9 @@ func (config *RunConfig) getEnv() []string {
 		env = append(env, "APP_PROTOCOL="+appProtocol)
 	}
 
-	// Add user-defined env vars.
+	// Add user-defined env vars (already includes envFile via mergeEnvFileIntoEnv).
 	for k, v := range config.Env {
 		env = append(env, fmt.Sprintf("%s=%v", k, v))
-	}
-
-	if file := config.EnvFile; file != "" {
-		envs, _ := envfile.GetEnvs(file)
-		for k, v := range envs {
-			env = append(env, fmt.Sprintf("%s=%v", k, v))
-		}
 	}
 
 	return env
@@ -540,6 +535,8 @@ func (config *RunConfig) getAppProtocol() string {
 }
 
 func (config *RunConfig) GetEnv() map[string]string {
+	config.mergeEnvFileIntoEnv()
+
 	env := map[string]string{}
 	schema := reflect.ValueOf(*config)
 	for i := range schema.NumField() {
@@ -560,14 +557,6 @@ func (config *RunConfig) GetEnv() map[string]string {
 	for k, v := range config.Env {
 		env[k] = v
 	}
-
-	if file := config.EnvFile; file != "" {
-		envs, _ := envfile.GetEnvs(file)
-		for k, v := range envs {
-			env[k] = v
-		}
-	}
-
 	return env
 }
 
@@ -600,21 +589,30 @@ func GetDaprCommand(config *RunConfig) (*exec.Cmd, error) {
 	args := config.getArgs()
 	cmd := exec.Command(daprCMD, args...)
 
-	if len(config.Env) > 0 {
-		cmd.Env = os.Environ()
-		for k, v := range config.Env {
-			cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%v", k, v))
-		}
-	}
-
-	if file := config.EnvFile; file != "" {
-		envs, _ := envfile.GetEnvs(file)
-		for k, v := range envs {
-			cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%v", k, v))
-		}
+	userEnv := config.getEnv()
+	if len(userEnv) > 0 {
+		cmd.Env = append(os.Environ(), userEnv...)
 	}
 
 	return cmd, nil
+}
+
+func (config *RunConfig) mergeEnvFileIntoEnv() {
+	if config.EnvFile == "" {
+		return
+	}
+	envs, err := envfile.GetEnvs(config.EnvFile)
+	if err != nil {
+		return
+	}
+	if config.Env == nil {
+		config.Env = make(map[string]string)
+	}
+	for k, v := range envs {
+		if _, ok := config.Env[k]; !ok {
+			config.Env[k] = v
+		}
+	}
 }
 
 func mtlsEndpoint(configFile string) string {
