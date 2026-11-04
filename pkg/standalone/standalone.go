@@ -143,6 +143,7 @@ type initInfo struct {
 	schedulerOverrideBroadcastHostPort *string
 	schedulerPlacement                 bool
 	redisStack                         bool
+	noZipkin, noRedis                  bool
 }
 
 // InitOptions configures a standalone Dapr initialization.
@@ -159,6 +160,8 @@ type InitOptions struct {
 	SchedulerOverrideBroadcastHostPort *string
 	SchedulerPlacement                 bool
 	RedisStack                         bool
+	NoRedis                            bool
+	NoZipkin                           bool
 }
 
 type daprImageInfo struct {
@@ -337,8 +340,14 @@ func Init(opts InitOptions) error {
 		installScheduler,
 		runPlacementService,
 		runSchedulerService,
-		runRedis,
-		runZipkin,
+	}
+
+	if !opts.NoRedis {
+		initSteps = append(initSteps, runRedis)
+	}
+
+	if !opts.NoZipkin {
+		initSteps = append(initSteps, runZipkin)
 	}
 
 	// Init other configurations, containers.
@@ -372,6 +381,8 @@ func Init(opts InitOptions) error {
 		schedulerOverrideBroadcastHostPort: schedulerOverrideBroadcastHostPort,
 		schedulerPlacement:                 opts.SchedulerPlacement,
 		redisStack:                         redisStack,
+		noZipkin:                           opts.NoZipkin,
+		noRedis:                            opts.NoRedis,
 	}
 	// Free the scheduler's host ports before starting any container: this may
 	// shut down WSL, which also stops Docker Desktop's WSL2 engine.
@@ -415,7 +426,13 @@ func Init(opts InitOptions) error {
 		print.InfoStatusEvent(os.Stdout, "%s binary has been installed to %s.", schedulerServiceFilePrefix, daprBinDir)
 	} else {
 		runtimeCmd := utils.GetContainerRuntimeCmd(info.containerRuntime)
-		dockerContainerNames := []string{DaprPlacementContainerName, DaprRedisContainerName, DaprZipkinContainerName}
+		dockerContainerNames := []string{DaprPlacementContainerName}
+		if !info.noRedis {
+			dockerContainerNames = append(dockerContainerNames, DaprRedisContainerName)
+		}
+		if !info.noZipkin {
+			dockerContainerNames = append(dockerContainerNames, DaprZipkinContainerName)
+		}
 		// Skip redis and zipkin in local installation mode.
 		if isAirGapInit {
 			dockerContainerNames = []string{DaprPlacementContainerName}
@@ -968,16 +985,23 @@ func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error
 	componentsDir := GetDaprComponentsPath(info.installDir)
 	configPath := GetDaprConfigPath(info.installDir)
 
-	err = createRedisPubSub(redisHost, componentsDir)
-	if err != nil {
-		errorChan <- fmt.Errorf("error creating redis pubsub component file: %w", err)
-		return
+	if !info.noRedis {
+		err = createRedisPubSub(redisHost, componentsDir)
+		if err != nil {
+			errorChan <- fmt.Errorf("error creating redis pubsub component file: %w", err)
+			return
+		}
+		err = createRedisStateStore(redisHost, componentsDir)
+		if err != nil {
+			errorChan <- fmt.Errorf("error creating redis statestore component file: %w", err)
+			return
+		}
 	}
-	err = createRedisStateStore(redisHost, componentsDir)
-	if err != nil {
-		errorChan <- fmt.Errorf("error creating redis statestore component file: %w", err)
-		return
+
+	if info.noZipkin {
+		zipkinHost = ""
 	}
+
 	err = createDefaultConfiguration(zipkinHost, configPath)
 	if err != nil {
 		errorChan <- fmt.Errorf("error creating default configuration file: %w", err)
