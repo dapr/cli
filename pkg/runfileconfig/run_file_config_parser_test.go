@@ -23,6 +23,7 @@ import (
 	"github.com/dapr/cli/pkg/standalone"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -393,6 +394,126 @@ func TestGetBasePathFromAbsPath(t *testing.T) {
 			assert.Equal(t, tc.expectedAppID, appID)
 		})
 	}
+}
+
+func TestRunConfigEnvFile(t *testing.T) {
+	t.Run("common envFile applies to all apps", func(t *testing.T) {
+		apps := getAppsWithEnvFiles(t, func(paths envPaths) string {
+			return fmt.Sprintf(`
+version: 1
+common:
+  envFile: %q
+apps:
+  - appID: webapp
+    appDirPath: %q
+  - appID: backend
+    appDirPath: %q
+`, paths.files["common.env"], paths.webapp, paths.backend)
+		}, map[string]string{
+			"common.env": "KEY1=v1\nKEY2=v2\n",
+		})
+
+		want := map[string]string{"KEY1": "v1", "KEY2": "v2"}
+		assert.Equal(t, want, envOf(apps, "webapp"))
+		assert.Equal(t, want, envOf(apps, "backend"))
+	})
+
+	t.Run("app envFile applies only to that app", func(t *testing.T) {
+		apps := getAppsWithEnvFiles(t, func(paths envPaths) string {
+			return fmt.Sprintf(`
+version: 1
+common: {}
+apps:
+  - appID: webapp
+    appDirPath: %q
+    envFile: %q
+  - appID: backend
+    appDirPath: %q
+    envFile: %q
+`, paths.webapp, paths.files["webapp.env"], paths.backend, paths.files["backend.env"])
+		}, map[string]string{
+			"webapp.env":  "W=1\n",
+			"backend.env": "B=2\n",
+		})
+
+		assert.Equal(t, map[string]string{"W": "1"}, envOf(apps, "webapp"))
+		assert.Equal(t, map[string]string{"B": "2"}, envOf(apps, "backend"))
+	})
+
+	t.Run("app envFile overrides common envFile for same key", func(t *testing.T) {
+		apps := getAppsWithEnvFiles(t, func(paths envPaths) string {
+			return fmt.Sprintf(`
+version: 1
+common:
+  envFile: %q
+apps:
+  - appID: webapp
+    appDirPath: %q
+  - appID: backend
+    appDirPath: %q
+    envFile: %q
+`, paths.files["common.env"], paths.webapp, paths.backend, paths.files["backend.env"])
+		}, map[string]string{
+			"common.env":  "SHARED=from-common\nONLY_COMMON=1\n",
+			"backend.env": "SHARED=from-app\nONLY_APP=2\n",
+		})
+
+		assert.Equal(t, map[string]string{
+			"SHARED":      "from-common",
+			"ONLY_COMMON": "1",
+		}, envOf(apps, "webapp"))
+
+		assert.Equal(t, map[string]string{
+			"SHARED":      "from-app",
+			"ONLY_COMMON": "1",
+			"ONLY_APP":    "2",
+		}, envOf(apps, "backend"))
+	})
+}
+
+type envPaths struct {
+	webapp  string
+	backend string
+	files   map[string]string // name → absolute path
+}
+
+func getAppsWithEnvFiles(t *testing.T, yamlFn func(envPaths) string, envFiles map[string]string) []App {
+	t.Helper()
+
+	tempDir := t.TempDir()
+
+	webapp := filepath.Join(tempDir, "webapp")
+	backend := filepath.Join(tempDir, "backend")
+	require.NoError(t, os.MkdirAll(webapp, 0o755))
+	require.NoError(t, os.MkdirAll(backend, 0o755))
+
+	paths := envPaths{
+		webapp:  webapp,
+		backend: backend,
+		files:   make(map[string]string, len(envFiles)),
+	}
+	for name, content := range envFiles {
+		abs := filepath.Join(tempDir, name)
+		require.NoError(t, os.WriteFile(abs, []byte(content), 0o600))
+		paths.files[name] = abs
+	}
+
+	runPath := filepath.Join(tempDir, "dapr.yaml")
+	require.NoError(t, os.WriteFile(runPath, []byte(yamlFn(paths)), 0o600))
+
+	var config RunFileConfig
+	apps, err := config.GetApps(runPath)
+	require.NoError(t, err)
+	return apps
+}
+
+func envOf(apps []App, appID string) map[string]string {
+	for _, a := range apps {
+		if a.AppID == appID {
+			return a.Env
+		}
+	}
+	return nil
 }
 
 // getResoucresAndConfigFilePaths returns a list containing resources and config file paths in order.
