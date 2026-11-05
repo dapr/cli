@@ -20,11 +20,13 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"runtime"
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/mod/semver"
@@ -81,6 +83,7 @@ var (
 const (
 	defaultRunTemplateFileName  = "dapr.yaml"
 	runtimeWaitTimeoutInSeconds = 60
+	appLogDrainTimeout          = 5 * time.Second
 )
 
 // Flags that are compatible with --run-file
@@ -516,6 +519,11 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 	// setup shutdown notify channel.
 	sigCh := make(chan os.Signal, 1)
 	daprsyscall.SetupShutdownNotify(sigCh)
+	defer signal.Stop(sigCh)
+
+	// Apps can exit while later apps are still starting, or during shutdown.
+	// Give each app room to report its result without blocking its waiter.
+	appExited := make(chan error, len(apps))
 
 	runStates := make([]*runExec.RunExec, 0, len(apps))
 
@@ -580,7 +588,7 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 			appLogWriter = runfileconfig.GetLogWriter(app.AppLogWriteCloser, app.AppLogDestination)
 		}
 		customAppLogWriter = print.CustomLogWriter{W: appLogWriter}
-		runState, err := startDaprdAndAppProcesses(&runConfig, app.AppDirPath, sigCh,
+		runState, err := startDaprdAndAppProcesses(&runConfig, app.AppDirPath, appExited,
 			daprdLogWriterCloser, daprdLogWriterCloser, customAppLogWriter, customAppLogWriter)
 		if err != nil {
 			print.StatusEvent(appDaprdWriter, print.LogFailure, "Error starting Dapr and app (%q): %s", app.AppID, err.Error())
@@ -622,13 +630,19 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 		print.StatusEvent(runState.DaprCMD.OutputWriter, print.LogSuccess, "You're up and running! Dapr logs will appear here.\n")
 		logInformationalStatusToStdout(app)
 	}
-	// If all apps have been started and there are no errors in starting the apps wait for signal from sigCh.
+	// Wait only after startup succeeds, so a short-lived app cannot stop later
+	// apps from starting. Entries without commands keep the run signal-driven:
+	// the CLI cannot monitor applications that are started externally.
 	if !exitWithError {
-		// After all apps started wait for sigCh.
-		<-sigCh
+		var allAppsExited bool
+		allAppsExited, exitWithError = runExec.WaitForApps(sigCh, appExited, len(apps))
 		// To add a new line in Stdout.
 		fmt.Println()
-		print.InfoStatusEvent(os.Stdout, "Received signal to stop Dapr and app processes. Shutting down Dapr and app processes.")
+		if allAppsExited {
+			print.InfoStatusEvent(os.Stdout, "All app processes have exited. Shutting down Dapr and app processes.")
+		} else {
+			print.InfoStatusEvent(os.Stdout, "Received signal to stop Dapr and app processes. Shutting down Dapr and app processes.")
+		}
 	}
 
 	// Stop daprd and app processes for each runState.
@@ -715,7 +729,7 @@ func getRunConfigFromRunFile(runFilePath string) (runfileconfig.RunFileConfig, [
 
 // startDaprdAndAppProcesses is a function to start the App process and the associated Daprd process.
 // This should be called as a blocking function call.
-func startDaprdAndAppProcesses(runConfig *standalone.RunConfig, commandDir string, sigCh chan os.Signal,
+func startDaprdAndAppProcesses(runConfig *standalone.RunConfig, commandDir string, appExited chan<- error,
 	daprdOutputWriter io.Writer, daprdErrorWriter io.Writer,
 	appOutputWriter io.Writer, appErrorWriter io.Writer,
 ) (*runExec.RunExec, error) {
@@ -756,7 +770,7 @@ func startDaprdAndAppProcesses(runConfig *standalone.RunConfig, commandDir strin
 	startErrChan := make(chan error, 1)
 
 	// Start daprd process.
-	go startDaprdProcess(runConfig, runState, daprRunning, sigCh, startErrChan)
+	go startDaprdProcess(runConfig, runState, daprRunning, startErrChan)
 
 	// Wait for daprRunning channel output.
 	if daprStarted := <-daprRunning; !daprStarted {
@@ -779,7 +793,7 @@ func startDaprdAndAppProcesses(runConfig *standalone.RunConfig, commandDir strin
 	}
 
 	// Start App process.
-	go startAppProcess(runConfig, runState, appRunning, sigCh, startErrChan)
+	go startAppProcess(runState, appRunning, appExited, startErrChan)
 
 	// Wait for appRunnning channel output.
 	if appStarted := <-appRunning; !appStarted {
@@ -826,7 +840,9 @@ func stopDaprdAndAppProcesses(runState *runExec.RunExec) bool {
 	if appErr != nil {
 		exitWithError = true
 		print.StatusEvent(runState.AppCMD.ErrorWriter, print.LogFailure, "Error exiting App: %s", appErr)
-	} else if runState.AppCMD.Command != nil && runState.AppCMD.Command.Process != nil {
+	}
+	// Even a failed app can leave descendants in its process group.
+	if runState.AppCMD.Command != nil && runState.AppCMD.Command.Process != nil {
 		err = killAppProcess(runState)
 		if err != nil {
 			exitWithError = true
@@ -835,17 +851,19 @@ func stopDaprdAndAppProcesses(runState *runExec.RunExec) bool {
 	return exitWithError
 }
 
-// startAppsProcess, starts the App process and calls wait in a goroutine
+// startAppProcess starts the App process and reports its exit in a goroutine.
 // This function should be called as a goroutine.
-func startAppProcess(runConfig *standalone.RunConfig, runE *runExec.RunExec,
-	appRunning chan bool, sigCh chan os.Signal, errorChan chan error,
+func startAppProcess(runE *runExec.RunExec,
+	appRunning chan bool, appExited chan<- error, errorChan chan error,
 ) {
 	if runE.AppCMD.Command == nil {
 		appRunning <- true
 		return
 	}
 
-	stdErrPipe, pipeErr := runE.AppCMD.Command.StderrPipe()
+	// Own these pipes so Command.Wait can reap the process without closing the
+	// readers before its final output has been consumed.
+	stdErrPipe, stdErrWriter, pipeErr := os.Pipe()
 	if pipeErr != nil {
 		print.StatusEvent(runE.AppCMD.ErrorWriter, print.LogFailure, "Error creating stderr for App %q : %s", runE.AppID, pipeErr.Error())
 		errorChan <- pipeErr
@@ -853,17 +871,24 @@ func startAppProcess(runConfig *standalone.RunConfig, runE *runExec.RunExec,
 		return
 	}
 
-	stdOutPipe, pipeErr := runE.AppCMD.Command.StdoutPipe()
+	stdOutPipe, stdOutWriter, pipeErr := os.Pipe()
 	if pipeErr != nil {
+		stdErrPipe.Close()
+		stdErrWriter.Close()
 		print.StatusEvent(runE.AppCMD.ErrorWriter, print.LogFailure, "Error creating stdout for App %q : %s", runE.AppID, pipeErr.Error())
 		errorChan <- pipeErr
 		appRunning <- false
 		return
 	}
+	runE.AppCMD.Command.Stderr = stdErrWriter
+	runE.AppCMD.Command.Stdout = stdOutWriter
 
 	errScanner := bufio.NewScanner(stdErrPipe)
 	outScanner := bufio.NewScanner(stdOutPipe)
+	var logsDone sync.WaitGroup
+	logsDone.Add(2)
 	go func() {
+		defer logsDone.Done()
 		for errScanner.Scan() {
 			fmt.Fprintln(runE.AppCMD.ErrorWriter, print.Blue(fmt.Sprintf("== APP - %s == %s", runE.AppID,
 				errScanner.Text())))
@@ -871,13 +896,20 @@ func startAppProcess(runConfig *standalone.RunConfig, runE *runExec.RunExec,
 	}()
 
 	go func() {
+		defer logsDone.Done()
 		for outScanner.Scan() {
 			fmt.Fprintln(runE.AppCMD.OutputWriter, print.Blue(fmt.Sprintf("== APP - %s == %s", runE.AppID, outScanner.Text())))
 		}
 	}()
 
 	err := runE.AppCMD.Command.Start()
+	// Only the child should retain the write ends, allowing readers to see EOF.
+	stdErrWriter.Close()
+	stdOutWriter.Close()
 	if err != nil {
+		stdErrPipe.Close()
+		stdOutPipe.Close()
+		logsDone.Wait()
 		print.StatusEvent(runE.AppCMD.ErrorWriter, print.LogFailure, err.Error())
 		errorChan <- err
 		appRunning <- false
@@ -885,7 +917,21 @@ func startAppProcess(runConfig *standalone.RunConfig, runE *runExec.RunExec,
 	}
 
 	go func() {
+		defer stdErrPipe.Close()
+		defer stdOutPipe.Close()
 		appErr := runE.AppCMD.Command.Wait()
+		// A descendant may retain the pipes after the command exits. Close the
+		// readers after a grace period so inherited pipes cannot keep them open
+		// indefinitely. Output writers must still make progress: closing a reader
+		// does not interrupt a write already blocked in a scanner goroutine.
+		drainTimer := time.AfterFunc(appLogDrainTimeout, func() {
+			stdErrPipe.Close()
+			stdOutPipe.Close()
+		})
+		logsDone.Wait()
+		if !drainTimer.Stop() {
+			print.StatusEvent(runE.AppCMD.ErrorWriter, print.LogWarning, "App output did not close after the process exited; final output may be incomplete")
+		}
 
 		if appErr != nil {
 			runE.AppCMD.CommandErr = appErr
@@ -893,6 +939,7 @@ func startAppProcess(runConfig *standalone.RunConfig, runE *runExec.RunExec,
 		} else {
 			print.StatusEvent(runE.AppCMD.OutputWriter, print.LogSuccess, "Exited App successfully")
 		}
+		appExited <- appErr
 	}()
 
 	appRunning <- true
@@ -901,7 +948,7 @@ func startAppProcess(runConfig *standalone.RunConfig, runE *runExec.RunExec,
 // startDaprdProcess, starts the Daprd process and calls wait in a goroutine
 // This function should be called as a goroutine.
 func startDaprdProcess(runConfig *standalone.RunConfig, runE *runExec.RunExec,
-	daprRunning chan bool, sigCh chan os.Signal, errorChan chan error,
+	daprRunning chan bool, errorChan chan error,
 ) {
 	var startInfo string
 	if runConfig.UnixDomainSocket != "" {
