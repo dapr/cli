@@ -450,6 +450,23 @@ dapr run --app-id nodeapp --placement-host-address dapr_placement node app.js
 
 > Note: When in a specific Docker network, the Redis, Zipkin and placement and scheduler service containers are given specific network aliases, `dapr_redis`, `dapr_zipkin`, `dapr_placement`, and `dapr_scheduler`, respectively. The default configuration files reflect the network alias rather than `localhost` when a docker network is specified.
 
+#### Run multiple apps
+
+Use a run template to launch several apps and their sidecars together:
+
+```bash
+dapr run --run-file dapr.yaml
+```
+
+In self-hosted mode, the CLI stops the sidecars and exits after all configured app
+commands have exited. An app finishing does not stop other apps that are still
+running. If any app command fails, the CLI exits with a nonzero status after the
+remaining apps finish.
+
+If any entry has no `command`, the CLI keeps running until you stop it, for example
+with Ctrl+C or `dapr stop --run-file dapr.yaml`, because it cannot monitor apps
+started outside the CLI. You can also stop a run before all app commands finish.
+
 ### Use gRPC
 
 If your app uses gRPC instead of HTTP to receive Dapr events, run the CLI with the following command:
