@@ -104,6 +104,18 @@ This step creates the following defaults:
 2. component files in the components folder called `pubsub.yaml` and `statestore.yaml`.
 3. default config file `$HOME/.dapr/config.yaml` for Linux/MacOS or for Windows at `%USERPROFILE%\.dapr\config.yaml` to enable tracing on `dapr init` call. Can be overridden with the `--config` flag on `dapr run`.
 
+#### Enable mTLS for self-hosted Dapr
+
+mTLS is disabled by default in self-hosted mode. To enable mTLS, pass the `--enable-mtls` flag when initializing Dapr:
+
+```bash
+dapr init --enable-mtls
+```
+
+When enabled, the CLI starts the local Sentry service, generates the required certificates, and enables mTLS in the default Dapr configuration. The CLI also makes the generated certificates available automatically when you run an app with `dapr run`, including apps launched through a run file. You do not need to configure the mTLS environment variables manually.
+
+Without `--enable-mtls`, self-hosted initialization behaves as before and mTLS remains disabled.
+
 #### Slim Init
 
 Alternatively to the above, to have the CLI not install any default configuration files or run Docker containers, use the `--slim` flag with the init command. Only Dapr binaries will be installed.
