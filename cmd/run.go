@@ -25,6 +25,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"golang.org/x/mod/semver"
@@ -893,6 +894,7 @@ func startAppProcess(runConfig *standalone.RunConfig, runE *runExec.RunExec,
 		} else {
 			print.StatusEvent(runE.AppCMD.OutputWriter, print.LogSuccess, "Exited App successfully")
 		}
+		sigCh <- syscall.SIGTERM
 	}()
 
 	appRunning <- true
