@@ -30,6 +30,7 @@ import (
 
 var (
 	uninstallNamespace        string
+	uninstallReleaseName      string
 	uninstallKubernetes       bool
 	uninstallDev              bool
 	uninstallAll              bool
@@ -59,6 +60,9 @@ dapr uninstall -k --dev
 # Uninstall from Kubernetes remove dev deployments of Redis, Zipkin and CRDs
 dapr uninstall -k --dev --all
 
+# Uninstall Dapr that was installed in Kubernetes with a custom Helm release name
+dapr uninstall -k --release-name my-dapr
+
 # Uninstall Dapr from non-default install directory
 # This will remove the .dapr directory present in the path <path-to-install-directory>
 dapr uninstall --runtime-path <path-to-install-directory>
@@ -77,7 +81,7 @@ dapr uninstall --runtime-path <path-to-install-directory>
 			}
 
 			print.InfoStatusEvent(os.Stdout, "Removing Dapr from your cluster...")
-			err = kubernetes.Uninstall(uninstallNamespace, uninstallAll, uninstallDev, timeout)
+			err = kubernetes.Uninstall(uninstallNamespace, uninstallReleaseName, uninstallAll, uninstallDev, timeout)
 		} else {
 			if !utils.IsValidContainerRuntime(uninstallContainerRuntime) {
 				print.FailureStatusEvent(os.Stderr, "Invalid container runtime. Supported values are docker and podman.")
@@ -103,6 +107,7 @@ func init() {
 	UninstallCmd.Flags().BoolVar(&uninstallAll, "all", false, "Remove .dapr directory, Redis, Placement, Scheduler (and default volume in self-hosted mode), and Zipkin containers on local machine, and CRDs on a Kubernetes cluster")
 	UninstallCmd.Flags().String("network", "", "The Docker network from which to remove the Dapr runtime")
 	UninstallCmd.Flags().StringVarP(&uninstallNamespace, "namespace", "n", "dapr-system", "The Kubernetes namespace to uninstall Dapr from")
+	UninstallCmd.Flags().StringVarP(&uninstallReleaseName, "release-name", "", "dapr", "The name of the Helm release of the Dapr installation to remove from the Kubernetes cluster")
 	UninstallCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	UninstallCmd.Flags().StringVarP(&uninstallContainerRuntime, "container-runtime", "", "docker", "The container runtime to use. Supported values are docker (default) and podman")
 	RootCmd.AddCommand(UninstallCmd)

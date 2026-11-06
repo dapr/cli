@@ -23,20 +23,25 @@ import (
 	"github.com/dapr/cli/utils"
 )
 
-// Uninstall removes Dapr from a Kubernetes cluster.
-func Uninstall(namespace string, uninstallAll bool, uninstallDev bool, timeout uint) error {
+// Uninstall removes Dapr from a Kubernetes cluster. releaseName is the name of
+// the Helm release of the Dapr control plane; when empty, "dapr" is used.
+func Uninstall(namespace string, releaseName string, uninstallAll bool, uninstallDev bool, timeout uint) error {
+	if releaseName == "" {
+		releaseName = daprReleaseName
+	}
+
 	config, err := helmConfig(namespace)
 	if err != nil {
 		return err
 	}
 
-	exists, err := confirmExist(config, daprReleaseName)
+	exists, err := confirmExist(config, releaseName)
 	if err != nil {
 		return err
 	}
 
 	if !exists {
-		print.WarningStatusEvent(os.Stderr, "WARNING: %s release does not exist", daprReleaseName)
+		print.WarningStatusEvent(os.Stderr, "WARNING: %s release does not exist", releaseName)
 		return nil
 	}
 
@@ -48,7 +53,7 @@ func Uninstall(namespace string, uninstallAll bool, uninstallDev bool, timeout u
 		uninstallThirdParty()
 	}
 
-	_, err = uninstallClient.Run(daprReleaseName)
+	_, err = uninstallClient.Run(releaseName)
 	if err != nil {
 		return err
 	}
