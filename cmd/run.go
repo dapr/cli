@@ -25,6 +25,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/mod/semver"
@@ -524,6 +525,8 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 	// This is done to provide a better grouping, which can be used to control all the proceses started by "dapr run -f".
 	daprsyscall.CreateProcessGroupID()
 
+	var wg sync.WaitGroup
+	wg.Add(len(apps))
 	for _, app := range apps {
 		print.StatusEvent(os.Stdout, print.LogInfo, "Validating config and starting app %q", app.AppID)
 		// Set defaults if zero value provided in config yaml.
@@ -580,7 +583,7 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 			appLogWriter = runfileconfig.GetLogWriter(app.AppLogWriteCloser, app.AppLogDestination)
 		}
 		customAppLogWriter = print.CustomLogWriter{W: appLogWriter}
-		runState, err := startDaprdAndAppProcesses(&runConfig, app.AppDirPath, sigCh,
+		runState, err := startDaprdAndAppProcesses(&runConfig, app.AppDirPath, sigCh, wg.Done,
 			daprdLogWriterCloser, daprdLogWriterCloser, customAppLogWriter, customAppLogWriter)
 		if err != nil {
 			print.StatusEvent(appDaprdWriter, print.LogFailure, "Error starting Dapr and app (%q): %s", app.AppID, err.Error())
@@ -622,10 +625,12 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 		print.StatusEvent(runState.DaprCMD.OutputWriter, print.LogSuccess, "You're up and running! Dapr logs will appear here.\n")
 		logInformationalStatusToStdout(app)
 	}
+
+	wg.Wait()
 	// If all apps have been started and there are no errors in starting the apps wait for signal from sigCh.
 	if !exitWithError {
 		// After all apps started wait for sigCh.
-		<-sigCh
+		// <-sigCh
 		// To add a new line in Stdout.
 		fmt.Println()
 		print.InfoStatusEvent(os.Stdout, "Received signal to stop Dapr and app processes. Shutting down Dapr and app processes.")
@@ -715,7 +720,7 @@ func getRunConfigFromRunFile(runFilePath string) (runfileconfig.RunFileConfig, [
 
 // startDaprdAndAppProcesses is a function to start the App process and the associated Daprd process.
 // This should be called as a blocking function call.
-func startDaprdAndAppProcesses(runConfig *standalone.RunConfig, commandDir string, sigCh chan os.Signal,
+func startDaprdAndAppProcesses(runConfig *standalone.RunConfig, commandDir string, sigCh chan os.Signal, done func(),
 	daprdOutputWriter io.Writer, daprdErrorWriter io.Writer,
 	appOutputWriter io.Writer, appErrorWriter io.Writer,
 ) (*runExec.RunExec, error) {
@@ -779,7 +784,7 @@ func startDaprdAndAppProcesses(runConfig *standalone.RunConfig, commandDir strin
 	}
 
 	// Start App process.
-	go startAppProcess(runConfig, runState, appRunning, sigCh, startErrChan)
+	go startAppProcess(runConfig, runState, appRunning, done, startErrChan)
 
 	// Wait for appRunnning channel output.
 	if appStarted := <-appRunning; !appStarted {
@@ -838,7 +843,7 @@ func stopDaprdAndAppProcesses(runState *runExec.RunExec) bool {
 // startAppsProcess, starts the App process and calls wait in a goroutine
 // This function should be called as a goroutine.
 func startAppProcess(runConfig *standalone.RunConfig, runE *runExec.RunExec,
-	appRunning chan bool, sigCh chan os.Signal, errorChan chan error,
+	appRunning chan bool, done func(), errorChan chan error,
 ) {
 	if runE.AppCMD.Command == nil {
 		appRunning <- true
@@ -893,6 +898,7 @@ func startAppProcess(runConfig *standalone.RunConfig, runE *runExec.RunExec,
 		} else {
 			print.StatusEvent(runE.AppCMD.OutputWriter, print.LogSuccess, "Exited App successfully")
 		}
+		done()
 	}()
 
 	appRunning <- true
