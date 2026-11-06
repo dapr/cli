@@ -16,6 +16,7 @@ limitations under the License.
 package cmd
 
 import (
+	"io"
 	"os/exec"
 	"syscall"
 	"testing"
@@ -23,6 +24,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	runExec "github.com/dapr/cli/pkg/runexec"
 )
 
 // TestKillProcessGroup_KillsEntireGroup verifies that killProcessGroup terminates all
@@ -49,6 +52,41 @@ func TestKillProcessGroup_KillsEntireGroup(t *testing.T) {
 	assert.Eventually(t, func() bool {
 		return syscall.Kill(-leader.Process.Pid, 0) == syscall.ESRCH
 	}, 2*time.Second, 50*time.Millisecond, "process group should be gone after killProcessGroup")
+}
+
+func TestStopProcessesCleansUpFailedAppGroup(t *testing.T) {
+	leader := exec.Command("sleep", "100")
+	leader.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	require.NoError(t, leader.Start())
+	t.Cleanup(func() { _ = leader.Process.Kill() })
+	pgid := leader.Process.Pid
+
+	member := exec.Command("sleep", "100")
+	member.SysProcAttr = &syscall.SysProcAttr{Setpgid: true, Pgid: pgid}
+	require.NoError(t, member.Start())
+	t.Cleanup(func() { _ = member.Process.Kill() })
+	go func() { _ = member.Wait() }()
+
+	require.NoError(t, leader.Process.Kill())
+	appErr := leader.Wait()
+	require.Error(t, appErr)
+
+	// The sidecar is already stopped, isolating app process-group cleanup.
+	sidecar := exec.Command("true")
+	require.NoError(t, sidecar.Run())
+	runState := &runExec.RunExec{
+		AppCMD: &runExec.CmdProcess{
+			Command: leader, CommandErr: appErr, OutputWriter: io.Discard, ErrorWriter: io.Discard,
+		},
+		DaprCMD: &runExec.CmdProcess{
+			Command: sidecar, OutputWriter: io.Discard, ErrorWriter: io.Discard,
+		},
+	}
+
+	assert.True(t, stopDaprdAndAppProcesses(runState), "the app error must still be reported")
+	assert.Eventually(t, func() bool {
+		return syscall.Kill(-pgid, 0) == syscall.ESRCH
+	}, 2*time.Second, 50*time.Millisecond, "failed app descendants should be stopped")
 }
 
 // TestKillProcessGroup_AlreadyGone verifies that killProcessGroup returns nil when

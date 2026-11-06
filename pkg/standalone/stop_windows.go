@@ -50,26 +50,43 @@ func StopAppsWithRunFile(runTemplatePath string) error {
 }
 
 func disposeJobHandle(cliPID int) error {
+	return disposeJobHandleWithWait(cliPID, time.Sleep)
+}
+
+func disposeJobHandleWithWait(cliPID int, wait func(time.Duration)) error {
+	// Keep the event alive before terminating the apps. Their exit can cause
+	// multi-app run to finish and release its own handle before we signal it.
+	eventHandle, err := openStopEvent(cliPID)
+	if err != nil {
+		return err
+	}
+	defer windows.CloseHandle(eventHandle)
+
 	jobObjectName := utils.GetJobObjectNameFromPID(strconv.Itoa(cliPID))
 	jbobj, err := winjob.Open(jobObjectName)
 	if err != nil {
 		return fmt.Errorf("error opening job object: %w", err)
 	}
+	defer jbobj.Close()
 	err = jbobj.TerminateWithExitCode(0)
 	if err != nil {
 		return fmt.Errorf("error terminating job object: %w", err)
 	}
-	time.Sleep(5 * time.Second)
-	return setStopEvent(cliPID)
+	wait(5 * time.Second)
+	return windows.SetEvent(eventHandle)
 }
 
 func setStopEvent(cliPID int) error {
-	eventName, _ := syscall.UTF16FromString(fmt.Sprintf("dapr_cli_%v", cliPID))
-	eventHandle, err := windows.OpenEvent(windows.EVENT_MODIFY_STATE, false, &eventName[0])
+	eventHandle, err := openStopEvent(cliPID)
 	if err != nil {
 		return err
 	}
+	defer windows.CloseHandle(eventHandle)
 
-	err = windows.SetEvent(eventHandle)
-	return err
+	return windows.SetEvent(eventHandle)
+}
+
+func openStopEvent(cliPID int) (windows.Handle, error) {
+	eventName, _ := syscall.UTF16FromString(fmt.Sprintf("dapr_cli_%v", cliPID))
+	return windows.OpenEvent(windows.EVENT_MODIFY_STATE, false, &eventName[0])
 }
