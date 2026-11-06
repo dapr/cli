@@ -17,6 +17,7 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"runtime"
 	"strings"
@@ -227,4 +228,25 @@ func TestGetQueryParams(t *testing.T) {
 		// after removing the expected entries, the remaining string should only contain "&".
 		assert.Equal(t, len(queryParams), strings.Count(queryParams, "&"), "expected query params to not contain any unexpected entries")
 	}
+}
+
+func TestGetQueryParamsEncodesSpecialCharacters(t *testing.T) {
+	metadata := map[string]interface{}{
+		"cloudevent.source": "https://example.com/orders?region=eu&tier=gold",
+		"cloudevent.type":   "order created #1",
+		"routingKey":        "a+b=c",
+		"ttlInSeconds":      "10",
+	}
+
+	queryParams := getQueryParams(metadata)
+	assert.True(t, strings.HasPrefix(queryParams, "?"), "expected query params to start with '?'")
+
+	parsed, err := url.ParseQuery(strings.TrimPrefix(queryParams, "?"))
+	assert.NoError(t, err)
+
+	expected := url.Values{}
+	for k, v := range metadata {
+		expected.Set("metadata."+k, fmt.Sprintf("%v", v))
+	}
+	assert.Equal(t, expected, parsed)
 }
