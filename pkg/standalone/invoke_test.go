@@ -15,6 +15,7 @@ package standalone
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"runtime"
 	"testing"
@@ -213,4 +214,33 @@ func TestInvoke(t *testing.T) {
 			})
 		}
 	}
+}
+
+func TestInvokeWithHeaders(t *testing.T) {
+	var gotHeaders http.Header
+	ts, port := getTestServerFunc(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotHeaders = r.Header.Clone()
+	}))
+	ts.Start()
+	defer ts.Close()
+
+	headers := http.Header{}
+	headers.Add("Authorization", "Bearer token")
+	headers.Add("X-Multi-Value", "first")
+	headers.Add("X-Multi-Value", "second")
+	headers.Add("X-Empty", "")
+
+	client := &Standalone{
+		process: &mockDaprProcess{
+			Lo: []ListOutput{{AppID: "testapp", HTTPPort: port}},
+		},
+		headers: headers,
+	}
+
+	_, err := client.Invoke("testapp", "test", nil, http.MethodGet, "")
+	assert.NoError(t, err)
+
+	assert.Equal(t, "Bearer token", gotHeaders.Get("Authorization"))
+	assert.Equal(t, []string{"first", "second"}, gotHeaders.Values("X-Multi-Value"))
+	assert.Equal(t, []string{""}, gotHeaders.Values("X-Empty"))
 }

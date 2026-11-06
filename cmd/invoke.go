@@ -18,6 +18,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -34,6 +35,7 @@ var (
 	invokeVerb      string
 	invokeDataFile  string
 	invokeSocket    string
+	invokeHeaders   []string
 )
 
 var InvokeCmd = &cobra.Command{
@@ -66,7 +68,7 @@ dapr invoke --unix-domain-socket /tmp --app-id target --method sample --verb GET
 		} else if invokeData != "" {
 			bytePayload = []byte(invokeData)
 		}
-		client := standalone.NewClient()
+		client := standalone.NewClientWithHeaders(parseHTTPHeaders(invokeHeaders))
 
 		// TODO(@daixiang0): add Windows support.
 		if invokeSocket != "" {
@@ -92,6 +94,25 @@ dapr invoke --unix-domain-socket /tmp --app-id target --method sample --verb GET
 	},
 }
 
+func parseHTTPHeaders(headers []string) http.Header {
+	if len(headers) == 0 {
+		return nil
+	}
+
+	header := make(http.Header)
+	for _, h := range headers {
+		key, value, ok := strings.Cut(strings.TrimSpace(h), "=")
+		if !ok || strings.TrimSpace(key) == "" {
+			print.FailureStatusEvent(os.Stderr, `Expected HTTP header in "key=value" format.`)
+			os.Exit(1)
+		}
+
+		header.Add(strings.TrimSpace(key), strings.TrimSpace(value))
+	}
+
+	return header
+}
+
 func init() {
 	InvokeCmd.Flags().StringVarP(&invokeAppID, "app-id", "a", "", "The application id to invoke")
 	InvokeCmd.Flags().StringVarP(&invokeAppMethod, "method", "m", "", "The method to invoke")
@@ -100,6 +121,7 @@ func init() {
 	InvokeCmd.Flags().StringVarP(&invokeDataFile, "data-file", "f", "", "A file containing the JSON serialized data (optional)")
 	InvokeCmd.Flags().BoolP("help", "h", false, "Print this help message")
 	InvokeCmd.Flags().StringVarP(&invokeSocket, "unix-domain-socket", "u", "", "Path to a unix domain socket dir. If specified, Dapr API servers will use Unix Domain Sockets")
+	InvokeCmd.Flags().StringArrayVarP(&invokeHeaders, "headers", "H", nil, "HTTP headers to include in the request (comma-separated key=value pairs)")
 	InvokeCmd.MarkFlagRequired("app-id")
 	InvokeCmd.MarkFlagRequired("method")
 	RootCmd.AddCommand(InvokeCmd)

@@ -40,6 +40,11 @@ func (s *Standalone) Invoke(appID, method string, data []byte, verb string, path
 				return "", err
 			}
 			req.Header.Set("Content-Type", "application/json")
+			for k, v := range s.headers {
+				for _, v := range v {
+					req.Header.Add(k, v)
+				}
+			}
 
 			var httpc http.Client
 

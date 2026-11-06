@@ -13,6 +13,8 @@ limitations under the License.
 
 package standalone
 
+import "net/http"
+
 type DaprProcess interface {
 	List() ([]ListOutput, error)
 }
@@ -29,8 +31,13 @@ type Client interface {
 
 type Standalone struct {
 	process DaprProcess
+	headers http.Header
 }
 
 func NewClient() Client {
-	return &Standalone{process: &daprProcess{}}
+	return &Standalone{process: &daprProcess{}, headers: http.Header{}}
+}
+
+func NewClientWithHeaders(headers http.Header) Client {
+	return &Standalone{process: &daprProcess{}, headers: headers}
 }
