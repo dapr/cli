@@ -885,11 +885,7 @@ func startSentryContainer(info initInfo) error {
 	if err != nil {
 		return err
 	}
-	if err = os.MkdirAll(certsDir, 0o1777); err != nil {
-		return err
-	}
-
-	if err := os.Chmod(certsDir, 0o1777); err != nil {
+	if err = os.MkdirAll(certsDir, 0o755); err != nil {
 		return err
 	}
 
@@ -944,6 +940,8 @@ func sentryContainerArgs(info initInfo, runtimeCmd, containerName, image, certsD
 		"-v", certsDir + ":" + sentryContainerCertsDir,
 		"-v", configFile + ":" + sentryContainerConfigFile + ":ro",
 	}
+
+	args = append(args, sentryDockerUserArgs()...)
 
 	if info.dockerNetwork != "" {
 		args = append(args,
@@ -1710,4 +1708,16 @@ func resolveImageURI(imageInfo daprImageInfo) (string, error) {
 func setAirGapInit(fromDir string) {
 	// mostly this is used for unit testing aprat from one use in Init() function.
 	isAirGapInit = (len(strings.TrimSpace(fromDir)) != 0)
+}
+
+func sentryDockerUserArgs() []string {
+	uid, gid := os.Getuid(), os.Getgid()
+	if uid < 0 || gid < 0 {
+		return nil
+	}
+
+	return []string{
+		"--user",
+		fmt.Sprintf("%d:%d", uid, gid),
+	}
 }
