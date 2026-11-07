@@ -191,6 +191,22 @@ dapr run --run-file /path/to/directory -k
 			}
 		}
 
+		var mTLSEnv = make(map[string]string, 4)
+		if standalone.IsMTLSEnabled(configFile) {
+			certsDir := standalone.GetDaprSentryCertsPath(daprDirPath)
+			if !standalone.EnsureCerts(certsDir) {
+				print.FailureStatusEvent(os.Stderr, "MTLS enabled, but no certs foudn in dir %s", certsDir)
+				os.Exit(1)
+			}
+
+			var err error
+			mTLSEnv, err = standalone.MTLSEnv(daprDirPath)
+			if err != nil {
+				print.FailureStatusEvent(os.Stderr, "Failed to load mTLS environment: %v", err)
+				os.Exit(1)
+			}
+		}
+
 		sharedRunConfig := &standalone.SharedRunConfig{
 			ConfigFile:         configFile,
 			EnableProfiling:    enableProfiling,
@@ -210,6 +226,7 @@ dapr run --run-file /path/to/directory -k
 			EnableAPILogging:   enableAPILogging,
 			APIListenAddresses: apiListenAddresses,
 			DaprdInstallPath:   cmdruntime.GetDaprRuntimePath(),
+			Env:                mTLSEnv,
 		}
 
 		// placement-host-address flag handling: only set pointer if flag was explicitly changed

@@ -38,6 +38,7 @@ const (
 	daprRuntimeFilePrefix      = "daprd"
 	placementServiceFilePrefix = "placement"
 	schedulerServiceFilePrefix = "scheduler"
+	sentryServiceFilePrefix    = "sentry"
 
 	daprWindowsOS = "windows"
 
@@ -71,6 +72,8 @@ const (
 	DaprPlacementContainerName = "dapr_placement"
 	// DaprSchedulerContainerName is the container name of scheduler service.
 	DaprSchedulerContainerName = "dapr_scheduler"
+	// DaprSentryContainerName is the container name of sentry service
+	DaprSentryContainerName = "dapr_sentry"
 	// DaprRedisContainerName is the container name of redis.
 	DaprRedisContainerName = "dapr_redis"
 	// DaprZipkinContainerName is the container name of zipkin.
@@ -80,6 +83,9 @@ const (
 
 	healthPort = 58080
 	metricPort = 59090
+
+	sentryHealthPort = 58082
+	sentryMetricPort = 59092
 
 	schedulerHealthPort = 58081
 	schedulerMetricPort = 59091
@@ -108,6 +114,9 @@ type configuration struct {
 				EndpointAddress string `yaml:"endpointAddress,omitempty"`
 			} `yaml:"zipkin,omitempty"`
 		} `yaml:"tracing,omitempty"`
+		MTLS struct {
+			Enabled bool `yaml:"enabled,omitempty"`
+		} `yaml:"mtls,omitempty"`
 	} `yaml:"spec"`
 }
 
@@ -143,6 +152,7 @@ type initInfo struct {
 	schedulerOverrideBroadcastHostPort *string
 	schedulerPlacement                 bool
 	redisStack                         bool
+	enableMTLS                         bool
 }
 
 // InitOptions configures a standalone Dapr initialization.
@@ -159,6 +169,7 @@ type InitOptions struct {
 	SchedulerOverrideBroadcastHostPort *string
 	SchedulerPlacement                 bool
 	RedisStack                         bool
+	EnableMTLS                         bool
 }
 
 type daprImageInfo struct {
@@ -327,19 +338,36 @@ func Init(opts InitOptions) error {
 		return er
 	}
 
-	var wg sync.WaitGroup
-	errorChan := make(chan error)
-	initSteps := []func(*sync.WaitGroup, chan<- error, initInfo){
+	type initStep func(*sync.WaitGroup, chan<- error, initInfo)
+	preInstallSteps := []initStep{
 		createSlimConfiguration,
 		createComponentsAndConfiguration,
+	}
+
+	installSteps := []initStep{
 		installDaprRuntime,
 		installPlacement,
 		installScheduler,
+	}
+
+	postInstallSteps := []initStep{
 		runPlacementService,
 		runSchedulerService,
 		runRedis,
 		runZipkin,
 	}
+
+	if opts.EnableMTLS {
+		installSteps = append(installSteps, installSentry)
+		postInstallSteps = append(postInstallSteps, runSentryService)
+	}
+
+	var wg sync.WaitGroup
+	errorChan := make(chan error)
+	initSteps := make([]initStep, 0, len(preInstallSteps)+len(installSteps)+len(postInstallSteps))
+	initSteps = append(initSteps, preInstallSteps...)
+	initSteps = append(initSteps, installSteps...)
+	initSteps = append(initSteps, postInstallSteps...)
 
 	// Init other configurations, containers.
 	wg.Add(len(initSteps))
@@ -372,6 +400,7 @@ func Init(opts InitOptions) error {
 		schedulerOverrideBroadcastHostPort: schedulerOverrideBroadcastHostPort,
 		schedulerPlacement:                 opts.SchedulerPlacement,
 		redisStack:                         redisStack,
+		enableMTLS:                         opts.EnableMTLS,
 	}
 	// Free the scheduler's host ports before starting any container: this may
 	// shut down WSL, which also stops Docker Desktop's WSL2 engine.
@@ -814,6 +843,119 @@ func runSchedulerService(wg *sync.WaitGroup, errorChan chan<- error, info initIn
 	errorChan <- nil
 }
 
+func runSentryService(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
+	defer wg.Done()
+
+	if info.slimMode || !info.enableMTLS {
+		return
+	}
+
+	errorChan <- startSentryContainer(info)
+}
+
+func startSentryContainer(info initInfo) error {
+	runtimeCmd := utils.GetContainerRuntimeCmd(info.containerRuntime)
+	containerName := utils.CreateContainerName(DaprSentryContainerName, info.dockerNetwork)
+
+	exists, err := confirmContainerIsRunningOrExists(containerName, false, runtimeCmd)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return fmt.Errorf("%s container exists or is running. %s", containerName, errInstallTemplate)
+	}
+
+	image, err := sentryImage(info)
+	if err != nil {
+		return err
+	}
+
+	certsDir, err := path_filepath.Abs(GetDaprSentryCertsPath(info.installDir))
+	if err != nil {
+		return err
+	}
+	configFile, err := path_filepath.Abs(GetDaprConfigPath(info.installDir))
+	if err != nil {
+		return err
+	}
+	if err = os.MkdirAll(certsDir, 0o755); err != nil {
+		return err
+	}
+
+	args := sentryContainerArgs(info, runtimeCmd, containerName, image, certsDir, configFile)
+	if _, err = utils.RunCmdAndWait(runtimeCmd, args...); err != nil {
+		if isContainerRunError(err) {
+			return fmt.Errorf("%s %s failed with: %w", runtimeCmd, args, err)
+		}
+		return parseContainerRuntimeError("sentry service", err)
+	}
+
+	print.InfoStatusEvent(os.Stdout, "Sentry running, mTLS enabled, trust domain %s", sentryTrustDomain)
+	return nil
+}
+
+// sentryImage resolves the Dapr image that ships the sentry binary, loading it
+// from the installer bundle for air-gapped installs.
+func sentryImage(info initInfo) (string, error) {
+	if isAirGapInit {
+		dir := path_filepath.Join(info.fromDir, *info.bundleDet.ImageSubDir)
+		if err := loadContainer(dir, info.bundleDet.getDaprImageFileName(), info.containerRuntime); err != nil {
+			return "", err
+		}
+		return info.bundleDet.getDaprImageName(), nil
+	}
+
+	return getDaprImageName(daprImageInfo{
+		ghcrImageName:      daprGhcrImageName,
+		dockerHubImageName: daprDockerImageName,
+		imageRegistryURL:   info.imageRegistryURL,
+		imageRegistryName:  defaultImageRegistryName,
+	}, info)
+}
+
+func sentryContainerArgs(info initInfo, runtimeCmd, containerName, image, certsDir, configFile string) []string {
+	var (
+		sentryContainerCertsDir   = "/var/lock/.dapr/certs/"
+		sentryContainerConfigFile = "/var/lock/.dapr/config.yaml"
+	)
+
+	if strings.EqualFold(info.imageVariant, "mariner") {
+		sentryContainerCertsDir = "/var/tmp/.dapr/certs/"
+		sentryContainerConfigFile = "/var/tmp/.dapr/config.yaml"
+	}
+
+	args := []string{
+		"run",
+		"--name", containerName,
+		"--restart", "always",
+		"-d",
+		"--entrypoint", "./sentry",
+		"-v", certsDir + ":" + sentryContainerCertsDir,
+		"-v", configFile + ":" + sentryContainerConfigFile + ":ro",
+	}
+
+	args = append(args, sentryDockerUserArgs()...)
+
+	if info.dockerNetwork != "" {
+		args = append(args,
+			"--network", info.dockerNetwork,
+			"--network-alias", DaprSentryContainerName)
+	} else {
+		args = append(args, publishPortNetworkArgs(runtimeCmd)...)
+		args = append(args,
+			"-p", fmt.Sprintf("%d:50001", sentryHostPort()),
+			"-p", fmt.Sprintf("%d:8080", sentryHealthPort),
+			"-p", fmt.Sprintf("%d:9090", sentryMetricPort),
+		)
+	}
+
+	return append(args, image,
+		"--trust-domain="+sentryTrustDomain,
+		"--issuer-credentials="+sentryContainerCertsDir,
+		"--config", sentryContainerConfigFile,
+	)
+}
+
 // firstInitError returns the first non-nil error received on errorChan. It
 // returns as soon as that error arrives, unless waitForAll is set, in which
 // case it keeps draining until errorChan is closed (i.e. all steps are done).
@@ -905,6 +1047,20 @@ func installScheduler(wg *sync.WaitGroup, errorChan chan<- error, info initInfo)
 	}
 }
 
+func installSentry(wg *sync.WaitGroup, errorChan chan<- error, info initInfo) {
+	defer wg.Done()
+
+	if !info.slimMode {
+		return
+	}
+
+	err := installBinary(info.runtimeVersion, sentryServiceFilePrefix, cli_ver.DaprGitHubRepo, info)
+	if err != nil {
+		errorChan <- err
+	}
+	print.InfoStatusEvent(os.Stdout, "Sentry installed, mTLS enabled, trust domain cluster.local")
+}
+
 // installBinary installs the daprd, placement, or scheduler binaries and associated files inside the default dapr bin directory.
 func installBinary(version, binaryFilePrefix, githubRepo string, info initInfo) error {
 	var (
@@ -978,7 +1134,7 @@ func createComponentsAndConfiguration(wg *sync.WaitGroup, errorChan chan<- error
 		errorChan <- fmt.Errorf("error creating redis statestore component file: %w", err)
 		return
 	}
-	err = createDefaultConfiguration(zipkinHost, configPath)
+	err = createDefaultConfiguration(zipkinHost, configPath, info.enableMTLS)
 	if err != nil {
 		errorChan <- fmt.Errorf("error creating default configuration file: %w", err)
 		return
@@ -994,7 +1150,7 @@ func createSlimConfiguration(wg *sync.WaitGroup, errorChan chan<- error, info in
 
 	configPath := GetDaprConfigPath(info.installDir)
 	// For --slim we pass empty string so that we do not configure zipkin.
-	err := createDefaultConfiguration("", configPath)
+	err := createDefaultConfiguration("", configPath, info.enableMTLS)
 	if err != nil {
 		errorChan <- fmt.Errorf("error creating default configuration file: %w", err)
 		return
@@ -1144,7 +1300,7 @@ func createRedisPubSub(redisHost string, componentsPath string) error {
 	return err
 }
 
-func createDefaultConfiguration(zipkinHost, filePath string) error {
+func createDefaultConfiguration(zipkinHost, filePath string, mtls bool) error {
 	defaultConfig := configuration{
 		APIVersion: "dapr.io/v1alpha1",
 		Kind:       "Configuration",
@@ -1153,6 +1309,9 @@ func createDefaultConfiguration(zipkinHost, filePath string) error {
 	if zipkinHost != "" {
 		defaultConfig.Spec.Tracing.SamplingRate = "1"
 		defaultConfig.Spec.Tracing.Zipkin.EndpointAddress = fmt.Sprintf("http://%s:9411/api/v2/spans", zipkinHost) //nolint:nosprintfhostport
+	}
+	if mtls {
+		defaultConfig.Spec.MTLS.Enabled = true
 	}
 	b, err := yaml.Marshal(&defaultConfig)
 	if err != nil {
@@ -1269,4 +1428,16 @@ func resolveImageURI(imageInfo daprImageInfo) (string, error) {
 func setAirGapInit(fromDir string) {
 	// mostly this is used for unit testing aprat from one use in Init() function.
 	isAirGapInit = (len(strings.TrimSpace(fromDir)) != 0)
+}
+
+func sentryDockerUserArgs() []string {
+	uid, gid := os.Getuid(), os.Getgid()
+	if uid < 0 || gid < 0 {
+		return nil
+	}
+
+	return []string{
+		"--user",
+		fmt.Sprintf("%d:%d", uid, gid),
+	}
 }

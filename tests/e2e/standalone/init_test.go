@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver"
+	"github.com/dapr/cli/pkg/standalone"
 	"github.com/dapr/cli/tests/e2e/common"
 	"github.com/dapr/cli/tests/e2e/spawn"
 	"github.com/docker/docker/api/types/container"
@@ -307,6 +308,40 @@ func TestStandaloneInit(t *testing.T) {
 		verifyBinaries(t, daprPath, latestDaprRuntimeVersion)
 		verifyConfigs(t, daprPath)
 	})
+
+	t.Run("init with enable-mtls", func(t *testing.T) {
+		if isSlimMode() {
+			t.Skip("Skipping mTLS init test because of slim installation")
+		}
+
+		// Ensure a clean environment
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+
+		args := []string{
+			"--runtime-version", daprRuntimeVersion,
+			"--enable-mtls",
+		}
+		output, err := cmdInit(args...)
+		t.Log(output)
+		require.NoError(t, err, "init failed")
+		assert.Contains(t, output, "Success! Dapr is up and running.")
+
+		homeDir, err := os.UserHomeDir()
+		require.NoError(t, err, "failed to get user home directory")
+
+		daprPath := filepath.Join(homeDir, ".dapr")
+		require.DirExists(t, daprPath, "Directory %s does not exist", daprPath)
+
+		// Core containers + binaries still expected.
+		verifyContainers(t, daprRuntimeVersion)
+		verifyBinaries(t, daprPath, daprRuntimeVersion)
+
+		// mTLS-specific checks: sentry container healthy + certs written.
+		verifySentryContainer(t)
+		verifyMTLSCerts(t)
+		verifyMTLSConfigEnabled(t, daprPath)
+	})
+	
 }
 
 func verifyRedisContainerImage(t *testing.T, expectedImageSubstring string) {
@@ -581,4 +616,62 @@ func verifySchedulerBroadcastHostPort(t *testing.T, expectedBroadcastHostPort st
 
 	expectedArg := "--override-broadcast-host-port=" + expectedBroadcastHostPort
 	assert.Contains(t, containerInfo.Args, expectedArg, "Expected scheduler argument %s not found in container args: %v", expectedArg, containerInfo.Args)
+}
+
+// verifySentryContainer ensures the dapr_sentry container is running and has not
+// restarted (indicating a clean, healthy start).
+func verifySentryContainer(t *testing.T) {
+	t.Helper()
+
+	t.Run("verifySentryContainer", func(t *testing.T) {
+		if isSlimMode() {
+			t.Skip("Skipping sentry container verification because of slim installation")
+		}
+
+		cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv, dockerClient.WithVersion("1.48"))
+		require.NoError(t, err)
+
+		containerInfo, err := cli.ContainerInspect(context.Background(), "dapr_sentry")
+		require.NoError(t, err, "dapr_sentry container was not found")
+
+		assert.Equal(t, "running", containerInfo.State.Status, "dapr_sentry should be running")
+		assert.Equal(t, 0, containerInfo.RestartCount, "dapr_sentry should have zero restarts")
+		assert.False(t, containerInfo.State.OOMKilled, "dapr_sentry should not be OOM killed")
+		assert.Empty(t, containerInfo.State.Error, "dapr_sentry should have no error state")
+	})
+}
+
+// verifyMTLSCerts ensures that the Sentry certs directory contains all required
+// mTLS certificate files (ca.crt, issuer.crt, issuer.key).
+func verifyMTLSCerts(t *testing.T) {
+	t.Helper()
+
+	t.Run("verifyMTLSCerts", func(t *testing.T) {
+		daprDir, err := standalone.GetDaprRuntimePath("")
+		require.NoError(t, err)
+
+		certsDir := standalone.GetDaprSentryCertsPath(daprDir)
+		require.DirExists(t, certsDir, "certs directory %s does not exist", certsDir)
+
+		// Prefer the helper that checks all expected files.
+		require.True(t, standalone.EnsureCerts(certsDir),
+			"expected all mTLS certs (ca.crt, issuer.crt, issuer.key) to be present in %s", certsDir)
+
+		// Explicit file presence for clearer failure messages.
+		for _, name := range []string{"ca.crt", "issuer.crt", "issuer.key"} {
+			require.FileExists(t, filepath.Join(certsDir, name), "missing cert file %s", name)
+		}
+	})
+}
+
+// verifyMTLSConfigEnabled checks that config.yaml has mTLS enabled after
+// --enable-mtls init.
+func verifyMTLSConfigEnabled(t *testing.T, daprPath string) {
+	t.Helper()
+
+	t.Run("verifyMTLSConfigEnabled", func(t *testing.T) {
+		configPath := filepath.Join(daprPath, "config.yaml")
+		assert.True(t, standalone.IsMTLSEnabled(configPath),
+			"expected mTLS to be enabled in %s", configPath)
+	})
 }

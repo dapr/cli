@@ -79,9 +79,12 @@ spec:
       url: http://b.example.com/sse
 `
 
-func writeFile(t *testing.T, dir, name, content string) {
+func writeFile(t *testing.T, dir, name, content string) string {
 	t.Helper()
-	require.NoError(t, os.WriteFile(filepath.Join(dir, name), []byte(content), 0o600))
+	require.NoError(t, os.MkdirAll(dir, 0o755))
+	path := filepath.Join(dir, name)
+	require.NoError(t, os.WriteFile(path, []byte(content), 0o600))
+	return path
 }
 
 func TestListMCPServers_NonexistentPath(t *testing.T) {

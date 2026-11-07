@@ -25,7 +25,7 @@ import (
 	"github.com/dapr/cli/utils"
 )
 
-func removeContainers(uninstallPlacementContainer, uninstallSchedulerContainer, uninstallAll bool, dockerNetwork, runtimeCmd string) []error {
+func removeContainers(uninstallPlacementContainer, uninstallSchedulerContainer, uninstallSentryContainer, uninstallAll bool, dockerNetwork, runtimeCmd string) []error {
 	var containerErrs []error
 
 	if uninstallPlacementContainer {
@@ -34,6 +34,10 @@ func removeContainers(uninstallPlacementContainer, uninstallSchedulerContainer, 
 
 	if uninstallSchedulerContainer {
 		containerErrs = removeDockerContainer(containerErrs, DaprSchedulerContainerName, dockerNetwork, runtimeCmd)
+	}
+
+	if uninstallSentryContainer {
+		containerErrs = removeDockerContainer(containerErrs, DaprSentryContainerName, dockerNetwork, runtimeCmd)
 	}
 
 	if uninstallAll {
@@ -116,6 +120,10 @@ func Uninstall(uninstallAll bool, dockerNetwork string, containerRuntime string,
 	_, schedulerErr := os.Stat(schedulerFilePath) // check if the scheduler binary exists.
 	uninstallSchedulerContainer := errors.Is(schedulerErr, fs.ErrNotExist)
 
+	sentryFilePath := binaryFilePathWithDir(daprBinDir, sentryServiceFilePrefix)
+	_, sentryErr := os.Stat(sentryFilePath) // check if the sentry binary exists.
+	uninstallSentryContainer := errors.Is(sentryErr, fs.ErrNotExist)
+
 	// Remove .dapr/bin.
 	err = removeDir(daprBinDir)
 	if err != nil {
@@ -130,7 +138,7 @@ func Uninstall(uninstallAll bool, dockerNetwork string, containerRuntime string,
 	containerRuntimeAvailable := false
 	containerRuntimeAvailable = utils.IsContainerRuntimeInstalled(containerRuntime)
 	if containerRuntimeAvailable {
-		containerErrs = removeContainers(uninstallPlacementContainer, uninstallSchedulerContainer, uninstallAll, dockerNetwork, runtimeCmd)
+		containerErrs = removeContainers(uninstallPlacementContainer, uninstallSchedulerContainer, uninstallSentryContainer, uninstallAll, dockerNetwork, runtimeCmd)
 	} else if uninstallSchedulerContainer || uninstallPlacementContainer || uninstallAll {
 		print.WarningStatusEvent(os.Stdout, "WARNING: could not delete supporting containers as container runtime is not installed or running")
 	}

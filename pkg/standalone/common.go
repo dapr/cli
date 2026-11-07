@@ -18,6 +18,8 @@ import (
 	path_filepath "path/filepath"
 	"runtime"
 	"strings"
+
+	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -29,6 +31,7 @@ const (
 	defaultComponentsDirName    = "components"
 	defaultSchedulerDirName     = "scheduler"
 	defaultSchedulerDataDirName = "data"
+	defaultSentryCertsDirName   = "certs"
 )
 
 // GetDaprRuntimePath returns the dapr runtime installation path.
@@ -83,4 +86,44 @@ func GetDaprComponentsPath(daprDir string) string {
 
 func GetDaprConfigPath(daprDir string) string {
 	return path_filepath.Join(daprDir, DefaultConfigFileName)
+}
+
+func GetDaprSentryCertsPath(daprDir string) string {
+	return path_filepath.Join(daprDir, defaultSentryCertsDirName)
+}
+
+func GetMTLSConfig(configFile string) (mtlsConfig, error) {
+	b, err := os.ReadFile(configFile)
+	if err != nil {
+		return mtlsConfig{}, err
+	}
+
+	return parseMTLSConfig(b)
+}
+
+func parseMTLSConfig(configBytes []byte) (mtlsConfig, error) {
+	var config mtlsConfig
+	err := yaml.Unmarshal(configBytes, &config)
+	if err != nil {
+		return mtlsConfig{}, err
+	}
+
+	return config, nil
+}
+
+func IsMTLSEnabled(configFile string) bool {
+	if configFile == "" {
+		daprDir, err := GetDaprRuntimePath("")
+		if err != nil {
+			return false
+		}
+		configFile = GetDaprConfigPath(daprDir)
+	}
+	
+	mtlsConfig, err := GetMTLSConfig(configFile)
+	if err != nil {
+		return false
+	}
+
+	return mtlsConfig.Spec.MTLS.Enabled
 }
