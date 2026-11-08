@@ -49,6 +49,8 @@ var (
 	schedulerOverrideBroadcastHostPort string
 	schedulerPlacement                 bool
 	redisStack                         bool
+	noRedis                            bool
+	noZipkin                           bool
 )
 
 var InitCmd = &cobra.Command{
@@ -206,6 +208,8 @@ dapr init --redis-stack
 				SchedulerOverrideBroadcastHostPort: schedulerHostPort,
 				SchedulerPlacement:                 schedulerPlacement,
 				RedisStack:                         redisStack,
+				NoRedis:                            noRedis,
+				NoZipkin:                           noZipkin,
 			})
 			if err != nil {
 				print.FailureStatusEvent(os.Stderr, "%s", err.Error())
@@ -265,6 +269,8 @@ func init() {
 	InitCmd.Flags().StringVarP(&issuerPrivateKeyFile, "issuer-private-key", "", "", "The issuer certificate private key")
 	InitCmd.Flags().StringVarP(&issuerPublicCertificateFile, "issuer-public-certificate", "", "", "The issuer certificate")
 	InitCmd.MarkFlagsRequiredTogether("ca-root-certificate", "issuer-private-key", "issuer-public-certificate")
+	InitCmd.Flags().BoolVarP(&noZipkin, "no-zipkin", "", false, "Do not create the dapr_zipkin container")
+	InitCmd.Flags().BoolVarP(&noRedis, "no-redis", "", false, "Do not create the dapr_redis container or the default statestore and pubsub component files")
 
 	RootCmd.AddCommand(InitCmd)
 }

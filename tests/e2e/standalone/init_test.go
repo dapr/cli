@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver"
+	"github.com/dapr/cli/pkg/standalone"
 	"github.com/dapr/cli/tests/e2e/common"
 	"github.com/dapr/cli/tests/e2e/spawn"
 	"github.com/docker/docker/api/types/container"
@@ -307,6 +308,53 @@ func TestStandaloneInit(t *testing.T) {
 		verifyBinaries(t, daprPath, latestDaprRuntimeVersion)
 		verifyConfigs(t, daprPath)
 	})
+
+	t.Run("init with --no-zipkin", func(t *testing.T) {
+		if isSlimMode() {
+			t.Skip("Skipping --no-zipkin test because of slim installation")
+		}
+
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+
+		args := []string{
+			"--runtime-version", daprRuntimeVersion,
+			"--no-zipkin",
+		}
+		output, err := cmdInit(args...)
+		t.Log(output)
+		require.NoError(t, err, "init failed")
+		assert.Contains(t, output, "Success! Dapr is up and running.")
+
+		assertContainerNotPresent(t, "dapr_zipkin")
+	})
+
+	t.Run("init with --no-redis", func(t *testing.T) {
+		if isSlimMode() {
+			t.Skip("Skipping --no-redis test because of slim installation")
+		}
+
+		must(t, cmdUninstall, "failed to uninstall Dapr")
+
+		args := []string{
+			"--runtime-version", daprRuntimeVersion,
+			"--no-redis",
+		}
+		output, err := cmdInit(args...)
+		t.Log(output)
+		require.NoError(t, err, "init failed")
+		assert.Contains(t, output, "Success! Dapr is up and running.")
+
+		assertContainerNotPresent(t, "dapr_redis")
+
+		daprDir, err := standalone.GetDaprRuntimePath("")
+		require.NoError(t, err)
+
+		componentsDir := standalone.GetDaprComponentsPath(daprDir)
+		require.NoFileExists(t, filepath.Join(componentsDir, "pubsub.yaml"),
+			"pubsub.yaml must not be created when --no-redis is set")
+		require.NoFileExists(t, filepath.Join(componentsDir, "statestore.yaml"),
+			"statestore.yaml must not be created when --no-redis is set")
+	})
 }
 
 func verifyRedisContainerImage(t *testing.T, expectedImageSubstring string) {
@@ -581,4 +629,26 @@ func verifySchedulerBroadcastHostPort(t *testing.T, expectedBroadcastHostPort st
 
 	expectedArg := "--override-broadcast-host-port=" + expectedBroadcastHostPort
 	assert.Contains(t, containerInfo.Args, expectedArg, "Expected scheduler argument %s not found in container args: %v", expectedArg, containerInfo.Args)
+}
+
+// assertContainerNotPresent fails if a container with the given name exists
+// (running or stopped).
+func assertContainerNotPresent(t *testing.T, name string) {
+	t.Helper()
+
+	cli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv, dockerClient.WithVersion("1.48"))
+	require.NoError(t, err)
+
+	// Include stopped containers so we catch "created but not running" as well.
+	containers, err := cli.ContainerList(context.Background(), container.ListOptions{All: true})
+	require.NoError(t, err)
+
+	for _, c := range containers {
+		for _, n := range c.Names {
+			if strings.TrimPrefix(n, "/") == name {
+				require.Failf(t, "container present",
+					"expected container %q not to exist, but found it (state=%s)", name, c.State)
+			}
+		}
+	}
 }
