@@ -25,6 +25,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
+	"syscall"
 	"time"
 
 	"golang.org/x/mod/semver"
@@ -519,12 +521,58 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 
 	runStates := make([]*runExec.RunExec, 0, len(apps))
 
+	var (
+		closeError  error
+		cleanupOnce sync.Once
+	)
+
+	cleanup := func() {
+		cleanupOnce.Do(func() {
+			// Stop daprd and app processes for each runState.
+			closeError = gracefullyShutdownAppsAndCloseResources(runStates, apps)
+
+			for _, app := range apps {
+				runConfig := app.RunConfig
+				if runConfig.UnixDomainSocket != "" {
+					for _, s := range []string{"http", "grpc"} {
+						os.Remove(utils.GetSocket(runConfig.UnixDomainSocket, runConfig.AppID, s))
+					}
+				}
+			}
+		})
+	}
+
+	go func() {
+		<-sigCh
+		if !exitWithError {
+			// To add a new line in Stdout.
+			fmt.Println()
+			print.InfoStatusEvent(os.Stdout, "Received signal to stop Dapr and app processes. Shutting down Dapr and app processes.")
+		}
+		cleanup()
+		os.Exit(1)
+	}()
+
+	defer cleanup()
+
 	// Creates a separate process group ID for current process i.e. "dapr run -f".
 	// All the subprocess and their grandchildren inherit this PGID.
 	// This is done to provide a better grouping, which can be used to control all the proceses started by "dapr run -f".
 	daprsyscall.CreateProcessGroupID()
 
 	for _, app := range apps {
+		errCh := make(chan error, 1)
+		go func(app runfileconfig.App) {
+			err := <-errCh
+			if err == nil {
+				return
+			}
+
+			msg := err.Error()
+			print.StatusEvent(os.Stderr, print.LogFailure, "Error starting app %q: %s", app.AppID, msg)
+			exitWithError = true
+			sigCh <- syscall.SIGTERM
+		}(app)
 		print.StatusEvent(os.Stdout, print.LogInfo, "Validating config and starting app %q", app.AppID)
 		// Set defaults if zero value provided in config yaml.
 		app.SetDefaultFromSchema()
@@ -580,7 +628,7 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 			appLogWriter = runfileconfig.GetLogWriter(app.AppLogWriteCloser, app.AppLogDestination)
 		}
 		customAppLogWriter = print.CustomLogWriter{W: appLogWriter}
-		runState, err := startDaprdAndAppProcesses(&runConfig, app.AppDirPath, sigCh,
+		runState, err := startDaprdAndAppProcesses(&runConfig, app.AppDirPath, errCh,
 			daprdLogWriterCloser, daprdLogWriterCloser, customAppLogWriter, customAppLogWriter)
 		if err != nil {
 			print.StatusEvent(appDaprdWriter, print.LogFailure, "Error starting Dapr and app (%q): %s", app.AppID, err.Error())
@@ -621,26 +669,6 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 
 		print.StatusEvent(runState.DaprCMD.OutputWriter, print.LogSuccess, "You're up and running! Dapr logs will appear here.\n")
 		logInformationalStatusToStdout(app)
-	}
-	// If all apps have been started and there are no errors in starting the apps wait for signal from sigCh.
-	if !exitWithError {
-		// After all apps started wait for sigCh.
-		<-sigCh
-		// To add a new line in Stdout.
-		fmt.Println()
-		print.InfoStatusEvent(os.Stdout, "Received signal to stop Dapr and app processes. Shutting down Dapr and app processes.")
-	}
-
-	// Stop daprd and app processes for each runState.
-	closeError := gracefullyShutdownAppsAndCloseResources(runStates, apps)
-
-	for _, app := range apps {
-		runConfig := app.RunConfig
-		if runConfig.UnixDomainSocket != "" {
-			for _, s := range []string{"http", "grpc"} {
-				os.Remove(utils.GetSocket(runConfig.UnixDomainSocket, runConfig.AppID, s))
-			}
-		}
 	}
 
 	return exitWithError, closeError
@@ -715,7 +743,7 @@ func getRunConfigFromRunFile(runFilePath string) (runfileconfig.RunFileConfig, [
 
 // startDaprdAndAppProcesses is a function to start the App process and the associated Daprd process.
 // This should be called as a blocking function call.
-func startDaprdAndAppProcesses(runConfig *standalone.RunConfig, commandDir string, sigCh chan os.Signal,
+func startDaprdAndAppProcesses(runConfig *standalone.RunConfig, commandDir string, errCh chan error,
 	daprdOutputWriter io.Writer, daprdErrorWriter io.Writer,
 	appOutputWriter io.Writer, appErrorWriter io.Writer,
 ) (*runExec.RunExec, error) {
@@ -756,7 +784,7 @@ func startDaprdAndAppProcesses(runConfig *standalone.RunConfig, commandDir strin
 	startErrChan := make(chan error, 1)
 
 	// Start daprd process.
-	go startDaprdProcess(runConfig, runState, daprRunning, sigCh, startErrChan)
+	go startDaprdProcess(runConfig, runState, daprRunning, errCh, startErrChan)
 
 	// Wait for daprRunning channel output.
 	if daprStarted := <-daprRunning; !daprStarted {
@@ -779,7 +807,7 @@ func startDaprdAndAppProcesses(runConfig *standalone.RunConfig, commandDir strin
 	}
 
 	// Start App process.
-	go startAppProcess(runConfig, runState, appRunning, sigCh, startErrChan)
+	go startAppProcess(runConfig, runState, appRunning, errCh, startErrChan)
 
 	// Wait for appRunnning channel output.
 	if appStarted := <-appRunning; !appStarted {
@@ -838,7 +866,7 @@ func stopDaprdAndAppProcesses(runState *runExec.RunExec) bool {
 // startAppsProcess, starts the App process and calls wait in a goroutine
 // This function should be called as a goroutine.
 func startAppProcess(runConfig *standalone.RunConfig, runE *runExec.RunExec,
-	appRunning chan bool, sigCh chan os.Signal, errorChan chan error,
+	appRunning chan bool, errCh chan error, errorChan chan error,
 ) {
 	if runE.AppCMD.Command == nil {
 		appRunning <- true
@@ -901,7 +929,7 @@ func startAppProcess(runConfig *standalone.RunConfig, runE *runExec.RunExec,
 // startDaprdProcess, starts the Daprd process and calls wait in a goroutine
 // This function should be called as a goroutine.
 func startDaprdProcess(runConfig *standalone.RunConfig, runE *runExec.RunExec,
-	daprRunning chan bool, sigCh chan os.Signal, errorChan chan error,
+	daprRunning chan bool, errCh chan error, errorChan chan error,
 ) {
 	var startInfo string
 	if runConfig.UnixDomainSocket != "" {
@@ -928,6 +956,7 @@ func startDaprdProcess(runConfig *standalone.RunConfig, runE *runExec.RunExec,
 	if err != nil {
 		errorChan <- err
 		daprRunning <- false
+		errCh <- err
 		return
 	}
 	go func() {
@@ -935,6 +964,7 @@ func startDaprdProcess(runConfig *standalone.RunConfig, runE *runExec.RunExec,
 		if daprdErr != nil {
 			runE.DaprCMD.CommandErr = daprdErr
 			print.StatusEvent(runE.DaprCMD.ErrorWriter, print.LogFailure, "The daprd process exited with error code: %s", daprdErr.Error())
+			errCh <- daprdErr
 		} else {
 			print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogSuccess, "Exited Dapr successfully")
 		}
