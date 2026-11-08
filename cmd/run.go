@@ -83,52 +83,6 @@ const (
 	runtimeWaitTimeoutInSeconds = 60
 )
 
-// processName identifies the child process that exited.
-type processName string
-
-const (
-	appProcess   processName = "app"
-	daprdProcess processName = "daprd"
-)
-
-// processExitError reports an unexpected error returned by a child process' Wait call.
-type processExitError struct {
-	runState *runExec.RunExec
-	process  processName
-	err      error
-}
-
-// recordProcessExitError stores the process error for the shutdown path.
-// CommandErr is deliberately updated by the executeRun goroutine rather than
-// the Wait goroutine, avoiding concurrent reads and writes during shutdown.
-func recordProcessExitError(event processExitError) {
-	if event.runState == nil || event.err == nil {
-		return
-	}
-
-	switch event.process {
-	case appProcess:
-		if event.runState.AppCMD != nil {
-			event.runState.AppCMD.CommandErr = event.err
-		}
-	case daprdProcess:
-		if event.runState.DaprCMD != nil {
-			event.runState.DaprCMD.CommandErr = event.err
-		}
-	}
-}
-
-func processExitErrorMessage(event processExitError) error {
-	if event.err == nil {
-		return errors.New("child process exited unexpectedly")
-	}
-	appID := "unknown"
-	if event.runState != nil {
-		appID = event.runState.AppID
-	}
-	return fmt.Errorf("%s process for app %q exited: %w", event.process, appID, event.err)
-}
-
 // Flags that are compatible with --run-file
 var runFileCompatibleFlags = []string{
 	"kubernetes",
@@ -565,24 +519,12 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 
 	runStates := make([]*runExec.RunExec, 0, len(apps))
 
-	processErrCh := make(chan processExitError, 2*len(apps))
-
 	// Creates a separate process group ID for current process i.e. "dapr run -f".
 	// All the subprocess and their grandchildren inherit this PGID.
 	// This is done to provide a better grouping, which can be used to control all the proceses started by "dapr run -f".
 	daprsyscall.CreateProcessGroupID()
 
-appLoop:
 	for _, app := range apps {
-		// Do not start another app if a previously started process has failed.
-		select {
-		case event := <-processErrCh:
-			recordProcessExitError(event)
-			exitWithError = true
-			break appLoop
-		default:
-		}
-
 		print.StatusEvent(os.Stdout, print.LogInfo, "Validating config and starting app %q", app.AppID)
 		// Set defaults if zero value provided in config yaml.
 		app.SetDefaultFromSchema()
@@ -638,29 +580,15 @@ appLoop:
 			appLogWriter = runfileconfig.GetLogWriter(app.AppLogWriteCloser, app.AppLogDestination)
 		}
 		customAppLogWriter = print.CustomLogWriter{W: appLogWriter}
-
-		// Check once more immediately before creating child processes. The
-		// configuration and log-file setup above may have taken some time.
-		select {
-		case event := <-processErrCh:
-			recordProcessExitError(event)
-			exitWithError = true
-			break appLoop
-		default:
-		}
-
-		runState, err := startDaprdAndAppProcesses(&runConfig, app.AppDirPath, processErrCh,
+		runState, err := startDaprdAndAppProcesses(&runConfig, app.AppDirPath, sigCh,
 			daprdLogWriterCloser, daprdLogWriterCloser, customAppLogWriter, customAppLogWriter)
-		// Keep ownership of a sidecar that was started even when a previously
-		// running process failed during this app's startup. Shutdown must clean it up.
-		if runState != nil {
-			runStates = append(runStates, runState)
-		}
 		if err != nil {
 			print.StatusEvent(appDaprdWriter, print.LogFailure, "Error starting Dapr and app (%q): %s", app.AppID, err.Error())
 			exitWithError = true
 			break
 		}
+		// Store runState in an array.
+		runStates = append(runStates, runState)
 
 		// Metadata API is only available if app has started listening to port, so wait for app to start before calling metadata API.
 		putCLIProcessIDInMeta(runState, os.Getpid())
@@ -693,50 +621,17 @@ appLoop:
 
 		print.StatusEvent(runState.DaprCMD.OutputWriter, print.LogSuccess, "You're up and running! Dapr logs will appear here.\n")
 		logInformationalStatusToStdout(app)
-
-		// Check again after startup and metadata work. A process may have exited
-		// while this app was being started or its metadata was being updated.
-		select {
-		case event := <-processErrCh:
-			recordProcessExitError(event)
-			exitWithError = true
-			break appLoop
-		default:
-		}
 	}
-
-	// If all apps started successfully, wait for either a process failure or
-	// an OS shutdown signal. Process failures must not be translated into
-	// synthetic OS signals: they are a separate shutdown reason.
+	// If all apps have been started and there are no errors in starting the apps wait for signal from sigCh.
 	if !exitWithError {
-		select {
-		case event := <-processErrCh:
-			recordProcessExitError(event)
-			exitWithError = true
-		case <-sigCh:
-			// To add a new line in Stdout.
-			fmt.Println()
-			print.InfoStatusEvent(os.Stdout, "Received signal to stop Dapr and app processes. Shutting down Dapr and app processes.")
-		}
+		// After all apps started wait for sigCh.
+		<-sigCh
+		// To add a new line in Stdout.
+		fmt.Println()
+		print.InfoStatusEvent(os.Stdout, "Received signal to stop Dapr and app processes. Shutting down Dapr and app processes.")
 	}
 
-	// Record any additional process failures that arrived while the main
-	// goroutine was handling another failure or receiving the shutdown signal.
-	// Do this before killing processes so intentional shutdowns are not
-	// mistaken for unexpected process failures.
-	for {
-		select {
-		case event := <-processErrCh:
-			recordProcessExitError(event)
-			exitWithError = true
-		default:
-			goto shutdown
-		}
-	}
-
-shutdown:
-	// Stop daprd and app processes for each runState, even when startup or a
-	// process lifetime error caused executeRun to exit early.
+	// Stop daprd and app processes for each runState.
 	closeError := gracefullyShutdownAppsAndCloseResources(runStates, apps)
 
 	for _, app := range apps {
@@ -820,7 +715,7 @@ func getRunConfigFromRunFile(runFilePath string) (runfileconfig.RunFileConfig, [
 
 // startDaprdAndAppProcesses is a function to start the App process and the associated Daprd process.
 // This should be called as a blocking function call.
-func startDaprdAndAppProcesses(runConfig *standalone.RunConfig, commandDir string, processErrCh chan processExitError,
+func startDaprdAndAppProcesses(runConfig *standalone.RunConfig, commandDir string, sigCh chan os.Signal,
 	daprdOutputWriter io.Writer, daprdErrorWriter io.Writer,
 	appOutputWriter io.Writer, appErrorWriter io.Writer,
 ) (*runExec.RunExec, error) {
@@ -860,37 +755,14 @@ func startDaprdAndAppProcesses(runConfig *standalone.RunConfig, commandDir strin
 
 	startErrChan := make(chan error, 1)
 
-	// Do not launch another daprd if an already-started process has failed
-	// while this app's command configuration was being prepared.
-	select {
-	case event := <-processErrCh:
-		recordProcessExitError(event)
-		return nil, processExitErrorMessage(event)
-	default:
-	}
-
 	// Start daprd process.
-	go startDaprdProcess(runConfig, runState, daprRunning, processErrCh, startErrChan)
+	go startDaprdProcess(runConfig, runState, daprRunning, sigCh, startErrChan)
 
 	// Wait for daprRunning channel output.
 	if daprStarted := <-daprRunning; !daprStarted {
 		startErr := <-startErrChan
 		print.StatusEvent(daprdErrorWriter, print.LogFailure, "Error starting daprd process: %s", startErr.Error())
 		return nil, startErr
-	}
-
-	// A process belonging to an earlier app may have failed while this
-	// sidecar was starting or its readiness was being checked. Do not start
-	// this app's process in that case.
-	select {
-	case event := <-processErrCh:
-		recordProcessExitError(event)
-		// The current sidecar may still be running if the reported failure
-		// belongs to an earlier app. Stop it and return its runState so the
-		// caller can include it in the common cleanup path.
-		_ = killDaprdProcess(runState)
-		return runState, processExitErrorMessage(event)
-	default:
 	}
 
 	// No application command is present.
@@ -907,7 +779,7 @@ func startDaprdAndAppProcesses(runConfig *standalone.RunConfig, commandDir strin
 	}
 
 	// Start App process.
-	go startAppProcess(runConfig, runState, appRunning, processErrCh, startErrChan)
+	go startAppProcess(runConfig, runState, appRunning, sigCh, startErrChan)
 
 	// Wait for appRunnning channel output.
 	if appStarted := <-appRunning; !appStarted {
@@ -922,16 +794,6 @@ func startDaprdAndAppProcesses(runConfig *standalone.RunConfig, commandDir strin
 		// Return the error from starting the app process.
 		return nil, startErr
 	}
-
-	// Catch process failures that arrived while the app was being started.
-	select {
-	case event := <-processErrCh:
-		recordProcessExitError(event)
-		_ = stopDaprdAndAppProcesses(runState)
-		return runState, processExitErrorMessage(event)
-	default:
-	}
-
 	return runState, nil
 }
 
@@ -953,10 +815,7 @@ func stopDaprdAndAppProcesses(runState *runExec.RunExec) bool {
 	if daprErr != nil {
 		exitWithError = true
 		print.StatusEvent(runState.DaprCMD.ErrorWriter, print.LogFailure, "Error exiting Dapr: %s", daprErr)
-	} else {
-		// Kill is safe for an already-exited process: killDaprdProcess treats
-		// os.ErrProcessDone as a successful shutdown. Avoid reading ProcessState
-		// here because exec.Cmd.Wait updates it concurrently.
+	} else if runState.DaprCMD.Command.ProcessState == nil || !runState.DaprCMD.Command.ProcessState.Exited() {
 		err = killDaprdProcess(runState)
 		if err != nil {
 			exitWithError = true
@@ -979,7 +838,7 @@ func stopDaprdAndAppProcesses(runState *runExec.RunExec) bool {
 // startAppsProcess, starts the App process and calls wait in a goroutine
 // This function should be called as a goroutine.
 func startAppProcess(runConfig *standalone.RunConfig, runE *runExec.RunExec,
-	appRunning chan bool, processErrCh chan<- processExitError, errorChan chan error,
+	appRunning chan bool, sigCh chan os.Signal, errorChan chan error,
 ) {
 	if runE.AppCMD.Command == nil {
 		appRunning <- true
@@ -1029,16 +888,11 @@ func startAppProcess(runConfig *standalone.RunConfig, runE *runExec.RunExec,
 		appErr := runE.AppCMD.Command.Wait()
 
 		if appErr != nil {
+			runE.AppCMD.CommandErr = appErr
 			print.StatusEvent(runE.AppCMD.ErrorWriter, print.LogFailure, "The App process exited with error code: %s", appErr.Error())
-			processErrCh <- processExitError{
-				runState: runE,
-				process:  appProcess,
-				err:      appErr,
-			}
-			return
+		} else {
+			print.StatusEvent(runE.AppCMD.OutputWriter, print.LogSuccess, "Exited App successfully")
 		}
-
-		print.StatusEvent(runE.AppCMD.OutputWriter, print.LogSuccess, "Exited App successfully")
 	}()
 
 	appRunning <- true
@@ -1047,7 +901,7 @@ func startAppProcess(runConfig *standalone.RunConfig, runE *runExec.RunExec,
 // startDaprdProcess, starts the Daprd process and calls wait in a goroutine
 // This function should be called as a goroutine.
 func startDaprdProcess(runConfig *standalone.RunConfig, runE *runExec.RunExec,
-	daprRunning chan bool, processErrCh chan<- processExitError, errorChan chan error,
+	daprRunning chan bool, sigCh chan os.Signal, errorChan chan error,
 ) {
 	var startInfo string
 	if runConfig.UnixDomainSocket != "" {
@@ -1079,15 +933,11 @@ func startDaprdProcess(runConfig *standalone.RunConfig, runE *runExec.RunExec,
 	go func() {
 		daprdErr := runE.DaprCMD.Command.Wait()
 		if daprdErr != nil {
+			runE.DaprCMD.CommandErr = daprdErr
 			print.StatusEvent(runE.DaprCMD.ErrorWriter, print.LogFailure, "The daprd process exited with error code: %s", daprdErr.Error())
-			processErrCh <- processExitError{
-				runState: runE,
-				process:  daprdProcess,
-				err:      daprdErr,
-			}
-			return
+		} else {
+			print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogSuccess, "Exited Dapr successfully")
 		}
-		print.StatusEvent(runE.DaprCMD.OutputWriter, print.LogSuccess, "Exited Dapr successfully")
 	}()
 
 	if runConfig.AppPort <= 0 {
@@ -1138,15 +988,8 @@ func startDaprdProcess(runConfig *standalone.RunConfig, runE *runExec.RunExec,
 
 // killDaprdProcess is used to kill the Daprd process and return error on failure.
 func killDaprdProcess(runE *runExec.RunExec) error {
-	if runE.DaprCMD.Command == nil || runE.DaprCMD.Command.Process == nil {
-		return nil
-	}
 	err := runE.DaprCMD.Command.Process.Kill()
 	if err != nil {
-		// The process may already have exited before Kill is called.
-		if errors.Is(err, os.ErrProcessDone) {
-			return nil
-		}
 		print.StatusEvent(runE.DaprCMD.ErrorWriter, print.LogFailure, "Error exiting Dapr: %s", err)
 		return err
 	}
