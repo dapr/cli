@@ -564,8 +564,6 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 
 	for _, app := range apps {
 		errCh := make(chan error, 1)
-		fatalCapture := &fatalCaptureWriter{}
-
 		go func(app runfileconfig.App) {
 			err := <-errCh
 			if err == nil {
@@ -573,9 +571,6 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 			}
 
 			msg := err.Error()
-			if fatal := fatalCapture.Fatal(); fatal != "" {
-				msg = fatal
-			}
 			print.StatusEvent(os.Stderr, print.LogFailure, "Error starting app %q: %s", app.AppID, msg)
 			exitWithError = true
 			sigCh <- syscall.SIGTERM
@@ -619,7 +614,6 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 		var customAppLogWriter io.Writer
 
 		daprdLogWriterCloser := runfileconfig.GetLogWriter(app.DaprdLogWriteCloser, app.DaprdLogDestination)
-		daprdOut := io.MultiWriter(daprdLogWriterCloser, fatalCapture)
 
 		if len(runConfig.Command) == 0 {
 			print.StatusEvent(os.Stdout, print.LogWarning, "No application command found for app %q present in %s", runConfig.AppID, runFilePath)
@@ -637,7 +631,7 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 		}
 		customAppLogWriter = print.CustomLogWriter{W: appLogWriter}
 		runState, err := startDaprdAndAppProcesses(&runConfig, app.AppDirPath, errCh,
-			daprdOut, daprdOut, customAppLogWriter, customAppLogWriter)
+			daprdLogWriterCloser, daprdLogWriterCloser, customAppLogWriter, customAppLogWriter)
 		if err != nil {
 			print.StatusEvent(appDaprdWriter, print.LogFailure, "Error starting Dapr and app (%q): %s", app.AppID, err.Error())
 			exitWithError = true
@@ -1164,37 +1158,4 @@ func detectIncompatibleFlags(cmd *cobra.Command) []string {
 
 	// Get all flags that are not in the compatible list
 	return getConflictingFlags(cmd, append(runFileCompatibleFlags, "run-file")...)
-}
-
-// fatalCaptureWriter passes nothing through; it only inspects lines for daprd's fatal log entry.
-type fatalCaptureWriter struct {
-	mu    sync.Mutex
-	buf   []byte
-	fatal string
-}
-
-var fatalMsgRe = regexp.MustCompile(`level=fatal msg="((?:[^"\\]|\\.)*)"`)
-
-func (w *fatalCaptureWriter) Write(p []byte) (int, error) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	w.buf = append(w.buf, p...)
-	for {
-		i := bytes.IndexByte(w.buf, '\n')
-		if i < 0 {
-			break
-		}
-		line := w.buf[:i]
-		if m := fatalMsgRe.FindSubmatch(line); m != nil {
-			w.fatal = string(m[1])
-		}
-		w.buf = w.buf[i+1:]
-	}
-	return len(p), nil
-}
-
-func (w *fatalCaptureWriter) Fatal() string {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	return w.fatal
 }
