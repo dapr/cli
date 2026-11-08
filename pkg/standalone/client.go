@@ -13,8 +13,6 @@ limitations under the License.
 
 package standalone
 
-import "context"
-
 type DaprProcess interface {
 	List() ([]ListOutput, error)
 }
@@ -27,8 +25,6 @@ type Client interface {
 	Invoke(appID, method string, data []byte, verb string, socket string) (string, error)
 	// Publish is used to publish event to a topic in a pubsub for an app ID.
 	Publish(publishAppID, pubsubName, topic string, payload []byte, socket string, metadata map[string]interface{}) error
-	// Subscribe starts a local HTTP subscriber for a running Dapr app ID.
-	Subscribe(ctx context.Context, opts SubscribeOptions) error
 }
 
 type Standalone struct {
