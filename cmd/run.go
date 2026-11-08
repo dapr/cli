@@ -15,16 +15,19 @@ package cmd
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -520,21 +523,63 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 
 	runStates := make([]*runExec.RunExec, 0, len(apps))
 
+	var (
+		closeError  error
+		cleanupOnce sync.Once
+	)
+
+	cleanup := func() {
+		cleanupOnce.Do(func() {
+			// Stop daprd and app processes for each runState.
+			closeError = gracefullyShutdownAppsAndCloseResources(runStates, apps)
+
+			for _, app := range apps {
+				runConfig := app.RunConfig
+				if runConfig.UnixDomainSocket != "" {
+					for _, s := range []string{"http", "grpc"} {
+						os.Remove(utils.GetSocket(runConfig.UnixDomainSocket, runConfig.AppID, s))
+					}
+				}
+			}
+		})
+	}
+
+	go func() {
+		<-sigCh
+		if !exitWithError {
+			// To add a new line in Stdout.
+			fmt.Println()
+			print.InfoStatusEvent(os.Stdout, "Received signal to stop Dapr and app processes. Shutting down Dapr and app processes.")
+		}
+		cleanup()
+		os.Exit(1)
+	}()
+
+	defer cleanup()
+
 	// Creates a separate process group ID for current process i.e. "dapr run -f".
 	// All the subprocess and their grandchildren inherit this PGID.
 	// This is done to provide a better grouping, which can be used to control all the proceses started by "dapr run -f".
 	daprsyscall.CreateProcessGroupID()
 
-	errCh := make(chan error, 2 * len(apps))
 	for _, app := range apps {
-		select {
-		case err := <-errCh:
-			print.StatusEvent(os.Stderr, print.LogFailure, "Error starting app %q: %s", app.AppID, err.Error())
+		errCh := make(chan error, 1)
+		fatalCapture := &fatalCaptureWriter{}
+
+		go func(app runfileconfig.App) {
+			err := <-errCh
+			if err == nil {
+				return
+			}
+
+			msg := err.Error()
+			if fatal := fatalCapture.Fatal(); fatal != "" {
+				msg = fatal
+			}
+			print.StatusEvent(os.Stderr, print.LogFailure, "Error starting app %q: %s", app.AppID, msg)
 			exitWithError = true
 			sigCh <- syscall.SIGTERM
-			break
-		default:
-		}
+		}(app)
 		print.StatusEvent(os.Stdout, print.LogInfo, "Validating config and starting app %q", app.AppID)
 		// Set defaults if zero value provided in config yaml.
 		app.SetDefaultFromSchema()
@@ -574,6 +619,7 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 		var customAppLogWriter io.Writer
 
 		daprdLogWriterCloser := runfileconfig.GetLogWriter(app.DaprdLogWriteCloser, app.DaprdLogDestination)
+		daprdOut := io.MultiWriter(daprdLogWriterCloser, fatalCapture)
 
 		if len(runConfig.Command) == 0 {
 			print.StatusEvent(os.Stdout, print.LogWarning, "No application command found for app %q present in %s", runConfig.AppID, runFilePath)
@@ -591,7 +637,7 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 		}
 		customAppLogWriter = print.CustomLogWriter{W: appLogWriter}
 		runState, err := startDaprdAndAppProcesses(&runConfig, app.AppDirPath, errCh,
-			daprdLogWriterCloser, daprdLogWriterCloser, customAppLogWriter, customAppLogWriter)
+			daprdOut, daprdOut, customAppLogWriter, customAppLogWriter)
 		if err != nil {
 			print.StatusEvent(appDaprdWriter, print.LogFailure, "Error starting Dapr and app (%q): %s", app.AppID, err.Error())
 			exitWithError = true
@@ -631,26 +677,6 @@ func executeRun(runTemplateName, runFilePath string, apps []runfileconfig.App) (
 
 		print.StatusEvent(runState.DaprCMD.OutputWriter, print.LogSuccess, "You're up and running! Dapr logs will appear here.\n")
 		logInformationalStatusToStdout(app)
-	}
-	// If all apps have been started and there are no errors in starting the apps wait for signal from sigCh.
-	if !exitWithError {
-		// After all apps started wait for sigCh.
-		<-sigCh
-		// To add a new line in Stdout.
-		fmt.Println()
-		print.InfoStatusEvent(os.Stdout, "Received signal to stop Dapr and app processes. Shutting down Dapr and app processes.")
-	}
-
-	// Stop daprd and app processes for each runState.
-	closeError := gracefullyShutdownAppsAndCloseResources(runStates, apps)
-
-	for _, app := range apps {
-		runConfig := app.RunConfig
-		if runConfig.UnixDomainSocket != "" {
-			for _, s := range []string{"http", "grpc"} {
-				os.Remove(utils.GetSocket(runConfig.UnixDomainSocket, runConfig.AppID, s))
-			}
-		}
 	}
 
 	return exitWithError, closeError
@@ -1138,4 +1164,37 @@ func detectIncompatibleFlags(cmd *cobra.Command) []string {
 
 	// Get all flags that are not in the compatible list
 	return getConflictingFlags(cmd, append(runFileCompatibleFlags, "run-file")...)
+}
+
+// fatalCaptureWriter passes nothing through; it only inspects lines for daprd's fatal log entry.
+type fatalCaptureWriter struct {
+	mu    sync.Mutex
+	buf   []byte
+	fatal string
+}
+
+var fatalMsgRe = regexp.MustCompile(`level=fatal msg="((?:[^"\\]|\\.)*)"`)
+
+func (w *fatalCaptureWriter) Write(p []byte) (int, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.buf = append(w.buf, p...)
+	for {
+		i := bytes.IndexByte(w.buf, '\n')
+		if i < 0 {
+			break
+		}
+		line := w.buf[:i]
+		if m := fatalMsgRe.FindSubmatch(line); m != nil {
+			w.fatal = string(m[1])
+		}
+		w.buf = w.buf[i+1:]
+	}
+	return len(p), nil
+}
+
+func (w *fatalCaptureWriter) Fatal() string {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.fatal
 }
