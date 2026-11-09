@@ -21,6 +21,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -65,12 +66,25 @@ func TestSlimRunStartsLocalServices(t *testing.T) {
 	})
 
 	t.Run("a workflow completes", func(t *testing.T) {
-		// `dapr workflow run` waits with no time limit until the app gives its
-		// workflows to daprd. If the app does not start, the time limit makes
-		// this test fail, and the test log gets the output of `dapr run`.
+		// Before Dapr 1.19, `dapr workflow run` waits with no time limit until
+		// the app connects its workflow worker to daprd. From Dapr 1.19, daprd
+		// refuses the start after a few seconds when no worker is connected.
+		// `go run` can take longer than that, because it can first download
+		// the modules of the app. So start the workflow again while daprd
+		// reports that no worker is connected. If the app does not start, the
+		// time limit makes this test fail, and the test log gets the output
+		// of `dapr run`.
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 		defer cancel()
-		output, err := cmdWorkflowRunWithContext(ctx, appID, "SimpleWorkflow", "--instance-id=slim-1", "--input", `"slim"`)
+		var output string
+		var err error
+		for {
+			output, err = cmdWorkflowRunWithContext(ctx, appID, "SimpleWorkflow", "--instance-id=slim-1", "--input", `"slim"`)
+			if err == nil || ctx.Err() != nil || !strings.Contains(output, "no workflow worker is connected") {
+				break
+			}
+			time.Sleep(time.Second)
+		}
 		require.NoError(t, err, output)
 
 		require.EventuallyWithT(t, func(c *assert.CollectT) {
