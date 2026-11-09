@@ -1,0 +1,10 @@
+version: 1
+apps:
+  - appDirPath: ./webapp/
+    appID: not_set
+  - appDirPath: ./webapp/
+    appID: app_false
+    startLocalServices: false
+  - appDirPath: ./webapp/
+    appID: app_true
+    startLocalServices: true

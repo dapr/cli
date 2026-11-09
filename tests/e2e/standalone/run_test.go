@@ -18,9 +18,11 @@ package standalone_test
 import (
 	"context"
 	"fmt"
+	"net"
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/dapr/cli/tests/e2e/common"
 
@@ -33,15 +35,35 @@ func TestStandaloneRun(t *testing.T) {
 	defer cancelFunc()
 
 	if isSlimMode() {
-		output, err := cmdProcess(ctx, "placement", t.Log, "--metrics-port", "9091", "--healthz-port", "8081")
+		// Use the ports that daprd and `dapr run` use on this OS. Then
+		// `dapr run` uses these services, and does not start its own.
+		placementPort, schedulerPort := "50005", "50006"
+		if runtime.GOOS == "windows" {
+			placementPort, schedulerPort = "6050", "6060"
+		}
+		ports := []string{placementPort}
+
+		output, err := cmdProcess(ctx, "placement", t.Log, "--port", placementPort, "--metrics-port", "9091", "--healthz-port", "8081")
 		require.NoError(t, err)
 		t.Log(output)
 
 		if common.GetRuntimeVersion(t, false).GreaterThan(common.VersionWithScheduler) {
-			output, err = cmdProcess(ctx, "scheduler", t.Log, "--metrics-port", "9092", "--healthz-port", "8082")
+			output, err = cmdProcess(ctx, "scheduler", t.Log, "--port", schedulerPort, "--metrics-port", "9092", "--healthz-port", "8082")
 			require.NoError(t, err)
 			t.Log(output)
+			ports = append(ports, schedulerPort)
 		}
+
+		require.Eventually(t, func() bool {
+			for _, port := range ports {
+				conn, err := net.DialTimeout("tcp", net.JoinHostPort("127.0.0.1", port), time.Second)
+				if err != nil {
+					return false
+				}
+				conn.Close()
+			}
+			return true
+		}, 30*time.Second, 200*time.Millisecond, "the services do not listen on the ports %v", ports)
 	}
 	t.Cleanup(func() {
 		cancelFunc()
@@ -96,7 +118,7 @@ func TestStandaloneRun(t *testing.T) {
 		// Test that the CLI exits on a daprd shutdown.
 		args := []string{"--dapr-http-port", "9999", "--"}
 		if runtime.GOOS == "windows" {
-			args = append(args, "cmd", "/c", "curl -v -X POST http://localhost:9999/v1.0/shutdown && timeout /t 10 && exit 1")
+			args = append(args, "cmd", "/c", "curl -v -X POST http://localhost:9999/v1.0/shutdown && ping -n 11 127.0.0.1 >nul && exit 1")
 		} else {
 			args = append(args, "bash", "-c", "curl -v -X POST http://localhost:9999/v1.0/shutdown; sleep 10; exit 1")
 		}

@@ -238,3 +238,32 @@ func TestValidateSchedulerHostAddr(t *testing.T) {
 		assert.Equal(t, "1.2.3.4:45678", *cfg.SchedulerHostAddress)
 	})
 }
+
+func TestLocalServicesEnabled(t *testing.T) {
+	enabled, disabled := true, false
+	testcases := []struct {
+		name     string
+		value    *bool
+		expected bool
+	}{
+		{name: "not set means true", value: nil, expected: true},
+		{name: "true", value: &enabled, expected: true},
+		{name: "false", value: &disabled, expected: false},
+	}
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := &SharedRunConfig{StartLocalServices: tc.value}
+			assert.Equal(t, tc.expected, cfg.LocalServicesEnabled())
+		})
+	}
+
+	t.Run("daprd gets no flag for the value", func(t *testing.T) {
+		cfg := &RunConfig{AppID: "testapp", SharedRunConfig: SharedRunConfig{StartLocalServices: &disabled}}
+		for _, arg := range cfg.getArgs() {
+			assert.NotContains(t, arg, "local-services")
+		}
+		for key := range cfg.GetAnnotations() {
+			assert.NotContains(t, key, "local-services")
+		}
+	})
+}
