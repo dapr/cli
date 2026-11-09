@@ -519,6 +519,33 @@ func TestCreateSlimStateStore(t *testing.T) {
 		}, actual)
 	})
 
+	t.Run("writes an absolute database path for a relative install folder", func(t *testing.T) {
+		// dapr init --slim --runtime-path ./runtime gives a relative install folder.
+		t.Chdir(t.TempDir())
+		wd, err := os.Getwd()
+		require.NoError(t, err)
+		installDir := filepath.Join("runtime", ".dapr")
+		require.NoError(t, makeDefaultComponentsDir(installDir))
+
+		store, err := createSlimStateStore(installDir, "1.19.0")
+		require.NoError(t, err)
+
+		content, err := os.ReadFile(store.path)
+		require.NoError(t, err)
+		var actual component
+		require.NoError(t, yaml.Unmarshal(content, &actual))
+		require.NotEmpty(t, actual.Spec.Metadata)
+		assert.Equal(t, componentMetadataItem{
+			Name:  "connectionString",
+			Value: "file:" + filepath.Join(wd, "runtime", ".dapr", "state", "statestore.db"),
+		}, actual.Spec.Metadata[0])
+
+		// A later Docker init in the same folder still finds the file as its own.
+		removed, err := removeSlimStateStore(installDir)
+		require.NoError(t, err)
+		assert.True(t, removed)
+	})
+
 	t.Run("keeps a components folder that already has components and says why", func(t *testing.T) {
 		installDir := t.TempDir()
 		require.NoError(t, makeDefaultComponentsDir(installDir))

@@ -1227,6 +1227,13 @@ func createSlimStateStore(installDir, runtimeVersion string) (slimStateStore, er
 // slimStateStoreYAML returns the SQLite state store component that slim init
 // writes for the installation in installDir.
 func slimStateStoreYAML(installDir string) ([]byte, error) {
+	// An absolute path, so that the file does not depend on the working directory of daprd.
+	// installDir is relative when --runtime-path is relative.
+	dbPath, err := path_filepath.Abs(path_filepath.Join(getDaprStatePath(installDir), sqliteStateFileName))
+	if err != nil {
+		return nil, fmt.Errorf("get the absolute path of the SQLite database: %w", err)
+	}
+
 	sqliteStore := component{
 		APIVersion: "dapr.io/v1alpha1",
 		Kind:       "Component",
@@ -1236,9 +1243,8 @@ func slimStateStoreYAML(installDir string) ([]byte, error) {
 	sqliteStore.Spec.Version = "v1"
 	sqliteStore.Spec.Metadata = []componentMetadataItem{
 		{
-			// An absolute path, so that the file does not depend on the working directory of daprd.
 			Name:  "connectionString",
-			Value: sqliteConnectionString(path_filepath.Join(getDaprStatePath(installDir), sqliteStateFileName)),
+			Value: sqliteConnectionString(dbPath),
 		},
 		{
 			Name:  "actorStateStore",
