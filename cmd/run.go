@@ -82,10 +82,6 @@ var (
 const (
 	defaultRunTemplateFileName  = "dapr.yaml"
 	runtimeWaitTimeoutInSeconds = 60
-	// daprDetachedCmd is argv[0] of the re-executed detached child.
-	daprDetachedCmd = "dapr-run-detached"
-	// detachedChildEnv marks the re-executed detached child so it doesn't detach again.
-	detachedChildEnv = "DAPR_RUN_DETACHED_CHILD"
 )
 
 // Flags that are compatible with --run-file
