@@ -19,6 +19,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -311,10 +313,23 @@ func runSubscribe(cmd *cobra.Command, subs []subscription) error {
 	if schedOut != "" {
 		app.SchedulerHostAddress = &schedOut
 	}
-	// Validate validates the configs and modifies the ports to free ports, appId etc.
+	// Validate validates the configs and allocates the Dapr sidecar ports.
 	if err = app.Validate(); err != nil {
 		return fmt.Errorf("error validating run config for app %q: %w", app.AppID, err)
 	}
+
+	// Unlike `dapr run` without an app command, subscribe always has an HTTP
+	// application: the hidden `subscribe serve` process. Dapr must therefore
+	// receive a real app-port. RunConfig.Validate normalizes an unspecified
+	// app-port to 0, which disables the app channel; never pass that value to
+	// daprd or to the subscriber HTTP server.
+	if app.AppPort <= 0 {
+		app.AppPort, err = getAvailableTCPPort()
+		if err != nil {
+			return fmt.Errorf("failed to allocate subscriber app port: %w", err)
+		}
+	}
+	print.StatusEvent(os.Stdout, print.LogInfo, "Starting subscriber HTTP server on port %d", app.AppPort)
 
 	exe, err := os.Executable()
 	if err != nil {
@@ -341,7 +356,10 @@ func runSubscribe(cmd *cobra.Command, subs []subscription) error {
 	daprdLogWriterCloser := runfileconfig.GetLogWriter(app.DaprdLogWriteCloser, app.DaprdLogDestination)
 	appDaprdWriter := runExec.GetAppDaprdWriter(app, false)
 	appLogWriter := runfileconfig.GetLogWriter(app.AppLogWriteCloser, app.AppLogDestination)
-	// A custom writer used for trimming ASCII color codes from logs when writing to files.
+	// subscribe serve runs as the app child process. startAppProcess captures that
+	// process's stdout and forwards it to this writer. Since AppLogDestination is
+	// Console, appLogWriter is os.Stdout in the dapr subscribe process.
+	// CustomLogWriter also strips terminal color codes when the destination is a file.
 	var customAppLogWriter io.Writer = print.CustomLogWriter{W: appLogWriter}
 
 	runState, err := startDaprdAndAppProcesses(&runConfig, app.AppDirPath, sigCh,
@@ -390,10 +408,43 @@ func runSubscribe(cmd *cobra.Command, subs []subscription) error {
 	return closeErr
 }
 
+// getAvailableTCPPort returns an available loopback TCP port for the internal
+// subscriber app. The listener is closed before the child process binds it;
+// the small reservation race is unavoidable without passing an inherited
+// listener across process boundaries.
+func getAvailableTCPPort() (int, error) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return 0, err
+	}
+
+	addr, ok := listener.Addr().(*net.TCPAddr)
+	if !ok {
+		_ = listener.Close()
+		return 0, fmt.Errorf("unexpected listener address type %T", listener.Addr())
+	}
+
+	port := addr.Port
+	if err := listener.Close(); err != nil {
+		return 0, fmt.Errorf("failed to release temporary listener: %w", err)
+	}
+	return port, nil
+}
+
 // serveSubscriptions runs the subscriber app: it tells Dapr which routes to
 // call and prints every event it receives.
 func serveSubscriptions(port int, subs []subscription) error {
+	if port <= 0 || port > 65535 {
+		return fmt.Errorf("invalid subscriber HTTP port %d", port)
+	}
+
 	mux := http.NewServeMux()
+
+	// Use a logger bound to this process's stdout. The parent dapr subscribe
+	// process captures the serve process's stdout and forwards it to its own
+	// stdout through AppCMD.OutputWriter. log.Logger serializes concurrent writes
+	// so events received by multiple HTTP handlers cannot interleave.
+	eventLogger := log.New(os.Stdout, "", 0)
 
 	mux.HandleFunc("/dapr/subscribe", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -402,30 +453,52 @@ func serveSubscriptions(port int, subs []subscription) error {
 
 	for _, s := range subs {
 		route := s.Route
-		mux.HandleFunc(route, func(w http.ResponseWriter, r *http.Request) {
-			body, err := io.ReadAll(r.Body)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-			fmt.Printf("%s %s %s\n", time.Now().Format(time.RFC3339), route, body)
+		// Capture route for this handler explicitly.
+		mux.HandleFunc(route, func(route string) http.HandlerFunc {
+			return func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != http.MethodPost {
+					http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+					return
+				}
+				defer r.Body.Close()
 
-			w.Header().Set("Content-Type", "application/json")
-			_, _ = io.WriteString(w, `{"status":"SUCCESS"}`)
-		})
+				body, err := io.ReadAll(r.Body)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusBadRequest)
+					return
+				}
+
+				// This write goes to the serve subprocess's stdout. The parent CLI's
+				// app-process output reader forwards it to the invoking terminal.
+				eventLogger.Printf("%s %s %s", time.Now().Format(time.RFC3339), route, body)
+
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = io.WriteString(w, `{"status":"SUCCESS"}`)
+			}
+		}(route))
 	}
 
+	// Bind synchronously so startup failures are reported to the parent CLI
+	// instead of being lost in the background ListenAndServe goroutine.
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	if err != nil {
+		return fmt.Errorf("failed to listen for subscriber requests on port %d: %w", port, err)
+	}
+	defer listener.Close()
+
 	srv := &http.Server{
-		Addr:              fmt.Sprintf(":%d", port),
 		Handler:           mux,
 		ReadHeaderTimeout: 10 * time.Second,
 	}
+
+	eventLogger.Printf("Subscriber HTTP server listening on %s", listener.Addr())
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
 	errCh := make(chan error, 1)
-	go func() { errCh <- srv.ListenAndServe() }()
+	go func() { errCh <- srv.Serve(listener) }()
 
 	select {
 	case err := <-errCh:
