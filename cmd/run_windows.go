@@ -20,12 +20,14 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"syscall"
 
 	"github.com/kolesnikovae/go-winjob"
 
 	"github.com/dapr/cli/pkg/print"
 	runExec "github.com/dapr/cli/pkg/runexec"
 	"github.com/dapr/cli/utils"
+	"golang.org/x/sys/windows"
 )
 
 // killProcessGroup on Windows terminates the entire process tree by terminating the
@@ -86,4 +88,11 @@ func startAppProcessInBackground(output *runExec.RunOutput, binary string, args 
 		sigCh <- os.Interrupt
 	}()
 	return nil
+}
+
+func sysProcAttr() *syscall.SysProcAttr {
+	return &windows.SysProcAttr{
+		HideWindow:    true,
+		CreationFlags: windows.DETACHED_PROCESS | windows.CREATE_NEW_PROCESS_GROUP,
+	}
 }

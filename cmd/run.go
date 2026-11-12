@@ -76,11 +76,16 @@ var (
 	runFilePath          string
 	appChannelAddress    string
 	enableRunK8s         bool
+	enableDetachedMode   bool
 )
 
 const (
 	defaultRunTemplateFileName  = "dapr.yaml"
 	runtimeWaitTimeoutInSeconds = 60
+	// daprDetachedCmd is argv[0] of the re-executed detached child.
+	daprDetachedCmd = "dapr-run-detached"
+	// detachedChildEnv marks the re-executed detached child so it doesn't detach again.
+	detachedChildEnv = "DAPR_RUN_DETACHED_CHILD"
 )
 
 // Flags that are compatible with --run-file
@@ -90,6 +95,7 @@ var runFileCompatibleFlags = []string{
 	"version",
 	"runtime-path",
 	"log-as-json",
+	"detach",
 }
 
 var RunCmd = &cobra.Command{
@@ -141,6 +147,53 @@ dapr run --run-file /path/to/directory -k
 		viper.BindPFlag("placement-host-address", cmd.Flags().Lookup("placement-host-address"))
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		// The marker is only set in the re-executed detached child. Clear it so that
+		// daprd and the apps started from here don't inherit it.
+		isDetachedChild := os.Getenv(detachedChildEnv) != ""
+		os.Unsetenv(detachedChildEnv)
+
+		if enableDetachedMode && !isDetachedChild {
+			exe, err := os.Executable()
+			if err != nil {
+				print.FailureStatusEvent(os.Stderr, "Failed to locate the dapr executable: %v", err)
+				os.Exit(1)
+			}
+			execCmd := exec.Command(exe, os.Args[1:]...)
+			execCmd.Env = append(os.Environ(), detachedChildEnv+"=1")
+			execCmd.SysProcAttr = sysProcAttr()
+			execCmd.Stdin, execCmd.Stdout, execCmd.Stderr = nil, nil, nil
+			if fi, err := os.Stdin.Stat(); err == nil && fi.Mode()&os.ModeCharDevice == 0 {
+				execCmd.Stdin = os.Stdin
+			}
+			if runFilePath == "-" && execCmd.Stdin == nil {
+				print.FailureStatusEvent(os.Stderr, "--run-file - with --detach needs the run file piped on stdin")
+				os.Exit(1)
+			}
+			logPath := filepath.Join(os.TempDir(), fmt.Sprintf("dapr-run-%d.log", time.Now().Unix()))
+			logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+			if err != nil {
+				print.FailureStatusEvent(os.Stderr, "Failed to open log file: %v", err)
+				os.Exit(1)
+			}
+			defer logFile.Close()
+			execCmd.Stdout = logFile
+			execCmd.Stderr = logFile
+			if err := execCmd.Start(); err != nil {
+				print.FailureStatusEvent(os.Stderr, "Failed to start detached Dapr command: %v", err)
+				os.Exit(1)
+			}
+			pid := execCmd.Process.Pid
+			if err := execCmd.Process.Release(); err != nil {
+				print.FailureStatusEvent(os.Stderr, "Failed to release detached Dapr command process: %v", err)
+				os.Exit(1)
+			}
+
+			print.SuccessStatusEvent(os.Stdout,
+				"Dapr is running in detached mode (PID: %d). You can check the logs at %q file.",
+				pid, logPath)
+			return
+		}
+
 		if len(runFilePath) > 0 {
 			// Check for incompatible flags
 			incompatibleFlags := detectIncompatibleFlags(cmd)
@@ -507,6 +560,7 @@ func init() {
 	RunCmd.Flags().StringVar(&apiListenAddresses, "dapr-listen-addresses", "", "Comma separated list of IP addresses that sidecar will listen to")
 	RunCmd.Flags().StringVarP(&runFilePath, "run-file", "f", "", "Path to the run template file for the list of apps to run")
 	RunCmd.Flags().StringVarP(&appChannelAddress, "app-channel-address", "", utils.DefaultAppChannelAddress, "The network address the application listens on")
+	RunCmd.Flags().BoolVarP(&enableDetachedMode, "detach", "D", false, "Run the multi-app run in detached mode.")
 	RootCmd.AddCommand(RunCmd)
 }
 

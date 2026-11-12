@@ -154,3 +154,9 @@ func startAppProcessInBackground(output *runExec.RunOutput, binary string, args 
 	}()
 	return nil
 }
+
+func sysProcAttr() *syscall.SysProcAttr {
+	return &syscall.SysProcAttr{
+		Setsid: true,
+	}
+}
