@@ -30,24 +30,45 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+
+	daprRuntime "github.com/dapr/dapr/pkg/runtime"
 
 	cmdruntime "github.com/dapr/cli/cmd/runtime"
 	"github.com/dapr/cli/pkg/print"
+	runExec "github.com/dapr/cli/pkg/runexec"
+	"github.com/dapr/cli/pkg/runfileconfig"
 	"github.com/dapr/cli/pkg/standalone"
 	daprsyscall "github.com/dapr/cli/pkg/syscall"
 	"github.com/dapr/cli/utils"
 )
 
 var (
-	subscribeAppID    string
-	subscribeAppPort  int
-	subscribeSocket   string
-	subscribeMetadata map[string]string
-	subscribeTo       []string
+	subscribeAppID                string
+	subscribeSocket               string
+	subscribeMetadata             map[string]string
+	subscribeTo                   []string
+	subscribeConfigFile           string
+	subscribeHTTPPort             int
+	subscribeGRPCPort             int
+	subscribeMetricsPort          int
+	subscribeLogLevel             string
+	subscribeResourcesPaths       []string
+	subscribePlacementAddress     string
+	subscribeSchedulerAddress     string
+	subscribeAPIListenAddresses   string
+	subscribeEnableAPILogging     bool
+	subscribeServePort            int
+	subscribeServeSubscriptionsJS string
+)
 
-	// Flags of the hidden "subscribe serve" command.
-	subscribeServePort int
-	subscribeServeSubs string
+// Flags shared with "dapr run" for the sidecar.
+var (
+	subscribeInternalGRPCPort   int
+	subscribeProfilePort        int
+	subscribeEnableProfiling    bool
+	subscribeMaxRequestBodySize string
+	subscribeReadBufferSize     string
 )
 
 // subscription is the programmatic subscription returned from GET /dapr/subscribe.
@@ -74,10 +95,19 @@ dapr subscribe --app-id myapp --to target:sample --to other:events --metadata ra
 # Per-target metadata overrides --metadata for that target
 dapr subscribe --app-id myapp --to "target:sample:/sample?rawPayload=true&ttlInSeconds=10" --to other:events
 
+# Subscribe with a specific Dapr HTTP port
+dapr subscribe --app-id myapp --dapr-http-port 3500 --to target:sample
+
 # Subscribe using Unix domain socket
 dapr subscribe --unix-domain-socket /tmp --app-id myapp --to target:sample
+
+# Subscribe specifying dapr runtime installation directory
+dapr subscribe --app-id myapp --to target:sample --runtime-path /usr/local/dapr
 `,
 	Args: cobra.NoArgs,
+	PreRun: func(cmd *cobra.Command, args []string) {
+		viper.BindPFlag("placement-host-address", cmd.Flags().Lookup("placement-host-address"))
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		subs, err := parseSubscriptions(subscribeTo, subscribeMetadata)
 		if err != nil {
@@ -94,7 +124,7 @@ dapr subscribe --unix-domain-socket /tmp --app-id myapp --to target:sample
 			print.WarningStatusEvent(os.Stdout, "Unix domain sockets are currently a preview feature")
 		}
 
-		if err = runSubscribe(subs); err != nil {
+		if err = runSubscribe(cmd, subs); err != nil {
 			print.FailureStatusEvent(os.Stderr, "Error subscribing: %s", err)
 			os.Exit(1)
 		}
@@ -109,7 +139,7 @@ var subscribeServeCmd = &cobra.Command{
 	Args:   cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		var subs []subscription
-		if err := json.Unmarshal([]byte(subscribeServeSubs), &subs); err != nil {
+		if err := json.Unmarshal([]byte(subscribeServeSubscriptionsJS), &subs); err != nil {
 			print.FailureStatusEvent(os.Stderr, "Error parsing subscriptions: %s", err)
 			os.Exit(1)
 		}
@@ -191,92 +221,173 @@ func parseSubscriptions(values []string, defaultMetadata map[string]string) ([]s
 	return subs, nil
 }
 
-// runSubscribe starts the daprd sidecar and the subscriber app (this binary
-// re-executed as "subscribe serve") and blocks until a shutdown signal.
-func runSubscribe(subs []subscription) error {
+// buildSubscribeApp creates the runfileconfig.App describing the daprd sidecar
+// and the subscriber app (this binary re-executed as "subscribe serve").
+func buildSubscribeApp(cmd *cobra.Command) (runfileconfig.App, error) {
+	daprDirPath, err := standalone.GetDaprRuntimePath(cmdruntime.GetDaprRuntimePath())
+	if err != nil {
+		return runfileconfig.App{}, fmt.Errorf("failed to get Dapr install directory: %w", err)
+	}
+
+	app := runfileconfig.App{
+		RunConfig: standalone.RunConfig{
+			AppID:            subscribeAppID,
+			UnixDomainSocket: subscribeSocket,
+		},
+	}
+
+	// Set defaults for everything not given below.
+	app.SetDefaultFromSchema()
+
+	app.ConfigFile = subscribeConfigFile
+	if app.ConfigFile == "" {
+		app.ConfigFile = standalone.GetDaprConfigPath(daprDirPath)
+	}
+	app.ComponentsPath = standalone.GetDaprComponentsPath(daprDirPath)
+	app.ResourcesPaths = subscribeResourcesPaths
+	app.LogLevel = subscribeLogLevel
+	app.HTTPPort = subscribeHTTPPort
+	app.GRPCPort = subscribeGRPCPort
+	app.MetricsPort = subscribeMetricsPort
+	app.InternalGRPCPort = subscribeInternalGRPCPort
+	app.ProfilePort = subscribeProfilePort
+	app.EnableProfiling = subscribeEnableProfiling
+	app.MaxRequestBodySize = subscribeMaxRequestBodySize
+	app.HTTPReadBufferSize = subscribeReadBufferSize
+	app.EnableAPILogging = subscribeEnableAPILogging
+	app.APIListenAddresses = subscribeAPIListenAddresses
+	app.DaprdInstallPath = cmdruntime.GetDaprRuntimePath()
+
+	// Logs of both daprd and the subscriber app go to the console.
+	app.AppLogDestination = standalone.Console
+	app.DaprdLogDestination = standalone.Console
+
+	if subscribeSocket != "" {
+		// use unix domain socket means no port any more.
+		app.HTTPPort = 0
+		app.GRPCPort = 0
+		// The put*InMeta helpers shared with "dapr run" read this package-level variable.
+		unixDomainSocket = subscribeSocket
+	}
+
+	// placement-host-address flag handling: only set pointer if flag was explicitly changed
+	if cmd.Flags().Changed("placement-host-address") {
+		val := viper.GetString("placement-host-address")
+		app.PlacementHostAddr = &val // may be empty => disable
+	}
+
+	// scheduler-host-address flag handling: only set pointer if flag was explicitly changed
+	if cmd.Flags().Changed("scheduler-host-address") {
+		val := subscribeSchedulerAddress
+		app.SchedulerHostAddress = &val // may be empty => disable
+	}
+
+	return app, nil
+}
+
+// runSubscribe starts the daprd sidecar and the subscriber app and blocks until a shutdown signal.
+func runSubscribe(cmd *cobra.Command, subs []subscription) error {
+	app, err := buildSubscribeApp(cmd)
+	if err != nil {
+		return err
+	}
+
+	// setup shutdown notify channel.
+	sigCh := make(chan os.Signal, 1)
+	daprsyscall.SetupShutdownNotify(sigCh)
+
+	// Creates a separate process group ID for current process, so that daprd and
+	// the app (and their grandchildren) can be controlled together.
+	daprsyscall.CreateProcessGroupID()
+
+	print.StatusEvent(os.Stdout, print.LogInfo, "Validating config and starting app %q", app.AppID)
+
+	// Adjust scheduler host address defaults (pointer-aware)
+	var schedIn string
+	if app.SchedulerHostAddress != nil {
+		schedIn = *app.SchedulerHostAddress
+	}
+	schedOut := validateSchedulerHostAddress(daprVer.RuntimeVersion, schedIn)
+	if schedOut != "" {
+		app.SchedulerHostAddress = &schedOut
+	}
+	// Validate validates the configs and modifies the ports to free ports, appId etc.
+	if err = app.Validate(); err != nil {
+		return fmt.Errorf("error validating run config for app %q: %w", app.AppID, err)
+	}
+
 	exe, err := os.Executable()
 	if err != nil {
 		return fmt.Errorf("could not find the dapr executable: %w", err)
 	}
-
-	appPort := subscribeAppPort
 	payload, err := json.Marshal(subs)
 	if err != nil {
 		return err
 	}
+	app.Command = []string{exe, "subscribe", "serve", "--port", strconv.Itoa(app.AppPort), "--subscriptions", string(payload)}
 
-	daprDirPath, err := standalone.GetDaprRuntimePath(cmdruntime.GetDaprRuntimePath())
+	apps := []runfileconfig.App{app}
+
+	// Get Run Config of the app.
+	runConfig := app.RunConfig
+	if err = app.CreateDaprdLogFile(); err != nil {
+		return fmt.Errorf("error getting daprd log file for app %q: %w", runConfig.AppID, err)
+	}
+	if err = app.CreateAppLogFile(); err != nil {
+		_ = gracefullyShutdownAppsAndCloseResources(nil, apps)
+		return fmt.Errorf("error getting app log file for app %q: %w", runConfig.AppID, err)
+	}
+
+	daprdLogWriterCloser := runfileconfig.GetLogWriter(app.DaprdLogWriteCloser, app.DaprdLogDestination)
+	appDaprdWriter := runExec.GetAppDaprdWriter(app, false)
+	appLogWriter := runfileconfig.GetLogWriter(app.AppLogWriteCloser, app.AppLogDestination)
+	// A custom writer used for trimming ASCII color codes from logs when writing to files.
+	var customAppLogWriter io.Writer = print.CustomLogWriter{W: appLogWriter}
+
+	runState, err := startDaprdAndAppProcesses(&runConfig, app.AppDirPath, sigCh,
+		daprdLogWriterCloser, daprdLogWriterCloser, customAppLogWriter, customAppLogWriter)
 	if err != nil {
-		return fmt.Errorf("failed to get Dapr install directory: %w", err)
-	}
-
-	runConfig := standalone.RunConfig{
-		AppID:             subscribeAppID,
-		AppPort:           appPort,
-		UnixDomainSocket:  subscribeSocket,
-		Command: []string{
-			exe, "subscribe", "serve",
-			"--port", strconv.Itoa(appPort),
-			"--subscriptions", string(payload),
-		},
-		SharedRunConfig: standalone.SharedRunConfig{
-			ConfigFile:         standalone.GetDaprConfigPath(daprDirPath),
-			ComponentsPath:     standalone.GetDaprComponentsPath(daprDirPath),
-			LogLevel:           "info",
-			DaprdInstallPath:   cmdruntime.GetDaprRuntimePath(),
-		},
-	}
-
-	if subscribeSocket != "" {
-		// The helpers shared with "dapr run" read this package-level variable.
-		unixDomainSocket = subscribeSocket
-	}
-
-	// Validate modifies the ports to free ports and checks the app id.
-	if err = runConfig.Validate(); err != nil {
-		return fmt.Errorf("invalid run configuration: %w", err)
-	}
-
-	sigCh := make(chan os.Signal, 1)
-	daprsyscall.SetupShutdownNotify(sigCh)
-	// Same as "dapr run -f": put daprd and the app in a process group of their own.
-	daprsyscall.CreateProcessGroupID()
-
-	runState, err := startDaprdAndAppProcesses(&runConfig, "", sigCh, os.Stdout, os.Stderr, os.Stdout, os.Stderr)
-	if err != nil {
+		print.StatusEvent(appDaprdWriter, print.LogFailure, "Error starting Dapr and app (%q): %s", app.AppID, err.Error())
+		_ = gracefullyShutdownAppsAndCloseResources(nil, apps)
 		return err
 	}
+	runStates := []*runExec.RunExec{runState}
 
-	// Metadata API is only available once the app is listening, which is guaranteed here.
+	// Metadata API is only available if app has started listening to port, so wait for app to start before calling metadata API.
 	putCLIProcessIDInMeta(runState, os.Getpid())
+
 	if runState.AppCMD.Command != nil {
 		putAppCommandInMeta(runConfig, runState)
+
 		if runState.AppCMD.Command.Process != nil {
 			putAppProcessIDInMeta(runState)
+			// Attach a windows job object to the app process.
+			utils.AttachJobObjectToProcess(strconv.Itoa(os.Getpid()), runState.AppCMD.Command.Process)
 		}
 	}
 
 	for _, s := range subs {
-		print.InfoStatusEvent(os.Stdout, "Subscribed to %s/%s on route %s", s.PubsubName, s.Topic, s.Route)
+		print.StatusEvent(runState.DaprCMD.OutputWriter, print.LogInfo, "Subscribed to %s/%s on route %s", s.PubsubName, s.Topic, s.Route)
 	}
-	print.SuccessStatusEvent(os.Stdout, "You're up and running! Received events will appear here.\n")
+	print.StatusEvent(runState.DaprCMD.OutputWriter, print.LogSuccess, "You're up and running! Received events will appear here.\n")
+	logInformationalStatusToStdout(app)
 
+	// Wait for the signal to stop.
 	<-sigCh
+	// To add a new line in Stdout.
 	fmt.Println()
-	print.InfoStatusEvent(os.Stdout, "Received signal to stop Dapr and the subscriber app. Shutting down.")
+	print.InfoStatusEvent(os.Stdout, "Received signal to stop Dapr and the subscriber app. Shutting down Dapr and the subscriber app.")
 
-	exitWithError := stopDaprdAndAppProcesses(runState)
+	// Stop daprd and app processes.
+	closeErr := gracefullyShutdownAppsAndCloseResources(runStates, apps)
 
-	if subscribeSocket != "" {
+	if runConfig.UnixDomainSocket != "" {
 		for _, s := range []string{"http", "grpc"} {
-			os.Remove(utils.GetSocket(subscribeSocket, runState.AppID, s))
+			os.Remove(utils.GetSocket(runConfig.UnixDomainSocket, runConfig.AppID, s))
 		}
 	}
 
-	if exitWithError {
-		return errors.New("error while shutting down")
-	}
-	return nil
+	return closeErr
 }
 
 // serveSubscriptions runs the subscriber app: it tells Dapr which routes to
@@ -332,7 +443,21 @@ func serveSubscriptions(port int, subs []subscription) error {
 
 func init() {
 	SubscribeCmd.Flags().StringVarP(&subscribeAppID, "app-id", "a", "", "The ID of the subscriber app")
-	SubscribeCmd.Flags().IntVarP(&subscribeAppPort, "app-port", "p", -1, "The port the subscriber app listens on, 0 picks a free port")
+	SubscribeCmd.Flags().StringVarP(&subscribeConfigFile, "config", "c", "", "Dapr configuration file")
+	SubscribeCmd.Flags().IntVarP(&subscribeHTTPPort, "dapr-http-port", "H", -1, "The HTTP port for Dapr to listen on")
+	SubscribeCmd.Flags().IntVarP(&subscribeGRPCPort, "dapr-grpc-port", "G", -1, "The gRPC port for Dapr to listen on")
+	SubscribeCmd.Flags().IntVarP(&subscribeMetricsPort, "metrics-port", "M", -1, "The port of metrics on dapr")
+	SubscribeCmd.Flags().IntVarP(&subscribeInternalGRPCPort, "dapr-internal-grpc-port", "I", -1, "The gRPC port for the Dapr internal API to listen on")
+	SubscribeCmd.Flags().BoolVar(&subscribeEnableProfiling, "enable-profiling", false, "Enable pprof profiling via an HTTP endpoint")
+	SubscribeCmd.Flags().IntVarP(&subscribeProfilePort, "profile-port", "", -1, "The port for the profile server to listen on")
+	SubscribeCmd.Flags().StringVarP(&subscribeMaxRequestBodySize, "max-body-size", "", strconv.Itoa(daprRuntime.DefaultMaxRequestBodySize>>20)+"Mi", "Max size of request body in MB")
+	SubscribeCmd.Flags().StringVarP(&subscribeReadBufferSize, "read-buffer-size", "", strconv.Itoa(daprRuntime.DefaultReadBufferSize>>10)+"Ki", "HTTP header read buffer in KB")
+	SubscribeCmd.Flags().StringVarP(&subscribeLogLevel, "log-level", "", "info", "The log verbosity. Valid values are: debug, info, warn, error, fatal, or panic")
+	SubscribeCmd.Flags().StringSliceVarP(&subscribeResourcesPaths, "resources-path", "", []string{}, "The path for resources directory")
+	SubscribeCmd.Flags().StringVarP(&subscribePlacementAddress, "placement-host-address", "", "localhost", "The address of the placement service. Format is either <hostname> for default port or <hostname>:<port> for custom port. Set to an empty string to disable placement")
+	SubscribeCmd.Flags().StringVarP(&subscribeSchedulerAddress, "scheduler-host-address", "", "localhost", "The address of the scheduler service. Format is either <hostname> for default port or <hostname>:<port> for custom port. Set to an empty string to disable scheduler")
+	SubscribeCmd.Flags().StringVar(&subscribeAPIListenAddresses, "dapr-listen-addresses", "", "Comma separated list of IP addresses that sidecar will listen to")
+	SubscribeCmd.Flags().BoolVar(&subscribeEnableAPILogging, "enable-api-logging", false, "Log API calls at INFO verbosity. Valid values are: true or false")
 	SubscribeCmd.Flags().StringVarP(&subscribeSocket, "unix-domain-socket", "u", "", "Path to a unix domain socket dir. If specified, Dapr API servers will use Unix Domain Sockets")
 	SubscribeCmd.Flags().StringToStringVarP(&subscribeMetadata, "metadata", "m", nil, "Default subscription metadata as key=value, repeatable; a repeated key keeps the last value. Used for every --to without its own ?key=value metadata")
 	SubscribeCmd.Flags().StringArrayVarP(&subscribeTo, "to", "t", nil, "Target as <pubsub-name>:<topic>[:/route][?key1=value1&key2=value2], repeatable. The route defaults to /_<pubsub-name>/<topic>")
@@ -341,7 +466,7 @@ func init() {
 	SubscribeCmd.MarkFlagRequired("to")
 
 	subscribeServeCmd.Flags().IntVar(&subscribeServePort, "port", 0, "The port to listen on")
-	subscribeServeCmd.Flags().StringVar(&subscribeServeSubs, "subscriptions", "[]", "The JSON serialized subscriptions")
+	subscribeServeCmd.Flags().StringVar(&subscribeServeSubscriptionsJS, "subscriptions", "[]", "The JSON serialized subscriptions")
 	SubscribeCmd.AddCommand(subscribeServeCmd)
 
 	RootCmd.AddCommand(SubscribeCmd)
