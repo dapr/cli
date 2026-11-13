@@ -74,7 +74,14 @@ func TestWorkflowSchedule(t *testing.T) {
 		for _, name := range []string{"every-second", "manual"} {
 			_, _ = cmdWorkflowSchedule(appID, "rm", name)
 		}
-		_, _ = cmdWorkflowPurge(appID, redisConnString, "--all")
+		// purge --all skips instances still running, so retry until the runs finish.
+		assert.EventuallyWithT(t, func(c *assert.CollectT) {
+			out, err := cmdWorkflowPurge(appID, redisConnString, "--all")
+			require.NoError(c, err, out)
+			out, err = cmdWorkflowList(appID)
+			require.NoError(c, err, out)
+			assert.Contains(c, out, "No workflow found")
+		}, 30*time.Second, time.Second)
 	})
 
 	t.Run("list empty", func(t *testing.T) {
@@ -124,7 +131,8 @@ func TestWorkflowSchedule(t *testing.T) {
 		assert.Equal(t, "SimpleWorkflow", list[0].Workflow)
 		assert.Equal(t, "@every 1s", list[0].Schedule)
 		assert.Equal(t, `SimpleWorkflow({"k":"v"})`, list[0].Runs)
-		assert.Equal(t, "active", list[0].State)
+		// Both runs can be over already on a slow runner; "runs complete" checks the end state.
+		assert.Contains(t, []string{"active", "completed"}, list[0].State)
 
 		output, err = cmdWorkflowSchedule(appID, "show", "every-second", "-o", "json")
 		require.NoError(t, err, output)
