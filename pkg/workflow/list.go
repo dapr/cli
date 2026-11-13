@@ -16,6 +16,7 @@ package workflow
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -41,6 +42,8 @@ type ListOptions struct {
 	ConnectionString *string
 	TableName        *string
 	Filter           Filter
+	// InstanceIDPrefix lists only the instances whose ID starts with it.
+	InstanceIDPrefix string
 }
 
 type Filter struct {
@@ -134,7 +137,7 @@ func ListIDs(ctx context.Context, opts ListOptions) ([]string, error) {
 	}
 	defer dclient.Cancel()
 
-	return dclient.InstanceIDs(ctx)
+	return instanceIDs(ctx, dclient, opts)
 }
 
 func ListWide(ctx context.Context, opts ListOptions) ([]*ListOutputWide, error) {
@@ -150,12 +153,28 @@ func ListWide(ctx context.Context, opts ListOptions) ([]*ListOutputWide, error) 
 	}
 	defer dclient.Cancel()
 
-	instanceIDs, err := dclient.InstanceIDs(ctx)
+	ids, err := instanceIDs(ctx, dclient, opts)
 	if err != nil {
 		return nil, err
 	}
 
-	return list(ctx, instanceIDs, dclient, opts)
+	return list(ctx, ids, dclient, opts)
+}
+
+// instanceIDs lists the instance IDs the options select. The prefix is also
+// applied here, as a runtime too old to know it returns every instance.
+func instanceIDs(ctx context.Context, cl *dclient.Client, opts ListOptions) ([]string, error) {
+	ids, err := cl.InstanceIDs(ctx, opts.InstanceIDPrefix)
+	if err != nil {
+		return nil, err
+	}
+	return filterInstanceIDs(ids, opts), nil
+}
+
+func filterInstanceIDs(ids []string, opts ListOptions) []string {
+	return slices.DeleteFunc(ids, func(id string) bool {
+		return !strings.HasPrefix(id, opts.InstanceIDPrefix)
+	})
 }
 
 func list(ctx context.Context, instanceIDs []string, cl *dclient.Client, opts ListOptions) ([]*ListOutputWide, error) {

@@ -75,7 +75,7 @@ var PurgeCmd = &cobra.Command{
 		}
 
 		if cmd.Flags().Changed("all-older-than") {
-			opts.AllOlderThan, err = parseWorkflowDurationTimestamp(flagPurgeOlderThan, true)
+			opts.AllOlderThan, err = ParseDurationTimestamp(flagPurgeOlderThan, true)
 			if err != nil {
 				return err
 			}

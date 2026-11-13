@@ -80,6 +80,6 @@ var HistoryCmd = &cobra.Command{
 }
 
 func init() {
-	historyOutputFormat = outputFunc(HistoryCmd)
+	historyOutputFormat = OutputFunc(HistoryCmd)
 	WorkflowCmd.AddCommand(HistoryCmd)
 }

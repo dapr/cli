@@ -31,6 +31,8 @@ var (
 	listOutputFormat *string
 
 	listConn *connFlag
+
+	listInstanceIDPrefix string
 )
 
 var ListCmd = &cobra.Command{
@@ -53,6 +55,7 @@ var ListCmd = &cobra.Command{
 			ConnectionString: listConn.connectionString,
 			TableName:        listConn.tableName,
 			Filter:           *listFilter,
+			InstanceIDPrefix: listInstanceIDPrefix,
 		}
 
 		if *listOutputFormat == outputFormatIDs {
@@ -128,7 +131,8 @@ var ListCmd = &cobra.Command{
 
 func init() {
 	listFilter = filterCmd(ListCmd)
-	listOutputFormat = outputFunc(ListCmd, outputFormatIDs)
+	listOutputFormat = OutputFunc(ListCmd, outputFormatIDs)
 	listConn = connectionCmd(ListCmd)
+	ListCmd.Flags().StringVarP(&listInstanceIDPrefix, "instance-id-prefix", "p", "", `List only the workflows whose instance ID starts with this prefix, such as "<schedule name>_" for the runs of a workflow schedule`)
 	WorkflowCmd.AddCommand(ListCmd)
 }

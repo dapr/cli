@@ -31,14 +31,15 @@ on:
 
 jobs:
   self-hosted-e2e:
-    name: Run Self-Hosted E2E tests in ${{ matrix.target_os }}_${{ matrix.target_arch }}_${{ matrix.dapr_install_mode }}
+    name: Run Self-Hosted E2E tests in ${{ matrix.target_os }}_${{ matrix.target_arch }}_${{ matrix.dapr_install_mode }}${{ matrix.dapr_runtime == 'edge' && '_edge' || '' }}
     runs-on: ${{ matrix.os }}
     env:
       GOOS: ${{ matrix.target_os }}
       GOARCH: ${{ matrix.target_arch }}
       GOPROXY: https://proxy.golang.org
       ARCHIVE_OUTDIR: dist/archives
-      DAPR_RUNTIME_PINNED_VERSION: "1.19.0"
+      # edge tests the daprd of dapr master, see RuntimeVersionEdge in tests/e2e/common.
+      DAPR_RUNTIME_PINNED_VERSION: ${{ matrix.dapr_runtime == 'edge' && 'edge' || '1.19.0' }}
       GOLANG_PROTOBUF_REGISTRATION_CONFLICT: warn
       PODMAN_VERSION: 5.4.0
     strategy:
@@ -49,6 +50,7 @@ jobs:
         os: [macos-15-large, ubuntu-latest, windows-latest]
         target_arch: [amd64]
         dapr_install_mode: [slim, complete]
+        dapr_runtime: [release, edge]
         include:
           - os: ubuntu-latest
             target_os: linux
@@ -59,6 +61,11 @@ jobs:
         exclude:
           - os: windows-latest
             dapr_install_mode: complete
+          # dapr master's edge image only holds Linux binaries.
+          - os: macos-15-large
+            dapr_runtime: edge
+          - os: windows-latest
+            dapr_runtime: edge
     steps:
       - name: Prepare Go's bin location - MacOS
         if: matrix.os == 'macos-15-large'
@@ -93,7 +100,7 @@ jobs:
           podman info
           echo "CONTAINER_RUNTIME=podman" >> $GITHUB_ENV
       - name: Determine latest Dapr Runtime version including Pre-releases
-        if: github.base_ref == 'master'
+        if: github.base_ref == 'master' && matrix.dapr_runtime != 'edge'
         run: |
           export RUNTIME_VERSION=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/dapr/dapr/releases | grep tag_name | awk -F':' '{print $2}' | tr -d '", ' | sed '/-/! s/$/_/' | sort -V | sed 's/_$//' | tr -d 'v' | tail -1)
           if [[ -z "$RUNTIME_VERSION" ]]; then
@@ -136,7 +143,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ matrix.target_os }}_${{ matrix.target_arch }}_${{ matrix.dapr_install_mode }}_e2e_standalone.json
+          name: ${{ matrix.target_os }}_${{ matrix.target_arch }}_${{ matrix.dapr_install_mode }}${{ matrix.dapr_runtime == 'edge' && '_edge' || '' }}_e2e_standalone.json
           path: ${{ env.TEST_OUTPUT_FILE }}
 
   # `dapr init` with containers on Windows, against Docker Desktop on the WSL2

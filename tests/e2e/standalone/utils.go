@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"github.com/dapr/cli/tests/e2e/common"
+	"github.com/dapr/cli/tests/e2e/spawn"
 )
 
 // getSocketCases return different unix socket paths for testing across Dapr commands.
@@ -271,28 +272,13 @@ func startDaprRunRetry(t *testing.T, ports []int, stopFn func(), runArgs ...stri
 // ensureDaprInstallation ensures that Dapr is installed.
 // If Dapr is not installed, a new installation is attempted.
 func ensureDaprInstallation(t *testing.T) {
-	daprRuntimeVersion := common.GetVersionsFromEnv(t, false)
 	homeDir, err := os.UserHomeDir()
 	require.NoError(t, err, "failed to get user home directory")
 
 	daprPath := filepath.Join(homeDir, ".dapr")
 	_, err = os.Stat(daprPath)
 	if os.IsNotExist(err) {
-		// Wait for container ports from a previous dapr installation to
-		// be fully released. On macOS, container port bindings can linger
-		// briefly after `dapr uninstall` removes the containers.
-		if !isSlimMode() {
-			waitForPortsFree(t,
-				58080, // placement health
-				58081, // scheduler health
-				50005, // placement gRPC
-			)
-		}
-		args := []string{
-			"--runtime-version", daprRuntimeVersion,
-		}
-		output, err := cmdInit(args...)
-		require.NoError(t, err, "failed to install dapr:%v", output)
+		require.NoError(t, installDapr(), "failed to install dapr")
 	} else if err != nil {
 		// Some other error occurred.
 		require.NoError(t, err, "failed to stat dapr installation")
@@ -356,6 +342,35 @@ func useSQLiteNameResolution(t *testing.T) {
 		// #nosec G306
 		assert.NoError(t, os.WriteFile(configPath, original, 0o644), "failed to restore the default Dapr configuration")
 	})
+}
+
+// installEdgeDaprd replaces the installed daprd with dapr master's, from the
+// edge tag of common.DaprImage, which only holds Linux binaries.
+func installEdgeDaprd() error {
+	if runtime.GOOS != "linux" {
+		return fmt.Errorf("dapr master's daprd is only published for Linux, not %s", runtime.GOOS)
+	}
+	dst, err := GetExecutablePath("daprd")
+	if err != nil {
+		return err
+	}
+	engine := containerRuntime()
+	if engine == "" {
+		engine = "docker"
+	}
+	const name = "dapr-e2e-edge-daprd"
+	_, _ = spawn.Command(engine, "rm", "-f", name)
+	defer func() { _, _ = spawn.Command(engine, "rm", "-f", name) }()
+	for _, args := range [][]string{
+		// The image has no default command, which docker requires on create; it never runs.
+		{"create", "--pull", "always", "--name", name, common.DaprImage() + ":edge", "/daprd"},
+		{"cp", name + ":/daprd", dst},
+	} {
+		if out, err := spawn.Command(engine, args...); err != nil {
+			return fmt.Errorf("%s %s: %s: %w", engine, args[0], out, err)
+		}
+	}
+	return nil
 }
 
 func containerRuntime() string {

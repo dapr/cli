@@ -55,7 +55,9 @@ func init() {
 	WorkflowCmd.PersistentFlags().StringVarP(&flagAppID, "app-id", "a", "", "The app ID owner of the workflow instance")
 }
 
-func outputFunc(cmd *cobra.Command, extra ...string) *string {
+// OutputFunc adds the --output flag to cmd, with the formats every workflow
+// command prints and any extra ones.
+func OutputFunc(cmd *cobra.Command, extra ...string) *string {
 	outputs := append([]string{
 		outputFormatShort,
 		outputFormatWide,
@@ -81,6 +83,13 @@ func outputFunc(cmd *cobra.Command, extra ...string) *string {
 	}
 
 	return &outputFormat
+}
+
+// Target is the Dapr installation and app ID the --kubernetes, --namespace
+// and --app-id flags of a workflow command point at.
+func Target(cmd *cobra.Command) (kubernetes bool, namespace, appID string, err error) {
+	appID, err = getWorkflowAppID(cmd)
+	return flagKubernetesMode, flagDaprNamespace, appID, err
 }
 
 func getWorkflowAppID(cmd *cobra.Command) (string, error) {
@@ -124,7 +133,9 @@ func getWorkflowAppID(cmd *cobra.Command) (string, error) {
 	return list[0].AppID, nil
 }
 
-func parseWorkflowDurationTimestamp(str string, durationPast bool) (*time.Time, error) {
+// ParseDurationTimestamp parses a timestamp, or a duration from now, into the
+// past when durationPast is set.
+func ParseDurationTimestamp(str string, durationPast bool) (*time.Time, error) {
 	dur, err := time.ParseDuration(str)
 	if err == nil {
 		if durationPast {
@@ -170,7 +181,7 @@ func filterCmd(cmd *cobra.Command) *workflow.Filter {
 
 		if cmd.Flags().Changed("filter-max-age") {
 			var err error
-			filter.MaxAge, err = parseWorkflowDurationTimestamp(maxAge, true)
+			filter.MaxAge, err = ParseDurationTimestamp(maxAge, true)
 			if err != nil {
 				return err
 			}
