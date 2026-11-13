@@ -56,7 +56,8 @@ func installDapr() error {
 	}
 
 	if !isSlimMode() {
-		if err := waitForPortsFreeDirect(60*time.Second, 58080, 58081, 50005); err != nil {
+		// Placement and scheduler health, placement and scheduler gRPC.
+		if err := waitForPortsFreeDirect(60*time.Second, 58080, 58081, 50005, 50006); err != nil {
 			return fmt.Errorf("waiting for container ports: %w", err)
 		}
 	}

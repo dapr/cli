@@ -19,6 +19,7 @@ package standalone_test
 
 import (
 	"encoding/json"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -146,7 +147,9 @@ func TestWorkflowSchedule(t *testing.T) {
 
 		output, err = cmdWorkflowSchedule(appID, "ls", "-o", "wide")
 		require.NoError(t, err, output)
-		assert.Equal(t, []string{"NAME", "SCHEDULE", "RUNS", "NEXT", "LAST", "STATUS", "RESULT"}, strings.Fields(strings.Split(output, "\n")[0]))
+		// The table leaves out a column blank on every row, as RESULT is until a run has finished.
+		header := slices.DeleteFunc(strings.Fields(strings.Split(output, "\n")[0]), func(h string) bool { return h == "RESULT" })
+		assert.Equal(t, []string{"NAME", "SCHEDULE", "RUNS", "NEXT", "LAST", "STATUS"}, header)
 
 		output, err = cmdWorkflowSchedule(appID, "get", "every-second", "-o", "yaml")
 		require.NoError(t, err, output)
