@@ -62,7 +62,7 @@ jobs:
           - os: windows-latest
             dapr_install_mode: complete
           # dapr master's edge image only holds Linux binaries.
-          - os: macos-14-large
+          - os: macos-15-large
             dapr_runtime: edge
           - os: windows-latest
             dapr_runtime: edge

@@ -362,7 +362,8 @@ func installEdgeDaprd() error {
 	_, _ = spawn.Command(engine, "rm", "-f", name)
 	defer func() { _, _ = spawn.Command(engine, "rm", "-f", name) }()
 	for _, args := range [][]string{
-		{"create", "--pull", "always", "--name", name, common.DaprImage() + ":edge"},
+		// The image has no default command, which docker requires on create; it never runs.
+		{"create", "--pull", "always", "--name", name, common.DaprImage() + ":edge", "/daprd"},
 		{"cp", name + ":/daprd", dst},
 	} {
 		if out, err := spawn.Command(engine, args...); err != nil {
