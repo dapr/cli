@@ -33,9 +33,11 @@ type fakeSidecar struct {
 	protos.UnimplementedTaskHubSidecarServiceServer
 	listErr  error
 	listResp *protos.ListInstanceIDsResponse
+	listReq  *protos.ListInstanceIDsRequest
 }
 
 func (f *fakeSidecar) ListInstanceIDs(ctx context.Context, req *protos.ListInstanceIDsRequest) (*protos.ListInstanceIDsResponse, error) {
+	f.listReq = req
 	if f.listErr != nil {
 		return nil, f.listErr
 	}
@@ -73,7 +75,7 @@ func TestInstanceIDsSurfacesRuntimeError(t *testing.T) {
 		listErr: errors.New("invalid key format: myapp||dapr.internal.default.myapp.workflow||weird||id||metadata"),
 	})
 
-	_, err := c.InstanceIDs(t.Context())
+	_, err := c.InstanceIDs(t.Context(), "")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid key format")
 	assert.Contains(t, err.Error(), "connection string is required")
@@ -84,9 +86,19 @@ func TestInstanceIDsSuccess(t *testing.T) {
 		listResp: &protos.ListInstanceIDsResponse{InstanceIds: []string{"wf-1", "wf-2"}},
 	})
 
-	ids, err := c.InstanceIDs(t.Context())
+	ids, err := c.InstanceIDs(t.Context(), "")
 	require.NoError(t, err)
 	assert.Equal(t, []string{"wf-1", "wf-2"}, ids)
+}
+
+func TestInstanceIDsSendsPrefix(t *testing.T) {
+	sidecar := &fakeSidecar{listResp: &protos.ListInstanceIDsResponse{InstanceIds: []string{"nightly_20261029T020000Z"}}}
+	c := newTestClient(t, sidecar)
+
+	ids, err := c.InstanceIDs(t.Context(), "nightly_")
+	require.NoError(t, err)
+	assert.Equal(t, []string{"nightly_20261029T020000Z"}, ids)
+	assert.Equal(t, "nightly_", sidecar.listReq.GetInstanceIdPrefix())
 }
 
 func TestInstanceIDsCancelledContext(t *testing.T) {
@@ -99,7 +111,7 @@ func TestInstanceIDsCancelledContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
-	_, err := c.InstanceIDs(ctx)
+	_, err := c.InstanceIDs(ctx, "")
 	require.Error(t, err)
 	assert.NotContains(t, err.Error(), "connection string is required")
 }

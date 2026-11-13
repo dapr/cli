@@ -24,6 +24,8 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/dapr/cli/tests/e2e/common"
 )
 
 // TestMain installs Dapr once for the entire test binary, removing the
@@ -45,12 +47,12 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-// installDapr performs a Dapr init for the test binary. This mirrors
-// ensureDaprInstallation but does not require a *testing.T.
+// installDapr performs a Dapr init for the test binary, and for
+// ensureDaprInstallation.
 func installDapr() error {
-	daprRuntimeVersion, ok := os.LookupEnv("DAPR_RUNTIME_PINNED_VERSION")
-	if !ok {
-		return fmt.Errorf("env var DAPR_RUNTIME_PINNED_VERSION not set")
+	daprRuntimeVersion, edge, verr := common.InstallVersion()
+	if verr != nil {
+		return verr
 	}
 
 	if !isSlimMode() {
@@ -65,6 +67,11 @@ func installDapr() error {
 	output, err := cmdInit(args...)
 	if err != nil {
 		return fmt.Errorf("dapr init: %s: %w", output, err)
+	}
+	if edge {
+		if err := installEdgeDaprd(); err != nil {
+			return fmt.Errorf("installing dapr master's daprd: %w", err)
+		}
 	}
 
 	if isSlimMode() {

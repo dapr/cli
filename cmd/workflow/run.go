@@ -52,7 +52,7 @@ var RunCmd = &cobra.Command{
 		}
 
 		if cmd.Flags().Changed("start-time") {
-			opts.StartTime, err = parseWorkflowDurationTimestamp(flagRunStartTime, false)
+			opts.StartTime, err = ParseDurationTimestamp(flagRunStartTime, false)
 			if err != nil {
 				return err
 			}

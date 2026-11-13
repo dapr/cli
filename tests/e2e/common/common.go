@@ -71,6 +71,9 @@ var (
 	// workflow activity actor IDs end in a fixed "0" generation component
 	// (<instanceID>::<taskID>::0) instead of a per-execution counter.
 	VersionWithFixedActivityGeneration = semver.MustParse("1.19.0-rc.1")
+	// VersionWithWorkflowSchedules is the first runtime version with the
+	// workflow schedule API.
+	VersionWithWorkflowSchedules = semver.MustParse("1.20.0-rc.1")
 )
 
 type VersionDetails struct {
@@ -105,15 +108,11 @@ type TestCase struct {
 // once per test binary with the CLI's own lookup. A failed lookup is retried
 // so one registry hiccup does not fail every test that needs the version.
 var latestStableVersion = sync.OnceValues(func() (string, error) {
-	ref := cliversion.DaprDefaultImage
-	if strings.EqualFold(os.Getenv("DAPR_DEFAULT_IMAGE_REGISTRY"), "ghcr") {
-		ref = cliversion.DaprImageRef("ghcr.io")
-	}
 	const attempts = 5
 	var err error
 	for attempt := 1; attempt <= attempts; attempt++ {
 		var v string
-		if v, err = cliversion.GetLatestVersion(ref); err == nil {
+		if v, err = cliversion.GetLatestVersion(DaprImage()); err == nil {
 			return v, nil
 		}
 		if attempt < attempts {
@@ -123,28 +122,70 @@ var latestStableVersion = sync.OnceValues(func() (string, error) {
 	return "", err
 })
 
-// GetVersionsFromEnv returns the runtime version the tests run against.
+// DaprImage is the Dapr image in the registry DAPR_DEFAULT_IMAGE_REGISTRY
+// selects: Docker Hub, or GHCR.
+func DaprImage() string {
+	if strings.EqualFold(os.Getenv("DAPR_DEFAULT_IMAGE_REGISTRY"), "ghcr") {
+		return cliversion.DaprImageRef("ghcr.io")
+	}
+	return cliversion.DaprDefaultImage
+}
+
+// RuntimeVersionEdge, as DAPR_RUNTIME_PINNED_VERSION, tests dapr master:
+// `dapr init` installs the latest stable release, and the tests then replace
+// its daprd with the one in DaprImage's edge tag, which master publishes.
+const RuntimeVersionEdge = "edge"
+
+// InstallVersion is the runtime version `dapr init` installs for the tests,
+// from DAPR_RUNTIME_PINNED_VERSION, and whether daprd is then replaced with
+// dapr master's (see RuntimeVersionEdge).
+func InstallVersion() (version string, edge bool, err error) {
+	const runtimeEnvVar = "DAPR_RUNTIME_PINNED_VERSION"
+	switch v := os.Getenv(runtimeEnvVar); v {
+	case "":
+		return "", false, fmt.Errorf("env var %q not set", runtimeEnvVar)
+	case RuntimeVersionEdge:
+		latest, err := latestStableVersion()
+		return latest, true, err
+	default:
+		return v, false, nil
+	}
+}
+
+// GetVersionsFromEnv returns the runtime version the tests install.
 // With latest, it is the latest stable version, see latestStableVersion.
-// Otherwise it is DAPR_RUNTIME_PINNED_VERSION, and the test fails if that
-// is unset or empty.
+// Otherwise it is InstallVersion's, and the test fails if there is none.
 func GetVersionsFromEnv(t *testing.T, latest bool) string {
 	if latest {
 		v, err := latestStableVersion()
 		require.NoError(t, err, "failed to resolve the latest stable Dapr runtime version")
 		return v
 	}
-	const runtimeEnvVar = "DAPR_RUNTIME_PINNED_VERSION"
-	daprRuntimeVersion := os.Getenv(runtimeEnvVar)
-	if daprRuntimeVersion == "" {
-		t.Fatalf("env var \"%s\" not set", runtimeEnvVar)
-	}
-	return daprRuntimeVersion
+	v, _, err := InstallVersion()
+	require.NoError(t, err)
+	return v
 }
 
-func GetRuntimeVersion(t *testing.T, latest bool) *semver.Version {
-	daprRuntimeVersion := GetVersionsFromEnv(t, latest)
-	runtimeVersion, err := semver.NewVersion(daprRuntimeVersion)
+// GetDaprdVersion returns the version the installed daprd reports:
+// RuntimeVersionEdge for dapr master's, the installed version otherwise.
+func GetDaprdVersion(t *testing.T) string {
+	v, edge, err := InstallVersion()
 	require.NoError(t, err)
+	if edge {
+		return RuntimeVersionEdge
+	}
+	return v
+}
+
+// GetRuntimeVersion returns the version of the runtime under test. dapr
+// master counts as the minor release after the latest stable one.
+func GetRuntimeVersion(t *testing.T, latest bool) *semver.Version {
+	runtimeVersion, err := semver.NewVersion(GetVersionsFromEnv(t, latest))
+	require.NoError(t, err)
+	if _, edge, _ := InstallVersion(); edge && !latest {
+		next := runtimeVersion.IncMinor()
+		return &next
+	}
 	return runtimeVersion
 }
 
