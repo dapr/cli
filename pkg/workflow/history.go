@@ -391,8 +391,8 @@ func deriveDetails(first *protos.HistoryEvent, h *protos.HistoryEvent) *string {
 	case *protos.HistoryEvent_ExecutionCompleted:
 		return ptr.Of(fmt.Sprintf("execDuration=%s", utils.HumanizeDuration(h.GetTimestamp().AsTime().Sub(first.GetTimestamp().AsTime()))))
 	case *protos.HistoryEvent_ExecutionTerminated:
-		if reason := t.ExecutionTerminated.GetReason(); reason != nil {
-			return ptr.Of("reason=" + reason.GetValue())
+		if reason, ok := executionTerminationReason(t.ExecutionTerminated); ok {
+			return ptr.Of("reason=" + reason)
 		}
 		return nil
 	case *protos.HistoryEvent_ChildWorkflowInstanceCreated:

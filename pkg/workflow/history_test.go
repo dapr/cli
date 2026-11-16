@@ -17,6 +17,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/encoding/protowire"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -182,21 +183,22 @@ func TestDeriveDetails_TimerCreated(t *testing.T) {
 
 func TestDeriveDetails_ExecutionTerminated(t *testing.T) {
 	tests := []struct {
-		name   string
-		reason *wrapperspb.StringValue
-		want   string
+		name    string
+		reason  *string
+		want    string
 		present bool
 	}{
-		{name: "reason recorded", reason: wrapperspb.String("cancelled by operator"), want: "reason=cancelled by operator", present: true},
-		{name: "explicit empty reason recorded", reason: wrapperspb.String(""), want: "reason=", present: true},
+		{name: "reason recorded", reason: ptrString("cancelled by operator"), want: "reason=cancelled by operator", present: true},
+		{name: "explicit empty reason recorded", reason: ptrString(""), want: "reason=", present: true},
 		{name: "reason omitted", reason: nil, present: false},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			terminated := newTerminatedEventWithReason(tc.reason)
 			event := &protos.HistoryEvent{
 				EventType: &protos.HistoryEvent_ExecutionTerminated{
-					ExecutionTerminated: &protos.ExecutionTerminatedEvent{Reason: tc.reason},
+					ExecutionTerminated: terminated,
 				},
 			}
 			got := deriveDetails(event, event)
@@ -209,4 +211,23 @@ func TestDeriveDetails_ExecutionTerminated(t *testing.T) {
 			}
 		})
 	}
+}
+
+func ptrString(value string) *string {
+	return &value
+}
+
+func newTerminatedEventWithReason(reason *string) *protos.ExecutionTerminatedEvent {
+	terminated := new(protos.ExecutionTerminatedEvent)
+	if reason == nil {
+		return terminated
+	}
+
+	// The pinned durabletask-go version does not yet generate field 3. Encode
+	// the StringValue wrapper as an unknown field to exercise the wire contract.
+	wrapper := protowire.AppendString(nil, 1, *reason)
+	unknown := protowire.AppendTag(nil, 3, protowire.BytesType)
+	unknown = protowire.AppendBytes(unknown, wrapper)
+	terminated.ProtoReflect().SetUnknown(unknown)
+	return terminated
 }
