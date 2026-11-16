@@ -45,29 +45,29 @@ jobs:
       WIX_BIN_PATH: 'C:/Program Files (x86)/WiX Toolset v3.11/bin'
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macOS-14, macOS-14-large]
+        os: [ubuntu-latest, windows-latest, macOS-15, macOS-15-large]
         target_arch: [arm, arm64, amd64]
         include:
           - os: ubuntu-latest
             target_os: linux
           - os: windows-latest
             target_os: windows
-          - os: macOS-14
+          - os: macOS-15
             target_os: darwin
-          - os: macOS-14-large
+          - os: macOS-15-large
             target_os: darwin
         exclude:
           - os: windows-latest
             target_arch: arm
           - os: windows-latest
             target_arch: arm64
-          - os: macOS-14
+          - os: macOS-15
             target_arch: arm
-          - os: macOS-14
+          - os: macOS-15
             target_arch: amd64
-          - os: macOS-14-large
+          - os: macOS-15-large
             target_arch: arm
-          - os: macOS-14-large
+          - os: macOS-15-large
             target_arch: arm64
     steps:
       - name: Prepare Go's bin location - MacOS

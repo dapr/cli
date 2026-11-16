@@ -35,6 +35,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"sigs.k8s.io/yaml"
 
 	"github.com/dapr/cli/tests/e2e/common"
 )
@@ -303,6 +304,58 @@ func ensureDaprInstallation(t *testing.T) {
 		err = createSlimComponents(filepath.Join(daprPath, "components"))
 		require.NoError(t, err, "failed to create components")
 	}
+}
+
+// useSQLiteNameResolution makes daprd resolve app IDs through a SQLite
+// database instead of mDNS, for the daprd instances that use the default
+// configuration file. It changes the configuration only on darwin, and the
+// test cleanup restores the original file.
+//
+// macOS 15 runners block mDNS multicast for processes that do not have the
+// Local Network permission, and the runners cannot grant it
+// (https://github.com/actions/runner-images/issues/10924). Service invocation
+// then fails, also when an app invokes itself, because daprd resolves the
+// app ID first. dapr/dapr#11028 made the same change for the integration
+// tests of daprd.
+func useSQLiteNameResolution(t *testing.T) {
+	t.Helper()
+
+	if runtime.GOOS != "darwin" {
+		return
+	}
+
+	homeDir, err := os.UserHomeDir()
+	require.NoError(t, err, "failed to get user home directory")
+	configPath := filepath.Join(homeDir, ".dapr", "config.yaml")
+
+	original, err := os.ReadFile(configPath)
+	require.NoError(t, err, "failed to read the default Dapr configuration")
+
+	var config map[string]any
+	require.NoError(t, yaml.Unmarshal(original, &config), "failed to parse the default Dapr configuration")
+	require.NotEmpty(t, config, "the default Dapr configuration is empty")
+
+	spec, _ := config["spec"].(map[string]any)
+	if spec == nil {
+		spec = map[string]any{}
+	}
+	spec["nameResolution"] = map[string]any{
+		"component": "sqlite",
+		"configuration": map[string]any{
+			"connectionString": filepath.Join(t.TempDir(), "nameresolution.db"),
+		},
+	}
+	config["spec"] = spec
+
+	b, err := yaml.Marshal(config)
+	require.NoError(t, err, "failed to marshal the Dapr configuration")
+	// #nosec G306
+	require.NoError(t, os.WriteFile(configPath, b, 0o644), "failed to write the Dapr configuration")
+
+	t.Cleanup(func() {
+		// #nosec G306
+		assert.NoError(t, os.WriteFile(configPath, original, 0o644), "failed to restore the default Dapr configuration")
+	})
 }
 
 func containerRuntime() string {

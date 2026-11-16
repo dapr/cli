@@ -110,6 +110,13 @@ jobs:
         # Log the generated kind.yaml for easy reference.
         cat kind.yaml
 
+    - name: Raise inotify limits
+      # KinD nodes share the runner kernel's inotify limits. The ubuntu-26.04
+      # image leaves max_user_instances at the kernel default of 128, which the
+      # cluster exhausts, crashing the daprd sidecars at startup with
+      # "failed to create fsnotify watcher: too many open files".
+      run: sudo sysctl -w fs.inotify.max_user_instances=1280 fs.inotify.max_user_watches=655360
+
     - name: Create KinD Cluster
       uses: helm/kind-action@v1.3.0
       with:

@@ -41,6 +41,8 @@ type AppTestOutput struct {
 
 func TestRunWithTemplateFile(t *testing.T) {
 	cleanUpLogs()
+	// emit-metrics invokes processor through service invocation.
+	useSQLiteNameResolution(t)
 	// These tests are dependent on run template files in ../testdata/run-template-files folder.
 
 	t.Run("invalid template file wrong emit metrics app run", func(t *testing.T) {

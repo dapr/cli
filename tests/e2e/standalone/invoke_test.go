@@ -56,6 +56,8 @@ func StartTestService(t *testing.T, port int) common.Service {
 }
 
 func TestStandaloneInvoke(t *testing.T) {
+	useSQLiteNameResolution(t)
+
 	port := 9987
 	s := StartTestService(t, port)
 	defer s.Stop()
@@ -115,6 +117,8 @@ func TestStandaloneInvoke(t *testing.T) {
 }
 
 func TestStandaloneInvokeWithAppChannel(t *testing.T) {
+	useSQLiteNameResolution(t)
+
 	port := 9988
 	s := StartTestService(t, port)
 	defer s.Stop()
