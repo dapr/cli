@@ -106,6 +106,7 @@ type TerminateOptions struct {
 	AppID          string
 	InstanceID     string
 	Output         *string
+	Reason         *string
 }
 
 func Terminate(ctx context.Context, opts TerminateOptions) error {
@@ -125,6 +126,9 @@ func Terminate(ctx context.Context, opts TerminateOptions) error {
 	var wopts []workflow.TerminateOptions
 	if opts.Output != nil {
 		wopts = append(wopts, workflow.WithOutput(*opts.Output))
+	}
+	if opts.Reason != nil {
+		wopts = append(wopts, workflow.WithTerminateReason(*opts.Reason))
 	}
 
 	return wf.TerminateWorkflow(ctx, opts.InstanceID, wopts...)

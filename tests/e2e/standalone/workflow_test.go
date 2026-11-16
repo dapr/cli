@@ -56,10 +56,15 @@ func TestWorkflowList(t *testing.T) {
 	_, err = cmdWorkflowRun(appID, "LongWorkflow", "--instance-id=foo")
 	require.NoError(t, err, output)
 
-	t.Run("terminate workflow", func(t *testing.T) {
-		output, err := cmdWorkflowTerminate(appID, "foo")
+	t.Run("terminate workflow with reason", func(t *testing.T) {
+		const reason = "operator requested termination"
+		output, err := cmdWorkflowTerminate(appID, "foo", "--reason", reason)
 		require.NoError(t, err)
 		assert.Contains(t, output, "terminated successfully")
+
+		history, err := cmdWorkflowHistory(appID, "foo", "-o", "json")
+		require.NoError(t, err, history)
+		assert.Contains(t, history, reason)
 	})
 
 	t.Run("verify terminated state", func(t *testing.T) {

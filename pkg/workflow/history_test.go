@@ -18,6 +18,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/dapr/durabletask-go/api/protos"
 )
@@ -174,6 +175,37 @@ func TestDeriveDetails_TimerCreated(t *testing.T) {
 			}
 			for _, s := range tc.excludes {
 				assert.NotContains(t, *details, s)
+			}
+		})
+	}
+}
+
+func TestDeriveDetails_ExecutionTerminated(t *testing.T) {
+	tests := []struct {
+		name   string
+		reason *wrapperspb.StringValue
+		want   string
+		present bool
+	}{
+		{name: "reason recorded", reason: wrapperspb.String("cancelled by operator"), want: "reason=cancelled by operator", present: true},
+		{name: "explicit empty reason recorded", reason: wrapperspb.String(""), want: "reason=", present: true},
+		{name: "reason omitted", reason: nil, present: false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			event := &protos.HistoryEvent{
+				EventType: &protos.HistoryEvent_ExecutionTerminated{
+					ExecutionTerminated: &protos.ExecutionTerminatedEvent{Reason: tc.reason},
+				},
+			}
+			got := deriveDetails(event, event)
+			if !tc.present {
+				assert.Nil(t, got)
+				return
+			}
+			if assert.NotNil(t, got) {
+				assert.Equal(t, tc.want, *got)
 			}
 		})
 	}

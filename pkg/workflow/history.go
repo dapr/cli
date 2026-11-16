@@ -390,6 +390,11 @@ func deriveDetails(first *protos.HistoryEvent, h *protos.HistoryEvent) *string {
 		return ptr.Of(fmt.Sprintf("eventId=%d", t.TaskCompleted.TaskScheduledId))
 	case *protos.HistoryEvent_ExecutionCompleted:
 		return ptr.Of(fmt.Sprintf("execDuration=%s", utils.HumanizeDuration(h.GetTimestamp().AsTime().Sub(first.GetTimestamp().AsTime()))))
+	case *protos.HistoryEvent_ExecutionTerminated:
+		if reason := t.ExecutionTerminated.GetReason(); reason != nil {
+			return ptr.Of("reason=" + reason.GetValue())
+		}
+		return nil
 	case *protos.HistoryEvent_ChildWorkflowInstanceCreated:
 		if in := t.ChildWorkflowInstanceCreated.RerunParentInstanceInfo; in != nil {
 			return ptr.Of(fmt.Sprintf("rerunParent=%s", in.InstanceID))
