@@ -1,0 +1,9 @@
+version: 1
+common:
+  startLocalServices: false
+apps:
+- appID: test-slim-no-local-services
+  appDirPath: ../../../apps/emit-metrics/
+  daprHTTPPort: 3512
+  appLogDestination: console
+  daprdLogDestination: console
