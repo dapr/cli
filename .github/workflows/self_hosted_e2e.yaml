@@ -38,7 +38,7 @@ jobs:
       GOARCH: ${{ matrix.target_arch }}
       GOPROXY: https://proxy.golang.org
       ARCHIVE_OUTDIR: dist/archives
-      DAPR_RUNTIME_PINNED_VERSION: "1.19.0"
+      DAPR_RUNTIME_PINNED_VERSION: "1.19.1"
       GOLANG_PROTOBUF_REGISTRATION_CONFLICT: warn
       PODMAN_VERSION: 5.4.0
     strategy:
@@ -152,7 +152,7 @@ jobs:
     continue-on-error: true
     env:
       GOPROXY: https://proxy.golang.org
-      DAPR_RUNTIME_PINNED_VERSION: "1.19.0"
+      DAPR_RUNTIME_PINNED_VERSION: "1.19.1"
       # Run the test that makes dapr init shut WSL down.
       DAPR_E2E_WSL_SHUTDOWN: "true"
     defaults:
