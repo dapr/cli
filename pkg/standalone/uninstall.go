@@ -97,6 +97,28 @@ func removeDir(dirPath string) error {
 	}
 }
 
+// controlPlaneContainersToRemove returns whether Uninstall removes the placement
+// container and the scheduler container of the installation with the bin folder
+// daprBinDir.
+//
+// A slim installation has the placement binary, the scheduler binary or both in
+// its bin folder, and it uses no container. `dapr init --slim
+// --scheduler-placement` installs only the scheduler binary, and a slim install
+// of a runtime before 1.14 installs only the placement binary. A missing binary
+// alone does not show a Docker installation: the containers with these names can
+// belong to a Docker installation in another runtime path. A Docker installation
+// has neither binary.
+func controlPlaneContainersToRemove(daprBinDir string) (placement bool, scheduler bool) {
+	slim := binaryInstalled(daprBinDir, placementServiceFilePrefix) || binaryInstalled(daprBinDir, schedulerServiceFilePrefix)
+	return !slim, !slim
+}
+
+// binaryInstalled returns false only when the binary does not exist in binDir.
+func binaryInstalled(binDir, binaryFilePrefix string) bool {
+	_, err := os.Stat(binaryFilePathWithDir(binDir, binaryFilePrefix))
+	return !errors.Is(err, fs.ErrNotExist)
+}
+
 // Uninstall reverts all changes made by init. Deletes all installed containers, removes default dapr folder,
 // removes the installed binary and unsets env variables.
 func Uninstall(uninstallAll bool, dockerNetwork string, containerRuntime string, inputInstallPath string) error {
@@ -108,13 +130,7 @@ func Uninstall(uninstallAll bool, dockerNetwork string, containerRuntime string,
 	}
 	daprBinDir := getDaprBinPath(installDir)
 
-	placementFilePath := binaryFilePathWithDir(daprBinDir, placementServiceFilePrefix)
-	_, placementErr := os.Stat(placementFilePath) // check if the placement binary exists.
-	uninstallPlacementContainer := errors.Is(placementErr, fs.ErrNotExist)
-
-	schedulerFilePath := binaryFilePathWithDir(daprBinDir, schedulerServiceFilePrefix)
-	_, schedulerErr := os.Stat(schedulerFilePath) // check if the scheduler binary exists.
-	uninstallSchedulerContainer := errors.Is(schedulerErr, fs.ErrNotExist)
+	uninstallPlacementContainer, uninstallSchedulerContainer := controlPlaneContainersToRemove(daprBinDir)
 
 	// Remove .dapr/bin.
 	err = removeDir(daprBinDir)

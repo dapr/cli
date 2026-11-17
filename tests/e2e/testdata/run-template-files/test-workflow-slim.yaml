@@ -1,0 +1,8 @@
+version: 1
+apps:
+- appID: test-workflow-slim
+  appDirPath: ../../../apps/workflow/
+  command: ["go", "run", "app.go"]
+  appLogDestination: console
+  daprdLogDestination: console
+  daprGRPCPort: 3511
