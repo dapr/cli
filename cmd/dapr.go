@@ -24,6 +24,7 @@ import (
 	"github.com/dapr/cli/cmd/runtime"
 	"github.com/dapr/cli/cmd/scheduler"
 	"github.com/dapr/cli/cmd/workflow"
+	"github.com/dapr/cli/cmd/workflow/schedule"
 	"github.com/dapr/cli/pkg/api"
 	"github.com/dapr/cli/pkg/print"
 	"github.com/dapr/cli/pkg/standalone"
@@ -113,4 +114,5 @@ func init() {
 
 	RootCmd.AddCommand(scheduler.SchedulerCmd)
 	RootCmd.AddCommand(workflow.WorkflowCmd)
+	workflow.WorkflowCmd.AddCommand(schedule.ScheduleCmd)
 }

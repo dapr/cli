@@ -298,3 +298,11 @@ func cmdWorkflowPurge(appID string, args ...string) (string, error) {
 	allArgs = append(allArgs, args...)
 	return spawn.Command(common.GetDaprPath(), allArgs...)
 }
+
+// cmdWorkflowSchedule runs `dapr workflow schedule <sub> ...`, sub being a
+// subcommand or one of its aliases.
+func cmdWorkflowSchedule(appID, sub string, args ...string) (string, error) {
+	allArgs := []string{"workflow", "schedule", sub, "-a", appID}
+	allArgs = append(allArgs, args...)
+	return spawn.Command(common.GetDaprPath(), allArgs...)
+}

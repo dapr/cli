@@ -196,8 +196,12 @@ func connect(ctx context.Context, port int) (client.Client, *workflow.Client, er
 	return dapr, workflow.NewClient(dapr.GrpcClientConn()), nil
 }
 
-func (c *Client) InstanceIDs(ctx context.Context) ([]string, error) {
-	resp, rpcErr := c.WF.ListInstanceIDs(ctx)
+func (c *Client) InstanceIDs(ctx context.Context, prefix string) ([]string, error) {
+	var opts []workflow.ListInstanceIDsOptions
+	if prefix != "" {
+		opts = append(opts, workflow.WithListInstanceIDsInstanceIDPrefix(prefix))
+	}
+	resp, rpcErr := c.WF.ListInstanceIDs(ctx, opts...)
 	if rpcErr != nil {
 		if ctx.Err() != nil {
 			return nil, rpcErr
@@ -228,7 +232,7 @@ func (c *Client) InstanceIDs(ctx context.Context) ([]string, error) {
 	ids := resp.InstanceIds
 
 	for resp.ContinuationToken != nil {
-		resp, rpcErr = c.WF.ListInstanceIDs(ctx, workflow.WithListInstanceIDsContinuationToken(*resp.ContinuationToken))
+		resp, rpcErr = c.WF.ListInstanceIDs(ctx, append(opts, workflow.WithListInstanceIDsContinuationToken(*resp.ContinuationToken))...)
 		if rpcErr != nil {
 			return nil, rpcErr
 		}
