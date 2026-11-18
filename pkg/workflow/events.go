@@ -15,6 +15,7 @@ package workflow
 
 import (
 	"context"
+	"errors"
 
 	"github.com/dapr/cli/cmd/runtime"
 	"github.com/dapr/cli/pkg/workflow/dclient"
@@ -106,6 +107,7 @@ type TerminateOptions struct {
 	AppID          string
 	InstanceID     string
 	Output         *string
+	Reason         *string
 }
 
 func Terminate(ctx context.Context, opts TerminateOptions) error {
@@ -120,12 +122,28 @@ func Terminate(ctx context.Context, opts TerminateOptions) error {
 	}
 	defer cli.Cancel()
 
-	wf := workflow.NewClient(cli.Dapr.GrpcClientConn())
-
-	var wopts []workflow.TerminateOptions
-	if opts.Output != nil {
-		wopts = append(wopts, workflow.WithOutput(*opts.Output))
+	wopts, err := terminateWorkflowOptions(opts.Output, opts.Reason)
+	if err != nil {
+		return err
 	}
 
-	return wf.TerminateWorkflow(ctx, opts.InstanceID, wopts...)
+	return cli.WF.TerminateWorkflow(ctx, opts.InstanceID, wopts...)
+}
+
+// terminateWorkflowOptions maps the CLI reason onto the existing workflow
+// termination input. The Durable Task protocol has one termination payload,
+// so output and reason cannot be supplied independently.
+func terminateWorkflowOptions(output, reason *string) ([]workflow.TerminateOptions, error) {
+	if output != nil && reason != nil {
+		return nil, errors.New("--output and --reason cannot be used together")
+	}
+
+	switch {
+	case reason != nil:
+		return []workflow.TerminateOptions{workflow.WithOutput(*reason)}, nil
+	case output != nil:
+		return []workflow.TerminateOptions{workflow.WithOutput(*output)}, nil
+	default:
+		return nil, nil
+	}
 }

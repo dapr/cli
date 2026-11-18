@@ -24,6 +24,7 @@ import (
 
 var (
 	flagTerminateOutput string
+	flagTerminateReason string
 )
 
 var TerminateCmd = &cobra.Command{
@@ -42,6 +43,10 @@ var TerminateCmd = &cobra.Command{
 		if cmd.Flags().Changed("output") {
 			output = &flagTerminateOutput
 		}
+		var reason *string
+		if cmd.Flags().Changed("reason") {
+			reason = &flagTerminateReason
+		}
 
 		opts := workflow.TerminateOptions{
 			KubernetesMode: flagKubernetesMode,
@@ -49,6 +54,7 @@ var TerminateCmd = &cobra.Command{
 			AppID:          appID,
 			InstanceID:     args[0],
 			Output:         output,
+			Reason:         reason,
 		}
 
 		if err = workflow.Terminate(ctx, opts); err != nil {
@@ -63,7 +69,8 @@ var TerminateCmd = &cobra.Command{
 }
 
 func init() {
-	TerminateCmd.Flags().StringVarP(&flagTerminateOutput, "output", "o", "", "Optional output data for the workflow in JSON string format.")
+	TerminateCmd.Flags().StringVarP(&flagTerminateOutput, "output", "o", "", "Optional termination output data in JSON string format; mutually exclusive with --reason.")
+	TerminateCmd.Flags().StringVar(&flagTerminateReason, "reason", "", "Optional human-readable termination input, exposed as workflow custom status; mutually exclusive with --output.")
 
 	WorkflowCmd.AddCommand(TerminateCmd)
 }
