@@ -219,17 +219,3 @@ func ptrString(value string) *string {
 	return &value
 }
 
-func newTerminatedEventWithReason(reason *string) *protos.ExecutionTerminatedEvent {
-	terminated := new(protos.ExecutionTerminatedEvent)
-	if reason == nil {
-		return terminated
-	}
-
-	// The pinned durabletask-go version does not yet generate field 3. Encode
-	// the StringValue wrapper as an unknown field to exercise the wire contract.
-	wrapper := protowire.AppendString(nil, 1, *reason)
-	unknown := protowire.AppendTag(nil, 3, protowire.BytesType)
-	unknown = protowire.AppendBytes(unknown, wrapper)
-	terminated.ProtoReflect().SetUnknown(unknown)
-	return terminated
-}
