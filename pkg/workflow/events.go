@@ -16,15 +16,10 @@ package workflow
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/dapr/cli/cmd/runtime"
 	"github.com/dapr/cli/pkg/workflow/dclient"
-	"github.com/dapr/durabletask-go/api/protos"
 	"github.com/dapr/durabletask-go/workflow"
-	"google.golang.org/protobuf/encoding/protowire"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 type RaiseEventOptions struct {
@@ -127,40 +122,28 @@ func Terminate(ctx context.Context, opts TerminateOptions) error {
 	}
 	defer cli.Cancel()
 
-	wf := workflow.NewClient(cli.Dapr.GrpcClientConn())
-
-	var wopts []workflow.TerminateOptions
-	if opts.Output != nil {
-		wopts = append(wopts, workflow.WithOutput(*opts.Output))
-	}
-	if opts.Reason != nil {
-		wopts = append(wopts, withTerminateReason(*opts.Reason))
+	wopts, err := terminateWorkflowOptions(opts.Output, opts.Reason)
+	if err != nil {
+		return err
 	}
 
-	return wf.TerminateWorkflow(ctx, opts.InstanceID, wopts...)
+	return cli.WF.TerminateWorkflow(ctx, opts.InstanceID, wopts...)
 }
 
-const terminateRequestReasonField protowire.Number = 5
+// terminateWorkflowOptions maps the CLI reason onto the existing workflow
+// termination input. The Durable Task protocol has one termination payload,
+// so output and reason cannot be supplied independently.
+func terminateWorkflowOptions(output, reason *string) ([]workflow.TerminateOptions, error) {
+	if output != nil && reason != nil {
+		return nil, errors.New("--output and --reason cannot be used together")
+	}
 
-// withTerminateReason encodes the optional TerminateRequest.reason field while
-// remaining compatible with durabletask-go versions whose generated request
-// type does not yet know about field 5. Unknown protobuf fields are preserved
-// by the durabletask gRPC client when it serializes the request.
-func withTerminateReason(reason string) workflow.TerminateOptions {
-	return func(req *protos.TerminateRequest) error {
-		if req == nil {
-			return errors.New("terminate request is nil")
-		}
-
-		value, err := proto.Marshal(wrapperspb.String(reason))
-		if err != nil {
-			return fmt.Errorf("failed to encode termination reason: %w", err)
-		}
-
-		unknown := req.ProtoReflect().GetUnknown()
-		unknown = protowire.AppendTag(unknown, terminateRequestReasonField, protowire.BytesType)
-		unknown = protowire.AppendBytes(unknown, value)
-		req.ProtoReflect().SetUnknown(unknown)
-		return nil
+	switch {
+	case reason != nil:
+		return []workflow.TerminateOptions{workflow.WithOutput(*reason)}, nil
+	case output != nil:
+		return []workflow.TerminateOptions{workflow.WithOutput(*output)}, nil
+	default:
+		return nil, nil
 	}
 }
