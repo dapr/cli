@@ -17,7 +17,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"google.golang.org/protobuf/encoding/protowire"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -184,21 +183,24 @@ func TestDeriveDetails_TimerCreated(t *testing.T) {
 func TestDeriveDetails_ExecutionTerminated(t *testing.T) {
 	tests := []struct {
 		name    string
-		reason  *string
+		input   *string
 		want    string
 		present bool
 	}{
-		{name: "reason recorded", reason: ptrString("cancelled by operator"), want: "reason=cancelled by operator", present: true},
-		{name: "explicit empty reason recorded", reason: ptrString(""), want: "reason=", present: true},
-		{name: "reason omitted", reason: nil, present: false},
+		{name: "reason recorded", input: ptrString("cancelled by operator"), want: "reason=cancelled by operator", present: true},
+		{name: "explicit empty reason recorded", input: ptrString(""), want: "reason=", present: true},
+		{name: "reason omitted", input: nil, present: false},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			terminated := newTerminatedEventWithReason(tc.reason)
+			var input *wrapperspb.StringValue
+			if tc.input != nil {
+				input = wrapperspb.String(*tc.input)
+			}
 			event := &protos.HistoryEvent{
 				EventType: &protos.HistoryEvent_ExecutionTerminated{
-					ExecutionTerminated: terminated,
+					ExecutionTerminated: &protos.ExecutionTerminatedEvent{Input: input},
 				},
 			}
 			got := deriveDetails(event, event)
