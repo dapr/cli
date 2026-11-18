@@ -16,7 +16,8 @@ package workflow
 import (
 	"testing"
 
-	"github.com/dapr/durabletask-go/workflow"
+	"github.com/dapr/durabletask-go/api/protos"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -28,7 +29,7 @@ func TestTerminateWorkflowOptionsUseExistingInput(t *testing.T) {
 		reason *string
 		want   string
 	}{
-		{name: "output", output: stringPtr("output"), want: "output"},
+		{name: "output", output: terminateStringPtr("output"), want: "output"},
 		{name: "reason", reason: stringPtr("operator requested termination"), want: "operator requested termination"},
 		{name: "explicit empty reason", reason: stringPtr(""), want: ""},
 	}
@@ -55,4 +56,3 @@ func stringPtr(value string) *string {
 	return &value
 }
 
-var _ workflow.TerminateOptions
