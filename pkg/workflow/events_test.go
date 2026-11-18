@@ -29,7 +29,7 @@ func TestTerminateWorkflowOptionsUseExistingInput(t *testing.T) {
 		reason *string
 		want   string
 	}{
-		{name: "output", output: terminateStringPtr("output"), want: "output"},
+		{name: "output", output: stringPtr("output"), want: "output"},
 		{name: "reason", reason: stringPtr("operator requested termination"), want: "operator requested termination"},
 		{name: "explicit empty reason", reason: stringPtr(""), want: ""},
 	}
