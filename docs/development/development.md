@@ -70,6 +70,39 @@ make build GOOS=linux GOARCH=amd64
 make test
 ```
 
+### Run E2E tests
+
+Before running standalone E2E tests locally, build the Dapr CLI binary so that it is placed in `./dist/{os}_{arch}/release/`:
+
+```bash
+make build
+```
+
+Standalone E2E tests require `DAPR_RUNTIME_PINNED_VERSION` (and `DAPR_DASHBOARD_PINNED_VERSION` when testing dashboard versions) to be set in your environment so the test harness knows which Dapr runtime and dashboard versions to initialize:
+
+```bash
+export DAPR_RUNTIME_PINNED_VERSION=1.15.0
+export DAPR_DASHBOARD_PINNED_VERSION=0.15.0
+```
+
+* Run the full standalone E2E test suite:
+
+```bash
+make test-e2e-sh
+```
+
+* Run an individual standalone E2E test (note the required `--tags=e2e` build tag):
+
+```bash
+go test -v --tags=e2e ./tests/e2e/standalone/... -run TestStandaloneInit
+```
+
+* Run standalone `dapr run -f` template E2E tests (which use the `template` build tag):
+
+```bash
+go test -v --tags=template ./tests/e2e/standalone/... -run TestRunWithTemplateFile
+```
+
 ### Debug Dapr CLI
 
 We highly recommend to use [VSCode with Go plugin](https://marketplace.visualstudio.com/items?itemName=ms-vscode.Go) for your productivity. If you want to use the different editors, you can find the [list of editor plugins](https://github.com/go-delve/delve/blob/master/Documentation/EditorIntegration.md) for Delve.
