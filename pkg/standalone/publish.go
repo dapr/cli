@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
 
 	"github.com/dapr/cli/pkg/api"
 	"github.com/dapr/cli/utils"
@@ -103,16 +104,15 @@ func getDaprInstance(list []ListOutput, publishAppID string) (ListOutput, error)
 }
 
 // getQueryParams returns the HTTP query parameter from the metadata map.
-// It appends the prefix "metadata." to each key.
+// It appends the prefix "metadata." to each key and URL-encodes keys and values.
 // The return value includes the "?" prefix if metadata is not empty.
 func getQueryParams(metadata map[string]interface{}) string {
-	queryParams := ""
+	if len(metadata) == 0 {
+		return ""
+	}
+	queryParams := url.Values{}
 	for k, v := range metadata {
-		queryParams += fmt.Sprintf("metadata.%v=%v&", k, v)
+		queryParams.Set("metadata."+k, fmt.Sprintf("%v", v))
 	}
-	// Prefix with "?" and remove the last "&".
-	if queryParams != "" {
-		queryParams = "?" + queryParams[:len(queryParams)-1]
-	}
-	return queryParams
+	return "?" + queryParams.Encode()
 }
