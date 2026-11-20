@@ -18,7 +18,10 @@ import (
 	"fmt"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
+
+	corev1 "k8s.io/api/core/v1"
 
 	"github.com/dapr/cli/pkg/standalone"
 	"github.com/dapr/cli/utils"
@@ -257,9 +260,9 @@ func (a *RunFileConfig) resolveResourcesAndConfigFilePaths() error {
 // Precedence order for envs -> apps[i].envs > common.envs.
 func (a *RunFileConfig) mergeCommonAndAppsEnv() {
 	for i := range a.Apps {
-		for k, v := range a.Common.Env {
-			if _, ok := a.Apps[i].Env[k]; !ok {
-				a.Apps[i].Env[k] = v
+		for _, v := range a.Common.Env {
+			if !slices.ContainsFunc(a.Apps[i].Env, func(e corev1.EnvVar) bool { return e.Name == v.Name }) {
+				a.Apps[i].Env = append(a.Apps[i].Env, v)
 			}
 		}
 	}

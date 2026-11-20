@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
 )
 
 func strPtr(s string) *string { return &s }
@@ -157,7 +158,7 @@ func TestGetDaprCommandEnv(t *testing.T) {
 	t.Run("user-defined env vars are passed to daprd", func(t *testing.T) {
 		config := &RunConfig{
 			AppID:           "testapp",
-			SharedRunConfig: SharedRunConfig{Env: map[string]string{"MYAPP_API_PORT": "3000"}},
+			SharedRunConfig: SharedRunConfig{Env: []corev1.EnvVar{{Name: "MYAPP_API_PORT", Value: "3000"}}},
 		}
 
 		cmd, err := GetDaprCommand(config)

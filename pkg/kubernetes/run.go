@@ -326,17 +326,7 @@ func createDeploymentConfig(client versioned.Interface, app runfileconfig.App) d
 }
 
 func getEnv(app runfileconfig.App) []corev1.EnvVar {
-	envs := app.GetEnv()
-	envVars := make([]corev1.EnvVar, len(envs))
-	i := 0
-	for k, v := range app.GetEnv() {
-		envVars[i] = corev1.EnvVar{
-			Name:  k,
-			Value: v,
-		}
-		i++
-	}
-	return envVars
+	return app.GetK8sEnvVar()
 }
 
 func writeYamlFile(app runfileconfig.App, svc serviceConfig, dep deploymentConfig) error {
