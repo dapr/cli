@@ -20,6 +20,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/dapr/cli/pkg/envfile"
 	"github.com/dapr/cli/pkg/standalone"
 	"github.com/dapr/cli/utils"
 
@@ -30,13 +31,11 @@ var imagePullPolicyValuesAllowed = []string{"Always", "Never", "IfNotPresent"}
 
 // Parse the provided run file into a RunFileConfig struct.
 func (a *RunFileConfig) parseAppsConfig(runFilePath string) error {
-	var err error
-	bytes, err := utils.ReadFile(runFilePath)
+	data, err := utils.ReadFile(runFilePath)
 	if err != nil {
 		return err
 	}
-	err = yaml.Unmarshal(bytes, &a)
-	if err != nil {
+	if err := yaml.Unmarshal(data, a); err != nil {
 		return fmt.Errorf("error in parsing the provided app config file: %w", err)
 	}
 	return nil
@@ -70,6 +69,10 @@ func (a *RunFileConfig) validateRunConfig(runFilePath string) error {
 	// Merge common's section ResourcesPaths and ResourcePath. ResourcesPaths will be single source of truth for resources to be loaded.
 	if len(strings.TrimSpace(a.Common.ResourcesPath)) > 0 {
 		a.Common.ResourcesPaths = append(a.Common.ResourcesPaths, a.Common.ResourcesPath)
+	}
+
+	if a.Common.EnvFile != "" && len(a.Common.Env) > 0 {
+		return fmt.Errorf("cannot use envFile and env at the same time")
 	}
 
 	for i := range len(a.Apps) {
@@ -107,6 +110,10 @@ func (a *RunFileConfig) validateRunConfig(runFilePath string) error {
 			}
 		} else {
 			a.Apps[i].ContainerImagePullPolicy = "Always"
+		}
+
+		if a.Apps[i].EnvFile != "" && len(a.Apps[i].Env) > 0 {
+			return fmt.Errorf("cannot use envFile and env at the same time")
 		}
 	}
 	return nil
@@ -257,9 +264,31 @@ func (a *RunFileConfig) resolveResourcesAndConfigFilePaths() error {
 // Precedence order for envs -> apps[i].envs > common.envs.
 func (a *RunFileConfig) mergeCommonAndAppsEnv() {
 	for i := range a.Apps {
+		if a.Apps[i].Env == nil {
+			a.Apps[i].Env = make(map[string]string)
+		}
+
+		if file := a.Common.EnvFile; file != "" {
+			if envs, err := envfile.GetEnvs(file); err == nil {
+				for k, v := range envs {
+					if _, ok := a.Apps[i].Env[k]; !ok {
+						a.Apps[i].Env[k] = v
+					}
+				}
+			}
+		}
+
 		for k, v := range a.Common.Env {
 			if _, ok := a.Apps[i].Env[k]; !ok {
 				a.Apps[i].Env[k] = v
+			}
+		}
+
+		if file := a.Apps[i].EnvFile; file != "" {
+			if envs, err := envfile.GetEnvs(file); err == nil {
+				for k, v := range envs {
+					a.Apps[i].Env[k] = v
+				}
 			}
 		}
 	}
